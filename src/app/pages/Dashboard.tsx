@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router";
+import { Card } from "../components/ui/card";
 
 const todaysJobs = [
   {
@@ -90,49 +91,44 @@ export function Dashboard() {
       </div>
 
       {/* Quick Stat Cards */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className="bg-white border border-[#DDE3EE] rounded-lg p-5 flex items-center gap-4">
-          <div className="w-11 h-11 rounded-lg bg-[#EBF2FC] flex items-center justify-center flex-shrink-0">
-            <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "22px" }}>work</span>
-          </div>
-          <div>
-            <div className="text-[11px] text-[#8899AA] uppercase tracking-wider mb-0.5" style={{ fontWeight: 600 }}>Jobs Today</div>
-            <div className="text-[24px] text-[#1A2332]" style={{ fontWeight: 700 }}>{jobCount}</div>
-          </div>
-          {inProgressCount > 0 && (
-            <div className="ml-auto text-right">
-              <span className="text-[12px] text-[#D4A017] bg-[#FEF9E7] px-2 py-0.5 rounded-full" style={{ fontWeight: 500 }}>
-                {inProgressCount} in progress
-              </span>
+      <div className="grid grid-cols-3 gap-5 mb-8">
+        <Card className="px-4 py-3 border border-[#DDE3EE] bg-white hover:shadow-sm transition-shadow h-[110.5px]">
+          <div className="flex items-start justify-between">
+            <div>
+              <div className="text-[24px] mb-0.5 leading-none" style={{ fontWeight: 700, color: "#1A2332" }}>{jobCount}</div>
+              <div className="text-[12px] mb-0.5" style={{ fontWeight: 500, color: "#546478" }}>Jobs Today</div>
+              {inProgressCount > 0 && (
+                <div className="text-[11px] text-[#546478]">{inProgressCount} in progress</div>
+              )}
             </div>
-          )}
-        </div>
+          </div>
+        </Card>
 
-        <div className="bg-white border border-[#DDE3EE] rounded-lg p-5 flex items-center gap-4">
-          <div className="w-11 h-11 rounded-lg bg-[#FEF3E2] flex items-center justify-center flex-shrink-0">
-            <span className="material-icons text-[#D4A017]" style={{ fontSize: "22px" }}>receipt</span>
+        <Card className="px-4 py-3 border border-[#DDE3EE] bg-white hover:shadow-sm transition-shadow h-[110.5px]">
+          <div className="flex items-start justify-between">
+            <div>
+              <div className="text-[24px] mb-0.5 leading-none" style={{ fontWeight: 700, color: "#1A2332", fontVariantNumeric: "tabular-nums" }}>$3,480</div>
+              <div className="text-[12px] mb-0.5" style={{ fontWeight: 500, color: "#546478" }}>Outstanding Invoices</div>
+              <div className="text-[11px] text-[#546478]">4 unpaid</div>
+            </div>
           </div>
-          <div>
-            <div className="text-[11px] text-[#8899AA] uppercase tracking-wider mb-0.5" style={{ fontWeight: 600 }}>Outstanding Invoices</div>
-            <div className="text-[24px] text-[#1A2332]" style={{ fontWeight: 700 }}>$3,480</div>
-          </div>
-          <div className="ml-auto text-right">
-            <span className="text-[12px] text-[#546478]">4 unpaid</span>
-          </div>
-        </div>
+        </Card>
 
-        <div className="bg-white border border-[#DDE3EE] rounded-lg p-5 flex items-center gap-4">
-          <div className="w-11 h-11 rounded-lg bg-[#E9F7EF] flex items-center justify-center flex-shrink-0">
-            <span className="material-icons text-[#1E7A45]" style={{ fontSize: "22px" }}>payments</span>
+        <Card className="px-4 py-3 border border-[#DDE3EE] bg-white hover:shadow-sm transition-shadow h-[110.5px]">
+          <div className="flex items-start justify-between">
+            <div>
+              <div className="text-[24px] mb-0.5 leading-none" style={{ fontWeight: 700, color: "#1A2332", fontVariantNumeric: "tabular-nums" }}>$6,240</div>
+              <div className="text-[12px] mb-0.5" style={{ fontWeight: 500, color: "#546478" }}>This Week's Earnings</div>
+              <div className="text-[11px] text-[#546478]">vs last week</div>
+              <div className="flex items-center gap-1 mt-1">
+                <span className="text-[11px] text-[#16A34A] flex items-center gap-1" style={{ fontWeight: 500 }}>
+                  <span className="material-icons leading-none" style={{ fontSize: "14px" }}>trending_up</span>+12%
+                </span>
+                <span className="text-[11px] text-[#546478]">vs last week</span>
+              </div>
+            </div>
           </div>
-          <div>
-            <div className="text-[11px] text-[#8899AA] uppercase tracking-wider mb-0.5" style={{ fontWeight: 600 }}>This Week's Earnings</div>
-            <div className="text-[24px] text-[#1A2332]" style={{ fontWeight: 700 }}>$6,240</div>
-          </div>
-          <div className="ml-auto text-right">
-            <span className="text-[12px] text-[#1E7A45]" style={{ fontWeight: 500 }}>+12% vs last week</span>
-          </div>
-        </div>
+        </Card>
       </div>
 
       {/* Today's Schedule */}

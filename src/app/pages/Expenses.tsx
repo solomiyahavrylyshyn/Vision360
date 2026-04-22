@@ -1,5 +1,7 @@
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router";
+import { Card } from "../components/ui/card";
+import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
 
 interface Expense {
   id: string;
@@ -59,15 +61,6 @@ export function Expenses() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
 
-  // Kebab
-  const [kebabOpen, setKebabOpen] = useState(false);
-  const kebabRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const handler = (e: MouseEvent) => { if (kebabRef.current && !kebabRef.current.contains(e.target as Node)) setKebabOpen(false); };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
-
   const filtered = mockExpenses.filter((e) => {
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
@@ -106,58 +99,34 @@ export function Expenses() {
             <span className="material-icons" style={{ fontSize: "18px" }}>add</span>
             Create Expense
           </button>
-          <div ref={kebabRef} className="relative">
-            <button
-              onClick={() => setKebabOpen(!kebabOpen)}
-              className="w-9 h-9 flex items-center justify-center border border-[#DDE3EE] rounded-lg bg-white text-[#546478] hover:bg-[#EDF0F5] transition-colors"
-            >
-              <span className="material-icons" style={{ fontSize: "20px" }}>more_vert</span>
-            </button>
-            {kebabOpen && (
-              <div className="absolute right-0 top-[calc(100%+4px)] w-[210px] bg-white border border-[#DDE3EE] rounded-lg shadow-lg z-30 py-1">
-                <button onClick={() => setKebabOpen(false)} className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-[#1A2332] hover:bg-[#F5F7FA]">
-                  <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>view_column</span>
-                  Edit Columns
-                </button>
-                <button onClick={() => setKebabOpen(false)} className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-[#1A2332] hover:bg-[#F5F7FA]">
-                  <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>swap_vert</span>
-                  Change Status
-                </button>
-                <button onClick={() => setKebabOpen(false)} className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-[#1A2332] hover:bg-[#F5F7FA]">
-                  <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>merge_type</span>
-                  Manage Duplicates
-                </button>
-                <div className="h-px bg-[#EDF0F5] my-1" />
-                {selectedIds.size > 0 && <>
-                  <button onClick={() => { setSelectedIds(new Set()); setKebabOpen(false); }} className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-[#1A2332] hover:bg-[#F5F7FA]">
-                    <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>deselect</span>
-                    Deselect All
-                  </button>
-                  <div className="h-px bg-[#EDF0F5] my-1" />
-                </>}
-                <button onClick={() => setKebabOpen(false)} className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-[#1A2332] hover:bg-[#F5F7FA]">
-                  <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>file_upload</span>
-                  Import
-                </button>
-                <button onClick={() => setKebabOpen(false)} className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-[#1A2332] hover:bg-[#F5F7FA]">
-                  <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>file_download</span>
-                  Export
-                </button>
-              </div>
-            )}
-          </div>
+          <KebabMenu triggerClassName="w-9 h-9 border border-[#DDE3EE] rounded-lg bg-white">
+            <KebabItem icon="view_column">Edit Columns</KebabItem>
+            <KebabItem icon="swap_horiz">Change Status</KebabItem>
+            <KebabItem icon="content_copy">Manage Duplicates</KebabItem>
+            <KebabSeparator />
+            {selectedIds.size > 0 && <>
+              <KebabItem icon="deselect" onClick={() => setSelectedIds(new Set())}>Deselect All</KebabItem>
+              <KebabSeparator />
+            </>}
+            <KebabItem icon="file_upload">Import</KebabItem>
+            <KebabItem icon="file_download">Export</KebabItem>
+          </KebabMenu>
         </div>
       </div>
 
       {/* Summary Card */}
-      <div className="flex items-center gap-6 mb-6">
-        <div className="bg-white border border-[#DDE3EE] rounded-lg px-5 py-4 min-w-[180px] h-[110.5px] flex flex-col justify-center">
-          <div className="text-[11px] text-[#8899AA] uppercase tracking-wide mb-1">Total Expenses</div>
-          <div className="text-[24px] text-[#1A2332]" style={{ fontWeight: 700 }}>
-            ${totalAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+      <div className="grid grid-cols-4 gap-5 mb-8">
+        <Card className="px-4 py-3 border border-[#DDE3EE] bg-white hover:shadow-sm transition-shadow h-[110.5px]">
+          <div className="flex items-start justify-between">
+            <div>
+              <div className="text-[24px] mb-0.5 leading-none" style={{ fontWeight: 700, color: "#1A2332", fontVariantNumeric: "tabular-nums" }}>
+                ${totalAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+              </div>
+              <div className="text-[12px] mb-0.5" style={{ fontWeight: 500, color: "#546478" }}>Total Expenses</div>
+              <div className="text-[11px] text-[#546478]">{filtered.length} records</div>
+            </div>
           </div>
-          <div className="text-[11px] text-[#8899AA]">{filtered.length} records</div>
-        </div>
+        </Card>
       </div>
 
       {/* Table */}

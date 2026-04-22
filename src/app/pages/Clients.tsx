@@ -3,13 +3,7 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { useNavigate } from "react-router";
 import { Card } from "../components/ui/card";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-} from "../components/ui/dropdown-menu";
+import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
 import {
   Select,
   SelectContent,
@@ -232,45 +226,24 @@ export function Clients() {
               <span className="material-icons mr-1.5" style={{ fontSize: "18px" }}>add</span>
               Create Client
             </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="w-9 h-9 flex items-center justify-center border border-[#DDE3EE] rounded-lg bg-white text-[#546478] hover:bg-[#EDF0F5] transition-colors">
-                  <span className="material-icons" style={{ fontSize: "20px" }}>more_vert</span>
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-[210px]">
-                <DropdownMenuItem className="cursor-pointer" onSelect={e => { e.preventDefault(); setPendingColumns(new Set(visibleColumns)); setEditColumnsOpen(true); }}>
-                  <span className="material-icons mr-2 text-[#546478]" style={{ fontSize: "18px" }}>view_column</span>Edit Columns
-                </DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer" onSelect={e => { e.preventDefault(); setChangeStatusOpen(true); }}>
-                  <span className="material-icons mr-2 text-[#546478]" style={{ fontSize: "18px" }}>swap_horiz</span>Change Status
-                </DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer" onSelect={() => navigate("/clients/duplicates")}>
-                  <span className="material-icons mr-2 text-[#546478]" style={{ fontSize: "18px" }}>content_copy</span>Manage Duplicates
-                </DropdownMenuItem>
-                {selectedClients.size > 0 && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem className="cursor-pointer" onSelect={() => {
-                      setClients(clients.map(c => selectedClients.has(c.id) ? { ...c, status: "Archived" as const } : c));
-                      setSelectedClients(new Set());
-                    }}>
-                      <span className="material-icons mr-2 text-[#546478]" style={{ fontSize: "18px" }}>archive</span>Archive Selected
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="cursor-pointer" onSelect={() => setSelectedClients(new Set())}>
-                      <span className="material-icons mr-2 text-[#546478]" style={{ fontSize: "18px" }}>deselect</span>Deselect All
-                    </DropdownMenuItem>
-                  </>
-                )}
-                <DropdownMenuSeparator />
-                <DropdownMenuItem className="cursor-pointer">
-                  <span className="material-icons mr-2 text-[#546478]" style={{ fontSize: "18px" }}>file_upload</span>Import
-                </DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer">
-                  <span className="material-icons mr-2 text-[#546478]" style={{ fontSize: "18px" }}>file_download</span>Export
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <KebabMenu triggerClassName="w-9 h-9 border border-[#DDE3EE] rounded-lg bg-white">
+              <KebabItem icon="view_column" onSelect={e => { e.preventDefault(); setPendingColumns(new Set(visibleColumns)); setEditColumnsOpen(true); }}>Edit Columns</KebabItem>
+              <KebabItem icon="swap_horiz" onSelect={e => { e.preventDefault(); setChangeStatusOpen(true); }}>Change Status</KebabItem>
+              <KebabItem icon="content_copy" onSelect={() => navigate("/clients/duplicates")}>Manage Duplicates</KebabItem>
+              {selectedClients.size > 0 && (
+                <>
+                  <KebabSeparator />
+                  <KebabItem icon="archive" onSelect={() => {
+                    setClients(clients.map(c => selectedClients.has(c.id) ? { ...c, status: "Archived" as const } : c));
+                    setSelectedClients(new Set());
+                  }}>Archive Selected</KebabItem>
+                  <KebabItem icon="deselect" onSelect={() => setSelectedClients(new Set())}>Deselect All</KebabItem>
+                </>
+              )}
+              <KebabSeparator />
+              <KebabItem icon="file_upload">Import</KebabItem>
+              <KebabItem icon="file_download">Export</KebabItem>
+            </KebabMenu>
           </div>
         </div>
 
@@ -629,32 +602,16 @@ export function Clients() {
                   </td>
                   <td className="px-4 py-4 text-[14px] text-[#546478]">{client.lastActivity}</td>
                   <td className="px-4 py-4">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <button className="p-1 hover:bg-[#EDF0F5] rounded transition-colors" onClick={e => e.stopPropagation()}>
-                          <span className="material-icons text-[#546478]" style={{ fontSize: "20px" }}>more_vert</span>
-                        </button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-[200px]">
-                        {client.status === "Active" ? (
-                          <DropdownMenuItem className="cursor-pointer" onSelect={e => { e.preventDefault(); handleArchiveClient(client); }}>
-                            <span className="material-icons mr-2 text-[#546478]" style={{ fontSize: "18px" }}>archive</span>Archive
-                          </DropdownMenuItem>
-                        ) : (
-                          <DropdownMenuItem className="cursor-pointer" onSelect={e => { e.preventDefault(); handleUnarchiveClient(client); }}>
-                            <span className="material-icons mr-2 text-[#546478]" style={{ fontSize: "18px" }}>unarchive</span>Unarchive
-                          </DropdownMenuItem>
-                        )}
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem className="cursor-pointer" onSelect={e => { e.preventDefault(); window.open(`/clients/${client.id}`, "_blank"); }}>
-                          <span className="text-[#1F2937]">Open in New Tab</span>
-                          <span className="material-icons ml-auto text-[#6B7280]" style={{ fontSize: "18px" }}>open_in_new</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem className="cursor-pointer text-[#DC2626]" onSelect={e => { e.preventDefault(); handleDeleteClient(client); }}>
-                          <span className="material-icons mr-2" style={{ fontSize: "18px" }}>delete_outline</span>Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    <KebabMenu>
+                      {client.status === "Active" ? (
+                        <KebabItem icon="archive" onSelect={e => { e.preventDefault(); handleArchiveClient(client); }}>Archive</KebabItem>
+                      ) : (
+                        <KebabItem icon="unarchive" onSelect={e => { e.preventDefault(); handleUnarchiveClient(client); }}>Unarchive</KebabItem>
+                      )}
+                      <KebabSeparator />
+                      <KebabItem icon="open_in_new" onSelect={e => { e.preventDefault(); window.open(`/clients/${client.id}`, "_blank"); }}>Open in New Tab</KebabItem>
+                      <KebabItem icon="delete" destructive onSelect={e => { e.preventDefault(); handleDeleteClient(client); }}>Delete</KebabItem>
+                    </KebabMenu>
                   </td>
                 </tr>
               ))}

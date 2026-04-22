@@ -20,6 +20,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuSubContent,
 } from "../components/ui/dropdown-menu";
+import { KebabMenu as KebabMenuShared, KebabItem } from "../components/ui/kebab-menu";
 import { toast } from "sonner";
 import { marketingSourcesStore } from "../stores/marketingSourcesStore";
 import { tagsStore } from "../stores/tagsStore";
@@ -212,47 +213,31 @@ export function ClientDetail() {
      KEBAB MENU
   ────────────────────────────────────────── */
   const KebabMenu = () => (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline" className="border-[#DDE3EE] text-[#546478] hover:bg-[#EDF0F5] h-9 px-3">
-          <span className="material-icons" style={{ fontSize: "18px" }}>more_vert</span>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-[220px]">
-        <DropdownMenuItem className="flex items-center gap-3 py-2.5" onClick={() => toast.info("Print functionality coming soon")}>
-          <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>print</span>
-          <span className="text-[14px] text-[#1A2332]">Print</span>
-        </DropdownMenuItem>
-        <DropdownMenuSub>
-          <DropdownMenuSubTrigger className="flex items-center gap-3 py-2.5">
-            <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>receipt_long</span>
-            <span className="text-[14px] text-[#1A2332]">Statement Actions</span>
-          </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent className="w-[200px]">
-            <DropdownMenuItem className="flex items-center gap-3 py-2.5" onClick={() => toast.info("Email Statement coming soon")}>
-              <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>email</span>
-              <span className="text-[14px] text-[#1A2332]">Email Statement</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem className="flex items-center gap-3 py-2.5" onClick={() => toast.info("Print Statement coming soon")}>
-              <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>print</span>
-              <span className="text-[14px] text-[#1A2332]">Print Statement</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem className="flex items-center gap-3 py-2.5" onClick={() => toast.info("View Statement coming soon")}>
-              <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>visibility</span>
-              <span className="text-[14px] text-[#1A2332]">View Statement</span>
-            </DropdownMenuItem>
-          </DropdownMenuSubContent>
-        </DropdownMenuSub>
-        <DropdownMenuItem className="flex items-center gap-3 py-2.5" onClick={() => toast.info("Collect Payment coming soon")}>
-          <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>payments</span>
-          <span className="text-[14px] text-[#1A2332]">Collect Payment</span>
-        </DropdownMenuItem>
-        <DropdownMenuItem className="flex items-center gap-3 py-2.5" onClick={() => toast.info("Add Recurring Service coming soon")}>
-          <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>event_repeat</span>
-          <span className="text-[14px] text-[#1A2332]">Add Recurring Service</span>
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <KebabMenuShared triggerClassName="w-9 h-9 border border-[#DDE3EE] rounded-md bg-white" contentClassName="min-w-[220px]">
+      <KebabItem icon="print" onClick={() => toast.info("Print functionality coming soon")}>Print</KebabItem>
+      <DropdownMenuSub>
+        <DropdownMenuSubTrigger className="flex items-center gap-2.5 px-3 h-9 text-[13px] text-[#374151] cursor-pointer rounded-none" style={{ fontWeight: 500 }}>
+          <span className="material-icons flex-shrink-0 text-[#6B7280]" style={{ fontSize: "18px" }}>receipt_long</span>
+          <span className="flex-1 leading-none">Statement Actions</span>
+        </DropdownMenuSubTrigger>
+        <DropdownMenuSubContent className="min-w-[200px]">
+          <DropdownMenuItem className="flex items-center gap-2.5 px-3 h-9 text-[13px] text-[#374151] cursor-pointer rounded-none" style={{ fontWeight: 500 }} onClick={() => toast.info("Email Statement coming soon")}>
+            <span className="material-icons flex-shrink-0 text-[#6B7280]" style={{ fontSize: "18px" }}>email</span>
+            <span className="flex-1 leading-none">Email Statement</span>
+          </DropdownMenuItem>
+          <DropdownMenuItem className="flex items-center gap-2.5 px-3 h-9 text-[13px] text-[#374151] cursor-pointer rounded-none" style={{ fontWeight: 500 }} onClick={() => toast.info("Print Statement coming soon")}>
+            <span className="material-icons flex-shrink-0 text-[#6B7280]" style={{ fontSize: "18px" }}>print</span>
+            <span className="flex-1 leading-none">Print Statement</span>
+          </DropdownMenuItem>
+          <DropdownMenuItem className="flex items-center gap-2.5 px-3 h-9 text-[13px] text-[#374151] cursor-pointer rounded-none" style={{ fontWeight: 500 }} onClick={() => toast.info("View Statement coming soon")}>
+            <span className="material-icons flex-shrink-0 text-[#6B7280]" style={{ fontSize: "18px" }}>visibility</span>
+            <span className="flex-1 leading-none">View Statement</span>
+          </DropdownMenuItem>
+        </DropdownMenuSubContent>
+      </DropdownMenuSub>
+      <KebabItem icon="payments" onClick={() => toast.info("Collect Payment coming soon")}>Collect Payment</KebabItem>
+      <KebabItem icon="event_repeat" onClick={() => toast.info("Add Recurring Service coming soon")}>Add Recurring Service</KebabItem>
+    </KebabMenuShared>
   );
 
   /* ──────────────────────────────────────────

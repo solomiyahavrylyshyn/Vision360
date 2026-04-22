@@ -1,5 +1,7 @@
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router";
+import { Card } from "../components/ui/card";
+import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type PaymentMethod = "Cash" | "Check" | "Credit Card" | "Debit Card" | "Bank Transfer" | "Other";
@@ -73,14 +75,6 @@ export function Payments() {
   const [page, setPage] = useState(1);
   const perPage = 10;
 
-  // Kebab
-  const [kebabOpen, setKebabOpen] = useState(false);
-  const kebabRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const handler = (e: MouseEvent) => { if (kebabRef.current && !kebabRef.current.contains(e.target as Node)) setKebabOpen(false); };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
 
   // Detail panel
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
@@ -154,69 +148,42 @@ export function Payments() {
             <span className="material-icons" style={{ fontSize: "18px" }}>add</span>
             Record Payment
           </button>
-          <div ref={kebabRef} className="relative">
-            <button
-              onClick={() => setKebabOpen(!kebabOpen)}
-              className="w-9 h-9 flex items-center justify-center border border-[#DDE3EE] rounded-lg bg-white text-[#546478] hover:bg-[#EDF0F5] transition-colors"
-            >
-              <span className="material-icons" style={{ fontSize: "20px" }}>more_vert</span>
-            </button>
-            {kebabOpen && (
-              <div className="absolute right-0 top-[calc(100%+4px)] w-[210px] bg-white border border-[#DDE3EE] rounded-lg shadow-lg z-30 py-1">
-                <button onClick={() => setKebabOpen(false)} className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-[#1A2332] hover:bg-[#F5F7FA]">
-                  <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>view_column</span>
-                  Edit Columns
-                </button>
-                <button onClick={() => setKebabOpen(false)} className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-[#1A2332] hover:bg-[#F5F7FA]">
-                  <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>swap_vert</span>
-                  Change Status
-                </button>
-                <button onClick={() => setKebabOpen(false)} className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-[#1A2332] hover:bg-[#F5F7FA]">
-                  <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>merge_type</span>
-                  Manage Duplicates
-                </button>
-                <button onClick={() => setKebabOpen(false)} className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-[#1A2332] hover:bg-[#F5F7FA]">
-                  <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>payments</span>
-                  Batch Payments
-                </button>
-                <button onClick={() => setKebabOpen(false)} className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-[#1A2332] hover:bg-[#F5F7FA]">
-                  <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>link</span>
-                  Assign to Invoices
-                </button>
-                <div className="h-px bg-[#EDF0F5] my-1" />
-                {selectedIds.size > 0 && <>
-                  <button onClick={() => { setSelectedIds(new Set()); setKebabOpen(false); }} className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-[#1A2332] hover:bg-[#F5F7FA]">
-                    <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>deselect</span>
-                    Deselect All
-                  </button>
-                  <div className="h-px bg-[#EDF0F5] my-1" />
-                </>}
-                <button onClick={() => setKebabOpen(false)} className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-[#1A2332] hover:bg-[#F5F7FA]">
-                  <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>file_upload</span>
-                  Import
-                </button>
-                <button onClick={() => setKebabOpen(false)} className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-[#1A2332] hover:bg-[#F5F7FA]">
-                  <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>file_download</span>
-                  Export
-                </button>
-              </div>
-            )}
-          </div>
+          <KebabMenu triggerClassName="w-9 h-9 border border-[#DDE3EE] rounded-lg bg-white">
+            <KebabItem icon="view_column">Edit Columns</KebabItem>
+            <KebabItem icon="swap_horiz">Change Status</KebabItem>
+            <KebabItem icon="content_copy">Manage Duplicates</KebabItem>
+            <KebabItem icon="payments">Batch Payments</KebabItem>
+            <KebabItem icon="person_add">Assign to Invoices</KebabItem>
+            <KebabSeparator />
+            {selectedIds.size > 0 && <>
+              <KebabItem icon="deselect" onClick={() => setSelectedIds(new Set())}>Deselect All</KebabItem>
+              <KebabSeparator />
+            </>}
+            <KebabItem icon="file_upload">Import</KebabItem>
+            <KebabItem icon="file_download">Export</KebabItem>
+          </KebabMenu>
         </div>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-4 gap-5 mb-8">
         {summaryCards.map(c => (
-          <button
+          <Card
             key={c.label}
             onClick={() => { setQfStatus(qfStatus === c.filterVal ? "All" : c.filterVal); setPage(1); }}
-            className={`bg-white border rounded-lg px-4 py-4 text-center transition-all hover:shadow-sm h-[110.5px] flex flex-col justify-center ${qfStatus === c.filterVal ? "border-[#4A6FA5] shadow-sm" : "border-[#DDE3EE]"}`}
+            className={`px-4 py-3 border bg-white hover:shadow-sm transition-shadow h-[110.5px] cursor-pointer ${qfStatus === c.filterVal ? "border-[#4A6FA5] ring-1 ring-[#4A6FA5]/20" : "border-[#DDE3EE]"}`}
           >
-            <div className="text-[11px] uppercase tracking-wider mb-2" style={{ fontWeight: 600, color: c.color }}>{c.label}</div>
-            <div className="text-[20px] text-[#1A2332]" style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{c.value}</div>
-            <div className="text-[12px] text-[#8899AA] mt-1">{c.sub}</div>
-          </button>
+            <div className="flex items-start justify-between">
+              <div>
+                <div className="text-[24px] mb-0.5 leading-none" style={{ fontWeight: 700, color: "#1A2332", fontVariantNumeric: "tabular-nums" }}>{c.value}</div>
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <span className="inline-block w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: c.color }} />
+                  <div className="text-[12px]" style={{ fontWeight: 500, color: "#546478" }}>{c.label}</div>
+                </div>
+                <div className="text-[11px] text-[#546478]">{c.sub}</div>
+              </div>
+            </div>
+          </Card>
         ))}
       </div>
 

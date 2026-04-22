@@ -1,13 +1,11 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
-import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
-  DropdownMenuTrigger, DropdownMenuSeparator,
-} from "../components/ui/dropdown-menu";
+import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
 import {
   Select, SelectContent, SelectItem,
   SelectTrigger, SelectValue,
 } from "../components/ui/select";
+import { Card } from "../components/ui/card";
 
 interface Job {
   id: number;
@@ -158,59 +156,42 @@ export function Jobs() {
             <span className="material-icons" style={{ fontSize: "18px" }}>add</span>
             Create Job
           </button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="w-9 h-9 flex items-center justify-center border border-[#DDE3EE] rounded-lg bg-white text-[#546478] hover:bg-[#EDF0F5] transition-colors">
-                <span className="material-icons" style={{ fontSize: "20px" }}>more_vert</span>
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-[200px]">
-              <DropdownMenuItem className="cursor-pointer">
-                <span className="material-icons mr-2 text-[#546478]" style={{ fontSize: "18px" }}>view_column</span>Edit Columns
-              </DropdownMenuItem>
-              <DropdownMenuItem className="cursor-pointer">
-                <span className="material-icons mr-2 text-[#546478]" style={{ fontSize: "18px" }}>swap_horiz</span>Change Status
-              </DropdownMenuItem>
-              <DropdownMenuItem className="cursor-pointer">
-                <span className="material-icons mr-2 text-[#546478]" style={{ fontSize: "18px" }}>content_copy</span>Manage Duplicates
-              </DropdownMenuItem>
-              {selectedJobs.size > 0 && (
-                <>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem className="cursor-pointer" onSelect={() => { setSelectedJobs(new Set()); }}>
-                    <span className="material-icons mr-2 text-[#546478]" style={{ fontSize: "18px" }}>archive</span>Archive Selected
-                  </DropdownMenuItem>
-                  <DropdownMenuItem className="cursor-pointer" onSelect={() => setSelectedJobs(new Set())}>
-                    <span className="material-icons mr-2 text-[#546478]" style={{ fontSize: "18px" }}>deselect</span>Deselect All
-                  </DropdownMenuItem>
-                </>
-              )}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem className="cursor-pointer">
-                <span className="material-icons mr-2 text-[#546478]" style={{ fontSize: "18px" }}>file_upload</span>Import
-              </DropdownMenuItem>
-              <DropdownMenuItem className="cursor-pointer">
-                <span className="material-icons mr-2 text-[#546478]" style={{ fontSize: "18px" }}>file_download</span>Export
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <KebabMenu triggerClassName="w-9 h-9 border border-[#DDE3EE] rounded-lg bg-white">
+            <KebabItem icon="view_column">Edit Columns</KebabItem>
+            <KebabItem icon="swap_horiz">Change Status</KebabItem>
+            <KebabItem icon="content_copy">Manage Duplicates</KebabItem>
+            {selectedJobs.size > 0 && (
+              <>
+                <KebabSeparator />
+                <KebabItem icon="archive" onSelect={() => { setSelectedJobs(new Set()); }}>Archive Selected</KebabItem>
+                <KebabItem icon="deselect" onSelect={() => setSelectedJobs(new Set())}>Deselect All</KebabItem>
+              </>
+            )}
+            <KebabSeparator />
+            <KebabItem icon="file_upload">Import</KebabItem>
+            <KebabItem icon="file_download">Export</KebabItem>
+          </KebabMenu>
         </div>
       </div>
 
       {/* ── Stats Cards ── */}
-      <div className="grid grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-3 gap-5 mb-8">
         {(["Scheduled", "In Progress", "Completed"] as const).map(s => (
-          <button
+          <Card
             key={s}
             onClick={() => setQfStatus(qfStatus === s ? "All" : s)}
-            className={`bg-white border rounded-lg px-4 py-4 text-left transition-all hover:shadow-sm h-[110.5px] flex flex-col justify-center ${qfStatus === s ? "border-[#4A6FA5] ring-1 ring-[#4A6FA5]/20" : "border-[#DDE3EE]"}`}
+            className={`px-4 py-3 border bg-white hover:shadow-sm transition-shadow h-[110.5px] cursor-pointer ${qfStatus === s ? "border-[#4A6FA5] ring-1 ring-[#4A6FA5]/20" : "border-[#DDE3EE]"}`}
           >
-            <div className="flex items-center gap-2 mb-2">
-              <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: statusColors[s] }} />
-              <span className="text-[13px] text-[#546478]" style={{ fontWeight: 500 }}>{s}</span>
+            <div className="flex items-start justify-between">
+              <div>
+                <div className="text-[24px] mb-0.5 leading-none" style={{ fontWeight: 700, color: "#1A2332" }}>{statusCounts[s]}</div>
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <span className="inline-block w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: statusColors[s] }} />
+                  <div className="text-[12px]" style={{ fontWeight: 500, color: "#546478" }}>{s}</div>
+                </div>
+              </div>
             </div>
-            <div className="text-[28px] text-[#1A2332]" style={{ fontWeight: 700 }}>{statusCounts[s]}</div>
-          </button>
+          </Card>
         ))}
       </div>
 
@@ -315,22 +296,12 @@ export function Jobs() {
                 </td>
                 <td className="px-4 py-4 text-[13px] text-right text-[#1A2332]" style={{ fontWeight: 500 }}>${job.total.toFixed(2)}</td>
                 <td className="px-4 py-4" onClick={e => e.stopPropagation()}>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <button className="p-1 hover:bg-[#EDF0F5] rounded transition-colors">
-                        <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>more_vert</span>
-                      </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-[180px]">
-                      <DropdownMenuItem className="cursor-pointer" onSelect={() => navigate(`/jobs/${job.id}`)}>View Job</DropdownMenuItem>
-                      <DropdownMenuItem className="cursor-pointer">Archive</DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem className="cursor-pointer" onSelect={() => window.open(`/jobs/${job.id}`, "_blank")}>
-                        Open in New Tab
-                        <span className="material-icons ml-auto text-[#6B7280]" style={{ fontSize: "16px" }}>open_in_new</span>
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <KebabMenu>
+                    <KebabItem icon="visibility" onSelect={() => navigate(`/jobs/${job.id}`)}>View Job</KebabItem>
+                    <KebabItem icon="archive">Archive</KebabItem>
+                    <KebabSeparator />
+                    <KebabItem icon="open_in_new" onSelect={() => window.open(`/jobs/${job.id}`, "_blank")}>Open in New Tab</KebabItem>
+                  </KebabMenu>
                 </td>
               </tr>
             ))}

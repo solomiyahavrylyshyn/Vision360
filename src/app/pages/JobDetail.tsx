@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router";
+import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
 
 interface Expense {
   id: number;
@@ -65,7 +66,6 @@ export function JobDetail() {
   const job = mockJobData[id || "1"] || mockJobData["1"];
 
   const [showProfitability, setShowProfitability] = useState(true);
-  const [moreOpen, setMoreOpen] = useState(false);
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
   const [photoTab, setPhotoTab] = useState<"before" | "after">("before");
   const [notes, setNotes] = useState("");
@@ -127,30 +127,11 @@ export function JobDetail() {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <div className="relative">
-                <button
-                  onClick={() => setMoreOpen(!moreOpen)}
-                  className="p-2 border border-[#DDE3EE] rounded-md hover:bg-white"
-                >
-                  <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>more_horiz</span>
-                </button>
-                {moreOpen && (
-                  <div className="absolute right-0 top-full mt-1 bg-white border border-[#DDE3EE] rounded-lg shadow-lg z-50 w-48 py-1">
-                    <button onClick={() => { navigate(`/jobs/${id}/edit`); setMoreOpen(false); }} className="w-full text-left px-4 py-2 text-sm hover:bg-[#F5F7FA] flex items-center gap-2.5">
-                      <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>edit</span>
-                      Edit Job
-                    </button>
-                    <button className="w-full text-left px-4 py-2 text-sm hover:bg-[#F5F7FA] flex items-center gap-2.5">
-                      <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>content_copy</span>
-                      Duplicate Job
-                    </button>
-                    <button className="w-full text-left px-4 py-2 text-sm text-[#DC2626] hover:bg-[#FEE2E2] flex items-center gap-2.5">
-                      <span className="material-icons text-[#DC2626]" style={{ fontSize: "18px" }}>delete</span>
-                      Delete Job
-                    </button>
-                  </div>
-                )}
-              </div>
+              <KebabMenu triggerClassName="p-2 w-auto h-auto border border-[#DDE3EE] rounded-md hover:bg-white">
+                <KebabItem icon="edit" onClick={() => navigate(`/jobs/${id}/edit`)}>Edit Job</KebabItem>
+                <KebabItem icon="content_copy">Duplicate Job</KebabItem>
+                <KebabItem icon="delete" destructive>Delete Job</KebabItem>
+              </KebabMenu>
               <button
                 onClick={() => navigate(`/jobs/${id}/edit`)}
                 className="px-4 py-2 bg-[#4A6FA5] text-white rounded-md text-sm hover:bg-[#3d5a85] flex items-center gap-1.5"

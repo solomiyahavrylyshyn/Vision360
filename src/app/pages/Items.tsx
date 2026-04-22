@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useMemo } from "react";
+import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface Item {
@@ -200,23 +201,8 @@ export function Items() {
   const [catalogModalOpen, setCatalogModalOpen] = useState(false);
   const [editingCatalog, setEditingCatalog] = useState<Catalog | null>(null);
 
-  // More actions dropdown
-  const [moreActionsOpen, setMoreActionsOpen] = useState(false);
-  const moreActionsRef = useRef<HTMLDivElement>(null);
-
   // Delete confirmation
   const [deleteConfirm, setDeleteConfirm] = useState<{ type: string; id: number; name: string } | null>(null);
-
-  // Close more actions on outside click
-  useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (moreActionsOpen && moreActionsRef.current && !moreActionsRef.current.contains(e.target as Node)) {
-        setMoreActionsOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, [moreActionsOpen]);
 
   // ─── Items Logic ─────────────────────────────────────────────────────
   const filteredItems = useMemo(() => {
@@ -298,58 +284,50 @@ export function Items() {
           Items
           <span className="text-[15px] text-[#9AA3AF]" style={{ fontWeight: 400 }}>({tabRecordCounts[activeTab]} records)</span>
         </h1>
-        <div ref={moreActionsRef} className="relative">
+        <div className="flex items-center gap-2">
           <button
-            onClick={() => setMoreActionsOpen(!moreActionsOpen)}
-            className="w-9 h-9 flex items-center justify-center border border-[#DDE3EE] rounded-lg bg-white text-[#546478] hover:bg-[#EDF0F5] transition-colors"
+            onClick={() => {
+              if (activeTab === "items") { setEditingItem(null); setItemModalOpen(true); }
+              else if (activeTab === "groups") { setEditingGroup(null); setGroupModalOpen(true); }
+              else if (activeTab === "categories") { setEditingCat(null); setCatModalOpen(true); }
+            }}
+            className="h-9 px-4 bg-[#4A6FA5] text-white rounded-lg text-[13px] hover:bg-[#3d5a85] flex items-center gap-1.5"
+            style={{ fontWeight: 600 }}
           >
-            <span className="material-icons" style={{ fontSize: "20px" }}>more_vert</span>
+            <span className="material-icons" style={{ fontSize: "18px" }}>add</span>
+            {activeTab === "items" && "Create Item"}
+            {activeTab === "groups" && "Create Group"}
+            {activeTab === "categories" && "Create Category"}
+            {activeTab !== "items" && activeTab !== "groups" && activeTab !== "categories" && "Create"}
           </button>
-          {moreActionsOpen && (
-            <div className="absolute right-0 top-[calc(100%+4px)] w-[200px] bg-white border border-[#DDE3EE] rounded-lg shadow-lg z-30 py-1">
-              <button
-                onClick={() => { setMoreActionsOpen(false); alert("Import functionality — CSV/Google Sheets import will be available with backend integration."); }}
-                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-[#1A2332] hover:bg-[#F5F7FA] transition-colors"
-              >
-                <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>file_upload</span>
-                Import
-              </button>
-              <button
-                onClick={() => { setMoreActionsOpen(false); handleExport(); }}
-                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-[#1A2332] hover:bg-[#F5F7FA] transition-colors"
-              >
-                <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>file_download</span>
-                Export
-              </button>
-              <div className="h-px bg-[#EDF0F5] my-1" />
-              <button onClick={() => setMoreActionsOpen(false)} className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-[#1A2332] hover:bg-[#F5F7FA] transition-colors">
-                <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>view_column</span>
-                Edit Columns
-              </button>
-              <button onClick={() => setMoreActionsOpen(false)} className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-[#1A2332] hover:bg-[#F5F7FA] transition-colors">
-                <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>merge_type</span>
-                Manage Duplicates
-              </button>
-            </div>
-          )}
+          <KebabMenu triggerClassName="w-9 h-9 border border-[#DDE3EE] rounded-lg bg-white">
+            <KebabItem icon="file_upload" onClick={() => alert("Import functionality — CSV/Google Sheets import will be available with backend integration.")}>Import</KebabItem>
+            <KebabItem icon="file_download" onClick={() => handleExport()}>Export</KebabItem>
+            <KebabSeparator />
+            <KebabItem icon="view_column">Edit Columns</KebabItem>
+            <KebabItem icon="content_copy">Manage Duplicates</KebabItem>
+          </KebabMenu>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-[#DDE3EE] mb-6">
-        <div className="flex gap-0">
+      <div className="border-b border-[#E5E7EB] mb-6">
+        <div className="flex items-center">
           {tabs.map((tab) => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`px-5 py-3 text-[14px] border-b-2 transition-colors ${
+              className={`relative h-[45px] px-4 shrink-0 text-[13px] transition-colors whitespace-nowrap ${
                 activeTab === tab.key
-                  ? "border-[#4A6FA5] text-[#1A2332]"
-                  : "border-transparent text-[#546478] hover:text-[#1A2332] hover:border-[#C8D5E8]"
+                  ? "text-[#4A6FA5]"
+                  : "text-[#6B7280] hover:text-[#374151]"
               }`}
-              style={{ fontWeight: activeTab === tab.key ? 600 : 500 }}
+              style={{ fontWeight: 500 }}
             >
               {tab.label}
+              {activeTab === tab.key && (
+                <div className="absolute bottom-[10px] left-0 right-0 h-[2px] bg-[#4A6FA5]" />
+              )}
             </button>
           ))}
         </div>
@@ -358,18 +336,6 @@ export function Items() {
       {/* ═══════════════ ITEMS & PRODUCTS TAB ═══════════════ */}
       {activeTab === "items" && (
         <div>
-          {/* Toolbar */}
-          <div className="flex items-center justify-end mb-4">
-            <button
-              onClick={() => { setEditingItem(null); setItemModalOpen(true); }}
-              className="h-9 px-4 bg-[#4A6FA5] text-white rounded-lg text-[13px] hover:bg-[#3d5a85] flex items-center gap-2 shadow-sm"
-              style={{ fontWeight: 600 }}
-            >
-              <span className="material-icons" style={{ fontSize: "18px" }}>add</span>
-              Create Item
-            </button>
-          </div>
-
           {/* Search + Filter bar */}
           <div className="bg-white border border-[#DDE3EE] rounded-t-lg">
             <div className="flex items-center justify-between p-3 border-b border-[#DDE3EE]">
@@ -553,17 +519,6 @@ export function Items() {
       {/* ═══════════════ ITEM GROUPS TAB ═══════════════ */}
       {activeTab === "groups" && (
         <div>
-          <div className="flex items-center justify-end mb-4">
-            <button
-              onClick={() => { setEditingGroup(null); setGroupModalOpen(true); }}
-              className="h-9 px-4 bg-[#4A6FA5] text-white rounded-lg text-[13px] hover:bg-[#3d5a85] flex items-center gap-2 shadow-sm"
-              style={{ fontWeight: 600 }}
-            >
-              <span className="material-icons" style={{ fontSize: "18px" }}>add</span>
-              Create Group
-            </button>
-          </div>
-
           <div className="bg-white border border-[#DDE3EE] rounded-lg">
             <div className="flex items-center justify-between p-3 border-b border-[#DDE3EE]">
               <div className="relative w-[260px]">
@@ -612,17 +567,6 @@ export function Items() {
       {/* ═══════════════ ITEM CATEGORIES TAB ═══════════════ */}
       {activeTab === "categories" && (
         <div>
-          <div className="flex items-center justify-end mb-4">
-            <button
-              onClick={() => { setEditingCat(null); setCatModalOpen(true); }}
-              className="h-9 px-4 bg-[#4A6FA5] text-white rounded-lg text-[13px] hover:bg-[#3d5a85] flex items-center gap-2 shadow-sm"
-              style={{ fontWeight: 600 }}
-            >
-              <span className="material-icons" style={{ fontSize: "18px" }}>add</span>
-              Create Category
-            </button>
-          </div>
-
           <div className="bg-white border border-[#DDE3EE] rounded-lg">
             <div className="flex items-center justify-between p-3 border-b border-[#DDE3EE]">
               <div className="relative w-[260px]">
