@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { useNavigate } from "react-router";
 import { ItemPicker, catalogItemToLineItem, type CatalogItem, type SelectedLineItem } from "../components/ItemPicker";
+import { jobTypesStore } from "../stores/jobTypesStore";
 
 // Mock catalog items (same as CreateEstimate)
 const mockCatalogItems: CatalogItem[] = [
@@ -22,6 +23,8 @@ export function CreateJob() {
   const [salesperson, setSalesperson] = useState("");
   const [salespersonDropdown, setSalespersonDropdown] = useState(false);
   const [jobType, setJobType] = useState<"one-off" | "recurring">("one-off");
+  const [jobCategory, setJobCategory] = useState("");
+  const availableJobTypes = useSyncExternalStore(jobTypesStore.subscribe, jobTypesStore.getJobTypes);
   const [startDate, setStartDate] = useState("2026-04-06");
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
@@ -140,28 +143,49 @@ export function CreateJob() {
 
         {/* Job Type & Schedule */}
         <div className="border border-[#DDE3EE] rounded-lg p-6 mb-6">
-          <div className="flex items-center gap-2 mb-4">
-            <span className="text-[16px] text-[#1A2332]" style={{ fontWeight: 700 }}>Job type</span>
-          </div>
-          <div className="flex gap-2 mb-6">
-            <button
-              onClick={() => setJobType("one-off")}
-              className={`px-4 py-1.5 rounded-md text-sm border ${
-                jobType === "one-off" ? "border-[#1A2332] bg-white text-[#1A2332]" : "border-[#DDE3EE] text-[#546478]"
-              }`}
-              style={{ fontWeight: jobType === "one-off" ? 600 : 400 }}
-            >
-              One-off
-            </button>
-            <button
-              onClick={() => setJobType("recurring")}
-              className={`px-4 py-1.5 rounded-md text-sm border ${
-                jobType === "recurring" ? "border-[#1A2332] bg-white text-[#1A2332]" : "border-[#DDE3EE] text-[#546478]"
-              }`}
-              style={{ fontWeight: jobType === "recurring" ? 600 : 400 }}
-            >
-              Recurring
-            </button>
+          <div className="grid grid-cols-2 gap-4 mb-6">
+            {/* Schedule type: One-off / Recurring */}
+            <div>
+              <label className="text-[13px] text-[#546478] mb-1.5 block" style={{ fontWeight: 500 }}>Schedule type</label>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setJobType("one-off")}
+                  className={`px-4 py-1.5 rounded-md text-sm border ${
+                    jobType === "one-off" ? "border-[#1A2332] bg-white text-[#1A2332]" : "border-[#DDE3EE] text-[#546478]"
+                  }`}
+                  style={{ fontWeight: jobType === "one-off" ? 600 : 400 }}
+                >
+                  One-off
+                </button>
+                <button
+                  onClick={() => setJobType("recurring")}
+                  className={`px-4 py-1.5 rounded-md text-sm border ${
+                    jobType === "recurring" ? "border-[#1A2332] bg-white text-[#1A2332]" : "border-[#DDE3EE] text-[#546478]"
+                  }`}
+                  style={{ fontWeight: jobType === "recurring" ? 600 : 400 }}
+                >
+                  Recurring
+                </button>
+              </div>
+            </div>
+
+            {/* Job type dropdown */}
+            <div>
+              <label className="text-[13px] text-[#546478] mb-1.5 block" style={{ fontWeight: 500 }}>Job type</label>
+              <select
+                value={jobCategory}
+                onChange={e => setJobCategory(e.target.value)}
+                className="w-full h-[34px] px-3 border border-[#DDE3EE] rounded-md text-[13px] text-[#1A2332] bg-white focus:outline-none focus:border-[#4A6FA5]"
+              >
+                <option value="">Select job type</option>
+                {availableJobTypes.map(t => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
+              <p className="text-[12px] text-[#6B7280] mt-1">
+                Manage job types in <span className="text-[#4A6FA5] cursor-pointer hover:underline" onClick={() => navigate("/settings?section=jobTypes")}>Settings → Job Types</span>
+              </p>
+            </div>
           </div>
 
           {/* Schedule */}

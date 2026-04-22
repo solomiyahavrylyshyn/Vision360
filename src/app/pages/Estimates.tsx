@@ -283,7 +283,7 @@ export function Estimates() {
           <button
             key={status}
             onClick={() => { setQfStatus(qfStatus === status ? "All" : status); setPage(1); }}
-            className={`bg-white border rounded-lg px-4 py-4 text-center transition-all hover:shadow-sm min-h-[129px] flex flex-col justify-center items-center ${
+            className={`bg-white border rounded-lg px-4 py-4 text-center transition-all hover:shadow-sm h-[110.5px] flex flex-col justify-center items-center ${
               qfStatus === status ? "border-[#4A6FA5] ring-1 ring-[#4A6FA5]/20" : "border-[#DDE3EE]"
             }`}
           >

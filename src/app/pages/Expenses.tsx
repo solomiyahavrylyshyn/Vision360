@@ -151,7 +151,7 @@ export function Expenses() {
 
       {/* Summary Card */}
       <div className="flex items-center gap-6 mb-6">
-        <div className="bg-white border border-[#DDE3EE] rounded-lg px-5 py-4 min-w-[180px] min-h-[129px] flex flex-col justify-center">
+        <div className="bg-white border border-[#DDE3EE] rounded-lg px-5 py-4 min-w-[180px] h-[110.5px] flex flex-col justify-center">
           <div className="text-[11px] text-[#8899AA] uppercase tracking-wide mb-1">Total Expenses</div>
           <div className="text-[24px] text-[#1A2332]" style={{ fontWeight: 700 }}>
             ${totalAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}

@@ -8,6 +8,7 @@ import { Switch } from "../components/ui/switch";
 import { marketingSourcesStore } from "../stores/marketingSourcesStore";
 import { tagsStore } from "../stores/tagsStore";
 import { countiesStore } from "../stores/countiesStore";
+import { jobTypesStore } from "../stores/jobTypesStore";
 import { toast } from "sonner";
 
 type SettingsSection =
@@ -23,7 +24,8 @@ type SettingsSection =
   | "templates"
   | "marketingSources"
   | "customerTags"
-  | "counties";
+  | "counties"
+  | "jobTypes";
 
 export function Settings() {
   const [searchParams] = useSearchParams();
@@ -57,6 +59,10 @@ export function Settings() {
   const [newCountyName, setNewCountyName] = useState("");
   const [editingCounty, setEditingCounty] = useState<string | null>(null);
   const [editingCountyValue, setEditingCountyValue] = useState("");
+  const jobTypes = useSyncExternalStore(jobTypesStore.subscribe, jobTypesStore.getJobTypes);
+  const [newJobTypeName, setNewJobTypeName] = useState("");
+  const [editingJobType, setEditingJobType] = useState<string | null>(null);
+  const [editingJobTypeValue, setEditingJobTypeValue] = useState("");
 
   return (
     <div className="flex h-full bg-[#F2F4F7]" style={{ height: "calc(100vh - 64px)" }}>
@@ -205,6 +211,16 @@ export function Settings() {
                 }`}
               >
                 Counties
+              </button>
+              <button
+                onClick={() => setActiveSection("jobTypes")}
+                className={`w-full block px-3.5 py-1.5 pl-9 text-[12.5px] transition-colors text-left ${
+                  activeSection === "jobTypes"
+                    ? "bg-[#EBF0F8] text-[#4A6FA5] font-semibold border-l-[3px] border-l-[#4A6FA5] pl-[33px]"
+                    : "text-[#546478] hover:bg-[#F5F7FA] hover:text-[#1A2332]"
+                }`}
+              >
+                Job Types
               </button>
             </div>
           </div>
@@ -806,6 +822,108 @@ export function Settings() {
                                 >
                                   Delete
                                 </button>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </Card>
+            </>
+          )}
+
+          {activeSection === "jobTypes" && (
+            <>
+              <h1 className="text-[22px] font-bold text-[#1A2332] mb-1">Job Types</h1>
+              <p className="text-[13px] text-[#546478] mb-4.5 leading-relaxed max-w-[680px]">
+                Manage the list of job types available when creating or editing jobs.
+              </p>
+
+              <Card className="p-6 border border-[#DDE3EE] mb-4">
+                <div className="flex gap-3 mb-5">
+                  <Input
+                    placeholder="New job type name..."
+                    value={newJobTypeName}
+                    onChange={(e) => setNewJobTypeName(e.target.value)}
+                    className="border-[#DDE3EE] max-w-[360px]"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        if (newJobTypeName.trim()) {
+                          jobTypesStore.addJobType(newJobTypeName);
+                          setNewJobTypeName("");
+                          toast.success("Job type added");
+                        }
+                      }
+                    }}
+                  />
+                  <Button
+                    className="bg-[#4A6FA5] hover:bg-[#3d5a85]"
+                    onClick={() => {
+                      if (newJobTypeName.trim()) {
+                        jobTypesStore.addJobType(newJobTypeName);
+                        setNewJobTypeName("");
+                        toast.success("Job type added");
+                      }
+                    }}
+                  >
+                    + Add Job Type
+                  </Button>
+                </div>
+
+                <table className="w-full bg-white border border-[#DDE3EE] rounded-lg overflow-hidden">
+                  <thead className="bg-[#F0F2F5]">
+                    <tr>
+                      <th className="px-3.5 py-2.5 text-left text-[11px] font-bold uppercase tracking-wider text-[#546478]">Job Type</th>
+                      <th className="px-3.5 py-2.5 text-right text-[11px] font-bold uppercase tracking-wider text-[#546478] w-[140px]">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {jobTypes.map((jt) => (
+                      <tr key={jt} className="border-t border-[#DDE3EE] hover:bg-[#F5F7FA]">
+                        <td className="px-3.5 py-2.5 text-[13px]">
+                          {editingJobType === jt ? (
+                            <Input
+                              value={editingJobTypeValue}
+                              onChange={(e) => setEditingJobTypeValue(e.target.value)}
+                              className="border-[#DDE3EE] h-8 text-[13px] max-w-[300px]"
+                              autoFocus
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  jobTypesStore.renameJobType(jt, editingJobTypeValue);
+                                  setEditingJobType(null);
+                                  toast.success("Job type renamed");
+                                }
+                                if (e.key === "Escape") setEditingJobType(null);
+                              }}
+                            />
+                          ) : jt}
+                        </td>
+                        <td className="px-3.5 py-2.5 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            {editingJobType === jt ? (
+                              <>
+                                <button
+                                  onClick={() => { jobTypesStore.renameJobType(jt, editingJobTypeValue); setEditingJobType(null); toast.success("Job type renamed"); }}
+                                  className="px-2.5 py-1 bg-[#4A6FA5] text-white rounded text-xs font-medium hover:bg-[#3d5a85] transition-colors"
+                                >Save</button>
+                                <button
+                                  onClick={() => setEditingJobType(null)}
+                                  className="px-2.5 py-1 bg-[#EBF0F8] text-[#546478] border border-[#C8D5E8] rounded text-xs font-medium hover:bg-[#DDE3EE] transition-colors"
+                                >Cancel</button>
+                              </>
+                            ) : (
+                              <>
+                                <button
+                                  onClick={() => { setEditingJobType(jt); setEditingJobTypeValue(jt); }}
+                                  className="px-2.5 py-1 bg-[#EBF0F8] text-[#4A6FA5] border border-[#C8D5E8] rounded text-xs font-medium hover:bg-[#4A6FA5] hover:text-white transition-colors"
+                                >Edit</button>
+                                <button
+                                  onClick={() => { jobTypesStore.removeJobType(jt); toast.success("Job type removed"); }}
+                                  className="px-2.5 py-1 bg-[#FEF2F2] text-[#DC2626] border border-[#FECACA] rounded text-xs font-medium hover:bg-[#DC2626] hover:text-white transition-colors"
+                                >Delete</button>
                               </>
                             )}
                           </div>

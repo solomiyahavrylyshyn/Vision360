@@ -204,7 +204,7 @@ export function Clients() {
   );
 
   const Sparkline = ({ data, color = "#4A6FA5" }: { data: number[]; color?: string }) => {
-    const w = 80, h = 32, pad = 2;
+    const w = 72, h = 24, pad = 2;
     const min = Math.min(...data), max = Math.max(...data), range = max - min || 1;
     const pts = data.map((v, i) => `${pad + (i / (data.length - 1)) * (w - pad * 2)},${h - pad - ((v - min) / range) * (h - pad * 2)}`).join(" ");
     const area = `M${pts.split(" ")[0]} L${pts} L${w - pad},${h} L${pad},${h} Z`;
@@ -276,65 +276,65 @@ export function Clients() {
 
         {/* ── Stats Cards ── */}
         <div className="grid grid-cols-4 gap-5 mb-8">
-          <Card className="px-4 py-4 border border-[#DDE3EE] bg-white hover:shadow-sm transition-shadow min-h-[129px]">
+          <Card className="px-4 py-3 border border-[#DDE3EE] bg-white hover:shadow-sm transition-shadow h-[110.5px]">
             <div className="flex items-start justify-between">
               <div>
-                <div className="text-[30px] mb-1 leading-none" style={{ fontWeight: 700, color: "#1A2332" }}>4</div>
-                <div className="text-[13px] mb-1" style={{ fontWeight: 500, color: "#546478" }}>New prospects</div>
-                <div className="text-[12px] text-[#546478]">last 30 days</div>
-                <div className="flex items-center gap-1 mt-2">
-                  <span className="text-[12px] text-[#16A34A] flex items-center gap-1" style={{ fontWeight: 500 }}>
-                    <span className="material-icons text-[16px] leading-none">trending_up</span>+100%
+                <div className="text-[24px] mb-0.5 leading-none" style={{ fontWeight: 700, color: "#1A2332" }}>4</div>
+                <div className="text-[12px] mb-0.5" style={{ fontWeight: 500, color: "#546478" }}>New prospects</div>
+                <div className="text-[11px] text-[#546478]">last 30 days</div>
+                <div className="flex items-center gap-1 mt-1">
+                  <span className="text-[11px] text-[#16A34A] flex items-center gap-1" style={{ fontWeight: 500 }}>
+                    <span className="material-icons leading-none" style={{ fontSize: "14px" }}>trending_up</span>+100%
                   </span>
-                  <span className="text-[12px] text-[#546478]">vs prev. period</span>
+                  <span className="text-[11px] text-[#546478]">vs prev. period</span>
                 </div>
               </div>
               <Sparkline data={[2, 3, 2, 4, 3, 5, 4]} color="#4A6FA5" />
             </div>
           </Card>
-          <Card className="px-4 py-4 border border-[#DDE3EE] bg-white hover:shadow-sm transition-shadow min-h-[129px]">
+          <Card className="px-4 py-3 border border-[#DDE3EE] bg-white hover:shadow-sm transition-shadow h-[110.5px]">
             <div className="flex items-start justify-between">
               <div>
-                <div className="text-[30px] mb-1 leading-none" style={{ fontWeight: 700, color: "#1A2332" }}>1</div>
-                <div className="text-[13px] mb-1" style={{ fontWeight: 500, color: "#546478" }}>New contacts</div>
-                <div className="text-[12px] text-[#546478]">last 30 days</div>
-                <div className="flex items-center gap-1 mt-2">
-                  <span className="text-[12px] text-[#16A34A] flex items-center gap-1" style={{ fontWeight: 500 }}>
-                    <span className="material-icons text-[16px] leading-none">trending_up</span>+25%
+                <div className="text-[24px] mb-0.5 leading-none" style={{ fontWeight: 700, color: "#1A2332" }}>1</div>
+                <div className="text-[12px] mb-0.5" style={{ fontWeight: 500, color: "#546478" }}>New contacts</div>
+                <div className="text-[11px] text-[#546478]">last 30 days</div>
+                <div className="flex items-center gap-1 mt-1">
+                  <span className="text-[11px] text-[#16A34A] flex items-center gap-1" style={{ fontWeight: 500 }}>
+                    <span className="material-icons leading-none" style={{ fontSize: "14px" }}>trending_up</span>+25%
                   </span>
-                  <span className="text-[12px] text-[#546478]">vs prev. period</span>
+                  <span className="text-[11px] text-[#546478]">vs prev. period</span>
                 </div>
               </div>
               <Sparkline data={[0, 1, 0, 1, 1, 0, 1]} color="#4A6FA5" />
             </div>
           </Card>
-          <Card className="px-4 py-4 border border-[#DDE3EE] bg-white hover:shadow-sm transition-shadow min-h-[129px]">
+          <Card className="px-4 py-3 border border-[#DDE3EE] bg-white hover:shadow-sm transition-shadow h-[110.5px]">
             <div className="flex items-start justify-between">
               <div>
-                <div className="text-[30px] mb-1 leading-none" style={{ fontWeight: 700, color: "#1A2332" }}>6</div>
-                <div className="text-[13px] mb-1" style={{ fontWeight: 500, color: "#546478" }}>Total contacts</div>
-                <div className="text-[12px] text-[#546478]">year to date</div>
-                <div className="flex items-center gap-1 mt-2">
-                  <span className="text-[12px] text-[#16A34A] flex items-center gap-1" style={{ fontWeight: 500 }}>
-                    <span className="material-icons text-[16px] leading-none">trending_up</span>+50%
+                <div className="text-[24px] mb-0.5 leading-none" style={{ fontWeight: 700, color: "#1A2332" }}>6</div>
+                <div className="text-[12px] mb-0.5" style={{ fontWeight: 500, color: "#546478" }}>Total contacts</div>
+                <div className="text-[11px] text-[#546478]">year to date</div>
+                <div className="flex items-center gap-1 mt-1">
+                  <span className="text-[11px] text-[#16A34A] flex items-center gap-1" style={{ fontWeight: 500 }}>
+                    <span className="material-icons leading-none" style={{ fontSize: "14px" }}>trending_up</span>+50%
                   </span>
-                  <span className="text-[12px] text-[#546478]">vs prev. year</span>
+                  <span className="text-[11px] text-[#546478]">vs prev. year</span>
                 </div>
               </div>
               <Sparkline data={[3, 4, 4, 5, 5, 6, 6]} color="#4A6FA5" />
             </div>
           </Card>
-          <Card className="px-4 py-3 border border-[#DDE3EE] bg-gradient-to-br from-[#1A2332] to-[#2a3a50] hover:shadow-sm transition-shadow cursor-pointer group overflow-hidden">
-            <div className="flex flex-col h-full justify-center items-start text-left gap-1">
+          <Card className="px-4 py-3 border border-[#DDE3EE] bg-gradient-to-br from-[#1A2332] to-[#2a3a50] hover:shadow-sm transition-shadow cursor-pointer group overflow-hidden h-[110.5px]">
+            <div className="flex flex-col h-full justify-center items-start text-left gap-0.5">
               <div className="flex items-center gap-1">
-                <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "14px" }}>auto_awesome</span>
-                <span className="text-[10px] text-[#4A6FA5] uppercase tracking-wide" style={{ fontWeight: 600 }}>What's New</span>
+                <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "12px" }}>auto_awesome</span>
+                <span className="text-[9px] text-[#4A6FA5] uppercase tracking-wide" style={{ fontWeight: 600 }}>What's New</span>
               </div>
-              <div className="text-[14px] text-white leading-tight" style={{ fontWeight: 600 }}>Integration with QuickBooks Online</div>
-              <p className="text-[12px] text-[#8899AA] leading-snug">Sync your clients, invoices, and payments automatically.</p>
+              <div className="text-[12px] text-white leading-tight" style={{ fontWeight: 600 }}>Integration with QuickBooks Online</div>
+              <p className="text-[11px] text-[#8899AA] leading-snug">Sync your clients, invoices, and payments automatically.</p>
               <div className="flex items-center gap-0.5 text-[#4A6FA5] group-hover:text-[#6b8fc0] transition-colors mt-0.5">
-                <span className="text-[11px]" style={{ fontWeight: 600 }}>Learn more</span>
-                <span className="material-icons" style={{ fontSize: "14px" }}>arrow_forward</span>
+                <span className="text-[10px]" style={{ fontWeight: 600 }}>Learn more</span>
+                <span className="material-icons" style={{ fontSize: "12px" }}>arrow_forward</span>
               </div>
             </div>
           </Card>

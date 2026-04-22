@@ -203,7 +203,7 @@ export function Jobs() {
           <button
             key={s}
             onClick={() => setQfStatus(qfStatus === s ? "All" : s)}
-            className={`bg-white border rounded-lg px-4 py-4 text-left transition-all hover:shadow-sm min-h-[129px] flex flex-col justify-center ${qfStatus === s ? "border-[#4A6FA5] ring-1 ring-[#4A6FA5]/20" : "border-[#DDE3EE]"}`}
+            className={`bg-white border rounded-lg px-4 py-4 text-left transition-all hover:shadow-sm h-[110.5px] flex flex-col justify-center ${qfStatus === s ? "border-[#4A6FA5] ring-1 ring-[#4A6FA5]/20" : "border-[#DDE3EE]"}`}
           >
             <div className="flex items-center gap-2 mb-2">
               <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: statusColors[s] }} />
