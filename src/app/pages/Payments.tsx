@@ -143,7 +143,7 @@ export function Payments() {
         <h1 className="text-[26px] text-[#1A2332] flex items-center gap-2" style={{ fontWeight: 700 }}>
           Payments
           <span className="text-[15px] text-[#9AA3AF]" style={{ fontWeight: 400 }}>
-            ({selectedIds.size > 0 ? `${filtered.length} · ${selectedIds.size} selected` : filtered.length})
+            ({selectedIds.size > 0 ? `${filtered.length} records · ${selectedIds.size} selected` : `${filtered.length} records`})
           </span>
         </h1>
         <div className="flex items-center gap-2">

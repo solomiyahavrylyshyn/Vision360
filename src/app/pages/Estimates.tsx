@@ -214,7 +214,7 @@ export function Estimates() {
         <h1 className="text-[26px] text-[#1A2332] flex items-center gap-2" style={{ fontWeight: 700 }}>
           Estimates
           <span className="text-[15px] text-[#9AA3AF]" style={{ fontWeight: 400 }}>
-            ({selectedIds.size > 0 ? `${filtered.length} · ${selectedIds.size} selected` : filtered.length})
+            ({selectedIds.size > 0 ? `${filtered.length} records · ${selectedIds.size} selected` : `${filtered.length} records`})
           </span>
         </h1>
         <div className="flex items-center gap-2">
@@ -283,7 +283,7 @@ export function Estimates() {
           <button
             key={status}
             onClick={() => { setQfStatus(qfStatus === status ? "All" : status); setPage(1); }}
-            className={`bg-white border rounded-lg px-4 py-4 text-center transition-all hover:shadow-sm ${
+            className={`bg-white border rounded-lg px-4 py-4 text-center transition-all hover:shadow-sm min-h-[129px] flex flex-col justify-center items-center ${
               qfStatus === status ? "border-[#4A6FA5] ring-1 ring-[#4A6FA5]/20" : "border-[#DDE3EE]"
             }`}
           >

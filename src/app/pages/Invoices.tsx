@@ -138,7 +138,7 @@ export function Invoices() {
         <h1 className="text-[26px] text-[#1A2332] flex items-center gap-2" style={{ fontWeight: 700 }}>
           Invoices
           <span className="text-[15px] text-[#9AA3AF]" style={{ fontWeight: 400 }}>
-            ({selectedIds.size > 0 ? `${filtered.length} · ${selectedIds.size} selected` : filtered.length})
+            ({selectedIds.size > 0 ? `${filtered.length} records · ${selectedIds.size} selected` : `${filtered.length} records`})
           </span>
         </h1>
         <div className="flex items-center gap-2">
@@ -203,7 +203,7 @@ export function Invoices() {
           <button
             key={c.label}
             onClick={() => { setQfStatus(qfStatus === c.filterVal ? "All" : c.filterVal); setPage(1); }}
-            className={`bg-white border rounded-lg px-4 py-4 text-center transition-all hover:shadow-sm ${qfStatus === c.filterVal ? "border-[#4A6FA5] shadow-sm" : "border-[#DDE3EE]"}`}
+            className={`bg-white border rounded-lg px-4 py-4 text-center transition-all hover:shadow-sm min-h-[129px] flex flex-col justify-center ${qfStatus === c.filterVal ? "border-[#4A6FA5] shadow-sm" : "border-[#DDE3EE]"}`}
           >
             <div className="text-[11px] uppercase tracking-wider mb-2" style={{ fontWeight: 600, color: c.color }}>{c.label}</div>
             <div className="text-[20px] text-[#1A2332]" style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{c.value}</div>

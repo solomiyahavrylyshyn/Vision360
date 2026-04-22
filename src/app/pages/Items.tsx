@@ -296,7 +296,7 @@ export function Items() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-[26px] text-[#1A2332] flex items-center gap-2" style={{ fontWeight: 700 }}>
           Items
-          <span className="text-[15px] text-[#9AA3AF]" style={{ fontWeight: 400 }}>({tabRecordCounts[activeTab]})</span>
+          <span className="text-[15px] text-[#9AA3AF]" style={{ fontWeight: 400 }}>({tabRecordCounts[activeTab]} records)</span>
         </h1>
         <div ref={moreActionsRef} className="relative">
           <button

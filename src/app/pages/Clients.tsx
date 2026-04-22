@@ -224,7 +224,7 @@ export function Clients() {
           <h1 className="text-[26px] text-[#1A2332] flex items-center gap-2" style={{ fontWeight: 700 }}>
             Clients
             <span className="text-[15px] text-[#9AA3AF]" style={{ fontWeight: 400 }}>
-              ({selectedClients.size > 0 ? `${filteredClients.length} · ${selectedClients.size} selected` : filteredClients.length})
+              ({selectedClients.size > 0 ? `${filteredClients.length} records · ${selectedClients.size} selected` : `${filteredClients.length} records`})
             </span>
           </h1>
           <div className="flex items-center gap-2">
@@ -276,7 +276,7 @@ export function Clients() {
 
         {/* ── Stats Cards ── */}
         <div className="grid grid-cols-4 gap-5 mb-8">
-          <Card className="px-4 py-4 border border-[#DDE3EE] bg-white hover:shadow-sm transition-shadow">
+          <Card className="px-4 py-4 border border-[#DDE3EE] bg-white hover:shadow-sm transition-shadow min-h-[129px]">
             <div className="flex items-start justify-between">
               <div>
                 <div className="text-[30px] mb-1 leading-none" style={{ fontWeight: 700, color: "#1A2332" }}>4</div>
@@ -292,7 +292,7 @@ export function Clients() {
               <Sparkline data={[2, 3, 2, 4, 3, 5, 4]} color="#4A6FA5" />
             </div>
           </Card>
-          <Card className="px-4 py-4 border border-[#DDE3EE] bg-white hover:shadow-sm transition-shadow">
+          <Card className="px-4 py-4 border border-[#DDE3EE] bg-white hover:shadow-sm transition-shadow min-h-[129px]">
             <div className="flex items-start justify-between">
               <div>
                 <div className="text-[30px] mb-1 leading-none" style={{ fontWeight: 700, color: "#1A2332" }}>1</div>
@@ -308,7 +308,7 @@ export function Clients() {
               <Sparkline data={[0, 1, 0, 1, 1, 0, 1]} color="#4A6FA5" />
             </div>
           </Card>
-          <Card className="px-4 py-4 border border-[#DDE3EE] bg-white hover:shadow-sm transition-shadow">
+          <Card className="px-4 py-4 border border-[#DDE3EE] bg-white hover:shadow-sm transition-shadow min-h-[129px]">
             <div className="flex items-start justify-between">
               <div>
                 <div className="text-[30px] mb-1 leading-none" style={{ fontWeight: 700, color: "#1A2332" }}>6</div>
@@ -325,7 +325,7 @@ export function Clients() {
             </div>
           </Card>
           <Card className="px-4 py-3 border border-[#DDE3EE] bg-gradient-to-br from-[#1A2332] to-[#2a3a50] hover:shadow-sm transition-shadow cursor-pointer group overflow-hidden">
-            <div className="flex flex-col h-full justify-center items-center text-center gap-1">
+            <div className="flex flex-col h-full justify-center items-start text-left gap-1">
               <div className="flex items-center gap-1">
                 <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "14px" }}>auto_awesome</span>
                 <span className="text-[10px] text-[#4A6FA5] uppercase tracking-wide" style={{ fontWeight: 600 }}>What's New</span>
