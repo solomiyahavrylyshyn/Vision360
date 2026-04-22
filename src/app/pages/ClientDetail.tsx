@@ -931,49 +931,50 @@ export function ClientDetail() {
 
       {/* ── SUMMARY BAR ── */}
       <div className="bg-white border-b border-[#E5E7EB]">
-        {/* Breadcrumb */}
-        <div className="px-8 h-10 flex items-center gap-1.5 border-b border-[#F3F4F6]">
-          <button
-            onClick={() => navigate("/clients")}
-            className="text-[13px] text-[#4A6FA5] hover:underline"
-          >
-            Clients
-          </button>
-          <span className="material-icons text-[#D1D5DB]" style={{ fontSize: "16px" }}>chevron_right</span>
-          <span className="text-[13px] text-[#374151]">{client.name}</span>
-        </div>
-
-        {/* Action bar */}
-        <div className="px-8 py-3 flex items-center justify-end gap-2 border-b border-[#F3F4F6]">
-          {!isEditing && <CreateDropdown />}
-
-          {!isEditing ? (
-            <Button
-              variant="outline"
-              onClick={handleEditClick}
-              className="border-[#DDE3EE] text-[#546478] hover:bg-[#EDF0F5] h-9 px-3"
+        {/* Breadcrumb + Actions */}
+        <div className="px-8 h-12 flex items-center justify-between gap-1.5 border-b border-[#F3F4F6]">
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => navigate("/clients")}
+              className="text-[13px] text-[#4A6FA5] hover:underline"
+              style={{ fontWeight: 500 }}
             >
-              <span className="material-icons" style={{ fontSize: "18px" }}>edit</span>
-            </Button>
-          ) : (
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                onClick={handleCancelClick}
-                className="border-[#DDE3EE] text-[#546478] hover:bg-[#EDF0F5] h-9 px-4 text-[13px]"
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleSaveClick}
-                className="bg-[#4A6FA5] hover:bg-[#3d5a85] h-9 px-4 text-white text-[13px]"
-              >
-                Save Changes
-              </Button>
-            </div>
-          )}
-
-          {!isEditing && <KebabMenu />}
+              Clients
+            </button>
+            <span className="material-icons text-[#D1D5DB]" style={{ fontSize: "16px" }}>chevron_right</span>
+            <span className="text-[13px] text-[#374151]">{client.name}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            {!isEditing ? (
+              <>
+                <CreateDropdown />
+                <Button
+                  variant="outline"
+                  onClick={handleEditClick}
+                  className="border-[#DDE3EE] text-[#546478] hover:bg-[#EDF0F5] h-8 px-2.5"
+                >
+                  <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
+                </Button>
+                <KebabMenu />
+              </>
+            ) : (
+              <>
+                <Button
+                  variant="outline"
+                  onClick={handleCancelClick}
+                  className="border-[#DDE3EE] text-[#546478] hover:bg-[#EDF0F5] h-8 px-3 text-[13px]"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleSaveClick}
+                  className="bg-[#4A6FA5] hover:bg-[#3d5a85] h-8 px-3 text-white text-[13px]"
+                >
+                  Save Changes
+                </Button>
+              </>
+            )}
+          </div>
         </div>
 
         {/* Summary content */}
@@ -1075,7 +1076,7 @@ export function ClientDetail() {
               </div>
 
               {/* Three-column data grid */}
-              <div className="grid grid-cols-3 gap-[12px] flex-1">
+              <div className="grid grid-cols-3 gap-[12px] flex-1 border-l border-[#E5E7EB] pl-8">
                 {/* Column 1: Customer since + Tags */}
                 <div className="flex flex-col gap-4">
                   <div className="flex flex-col gap-1">
