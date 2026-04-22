@@ -152,7 +152,7 @@ export function Calendar() {
       {/* Toolbar */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-[#DDE3EE]">
         <div className="flex items-center gap-4">
-          <h1 className="text-[22px] text-[#1A2332]" style={{ fontWeight: 700 }}>Calendar</h1>
+          <h1 className="text-[26px] text-[#1A2332]" style={{ fontWeight: 700 }}>Calendar</h1>
           <div className="h-6 w-px bg-[#DDE3EE]" />
           <div className="flex items-center gap-1">
             <button onClick={goBack} className="w-8 h-8 rounded-lg hover:bg-[#F5F7FA] flex items-center justify-center">

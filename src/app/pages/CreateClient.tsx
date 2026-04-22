@@ -267,7 +267,7 @@ export function CreateClient() {
         {/* Header */}
         <div className="bg-white border-b border-[#E5E7EB] px-8 py-6">
           <h1
-            className="text-[28px] text-[#1A2332]"
+            className="text-[26px] text-[#1A2332]"
             style={{ fontWeight: 700 }}
           >
             Create Client

@@ -84,7 +84,7 @@ export function Dashboard() {
     <div className="p-6 bg-[#F5F7FA] min-h-full">
       {/* Greeting */}
       <div className="mb-6">
-        <h1 className="text-[28px] text-[#1A2332] mb-1" style={{ fontWeight: 700 }}>
+        <h1 className="text-[26px] text-[#1A2332] mb-1" style={{ fontWeight: 700 }}>
           Good morning, Marek
         </h1>
         <p className="text-[14px] text-[#546478]">{dateStr}</p>

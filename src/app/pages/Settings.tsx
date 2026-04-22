@@ -275,7 +275,7 @@ export function Settings() {
         <div className="p-7 px-9 max-w-[960px]">
           {activeSection === "home" && (
             <>
-              <h1 className="text-[22px] font-bold text-[#1A2332] mb-1">Settings</h1>
+              <h1 className="text-[26px] text-[#1A2332] mb-1" style={{ fontWeight: 700 }}>Settings</h1>
               <p className="text-[13px] text-[#546478] mb-4.5 leading-relaxed max-w-[680px]">
                 Manage your account, business information, and system preferences.
               </p>
@@ -344,7 +344,7 @@ export function Settings() {
 
           {activeSection === "profile" && (
             <>
-              <h1 className="text-[22px] font-bold text-[#1A2332] mb-1">Profile Information</h1>
+              <h1 className="text-[26px] text-[#1A2332] mb-1" style={{ fontWeight: 700 }}>Profile Information</h1>
               <p className="text-[13px] text-[#546478] mb-4.5 leading-relaxed max-w-[680px]">
                 Update your personal information and contact details.
               </p>
@@ -377,7 +377,7 @@ export function Settings() {
 
           {activeSection === "business" && (
             <>
-              <h1 className="text-[22px] font-bold text-[#1A2332] mb-1">Business Information</h1>
+              <h1 className="text-[26px] text-[#1A2332] mb-1" style={{ fontWeight: 700 }}>Business Information</h1>
               <p className="text-[13px] text-[#546478] mb-4.5 leading-relaxed max-w-[680px]">
                 Manage your company details, address, and business settings.
               </p>
@@ -418,7 +418,7 @@ export function Settings() {
 
           {activeSection === "notifications" && (
             <>
-              <h1 className="text-[22px] font-bold text-[#1A2332] mb-1">Notifications</h1>
+              <h1 className="text-[26px] text-[#1A2332] mb-1" style={{ fontWeight: 700 }}>Notifications</h1>
               <p className="text-[13px] text-[#546478] mb-4.5 leading-relaxed max-w-[680px]">
                 Configure how and when you receive notifications.
               </p>
@@ -460,7 +460,7 @@ export function Settings() {
 
           {activeSection === "security" && (
             <>
-              <h1 className="text-[22px] font-bold text-[#1A2332] mb-1">Security & Password</h1>
+              <h1 className="text-[26px] text-[#1A2332] mb-1" style={{ fontWeight: 700 }}>Security & Password</h1>
               <p className="text-[13px] text-[#546478] mb-4.5 leading-relaxed max-w-[680px]">
                 Manage your password and security preferences.
               </p>
@@ -487,7 +487,7 @@ export function Settings() {
 
           {activeSection === "team" && (
             <>
-              <h1 className="text-[22px] font-bold text-[#1A2332] mb-1">Team & Users</h1>
+              <h1 className="text-[26px] text-[#1A2332] mb-1" style={{ fontWeight: 700 }}>Team & Users</h1>
               <p className="text-[13px] text-[#546478] mb-4.5 leading-relaxed max-w-[680px]">
                 Invite team members and manage their access and permissions.
               </p>
@@ -540,7 +540,7 @@ export function Settings() {
 
           {activeSection === "billing" && (
             <>
-              <h1 className="text-[22px] font-bold text-[#1A2332] mb-1">Billing & Subscription</h1>
+              <h1 className="text-[26px] text-[#1A2332] mb-1" style={{ fontWeight: 700 }}>Billing & Subscription</h1>
               <p className="text-[13px] text-[#546478] mb-4.5 leading-relaxed max-w-[680px]">
                 Manage your subscription plan and payment methods.
               </p>
@@ -580,7 +580,7 @@ export function Settings() {
 
           {(activeSection === "integrations" || activeSection === "taxes" || activeSection === "templates") && (
             <>
-              <h1 className="text-[22px] font-bold text-[#1A2332] mb-1">
+              <h1 className="text-[26px] text-[#1A2332] mb-1" style={{ fontWeight: 700 }}>
                 {activeSection === "integrations" && "Integrations"}
                 {activeSection === "taxes" && "Taxes & Rates"}
                 {activeSection === "templates" && "Email Templates"}
@@ -600,7 +600,7 @@ export function Settings() {
 
           {activeSection === "marketingSources" && (
             <>
-              <h1 className="text-[22px] font-bold text-[#1A2332] mb-1">Lead Sources</h1>
+              <h1 className="text-[26px] text-[#1A2332] mb-1" style={{ fontWeight: 700 }}>Lead Sources</h1>
               <p className="text-[13px] text-[#546478] mb-4.5 leading-relaxed max-w-[680px]">
                 Manage the list of lead sources available when creating or editing clients.
               </p>
@@ -716,7 +716,7 @@ export function Settings() {
 
           {activeSection === "customerTags" && (
             <>
-              <h1 className="text-[22px] font-bold text-[#1A2332] mb-1">Customer Tags</h1>
+              <h1 className="text-[26px] text-[#1A2332] mb-1" style={{ fontWeight: 700 }}>Customer Tags</h1>
               <p className="text-[13px] text-[#546478] mb-4.5 leading-relaxed max-w-[680px]">
                 Manage the list of tags available for organizing and categorizing clients.
               </p>
@@ -836,7 +836,7 @@ export function Settings() {
 
           {activeSection === "jobTypes" && (
             <>
-              <h1 className="text-[22px] font-bold text-[#1A2332] mb-1">Job Types</h1>
+              <h1 className="text-[26px] text-[#1A2332] mb-1" style={{ fontWeight: 700 }}>Job Types</h1>
               <p className="text-[13px] text-[#546478] mb-4.5 leading-relaxed max-w-[680px]">
                 Manage the list of job types available when creating or editing jobs.
               </p>
@@ -938,7 +938,7 @@ export function Settings() {
 
           {activeSection === "counties" && (
             <>
-              <h1 className="text-[22px] font-bold text-[#1A2332] mb-1">Counties</h1>
+              <h1 className="text-[26px] text-[#1A2332] mb-1" style={{ fontWeight: 700 }}>Counties</h1>
               <p className="text-[13px] text-[#546478] mb-4.5 leading-relaxed max-w-[680px]">
                 Manage the list of counties available when creating or editing client addresses.
               </p>

@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
+import { PageHeader } from "../components/ui/page-header";
+import { SelectionBar } from "../components/ui/selection-bar";
 import {
   Select, SelectContent, SelectItem,
   SelectTrigger, SelectValue,
@@ -49,7 +51,7 @@ function qfClass(active: boolean) {
 
 export function Jobs() {
   const navigate = useNavigate();
-  const [jobs] = useState<Job[]>(mockJobs);
+  const [jobs, setJobs] = useState<Job[]>(mockJobs);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedJobs, setSelectedJobs] = useState<Set<number>>(new Set());
 
@@ -140,39 +142,37 @@ export function Jobs() {
     <>
     <div className="p-8 bg-[#F5F7FA] min-h-full">
       {/* ── Header ── */}
-      <div className="flex items-center justify-between mb-8">
-        <h1 className="text-[26px] text-[#1A2332] flex items-center gap-2" style={{ fontWeight: 700 }}>
-          Jobs
-          <span className="text-[15px] text-[#9AA3AF]" style={{ fontWeight: 400 }}>
-            ({selectedJobs.size > 0 ? `${filtered.length} records · ${selectedJobs.size} selected` : `${filtered.length} records`})
-          </span>
-        </h1>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => navigate("/jobs/new")}
-            className="h-9 px-4 bg-[#4A6FA5] hover:bg-[#3d5a85] text-white rounded-lg text-[13px] flex items-center gap-1.5 transition-colors"
-            style={{ fontWeight: 600 }}
-          >
-            <span className="material-icons" style={{ fontSize: "18px" }}>add</span>
-            Create Job
-          </button>
-          <KebabMenu triggerClassName="w-9 h-9 border border-[#DDE3EE] rounded-lg bg-white">
-            <KebabItem icon="view_column">Edit Columns</KebabItem>
-            <KebabItem icon="swap_horiz">Change Status</KebabItem>
-            <KebabItem icon="content_copy">Manage Duplicates</KebabItem>
-            {selectedJobs.size > 0 && (
-              <>
-                <KebabSeparator />
-                <KebabItem icon="archive" onSelect={() => { setSelectedJobs(new Set()); }}>Archive Selected</KebabItem>
-                <KebabItem icon="deselect" onSelect={() => setSelectedJobs(new Set())}>Deselect All</KebabItem>
-              </>
-            )}
-            <KebabSeparator />
-            <KebabItem icon="file_upload">Import</KebabItem>
-            <KebabItem icon="file_download">Export</KebabItem>
-          </KebabMenu>
-        </div>
-      </div>
+      <PageHeader
+        title="Jobs"
+        count={selectedJobs.size > 0 ? `${filtered.length} records · ${selectedJobs.size} selected` : `${filtered.length} records`}
+        actions={
+          <>
+            <button
+              onClick={() => navigate("/jobs/new")}
+              className="h-9 px-4 bg-[#4A6FA5] hover:bg-[#3d5a85] text-white rounded-lg text-[13px] flex items-center gap-1.5 transition-colors"
+              style={{ fontWeight: 600 }}
+            >
+              <span className="material-icons" style={{ fontSize: "18px" }}>add</span>
+              Create Job
+            </button>
+            <KebabMenu triggerClassName="w-9 h-9 border border-[#DDE3EE] rounded-lg bg-white">
+              <KebabItem icon="view_column">Edit Columns</KebabItem>
+              <KebabItem icon="swap_horiz">Change Status</KebabItem>
+              <KebabItem icon="content_copy">Manage Duplicates</KebabItem>
+              {selectedJobs.size > 0 && (
+                <>
+                  <KebabSeparator />
+                  <KebabItem icon="archive" onSelect={() => { setSelectedJobs(new Set()); }}>Archive Selected</KebabItem>
+                  <KebabItem icon="deselect" onSelect={() => setSelectedJobs(new Set())}>Deselect All</KebabItem>
+                </>
+              )}
+              <KebabSeparator />
+              <KebabItem icon="file_upload">Import</KebabItem>
+              <KebabItem icon="file_download">Export</KebabItem>
+            </KebabMenu>
+          </>
+        }
+      />
 
       {/* ── Stats Cards ── */}
       <div className="grid grid-cols-3 gap-5 mb-8">
@@ -200,6 +200,8 @@ export function Jobs() {
         {/* Filter Bar */}
         <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-[#DDE3EE]">
           <div className="flex items-center gap-2">
+            <span className="text-[13px] text-[#546478]" style={{ fontWeight: 500 }}>{filtered.length} results</span>
+            <div className="w-px h-5 bg-[#DDE3EE] mx-1" />
             <select value={qfStatus} onChange={e => { setQfStatus(e.target.value); setCurrentPage(1); }} className={qfClass(qfStatus !== "All")}>
               <option value="All">Status: All</option>
               <option value="Scheduled">Scheduled</option>
@@ -247,6 +249,16 @@ export function Jobs() {
             />
           </div>
         </div>
+        <SelectionBar
+          count={selectedJobs.size}
+          onDeselect={() => setSelectedJobs(new Set())}
+          onDelete={() => {
+            if (confirm(`Delete ${selectedJobs.size} job(s)?`)) {
+              setJobs(prev => prev.filter(j => !selectedJobs.has(j.id)));
+              setSelectedJobs(new Set());
+            }
+          }}
+        />
         <table className="w-full">
           <thead className="bg-[#F5F7FA]">
             <tr className="border-b border-[#DDE3EE]">

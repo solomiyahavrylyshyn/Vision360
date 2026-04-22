@@ -2,6 +2,8 @@ import { useState, useMemo, useRef, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { Card } from "../components/ui/card";
 import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
+import { PageHeader } from "../components/ui/page-header";
+import { SelectionBar } from "../components/ui/selection-bar";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type EstimateStatus = "Unsent" | "Pending" | "Approved" | "Declined" | "Won" | "Archived";
@@ -201,40 +203,38 @@ export function Estimates() {
   const fmt = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   return (
-    <div className="p-6 bg-[#F5F7FA] min-h-full">
+    <div className="p-8 bg-[#F5F7FA] min-h-full">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-[26px] text-[#1A2332] flex items-center gap-2" style={{ fontWeight: 700 }}>
-          Estimates
-          <span className="text-[15px] text-[#9AA3AF]" style={{ fontWeight: 400 }}>
-            ({selectedIds.size > 0 ? `${filtered.length} records · ${selectedIds.size} selected` : `${filtered.length} records`})
-          </span>
-        </h1>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setCreateModalOpen(true)}
-            className="h-9 px-4 bg-[#4A6FA5] text-white rounded-lg text-[13px] hover:bg-[#3d5a85] flex items-center gap-2 shadow-sm"
-            style={{ fontWeight: 600 }}
-          >
-            <span className="material-icons" style={{ fontSize: "18px" }}>add</span>
-            Create Estimate
-          </button>
-          <KebabMenu triggerClassName="w-9 h-9 border border-[#DDE3EE] rounded-lg bg-white">
-            <KebabItem icon="view_column">Edit Columns</KebabItem>
-            <KebabItem icon="swap_horiz">Change Status</KebabItem>
-            <KebabItem icon="content_copy">Manage Duplicates</KebabItem>
-            <KebabItem icon="send">Resend Estimate</KebabItem>
-            <KebabSeparator />
-            {selectedIds.size > 0 && <>
-              <KebabItem icon="deselect" onClick={() => setSelectedIds(new Set())}>Deselect All</KebabItem>
-              <KebabItem icon="archive" destructive onClick={() => setDeleteConfirm({ ids: Array.from(selectedIds) })}>Archive Selected</KebabItem>
+      <PageHeader
+        title="Estimates"
+        count={selectedIds.size > 0 ? `${filtered.length} records · ${selectedIds.size} selected` : `${filtered.length} records`}
+        actions={
+          <>
+            <button
+              onClick={() => setCreateModalOpen(true)}
+              className="h-9 px-4 bg-[#4A6FA5] text-white rounded-lg text-[13px] hover:bg-[#3d5a85] flex items-center gap-2 shadow-sm"
+              style={{ fontWeight: 600 }}
+            >
+              <span className="material-icons" style={{ fontSize: "18px" }}>add</span>
+              Create Estimate
+            </button>
+            <KebabMenu triggerClassName="w-9 h-9 border border-[#DDE3EE] rounded-lg bg-white">
+              <KebabItem icon="view_column">Edit Columns</KebabItem>
+              <KebabItem icon="swap_horiz">Change Status</KebabItem>
+              <KebabItem icon="content_copy">Manage Duplicates</KebabItem>
+              <KebabItem icon="send">Resend Estimate</KebabItem>
               <KebabSeparator />
-            </>}
-            <KebabItem icon="file_upload">Import</KebabItem>
-            <KebabItem icon="file_download">Export</KebabItem>
-          </KebabMenu>
-        </div>
-      </div>
+              {selectedIds.size > 0 && <>
+                <KebabItem icon="deselect" onClick={() => setSelectedIds(new Set())}>Deselect All</KebabItem>
+                <KebabItem icon="archive" destructive onClick={() => setDeleteConfirm({ ids: Array.from(selectedIds) })}>Archive Selected</KebabItem>
+                <KebabSeparator />
+              </>}
+              <KebabItem icon="file_upload">Import</KebabItem>
+              <KebabItem icon="file_download">Export</KebabItem>
+            </KebabMenu>
+          </>
+        }
+      />
 
       {/* Status Summary Cards */}
       <div className="grid grid-cols-6 gap-5 mb-8">
@@ -264,6 +264,8 @@ export function Estimates() {
       <div className="bg-white border border-[#DDE3EE] rounded-lg overflow-hidden">
         {/* Filter bar */}
         <div className="flex items-center gap-2 px-4 py-3 bg-white border-b border-[#DDE3EE]">
+          <span className="text-[13px] text-[#546478]" style={{ fontWeight: 500 }}>{filtered.length} results</span>
+          <div className="w-px h-5 bg-[#DDE3EE] mx-1" />
           <select value={qfStatus} onChange={e => { setQfStatus(e.target.value as any); setPage(1); }} className={qfClass(qfStatus !== "All")}>
             <option value="All">All statuses</option>
             {(["Unsent","Pending","Approved","Declined","Won","Archived"] as EstimateStatus[]).map(s => (
@@ -288,6 +290,15 @@ export function Estimates() {
               className="w-[260px] h-9 pl-10 pr-3 border border-[#DDE3EE] rounded-lg text-[13px] focus:outline-none focus:border-[#4A6FA5] bg-white" />
           </div>
         </div>
+        <SelectionBar
+          count={selectedIds.size}
+          onDeselect={() => setSelectedIds(new Set())}
+          onDelete={() => {
+            if (confirm(`Delete ${selectedIds.size} estimate(s)?`)) {
+              handleBulkDelete();
+            }
+          }}
+        />
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>

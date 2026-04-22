@@ -4,6 +4,8 @@ import { Input } from "../components/ui/input";
 import { useNavigate } from "react-router";
 import { Card } from "../components/ui/card";
 import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
+import { PageHeader } from "../components/ui/page-header";
+import { SelectionBar } from "../components/ui/selection-bar";
 import {
   Select,
   SelectContent,
@@ -214,38 +216,36 @@ export function Clients() {
     <>
       <div className="p-8">
         {/* ── Page Header ── */}
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="text-[26px] text-[#1A2332] flex items-center gap-2" style={{ fontWeight: 700 }}>
-            Clients
-            <span className="text-[15px] text-[#9AA3AF]" style={{ fontWeight: 400 }}>
-              ({selectedClients.size > 0 ? `${filteredClients.length} records · ${selectedClients.size} selected` : `${filteredClients.length} records`})
-            </span>
-          </h1>
-          <div className="flex items-center gap-2">
-            <Button onClick={() => navigate("/clients/new")} className="bg-[#4A6FA5] hover:bg-[#3d5a85]">
-              <span className="material-icons mr-1.5" style={{ fontSize: "18px" }}>add</span>
-              Create Client
-            </Button>
-            <KebabMenu triggerClassName="w-9 h-9 border border-[#DDE3EE] rounded-lg bg-white">
-              <KebabItem icon="view_column" onSelect={e => { e.preventDefault(); setPendingColumns(new Set(visibleColumns)); setEditColumnsOpen(true); }}>Edit Columns</KebabItem>
-              <KebabItem icon="swap_horiz" onSelect={e => { e.preventDefault(); setChangeStatusOpen(true); }}>Change Status</KebabItem>
-              <KebabItem icon="content_copy" onSelect={() => navigate("/clients/duplicates")}>Manage Duplicates</KebabItem>
-              {selectedClients.size > 0 && (
-                <>
-                  <KebabSeparator />
-                  <KebabItem icon="archive" onSelect={() => {
-                    setClients(clients.map(c => selectedClients.has(c.id) ? { ...c, status: "Archived" as const } : c));
-                    setSelectedClients(new Set());
-                  }}>Archive Selected</KebabItem>
-                  <KebabItem icon="deselect" onSelect={() => setSelectedClients(new Set())}>Deselect All</KebabItem>
-                </>
-              )}
-              <KebabSeparator />
-              <KebabItem icon="file_upload">Import</KebabItem>
-              <KebabItem icon="file_download">Export</KebabItem>
-            </KebabMenu>
-          </div>
-        </div>
+        <PageHeader
+          title="Clients"
+          count={selectedClients.size > 0 ? `${filteredClients.length} records · ${selectedClients.size} selected` : `${filteredClients.length} records`}
+          actions={
+            <>
+              <Button onClick={() => navigate("/clients/new")} className="bg-[#4A6FA5] hover:bg-[#3d5a85]">
+                <span className="material-icons mr-1.5" style={{ fontSize: "18px" }}>add</span>
+                Create Client
+              </Button>
+              <KebabMenu triggerClassName="w-9 h-9 border border-[#DDE3EE] rounded-lg bg-white">
+                <KebabItem icon="view_column" onSelect={e => { e.preventDefault(); setPendingColumns(new Set(visibleColumns)); setEditColumnsOpen(true); }}>Edit Columns</KebabItem>
+                <KebabItem icon="swap_horiz" onSelect={e => { e.preventDefault(); setChangeStatusOpen(true); }}>Change Status</KebabItem>
+                <KebabItem icon="content_copy" onSelect={() => navigate("/clients/duplicates")}>Manage Duplicates</KebabItem>
+                {selectedClients.size > 0 && (
+                  <>
+                    <KebabSeparator />
+                    <KebabItem icon="archive" onSelect={() => {
+                      setClients(clients.map(c => selectedClients.has(c.id) ? { ...c, status: "Archived" as const } : c));
+                      setSelectedClients(new Set());
+                    }}>Archive Selected</KebabItem>
+                    <KebabItem icon="deselect" onSelect={() => setSelectedClients(new Set())}>Deselect All</KebabItem>
+                  </>
+                )}
+                <KebabSeparator />
+                <KebabItem icon="file_upload">Import</KebabItem>
+                <KebabItem icon="file_download">Export</KebabItem>
+              </KebabMenu>
+            </>
+          }
+        />
 
         {/* ── Stats Cards ── */}
         <div className="grid grid-cols-4 gap-5 mb-8">
@@ -491,6 +491,8 @@ export function Clients() {
           {/* Filter Bar */}
           <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-[#DDE3EE]">
             <div className="flex items-center gap-2">
+              <span className="text-[13px] text-[#546478]" style={{ fontWeight: 500 }}>{filteredClients.length} results</span>
+              <div className="w-px h-5 bg-[#DDE3EE] mx-1" />
               <select
                 value={qfStatus}
                 onChange={e => { setQfStatus(e.target.value); setCurrentPage(1); }}
@@ -550,6 +552,16 @@ export function Clients() {
               />
             </div>
           </div>
+          <SelectionBar
+            count={selectedClients.size}
+            onDeselect={() => setSelectedClients(new Set())}
+            onDelete={() => {
+              if (confirm(`Delete ${selectedClients.size} client(s)?`)) {
+                setClients(prev => prev.filter(c => !selectedClients.has(c.id)));
+                setSelectedClients(new Set());
+              }
+            }}
+          />
           <table className="w-full">
             <thead className="bg-[#F5F7FA]">
               <tr>

@@ -8,7 +8,7 @@ export function CreateProperty() {
     <div className="min-h-screen bg-[#F5F7FA]">
       <div className="max-w-[1200px] mx-auto">
         <div className="bg-white border-b border-[#E5E7EB] px-8 py-6">
-          <h1 className="text-[28px] text-[#1A2332]" style={{ fontWeight: 700 }}>
+          <h1 className="text-[26px] text-[#1A2332]" style={{ fontWeight: 700 }}>
             Create Property
           </h1>
         </div>

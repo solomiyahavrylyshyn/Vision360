@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
+import { PageHeader } from "../components/ui/page-header";
 
 interface DupClient {
   id: string;
@@ -111,12 +112,14 @@ export function ManageDuplicates() {
       </div>
 
       {/* Page header */}
-      <div className="mb-6">
-        <h1 className="text-[26px] text-[#1A2332] mb-1" style={{ fontWeight: 700 }}>Manage duplicates</h1>
-        <p className="text-[14px] text-[#546478]">
-          We've grouped possible duplicate client profiles below. Select the property you'd like to isolate.
-        </p>
-      </div>
+      <PageHeader
+        title="Manage duplicates"
+        subtitle={
+          <p className="text-[14px] text-[#546478] mt-1 font-normal" style={{ fontWeight: 400 }}>
+            We've grouped possible duplicate client profiles below.
+          </p>
+        }
+      />
 
       {/* Toolbar */}
       <div className="flex items-center justify-between mb-4">

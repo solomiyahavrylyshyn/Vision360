@@ -2,6 +2,8 @@ import { useState, useMemo } from "react";
 import { useNavigate } from "react-router";
 import { Card } from "../components/ui/card";
 import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
+import { PageHeader } from "../components/ui/page-header";
+import { SelectionBar } from "../components/ui/selection-bar";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type PaymentMethod = "Cash" | "Check" | "Credit Card" | "Debit Card" | "Bank Transfer" | "Other";
@@ -64,6 +66,7 @@ function qfClass(active: boolean) {
 // ═══════════════════════════════════════════════════════════════════════════════
 export function Payments() {
   const navigate = useNavigate();
+  const [payments, setPayments] = useState(mockPayments);
   const [search, setSearch] = useState("");
 
   // Quick filters
@@ -87,9 +90,9 @@ export function Payments() {
 
   // Summary
   const summary = useMemo(() => {
-    const completed = mockPayments.filter(p => p.status === "Completed");
-    const pending = mockPayments.filter(p => p.status === "Pending");
-    const refunded = mockPayments.filter(p => p.status === "Refunded");
+    const completed = payments.filter(p => p.status === "Completed");
+    const pending = payments.filter(p => p.status === "Pending");
+    const refunded = payments.filter(p => p.status === "Refunded");
     return {
       totalCollected: completed.reduce((s, p) => s + p.amount, 0),
       completedCount: completed.length,
@@ -97,13 +100,13 @@ export function Payments() {
       pendingCount: pending.length,
       refundedTotal: refunded.reduce((s, p) => s + p.amount, 0),
       refundedCount: refunded.length,
-      totalPayments: mockPayments.length,
+      totalPayments: payments.length,
     };
-  }, []);
+  }, [payments]);
 
   // Filter
   const filtered = useMemo(() => {
-    let result = [...mockPayments];
+    let result = [...payments];
     if (qfStatus !== "All") result = result.filter(p => p.status === qfStatus);
     if (qfMethod !== "All") result = result.filter(p => p.method === qfMethod);
     if (search) {
@@ -117,7 +120,7 @@ export function Payments() {
     }
     result.sort((a, b) => b.date.localeCompare(a.date));
     return result;
-  }, [search, qfStatus, qfMethod]);
+  }, [payments, search, qfStatus, qfMethod]);
 
   const paginated = filtered.slice((page - 1) * perPage, page * perPage);
   const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
@@ -131,39 +134,37 @@ export function Payments() {
   ];
 
   return (
-    <div className="p-6 bg-[#F5F7FA] min-h-full">
+    <div className="p-8 bg-[#F5F7FA] min-h-full">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-[26px] text-[#1A2332] flex items-center gap-2" style={{ fontWeight: 700 }}>
-          Payments
-          <span className="text-[15px] text-[#9AA3AF]" style={{ fontWeight: 400 }}>
-            ({selectedIds.size > 0 ? `${filtered.length} records · ${selectedIds.size} selected` : `${filtered.length} records`})
-          </span>
-        </h1>
-        <div className="flex items-center gap-2">
-          <button
-            className="h-9 px-4 bg-[#4A6FA5] text-white rounded-lg text-[13px] hover:bg-[#3d5a85] flex items-center gap-2 shadow-sm"
-            style={{ fontWeight: 600 }}
-          >
-            <span className="material-icons" style={{ fontSize: "18px" }}>add</span>
-            Record Payment
-          </button>
-          <KebabMenu triggerClassName="w-9 h-9 border border-[#DDE3EE] rounded-lg bg-white">
-            <KebabItem icon="view_column">Edit Columns</KebabItem>
-            <KebabItem icon="swap_horiz">Change Status</KebabItem>
-            <KebabItem icon="content_copy">Manage Duplicates</KebabItem>
-            <KebabItem icon="payments">Batch Payments</KebabItem>
-            <KebabItem icon="person_add">Assign to Invoices</KebabItem>
-            <KebabSeparator />
-            {selectedIds.size > 0 && <>
-              <KebabItem icon="deselect" onClick={() => setSelectedIds(new Set())}>Deselect All</KebabItem>
+      <PageHeader
+        title="Payments"
+        count={selectedIds.size > 0 ? `${filtered.length} records · ${selectedIds.size} selected` : `${filtered.length} records`}
+        actions={
+          <>
+            <button
+              className="h-9 px-4 bg-[#4A6FA5] text-white rounded-lg text-[13px] hover:bg-[#3d5a85] flex items-center gap-2 shadow-sm"
+              style={{ fontWeight: 600 }}
+            >
+              <span className="material-icons" style={{ fontSize: "18px" }}>add</span>
+              Record Payment
+            </button>
+            <KebabMenu triggerClassName="w-9 h-9 border border-[#DDE3EE] rounded-lg bg-white">
+              <KebabItem icon="view_column">Edit Columns</KebabItem>
+              <KebabItem icon="swap_horiz">Change Status</KebabItem>
+              <KebabItem icon="content_copy">Manage Duplicates</KebabItem>
+              <KebabItem icon="payments">Batch Payments</KebabItem>
+              <KebabItem icon="person_add">Assign to Invoices</KebabItem>
               <KebabSeparator />
-            </>}
-            <KebabItem icon="file_upload">Import</KebabItem>
-            <KebabItem icon="file_download">Export</KebabItem>
-          </KebabMenu>
-        </div>
-      </div>
+              {selectedIds.size > 0 && <>
+                <KebabItem icon="deselect" onClick={() => setSelectedIds(new Set())}>Deselect All</KebabItem>
+                <KebabSeparator />
+              </>}
+              <KebabItem icon="file_upload">Import</KebabItem>
+              <KebabItem icon="file_download">Export</KebabItem>
+            </KebabMenu>
+          </>
+        }
+      />
 
       {/* Summary Cards */}
       <div className="grid grid-cols-4 gap-5 mb-8">
@@ -192,6 +193,8 @@ export function Payments() {
         <div className={`bg-white border border-[#DDE3EE] rounded-lg overflow-hidden ${selectedPayment ? "flex-1" : "w-full"}`}>
           {/* Filter bar */}
           <div className="flex items-center gap-2 px-4 py-3 bg-white border-b border-[#DDE3EE]">
+            <span className="text-[13px] text-[#546478]" style={{ fontWeight: 500 }}>{filtered.length} results</span>
+            <div className="w-px h-5 bg-[#DDE3EE] mx-1" />
             <select value={qfStatus} onChange={e => { setQfStatus(e.target.value); setPage(1); }} className={qfClass(qfStatus !== "All")}>
               <option value="All">All statuses</option>
               {(["Completed", "Pending", "Refunded"] as PaymentStatus[]).map(s => (
@@ -220,6 +223,16 @@ export function Payments() {
                 className="w-[240px] h-9 pl-10 pr-3 border border-[#DDE3EE] rounded-lg text-[13px] focus:outline-none focus:border-[#4A6FA5] bg-white" />
             </div>
           </div>
+          <SelectionBar
+            count={selectedIds.size}
+            onDeselect={() => setSelectedIds(new Set())}
+            onDelete={() => {
+              if (confirm(`Delete ${selectedIds.size} payment(s)?`)) {
+                setPayments(prev => prev.filter(p => !selectedIds.has(p.id)));
+                setSelectedIds(new Set());
+              }
+            }}
+          />
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>

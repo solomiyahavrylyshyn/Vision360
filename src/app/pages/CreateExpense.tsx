@@ -199,7 +199,7 @@ export function CreateExpense() {
               </button>
               <div>
                 <h1
-                  className="text-[22px] text-[#1A2332]"
+                  className="text-[26px] text-[#1A2332]"
                   style={{ fontWeight: 700 }}
                 >Create Expense</h1>
                 <p className="text-[13px] text-[#8899AA] mt-0.5"></p>

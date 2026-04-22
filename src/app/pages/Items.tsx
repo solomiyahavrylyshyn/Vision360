@@ -1,5 +1,7 @@
 import { useState, useMemo } from "react";
 import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
+import { PageHeader } from "../components/ui/page-header";
+import { SelectionBar } from "../components/ui/selection-bar";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface Item {
@@ -277,38 +279,38 @@ export function Items() {
   // ─── RENDER ────────────────────────────────────────────────────────────
   // ═══════════════════════════════════════════════════════════════════════
   return (
-    <div className="p-6 bg-[#F5F7FA] min-h-full">
+    <div className="p-8 bg-[#F5F7FA] min-h-full">
       {/* Page Header */}
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-[26px] text-[#1A2332] flex items-center gap-2" style={{ fontWeight: 700 }}>
-          Items
-          <span className="text-[15px] text-[#9AA3AF]" style={{ fontWeight: 400 }}>({tabRecordCounts[activeTab]} records)</span>
-        </h1>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => {
-              if (activeTab === "items") { setEditingItem(null); setItemModalOpen(true); }
-              else if (activeTab === "groups") { setEditingGroup(null); setGroupModalOpen(true); }
-              else if (activeTab === "categories") { setEditingCat(null); setCatModalOpen(true); }
-            }}
-            className="h-9 px-4 bg-[#4A6FA5] text-white rounded-lg text-[13px] hover:bg-[#3d5a85] flex items-center gap-1.5"
-            style={{ fontWeight: 600 }}
-          >
-            <span className="material-icons" style={{ fontSize: "18px" }}>add</span>
-            {activeTab === "items" && "Create Item"}
-            {activeTab === "groups" && "Create Group"}
-            {activeTab === "categories" && "Create Category"}
-            {activeTab !== "items" && activeTab !== "groups" && activeTab !== "categories" && "Create"}
-          </button>
-          <KebabMenu triggerClassName="w-9 h-9 border border-[#DDE3EE] rounded-lg bg-white">
-            <KebabItem icon="file_upload" onClick={() => alert("Import functionality — CSV/Google Sheets import will be available with backend integration.")}>Import</KebabItem>
-            <KebabItem icon="file_download" onClick={() => handleExport()}>Export</KebabItem>
-            <KebabSeparator />
-            <KebabItem icon="view_column">Edit Columns</KebabItem>
-            <KebabItem icon="content_copy">Manage Duplicates</KebabItem>
-          </KebabMenu>
-        </div>
-      </div>
+      <PageHeader
+        title="Items"
+        count={`${tabRecordCounts[activeTab]} records`}
+        actions={
+          <>
+            <button
+              onClick={() => {
+                if (activeTab === "items") { setEditingItem(null); setItemModalOpen(true); }
+                else if (activeTab === "groups") { setEditingGroup(null); setGroupModalOpen(true); }
+                else if (activeTab === "categories") { setEditingCat(null); setCatModalOpen(true); }
+              }}
+              className="h-9 px-4 bg-[#4A6FA5] text-white rounded-lg text-[13px] hover:bg-[#3d5a85] flex items-center gap-1.5"
+              style={{ fontWeight: 600 }}
+            >
+              <span className="material-icons" style={{ fontSize: "18px" }}>add</span>
+              {activeTab === "items" && "Create Item"}
+              {activeTab === "groups" && "Create Group"}
+              {activeTab === "categories" && "Create Category"}
+              {activeTab !== "items" && activeTab !== "groups" && activeTab !== "categories" && "Create"}
+            </button>
+            <KebabMenu triggerClassName="w-9 h-9 border border-[#DDE3EE] rounded-lg bg-white">
+              <KebabItem icon="file_upload" onClick={() => alert("Import functionality — CSV/Google Sheets import will be available with backend integration.")}>Import</KebabItem>
+              <KebabItem icon="file_download" onClick={() => handleExport()}>Export</KebabItem>
+              <KebabSeparator />
+              <KebabItem icon="view_column">Edit Columns</KebabItem>
+              <KebabItem icon="content_copy">Manage Duplicates</KebabItem>
+            </KebabMenu>
+          </>
+        }
+      />
 
       {/* Tabs */}
       <div className="border-b border-[#E5E7EB] mb-6">
@@ -340,6 +342,8 @@ export function Items() {
           <div className="bg-white border border-[#DDE3EE] rounded-t-lg">
             <div className="flex items-center justify-between p-3 border-b border-[#DDE3EE]">
               <div className="flex items-center gap-2">
+                <span className="text-[13px] text-[#546478]" style={{ fontWeight: 500 }}>{filteredItems.length} results</span>
+                <div className="w-px h-5 bg-[#DDE3EE] mx-1" />
                 <span className="text-[13px] text-[#546478]" style={{ fontWeight: 500 }}>Category:</span>
                 <select
                   value={itemFilter}
@@ -363,25 +367,16 @@ export function Items() {
             </div>
 
             {/* Bulk actions */}
-            {selectedItems.size > 0 && (
-              <div className="flex items-center gap-4 px-4 py-2.5 bg-[#EBF0F8] border-b border-[#C8D5E8]">
-                <span className="text-[13px] text-[#4A6FA5]" style={{ fontWeight: 600 }}>{selectedItems.size} selected</span>
-                <button onClick={() => setSelectedItems(new Set())} className="text-[12px] text-[#4A6FA5] underline">Deselect</button>
-                <div className="h-4 w-px bg-[#C8D5E8]" />
-                <button
-                  onClick={() => {
-                    if (confirm(`Delete ${selectedItems.size} item(s)?`)) {
-                      setItems(prev => prev.filter(i => !selectedItems.has(i.id)));
-                      setSelectedItems(new Set());
-                    }
-                  }}
-                  className="flex items-center gap-1 text-[12px] text-[#DC2626] hover:underline"
-                >
-                  <span className="material-icons" style={{ fontSize: "15px" }}>delete</span>
-                  Delete
-                </button>
-              </div>
-            )}
+            <SelectionBar
+              count={selectedItems.size}
+              onDeselect={() => setSelectedItems(new Set())}
+              onDelete={() => {
+                if (confirm(`Delete ${selectedItems.size} item(s)?`)) {
+                  setItems(prev => prev.filter(i => !selectedItems.has(i.id)));
+                  setSelectedItems(new Set());
+                }
+              }}
+            />
 
             {/* Table */}
             <div className="overflow-x-auto">

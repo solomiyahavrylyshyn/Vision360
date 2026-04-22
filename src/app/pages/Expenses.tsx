@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router";
 import { Card } from "../components/ui/card";
 import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
+import { PageHeader } from "../components/ui/page-header";
+import { SelectionBar } from "../components/ui/selection-bar";
 
 interface Expense {
   id: string;
@@ -50,6 +52,7 @@ function qfClass(active: boolean) {
 
 export function Expenses() {
   const navigate = useNavigate();
+  const [expenses, setExpenses] = useState(mockExpenses);
 
   // Quick filters
   const [qfCategory, setQfCategory] = useState("All");
@@ -61,7 +64,7 @@ export function Expenses() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
 
-  const filtered = mockExpenses.filter((e) => {
+  const filtered = expenses.filter((e) => {
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       if (
@@ -77,42 +80,40 @@ export function Expenses() {
   });
 
   const totalAmount = filtered.reduce((s, e) => s + e.amount, 0);
-  const uniqueJobs = Array.from(new Set(mockExpenses.filter((e) => e.jobId).map((e) => e.jobId!)));
+  const uniqueJobs = Array.from(new Set(expenses.filter((e) => e.jobId).map((e) => e.jobId!)));
   const allSelected = filtered.length > 0 && filtered.every(e => selectedIds.has(e.id));
 
   return (
-    <div className="p-6 bg-[#F5F7FA] min-h-full">
+    <div className="p-8 bg-[#F5F7FA] min-h-full">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-[26px] text-[#1A2332] flex items-center gap-2" style={{ fontWeight: 700 }}>
-          Expenses
-          <span className="text-[15px] text-[#9AA3AF]" style={{ fontWeight: 400 }}>
-            ({selectedIds.size > 0 ? `${filtered.length} records · ${selectedIds.size} selected` : `${filtered.length} records`})
-          </span>
-        </h1>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => navigate("/expenses/new")}
-            className="h-9 px-4 bg-[#4A6FA5] text-white rounded-lg text-[13px] hover:bg-[#3D5F8F] flex items-center gap-2 shadow-sm"
-            style={{ fontWeight: 600 }}
-          >
-            <span className="material-icons" style={{ fontSize: "18px" }}>add</span>
-            Create Expense
-          </button>
-          <KebabMenu triggerClassName="w-9 h-9 border border-[#DDE3EE] rounded-lg bg-white">
-            <KebabItem icon="view_column">Edit Columns</KebabItem>
-            <KebabItem icon="swap_horiz">Change Status</KebabItem>
-            <KebabItem icon="content_copy">Manage Duplicates</KebabItem>
-            <KebabSeparator />
-            {selectedIds.size > 0 && <>
-              <KebabItem icon="deselect" onClick={() => setSelectedIds(new Set())}>Deselect All</KebabItem>
+      <PageHeader
+        title="Expenses"
+        count={selectedIds.size > 0 ? `${filtered.length} records · ${selectedIds.size} selected` : `${filtered.length} records`}
+        actions={
+          <>
+            <button
+              onClick={() => navigate("/expenses/new")}
+              className="h-9 px-4 bg-[#4A6FA5] text-white rounded-lg text-[13px] hover:bg-[#3D5F8F] flex items-center gap-2 shadow-sm"
+              style={{ fontWeight: 600 }}
+            >
+              <span className="material-icons" style={{ fontSize: "18px" }}>add</span>
+              Create Expense
+            </button>
+            <KebabMenu triggerClassName="w-9 h-9 border border-[#DDE3EE] rounded-lg bg-white">
+              <KebabItem icon="view_column">Edit Columns</KebabItem>
+              <KebabItem icon="swap_horiz">Change Status</KebabItem>
+              <KebabItem icon="content_copy">Manage Duplicates</KebabItem>
               <KebabSeparator />
-            </>}
-            <KebabItem icon="file_upload">Import</KebabItem>
-            <KebabItem icon="file_download">Export</KebabItem>
-          </KebabMenu>
-        </div>
-      </div>
+              {selectedIds.size > 0 && <>
+                <KebabItem icon="deselect" onClick={() => setSelectedIds(new Set())}>Deselect All</KebabItem>
+                <KebabSeparator />
+              </>}
+              <KebabItem icon="file_upload">Import</KebabItem>
+              <KebabItem icon="file_download">Export</KebabItem>
+            </KebabMenu>
+          </>
+        }
+      />
 
       {/* Summary Card */}
       <div className="grid grid-cols-4 gap-5 mb-8">
@@ -133,6 +134,8 @@ export function Expenses() {
       <div className="bg-white border border-[#DDE3EE] rounded-lg overflow-hidden">
         {/* Filter bar */}
         <div className="flex items-center gap-2 px-4 py-3 bg-white border-b border-[#DDE3EE]">
+          <span className="text-[13px] text-[#546478]" style={{ fontWeight: 500 }}>{filtered.length} results</span>
+          <div className="w-px h-5 bg-[#DDE3EE] mx-1" />
           <select value={qfCategory} onChange={e => setQfCategory(e.target.value)} className={qfClass(qfCategory !== "All")}>
             {categoryFilterOptions.map(c => <option key={c} value={c}>{c === "All" ? "All categories" : c}</option>)}
           </select>
@@ -169,6 +172,16 @@ export function Expenses() {
             />
           </div>
         </div>
+        <SelectionBar
+          count={selectedIds.size}
+          onDeselect={() => setSelectedIds(new Set())}
+          onDelete={() => {
+            if (confirm(`Delete ${selectedIds.size} expense(s)?`)) {
+              setExpenses(prev => prev.filter(e => !selectedIds.has(e.id)));
+              setSelectedIds(new Set());
+            }
+          }}
+        />
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-[#F5F7FA]">

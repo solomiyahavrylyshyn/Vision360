@@ -1,9 +1,9 @@
+import { PageHeader } from "../components/ui/page-header";
+
 export function Events() {
   return (
     <div className="p-8">
-      <div className="mb-8">
-        <h1 className="text-[22px] text-[#1A2332]" style={{ fontWeight: 700 }}>Appointments</h1>
-      </div>
+      <PageHeader title="Appointments" />
 
       <div className="bg-white rounded-lg border border-[#DDE3EE] p-12 text-center">
         <div className="w-14 h-14 rounded-xl bg-[#EBF0F8] flex items-center justify-center mx-auto mb-4">

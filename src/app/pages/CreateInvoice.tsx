@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { ItemPicker, catalogItemToLineItem, type CatalogItem, type SelectedLineItem } from "../components/ItemPicker";
+import { PageHeader } from "../components/ui/page-header";
 
 // Mock catalog (same as CreateEstimate)
 const mockCatalogItems: CatalogItem[] = [
@@ -68,11 +69,12 @@ export function CreateInvoice() {
 
       <div className="max-w-[800px] mx-auto py-8 px-6">
         {/* Header */}
-        <div className="flex items-center gap-3 mb-6">
-          <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "24px" }}>receipt</span>
-          <h1 className="text-[22px] text-[#1A2332]" style={{ fontWeight: 700 }}>Create Invoice</h1>
-          <span className="ml-auto text-[14px] text-[#546478]">{invoiceNumber}</span>
-        </div>
+        <PageHeader
+          title="Create Invoice"
+          icon="receipt"
+          className="mb-6"
+          actions={<span className="text-[14px] text-[#546478]">{invoiceNumber}</span>}
+        />
 
         {/* Client */}
         <div className="space-y-4 mb-6">

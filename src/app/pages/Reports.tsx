@@ -1,5 +1,6 @@
 import { Card } from "../components/ui/card";
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { PageHeader } from "../components/ui/page-header";
 
 const revenueData = [
   { month: "Jan", revenue: 12400, expenses: 8200 },
@@ -22,9 +23,7 @@ const COLORS = ["#4A6FA5", "#16A34A", "#D97706", "#546478"];
 export function Reports() {
   return (
     <div className="p-8">
-      <div className="mb-8">
-        <h1 className="text-[22px] text-[#1A2332]" style={{ fontWeight: 700 }}>Reports & Analytics</h1>
-      </div>
+      <PageHeader title="Reports & Analytics" />
 
       {/* KPIs */}
       <div className="grid grid-cols-4 gap-5 mb-8">

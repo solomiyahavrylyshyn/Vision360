@@ -2,6 +2,7 @@ import { useState, useSyncExternalStore } from "react";
 import { useNavigate } from "react-router";
 import { ItemPicker, catalogItemToLineItem, type CatalogItem, type SelectedLineItem } from "../components/ItemPicker";
 import { jobTypesStore } from "../stores/jobTypesStore";
+import { PageHeader } from "../components/ui/page-header";
 
 // Mock catalog items (same as CreateEstimate)
 const mockCatalogItems: CatalogItem[] = [
@@ -85,10 +86,7 @@ export function CreateJob() {
 
       <div className="max-w-[800px] mx-auto py-8 px-6">
         {/* Header */}
-        <div className="flex items-center gap-3 mb-6">
-          <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "24px" }}>work</span>
-          <h1 className="text-[22px] text-[#1A2332]" style={{ fontWeight: 700 }}>Create Job</h1>
-        </div>
+        <PageHeader title="Create Job" icon="work" className="mb-6" />
 
         {/* Title & Client */}
         <div className="space-y-4 mb-6">
