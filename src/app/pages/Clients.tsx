@@ -324,20 +324,20 @@ export function Clients() {
               <Sparkline data={[3, 4, 4, 5, 5, 6, 6]} color="#4A6FA5" />
             </div>
           </Card>
-          <Card className="px-4 py-4 border border-[#DDE3EE] bg-gradient-to-br from-[#1A2332] to-[#2a3a50] hover:shadow-sm transition-shadow cursor-pointer group">
-            <div className="flex flex-col h-full justify-between">
-              <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "20px" }}>auto_awesome</span>
-                  <span className="text-[12px] text-[#4A6FA5] uppercase tracking-wide" style={{ fontWeight: 600 }}>What's New</span>
+          <Card className="px-4 py-3 border border-[#DDE3EE] bg-gradient-to-br from-[#1A2332] to-[#2a3a50] hover:shadow-sm transition-shadow cursor-pointer group overflow-hidden">
+            <div className="flex flex-col h-full gap-1.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1">
+                  <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "13px" }}>auto_awesome</span>
+                  <span className="text-[10px] text-[#4A6FA5] uppercase tracking-wide" style={{ fontWeight: 600 }}>What's New</span>
                 </div>
-                <div className="text-[14px] text-white mb-1" style={{ fontWeight: 600 }}>Integration with QuickBooks Online</div>
-                <p className="text-[12px] text-[#8899AA] leading-relaxed">Sync your clients, invoices, and payments automatically.</p>
+                <div className="flex items-center gap-0.5 text-[#4A6FA5] group-hover:text-[#6b8fc0] transition-colors">
+                  <span className="text-[10px]" style={{ fontWeight: 600 }}>Learn more</span>
+                  <span className="material-icons" style={{ fontSize: "12px" }}>arrow_forward</span>
+                </div>
               </div>
-              <div className="flex items-center gap-1 mt-3 text-[#4A6FA5] group-hover:text-[#6b8fc0] transition-colors">
-                <span className="text-[12px]" style={{ fontWeight: 600 }}>Learn more</span>
-                <span className="material-icons" style={{ fontSize: "16px" }}>arrow_forward</span>
-              </div>
+              <div className="text-[12px] text-white leading-tight" style={{ fontWeight: 600 }}>Integration with QuickBooks Online</div>
+              <p className="text-[10px] text-[#8899AA] leading-snug">Sync your clients, invoices, and payments automatically.</p>
             </div>
           </Card>
         </div>
