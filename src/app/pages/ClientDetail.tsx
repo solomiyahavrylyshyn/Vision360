@@ -983,35 +983,31 @@ export function ClientDetail() {
             <div className="flex-1 flex gap-8">
               {/* Left: Name + Address */}
               <div className="flex flex-col gap-3 min-w-[260px]">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
                   <h1 className="text-[28px] text-[#1A2332] leading-[42px]" style={{ fontWeight: 700 }}>
                     {client.name}
                   </h1>
+                  <span className="text-[16px] text-[#6B7280] leading-[42px]" style={{ fontWeight: 500 }}>
+                    ({client.customerId.replace(/^C-/, "")})
+                  </span>
+                </div>
 
-                  {/* Email icon with tooltip */}
-                  <div className="relative group">
-                    <button className="flex items-center justify-center w-6 h-6 rounded hover:bg-[#F3F4F6] transition-colors">
-                      <span className="material-icons text-[#6B7280]" style={{ fontSize: "16px" }}>email</span>
-                    </button>
-                    <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1 hidden group-hover:block bg-white border border-[#E5E7EB] shadow-lg rounded-lg px-3 py-2 whitespace-nowrap z-50">
-                      <div className="text-[13px] text-[#1A2332]">{client.email}</div>
-                    </div>
+                {/* Address */}
+                <div className="flex items-start gap-1.5">
+                  <span className="material-icons text-[#6B7280] mt-0.5" style={{ fontSize: "14px" }}>location_on</span>
+                  <div className="text-[13px] text-[#374151] leading-[19px]">
+                    {client.address}
+                    <br />
+                    {client.city}, {client.state}, {client.zip}
                   </div>
+                </div>
 
-                  {/* Phone icon with tooltip */}
-                  <div className="relative group">
-                    <button className="flex items-center justify-center w-6 h-6 rounded hover:bg-[#F3F4F6] transition-colors">
-                      <span className="material-icons text-[#6B7280]" style={{ fontSize: "16px" }}>phone</span>
-                    </button>
-                    <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1 hidden group-hover:block bg-white border border-[#E5E7EB] shadow-lg rounded-lg px-3 py-2 whitespace-nowrap z-50">
-                      <div className="text-[13px] text-[#1A2332]">{client.mobilePhone}</div>
-                    </div>
-                  </div>
-
+                {/* Icons row + Status */}
+                <div className="flex items-center gap-4">
                   {/* Customer type icon with tooltip */}
                   <div className="relative group">
                     <button className="flex items-center justify-center w-6 h-6 rounded hover:bg-[#F3F4F6] transition-colors">
-                      <span className="material-icons text-[#6B7280]" style={{ fontSize: "16px" }}>
+                      <span className="material-icons text-[#6B7280]" style={{ fontSize: "18px" }}>
                         {client.customerType === "business" ? "business" : "home"}
                       </span>
                     </button>
@@ -1019,6 +1015,26 @@ export function ClientDetail() {
                       <div className="text-[13px] text-[#1A2332]">
                         {client.customerType === "business" ? "Commercial" : "Residential"}
                       </div>
+                    </div>
+                  </div>
+
+                  {/* Phone icon with tooltip */}
+                  <div className="relative group">
+                    <button className="flex items-center justify-center w-6 h-6 rounded hover:bg-[#F3F4F6] transition-colors">
+                      <span className="material-icons text-[#6B7280]" style={{ fontSize: "18px" }}>phone</span>
+                    </button>
+                    <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1 hidden group-hover:block bg-white border border-[#E5E7EB] shadow-lg rounded-lg px-3 py-2 whitespace-nowrap z-50">
+                      <div className="text-[13px] text-[#1A2332]">{client.mobilePhone}</div>
+                    </div>
+                  </div>
+
+                  {/* Email icon with tooltip */}
+                  <div className="relative group">
+                    <button className="flex items-center justify-center w-6 h-6 rounded hover:bg-[#F3F4F6] transition-colors">
+                      <span className="material-icons text-[#6B7280]" style={{ fontSize: "18px" }}>email</span>
+                    </button>
+                    <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1 hidden group-hover:block bg-white border border-[#E5E7EB] shadow-lg rounded-lg px-3 py-2 whitespace-nowrap z-50">
+                      <div className="text-[13px] text-[#1A2332]">{client.email}</div>
                     </div>
                   </div>
 
@@ -1055,14 +1071,6 @@ export function ClientDetail() {
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
-                </div>
-
-                {/* Address */}
-                <div className="flex items-start gap-1.5">
-                  <span className="material-icons text-[#6B7280] mt-0.5" style={{ fontSize: "14px" }}>location_on</span>
-                  <div className="text-[13px] text-[#374151] leading-[19px]">
-                    {client.address}, {client.city}, {client.state}, {client.zip}
-                  </div>
                 </div>
               </div>
 

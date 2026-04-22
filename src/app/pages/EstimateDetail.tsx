@@ -120,12 +120,16 @@ export function EstimateDetail() {
   ];
 
   return (
-    <div className="p-6 bg-[#F5F7FA] min-h-full">
-      {/* Back navigation */}
-      <button onClick={() => navigate("/estimates")} className="flex items-center gap-1 text-[13px] text-[#546478] hover:text-[#1A2332] mb-4">
-        <span className="material-icons" style={{ fontSize: "18px" }}>arrow_back</span>
-        Back to Estimates
-      </button>
+    <div className="bg-[#F5F7FA] min-h-full">
+      {/* Breadcrumb */}
+      <div className="bg-white border-b border-[#E5E7EB]">
+        <div className="px-8 h-10 flex items-center gap-1.5 border-b border-[#F3F4F6]">
+          <button onClick={() => navigate("/estimates")} className="text-[13px] text-[#4A6FA5] hover:underline">Estimates</button>
+          <span className="material-icons text-[#D1D5DB]" style={{ fontSize: "16px" }}>chevron_right</span>
+          <span className="text-[13px] text-[#374151]">{estimate.estimateNumber}</span>
+        </div>
+      </div>
+      <div className="p-6">
 
       {/* Top bar */}
       <div className="bg-white border border-[#DDE3EE] rounded-lg p-5 mb-5">
@@ -454,6 +458,7 @@ export function EstimateDetail() {
           }}
         />
       )}
+      </div>
     </div>
   );
 }

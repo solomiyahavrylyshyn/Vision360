@@ -217,11 +217,12 @@ export function InvoiceDetail() {
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Top Bar */}
-      <div className="bg-white border-b border-[#DDE3EE] px-6 py-3 flex items-center justify-between">
-        <button onClick={() => navigate("/invoices")} className="flex items-center gap-2 text-[13px] text-[#546478] hover:text-[#1A2332]" style={{ fontWeight: 500 }}>
-          <span className="material-icons" style={{ fontSize: "18px" }}>arrow_back</span>
-          Invoices
-        </button>
+      <div className="bg-white border-b border-[#DDE3EE] px-8 h-10 flex items-center justify-between">
+        <div className="flex items-center gap-1.5">
+          <button onClick={() => navigate("/invoices")} className="text-[13px] text-[#4A6FA5] hover:underline">Invoices</button>
+          <span className="material-icons text-[#D1D5DB]" style={{ fontSize: "16px" }}>chevron_right</span>
+          <span className="text-[13px] text-[#374151]">{data.invoiceNumber}</span>
+        </div>
         <div className="flex items-center gap-2">
           <button className="px-4 py-2 border border-[#DDE3EE] rounded-lg text-[13px] text-[#546478] hover:bg-[#F5F7FA] flex items-center gap-1.5" style={{ fontWeight: 500 }}>
             <span className="material-icons" style={{ fontSize: "16px" }}>picture_as_pdf</span>Download PDF

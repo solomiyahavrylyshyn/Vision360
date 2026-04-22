@@ -325,95 +325,21 @@ export function Clients() {
             </div>
           </Card>
           <Card className="px-4 py-3 border border-[#DDE3EE] bg-gradient-to-br from-[#1A2332] to-[#2a3a50] hover:shadow-sm transition-shadow cursor-pointer group overflow-hidden">
-            <div className="flex flex-col h-full gap-1.5">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1">
-                  <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "13px" }}>auto_awesome</span>
-                  <span className="text-[10px] text-[#4A6FA5] uppercase tracking-wide" style={{ fontWeight: 600 }}>What's New</span>
-                </div>
-                <div className="flex items-center gap-0.5 text-[#4A6FA5] group-hover:text-[#6b8fc0] transition-colors">
-                  <span className="text-[10px]" style={{ fontWeight: 600 }}>Learn more</span>
-                  <span className="material-icons" style={{ fontSize: "12px" }}>arrow_forward</span>
-                </div>
+            <div className="flex flex-col h-full justify-center items-center text-center gap-1">
+              <div className="flex items-center gap-1">
+                <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "14px" }}>auto_awesome</span>
+                <span className="text-[10px] text-[#4A6FA5] uppercase tracking-wide" style={{ fontWeight: 600 }}>What's New</span>
               </div>
-              <div className="text-[12px] text-white leading-tight" style={{ fontWeight: 600 }}>Integration with QuickBooks Online</div>
-              <p className="text-[10px] text-[#8899AA] leading-snug">Sync your clients, invoices, and payments automatically.</p>
+              <div className="text-[14px] text-white leading-tight" style={{ fontWeight: 600 }}>Integration with QuickBooks Online</div>
+              <p className="text-[12px] text-[#8899AA] leading-snug">Sync your clients, invoices, and payments automatically.</p>
+              <div className="flex items-center gap-0.5 text-[#4A6FA5] group-hover:text-[#6b8fc0] transition-colors mt-0.5">
+                <span className="text-[11px]" style={{ fontWeight: 600 }}>Learn more</span>
+                <span className="material-icons" style={{ fontSize: "14px" }}>arrow_forward</span>
+              </div>
             </div>
           </Card>
         </div>
 
-        {/* ── Filter Bar ── */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            {/* Quick filter: Status */}
-            <select
-              value={qfStatus}
-              onChange={e => { setQfStatus(e.target.value); setCurrentPage(1); }}
-              className={qfClass(qfStatus !== "all")}
-            >
-              <option value="all">Status: All</option>
-              <option value="active">Active</option>
-              <option value="prospect">Prospect</option>
-              <option value="archived">Archived</option>
-            </select>
-
-            {/* Quick filter: Date Created */}
-            <select
-              value={qfDate}
-              onChange={e => { setQfDate(e.target.value); setCurrentPage(1); }}
-              className={qfClass(qfDate !== "all_time")}
-            >
-              <option value="all_time">Date: All time</option>
-              <option value="today">Today</option>
-              <option value="yesterday">Yesterday</option>
-              <option value="last_14">Last 14 days</option>
-              <option value="this_month">This month</option>
-            </select>
-
-            {/* Quick filter: Balance */}
-            <select
-              value={qfBalance}
-              onChange={e => { setQfBalance(e.target.value); setCurrentPage(1); }}
-              className={qfClass(qfBalance !== "all")}
-            >
-              <option value="all">Balance: All</option>
-              <option value="with_balance">With balance</option>
-            </select>
-
-            <div className="w-px h-5 bg-[#DDE3EE] mx-1" />
-
-            {/* Advanced Filter button */}
-            <button
-              onClick={() => { setPendingFilters({ ...filterState }); setFilterPanelOpen(true); }}
-              className={`h-8 px-3 rounded-lg border text-[13px] flex items-center gap-1.5 transition-colors ${
-                activeFilterCount > 0
-                  ? "border-[#4A6FA5] text-[#4A6FA5] bg-[#EEF3FA]"
-                  : "border-[#DDE3EE] text-[#546478] hover:bg-[#F5F7FA] hover:border-[#C5CEDD]"
-              }`}
-              style={{ fontWeight: 500 }}
-            >
-              <span className="material-icons" style={{ fontSize: "16px" }}>tune</span>
-              Filter
-              {activeFilterCount > 0 && (
-                <span className="w-4 h-4 bg-[#4A6FA5] text-white text-[10px] rounded-full flex items-center justify-center" style={{ fontWeight: 700 }}>
-                  {activeFilterCount}
-                </span>
-              )}
-            </button>
-          </div>
-
-          {/* Search */}
-          <div className="relative">
-            <span className="material-icons absolute left-2.5 top-1/2 -translate-y-1/2 text-[#9AA3AF]" style={{ fontSize: "16px" }}>search</span>
-            <Input
-              type="text"
-              placeholder="Search"
-              value={searchQuery}
-              onChange={e => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-              className="pl-8 pr-3 h-8 w-[220px] border-[#DDE3EE] text-[13px] bg-white focus:bg-white"
-            />
-          </div>
-        </div>
 
         {/* ── Advanced Filter Slide-over ── */}
         {filterPanelOpen && (
@@ -589,6 +515,68 @@ export function Clients() {
 
         {/* ── Table ── */}
         <div className="bg-white border border-[#DDE3EE] rounded-lg overflow-hidden">
+          {/* Filter Bar */}
+          <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-[#DDE3EE]">
+            <div className="flex items-center gap-2">
+              <select
+                value={qfStatus}
+                onChange={e => { setQfStatus(e.target.value); setCurrentPage(1); }}
+                className={qfClass(qfStatus !== "all")}
+              >
+                <option value="all">Status: All</option>
+                <option value="active">Active</option>
+                <option value="prospect">Prospect</option>
+                <option value="archived">Archived</option>
+              </select>
+              <select
+                value={qfDate}
+                onChange={e => { setQfDate(e.target.value); setCurrentPage(1); }}
+                className={qfClass(qfDate !== "all_time")}
+              >
+                <option value="all_time">Date: All time</option>
+                <option value="today">Today</option>
+                <option value="yesterday">Yesterday</option>
+                <option value="last_14">Last 14 days</option>
+                <option value="this_month">This month</option>
+              </select>
+              <select
+                value={qfBalance}
+                onChange={e => { setQfBalance(e.target.value); setCurrentPage(1); }}
+                className={qfClass(qfBalance !== "all")}
+              >
+                <option value="all">Balance: All</option>
+                <option value="with_balance">With balance</option>
+              </select>
+              <div className="w-px h-5 bg-[#DDE3EE] mx-1" />
+              <button
+                onClick={() => { setPendingFilters({ ...filterState }); setFilterPanelOpen(true); }}
+                className={`h-8 px-3 rounded-lg border text-[13px] flex items-center gap-1.5 transition-colors ${
+                  activeFilterCount > 0
+                    ? "border-[#4A6FA5] text-[#4A6FA5] bg-[#EEF3FA]"
+                    : "border-[#DDE3EE] text-[#546478] hover:bg-[#F5F7FA] hover:border-[#C5CEDD]"
+                }`}
+                style={{ fontWeight: 500 }}
+              >
+                <span className="material-icons" style={{ fontSize: "16px" }}>tune</span>
+                Filter
+                {activeFilterCount > 0 && (
+                  <span className="w-4 h-4 bg-[#4A6FA5] text-white text-[10px] rounded-full flex items-center justify-center" style={{ fontWeight: 700 }}>
+                    {activeFilterCount}
+                  </span>
+                )}
+              </button>
+            </div>
+            <div className="relative">
+              <span className="material-icons absolute left-2.5 top-1/2 -translate-y-1/2 text-[#9AA3AF]" style={{ fontSize: "16px" }}>search</span>
+              <Input
+                type="text"
+                placeholder="Search"
+                value={searchQuery}
+                onChange={e => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+                className="pl-8 pr-3 h-8 w-[220px] border-[#DDE3EE] text-[13px] bg-white focus:bg-white"
+              />
+            </div>
+          </div>
           <table className="w-full">
             <thead className="bg-[#F5F7FA]">
               <tr>

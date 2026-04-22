@@ -293,35 +293,34 @@ export function Estimates() {
         ))}
       </div>
 
-      {/* Filter bar */}
-      <div className="flex items-center gap-2 mb-4">
-        <select value={qfStatus} onChange={e => { setQfStatus(e.target.value as any); setPage(1); }} className={qfClass(qfStatus !== "All")}>
-          <option value="All">All statuses</option>
-          {(["Unsent","Pending","Approved","Declined","Won","Archived"] as EstimateStatus[]).map(s => (
-            <option key={s} value={s}>{s}</option>
-          ))}
-        </select>
-        <select value={qfDate} onChange={e => setQfDate(e.target.value)} className={qfClass(qfDate !== "All time")}>
-          {timeFilters.map(t => <option key={t} value={t}>{t}</option>)}
-        </select>
-        <select value={qfSource} onChange={e => { setQfSource(e.target.value); setPage(1); }} className={qfClass(qfSource !== "All")}>
-          {uniqueSources.map(s => <option key={s} value={s}>{s === "All" ? "All sources" : s}</option>)}
-        </select>
-        <div className="w-px h-5 bg-[#DDE3EE] mx-1" />
-        <button className="h-8 px-3 border border-[#DDE3EE] rounded-lg text-[13px] text-[#546478] hover:bg-[#F5F7FA] flex items-center gap-1.5 bg-white" style={{ fontWeight: 500 }}>
-          <span className="material-icons" style={{ fontSize: "16px" }}>tune</span>
-          Filter
-        </button>
-        <div className="flex-1" />
-        <div className="relative">
-          <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: "18px" }}>search</span>
-          <input type="text" placeholder="Search" value={search} onChange={e => { setSearch(e.target.value); setPage(1); }}
-            className="w-[260px] h-9 pl-10 pr-3 border border-[#DDE3EE] rounded-lg text-[13px] focus:outline-none focus:border-[#4A6FA5] bg-white" />
-        </div>
-      </div>
-
       {/* Table */}
       <div className="bg-white border border-[#DDE3EE] rounded-lg overflow-hidden">
+        {/* Filter bar */}
+        <div className="flex items-center gap-2 px-4 py-3 bg-white border-b border-[#DDE3EE]">
+          <select value={qfStatus} onChange={e => { setQfStatus(e.target.value as any); setPage(1); }} className={qfClass(qfStatus !== "All")}>
+            <option value="All">All statuses</option>
+            {(["Unsent","Pending","Approved","Declined","Won","Archived"] as EstimateStatus[]).map(s => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </select>
+          <select value={qfDate} onChange={e => setQfDate(e.target.value)} className={qfClass(qfDate !== "All time")}>
+            {timeFilters.map(t => <option key={t} value={t}>{t}</option>)}
+          </select>
+          <select value={qfSource} onChange={e => { setQfSource(e.target.value); setPage(1); }} className={qfClass(qfSource !== "All")}>
+            {uniqueSources.map(s => <option key={s} value={s}>{s === "All" ? "All sources" : s}</option>)}
+          </select>
+          <div className="w-px h-5 bg-[#DDE3EE] mx-1" />
+          <button className="h-8 px-3 border border-[#DDE3EE] rounded-lg text-[13px] text-[#546478] hover:bg-[#F5F7FA] flex items-center gap-1.5 bg-white" style={{ fontWeight: 500 }}>
+            <span className="material-icons" style={{ fontSize: "16px" }}>tune</span>
+            Filter
+          </button>
+          <div className="flex-1" />
+          <div className="relative">
+            <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: "18px" }}>search</span>
+            <input type="text" placeholder="Search" value={search} onChange={e => { setSearch(e.target.value); setPage(1); }}
+              className="w-[260px] h-9 pl-10 pr-3 border border-[#DDE3EE] rounded-lg text-[13px] focus:outline-none focus:border-[#4A6FA5] bg-white" />
+          </div>
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>

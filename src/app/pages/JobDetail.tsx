@@ -79,7 +79,16 @@ export function JobDetail() {
   };
 
   return (
-    <div className="flex-1 flex overflow-hidden bg-[#F5F7FA]">
+    <div className="flex-1 flex flex-col overflow-hidden bg-[#F5F7FA]">
+      {/* Breadcrumb */}
+      <div className="bg-white border-b border-[#E5E7EB]">
+        <div className="px-8 h-10 flex items-center gap-1.5 border-b border-[#F3F4F6]">
+          <button onClick={() => navigate("/jobs")} className="text-[13px] text-[#4A6FA5] hover:underline">Jobs</button>
+          <span className="material-icons text-[#D1D5DB]" style={{ fontSize: "16px" }}>chevron_right</span>
+          <span className="text-[13px] text-[#374151]">{job.jobNumber}</span>
+        </div>
+      </div>
+      <div className="flex-1 flex overflow-hidden">
       {/* Main content */}
       <div className="flex-1 overflow-auto">
         <div className="p-6">
@@ -577,6 +586,7 @@ export function JobDetail() {
             />
           </div>
         </div>
+      </div>
       </div>
     </div>
   );

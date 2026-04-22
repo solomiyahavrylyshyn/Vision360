@@ -160,47 +160,46 @@ export function Expenses() {
         </div>
       </div>
 
-      {/* Filter bar */}
-      <div className="flex items-center gap-2 mb-4">
-        <select value={qfCategory} onChange={e => setQfCategory(e.target.value)} className={qfClass(qfCategory !== "All")}>
-          {categoryFilterOptions.map(c => <option key={c} value={c}>{c === "All" ? "All categories" : c}</option>)}
-        </select>
-        <select value={qfDate} onChange={e => setQfDate(e.target.value)} className={qfClass(qfDate !== "all")}>
-          <option value="all">All time</option>
-          <option value="this_month">This month</option>
-          <option value="last_month">Last month</option>
-          <option value="last_90">Last 90 days</option>
-        </select>
-        <select value={qfJob} onChange={e => setQfJob(e.target.value)} className={qfClass(qfJob !== "")}>
-          <option value="">All jobs</option>
-          {uniqueJobs.map(j => <option key={j} value={j}>#{j}</option>)}
-        </select>
-        <div className="w-px h-5 bg-[#DDE3EE] mx-1" />
-        <button
-          onClick={() => setFilterOpen(!filterOpen)}
-          className={`h-8 px-3 border rounded-lg text-[13px] flex items-center gap-1.5 transition-colors ${
-            filterOpen ? "border-[#4A6FA5] text-[#4A6FA5] bg-[#EEF3FA]" : "border-[#DDE3EE] text-[#546478] hover:bg-[#F5F7FA] bg-white"
-          }`}
-          style={{ fontWeight: 500 }}
-        >
-          <span className="material-icons" style={{ fontSize: "16px" }}>tune</span>
-          Filter
-        </button>
-        <div className="flex-1" />
-        <div className="relative">
-          <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: "18px" }}>search</span>
-          <input
-            type="text"
-            placeholder="Search"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-[260px] h-9 pl-10 pr-3 border border-[#DDE3EE] rounded-lg text-[13px] focus:outline-none focus:border-[#4A6FA5] bg-white"
-          />
-        </div>
-      </div>
-
       {/* Table */}
       <div className="bg-white border border-[#DDE3EE] rounded-lg overflow-hidden">
+        {/* Filter bar */}
+        <div className="flex items-center gap-2 px-4 py-3 bg-white border-b border-[#DDE3EE]">
+          <select value={qfCategory} onChange={e => setQfCategory(e.target.value)} className={qfClass(qfCategory !== "All")}>
+            {categoryFilterOptions.map(c => <option key={c} value={c}>{c === "All" ? "All categories" : c}</option>)}
+          </select>
+          <select value={qfDate} onChange={e => setQfDate(e.target.value)} className={qfClass(qfDate !== "all")}>
+            <option value="all">All time</option>
+            <option value="this_month">This month</option>
+            <option value="last_month">Last month</option>
+            <option value="last_90">Last 90 days</option>
+          </select>
+          <select value={qfJob} onChange={e => setQfJob(e.target.value)} className={qfClass(qfJob !== "")}>
+            <option value="">All jobs</option>
+            {uniqueJobs.map(j => <option key={j} value={j}>#{j}</option>)}
+          </select>
+          <div className="w-px h-5 bg-[#DDE3EE] mx-1" />
+          <button
+            onClick={() => setFilterOpen(!filterOpen)}
+            className={`h-8 px-3 border rounded-lg text-[13px] flex items-center gap-1.5 transition-colors ${
+              filterOpen ? "border-[#4A6FA5] text-[#4A6FA5] bg-[#EEF3FA]" : "border-[#DDE3EE] text-[#546478] hover:bg-[#F5F7FA] bg-white"
+            }`}
+            style={{ fontWeight: 500 }}
+          >
+            <span className="material-icons" style={{ fontSize: "16px" }}>tune</span>
+            Filter
+          </button>
+          <div className="flex-1" />
+          <div className="relative">
+            <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: "18px" }}>search</span>
+            <input
+              type="text"
+              placeholder="Search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-[260px] h-9 pl-10 pr-3 border border-[#DDE3EE] rounded-lg text-[13px] focus:outline-none focus:border-[#4A6FA5] bg-white"
+            />
+          </div>
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-[#F5F7FA]">
