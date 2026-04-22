@@ -1,0 +1,252 @@
+Ось повний код дайлера:
+
+  ---
+  CSS (вставляти перед </style>):
+
+  /* Voice Dialer */
+  .dialer-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.25);
+      z-index: 3000;
+  }
+  .dialer-overlay.open { display: block; }
+
+  .dialer-modal {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 280px;
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.18);
+      z-index: 3002;
+      overflow: hidden;
+      flex-direction: column;
+  }
+  .dialer-modal.open { display: flex; }
+
+  .dialer-modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px 10px;
+      border-bottom: 1px solid var(--border);
+  }
+  .dialer-modal-header span {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-primary);
+  }
+
+  .dialer-close-btn {
+      width: 28px; height: 28px;
+      background: transparent;
+      border: none;
+      border-radius: 6px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.2s;
+  }
+  .dialer-close-btn:hover { background: var(--bg-grey); }
+  .dialer-close-btn .material-icons { font-size: 18px !important; }
+
+  .dialer-tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+  }
+  .dialer-tab {
+      flex: 1;
+      padding: 9px 0;
+      background: transparent;
+      border: none;
+      font-size: 13px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+      font-weight: 500;
+  }
+  .dialer-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+  .dialer-tab:hover:not(.active) { background: var(--bg-grey-light); }
+
+  .dialer-display {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 16px 8px;
+      min-height: 56px;
+  }
+  .dialer-number {
+      flex: 1;
+      font-size: 22px;
+      font-weight: 300;
+      color: var(--text-primary);
+      letter-spacing: 2px;
+      min-height: 32px;
+      display: flex;
+      align-items: center;
+  }
+  .dialer-number.empty { color: var(--text-secondary); font-size: 14px; font-weight: 400; letter-spacing: 0; }
+
+  .dialer-backspace {
+      width: 36px; height: 36px;
+      background: transparent;
+      border: none;
+      border-radius: 8px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.2s;
+      opacity: 0;
+  }
+  .dialer-backspace.visible { opacity: 1; }
+  .dialer-backspace:hover { background: var(--bg-grey); color: var(--text-primary); }
+  .dialer-backspace .material-icons { font-size: 20px !important; }
+
+  .dialer-keypad {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 4px;
+      padding: 4px 16px 12px;
+  }
+  .dialer-key {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 52px;
+      background: transparent;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.15s;
+      user-select: none;
+  }
+  .dialer-key:hover { background: var(--bg-grey-light); }
+  .dialer-key:active { background: var(--bg-grey); }
+
+  .dialer-key-digit {
+      font-size: 20px;
+      font-weight: 400;
+      color: var(--text-primary);
+      line-height: 1;
+  }
+  .dialer-key-letters {
+      font-size: 9px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      letter-spacing: 0.08em;
+      margin-top: 2px;
+      height: 11px;
+  }
+
+  .dialer-call-row {
+      padding: 8px 16px 20px;
+      display: flex;
+      justify-content: center;
+  }
+  .dialer-call-btn {
+      width: 60px; height: 60px;
+      background: #16A34A;
+      border: none;
+      border-radius: 50%;
+      color: white;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 12px rgba(22,163,74,0.35);
+      transition: all 0.2s;
+  }
+  .dialer-call-btn:hover {
+      background: #15803d;
+      box-shadow: 0 6px 16px rgba(22,163,74,0.45);
+      transform: scale(1.05);
+  }
+  .dialer-call-btn .material-icons { font-size: 26px !important; }
+
+  ---
+  HTML (вставляти у <body>, поряд з іншими оверлеями):
+
+  <!-- Voice Dialer -->
+  <div class="dialer-overlay" id="dialerOverlay" onclick="toggleDialer()"></div>
+  <div class="dialer-modal" id="dialerModal">
+      <div class="dialer-modal-header">
+          <span>Dialer</span>
+          <button class="dialer-close-btn" onclick="toggleDialer()"><span class="material-icons">close</span></button>
+      </div>
+      <div class="dialer-tabs">
+          <button class="dialer-tab" onclick="setDialerTab(this)">Recents</button>
+          <button class="dialer-tab" onclick="setDialerTab(this)">Contacts</button>
+          <button class="dialer-tab active" onclick="setDialerTab(this)">Keypad</button>
+      </div>
+      <div class="dialer-display">
+          <div class="dialer-number empty" id="dialerNumber">Enter number</div>
+          <button class="dialer-backspace" id="dialerBackspace" onclick="dialerBackspace()">
+              <span class="material-icons">backspace</span>
+          </button>
+      </div>
+      <div class="dialer-keypad">
+          <button class="dialer-key" onclick="dialerPress('1')"><span class="dialer-key-digit">1</span><span
+  class="dialer-key-letters">&nbsp;</span></button>
+          <button class="dialer-key" onclick="dialerPress('2')"><span class="dialer-key-digit">2</span><span class="dialer-key-letters">ABC</span></button>
+          <button class="dialer-key" onclick="dialerPress('3')"><span class="dialer-key-digit">3</span><span class="dialer-key-letters">DEF</span></button>
+          <button class="dialer-key" onclick="dialerPress('4')"><span class="dialer-key-digit">4</span><span class="dialer-key-letters">GHI</span></button>
+          <button class="dialer-key" onclick="dialerPress('5')"><span class="dialer-key-digit">5</span><span class="dialer-key-letters">JKL</span></button>
+          <button class="dialer-key" onclick="dialerPress('6')"><span class="dialer-key-digit">6</span><span class="dialer-key-letters">MNO</span></button>
+          <button class="dialer-key" onclick="dialerPress('7')"><span class="dialer-key-digit">7</span><span class="dialer-key-letters">PQRS</span></button>
+          <button class="dialer-key" onclick="dialerPress('8')"><span class="dialer-key-digit">8</span><span class="dialer-key-letters">TUV</span></button>
+          <button class="dialer-key" onclick="dialerPress('9')"><span class="dialer-key-digit">9</span><span class="dialer-key-letters">WXYZ</span></button>
+          <button class="dialer-key" onclick="dialerPress('*')"><span class="dialer-key-digit">*</span><span
+  class="dialer-key-letters">&nbsp;</span></button>
+          <button class="dialer-key" onclick="dialerPress('0')"><span class="dialer-key-digit">0</span><span class="dialer-key-letters">+</span></button>
+          <button class="dialer-key" onclick="dialerPress('#')"><span class="dialer-key-digit">#</span><span
+  class="dialer-key-letters">&nbsp;</span></button>
+      </div>
+      <div class="dialer-call-row">
+          <button class="dialer-call-btn"><span class="material-icons">call</span></button>
+      </div>
+  </div>
+
+  ---
+  JS (вставляти у <script>):
+
+  var dialerValue = '';
+
+  function toggleDialer() {
+      document.getElementById('dialerModal').classList.toggle('open');
+      document.getElementById('dialerOverlay').classList.toggle('open');
+  }
+
+  function dialerPress(key) {
+      if (dialerValue.length >= 15) return;
+      dialerValue += key;
+      var el = document.getElementById('dialerNumber');
+      el.textContent = dialerValue;
+      el.classList.remove('empty');
+      document.getElementById('dialerBackspace').classList.add('visible');
+  }
+
+  function dialerBackspace() {
+      dialerValue = dialerValue.slice(0, -1);
+      var el = document.getElementById('dialerNumber');
+      if (dialerValue === '') {
+          el.textContent = 'Enter number';
+          el.classList.add('empty');
+          document.getElementById('dialerBackspace').classList.remove('visible');
+      } else {
+          el.textContent = dialerValue;
+      }
+  }
+
+  function setDialerTab(btn) {
+      btn.closest('.dialer-tabs').querySelectorAll('.dialer-tab').forEach(function(t) { t.classList.remove('active'); });
+      btn.classList.add('active');
+  }
+
+  ---
+  Для відкриття дайлера — виклик toggleDialer() з будь-якої кнопки в sidebar або header.

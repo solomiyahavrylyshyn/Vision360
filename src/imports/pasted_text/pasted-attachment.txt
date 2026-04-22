@@ -1,0 +1,967 @@
+unctional Scope - Version 1: CORE (Detailed) 
+
+The tables below contain all features for Version 1 (CORE), the initial release targeting solo service operators. Feature IDs are provided for traceability. 
+
+Table 2.1 - Authentication & Onboarding 
+
+Feature ID 
+
+Module 
+
+Sub-Feature 
+
+Description 
+
+Screen 
+
+F-1 
+
+Login / Registration 
+
+1-1 Create Account 
+
+Enter email address 
+
+Create password 
+
+Accept terms 
+
+Note: Social login NOT included in CORE 
+
+“Registration” screen 
+
+1-2 Login 
+
+Email/password login 
+
+Remember me option 
+
+“Login” screen 
+
+1-3 Two-Factor Auth (2FA) 
+
+Email verification code 
+
+“Skip on this device” option for trusted devices/browsers 
+
+“Verify” screen 
+
+1-4 Reset Password 
+
+Request password reset via email 
+
+Receive reset link 
+
+Enter new password 
+
+“Reset Password” screen 
+
+1-5 Logout 
+
+Logout from device 
+
+Settings menu 
+
+F-2 
+
+Onboarding 
+
+2-1 Welcome Screen 
+
+Single welcome screen (very simple) 
+
+Optional tip: “Don’t forget to add your customers first” 
+
+Can be skipped 
+
+“Welcome” screen 
+
+Table 2.2 - Company & Settings 
+
+Feature ID 
+
+Module 
+
+Sub-Feature 
+
+Description 
+
+Screen 
+
+F-3 
+
+Company Details 
+
+3-1 CRUD Business Details 
+
+Company name 
+
+Email address 
+
+Business address 
+
+Phone number 
+
+Upload company logo 
+
+Company details auto- populate in estimates and invoices 
+
+“Company” screen 
+
+F-4 
+
+Settings 
+
+4-1 Tax Settings 
+
+Tax type: On Total / Deducted / Per Item / None 
+
+Tax rate (percentage) 
+
+Inclusive/Exclusive toggle 
+
+Modelled after Invoice Simple’s tax module 
+
+“Settings” screen 
+
+4-2 Invoice / Estimate Defaults 
+
+Edit default title 
+
+Edit document code/ numbering format 
+
+Default notes text 
+
+Currency selection 
+
+“Settings” screen 
+
+4-3 Payment Options 
+
+Activate/Deactivate payment processors 
+
+Connect payment processor account 
+
+Configure payment options 
+
+“Settings” screen 
+
+ 
+
+ 
+
+Table 2.3 - Home & Navigation 
+
+Feature ID 
+
+Module 
+
+Sub-Feature 
+
+Description 
+
+Screen 
+
+F-5 
+
+Home / Navigation 
+
+5-1 Daily Schedule Snapshot 
+
+View today’s jobs at a glance 
+
+Time, customer name, address for each job 
+
+Quick access to job details 
+
+PRIMARY VALUE: “I open the app and know exactly what my day looks like” 
+
+“Home” screen 
+
+5-2 Main Navigation 
+
+Quick access to: Invoices, Estimates, Jobs, Clients, Company 
+
+Bottom navigation: Invoices, Estimates, Expenses, Payments 
+
+Secondary menu: Clients, Items, Reports 
+
+“Home” screen + Bottom nav 
+
+Table 2.4 - Client Management 
+
+Feature ID 
+
+Module 
+
+Sub-Feature 
+
+Description 
+
+Screen 
+
+F-6 
+
+Clients 
+
+6-1 CRUD Client 
+
+Name 
+
+Email address 
+
+Address 
+
+Phone number 
+
+Custom notes/text field (pronunciation, nuances, preferences) 
+
+Deactivate client option 
+
+“Client” screen 
+
+6-2 Client List 
+
+View all clients 
+
+Search for client 
+
+Filter/Sort list 
+
+Total billed display (total invoices/amount) 
+
+“Clients” screen 
+
+6-3 Work Summary per Client 
+
+View client’s Invoices 
+
+View client’s Estimates 
+
+View client’s Jobs 
+
+Open any document directly from the Client’s profile 
+
+“Client Detail” screen 
+
+6-4 Quick Actions 
+
+Create new Job for client (1 tap) 
+
+Create new Estimate for client (1 tap) 
+
+Create new Invoice for client (1 tap) 
+
+“Client Detail” screen 
+
+6-5 Address Autocomplete 
+
+Address autocomplete for quick entry of customer address  
+
+“Client”, “Job” screens 
+
+Table 2.5 - Items / Services Catalog 
+
+Feature ID 
+
+Module 
+
+Sub-Feature 
+
+Description 
+
+Screen 
+
+F-7 
+
+Items 
+
+7-1 CRUD Item 
+
+Description 
+
+Rate (price) 
+
+Additional details 
+
+Taxable toggle 
+
+“Item” screen 
+
+7-2 Items List 
+
+View all items 
+
+Search items 
+
+Filter/Sort/ Categorize 
+
+“Items” screen 
+
+ 
+
+ 
+
+Table 2.6 - Estimates 
+
+Feature ID 
+
+Module 
+
+Sub-Feature 
+
+Description 
+
+Screen 
+
+F-8 
+
+Estimates 
+
+8-1 Estimate Structure 
+
+Provider’s details/logo (auto-populated) 
+
+Recipient details (select client) 
+
+Options (up to 4 pricing alternatives) 
+
+Add Items to Options 
+
+Warranty info 
+
+Monthly payment options 
+
+Additional notes 
+
+VALUE: “Professional estimate in <60 seconds 
+
+“Estimate” screen 
+
+8-2 CRUD Options 
+
+Create Options from existing Items 
+
+View all created Options 
+
+Auto-update Options when Item is amended 
+
+“Options” screen 
+
+8-3 Estimate Actions 
+
+Create Invoice from approved Estimate (ONE TAP) 
+
+Create Job from Estimate 
+
+Preview estimate 
+
+Export to PDF 
+
+Send to client (SMS/email) 
+
+Request client’s signature 
+
+“Estimate” screen 
+
+8-4 Estimates Listing 
+
+View All estimates 
+
+Filter: Opened / Closed (signed) 
+
+Search estimates 
+
+Sort estimates 
+
+“Estimates” screen 
+
+8-5 Estimate Signing (Client-side) 
+
+If “Request client to sign” is toggled: 
+
+Client receives email with review/sign link 
+
+Client selects one Option from estimate 
+
+Client enters name for signature 
+
+Signature displayed in cursive 
+
+Sign button sends confirmation email 
+
+Signature + date displayed on final signed estimate 
+
+Client-facing web page 
+
+ 
+
+ 
+
+Table 2.7 - Invoices 
+
+Feature ID 
+
+Module 
+
+Sub-Feature 
+
+Description 
+
+Screen 
+
+F-9 
+
+Invoice 
+
+9-1 Invoice Structure 
+
+Title / Logo (auto) 
+
+Company data (auto- populated) 
+
+Recipient data (select client >> populate) 
+
+Number/date (auto) 
+
+Terms (on receipt, 2 days, etc.) 
+
+Item section(s) 
+
+Total price 
+
+Discount section 
+
+Notes field 
+
+Modelled after Invoice Simple 
+
+“Invoice” screen 
+
+9-2 Item Section 
+
+Item description 
+
+Rate 
+
+Quantity 
+
+Amount 
+
+Tax checkbox 
+
+Additional details 
+
+“Add Item” to insert new line item 
+
+Select from saved Items (auto-populate) 
+
+Manual item entry 
+
+“Invoice” screen 
+
+9-3 Invoice Actions 
+
+CRUD invoice manually 
+
+Generate PDF 
+
+Preview invoice 
+
+Print invoice 
+
+Send invoice (SMS/email) 
+
+Duplicate invoice 
+
+“Invoice” screen 
+
+9-4 Invoice Listing 
+
+View All invoices 
+
+Filter: Outstanding / Paid 
+
+Search invoices 
+
+Sort invoices 
+
+“Invoices” screen 
+
+Table 2.8 - Payments 
+
+Feature ID 
+
+Module 
+
+Sub-Feature 
+
+Description 
+
+Screen 
+
+F-10 
+
+Payments 
+
+10-1 Accept Payments 
+
+Generate payment link for online payment 
+
+Send payment link with invoice 
+
+“Invoice” / “Payments” screens 
+
+10-2 Record Payments 
+
+Log cash payments 
+
+Log check payments 
+
+Record payment date 
+
+Record payment method 
+
+“Payments” screen 
+
+10-3 Track Payments 
+
+View payment status (pending, paid) 
+
+Track by customer 
+
+Track by job 
+
+“Payments” screen 
+
+10-4 Payment Listing 
+
+Filter by amount 
+
+Filter by date 
+
+Filter by status 
+
+Filter by method 
+
+Filter by customer/job 
+
+“Payments” screen 
+
+10-5 Export Payments 
+
+Export to CSV 
+
+“Payments” screen 
+
+ 
+
+ 
+
+Table 2.9 - Jobs & Work Orders 
+
+Feature ID 
+
+Module 
+
+Sub-Feature 
+
+Description 
+
+Screen 
+
+F-11 
+
+Job & Work Order Management 
+
+11-1 CRUD Jobs 
+
+Job description 
+
+Customer’s details (from client card) 
+
+Customer’s address (from client card) 
+
+Job start date/time 
+
+Job end date/time 
+
+Notes & instructions 
+
+Job links to Invoice and Estimate 
+
+“Job” screen 
+
+11-2 Job Photos 
+
+Attach before photos 
+
+Attach after photos 
+
+Photos linked to job 
+
+“Job” screen 
+
+11-3 Job Status Tracking 
+
+Scheduled 
+
+In Progress 
+
+Completed 
+
+Status changed manually 
+
+“Job” screen 
+
+11-4 Job History 
+
+View all completed Jobs 
+
+Search jobs 
+
+Filter jobs 
+
+Sort jobs 
+
+“Jobs” screen 
+
+Table 2.10 - Schedule & Calendar 
+
+Feature ID 
+
+Module 
+
+Sub-Feature 
+
+Description 
+
+Screen 
+
+F-12 
+
+Schedule & Calendar 
+
+12-1 Visual Calendar 
+
+Calendar view 
+
+Dates with active jobs are marked 
+
+Like Workiz app style 
+
+“Schedule” screen 
+
+12-2 Active Jobs View 
+
+View all active jobs 
+
+Default: filtered for current day 
+
+Filter by week/month 
+
+Filter by status/type 
+
+“Schedule” screen 
+
+12-3 Visual Status Indicators 
+
+Color-coded job statuses (scheduled, in-progress, completed) 
+
+Visual event type differentiation (job, visit, etc.) 
+
+“Schedule” screen 
+
+Table 2.11 - Expenses 
+
+Feature ID 
+
+Module 
+
+Sub-Feature 
+
+Description 
+
+Screen 
+
+F-13 
+
+Expenses 
+
+13-1 Record Expenses 
+
+Manual entry (add photo, merchant, category, date, total) 
+
+Scan receipt 
+
+“Expenses” screen 
+
+13-2 Link Expenses 
+
+Link expense to Job 
+
+Link expense to Invoice 
+
+Expenses linked to Job auto-link to subsequent Invoice 
+
+“Expense” screen 
+
+13-3 Profit Calculation 
+
+Calculate profit per job (revenue - expenses) 
+
+Calculate profit per customer 
+
+“Reports” / “Job Detail” screens 
+
+ 
+
+ 
+
+ 
+
+ 
+
+Table 2.12 - Reporting 
+
+Feature ID 
+
+Module 
+
+Sub-Feature 
+
+Description 
+
+Screen 
+
+F-14 
+
+Reporting 
+
+14-1 Revenue/ Expense Reports 
+
+Per period: week, month, year 
+
+Revenue totals 
+
+Expense totals 
+
+Profit calculation 
+
+“Reports” screen 
+
+14-2 Client Reports 
+
+Revenue per client 
+
+Total invoiced 
+
+Amount paid 
+
+“Reports” screen 
+
+14-3 Item Reports 
+
+Report per used Items 
+
+Total invoices per item 
+
+Quantity sold 
+
+Revenue per item 
+
+“Reports” screen 
+
+14-4 Performance Metrics 
+
+Jobs completed per week/month/year 
+
+“Reports” screen 
+
+14-5 Export 
+
+Export reports to PDF 
+
+“Reports” screen 
+
+Table 2.13 - Notifications 
+
+Feature ID 
+
+Module 
+
+Sub-Feature 
+
+Description 
+
+Screen 
+
+F-15 
+
+Notifications 
+
+15-1 Payment Notifications 
+
+Push notification when invoice is paid 
+
+System notification 
+
+15-2 Estimate Notifications 
+
+Push notification when estimate is signed 
+
+System notification 
+
+Table 2.14 - Offline mode 
+
+Feature ID 
+
+Module 
+
+Sub-Feature 
+
+Description 
+
+Screen 
+
+F-16 
+
+Offline mode 
+
+15-1 Limited Offline mode 
+
+Ability to edit customer profile while offline; Edit job details including adding comments and attaching photos; Data synchronizes automatically when connectivity is restored;  
+
+Note: This feature is planned for the future native mobile application (iOS/Android) 
+
+"Client”, “Job” screens 
+
+ 
+
+ 
+
+ 
+
+ 
+
+Application Screens Summary 
+
+The number of screens may be changed during the future stages of the project, depending on the selected features and design. Within the current document, the following screens are planned for the applications: 
+
+Table 2.14 - Application Screens Summary (CORE) 
+
+Screen Name 
+
+Primary Function 
+
+“Login” screen 
+
+User authentication 
+
+“Registration” screen 
+
+New account creation 
+
+“Verify” screen 
+
+2FA email verification 
+
+“Reset Password” screen 
+
+Password recovery 
+
+“Welcome” screen 
+
+Optional onboarding (skippable) 
+
+“Home” screen 
+
+Daily schedule snapshot + main navigation 
+
+“Company” screen 
+
+Business details and logo management 
+
+“Settings” screen 
+
+Tax, invoice/estimate defaults, payment options 
+
+“Clients” screen 
+
+Client list with search/filter 
+
+“Client Detail” screen 
+
+Individual client + work summary 
+
+“Items” screen 
+
+Item/service catalog 
+
+“Item” screen 
+
+Individual item details 
+
+“Estimates” screen 
+
+Estimate list with filters 
+
+“Estimate” screen 
+
+Create/edit estimate with options 
+
+“Options” screen 
+
+Options list, create/edit option 
+
+“Invoices” screen 
+
+Invoice list with filters 
+
+“Invoice” screen 
+
+Create/edit invoice 
+
+“Payments” screen 
+
+Payment list and tracking 
+
+“Jobs” screen 
+
+Job list and history 
+
+“Job” screen 
+
+Individual job details + photos 
+
+“Schedule” screen 
+
+Calendar view with jobs 
+
+“Expenses” screen 
+
+Expense list 
+
+“Expense” screen 
+
+Individual expense entry 
+
+“Reports” screen 
+
+Revenue, expense, profit reports 
+
+CORE Development Sequence 
+
+Based on the discovery phase decisions (March 18, 2026), the CORE version development will follow a phased platform delivery approach: 
+
+Phase 1A: Web Application Foundation (Immediate Start) 
+
+The responsive web application will be developed first as the foundational platform. This phase focuses on: 
+
+Establishing the core architecture and database structure 
+
+Implementing all CORE functional modules (Clients, Estimates, Invoices, Jobs, Payments, Reports) 
+
+Building responsive layouts for desktop, tablet, and mobile browsers 
+
+Note: This phase produces a non-sales-ready development version intended to validate architecture, performance, and user workflows. The web application will not be marketed or released to end users during this phase. 

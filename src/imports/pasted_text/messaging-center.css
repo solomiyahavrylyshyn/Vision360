@@ -1,0 +1,356 @@
+Now let me also grab the JS functions:
+
+  Searched for 1 pattern, read 1 file (ctrl+o to expand)
+
+⏺ Ось повний self-contained сніпет — CSS + HTML + JS:
+
+  ---
+  CSS
+  /* ── Messaging Center ── */
+  .messaging-center {
+    display: none; position: fixed;
+    top: 56px; left: 0; right: 0; bottom: 0;
+    z-index: 3500; flex-direction: row;
+    background: #F5F7FA;
+  }
+  .messaging-center.open { display: flex; }
+
+  /* Filter sidebar */
+  .mc-filter-sidebar {
+    width: 176px; background: #fff;
+    border-right: 1px solid #DDE3EE;
+    display: flex; flex-direction: column; flex-shrink: 0;
+  }
+  .mc-filter-header {
+    height: 56px; display: flex; align-items: center;
+    justify-content: space-between; padding: 0 16px;
+    border-bottom: 1px solid #DDE3EE; flex-shrink: 0;
+  }
+  .mc-filter-title { font-size: 15px; font-weight: 700; color: #1A2332; }
+  .mc-close-btn {
+    width: 30px; height: 30px; background: transparent; border: none;
+    border-radius: 6px; color: #546478; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .mc-close-btn:hover { background: #F5F7FA; }
+  .mc-close-btn .material-icons { font-size: 18px !important; }
+  .mc-filter-nav { padding: 8px 0; flex: 1; }
+  .mc-filter-item {
+    display: flex; align-items: center; justify-content: space-between;
+    width: 100%; padding: 10px 16px; background: transparent; border: none;
+    border-left: 3px solid transparent; font-size: 14px;
+    color: #546478; cursor: pointer; text-align: left; transition: all 0.15s;
+  }
+  .mc-filter-item:hover { background: #F5F7FA; color: #1A2332; }
+  .mc-filter-item.active {
+    color: #4A6FA5; font-weight: 600;
+    background: #EBF2FC; border-left-color: #4A6FA5;
+  }
+  .mc-filter-badge {
+    background: #4A6FA5; color: #fff; font-size: 11px; font-weight: 700;
+    border-radius: 10px; padding: 1px 6px; min-width: 18px; text-align: center;
+  }
+
+  /* Conversations panel */
+  .mc-conv-panel {
+    width: 280px; background: #fff;
+    border-right: 1px solid #DDE3EE;
+    display: flex; flex-direction: column; flex-shrink: 0;
+  }
+  .mc-conv-topbar {
+    height: 56px; display: flex; align-items: center;
+    justify-content: space-between; padding: 0 16px;
+    border-bottom: 1px solid #DDE3EE; flex-shrink: 0;
+  }
+  .mc-conv-topbar-title { font-size: 14px; font-weight: 600; color: #1A2332; }
+  .mc-conv-topbar-actions { display: flex; align-items: center; gap: 2px; }
+  .mc-icon-btn {
+    width: 30px; height: 30px; background: transparent; border: none;
+    border-radius: 6px; color: #546478; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .mc-icon-btn:hover { background: #F5F7FA; color: #1A2332; }
+  .mc-icon-btn .material-icons { font-size: 18px !important; }
+  .mc-conv-search { padding: 8px 10px; border-bottom: 1px solid #DDE3EE; display: none; }
+  .mc-conv-search.visible { display: block; }
+  .mc-search {
+    display: flex; align-items: center; gap: 8px;
+    background: #F5F7FA; border: 1px solid #DDE3EE;
+    border-radius: 8px; padding: 0 10px; height: 32px;
+  }
+  .mc-search .material-icons { font-size: 16px !important; color: #546478; }
+  .mc-search input { border: none; background: transparent; font-size: 13px; outline: none; flex: 1; }
+  .mc-conv-list { flex: 1; overflow-y: auto; }
+  .mc-conv-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 16px; cursor: pointer;
+    border-bottom: 1px solid #DDE3EE; transition: background 0.15s;
+  }
+  .mc-conv-item:hover { background: #F5F7FA; }
+  .mc-conv-item.active { background: #EBF2FC; }
+  .mc-avatar {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: #4A6FA5; color: #fff; font-size: 13px; font-weight: 600;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .mc-avatar.team   { background: #7C3AED; }
+  .mc-avatar.staff  { background: #D97706; }
+  .mc-conv-body { flex: 1; min-width: 0; }
+  .mc-conv-name {
+    font-size: 14px; font-weight: 600; color: #1A2332;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .mc-conv-preview {
+    font-size: 12px; color: #546478; margin-top: 2px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .mc-conv-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
+  .mc-conv-time { font-size: 11px; color: #546478; }
+  .mc-unread-badge {
+    background: #4A6FA5; color: #fff; font-size: 11px; font-weight: 700;
+    border-radius: 10px; padding: 1px 6px; min-width: 18px; text-align: center;
+  }
+
+  /* Chat area */
+  .mc-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .mc-empty {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 12px; color: #546478;
+  }
+  .mc-empty .material-icons { font-size: 48px !important; color: #DDE3EE; }
+  .mc-empty p { font-size: 15px; }
+  .mc-chat { display: none; flex-direction: column; height: 100%; }
+  .mc-chat.visible { display: flex; }
+  .mc-chat-header {
+    padding: 14px 24px; border-bottom: 1px solid #DDE3EE;
+    background: #fff; flex-shrink: 0;
+  }
+  .mc-chat-name { font-size: 15px; font-weight: 700; color: #1A2332; }
+  .mc-chat-sub   { font-size: 12px; color: #546478; margin-top: 2px; }
+  .mc-messages {
+    flex: 1; padding: 24px; overflow-y: auto;
+    display: flex; flex-direction: column; gap: 16px;
+  }
+  .mc-msg { display: flex; gap: 10px; max-width: 70%; }
+  .mc-msg.outgoing { align-self: flex-end; flex-direction: row-reverse; }
+  .mc-msg-avatar {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: #4A6FA5; color: #fff; font-size: 11px; font-weight: 600;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; align-self: flex-end;
+  }
+  .mc-msg.outgoing .mc-msg-avatar { background: #546478; }
+  .mc-msg-bubble {
+    background: #F5F7FA; border: 1px solid #DDE3EE;
+    border-radius: 12px 12px 12px 4px;
+    padding: 10px 14px; font-size: 14px; color: #1A2332; line-height: 1.5;
+  }
+  .mc-msg.outgoing .mc-msg-bubble {
+    background: #4A6FA5; color: #fff;
+    border-color: #4A6FA5; border-radius: 12px 12px 4px 12px;
+  }
+  .mc-msg-wrap { display: flex; flex-direction: column; }
+  .mc-msg-time { font-size: 11px; color: #546478; margin-top: 4px; padding: 0 4px; }
+  .mc-msg.outgoing .mc-msg-time { text-align: right; }
+  .mc-input-bar {
+    padding: 16px 24px; border-top: 1px solid #DDE3EE;
+    background: #fff; display: flex; align-items: center; gap: 10px; flex-shrink: 0;
+  }
+  .mc-input-field {
+    flex: 1; height: 40px; padding: 0 14px;
+    border: 1px solid #DDE3EE; border-radius: 20px;
+    font-size: 14px; color: #1A2332; background: #F5F7FA; outline: none;
+  }
+  .mc-input-field:focus { border-color: #4A6FA5; background: #fff; }
+  .mc-send-btn {
+    width: 40px; height: 40px; background: #4A6FA5; border: none;
+    border-radius: 50%; color: #fff; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .mc-send-btn:hover { background: #3a5f95; }
+  .mc-send-btn .material-icons { font-size: 18px !important; }
+
+  ---
+  HTML
+  <div class="messaging-center" id="messagingCenter">
+
+    <!-- Filter sidebar -->
+    <div class="mc-filter-sidebar">
+      <div class="mc-filter-header">
+        <span class="mc-filter-title">Messages</span>
+        <button class="mc-close-btn" onclick="toggleMessaging()">
+          <span class="material-icons">close</span>
+        </button>
+      </div>
+      <nav class="mc-filter-nav">
+        <button class="mc-filter-item active" onclick="setMcFilter(this,'All Messages')">
+          All Messages<span class="mc-filter-badge">3</span>
+        </button>
+        <button class="mc-filter-item" onclick="setMcFilter(this,'Clients')">Clients</button>
+        <button class="mc-filter-item" onclick="setMcFilter(this,'Team')">Team</button>
+        <button class="mc-filter-item" onclick="setMcFilter(this,'Requests')">Requests</button>
+        <button class="mc-filter-item" onclick="setMcFilter(this,'Archived')">Archived</button>
+      </nav>
+    </div>
+
+    <!-- Conversations panel -->
+    <div class="mc-conv-panel">
+      <div class="mc-conv-topbar">
+        <span class="mc-conv-topbar-title" id="mcConvTitle">All Messages</span>
+        <div class="mc-conv-topbar-actions">
+          <button class="mc-icon-btn" onclick="toggleMcSearch()"><span class="material-icons">search</span></button>
+          <button class="mc-icon-btn"><span class="material-icons">filter_list</span></button>
+          <button class="mc-icon-btn"><span class="material-icons">group</span></button>
+        </div>
+      </div>
+      <div class="mc-conv-search" id="mcConvSearch">
+        <div class="mc-search">
+          <span class="material-icons">search</span>
+          <input type="text" placeholder="Search conversations…">
+        </div>
+      </div>
+      <div class="mc-conv-list">
+        <div class="mc-conv-item" data-category="Clients"
+             onclick="selectConv(this,'John Smith','Client · (555) 123-4567')">
+          <div class="mc-avatar">JS</div>
+          <div class="mc-conv-body">
+            <div class="mc-conv-name">John Smith</div>
+            <div class="mc-conv-preview">Thanks, see you tomorrow!</div>
+          </div>
+          <div class="mc-conv-meta">
+            <div class="mc-conv-time">2m</div>
+            <div class="mc-unread-badge">2</div>
+          </div>
+        </div>
+        <div class="mc-conv-item" data-category="Clients"
+             onclick="selectConv(this,'Maria Johnson','Client · (555) 234-5678')">
+          <div class="mc-avatar">MJ</div>
+          <div class="mc-conv-body">
+            <div class="mc-conv-name">Maria Johnson</div>
+            <div class="mc-conv-preview">Can you send the invoice?</div>
+          </div>
+          <div class="mc-conv-meta">
+            <div class="mc-conv-time">18m</div>
+            <div class="mc-unread-badge">1</div>
+          </div>
+        </div>
+        <div class="mc-conv-item" data-category="Team"
+             onclick="selectConv(this,'Team Chat','Internal · 4 members')">
+          <div class="mc-avatar team">TC</div>
+          <div class="mc-conv-body">
+            <div class="mc-conv-name">Team Chat</div>
+            <div class="mc-conv-preview">Job #089 assigned to Mike</div>
+          </div>
+          <div class="mc-conv-meta">
+            <div class="mc-conv-time">45m</div>
+          </div>
+        </div>
+        <div class="mc-conv-item" data-category="Clients"
+             onclick="selectConv(this,'Robert Lee','Client · (555) 345-6789')">
+          <div class="mc-avatar">RL</div>
+          <div class="mc-conv-body">
+            <div class="mc-conv-name">Robert Lee</div>
+            <div class="mc-conv-preview">When can you come by?</div>
+          </div>
+          <div class="mc-conv-meta">
+            <div class="mc-conv-time">1h</div>
+          </div>
+        </div>
+        <div class="mc-conv-item" data-category="Requests"
+             onclick="selectConv(this,'New Request — Tom B.','Request · Pending')">
+          <div class="mc-avatar" style="background:#059669;">TR</div>
+          <div class="mc-conv-body">
+            <div class="mc-conv-name">New Request — Tom B.</div>
+            <div class="mc-conv-preview">Need a quote for AC repair</div>
+          </div>
+          <div class="mc-conv-meta">
+            <div class="mc-conv-time">4h</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chat area -->
+    <div class="mc-main">
+      <div class="mc-empty" id="mcEmpty">
+        <span class="material-icons">chat_bubble_outline</span>
+        <p>No conversation selected</p>
+      </div>
+      <div class="mc-chat" id="mcChat">
+        <div class="mc-chat-header">
+          <div class="mc-chat-name" id="mcChatName"></div>
+          <div class="mc-chat-sub"  id="mcChatSub"></div>
+        </div>
+        <div class="mc-messages">
+          <div class="mc-msg">
+            <div class="mc-msg-avatar">–</div>
+            <div class="mc-msg-wrap">
+              <div class="mc-msg-bubble">Hey, just wanted to confirm the appointment for tomorrow.</div>
+              <div class="mc-msg-time">10:14 AM</div>
+            </div>
+          </div>
+          <div class="mc-msg outgoing">
+            <div class="mc-msg-avatar">M</div>
+            <div class="mc-msg-wrap">
+              <div class="mc-msg-bubble">Yes, we'll be there at 9 AM. Make sure the area is accessible.</div>
+              <div class="mc-msg-time">10:17 AM</div>
+            </div>
+          </div>
+          <div class="mc-msg">
+            <div class="mc-msg-avatar">–</div>
+            <div class="mc-msg-wrap">
+              <div class="mc-msg-bubble">Thanks, see you tomorrow!</div>
+              <div class="mc-msg-time">10:19 AM</div>
+            </div>
+          </div>
+        </div>
+        <div class="mc-input-bar">
+          <input type="text" class="mc-input-field" placeholder="Type a message…">
+          <button class="mc-send-btn"><span class="material-icons">send</span></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  ---
+  JS
+  function toggleMessaging() {
+    document.getElementById('messagingCenter').classList.toggle('open');
+  }
+
+  function setMcFilter(btn, label) {
+    btn.closest('.mc-filter-nav')
+       .querySelectorAll('.mc-filter-item')
+       .forEach(i => i.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('mcConvTitle').textContent = label;
+    const cat = label === 'All Messages' ? null : label;
+    document.querySelectorAll('.mc-conv-item').forEach(item => {
+      item.style.display = (!cat || item.dataset.category === cat) ? '' : 'none';
+    });
+  }
+
+  function toggleMcSearch() {
+    document.getElementById('mcConvSearch').classList.toggle('visible');
+  }
+
+  function selectConv(item, name, sub) {
+    item.closest('.mc-conv-list')
+        .querySelectorAll('.mc-conv-item')
+        .forEach(i => i.classList.remove('active'));
+    item.classList.add('active');
+    const badge = item.querySelector('.mc-unread-badge');
+    if (badge) badge.remove();
+    document.getElementById('mcChatName').textContent = name;
+    document.getElementById('mcChatSub').textContent  = sub;
+    const initials = name.split(' ').map(w => w[0]).join('').slice(0, 2);
+    document.querySelectorAll('#mcChat .mc-msg:not(.outgoing) .mc-msg-avatar')
+            .forEach(a => a.textContent = initials);
+    document.getElementById('mcEmpty').style.display = 'none';
+    document.getElementById('mcChat').classList.add('visible');
+  }
+
+  Trigger кнопка в header:
+  <button onclick="toggleMessaging()">
+    <span class="material-icons">chat</span>
+  </button>

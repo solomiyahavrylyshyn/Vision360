@@ -1,0 +1,3106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vision360 FSM Platform - UX Prototype (Steel Palette)</title>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <style>
+        /* CSS Reset */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* Steel Color Palette */
+        :root {
+            --sidebar-dark: #1C2B3A;
+            --primary: #4A6FA5;
+            --primary-light: #EBF0F8;
+            --primary-border: #C8D5E8;
+            --white: #FFFFFF;
+            --bg-grey-light: #F5F7FA;
+            --bg-grey: #EDF0F5;
+            --border: #DDE3EE;
+            --text-primary: #1A2332;
+            --text-secondary: #546478;
+            --success: #16A34A;
+            --warning: #D97706;
+            --error: #DC2626;
+        }
+
+        /* Base Styles */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            font-size: 16px;
+            line-height: 1.5;
+            color: var(--text-primary);
+            background: var(--bg-grey-light);
+        }
+
+        /* Prototype Container */
+        .prototype-container {
+            max-width: 100%;
+            padding: 40px 20px;
+        }
+
+        .prototype-nav {
+            position: sticky;
+            top: 0;
+            background: var(--white);
+            border-bottom: 1px solid var(--border);
+            padding: 20px;
+            margin-bottom: 40px;
+            z-index: 1000;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .prototype-nav h1 {
+            font-size: 24px;
+            color: var(--text-primary);
+            margin-bottom: 16px;
+        }
+
+        .prototype-nav-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .prototype-nav-links a {
+            padding: 8px 16px;
+            background: var(--primary-light);
+            color: var(--primary);
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .prototype-nav-links a:hover {
+            background: var(--primary);
+            color: var(--white);
+        }
+
+        /* Screen Frame */
+        .screen-frame {
+            width: 1366px;
+            margin: 0 auto 80px;
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+
+        .screen-header {
+            background: var(--sidebar-dark);
+            color: var(--white);
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .screen-header h2 {
+            font-size: 20px;
+            font-weight: 600;
+            color: #FFFFFF;
+        }
+
+        .screen-header p {
+            font-size: 14px;
+            color: var(--primary-border);
+            margin-top: 4px;
+        }
+
+        /* App Shell Layout */
+        .app-shell {
+            display: flex;
+            height: 800px;
+        }
+
+        .sidebar {
+            width: 64px;
+            background: var(--sidebar-dark);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            padding: 16px 0;
+        }
+
+        .sidebar-logo {
+            width: 32px;
+            height: 32px;
+            background: var(--primary);
+            border-radius: 6px;
+            margin: 0 auto 24px;
+        }
+
+        .sidebar-nav {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .sidebar-item {
+            width: 48px;
+            height: 48px;
+            margin: 0 auto;
+            background: transparent;
+            border: none;
+            border-radius: 8px;
+            color: var(--primary-border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .sidebar-item:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .sidebar-item.active {
+            color: var(--primary);
+            background: rgba(74, 111, 165, 0.1);
+        }
+
+        .sidebar-item.active::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 8px;
+            bottom: 8px;
+            width: 3px;
+            background: var(--primary);
+            border-radius: 0 2px 2px 0;
+        }
+
+        .sidebar-item.locked {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .sidebar-divider {
+            height: 1px;
+            background: rgba(255,255,255,0.1);
+            margin: 8px 12px;
+        }
+
+        .material-icons {
+            font-size: 24px;
+            user-select: none;
+        }
+
+        /* Main Content Area */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .top-bar {
+            height: 64px;
+            background: var(--white);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding: 0 24px;
+        }
+
+        .settings-btn {
+            width: 40px;
+            height: 40px;
+            background: transparent;
+            border: none;
+            border-radius: 8px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .settings-btn:hover {
+            background: var(--bg-grey);
+        }
+
+        .content-area {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
+        }
+
+        /* Typography */
+        h1 {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        h2 {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        h3 {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .subtitle {
+            font-size: 16px;
+            color: var(--text-secondary);
+            margin-bottom: 32px;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 10px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: var(--white);
+        }
+
+        .btn-primary:hover {
+            background: #3d5a85;
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--primary);
+            border: 1px solid var(--primary-border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--primary-light);
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--text-secondary);
+        }
+
+        .btn-ghost:hover {
+            background: var(--bg-grey);
+        }
+
+        /* Cards */
+        .card {
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .stat-card {
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+            min-height: 120px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .stat-card:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.08);
+        }
+
+        .stat-icon {
+            width: 32px;
+            height: 32px;
+            color: var(--primary);
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        /* Grid Layouts */
+        .grid-4 {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 24px;
+        }
+
+        /* Filter Bar */
+        .filter-bar {
+            background: var(--bg-grey-light);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .search-input {
+            flex: 0 0 320px;
+            padding: 10px 16px 10px 40px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 14px;
+            background: var(--white);
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%23546478' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: 12px center;
+        }
+
+        .chip-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        .chip {
+            padding: 6px 16px;
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            font-size: 14px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .chip:hover {
+            background: var(--bg-grey);
+        }
+
+        .chip.active {
+            background: var(--primary-light);
+            color: var(--primary);
+            border-color: var(--primary-border);
+        }
+
+        /* Table */
+        table {
+            width: 100%;
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        thead {
+            background: var(--bg-grey);
+        }
+
+        th {
+            padding: 12px 16px;
+            text-align: left;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        td {
+            padding: 16px;
+            border-top: 1px solid var(--border);
+            font-size: 14px;
+        }
+
+        tr:hover {
+            background: var(--bg-grey-light);
+        }
+
+        /* Badge */
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .badge-primary {
+            background: var(--primary-light);
+            color: var(--primary);
+        }
+
+        .badge-success {
+            background: #DCFCE7;
+            color: var(--success);
+        }
+
+        .badge-warning {
+            background: #FEF3C7;
+            color: var(--warning);
+        }
+
+        .badge-error {
+            background: #FEE2E2;
+            color: var(--error);
+        }
+
+        .badge-neutral {
+            background: var(--bg-grey);
+            color: var(--text-secondary);
+        }
+
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+        }
+
+        .form-label.required::after {
+            content: ' *';
+            color: var(--error);
+        }
+
+        .form-input,
+        .form-select,
+        .form-textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+            background: var(--white);
+            transition: all 0.2s;
+        }
+
+        .form-input:focus,
+        .form-select:focus,
+        .form-textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-light);
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .form-helper {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        /* Icons (using CSS shapes) */
+        .icon {
+            width: 24px;
+            height: 24px;
+            display: inline-block;
+        }
+
+        /* Timeline */
+        .timeline {
+            position: relative;
+            padding-left: 48px;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 20px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: var(--border);
+        }
+
+        .timeline-item {
+            position: relative;
+            margin-bottom: 24px;
+        }
+
+        .timeline-dot {
+            position: absolute;
+            left: -36px;
+            top: 8px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 3px solid var(--white);
+            background: var(--primary);
+            z-index: 1;
+        }
+
+        .timeline-dot.success {
+            background: var(--success);
+        }
+
+        .timeline-dot.warning {
+            background: var(--warning);
+        }
+
+        .event-card {
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-left: 4px solid var(--primary);
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .event-card.success {
+            border-left-color: var(--success);
+        }
+
+        .event-card.warning {
+            border-left-color: var(--warning);
+        }
+
+        /* Upload Zone */
+        .upload-zone {
+            border: 2px dashed var(--primary-border);
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            background: var(--primary-light);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .upload-zone:hover {
+            border-color: var(--primary);
+            background: var(--white);
+        }
+
+        .upload-icon {
+            width: 48px;
+            height: 48px;
+            margin: 0 auto 16px;
+            color: var(--primary);
+        }
+
+        /* Tabs */
+        .tab-group {
+            border-bottom: 2px solid var(--border);
+            display: flex;
+            gap: 0;
+            margin-bottom: 24px;
+        }
+
+        .tab {
+            padding: 12px 24px;
+            background: transparent;
+            border: none;
+            border-bottom: 3px solid transparent;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+            margin-bottom: -2px;
+        }
+
+        .tab:hover {
+            background: var(--bg-grey-light);
+        }
+
+        .tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 80px 40px;
+        }
+
+        .empty-icon {
+            width: 96px;
+            height: 96px;
+            margin: 0 auto 24px;
+            color: var(--primary-border);
+        }
+
+        .empty-state h3 {
+            font-size: 24px;
+            margin-bottom: 12px;
+        }
+
+        .empty-state p {
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+        }
+
+        /* Progress Indicator */
+        .progress-steps {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+
+        .progress-step {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--bg-grey);
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            position: relative;
+        }
+
+        .progress-step.complete {
+            background: var(--success);
+            color: var(--white);
+        }
+
+        .progress-step.active {
+            background: var(--primary);
+            color: var(--white);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .progress-step::after {
+            content: '';
+            position: absolute;
+            left: 100%;
+            width: 40px;
+            height: 2px;
+            background: var(--border);
+        }
+
+        .progress-step:last-child::after {
+            display: none;
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 16px 24px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            max-width: 560px;
+            z-index: 2000;
+        }
+
+        .toast.success {
+            background: var(--success);
+            color: var(--white);
+        }
+
+        .toast.error {
+            background: var(--error);
+            color: var(--white);
+        }
+
+        .toast.warning {
+            background: var(--warning);
+            color: var(--white);
+        }
+
+        .toast.info {
+            background: var(--primary);
+            color: var(--white);
+        }
+
+        /* Utility Classes */
+        .flex {
+            display: flex;
+        }
+
+        .items-center {
+            align-items: center;
+        }
+
+        .justify-between {
+            justify-content: space-between;
+        }
+
+        .gap-8 {
+            gap: 8px;
+        }
+
+        .gap-16 {
+            gap: 16px;
+        }
+
+        .gap-24 {
+            gap: 24px;
+        }
+
+        .mb-16 {
+            margin-bottom: 16px;
+        }
+
+        .mb-24 {
+            margin-bottom: 24px;
+        }
+
+        .mt-16 {
+            margin-top: 16px;
+        }
+
+        .text-secondary {
+            color: var(--text-secondary);
+        }
+
+        .text-success {
+            color: var(--success);
+        }
+
+        .text-error {
+            color: var(--error);
+        }
+
+        .bold {
+            font-weight: 600;
+        }
+
+        .avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--primary-light);
+            color: var(--primary);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .amount {
+            font-weight: 600;
+            font-family: 'Courier New', monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="prototype-nav">
+        <h1>Vision360 FSM Platform - Interactive Prototype</h1>
+        <p style="color: var(--text-secondary); margin-bottom: 16px;">Steel Color Palette • Desktop 1366px • Angular Material Style</p>
+        <div class="prototype-nav-links">
+            <a href="#dashboard">Dashboard</a>
+            <a href="#clients">Clients</a>
+            <a href="#client-detail">Client Detail</a>
+            <a href="#estimate">Create Estimate</a>
+            <a href="#invoices">Invoices</a>
+            <a href="#invoice-detail">Invoice Detail</a>
+            <a href="#payments">Payments</a>
+            <a href="#jobs">Jobs</a>
+            <a href="#job-detail">Job Detail</a>
+            <a href="#calendar">Calendar</a>
+            <a href="#event">Create Event</a>
+            <a href="#expenses">Expenses</a>
+            <a href="#items">Items</a>
+            <a href="#reports">Reports</a>
+            <a href="#settings">Settings</a>
+            <a href="#onboarding">Onboarding</a>
+        </div>
+    </div>
+
+    <div class="prototype-container">
+
+        <!-- 1. DASHBOARD SCREEN -->
+        <div id="dashboard" class="screen-frame">
+            <div class="screen-header">
+                <h2>1. Home / Dashboard</h2>
+                <p>Default landing page after login • Route: /home</p>
+            </div>
+            <div class="app-shell">
+                <div class="sidebar">
+                    <div class="sidebar-logo"></div>
+                    <div class="sidebar-nav">
+                        <button class="sidebar-item active"><span class="material-icons">visibility</span></button>
+                        <button class="sidebar-item"><span class="material-icons">people</span></button>
+                        <button class="sidebar-item"><span class="material-icons">description</span></button>
+                        <button class="sidebar-item"><span class="material-icons">receipt</span></button>
+                        <button class="sidebar-item"><span class="material-icons">credit_card</span></button>
+                        <button class="sidebar-item"><span class="material-icons">work</span></button>
+                        <button class="sidebar-item"><span class="material-icons">calendar_today</span></button>
+                        <button class="sidebar-item"><span class="material-icons">attach_money</span></button>
+                        <button class="sidebar-item"><span class="material-icons">inventory_2</span></button>
+                        <button class="sidebar-item"><span class="material-icons">bar_chart</span></button>
+                        <div class="sidebar-divider"></div>
+                        <button class="sidebar-item locked"><span class="material-icons">handshake</span></button>
+                        <button class="sidebar-item locked"><span class="material-icons">badge</span></button>
+                        <button class="sidebar-item locked"><span class="material-icons">warehouse</span></button>
+                        <button class="sidebar-item locked"><span class="material-icons">auto_awesome</span></button>
+                    </div>
+                </div>
+                <div class="main-content">
+                    <div class="top-bar">
+                        <button class="settings-btn"><span class="material-icons">settings</span></button>
+                    </div>
+                    <div class="content-area">
+                        <h1>Home</h1>
+                        <p class="subtitle">Welcome back, Marek</p>
+
+                        <div class="grid-4">
+                            <div class="stat-card">
+                                <div class="stat-icon">💼</div>
+                                <div class="stat-value">12</div>
+                                <div class="stat-label">Active Jobs</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon">📅</div>
+                                <div class="stat-value">5</div>
+                                <div class="stat-label">Upcoming Events Today</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon">⚠️</div>
+                                <div class="stat-value">8</div>
+                                <div class="stat-label">Pending Invoices</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon">💰</div>
+                                <div class="stat-value">$24,350</div>
+                                <div class="stat-label">Revenue This Month</div>
+                            </div>
+                        </div>
+
+                        <div class="grid-2">
+                            <div>
+                                <div class="card mb-24">
+                                    <h3 class="mb-16">Upcoming Events</h3>
+                                    <div class="timeline">
+                                        <div class="timeline-item">
+                                            <div class="timeline-dot"></div>
+                                            <div class="event-card">
+                                                <div class="flex justify-between mb-16">
+                                                    <div>
+                                                        <div class="bold">Jan 15, 2026 • 9:00 AM - 11:00 AM</div>
+                                                        <div class="text-secondary">Initial Consultation</div>
+                                                    </div>
+                                                    <span class="badge badge-primary">Scheduled</span>
+                                                </div>
+                                                <div class="bold">John Smith</div>
+                                                <div class="text-secondary">Kitchen Renovation</div>
+                                            </div>
+                                        </div>
+                                        <div class="timeline-item">
+                                            <div class="timeline-dot warning"></div>
+                                            <div class="event-card warning">
+                                                <div class="flex justify-between mb-16">
+                                                    <div>
+                                                        <div class="bold">Jan 15, 2026 • 2:00 PM - 4:00 PM</div>
+                                                        <div class="text-secondary">Service Call</div>
+                                                    </div>
+                                                    <span class="badge badge-warning">In Progress</span>
+                                                </div>
+                                                <div class="bold">Sarah Johnson</div>
+                                                <div class="text-secondary">Bathroom Repair</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="card">
+                                    <h3 class="mb-16">Quick Actions</h3>
+                                    <div style="display: flex; flex-direction: column; gap: 12px;">
+                                        <button class="btn btn-secondary">+ New Client</button>
+                                        <button class="btn btn-secondary">+ New Estimate</button>
+                                        <button class="btn btn-secondary">+ New Job</button>
+                                        <button class="btn btn-secondary">+ Schedule Event</button>
+                                        <button class="btn btn-secondary">+ Add Expense</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. CLIENTS LIST SCREEN -->
+        <div id="clients" class="screen-frame">
+            <div class="screen-header">
+                <h2>2. Clients List</h2>
+                <p>Client management and directory • Route: /clients</p>
+            </div>
+            <div class="app-shell">
+                <div class="sidebar">
+                    <div class="sidebar-logo"></div>
+                    <div class="sidebar-nav">
+                        <button class="sidebar-item"><span class="material-icons">visibility</span></button>
+                        <button class="sidebar-item active"><span class="material-icons">people</span></button>
+                        <button class="sidebar-item"><span class="material-icons">description</span></button>
+                        <button class="sidebar-item"><span class="material-icons">receipt</span></button>
+                        <button class="sidebar-item"><span class="material-icons">credit_card</span></button>
+                        <button class="sidebar-item"><span class="material-icons">work</span></button>
+                        <button class="sidebar-item"><span class="material-icons">calendar_today</span></button>
+                        <button class="sidebar-item"><span class="material-icons">attach_money</span></button>
+                        <button class="sidebar-item"><span class="material-icons">inventory_2</span></button>
+                        <button class="sidebar-item"><span class="material-icons">bar_chart</span></button>
+                    </div>
+                </div>
+                <div class="main-content">
+                    <div class="top-bar">
+                        <button class="settings-btn"><span class="material-icons">settings</span></button>
+                    </div>
+                    <div class="content-area">
+                        <div class="flex justify-between items-center mb-24">
+                            <h1>Clients</h1>
+                            <button class="btn btn-primary">+ New Client</button>
+                        </div>
+
+                        <div class="filter-bar">
+                            <input type="text" class="search-input" placeholder="Search clients by name, email, or phone...">
+                            <div class="chip-group">
+                                <button class="chip active">All</button>
+                                <button class="chip">Active</button>
+                                <button class="chip">Inactive</button>
+                            </div>
+                            <select class="form-select" style="width: 200px;">
+                                <option>Sort by: Name (A-Z)</option>
+                                <option>Name (Z-A)</option>
+                                <option>Date Added (Newest)</option>
+                                <option>Total Jobs (Most)</option>
+                            </select>
+                        </div>
+
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th><input type="checkbox"></th>
+                                    <th>Name</th>
+                                    <th>Contact</th>
+                                    <th>Address</th>
+                                    <th>Total Jobs</th>
+                                    <th>Last Activity</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><input type="checkbox"></td>
+                                    <td>
+                                        <div class="flex items-center gap-8">
+                                            <span class="avatar">JS</span>
+                                            <div>
+                                                <div class="bold">John Smith</div>
+                                                <div class="text-secondary" style="font-size: 12px;">ABC Plumbing</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div>john.smith@email.com</div>
+                                        <div class="text-secondary" style="font-size: 12px;">(555) 123-4567</div>
+                                    </td>
+                                    <td class="text-secondary">123 Main St, City, ST 12345</td>
+                                    <td class="bold">5</td>
+                                    <td class="text-secondary">Invoice sent • 2 days ago</td>
+                                    <td><button class="btn-ghost">⋮</button></td>
+                                </tr>
+                                <tr>
+                                    <td><input type="checkbox"></td>
+                                    <td>
+                                        <div class="flex items-center gap-8">
+                                            <span class="avatar">SJ</span>
+                                            <div>
+                                                <div class="bold">Sarah Johnson</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div>sarah.j@email.com</div>
+                                        <div class="text-secondary" style="font-size: 12px;">(555) 234-5678</div>
+                                    </td>
+                                    <td class="text-secondary">456 Oak Ave, City, ST 12345</td>
+                                    <td class="bold">3</td>
+                                    <td class="text-secondary">Payment received • 5 days ago</td>
+                                    <td><button class="btn-ghost">⋮</button></td>
+                                </tr>
+                                <tr>
+                                    <td><input type="checkbox"></td>
+                                    <td>
+                                        <div class="flex items-center gap-8">
+                                            <span class="avatar">MD</span>
+                                            <div>
+                                                <div class="bold">Mike Davis</div>
+                                                <div class="text-secondary" style="font-size: 12px;">Davis Construction</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div>mike@davis.com</div>
+                                        <div class="text-secondary" style="font-size: 12px;">(555) 345-6789</div>
+                                    </td>
+                                    <td class="text-secondary">789 Pine Rd, City, ST 12345</td>
+                                    <td class="bold">12</td>
+                                    <td class="text-secondary">Estimate created • 1 week ago</td>
+                                    <td><button class="btn-ghost">⋮</button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- 2A. CLIENT DETAIL SCREEN -->
+        <div id="client-detail" class="screen-frame">
+            <div class="screen-header">
+                <h2>2A. Client Detail</h2>
+                <p>Complete client work history and linked items • Route: /clients/:id</p>
+            </div>
+            <div class="app-shell">
+                <div class="sidebar">
+                    <div class="sidebar-logo"></div>
+                    <div class="sidebar-nav">
+                        <button class="sidebar-item"><span class="material-icons">visibility</span></button>
+                        <button class="sidebar-item active"><span class="material-icons">people</span></button>
+                        <button class="sidebar-item"><span class="material-icons">description</span></button>
+                        <button class="sidebar-item"><span class="material-icons">receipt</span></button>
+                        <button class="sidebar-item"><span class="material-icons">credit_card</span></button>
+                        <button class="sidebar-item"><span class="material-icons">work</span></button>
+                        <button class="sidebar-item"><span class="material-icons">calendar_today</span></button>
+                        <button class="sidebar-item"><span class="material-icons">attach_money</span></button>
+                        <button class="sidebar-item"><span class="material-icons">inventory_2</span></button>
+                        <button class="sidebar-item"><span class="material-icons">bar_chart</span></button>
+                        <div class="sidebar-divider"></div>
+                        <button class="sidebar-item locked"><span class="material-icons">handshake</span></button>
+                        <button class="sidebar-item locked"><span class="material-icons">badge</span></button>
+                        <button class="sidebar-item locked"><span class="material-icons">warehouse</span></button>
+                        <button class="sidebar-item locked"><span class="material-icons">auto_awesome</span></button>
+                    </div>
+                </div>
+                <div class="main-content">
+                    <div class="top-bar">
+                        <div class="flex items-center gap-16" style="flex: 1;">
+                            <button class="btn btn-ghost">← Clients</button>
+                        </div>
+                        <button class="settings-btn"><span class="material-icons">settings</span></button>
+                    </div>
+                    <div class="content-area">
+                        <div style="background: var(--primary-light); border: 1px solid var(--primary-border); border-radius: 8px; padding: 24px; margin-bottom: 24px;">
+                            <div class="flex items-center gap-24">
+                                <span class="avatar" style="width: 64px; height: 64px; font-size: 24px;">JS</span>
+                                <div style="flex: 1;">
+                                    <h1 style="margin-bottom: 4px;">John Smith</h1>
+                                    <div class="text-secondary">ABC Plumbing</div>
+                                    <div style="margin-top: 12px; display: flex; gap: 16px;">
+                                        <span>📧 john.smith@email.com</span>
+                                        <span>📞 (555) 123-4567</span>
+                                        <span>📍 123 Main St, City, ST 12345</span>
+                                    </div>
+                                </div>
+                                <div class="flex gap-8">
+                                    <button class="btn btn-secondary">Call</button>
+                                    <button class="btn btn-secondary">Email</button>
+                                    <button class="btn btn-primary">Edit Client</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid-4 mb-24">
+                            <div class="stat-card">
+                                <div class="stat-icon">💼</div>
+                                <div class="stat-value">5</div>
+                                <div class="stat-label">Total Jobs</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon">💰</div>
+                                <div class="stat-value">$12,450</div>
+                                <div class="stat-label">Total Revenue</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon text-success">✓</div>
+                                <div class="stat-value text-success">$8,200</div>
+                                <div class="stat-label">Paid</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon text-error">⚠</div>
+                                <div class="stat-value text-error">$4,250</div>
+                                <div class="stat-label">Outstanding</div>
+                            </div>
+                        </div>
+
+                        <div class="tab-group">
+                            <button class="tab active">Jobs (5)</button>
+                            <button class="tab">Estimates (8)</button>
+                            <button class="tab">Invoices (12)</button>
+                            <button class="tab">Payments (10)</button>
+                        </div>
+
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Job #</th>
+                                    <th>Description</th>
+                                    <th>Status</th>
+                                    <th>Date</th>
+                                    <th>Value</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="amount" style="color: var(--primary);">J-1234</td>
+                                    <td class="bold">Kitchen Renovation</td>
+                                    <td><span class="badge badge-warning">In Progress</span></td>
+                                    <td>Jan 10, 2026</td>
+                                    <td class="amount bold">$2,450.00</td>
+                                    <td><button class="btn-ghost">⋮</button></td>
+                                </tr>
+                                <tr>
+                                    <td class="amount" style="color: var(--primary);">J-1156</td>
+                                    <td class="bold">Bathroom Repair</td>
+                                    <td><span class="badge badge-success">Completed</span></td>
+                                    <td>Dec 15, 2025</td>
+                                    <td class="amount bold">$850.00</td>
+                                    <td><button class="btn-ghost">⋮</button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3A. INVOICES LIST SCREEN -->
+        <div id="invoices" class="screen-frame">
+            <div class="screen-header">
+                <h2>3A. Invoices List</h2>
+                <p>Invoice management and tracking • Route: /invoices</p>
+            </div>
+            <div class="app-shell">
+                <div class="sidebar">
+                    <div class="sidebar-logo"></div>
+                    <div class="sidebar-nav">
+                        <button class="sidebar-item"><span class="material-icons">visibility</span></button>
+                        <button class="sidebar-item"><span class="material-icons">people</span></button>
+                        <button class="sidebar-item"><span class="material-icons">description</span></button>
+                        <button class="sidebar-item active"><span class="material-icons">receipt</span></button>
+                        <button class="sidebar-item"><span class="material-icons">credit_card</span></button>
+                        <button class="sidebar-item"><span class="material-icons">work</span></button>
+                        <button class="sidebar-item"><span class="material-icons">calendar_today</span></button>
+                        <button class="sidebar-item"><span class="material-icons">attach_money</span></button>
+                        <button class="sidebar-item"><span class="material-icons">inventory_2</span></button>
+                        <button class="sidebar-item"><span class="material-icons">bar_chart</span></button>
+                        <div class="sidebar-divider"></div>
+                        <button class="sidebar-item locked"><span class="material-icons">handshake</span></button>
+                        <button class="sidebar-item locked"><span class="material-icons">badge</span></button>
+                        <button class="sidebar-item locked"><span class="material-icons">warehouse</span></button>
+                        <button class="sidebar-item locked"><span class="material-icons">auto_awesome</span></button>
+                    </div>
+                </div>
+                <div class="main-content">
+                    <div class="top-bar">
+                        <button class="settings-btn"><span class="material-icons">settings</span></button>
+                    </div>
+                    <div class="content-area">
+                        <div class="flex justify-between items-center mb-24">
+                            <h1>Invoices</h1>
+                            <button class="btn btn-primary">+ New Invoice</button>
+                        </div>
+
+                        <div class="filter-bar">
+                            <input type="text" class="search-input" placeholder="Search invoices by client, invoice #, or job...">
+                            <div class="chip-group">
+                                <button class="chip active">All</button>
+                                <button class="chip">Unpaid</button>
+                                <button class="chip">Paid</button>
+                                <button class="chip">Overdue</button>
+                                <button class="chip">Draft</button>
+                            </div>
+                        </div>
+
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th><input type="checkbox"></th>
+                                    <th>Invoice #</th>
+                                    <th>Client</th>
+                                    <th>Job</th>
+                                    <th>Date</th>
+                                    <th>Due Date</th>
+                                    <th>Amount</th>
+                                    <th>Balance</th>
+                                    <th>Status</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><input type="checkbox"></td>
+                                    <td class="amount" style="color: var(--primary);">INV-1234</td>
+                                    <td>
+                                        <div class="flex items-center gap-8">
+                                            <span class="avatar">JS</span>
+                                            <span class="bold">John Smith</span>
+                                        </div>
+                                    </td>
+                                    <td><a href="#" style="color: var(--primary);">J-1234</a></td>
+                                    <td>Jan 10, 2026</td>
+                                    <td>Feb 9, 2026</td>
+                                    <td class="amount bold">$1,200.00</td>
+                                    <td class="amount text-error bold">$600.00</td>
+                                    <td><span class="badge badge-warning">Partial</span></td>
+                                    <td><button class="btn-ghost">⋮</button></td>
+                                </tr>
+                                <tr>
+                                    <td><input type="checkbox"></td>
+                                    <td class="amount" style="color: var(--primary);">INV-1233</td>
+                                    <td>
+                                        <div class="flex items-center gap-8">
+                                            <span class="avatar">SJ</span>
+                                            <span class="bold">Sarah Johnson</span>
+                                        </div>
+                                    </td>
+                                    <td><a href="#" style="color: var(--primary);">J-1233</a></td>
+                                    <td>Jan 8, 2026</td>
+                                    <td>Dec 25, 2025</td>
+                                    <td class="amount bold">$850.00</td>
+                                    <td class="amount text-error bold">$850.00</td>
+                                    <td><span class="badge badge-error">Overdue</span></td>
+                                    <td><button class="btn-ghost">⋮</button></td>
+                                </tr>
+                                <tr>
+                                    <td><input type="checkbox"></td>
+                                    <td class="amount" style="color: var(--primary);">INV-1232</td>
+                                    <td>
+                                        <div class="flex items-center gap-8">
+                                            <span class="avatar">MD</span>
+                                            <span class="bold">Mike Davis</span>
+                                        </div>
+                                    </td>
+                                    <td><a href="#" style="color: var(--primary);">J-1232</a></td>
+                                    <td>Jan 5, 2026</td>
+                                    <td>Jan 20, 2026</td>
+                                    <td class="amount bold">$5,200.00</td>
+                                    <td class="amount text-success bold">$0.00</td>
+                                    <td><span class="badge badge-success">Paid</span></td>
+                                    <td><button class="btn-ghost">⋮</button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3B. INVOICE DETAIL SCREEN -->
+        <div id="invoice-detail" class="screen-frame">
+            <div class="screen-header">
+                <h2>3B. Invoice Detail</h2>
+                <p>View and manage invoice details • Route: /invoices/:id</p>
+            </div>
+            <div class="app-shell">
+                <div class="sidebar">
+                    <div class="sidebar-logo"></div>
+                    <div class="sidebar-nav">
+                        <button class="sidebar-item"><span class="material-icons">visibility</span></button>
+                        <button class="sidebar-item"><span class="material-icons">people</span></button>
+                        <button class="sidebar-item"><span class="material-icons">description</span></button>
+                        <button class="sidebar-item active"><span class="material-icons">receipt</span></button>
+                        <button class="sidebar-item"><span class="material-icons">credit_card</span></button>
+                        <button class="sidebar-item"><span class="material-icons">work</span></button>
+                        <button class="sidebar-item"><span class="material-icons">calendar_today</span></button>
+                        <button class="sidebar-item"><span class="material-icons">attach_money</span></button>
+                        <button class="sidebar-item"><span class="material-icons">inventory_2</span></button>
+                        <button class="sidebar-item"><span class="material-icons">bar_chart</span></button>
+                        <div class="sidebar-divider"></div>
+                        <button class="sidebar-item locked"><span class="material-icons">handshake</span></button>
+                        <button class="sidebar-item locked"><span class="material-icons">badge</span></button>
+                        <button class="sidebar-item locked"><span class="material-icons">warehouse</span></button>
+                        <button class="sidebar-item locked"><span class="material-icons">auto_awesome</span></button>
+                    </div>
+                </div>
+                <div class="main-content">
+                    <div class="top-bar">
+                        <div class="flex items-center gap-16" style="flex: 1;">
+                            <button class="btn btn-ghost">← Invoices</button>
+                        </div>
+                        <div class="flex gap-8">
+                            <button class="btn btn-secondary">Download PDF</button>
+                            <button class="btn btn-secondary">Send</button>
+                            <button class="btn btn-primary">Record Payment</button>
+                        </div>
+                    </div>
+                    <div class="content-area">
+                        <div style="background: var(--white); border: 1px solid var(--border); border-radius: 8px; padding: 32px; max-width: 900px; margin: 0 auto;">
+                            <div class="flex justify-between mb-24">
+                                <div>
+                                    <h1>Invoice</h1>
+                                    <div class="text-secondary">INV-1234</div>
+                                </div>
+                                <span class="badge badge-warning" style="height: fit-content;">Partial Payment</span>
+                            </div>
+
+                            <div class="grid-2 mb-24">
+                                <div>
+                                    <div class="text-secondary mb-8">From</div>
+                                    <div class="bold">ABC Plumbing Services</div>
+                                    <div>Marek Stroz</div>
+                                    <div>456 Business St</div>
+                                    <div>City, ST 12345</div>
+                                </div>
+                                <div>
+                                    <div class="text-secondary mb-8">Bill To</div>
+                                    <div class="bold">John Smith</div>
+                                    <div>ABC Company</div>
+                                    <div>123 Main St</div>
+                                    <div>City, ST 12345</div>
+                                </div>
+                            </div>
+
+                            <div class="grid-2 mb-24">
+                                <div>
+                                    <div class="text-secondary">Invoice Date</div>
+                                    <div class="bold">January 10, 2026</div>
+                                </div>
+                                <div>
+                                    <div class="text-secondary">Due Date</div>
+                                    <div class="bold">February 9, 2026</div>
+                                </div>
+                                <div>
+                                    <div class="text-secondary">Job</div>
+                                    <div><a href="#" style="color: var(--primary); font-weight: 600;">J-1234: Kitchen Renovation</a></div>
+                                </div>
+                            </div>
+
+                            <table style="margin-bottom: 24px;">
+                                <thead>
+                                    <tr>
+                                        <th>Description</th>
+                                        <th>Qty</th>
+                                        <th>Unit Price</th>
+                                        <th>Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td class="bold">Standard Service Call</td>
+                                        <td>1</td>
+                                        <td class="amount">$125.00</td>
+                                        <td class="amount bold">$125.00</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="bold">PVC Pipe Installation</td>
+                                        <td>5</td>
+                                        <td class="amount">$45.00</td>
+                                        <td class="amount bold">$225.00</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                            <div style="background: var(--primary-light); padding: 20px; border-radius: 8px; margin-left: auto; max-width: 400px;">
+                                <div class="flex justify-between mb-8">
+                                    <span class="text-secondary">Subtotal</span>
+                                    <span class="amount">$350.00</span>
+                                </div>
+                                <div class="flex justify-between mb-8">
+                                    <span class="text-secondary">Tax (8%)</span>
+                                    <span class="amount">$28.00</span>
+                                </div>
+                                <div class="flex justify-between mb-12" style="padding-top: 12px; border-top: 1px solid var(--primary-border);">
+                                    <span class="bold">Total</span>
+                                    <span class="amount bold">$378.00</span>
+                                </div>
+                                <div class="flex justify-between mb-8">
+                                    <span class="text-success">Payments Received</span>
+                                    <span class="amount text-success">-$600.00</span>
+                                </div>
+                                <div class="flex justify-between" style="padding-top: 12px; border-top: 2px solid var(--border);">
+                                    <span class="bold" style="font-size: 18px;">Balance Due</span>
+                                    <span class="amount bold" style="font-size: 24px; color: var(--primary);">$600.00</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. PAYMENTS SCREEN -->
+        <div id="payments" class="screen-frame">
+            <div class="screen-header">
+                <h2>4. Payments</h2>
+                <p>Track and manage payments received • Route: /payments</p>
+            </div>
+            <div class="app-shell">
+                <div class="sidebar">
+                    <div class="sidebar-logo"></div>
+                    <div class="sidebar-nav">
+                        <button class="sidebar-item"><span class="material-icons">visibility</span></button>
+                        <button class="sidebar-item"><span class="material-icons">people</span></button>
+                        <button class="sidebar-item"><span class="material-icons">description</span></button>
+                        <button class="sidebar-item"><span class="material-icons">receipt</span></button>
+                        <button class="sidebar-item active"><span class="material-icons">credit_card</span></button>
+                        <button class="sidebar-item"><span class="material-icons">work</span></button>
+                        <button class="sidebar-item"><span class="material-icons">calendar_today</span></button>
+                        <button class="sidebar-item"><span class="material-icons">attach_money</span></button>
+                        <button class="sidebar-item"><span class="material-icons">inventory_2</span></button>
+                        <button class="sidebar-item"><span class="material-icons">bar_chart</span></button>
+                        <div class="sidebar-divider"></div>
+                        <button class="sidebar-item locked"><span class="material-icons">handshake</span></button>
+                        <button class="sidebar-item locked"><span class="material-icons">badge</span></button>
+                        <button class="sidebar-item locked"><span class="material-icons">warehouse</span></button>
+                        <button class="sidebar-item locked"><span class="material-icons">auto_awesome</span></button>
+                    </div>
+                </div>
+                <div class="main-content">
+                    <div class="top-bar">
+                        <button class="settings-btn"><span class="material-icons">settings</span></button>
+                    </div>
+                    <div class="content-area">
+                        <div class="flex justify-between items-center mb-24">
+                            <h1>Payments</h1>
+                            <button class="btn btn-primary">+ Record Payment</button>
+                        </div>
+
+                        <div class="grid-4">
+                            <div class="stat-card">
+                                <div class="stat-icon text-success">💰</div>
+                                <div class="stat-value text-success">$45,200</div>
+                                <div class="stat-label">Total Received</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon text-success">💰</div>
+                                <div class="stat-value text-success">$8,300</div>
+                                <div class="stat-label">This Month</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon">📊</div>
+                                <div class="stat-value">$2,150</div>
+                                <div class="stat-label">Average Payment</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon text-error">⚠</div>
+                                <div class="stat-value text-error">$12,450</div>
+                                <div class="stat-label">Outstanding Balance</div>
+                            </div>
+                        </div>
+
+                        <div class="filter-bar">
+                            <input type="text" class="search-input" placeholder="Search payments...">
+                            <div class="chip-group">
+                                <button class="chip active">All</button>
+                                <button class="chip">Cash</button>
+                                <button class="chip">Check</button>
+                                <button class="chip">Credit Card</button>
+                                <button class="chip">ACH/Wire</button>
+                            </div>
+                        </div>
+
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Client</th>
+                                    <th>Job</th>
+                                    <th>Invoice</th>
+                                    <th>Method</th>
+                                    <th>Reference</th>
+                                    <th>Amount</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Jan 15, 2026</td>
+                                    <td>
+                                        <div class="flex items-center gap-8">
+                                            <span class="avatar">JS</span>
+                                            <span class="bold">John Smith</span>
+                                        </div>
+                                    </td>
+                                    <td><a href="#" style="color: var(--primary);">J-1234</a></td>
+                                    <td><a href="#" style="color: var(--primary);">INV-1234</a></td>
+                                    <td><span class="badge badge-neutral">Check</span></td>
+                                    <td class="text-secondary">#2456</td>
+                                    <td class="amount bold text-success">$600.00</td>
+                                    <td><button class="btn-ghost">⋮</button></td>
+                                </tr>
+                                <tr>
+                                    <td>Jan 12, 2026</td>
+                                    <td>
+                                        <div class="flex items-center gap-8">
+                                            <span class="avatar">MD</span>
+                                            <span class="bold">Mike Davis</span>
+                                        </div>
+                                    </td>
+                                    <td><a href="#" style="color: var(--primary);">J-1232</a></td>
+                                    <td><a href="#" style="color: var(--primary);">INV-1232</a></td>
+                                    <td><span class="badge badge-primary">Credit Card</span></td>
+                                    <td class="text-secondary">****4242</td>
+                                    <td class="amount bold text-success">$5,200.00</td>
+                                    <td><button class="btn-ghost">⋮</button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. CALENDAR/SCHEDULE SCREEN -->
+        <div id="calendar" class="screen-frame">
+            <div class="screen-header">
+                <h2>5. Calendar / Schedule</h2>
+                <p>View all events and appointments • Route: /calendar</p>
+            </div>
+            <div class="app-shell">
+                <div class="sidebar">
+                    <div class="sidebar-logo"></div>
+                    <div class="sidebar-nav">
+                        <button class="sidebar-item"><span class="material-icons">visibility</span></button>
+                        <button class="sidebar-item"><span class="material-icons">people</span></button>
+                        <button class="sidebar-item"><span class="material-icons">description</span></button>
+                        <button class="sidebar-item"><span class="material-icons">receipt</span></button>
+                        <button class="sidebar-item"><span class="material-icons">credit_card</span></button>
+                        <button class="sidebar-item"><span class="material-icons">work</span></button>
+                        <button class="sidebar-item active"><span class="material-icons">calendar_today</span></button>
+                        <button class="sidebar-item"><span class="material-icons">attach_money</span></button>
+                        <button class="sidebar-item"><span class="material-icons">inventory_2</span></button>
+                        <button class="sidebar-item"><span class="material-icons">bar_chart</span></button>
+                        <div class="sidebar-divider"></div>
+                        <button class="sidebar-item locked"><span class="material-icons">handshake</span></button>
+                        <button class="sidebar-item locked"><span class="material-icons">badge</span></button>
+                        <button class="sidebar-item locked"><span class="material-icons">warehouse</span></button>
+                        <button class="sidebar-item locked"><span class="material-icons">auto_awesome</span></button>
+                    </div>
+                </div>
+                <div class="main-content">
+                    <div class="top-bar">
+                        <div class="flex items-center gap-16">
+                            <h2>January 2026</h2>
+                            <button class="btn btn-ghost">←</button>
+                            <button class="btn btn-ghost">→</button>
+                            <button class="btn btn-secondary">Today</button>
+                        </div>
+                        <div class="flex gap-8">
+                            <button class="btn btn-secondary">Day</button>
+                            <button class="btn btn-primary">Week</button>
+                            <button class="btn btn-secondary">Month</button>
+                        </div>
+                        <button class="settings-btn"><span class="material-icons">settings</span></button>
+                    </div>
+                    <div class="content-area">
+                        <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: var(--border);">
+                            <div style="background: var(--bg-grey); padding: 12px; text-align: center; font-weight: 600;">Mon</div>
+                            <div style="background: var(--bg-grey); padding: 12px; text-align: center; font-weight: 600;">Tue</div>
+                            <div style="background: var(--bg-grey); padding: 12px; text-align: center; font-weight: 600;">Wed</div>
+                            <div style="background: var(--bg-grey); padding: 12px; text-align: center; font-weight: 600;">Thu</div>
+                            <div style="background: var(--bg-grey); padding: 12px; text-align: center; font-weight: 600;">Fri</div>
+                            <div style="background: var(--bg-grey); padding: 12px; text-align: center; font-weight: 600;">Sat</div>
+                            <div style="background: var(--bg-grey); padding: 12px; text-align: center; font-weight: 600;">Sun</div>
+
+                            <div style="background: var(--white); padding: 12px; min-height: 120px;">
+                                <div class="text-secondary">13</div>
+                            </div>
+                            <div style="background: var(--white); padding: 12px; min-height: 120px;">
+                                <div class="text-secondary">14</div>
+                            </div>
+                            <div style="background: var(--primary-light); padding: 12px; min-height: 120px;">
+                                <div class="bold">15</div>
+                                <div style="background: var(--primary); color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; margin-top: 8px;">
+                                    9:00 AM John Smith
+                                </div>
+                                <div style="background: var(--warning); color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; margin-top: 4px;">
+                                    2:00 PM Sarah J.
+                                </div>
+                            </div>
+                            <div style="background: var(--white); padding: 12px; min-height: 120px;">
+                                <div class="text-secondary">16</div>
+                                <div style="background: var(--primary); color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; margin-top: 8px;">
+                                    10:00 AM Mike D.
+                                </div>
+                            </div>
+                            <div style="background: var(--white); padding: 12px; min-height: 120px;">
+                                <div class="text-secondary">17</div>
+                            </div>
+                            <div style="background: var(--white); padding: 12px; min-height: 120px;">
+                                <div class="text-secondary">18</div>
+                            </div>
+                            <div style="background: var(--white); padding: 12px; min-height: 120px;">
+                                <div class="text-secondary">19</div>
+                            </div>
+                        </div>
+
+                        <div style="margin-top: 24px;">
+                            <h3 class="mb-16">Today's Events</h3>
+                            <div class="timeline">
+                                <div class="timeline-item">
+                                    <div class="timeline-dot"></div>
+                                    <div class="event-card">
+                                        <div class="flex justify-between">
+                                            <div>
+                                                <div class="bold">9:00 AM - 11:00 AM</div>
+                                                <div class="bold" style="margin-top: 8px;">Initial Consultation</div>
+                                                <div class="text-secondary">John Smith • J-1234: Kitchen Renovation</div>
+                                            </div>
+                                            <span class="badge badge-primary">Scheduled</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 6. REPORTS SCREEN -->
+        <div id="reports" class="screen-frame">
+            <div class="screen-header">
+                <h2>6. Reports</h2>
+                <p>Business insights and analytics • Route: /reports</p>
+            </div>
+            <div class="app-shell">
+                <div class="sidebar">
+                    <div class="sidebar-logo"></div>
+                    <div class="sidebar-nav">
+                        <button class="sidebar-item"><span class="material-icons">visibility</span></button>
+                        <button class="sidebar-item"><span class="material-icons">people</span></button>
+                        <button class="sidebar-item"><span class="material-icons">description</span></button>
+                        <button class="sidebar-item"><span class="material-icons">receipt</span></button>
+                        <button class="sidebar-item"><span class="material-icons">credit_card</span></button>
+                        <button class="sidebar-item"><span class="material-icons">work</span></button>
+                        <button class="sidebar-item"><span class="material-icons">calendar_today</span></button>
+                        <button class="sidebar-item"><span class="material-icons">attach_money</span></button>
+                        <button class="sidebar-item"><span class="material-icons">inventory_2</span></button>
+                        <button class="sidebar-item active"><span class="material-icons">bar_chart</span></button>
+                        <div class="sidebar-divider"></div>
+                        <button class="sidebar-item locked"><span class="material-icons">handshake</span></button>
+                        <button class="sidebar-item locked"><span class="material-icons">badge</span></button>
+                        <button class="sidebar-item locked"><span class="material-icons">warehouse</span></button>
+                        <button class="sidebar-item locked"><span class="material-icons">auto_awesome</span></button>
+                    </div>
+                </div>
+                <div class="main-content">
+                    <div class="top-bar">
+                        <button class="settings-btn"><span class="material-icons">settings</span></button>
+                    </div>
+                    <div class="content-area">
+                        <div class="flex justify-between items-center mb-24">
+                            <h1>Reports</h1>
+                            <select class="form-select" style="width: 200px;">
+                                <option>This Month</option>
+                                <option>Last Month</option>
+                                <option>This Quarter</option>
+                                <option>This Year</option>
+                                <option>Custom Range</option>
+                            </select>
+                        </div>
+
+                        <div class="grid-4 mb-24">
+                            <div class="stat-card">
+                                <div class="stat-icon">💰</div>
+                                <div class="stat-value">$45,200</div>
+                                <div class="stat-label">Total Revenue</div>
+                                <div style="color: var(--success); font-size: 14px; margin-top: 4px;">↗ +12.5%</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon">💼</div>
+                                <div class="stat-value">28</div>
+                                <div class="stat-label">Jobs Completed</div>
+                                <div style="color: var(--success); font-size: 14px; margin-top: 4px;">↗ +8.2%</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon">👥</div>
+                                <div class="stat-value">42</div>
+                                <div class="stat-label">Active Clients</div>
+                                <div style="color: var(--success); font-size: 14px; margin-top: 4px;">↗ +5</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon">💸</div>
+                                <div class="stat-value">$12,450</div>
+                                <div class="stat-label">Outstanding</div>
+                                <div style="color: var(--error); font-size: 14px; margin-top: 4px;">⚠ Overdue</div>
+                            </div>
+                        </div>
+
+                        <div class="grid-2">
+                            <div class="card">
+                                <h3 class="mb-16">Revenue by Month</h3>
+                                <div style="height: 300px; background: var(--bg-grey-light); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: var(--text-secondary);">
+                                    [Chart: Bar chart showing monthly revenue]
+                                </div>
+                            </div>
+                            <div class="card">
+                                <h3 class="mb-16">Jobs by Status</h3>
+                                <div style="height: 300px; background: var(--bg-grey-light); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: var(--text-secondary);">
+                                    [Chart: Pie chart showing job status distribution]
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card" style="margin-top: 24px;">
+                            <h3 class="mb-16">Top Clients by Revenue</h3>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Client</th>
+                                        <th>Jobs</th>
+                                        <th>Revenue</th>
+                                        <th>Outstanding</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td class="bold">John Smith</td>
+                                        <td>5</td>
+                                        <td class="amount bold text-success">$12,450</td>
+                                        <td class="amount text-error">$4,250</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="bold">Mike Davis</td>
+                                        <td>12</td>
+                                        <td class="amount bold text-success">$28,600</td>
+                                        <td class="amount text-success">$0</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 7. SETTINGS SCREEN -->
+        <div id="settings" class="screen-frame">
+            <div class="screen-header">
+                <h2>7. Company Settings</h2>
+                <p>Configure business and account settings • Route: /settings</p>
+            </div>
+            <div class="app-shell">
+                <div class="sidebar">
+                    <div class="sidebar-logo"></div>
+                    <div class="sidebar-nav">
+                        <button class="sidebar-item"><span class="material-icons">visibility</span></button>
+                        <button class="sidebar-item"><span class="material-icons">people</span></button>
+                        <button class="sidebar-item"><span class="material-icons">description</span></button>
+                        <button class="sidebar-item"><span class="material-icons">receipt</span></button>
+                        <button class="sidebar-item"><span class="material-icons">credit_card</span></button>
+                        <button class="sidebar-item"><span class="material-icons">work</span></button>
+                        <button class="sidebar-item"><span class="material-icons">calendar_today</span></button>
+                        <button class="sidebar-item"><span class="material-icons">attach_money</span></button>
+                        <button class="sidebar-item"><span class="material-icons">inventory_2</span></button>
+                        <button class="sidebar-item"><span class="material-icons">bar_chart</span></button>
+                        <div class="sidebar-divider"></div>
+                        <button class="sidebar-item locked"><span class="material-icons">handshake</span></button>
+                        <button class="sidebar-item locked"><span class="material-icons">badge</span></button>
+                        <button class="sidebar-item locked"><span class="material-icons">warehouse</span></button>
+                        <button class="sidebar-item locked"><span class="material-icons">auto_awesome</span></button>
+                    </div>
+                </div>
+                <div class="main-content">
+                    <div class="top-bar">
+                        <button class="settings-btn"><span class="material-icons">settings</span></button>
+                    </div>
+                    <div class="content-area">
+                        <h1 class="mb-24">Settings</h1>
+
+                        <div class="grid-2" style="grid-template-columns: 280px 1fr;">
+                            <div class="card" style="height: fit-content;">
+                                <div style="display: flex; flex-direction: column; gap: 4px;">
+                                    <button style="padding: 12px; background: var(--primary-light); border: none; border-left: 3px solid var(--primary); border-radius: 6px; text-align: left; cursor: pointer; font-weight: 600;">
+                                        Company Profile
+                                    </button>
+                                    <button style="padding: 12px; background: transparent; border: none; text-align: left; cursor: pointer;">
+                                        Account & Billing
+                                    </button>
+                                    <button style="padding: 12px; background: transparent; border: none; text-align: left; cursor: pointer;">
+                                        Tax Settings
+                                    </button>
+                                    <button style="padding: 12px; background: transparent; border: none; text-align: left; cursor: pointer;">
+                                        Notifications
+                                    </button>
+                                    <button style="padding: 12px; background: transparent; border: none; text-align: left; cursor: pointer;">
+                                        Integrations
+                                    </button>
+                                    <button style="padding: 12px; background: transparent; border: none; text-align: left; cursor: pointer;">
+                                        Security
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div>
+                                <div class="card">
+                                    <h3 class="mb-24">Company Profile</h3>
+
+                                    <div class="form-group">
+                                        <label class="form-label">Company Name</label>
+                                        <input type="text" class="form-input" value="ABC Plumbing Services">
+                                    </div>
+
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                                        <div class="form-group">
+                                            <label class="form-label">First Name</label>
+                                            <input type="text" class="form-input" value="Marek">
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">Last Name</label>
+                                            <input type="text" class="form-input" value="Stroz">
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="form-label">Business Phone</label>
+                                        <input type="tel" class="form-input" value="(555) 123-4567">
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="form-label">Business Email</label>
+                                        <input type="email" class="form-input" value="marek@abcplumbing.com">
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="form-label">Business Address</label>
+                                        <textarea class="form-textarea" rows="3">456 Business St
+City, ST 12345</textarea>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="form-label">Logo</label>
+                                        <div style="display: flex; align-items: center; gap: 16px;">
+                                            <div style="width: 80px; height: 80px; background: var(--primary); border-radius: 8px;"></div>
+                                            <div>
+                                                <button class="btn btn-secondary">Upload Logo</button>
+                                                <div class="form-helper">PNG or JPG, max 2MB</div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div style="padding-top: 24px; border-top: 1px solid var(--border);">
+                                        <button class="btn btn-primary">Save Changes</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        <!-- 3. CREATE ESTIMATE SCREEN -->
+        <div id="estimate" class="screen-frame">
+            <div class="screen-header">
+                <h2>3. Create Estimate</h2>
+                <p>Create and send estimates with line items • Route: /estimates/new</p>
+            </div>
+            <div class="app-shell">
+                <div class="sidebar">
+                    <div class="sidebar-logo"></div>
+                    <div class="sidebar-nav">
+                        <button class="sidebar-item"><span class="material-icons">visibility</span></button>
+                        <button class="sidebar-item"><span class="material-icons">people</span></button>
+                        <button class="sidebar-item active"><span class="material-icons">description</span></button>
+                        <button class="sidebar-item"><span class="material-icons">receipt</span></button>
+                        <button class="sidebar-item"><span class="material-icons">credit_card</span></button>
+                        <button class="sidebar-item"><span class="material-icons">work</span></button>
+                        <button class="sidebar-item"><span class="material-icons">calendar_today</span></button>
+                        <button class="sidebar-item"><span class="material-icons">attach_money</span></button>
+                        <button class="sidebar-item"><span class="material-icons">inventory_2</span></button>
+                        <button class="sidebar-item"><span class="material-icons">bar_chart</span></button>
+                    </div>
+                </div>
+                <div class="main-content">
+                    <div class="top-bar">
+                        <div class="flex items-center gap-16" style="flex: 1;">
+                            <button class="btn btn-ghost">← Estimates</button>
+                        </div>
+                        <div class="flex gap-8">
+                            <button class="btn btn-secondary">Save Draft</button>
+                            <button class="btn btn-secondary">Preview</button>
+                            <button class="btn btn-primary">Send Estimate</button>
+                        </div>
+                    </div>
+                    <div class="content-area">
+                        <h1 class="mb-24">New Estimate</h1>
+
+                        <div class="grid-2">
+                            <div>
+                                <div class="card mb-24">
+                                    <h3 class="mb-16">Client</h3>
+                                    <div class="form-group">
+                                        <label class="form-label required">Select Client</label>
+                                        <select class="form-select">
+                                            <option>John Smith - ABC Plumbing</option>
+                                            <option>Sarah Johnson</option>
+                                            <option>Mike Davis - Davis Construction</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="card mb-24">
+                                    <h3 class="mb-16">Estimate Details</h3>
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                                        <div class="form-group">
+                                            <label class="form-label">Estimate #</label>
+                                            <input type="text" class="form-input" value="EST-1234">
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">Date</label>
+                                            <input type="date" class="form-input" value="2026-01-15">
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">Valid Until</label>
+                                            <input type="date" class="form-input" value="2026-02-14">
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Work Location</label>
+                                        <textarea class="form-textarea" rows="2">123 Main St, City, ST 12345</textarea>
+                                    </div>
+                                </div>
+
+                                <div class="card">
+                                    <div class="flex justify-between items-center mb-16">
+                                        <div>
+                                            <h3>Pricing Options</h3>
+                                            <div class="text-secondary" style="font-size: 14px; margin-top: 4px;">Create up to 4 pricing alternatives • Client selects one when signing</div>
+                                        </div>
+                                        <div class="flex gap-8">
+                                            <button class="btn btn-secondary btn-sm">+ Add Option</button>
+                                            <button class="btn btn-primary btn-sm">+ Add Item</button>
+                                        </div>
+                                    </div>
+
+                                    <div class="tab-group">
+                                        <button class="tab active">Option 1: Standard</button>
+                                        <button class="tab">Option 2: Premium</button>
+                                        <button class="tab" style="color: var(--text-secondary);">+ Option 3</button>
+                                    </div>
+
+                                    <div style="margin-top: 16px;">
+                                        <div style="background: var(--primary-light); padding: 12px 16px; border-radius: 6px; margin-bottom: 16px;">
+                                            <div class="flex items-center gap-8">
+                                                <input type="text" class="form-input" value="Standard Package" style="flex: 1; background: white;">
+                                                <button class="btn-ghost">×</button>
+                                            </div>
+                                        </div>
+
+                                        <table>
+                                            <thead>
+                                                <tr>
+                                                    <th>Item/Service</th>
+                                                    <th>Qty</th>
+                                                    <th>Price</th>
+                                                    <th>Tax</th>
+                                                    <th>Amount</th>
+                                                    <th></th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td>
+                                                        <div class="bold">Standard Service Call</div>
+                                                        <div class="text-secondary" style="font-size: 12px;">2-hour minimum visit</div>
+                                                    </td>
+                                                    <td>1</td>
+                                                    <td class="amount">$125.00</td>
+                                                    <td><input type="checkbox" checked></td>
+                                                    <td class="amount bold">$125.00</td>
+                                                    <td><button class="btn-ghost">×</button></td>
+                                                </tr>
+                                                <tr>
+                                                    <td>
+                                                        <div class="bold">Plumbing Materials</div>
+                                                        <div class="text-secondary" style="font-size: 12px;">PVC pipes and fittings</div>
+                                                    </td>
+                                                    <td>5</td>
+                                                    <td class="amount">$45.00</td>
+                                                    <td><input type="checkbox" checked></td>
+                                                    <td class="amount bold">$225.00</td>
+                                                    <td><button class="btn-ghost">×</button></td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                        <div style="background: var(--primary-light); padding: 16px; border-radius: 8px; margin-top: 16px;">
+                                            <div class="flex justify-between mb-8">
+                                                <span class="text-secondary">Subtotal</span>
+                                                <span class="amount">$350.00</span>
+                                            </div>
+                                            <div class="flex justify-between mb-8">
+                                                <span class="text-secondary">Tax (8%)</span>
+                                                <span class="amount">$28.00</span>
+                                            </div>
+                                            <div class="flex justify-between" style="padding-top: 8px; border-top: 1px solid var(--primary-border);">
+                                                <span class="bold" style="font-size: 18px;">Option 1 Total</span>
+                                                <span class="amount bold" style="font-size: 24px; color: var(--primary);">$378.00</span>
+                                            </div>
+                                        </div>
+
+                                        <div style="background: var(--bg-grey); padding: 12px 16px; border-radius: 6px; margin-top: 16px; text-align: center;">
+                                            <span class="text-secondary" style="font-size: 14px;">💡 Client will choose one option when viewing the estimate</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <div class="card" style="position: sticky; top: 24px;">
+                                    <h3 class="mb-16">Summary</h3>
+                                    <div class="badge badge-primary mb-16">Draft</div>
+
+                                    <div class="mb-16">
+                                        <div class="text-secondary mb-8">Client</div>
+                                        <div class="bold">John Smith</div>
+                                        <div class="text-secondary" style="font-size: 12px;">ABC Plumbing</div>
+                                    </div>
+
+                                    <div class="mb-16">
+                                        <div class="text-secondary mb-8">Date</div>
+                                        <div>Jan 15, 2026</div>
+                                    </div>
+
+                                    <div class="mb-16">
+                                        <div class="text-secondary mb-8">Valid Until</div>
+                                        <div>Feb 14, 2026</div>
+                                    </div>
+
+                                    <div style="padding: 16px; background: var(--bg-grey-light); border-radius: 6px; margin-bottom: 24px;">
+                                        <div class="flex justify-between mb-8">
+                                            <span class="text-secondary">Subtotal</span>
+                                            <span class="amount">$350.00</span>
+                                        </div>
+                                        <div class="flex justify-between mb-8">
+                                            <span class="text-secondary">Tax</span>
+                                            <span class="amount">$28.00</span>
+                                        </div>
+                                        <div class="flex justify-between" style="padding-top: 8px; border-top: 1px solid var(--border);">
+                                            <span class="bold">Total</span>
+                                            <span class="amount bold" style="color: var(--primary);">$378.00</span>
+                                        </div>
+                                    </div>
+
+                                    <button class="btn btn-primary" style="width: 100%; margin-bottom: 8px;">Send Estimate</button>
+                                    <button class="btn btn-secondary" style="width: 100%;">Save Draft</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. JOBS LIST SCREEN -->
+        <div id="jobs" class="screen-frame">
+            <div class="screen-header">
+                <h2>4. Jobs List</h2>
+                <p>Job management and tracking • Route: /jobs</p>
+            </div>
+            <div class="app-shell">
+                <div class="sidebar">
+                    <div class="sidebar-logo"></div>
+                    <div class="sidebar-nav">
+                        <button class="sidebar-item"><span class="material-icons">visibility</span></button>
+                        <button class="sidebar-item"><span class="material-icons">people</span></button>
+                        <button class="sidebar-item"><span class="material-icons">description</span></button>
+                        <button class="sidebar-item"><span class="material-icons">receipt</span></button>
+                        <button class="sidebar-item"><span class="material-icons">credit_card</span></button>
+                        <button class="sidebar-item active"><span class="material-icons">work</span></button>
+                        <button class="sidebar-item"><span class="material-icons">calendar_today</span></button>
+                        <button class="sidebar-item"><span class="material-icons">attach_money</span></button>
+                        <button class="sidebar-item"><span class="material-icons">inventory_2</span></button>
+                        <button class="sidebar-item"><span class="material-icons">bar_chart</span></button>
+                    </div>
+                </div>
+                <div class="main-content">
+                    <div class="top-bar">
+                        <button class="settings-btn"><span class="material-icons">settings</span></button>
+                    </div>
+                    <div class="content-area">
+                        <div class="flex justify-between items-center mb-24">
+                            <h1>Jobs</h1>
+                            <button class="btn btn-primary">+ New Job</button>
+                        </div>
+
+                        <div class="filter-bar">
+                            <input type="text" class="search-input" placeholder="Search jobs by client, job #, or description...">
+                            <div class="chip-group">
+                                <button class="chip active">All</button>
+                                <button class="chip">Active</button>
+                                <button class="chip">Scheduled</button>
+                                <button class="chip">In Progress</button>
+                                <button class="chip">Completed</button>
+                            </div>
+                        </div>
+
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th><input type="checkbox"></th>
+                                    <th>Job #</th>
+                                    <th>Client</th>
+                                    <th>Description</th>
+                                    <th>Status</th>
+                                    <th>Next Event</th>
+                                    <th>Total Value</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><input type="checkbox"></td>
+                                    <td class="amount" style="color: var(--primary);">J-1234</td>
+                                    <td>
+                                        <div class="flex items-center gap-8">
+                                            <span class="avatar">JS</span>
+                                            <div>
+                                                <div class="bold">John Smith</div>
+                                                <div class="text-secondary" style="font-size: 12px;">ABC Plumbing</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>Kitchen Renovation</td>
+                                    <td><span class="badge badge-warning">In Progress</span></td>
+                                    <td>
+                                        <div class="bold">Jan 15, 2:00 PM</div>
+                                        <div class="text-secondary" style="font-size: 12px;">Service Call</div>
+                                    </td>
+                                    <td class="amount bold">$2,450.00</td>
+                                    <td><button class="btn-ghost">⋮</button></td>
+                                </tr>
+                                <tr>
+                                    <td><input type="checkbox"></td>
+                                    <td class="amount" style="color: var(--primary);">J-1233</td>
+                                    <td>
+                                        <div class="flex items-center gap-8">
+                                            <span class="avatar">SJ</span>
+                                            <div>
+                                                <div class="bold">Sarah Johnson</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>Bathroom Repair</td>
+                                    <td><span class="badge badge-primary">Scheduled</span></td>
+                                    <td>
+                                        <div class="bold">Jan 16, 9:00 AM</div>
+                                        <div class="text-secondary" style="font-size: 12px;">Initial Visit</div>
+                                    </td>
+                                    <td class="amount bold">$850.00</td>
+                                    <td><button class="btn-ghost">⋮</button></td>
+                                </tr>
+                                <tr>
+                                    <td><input type="checkbox"></td>
+                                    <td class="amount" style="color: var(--primary);">J-1232</td>
+                                    <td>
+                                        <div class="flex items-center gap-8">
+                                            <span class="avatar">MD</span>
+                                            <div>
+                                                <div class="bold">Mike Davis</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>HVAC Installation</td>
+                                    <td><span class="badge badge-success">Completed</span></td>
+                                    <td class="text-secondary">No upcoming events</td>
+                                    <td class="amount bold">$5,200.00</td>
+                                    <td><button class="btn-ghost">⋮</button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. JOB DETAIL SCREEN -->
+        <div id="job-detail" class="screen-frame">
+            <div class="screen-header">
+                <h2>5. Job Detail - Accounting Container</h2>
+                <p>Job holds all Events, Estimates, Expenses, Payments, Invoices • Route: /jobs/:id</p>
+            </div>
+            <div class="app-shell">
+                <div class="sidebar">
+                    <div class="sidebar-logo"></div>
+                    <div class="sidebar-nav">
+                        <button class="sidebar-item"><span class="material-icons">visibility</span></button>
+                        <button class="sidebar-item"><span class="material-icons">people</span></button>
+                        <button class="sidebar-item"><span class="material-icons">description</span></button>
+                        <button class="sidebar-item"><span class="material-icons">receipt</span></button>
+                        <button class="sidebar-item"><span class="material-icons">credit_card</span></button>
+                        <button class="sidebar-item active"><span class="material-icons">work</span></button>
+                        <button class="sidebar-item"><span class="material-icons">calendar_today</span></button>
+                        <button class="sidebar-item"><span class="material-icons">attach_money</span></button>
+                        <button class="sidebar-item"><span class="material-icons">inventory_2</span></button>
+                        <button class="sidebar-item"><span class="material-icons">bar_chart</span></button>
+                    </div>
+                </div>
+                <div class="main-content">
+                    <div class="top-bar">
+                        <div class="flex items-center gap-16" style="flex: 1;">
+                            <button class="btn btn-ghost">← Jobs</button>
+                            <div>
+                                <div class="flex items-center gap-8">
+                                    <span class="text-secondary" style="font-size: 14px;">J-1234</span>
+                                    <span class="badge badge-warning">In Progress</span>
+                                </div>
+                                <h2 style="margin-top: 4px;">Kitchen Renovation</h2>
+                            </div>
+                        </div>
+                        <button class="btn btn-primary">Edit Job</button>
+                    </div>
+                    <div class="content-area">
+                        <div style="background: var(--primary-light); border: 1px solid var(--primary-border); border-radius: 8px; padding: 20px; margin-bottom: 24px;">
+                            <div class="flex items-center gap-24">
+                                <div class="flex items-center gap-12">
+                                    <span class="avatar" style="width: 48px; height: 48px; font-size: 18px;">JS</span>
+                                    <div>
+                                        <div class="bold" style="font-size: 18px;">John Smith</div>
+                                        <div class="text-secondary">ABC Plumbing</div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="text-secondary mb-8">📧 john.smith@email.com</div>
+                                    <div class="text-secondary">📞 (555) 123-4567</div>
+                                </div>
+                                <div>
+                                    <div class="text-secondary">📍 123 Main St, City, ST 12345</div>
+                                </div>
+                                <div style="margin-left: auto;">
+                                    <div class="flex gap-8">
+                                        <button class="btn btn-secondary btn-sm">Call</button>
+                                        <button class="btn btn-secondary btn-sm">Email</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid-2">
+                            <div>
+                                <div class="tab-group">
+                                    <button class="tab active">Events (3)</button>
+                                    <button class="tab">Estimates (2)</button>
+                                    <button class="tab">Invoices (1)</button>
+                                    <button class="tab">Expenses (4)</button>
+                                    <button class="tab">Payments (1)</button>
+                                </div>
+
+                                <div class="flex justify-between items-center mb-16">
+                                    <div>
+                                        <h3>Events (Visits/Appointments)</h3>
+                                        <div class="text-secondary" style="font-size: 14px; margin-top: 4px;">Each Event is a single visit that belongs to this Job</div>
+                                    </div>
+                                    <button class="btn btn-primary">+ Schedule Event</button>
+                                </div>
+
+                                <div class="timeline">
+                                    <div class="timeline-item">
+                                        <div class="timeline-dot"></div>
+                                        <div class="event-card">
+                                            <div class="flex justify-between items-center mb-16">
+                                                <div>
+                                                    <div class="bold" style="font-size: 18px;">Mon, Jan 15</div>
+                                                    <div class="text-secondary">9:00 AM - 11:00 AM</div>
+                                                </div>
+                                                <span class="badge badge-primary">Scheduled</span>
+                                            </div>
+                                            <div class="bold mb-8">Initial Consultation</div>
+                                            <div class="text-secondary mb-16">Assess kitchen layout and discuss renovation plans with client</div>
+                                            <div class="flex items-center gap-8">
+                                                <span class="avatar" style="width: 24px; height: 24px; font-size: 12px;">MS</span>
+                                                <span class="text-secondary">Assigned to Marek Stroz</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="timeline-item">
+                                        <div class="timeline-dot warning"></div>
+                                        <div class="event-card warning">
+                                            <div class="flex justify-between items-center mb-16">
+                                                <div>
+                                                    <div class="bold" style="font-size: 18px;">Mon, Jan 15</div>
+                                                    <div class="text-secondary">2:00 PM - 4:00 PM</div>
+                                                </div>
+                                                <span class="badge badge-warning">In Progress</span>
+                                            </div>
+                                            <div class="bold mb-8">Service Call</div>
+                                            <div class="text-secondary mb-16">Begin cabinet removal and plumbing inspection</div>
+                                            <div class="flex items-center gap-8">
+                                                <span class="avatar" style="width: 24px; height: 24px; font-size: 12px;">MS</span>
+                                                <span class="text-secondary">Assigned to Marek Stroz</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="timeline-item">
+                                        <div class="timeline-dot success"></div>
+                                        <div class="event-card success" style="opacity: 0.7;">
+                                            <div class="flex justify-between items-center mb-16">
+                                                <div>
+                                                    <div class="bold">Fri, Jan 12</div>
+                                                    <div class="text-secondary">10:00 AM - 10:30 AM</div>
+                                                </div>
+                                                <span class="badge badge-success">Completed</span>
+                                            </div>
+                                            <div class="bold mb-8">Site Assessment</div>
+                                            <div class="text-secondary">Completed on Jan 12 at 10:25 AM by Marek Stroz</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <div class="card" style="position: sticky; top: 24px;">
+                                    <h3 class="mb-16">Job Summary</h3>
+
+                                    <div class="mb-16">
+                                        <div class="text-secondary mb-8">Created</div>
+                                        <div>Jan 10, 2026</div>
+                                    </div>
+
+                                    <div class="mb-16">
+                                        <div class="text-secondary mb-8">Status</div>
+                                        <span class="badge badge-warning">In Progress</span>
+                                    </div>
+
+                                    <div style="border-top: 1px solid var(--border); padding-top: 16px; margin-top: 16px;">
+                                        <h3 class="mb-16">Financial Summary</h3>
+
+                                        <div class="flex justify-between mb-12">
+                                            <span class="text-secondary">Estimates (2)</span>
+                                            <span class="amount">$2,800.00</span>
+                                        </div>
+                                        <div class="flex justify-between mb-12">
+                                            <span class="text-secondary">Invoices (1)</span>
+                                            <span class="amount">$1,200.00</span>
+                                        </div>
+                                        <div class="flex justify-between mb-12">
+                                            <span class="text-secondary text-success">Payments</span>
+                                            <span class="amount text-success">$600.00</span>
+                                        </div>
+                                        <div class="flex justify-between mb-16">
+                                            <span class="text-secondary text-error">Expenses (4)</span>
+                                            <span class="amount text-error">$450.00</span>
+                                        </div>
+                                        <div class="flex justify-between" style="padding-top: 16px; border-top: 2px solid var(--border);">
+                                            <span class="bold" style="font-size: 18px;">Balance Due</span>
+                                            <span class="amount bold" style="font-size: 24px; color: var(--primary);">$600.00</span>
+                                        </div>
+                                    </div>
+
+                                    <div style="margin-top: 24px; display: flex; flex-direction: column; gap: 8px;">
+                                        <button class="btn btn-secondary" style="width: 100%;">Create Estimate</button>
+                                        <button class="btn btn-secondary" style="width: 100%;">Create Invoice</button>
+                                        <button class="btn btn-secondary" style="width: 100%;">Record Payment</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 6. CREATE EVENT SCREEN -->
+        <div id="event" class="screen-frame">
+            <div class="screen-header">
+                <h2>6. Create/Edit Event</h2>
+                <p>Schedule appointments and visits • Route: /events/new</p>
+            </div>
+            <div class="app-shell">
+                <div class="sidebar">
+                    <div class="sidebar-logo"></div>
+                    <div class="sidebar-nav">
+                        <button class="sidebar-item"><span class="material-icons">visibility</span></button>
+                        <button class="sidebar-item"><span class="material-icons">people</span></button>
+                        <button class="sidebar-item"><span class="material-icons">description</span></button>
+                        <button class="sidebar-item"><span class="material-icons">receipt</span></button>
+                        <button class="sidebar-item"><span class="material-icons">credit_card</span></button>
+                        <button class="sidebar-item"><span class="material-icons">work</span></button>
+                        <button class="sidebar-item active"><span class="material-icons">calendar_today</span></button>
+                        <button class="sidebar-item"><span class="material-icons">attach_money</span></button>
+                        <button class="sidebar-item"><span class="material-icons">inventory_2</span></button>
+                        <button class="sidebar-item"><span class="material-icons">bar_chart</span></button>
+                    </div>
+                </div>
+                <div class="main-content">
+                    <div class="top-bar">
+                        <div class="flex items-center gap-16" style="flex: 1;">
+                            <button class="btn btn-ghost">← Back to Job</button>
+                        </div>
+                        <div class="flex gap-8">
+                            <button class="btn btn-ghost">Cancel</button>
+                            <button class="btn btn-secondary">Save Draft</button>
+                            <button class="btn btn-primary">Save & Notify Client</button>
+                        </div>
+                    </div>
+                    <div class="content-area">
+                        <h1 class="mb-24">Schedule Event</h1>
+
+                        <div class="grid-2">
+                            <div>
+                                <div class="card mb-24">
+                                    <h3 class="mb-16">Date & Time</h3>
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                                        <div class="form-group">
+                                            <label class="form-label required">Date</label>
+                                            <input type="date" class="form-input" value="2026-01-15">
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label required">Start Time</label>
+                                            <input type="time" class="form-input" value="09:00">
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">Duration</label>
+                                            <select class="form-select">
+                                                <option>1 hour</option>
+                                                <option selected>2 hours</option>
+                                                <option>4 hours</option>
+                                                <option>Custom</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">End Time</label>
+                                            <input type="time" class="form-input" value="11:00" readonly>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="card mb-24">
+                                    <h3 class="mb-16">Event Details</h3>
+                                    <div class="form-group">
+                                        <label class="form-label">Event Type</label>
+                                        <select class="form-select">
+                                            <option selected>Initial Consultation</option>
+                                            <option>Service Call</option>
+                                            <option>Installation</option>
+                                            <option>Follow-up Visit</option>
+                                            <option>Inspection</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Custom Title (optional)</label>
+                                        <input type="text" class="form-input" placeholder="e.g., Install new water heater">
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Description (optional)</label>
+                                        <textarea class="form-textarea" rows="3" placeholder="Add notes about this visit..."></textarea>
+                                    </div>
+                                </div>
+
+                                <div class="card mb-24">
+                                    <h3 class="mb-16">Assignment</h3>
+                                    <div class="form-group">
+                                        <label class="form-label">Assign to</label>
+                                        <select class="form-select">
+                                            <option selected>Marek Stroz (Me)</option>
+                                        </select>
+                                        <div class="form-helper">Unlock Employee Management to assign to team members</div>
+                                    </div>
+                                </div>
+
+                                <div class="card">
+                                    <h3 class="mb-16">Client Notification</h3>
+                                    <div class="flex items-center gap-12 mb-16">
+                                        <input type="checkbox" id="notify" checked>
+                                        <label for="notify" class="form-label" style="margin: 0;">Send appointment notification to client</label>
+                                    </div>
+                                    <div style="padding: 16px; background: var(--bg-grey-light); border-radius: 6px;">
+                                        <div class="text-secondary mb-8">John Smith will receive a notification at:</div>
+                                        <div class="mb-8">📧 john.smith@email.com</div>
+                                        <div class="form-group">
+                                            <label class="form-label">Message</label>
+                                            <textarea class="form-textarea" rows="3">Your appointment is scheduled for Monday, January 15 at 9:00 AM. We look forward to seeing you!</textarea>
+                                        </div>
+                                        <div>
+                                            <input type="checkbox" id="reminder" checked>
+                                            <label for="reminder">Send reminder 24 hours before</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <div class="card" style="position: sticky; top: 24px;">
+                                    <h3 class="mb-16">Event Summary</h3>
+
+                                    <div class="flex items-center gap-12 mb-24">
+                                        <span class="avatar" style="width: 48px; height: 48px; font-size: 18px;">JS</span>
+                                        <div>
+                                            <div class="bold">John Smith</div>
+                                            <div class="text-secondary" style="font-size: 14px;">ABC Plumbing</div>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-16">
+                                        <div class="text-secondary mb-8">📅 Date</div>
+                                        <div class="bold">Monday, January 15, 2026</div>
+                                    </div>
+
+                                    <div class="mb-16">
+                                        <div class="text-secondary mb-8">🕐 Time</div>
+                                        <div class="bold">9:00 AM - 11:00 AM</div>
+                                    </div>
+
+                                    <div class="mb-16">
+                                        <div class="text-secondary mb-8">⏱️ Duration</div>
+                                        <div class="bold">2 hours</div>
+                                    </div>
+
+                                    <div class="mb-16">
+                                        <div class="text-secondary mb-8">📋 Type</div>
+                                        <div class="bold">Initial Consultation</div>
+                                    </div>
+
+                                    <div class="mb-24">
+                                        <div class="text-secondary mb-8">👤 Assigned</div>
+                                        <div class="bold">Marek Stroz</div>
+                                    </div>
+
+                                    <div style="background: var(--primary-light); padding: 16px; border-radius: 6px; margin-bottom: 24px;">
+                                        <div class="text-secondary mb-8">Linked to Job</div>
+                                        <div class="bold">J-1234: Kitchen Renovation</div>
+                                        <a href="#" style="color: var(--primary); font-size: 14px;">View Job →</a>
+                                    </div>
+
+                                    <button class="btn btn-primary" style="width: 100%; margin-bottom: 8px;">Save & Notify Client</button>
+                                    <button class="btn btn-secondary" style="width: 100%;">Save Draft</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 7. EXPENSES SCREEN -->
+        <div id="expenses" class="screen-frame">
+            <div class="screen-header">
+                <h2>7. Expenses</h2>
+                <p>Track expenses with receipt upload • Route: /expenses</p>
+            </div>
+            <div class="app-shell">
+                <div class="sidebar">
+                    <div class="sidebar-logo"></div>
+                    <div class="sidebar-nav">
+                        <button class="sidebar-item"><span class="material-icons">visibility</span></button>
+                        <button class="sidebar-item"><span class="material-icons">people</span></button>
+                        <button class="sidebar-item"><span class="material-icons">description</span></button>
+                        <button class="sidebar-item"><span class="material-icons">receipt</span></button>
+                        <button class="sidebar-item"><span class="material-icons">credit_card</span></button>
+                        <button class="sidebar-item"><span class="material-icons">work</span></button>
+                        <button class="sidebar-item"><span class="material-icons">calendar_today</span></button>
+                        <button class="sidebar-item active"><span class="material-icons">attach_money</span></button>
+                        <button class="sidebar-item"><span class="material-icons">inventory_2</span></button>
+                        <button class="sidebar-item"><span class="material-icons">bar_chart</span></button>
+                    </div>
+                </div>
+                <div class="main-content">
+                    <div class="top-bar">
+                        <button class="settings-btn"><span class="material-icons">settings</span></button>
+                    </div>
+                    <div class="content-area">
+                        <div class="flex justify-between items-center mb-24">
+                            <h1>Expenses</h1>
+                            <button class="btn btn-primary">+ Add Expense</button>
+                        </div>
+
+                        <div class="grid-4">
+                            <div class="stat-card">
+                                <div class="stat-icon">💰</div>
+                                <div class="stat-value">$12,450</div>
+                                <div class="stat-label">Total Expenses</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon">📅</div>
+                                <div class="stat-value">$2,300</div>
+                                <div class="stat-label">This Month</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon" style="color: var(--success);">↗️</div>
+                                <div class="stat-value text-success">$850</div>
+                                <div class="stat-label">Reimbursable Pending</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon">↙️</div>
+                                <div class="stat-value">$1,450</div>
+                                <div class="stat-label">Non-Reimbursable</div>
+                            </div>
+                        </div>
+
+                        <div class="filter-bar">
+                            <input type="text" class="search-input" placeholder="Search expenses...">
+                            <div class="chip-group">
+                                <button class="chip active">All</button>
+                                <button class="chip">Reimbursable</button>
+                                <button class="chip">Non-Reimbursable</button>
+                                <button class="chip">Recurring</button>
+                            </div>
+                            <select class="form-select" style="width: 180px;">
+                                <option>This Month</option>
+                                <option>Last Month</option>
+                                <option>This Year</option>
+                            </select>
+                        </div>
+
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th><input type="checkbox"></th>
+                                    <th>Date</th>
+                                    <th>Description</th>
+                                    <th>Category</th>
+                                    <th>Job</th>
+                                    <th>Type</th>
+                                    <th>Receipt</th>
+                                    <th>Amount</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><input type="checkbox"></td>
+                                    <td>Jan 15, 2026</td>
+                                    <td>
+                                        <div class="bold">Plumbing supplies - PVC pipes</div>
+                                        <div class="text-secondary" style="font-size: 12px;">🔁 Recurring monthly</div>
+                                    </td>
+                                    <td>Materials</td>
+                                    <td>
+                                        <a href="#" style="color: var(--primary);">J-1234</a>
+                                        <div class="text-secondary" style="font-size: 12px;">Kitchen Renovation</div>
+                                    </td>
+                                    <td><span class="badge badge-success">Reimbursable</span></td>
+                                    <td>
+                                        <div style="width: 48px; height: 48px; background: var(--bg-grey); border-radius: 4px; display: flex; align-items: center; justify-content: center;">
+                                            📄
+                                        </div>
+                                    </td>
+                                    <td class="amount bold">$127.50</td>
+                                    <td><button class="btn-ghost">⋮</button></td>
+                                </tr>
+                                <tr>
+                                    <td><input type="checkbox"></td>
+                                    <td>Jan 14, 2026</td>
+                                    <td class="bold">Fuel - Company vehicle</td>
+                                    <td>Fuel</td>
+                                    <td class="text-secondary">—</td>
+                                    <td><span class="badge badge-neutral">Non-Reimbursable</span></td>
+                                    <td>
+                                        <div style="width: 48px; height: 48px; background: var(--bg-grey); border-radius: 4px; display: flex; align-items: center; justify-content: center;">
+                                            📄
+                                        </div>
+                                    </td>
+                                    <td class="amount bold">$65.00</td>
+                                    <td><button class="btn-ghost">⋮</button></td>
+                                </tr>
+                                <tr>
+                                    <td><input type="checkbox"></td>
+                                    <td>Jan 13, 2026</td>
+                                    <td class="bold">Tool rental - Jackhammer</td>
+                                    <td>Equipment</td>
+                                    <td>
+                                        <a href="#" style="color: var(--primary);">J-1234</a>
+                                    </td>
+                                    <td><span class="badge badge-success">Reimbursable</span></td>
+                                    <td class="text-secondary">—</td>
+                                    <td class="amount bold">$85.00</td>
+                                    <td><button class="btn-ghost">⋮</button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <div style="margin-top: 24px; padding: 20px; background: var(--white); border: 1px solid var(--border); border-radius: 8px;">
+                            <h3 class="mb-16">Upload Receipt</h3>
+                            <div class="upload-zone">
+                                <div class="upload-icon" style="margin: 0 auto 16px;">📤</div>
+                                <div class="bold mb-8">Drag receipt here or click to browse</div>
+                                <div class="text-secondary" style="font-size: 14px;">JPG, PNG, PDF up to 10MB</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 8. ITEMS CATALOG SCREEN -->
+        <div id="items" class="screen-frame">
+            <div class="screen-header">
+                <h2>8. Items Catalog</h2>
+                <p>Manage services and products catalog • Route: /items</p>
+            </div>
+            <div class="app-shell">
+                <div class="sidebar">
+                    <div class="sidebar-logo"></div>
+                    <div class="sidebar-nav">
+                        <button class="sidebar-item"><span class="material-icons">visibility</span></button>
+                        <button class="sidebar-item"><span class="material-icons">people</span></button>
+                        <button class="sidebar-item"><span class="material-icons">description</span></button>
+                        <button class="sidebar-item"><span class="material-icons">receipt</span></button>
+                        <button class="sidebar-item"><span class="material-icons">credit_card</span></button>
+                        <button class="sidebar-item"><span class="material-icons">work</span></button>
+                        <button class="sidebar-item"><span class="material-icons">calendar_today</span></button>
+                        <button class="sidebar-item"><span class="material-icons">attach_money</span></button>
+                        <button class="sidebar-item active"><span class="material-icons">inventory_2</span></button>
+                        <button class="sidebar-item"><span class="material-icons">bar_chart</span></button>
+                    </div>
+                </div>
+                <div class="main-content">
+                    <div class="top-bar">
+                        <button class="settings-btn"><span class="material-icons">settings</span></button>
+                    </div>
+                    <div class="content-area">
+                        <div class="flex justify-between items-center mb-24">
+                            <h1>Items Catalog</h1>
+                            <div class="flex gap-8">
+                                <button class="btn btn-secondary">Import</button>
+                                <button class="btn btn-primary">+ Add Item</button>
+                            </div>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 280px 1fr; gap: 24px;">
+                            <div>
+                                <div class="card">
+                                    <div class="flex justify-between items-center mb-16">
+                                        <h3>Categories</h3>
+                                        <button class="btn-ghost">+</button>
+                                    </div>
+                                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                                        <button style="padding: 12px; background: var(--primary-light); border: none; border-left: 3px solid var(--primary); border-radius: 6px; text-align: left; cursor: pointer; font-weight: 600;">
+                                            <div class="flex justify-between items-center">
+                                                <span>All Items</span>
+                                                <span class="text-secondary">(42)</span>
+                                            </div>
+                                        </button>
+                                        <button style="padding: 12px; background: transparent; border: none; text-align: left; cursor: pointer;">
+                                            <div class="flex justify-between items-center">
+                                                <div class="flex items-center gap-8">
+                                                    <div style="width: 8px; height: 8px; background: var(--primary); border-radius: 50%;"></div>
+                                                    <span>Labor</span>
+                                                </div>
+                                                <span class="text-secondary">(15)</span>
+                                            </div>
+                                        </button>
+                                        <button style="padding: 12px; background: transparent; border: none; text-align: left; cursor: pointer;">
+                                            <div class="flex justify-between items-center">
+                                                <div class="flex items-center gap-8">
+                                                    <div style="width: 8px; height: 8px; background: var(--success); border-radius: 50%;"></div>
+                                                    <span>Materials</span>
+                                                </div>
+                                                <span class="text-secondary">(18)</span>
+                                            </div>
+                                        </button>
+                                        <button style="padding: 12px; background: transparent; border: none; text-align: left; cursor: pointer;">
+                                            <div class="flex justify-between items-center">
+                                                <div class="flex items-center gap-8">
+                                                    <div style="width: 8px; height: 8px; background: var(--warning); border-radius: 50%;"></div>
+                                                    <span>Equipment</span>
+                                                </div>
+                                                <span class="text-secondary">(9)</span>
+                                            </div>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <div class="filter-bar mb-24">
+                                    <input type="text" class="search-input" placeholder="Search items...">
+                                    <select class="form-select" style="width: 200px;">
+                                        <option>Sort by: Name (A-Z)</option>
+                                        <option>Price (Low-High)</option>
+                                        <option>Recently Added</option>
+                                    </select>
+                                </div>
+
+                                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
+                                    <div class="card" style="text-align: center; cursor: pointer; transition: all 0.2s;">
+                                        <div style="display: flex; justify-content: space-between; margin-bottom: 16px;">
+                                            <span class="badge badge-primary">Labor</span>
+                                            <button class="btn-ghost">⋮</button>
+                                        </div>
+                                        <div style="width: 64px; height: 64px; margin: 0 auto 16px; color: var(--primary-border); font-size: 48px;">
+                                            🔧
+                                        </div>
+                                        <h3 class="mb-8" style="font-size: 18px;">Standard Service Call</h3>
+                                        <div class="text-secondary mb-16" style="font-size: 14px;">2-hour minimum visit</div>
+                                        <div class="bold mb-8" style="font-size: 24px; color: var(--primary);">$125.00</div>
+                                        <div class="text-secondary mb-16" style="font-size: 12px;">per visit</div>
+                                        <button class="btn btn-secondary" style="width: 100%;">+ Add to Estimate</button>
+                                    </div>
+
+                                    <div class="card" style="text-align: center; cursor: pointer; transition: all 0.2s;">
+                                        <div style="display: flex; justify-content: space-between; margin-bottom: 16px;">
+                                            <span class="badge badge-success" style="background: #DCFCE7; color: var(--success);">Materials</span>
+                                            <button class="btn-ghost">⋮</button>
+                                        </div>
+                                        <div style="width: 64px; height: 64px; margin: 0 auto 16px; color: var(--primary-border); font-size: 48px;">
+                                            🔩
+                                        </div>
+                                        <h3 class="mb-8" style="font-size: 18px;">PVC Pipe</h3>
+                                        <div class="text-secondary mb-16" style="font-size: 14px;">Standard 2" diameter</div>
+                                        <div class="bold mb-8" style="font-size: 24px; color: var(--primary);">$45.00</div>
+                                        <div class="text-secondary mb-16" style="font-size: 12px;">per piece</div>
+                                        <button class="btn btn-secondary" style="width: 100%;">+ Add to Estimate</button>
+                                    </div>
+
+                                    <div class="card" style="text-align: center; cursor: pointer; transition: all 0.2s;">
+                                        <div style="display: flex; justify-content: space-between; margin-bottom: 16px;">
+                                            <span class="badge badge-warning" style="background: #FEF3C7; color: var(--warning);">Equipment</span>
+                                            <button class="btn-ghost">⋮</button>
+                                        </div>
+                                        <div style="width: 64px; height: 64px; margin: 0 auto 16px; color: var(--primary-border); font-size: 48px;">
+                                            🛠️
+                                        </div>
+                                        <h3 class="mb-8" style="font-size: 18px;">Equipment Rental</h3>
+                                        <div class="text-secondary mb-16" style="font-size: 14px;">Various tools and equipment</div>
+                                        <div class="bold mb-8" style="font-size: 24px; color: var(--primary);">$75.00</div>
+                                        <div class="text-secondary mb-16" style="font-size: 12px;">per day</div>
+                                        <button class="btn btn-secondary" style="width: 100%;">+ Add to Estimate</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+
+        <!-- 9. ONBOARDING SCREEN -->
+        <div id="onboarding" class="screen-frame">
+            <div class="screen-header">
+                <h2>9. Onboarding Flow</h2>
+                <p>New user registration and setup (3 steps) • Route: /onboarding</p>
+            </div>
+            <div style="background: var(--bg-grey-light); min-height: 800px; display: flex; align-items: center; justify-content: center; padding: 40px;">
+                <div style="width: 560px;">
+                    <div style="text-align: center; margin-bottom: 40px;">
+                        <div style="width: 64px; height: 64px; background: var(--primary); border-radius: 12px; margin: 0 auto 24px;"></div>
+                        <h1 style="margin-bottom: 12px;">Create Your Account</h1>
+                        <p class="text-secondary">Start managing your field service business</p>
+                    </div>
+
+                    <div class="card" style="padding: 40px;">
+                        <div class="form-group">
+                            <label class="form-label required">Email Address</label>
+                            <input type="email" class="form-input" placeholder="your@email.com">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label required">Password</label>
+                            <input type="password" class="form-input" placeholder="••••••••">
+                            <div class="form-helper">At least 8 characters, one uppercase, one number</div>
+                            <div style="margin-top: 8px; height: 4px; background: var(--bg-grey); border-radius: 2px; overflow: hidden;">
+                                <div style="width: 60%; height: 100%; background: var(--warning);"></div>
+                            </div>
+                            <div class="text-secondary" style="font-size: 12px; margin-top: 4px;">Strength: Medium</div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label required">Confirm Password</label>
+                            <input type="password" class="form-input" placeholder="••••••••">
+                        </div>
+
+                        <div class="form-group">
+                            <div class="flex items-center gap-8">
+                                <input type="checkbox" id="terms">
+                                <label for="terms" style="font-size: 14px;">I agree to the <a href="#" style="color: var(--primary);">Terms of Service</a> and <a href="#" style="color: var(--primary);">Privacy Policy</a></label>
+                            </div>
+                        </div>
+
+                        <button class="btn btn-primary" style="width: 100%;">Create Account</button>
+                    </div>
+
+                    <div style="text-align: center; margin-top: 24px;">
+                        <span class="text-secondary">Already have an account? </span>
+                        <a href="#" style="color: var(--primary); font-weight: 500;">Sign In</a>
+                    </div>
+
+                    <!-- Step 2 Preview -->
+                    <div class="card" style="padding: 40px; margin-top: 80px;">
+                        <div class="progress-steps">
+                            <div class="progress-step complete">✓</div>
+                            <div class="progress-step active">2</div>
+                            <div class="progress-step">3</div>
+                        </div>
+
+                        <h1 style="text-align: center; margin-bottom: 12px;">Tell Us About Your Business</h1>
+                        <p class="text-secondary" style="text-align: center; margin-bottom: 32px;">Just the basics to get started</p>
+
+                        <div class="form-group">
+                            <label class="form-label required">Company Name</label>
+                            <input type="text" class="form-input" placeholder="e.g., Smith Plumbing Services">
+                            <div class="form-helper">This appears on estimates and invoices</div>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                            <div class="form-group">
+                                <label class="form-label required">First Name</label>
+                                <input type="text" class="form-input" placeholder="John">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label required">Last Name</label>
+                                <input type="text" class="form-input" placeholder="Smith">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label required">Business Phone</label>
+                            <input type="tel" class="form-input" placeholder="(555) 123-4567">
+                            <div class="form-helper">For client communications</div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Timezone</label>
+                            <select class="form-select">
+                                <option>Eastern Time (ET)</option>
+                                <option>Central Time (CT)</option>
+                                <option>Mountain Time (MT)</option>
+                                <option>Pacific Time (PT)</option>
+                            </select>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                            <button class="btn btn-ghost">← Back</button>
+                            <button class="btn btn-primary">Continue</button>
+                        </div>
+
+                        <div style="text-align: center; margin-top: 16px;">
+                            <a href="#" class="text-secondary" style="font-size: 14px;">Skip for now</a>
+                        </div>
+                    </div>
+
+                    <!-- Step 3 Preview -->
+                    <div class="card" style="padding: 40px; margin-top: 80px; text-align: center;">
+                        <div class="progress-steps">
+                            <div class="progress-step complete">✓</div>
+                            <div class="progress-step complete">✓</div>
+                            <div class="progress-step active">✓</div>
+                        </div>
+
+                        <div style="width: 80px; height: 80px; margin: 0 auto 24px; color: var(--success); font-size: 64px;">
+                            ✓
+                        </div>
+
+                        <h1 style="margin-bottom: 12px;">Welcome to Vision360, John!</h1>
+                        <p class="text-secondary" style="margin-bottom: 32px;">You're all set! Here's what you can do next:</p>
+
+                        <div style="display: flex; flex-direction: column; gap: 16px; text-align: left;">
+                            <div class="card" style="display: flex; align-items: center; gap: 16px; padding: 20px; cursor: pointer; transition: all 0.2s;">
+                                <div style="font-size: 48px;">👥</div>
+                                <div style="flex: 1;">
+                                    <h3 style="margin-bottom: 4px;">Add Your First Client</h3>
+                                    <p class="text-secondary" style="font-size: 14px;">Start by adding a client to your system</p>
+                                </div>
+                                <button class="btn btn-secondary">Add Client</button>
+                            </div>
+
+                            <div class="card" style="display: flex; align-items: center; gap: 16px; padding: 20px; cursor: pointer; transition: all 0.2s;">
+                                <div style="font-size: 48px;">📄</div>
+                                <div style="flex: 1;">
+                                    <h3 style="margin-bottom: 4px;">Create an Estimate</h3>
+                                    <p class="text-secondary" style="font-size: 14px;">Send your first estimate in minutes</p>
+                                </div>
+                                <button class="btn btn-secondary">Create Estimate</button>
+                            </div>
+
+                            <div class="card" style="display: flex; align-items: center; gap: 16px; padding: 20px; cursor: pointer; transition: all 0.2s;">
+                                <div style="font-size: 48px;">🏠</div>
+                                <div style="flex: 1;">
+                                    <h3 style="margin-bottom: 4px;">Explore Your Dashboard</h3>
+                                    <p class="text-secondary" style="font-size: 14px;">See what Vision360 can do for you</p>
+                                </div>
+                                <button class="btn btn-primary">Go to Dashboard</button>
+                            </div>
+                        </div>
+
+                        <div style="margin-top: 32px; padding-top: 32px; border-top: 1px solid var(--border);">
+                            <div style="display: flex; justify-content: center; gap: 24px; margin-bottom: 16px;">
+                                <a href="#" style="color: var(--primary); font-size: 14px;">📹 Watch Tutorial</a>
+                                <a href="#" style="color: var(--primary); font-size: 14px;">📚 Help Center</a>
+                                <a href="#" style="color: var(--primary); font-size: 14px;">💬 Contact Support</a>
+                            </div>
+                            <a href="#" class="text-secondary" style="font-size: 14px;">Skip to Dashboard →</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toast Notification Examples -->
+        <div class="toast success" style="position: relative; margin: 40px auto; width: fit-content;">
+            <span style="font-size: 24px;">✓</span>
+            <span>Estimate sent successfully to John Smith</span>
+            <button style="background: transparent; border: none; color: white; cursor: pointer; padding: 0 8px;">View</button>
+            <button style="background: transparent; border: none; color: white; cursor: pointer; padding: 0;">×</button>
+        </div>
+
+        <div class="toast error" style="position: relative; margin: 40px auto; width: fit-content;">
+            <span style="font-size: 24px;">⚠️</span>
+            <span>Failed to upload receipt. Please try again.</span>
+            <button style="background: transparent; border: none; color: white; cursor: pointer; padding: 0 8px;">Retry</button>
+            <button style="background: transparent; border: none; color: white; cursor: pointer; padding: 0;">×</button>
+        </div>
+
+        <div class="toast warning" style="position: relative; margin: 40px auto; width: fit-content;">
+            <span style="font-size: 24px;">⚠️</span>
+            <span>Invoice #1234 is overdue by 15 days</span>
+            <button style="background: transparent; border: none; color: white; cursor: pointer; padding: 0;">×</button>
+        </div>
+
+        <div class="toast info" style="position: relative; margin: 40px auto; width: fit-content;">
+            <span style="font-size: 24px;">ℹ️</span>
+            <span>Email verification sent to your inbox</span>
+            <button style="background: transparent; border: none; color: white; cursor: pointer; padding: 0;">×</button>
+        </div>
+
+    </div>
+
+    <footer style="text-align: center; padding: 40px 20px; color: var(--text-secondary); border-top: 1px solid var(--border);">
+        <p><strong>Vision360 FSM Platform - Phase 1A UX Prototype</strong></p>
+        <p style="margin-top: 8px;">Steel Color Palette • Desktop-First Responsive Design • Angular Material Style</p>
+        <p style="margin-top: 16px;">Version 1.0 • 2026-04-01 • Design Architect: Claude (Anthropic)</p>
+    </footer>
+
+</body>
+</html>

@@ -1,0 +1,1086 @@
+/* Container */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+align-items: flex-start;
+padding: 24px;
+gap: 24px;
+
+width: 1378px;
+height: 263px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* Container */
+
+/* Auto layout */
+display: flex;
+flex-direction: column;
+align-items: flex-start;
+padding: 0px;
+gap: 16px;
+
+width: 1026px;
+height: 215px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 1026;
+
+
+/* Container */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+align-items: center;
+padding: 0px;
+gap: 12px;
+
+width: 1026px;
+height: 42px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* Heading 1 */
+
+width: 173.1px;
+height: 42px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* Mike Delgado */
+
+position: absolute;
+width: 186px;
+height: 42px;
+left: 0px;
+top: 0px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 700;
+font-size: 28px;
+line-height: 42px;
+/* identical to box height, or 150% */
+
+color: #1A2332;
+
+
+
+/* Button */
+
+/* Auto layout */
+display: flex;
+flex-direction: column;
+align-items: flex-start;
+padding: 8.63333px 4px 0px;
+
+width: 26px;
+height: 32px;
+
+border-radius: 4px;
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 0;
+
+
+/* MuiSvgIconRoot */
+
+width: 18px;
+height: 18px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* Vector */
+
+position: absolute;
+left: 12.5%;
+right: 12.5%;
+top: 12.5%;
+bottom: 12.5%;
+
+background: #4A6FA5;
+
+
+/* Button */
+
+/* Auto layout */
+display: flex;
+flex-direction: column;
+align-items: flex-start;
+padding: 8.63333px 4px 0px;
+
+width: 26px;
+height: 32px;
+
+border-radius: 4px;
+
+/* Inside auto layout */
+flex: none;
+order: 2;
+flex-grow: 0;
+
+
+/* MuiSvgIconRoot */
+
+width: 18px;
+height: 18px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* Vector */
+
+position: absolute;
+left: 8.33%;
+right: 8.33%;
+top: 16.67%;
+bottom: 16.67%;
+
+background: #4A6FA5;
+
+
+/* Container */
+
+width: 1026px;
+height: 21px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* MuiSvgIconRoot */
+
+position: absolute;
+width: 16px;
+height: 16px;
+left: 0px;
+top: 2px;
+
+
+
+/* Vector */
+
+position: absolute;
+left: 20.83%;
+right: 20.83%;
+top: 8.33%;
+bottom: 8.33%;
+
+background: #6B7280;
+
+
+/* Container */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+align-items: center;
+padding: 0px;
+gap: 8px;
+
+position: absolute;
+width: 346.3px;
+height: 21px;
+left: 24px;
+top: 0px;
+
+
+
+/* Text */
+
+width: 291.55px;
+height: 21px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 1;
+
+
+/* 2105 West Hills Avenue, Tampa, FL, 33606 */
+
+position: absolute;
+width: 282px;
+height: 21px;
+left: 0px;
+top: 0px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 14px;
+line-height: 21px;
+/* identical to box height, or 150% */
+
+color: #374151;
+
+
+
+/* Text */
+
+width: 46.75px;
+height: 20.5px;
+
+background: #F3F4F6;
+border-radius: 4px;
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 0;
+
+
+/* Billing */
+
+position: absolute;
+width: 31px;
+height: 17px;
+left: 8px;
+top: 2.25px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 11px;
+line-height: 16px;
+/* identical to box height, or 150% */
+
+color: #6B7280;
+
+
+
+/* Container */
+
+width: 1026px;
+height: 120px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 2;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* Container */
+
+/* Auto layout */
+display: flex;
+flex-direction: column;
+align-items: flex-start;
+padding: 0px;
+gap: 16px;
+
+position: absolute;
+width: 320.67px;
+height: 120px;
+left: 0px;
+top: 0px;
+
+
+
+/* Container */
+
+/* Auto layout */
+display: flex;
+flex-direction: column;
+align-items: flex-start;
+padding: 0px;
+gap: 4px;
+
+width: 320.67px;
+height: 43px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* Container */
+
+width: 320.67px;
+height: 18px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* Customer since */
+
+position: absolute;
+width: 89px;
+height: 18px;
+left: 0px;
+top: 0.5px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 12px;
+line-height: 18px;
+/* identical to box height, or 150% */
+
+color: #6B7280;
+
+
+
+/* Container */
+
+width: 320.67px;
+height: 21px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* Jan 15, 2024 */
+
+position: absolute;
+width: 85px;
+height: 21px;
+left: 0px;
+top: 0px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 14px;
+line-height: 21px;
+/* identical to box height, or 150% */
+
+color: #1A2332;
+
+
+
+/* Container */
+
+/* Auto layout */
+display: flex;
+flex-direction: column;
+align-items: flex-start;
+padding: 0px;
+gap: 4px;
+
+width: 320.67px;
+height: 46.5px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* Container */
+
+width: 320.67px;
+height: 18px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* Tags (3) */
+
+position: absolute;
+width: 47px;
+height: 18px;
+left: 0px;
+top: 0.5px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 12px;
+line-height: 18px;
+/* identical to box height, or 150% */
+
+color: #6B7280;
+
+
+
+/* Container */
+
+/* Auto layout */
+display: flex;
+flex-direction: row;
+align-items: flex-start;
+padding: 0px;
+gap: 8px;
+
+width: 320.67px;
+height: 24.5px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* Text */
+
+width: 33.7px;
+height: 24.5px;
+
+background: #FEF3C7;
+border-radius: 4px;
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+flex-grow: 0;
+
+
+/* VIP */
+
+position: absolute;
+width: 18px;
+height: 17px;
+left: 8px;
+top: 4.25px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 500;
+font-size: 11px;
+line-height: 16px;
+/* identical to box height, or 150% */
+
+color: #D97706;
+
+
+
+/* Text */
+
+width: 73.85px;
+height: 24.5px;
+
+background: #E0E7FF;
+border-radius: 4px;
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 0;
+
+
+/* Residential */
+
+position: absolute;
+width: 58px;
+height: 17px;
+left: 8px;
+top: 4.25px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 500;
+font-size: 11px;
+line-height: 16px;
+/* identical to box height, or 150% */
+
+color: #4338CA;
+
+
+
+/* Container */
+
+/* Auto layout */
+display: flex;
+flex-direction: column;
+align-items: flex-start;
+padding: 0px;
+gap: 16px;
+
+position: absolute;
+width: 320.67px;
+height: 120px;
+left: 352.67px;
+top: 0px;
+
+
+
+/* Container */
+
+width: 320.67px;
+height: 61px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* Membership */
+
+position: absolute;
+width: 71px;
+height: 18px;
+left: 0px;
+top: 0.5px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 12px;
+line-height: 18px;
+/* identical to box height, or 150% */
+
+color: #6B7280;
+
+
+
+/* Gold Plan */
+
+position: absolute;
+width: 63px;
+height: 21px;
+left: 0px;
+top: 22px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 14px;
+line-height: 21px;
+/* identical to box height, or 150% */
+
+color: #1A2332;
+
+
+
+/* Expires: Dec 31, 2026 */
+
+position: absolute;
+width: 123px;
+height: 18px;
+left: 0px;
+top: 43.5px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 12px;
+line-height: 18px;
+/* identical to box height, or 150% */
+
+color: #6B7280;
+
+
+
+/* Container */
+
+/* Auto layout */
+display: flex;
+flex-direction: column;
+align-items: flex-start;
+padding: 0px;
+gap: 4px;
+
+width: 320.67px;
+height: 43px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* Container */
+
+width: 320.67px;
+height: 18px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* Last Service */
+
+position: absolute;
+width: 71px;
+height: 18px;
+left: 0px;
+top: 0.5px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 12px;
+line-height: 18px;
+/* identical to box height, or 150% */
+
+color: #6B7280;
+
+
+
+/* Container */
+
+width: 320.67px;
+height: 21px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* Mar 15, 2026 */
+
+position: absolute;
+width: 87px;
+height: 21px;
+left: 0px;
+top: 0px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 14px;
+line-height: 21px;
+/* identical to box height, or 150% */
+
+color: #1A2332;
+
+
+
+/* Container */
+
+/* Auto layout */
+display: flex;
+flex-direction: column;
+align-items: flex-start;
+padding: 0px;
+gap: 4px;
+
+position: absolute;
+width: 320.67px;
+height: 120px;
+left: 705.33px;
+top: 0px;
+
+
+
+/* Container */
+
+width: 320.67px;
+height: 18px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* Notes (2) */
+
+position: absolute;
+width: 54px;
+height: 18px;
+left: 0px;
+top: 0.5px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 12px;
+line-height: 18px;
+/* identical to box height, or 150% */
+
+color: #6B7280;
+
+
+
+/* Container */
+
+width: 320.67px;
+height: 19.5px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* Prefers morning... */
+
+position: absolute;
+width: 109px;
+height: 20px;
+left: 0px;
+top: 0.75px;
+
+font-family: 'Inter';
+font-style: italic;
+font-weight: 400;
+font-size: 13px;
+line-height: 20px;
+/* identical to box height, or 150% */
+
+color: #374151;
+
+
+
+/* Container */
+
+box-sizing: border-box;
+
+/* Auto layout */
+display: flex;
+flex-direction: column;
+align-items: flex-start;
+padding: 0px 0px 0px 25px;
+
+width: 280px;
+height: 215px;
+
+border-left: 1px solid #E5E7EB;
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+flex-grow: 0;
+
+
+/* Container */
+
+/* Auto layout */
+display: flex;
+flex-direction: column;
+align-items: flex-start;
+padding: 0px;
+gap: 16px;
+
+width: 255px;
+height: 200px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* Container */
+
+/* Auto layout */
+display: flex;
+flex-direction: column;
+align-items: flex-start;
+padding: 0px;
+gap: 4px;
+
+width: 255px;
+height: 64px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* Container */
+
+width: 255px;
+height: 18px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* Total Revenue */
+
+position: absolute;
+width: 81px;
+height: 18px;
+left: 0px;
+top: 0.5px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 12px;
+line-height: 18px;
+/* identical to box height, or 150% */
+
+color: #6B7280;
+
+
+
+/* Container */
+
+width: 255px;
+height: 42px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* $45,230.00 */
+
+position: absolute;
+width: 164px;
+height: 42px;
+left: 0px;
+top: 0px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 700;
+font-size: 28px;
+line-height: 42px;
+/* identical to box height, or 150% */
+
+color: #1A2332;
+
+
+
+/* Container */
+
+/* Auto layout */
+display: flex;
+flex-direction: column;
+align-items: flex-start;
+padding: 0px;
+gap: 4px;
+
+width: 255px;
+height: 52px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* Container */
+
+width: 255px;
+height: 18px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* Open Balance */
+
+position: absolute;
+width: 79px;
+height: 18px;
+left: 0px;
+top: 0.5px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 12px;
+line-height: 18px;
+/* identical to box height, or 150% */
+
+color: #6B7280;
+
+
+
+/* Container */
+
+width: 255px;
+height: 30px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* $2,450.00 */
+
+position: absolute;
+width: 102px;
+height: 30px;
+left: 0px;
+top: 0px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 600;
+font-size: 20px;
+line-height: 30px;
+/* identical to box height, or 150% */
+
+color: #F59E0B;
+
+
+
+/* Container */
+
+/* Auto layout */
+display: flex;
+flex-direction: column;
+align-items: flex-start;
+padding: 0px;
+gap: 4px;
+
+width: 255px;
+height: 52px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 2;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* Container */
+
+width: 255px;
+height: 18px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 0;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* Past Due */
+
+position: absolute;
+width: 51px;
+height: 18px;
+left: 0px;
+top: 0.5px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 400;
+font-size: 12px;
+line-height: 18px;
+/* identical to box height, or 150% */
+
+color: #6B7280;
+
+
+
+/* Container */
+
+width: 255px;
+height: 30px;
+
+
+/* Inside auto layout */
+flex: none;
+order: 1;
+align-self: stretch;
+flex-grow: 0;
+
+
+/* $850.00 */
+
+position: absolute;
+width: 84px;
+height: 30px;
+left: 0px;
+top: 0px;
+
+font-family: 'Inter';
+font-style: normal;
+font-weight: 600;
+font-size: 20px;
+line-height: 30px;
+/* identical to box height, or 150% */
+
+color: #DC2626;
+

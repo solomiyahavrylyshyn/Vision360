@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(command -v pnpm)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(npm install *)"
+    ]
+  }
+}
