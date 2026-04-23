@@ -732,7 +732,7 @@ export function CreateClient() {
                         <SelectItem value="none">—</SelectItem>
                         {US_STATES.map((s) => (
                           <SelectItem key={s} value={s}>
-                            {STATE_NAMES[s]}
+                            {s}
                           </SelectItem>
                         ))}
                       </SelectContent>
