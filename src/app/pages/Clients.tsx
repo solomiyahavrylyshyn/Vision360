@@ -114,6 +114,7 @@ export function Clients() {
   const [filterPanelOpen, setFilterPanelOpen] = useState(false);
   const [filterState, setFilterState] = useState({
     status: "",
+    creationFrom: "", creationTo: "",
     lastServiceFrom: "", lastServiceTo: "",
     lifetimeMin: "", lifetimeMax: "",
     leadSource: "", customerType: "",
@@ -131,7 +132,7 @@ export function Clients() {
 
   const handleApplyFilters = () => { setFilterState({ ...pendingFilters }); setFilterPanelOpen(false); setCurrentPage(1); };
   const handleClearFilters = () => {
-    const empty = { status: "", lastServiceFrom: "", lastServiceTo: "", lifetimeMin: "", lifetimeMax: "", leadSource: "", customerType: "", city: "", state: "", county: "", tags: [] as string[], paymentTerms: "", paymentMethod: "", membership: "", taxable: "", hasCompany: "" };
+    const empty = { status: "", creationFrom: "", creationTo: "", lastServiceFrom: "", lastServiceTo: "", lifetimeMin: "", lifetimeMax: "", leadSource: "", customerType: "", city: "", state: "", county: "", tags: [] as string[], paymentTerms: "", paymentMethod: "", membership: "", taxable: "", hasCompany: "" };
     setPendingFilters(empty); setFilterState(empty); setFilterPanelOpen(false); setCurrentPage(1);
   };
 
@@ -355,6 +356,17 @@ export function Clients() {
 
                 <div className="border-t border-[#E5E7EB] pt-5">
                   <h3 className="text-[13px] text-[#374151] mb-4" style={{ fontWeight: 600 }}>Date Filters</h3>
+                </div>
+
+                {/* Creation date */}
+                <div>
+                  <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>Creation date</label>
+                  <div className="flex gap-2">
+                    <input type="date" value={pendingFilters.creationFrom} onChange={e => setPendingFilters(p => ({ ...p, creationFrom: e.target.value }))}
+                      className="flex-1 h-10 px-3 border border-[#D1D5DB] rounded-md text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5]" />
+                    <input type="date" value={pendingFilters.creationTo} onChange={e => setPendingFilters(p => ({ ...p, creationTo: e.target.value }))}
+                      className="flex-1 h-10 px-3 border border-[#D1D5DB] rounded-md text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5]" />
+                  </div>
                 </div>
 
                 {/* Last service date */}
