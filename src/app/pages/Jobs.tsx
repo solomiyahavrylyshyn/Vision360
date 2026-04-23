@@ -271,8 +271,8 @@ export function Jobs() {
               <th className="px-4 py-3 text-left text-[11px] uppercase tracking-wide text-[#546478] cursor-pointer select-none" style={{ fontWeight: 600 }} onClick={() => toggleSort("client")}>
                 <div className="flex items-center">Client <SortIcon field="client" /></div>
               </th>
-              <th className="px-4 py-3 text-left text-[11px] uppercase tracking-wide text-[#546478] cursor-pointer select-none" style={{ fontWeight: 600 }} onClick={() => toggleSort("address")}>
-                <div className="flex items-center">Address <SortIcon field="address" /></div>
+              <th className="px-4 py-3 text-left text-[11px] uppercase tracking-wide text-[#546478] select-none" style={{ fontWeight: 600 }}>
+                <div className="flex items-center">Address</div>
               </th>
               <th className="px-4 py-3 text-left text-[11px] uppercase tracking-wide text-[#546478] cursor-pointer select-none" style={{ fontWeight: 600 }} onClick={() => toggleSort("schedule")}>
                 <div className="flex items-center">Schedule <SortIcon field="schedule" /></div>

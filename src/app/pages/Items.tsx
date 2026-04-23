@@ -395,28 +395,28 @@ export function Items() {
                       />
                     </th>
                     {[
-                      { key: "id", label: "Id", w: "w-[70px]" },
-                      { key: "name", label: "Name", w: "min-w-[200px]" },
-                      { key: "salesDescription", label: "Description", w: "min-w-[180px]" },
-                      { key: "rate", label: "Price", w: "w-[90px]" },
-                      { key: "cost", label: "Cost", w: "w-[90px]" },
-                      { key: "type", label: "Type", w: "w-[90px]" },
-                      { key: "category", label: "Category", w: "w-[100px]" },
-                      { key: "modelNumber", label: "Model #", w: "w-[100px]" },
-                      { key: "brand", label: "Brand", w: "w-[100px]" },
-                      { key: "booking", label: "Booking", w: "w-[80px]" },
-                      { key: "inventory", label: "Inventory", w: "w-[80px]" },
-                      { key: "taxable", label: "Taxable", w: "w-[80px]" },
+                      { key: "id", label: "Id", w: "w-[70px]", sortable: true },
+                      { key: "name", label: "Name", w: "min-w-[200px]", sortable: true },
+                      { key: "salesDescription", label: "Description", w: "min-w-[180px]", sortable: false },
+                      { key: "rate", label: "Price", w: "w-[90px]", sortable: true },
+                      { key: "cost", label: "Cost", w: "w-[90px]", sortable: true },
+                      { key: "type", label: "Type", w: "w-[90px]", sortable: true },
+                      { key: "category", label: "Category", w: "w-[100px]", sortable: true },
+                      { key: "modelNumber", label: "Model #", w: "w-[100px]", sortable: true },
+                      { key: "brand", label: "Brand", w: "w-[100px]", sortable: true },
+                      { key: "booking", label: "Booking", w: "w-[80px]", sortable: true },
+                      { key: "inventory", label: "Inventory", w: "w-[80px]", sortable: true },
+                      { key: "taxable", label: "Taxable", w: "w-[80px]", sortable: true },
                     ].map(col => (
                       <th
                         key={col.key}
-                        className={`px-3 py-3 text-left text-[11px] uppercase tracking-wider text-[#546478] cursor-pointer hover:text-[#1A2332] select-none ${col.w}`}
+                        className={`px-3 py-3 text-left text-[11px] uppercase tracking-wider text-[#546478] ${col.sortable ? "cursor-pointer hover:text-[#1A2332]" : ""} select-none ${col.w}`}
                         style={{ fontWeight: 600 }}
-                        onClick={() => handleSortItems(col.key)}
+                        onClick={() => { if (col.sortable) handleSortItems(col.key); }}
                       >
                         <div className="flex items-center">
                           {col.label}
-                          <SortIcon col={col.key} />
+                          {col.sortable && <SortIcon col={col.key} />}
                         </div>
                       </th>
                     ))}
