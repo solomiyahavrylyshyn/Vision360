@@ -306,103 +306,114 @@ export function ClientDetail() {
      DETAILS READ-ONLY
   ────────────────────────────────────────── */
   const DetailsView = () => (
-    <div className="grid grid-cols-[1fr_1.4fr_1fr] gap-4 items-start">
+    <div className="grid grid-cols-[1.25fr_1.3fr_1fr] gap-4 items-stretch">
 
-      {/* LEFT COLUMN */}
-      <div className="space-y-4">
-        {/* Identity Card */}
-        <div className="bg-white border border-[#E5E7EB] rounded-lg overflow-hidden">
-          <div className="p-5 relative">
-            <button
-              onClick={handleEditClick}
-              className="absolute top-4 right-4 w-7 h-7 flex items-center justify-center hover:bg-[#F5F7FA] rounded-md"
-            >
-              <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "16px" }}>edit</span>
-            </button>
-            <div className="flex items-baseline gap-1.5 mb-4 pr-8">
-              <span className="text-[13px] text-[#6B7280]">{client.title}</span>
-              <span className="text-[16px] text-[#1A2332]" style={{ fontWeight: 700 }}>
-                {client.firstName} {client.middleInitial} {client.lastName}
-              </span>
-            </div>
-            <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-              <div>
-                <div className="text-[11px] text-[#9CA3AF] mb-0.5">Preferred name</div>
-                <div className="text-[13px] text-[#374151]">{client.preferredName}</div>
-              </div>
-              <div>
-                <div className="text-[11px] text-[#9CA3AF] mb-0.5">Role</div>
-                <div className="text-[13px] text-[#374151]" style={{ fontWeight: 500 }}>{client.role}</div>
-              </div>
-            </div>
+      {/* ROW 1 - COL 1: Identity Card */}
+      <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
+        <div className="px-5 py-4 relative flex items-center gap-4">
+          <div className="flex items-baseline gap-1.5 shrink-0">
+            <span className="text-[12px] text-[#9CA3AF]" style={{ fontWeight: 400 }}>{client.title}</span>
+            <span className="text-[15px] text-[#111827] tracking-[-0.01em]" style={{ fontWeight: 600 }}>
+              {client.firstName} {client.middleInitial} {client.lastName}
+            </span>
           </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-[11px] text-[#9CA3AF] leading-[14px]" style={{ fontWeight: 400 }}>Preferred name</div>
+            <div className="text-[13px] text-[#1F2937] truncate mt-0.5" style={{ fontWeight: 500 }}>{client.preferredName}</div>
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-[11px] text-[#9CA3AF] leading-[14px]" style={{ fontWeight: 400 }}>Role</div>
+            <div className="text-[13px] text-[#1F2937] truncate mt-0.5" style={{ fontWeight: 500 }}>{client.role}</div>
+          </div>
+          <button
+            onClick={handleEditClick}
+            className="shrink-0 w-7 h-7 flex items-center justify-center hover:bg-[#F5F7FA] rounded-md transition-colors"
+          >
+            <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "15px" }}>edit</span>
+          </button>
         </div>
+      </div>
 
-        {/* Address & Contact Card */}
-        <div className="bg-white border border-[#E5E7EB] rounded-lg overflow-hidden">
-          <div className="p-5 relative">
-            <button
-              onClick={handleEditClick}
-              className="absolute top-4 right-4 w-7 h-7 flex items-center justify-center hover:bg-[#F5F7FA] rounded-md"
-            >
-              <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "16px" }}>edit</span>
-            </button>
-            <div className="space-y-4 pr-8">
-              <div>
-                <div className="text-[11px] text-[#9CA3AF] mb-1">Service address</div>
-                <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 700 }}>{client.address}</div>
-                <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 700 }}>
-                  {client.city}, {client.state}, {client.zip}
-                </div>
-              </div>
-              <div>
-                <div className="text-[11px] text-[#9CA3AF] mb-1">Primary phone number</div>
-                <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 700 }}>
-                  {client.mobilePhone}{client.mobilePhoneExt ? ` x ${client.mobilePhoneExt}` : ""}
-                </div>
-              </div>
-              <div>
-                <div className="text-[11px] text-[#9CA3AF] mb-1">Email</div>
-                <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 700 }}>{client.email}</div>
-              </div>
-            </div>
-            <div className="mt-5 pt-4 border-t border-[#E5E7EB]">
-              <label className="flex items-center gap-2.5 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={clientData.isBillingSameAsService}
-                  onChange={(e) => handleCheckboxChange("isBillingSameAsService", e.target.checked)}
-                  className="w-4 h-4 accent-[#4A6FA5]"
-                />
-                <span className="text-[13px] text-[#374151]">Billing address is the same as service address</span>
-              </label>
-            </div>
+      {/* ROW 1 - COL 2+3: Tags Card */}
+      <div className="col-span-2 bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
+        <div className="p-6 flex items-center gap-5">
+          <span className="text-[10px] text-[#9CA3AF] uppercase shrink-0" style={{ fontWeight: 500, letterSpacing: "0.06em" }}>Tags</span>
+          <div className="flex flex-wrap gap-2">
+            {client.tags.map((tag, index) => (
+              <span
+                key={index}
+                className="inline-flex items-center px-2.5 py-1 rounded-full bg-[#EEF2FF] text-[12px] text-[#4338CA]"
+                style={{ fontWeight: 500 }}
+              >
+                {tag}
+              </span>
+            ))}
           </div>
         </div>
       </div>
 
-      {/* MIDDLE COLUMN */}
-      <div className="bg-white border border-[#E5E7EB] rounded-lg overflow-hidden">
-        <div className="p-5 space-y-4">
-          {/* Tags */}
-          <div className="flex items-start gap-4">
-            <span className="text-[13px] text-[#6B7280] w-[110px] shrink-0 pt-1">Tags</span>
-            <div className="flex flex-wrap gap-1.5">
-              {client.tags.map((tag, index) => (
-                <span
-                  key={index}
-                  className="inline-flex items-center px-2.5 py-1 rounded-full bg-[#E0E7FF] text-[12px] text-[#4338CA]"
-                  style={{ fontWeight: 500 }}
-                >
-                  {tag}
-                </span>
-              ))}
+      {/* ROW 2 - COL 1: Address & Contact Card */}
+      <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden flex flex-col">
+        <div className="p-5 relative flex-1 flex flex-col">
+          <button
+            onClick={handleEditClick}
+            className="absolute top-4 right-4 w-7 h-7 flex items-center justify-center hover:bg-[#F5F7FA] rounded-md transition-colors"
+          >
+            <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "15px" }}>edit</span>
+          </button>
+          <div className="space-y-3.5 pr-8 flex-1">
+            <div>
+              <div className="text-[10px] text-[#9CA3AF] mb-0.5 uppercase" style={{ fontWeight: 500, letterSpacing: "0.06em" }}>Service address</div>
+              <div className="text-[14px] text-[#111827] leading-[20px]" style={{ fontWeight: 500 }}>{client.address}</div>
+              <div className="text-[14px] text-[#111827] leading-[20px]" style={{ fontWeight: 500 }}>
+                {client.city}, {client.state} {client.zip}
+              </div>
+            </div>
+            <div>
+              <div className="text-[10px] text-[#9CA3AF] mb-0.5 uppercase" style={{ fontWeight: 500, letterSpacing: "0.06em" }}>Primary phone</div>
+              <div className="text-[14px] text-[#111827] tabular-nums" style={{ fontWeight: 500 }}>
+                {client.mobilePhone}{client.mobilePhoneExt ? ` · ext. ${client.mobilePhoneExt}` : ""}
+              </div>
+            </div>
+            <div>
+              <div className="text-[10px] text-[#9CA3AF] mb-0.5 uppercase" style={{ fontWeight: 500, letterSpacing: "0.06em" }}>Secondary phone</div>
+              <div className="text-[14px] text-[#111827] tabular-nums" style={{ fontWeight: 500 }}>
+                {client.workPhone}{client.workPhoneExt ? ` · ext. ${client.workPhoneExt}` : ""}
+              </div>
+            </div>
+            <div>
+              <div className="text-[10px] text-[#9CA3AF] mb-0.5 uppercase" style={{ fontWeight: 500, letterSpacing: "0.06em" }}>Email</div>
+              <div className="text-[14px] text-[#111827]" style={{ fontWeight: 500 }}>{client.email}</div>
+            </div>
+            <div>
+              <div className="text-[10px] text-[#9CA3AF] mb-0.5 uppercase" style={{ fontWeight: 500, letterSpacing: "0.06em" }}>Website</div>
+              <div className="text-[14px] text-[#4A6FA5] truncate" style={{ fontWeight: 500 }}>{client.website}</div>
+            </div>
+            <div>
+              <div className="text-[10px] text-[#9CA3AF] mb-0.5 uppercase" style={{ fontWeight: 500, letterSpacing: "0.06em" }}>Company name</div>
+              <div className="text-[14px] text-[#111827]" style={{ fontWeight: 500 }}>{client.company}</div>
             </div>
           </div>
+          <div className="pt-4 mt-4 border-t border-[#F0F2F5]">
+            <label className="flex items-center gap-2.5 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={clientData.isBillingSameAsService}
+                onChange={(e) => handleCheckboxChange("isBillingSameAsService", e.target.checked)}
+                className="w-4 h-4 accent-[#4A6FA5]"
+              />
+              <span className="text-[13px] text-[#4B5563]">Billing address is the same as service address</span>
+            </label>
+          </div>
+        </div>
+      </div>
 
+      {/* ROW 2 - COL 2: Dropdowns */}
+      <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
+        <div className="p-6 space-y-5">
           {/* Lead Source */}
-          <div className="flex items-center gap-4">
-            <span className="text-[13px] text-[#6B7280] w-[110px] shrink-0">Lead Source</span>
+          <div className="flex items-center gap-5">
+            <span className="text-[13px] text-[#6B7280] w-[110px] shrink-0" style={{ fontWeight: 400 }}>Lead Source</span>
             <div className="flex-1">
               <Select
                 value={clientData.marketingSource || "none"}
@@ -411,7 +422,7 @@ export function ClientDetail() {
                   toast.success("Lead source updated");
                 }}
               >
-                <SelectTrigger className="border-[#D1D5DB] bg-white h-10 text-[14px]">
+                <SelectTrigger className="border-[#E5E7EB] bg-white h-10 text-[14px] text-[#111827] rounded-lg" style={{ fontWeight: 500 }}>
                   <SelectValue placeholder="Select" />
                 </SelectTrigger>
                 <SelectContent>
@@ -425,14 +436,14 @@ export function ClientDetail() {
           </div>
 
           {/* Type */}
-          <div className="flex items-center gap-4">
-            <span className="text-[13px] text-[#6B7280] w-[110px] shrink-0">Type</span>
+          <div className="flex items-center gap-5">
+            <span className="text-[13px] text-[#6B7280] w-[110px] shrink-0" style={{ fontWeight: 400 }}>Type</span>
             <div className="flex-1">
               <Select
                 value={clientData.type || "Residential"}
                 onValueChange={(v) => setClientData((prev) => ({ ...prev, type: v }))}
               >
-                <SelectTrigger className="border-[#D1D5DB] bg-white h-10 text-[14px]">
+                <SelectTrigger className="border-[#E5E7EB] bg-white h-10 text-[14px] text-[#111827] rounded-lg" style={{ fontWeight: 500 }}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -444,14 +455,14 @@ export function ClientDetail() {
           </div>
 
           {/* Sales Rep */}
-          <div className="flex items-center gap-4">
-            <span className="text-[13px] text-[#6B7280] w-[110px] shrink-0">Sales Rep</span>
+          <div className="flex items-center gap-5">
+            <span className="text-[13px] text-[#6B7280] w-[110px] shrink-0" style={{ fontWeight: 400 }}>Sales Rep</span>
             <div className="flex-1">
               <Select
                 value={clientData.salesRep || "none"}
                 onValueChange={(v) => setClientData((prev) => ({ ...prev, salesRep: v === "none" ? "" : v }))}
               >
-                <SelectTrigger className="border-[#D1D5DB] bg-white h-10 text-[14px]">
+                <SelectTrigger className="border-[#E5E7EB] bg-white h-10 text-[14px] text-[#111827] rounded-lg" style={{ fontWeight: 500 }}>
                   <SelectValue placeholder="Select rep" />
                 </SelectTrigger>
                 <SelectContent>
@@ -464,14 +475,14 @@ export function ClientDetail() {
           </div>
 
           {/* Acc. Manager */}
-          <div className="flex items-center gap-4">
-            <span className="text-[13px] text-[#6B7280] w-[110px] shrink-0">Acc. Manager</span>
+          <div className="flex items-center gap-5">
+            <span className="text-[13px] text-[#6B7280] w-[110px] shrink-0" style={{ fontWeight: 400 }}>Acc. Manager</span>
             <div className="flex-1">
               <Select
                 value={clientData.accManager || "none"}
                 onValueChange={(v) => setClientData((prev) => ({ ...prev, accManager: v === "none" ? "" : v }))}
               >
-                <SelectTrigger className="border-[#D1D5DB] bg-white h-10 text-[14px]">
+                <SelectTrigger className="border-[#E5E7EB] bg-white h-10 text-[14px] text-[#111827] rounded-lg" style={{ fontWeight: 500 }}>
                   <SelectValue placeholder="Select manager" />
                 </SelectTrigger>
                 <SelectContent>
@@ -484,14 +495,14 @@ export function ClientDetail() {
           </div>
 
           {/* Custom Field 1 */}
-          <div className="flex items-center gap-4">
-            <span className="text-[13px] text-[#6B7280] w-[110px] shrink-0">Custom Field 1</span>
+          <div className="flex items-center gap-5">
+            <span className="text-[13px] text-[#6B7280] w-[110px] shrink-0" style={{ fontWeight: 400 }}>Custom Field 1</span>
             <div className="flex-1">
               <Select
                 value={clientData.customField1 || "none"}
                 onValueChange={(v) => setClientData((prev) => ({ ...prev, customField1: v === "none" ? "" : v }))}
               >
-                <SelectTrigger className="border-[#D1D5DB] bg-white h-10 text-[14px]">
+                <SelectTrigger className="border-[#E5E7EB] bg-white h-10 text-[14px] text-[#9CA3AF] rounded-lg" style={{ fontWeight: 400 }}>
                   <SelectValue placeholder="Custom Field 1" />
                 </SelectTrigger>
                 <SelectContent>
@@ -502,14 +513,14 @@ export function ClientDetail() {
           </div>
 
           {/* Custom Field 2 */}
-          <div className="flex items-center gap-4">
-            <span className="text-[13px] text-[#6B7280] w-[110px] shrink-0">Custom Field 2</span>
+          <div className="flex items-center gap-5">
+            <span className="text-[13px] text-[#6B7280] w-[110px] shrink-0" style={{ fontWeight: 400 }}>Custom Field 2</span>
             <div className="flex-1">
               <Select
                 value={clientData.customField2 || "none"}
                 onValueChange={(v) => setClientData((prev) => ({ ...prev, customField2: v === "none" ? "" : v }))}
               >
-                <SelectTrigger className="border-[#D1D5DB] bg-white h-10 text-[14px]">
+                <SelectTrigger className="border-[#E5E7EB] bg-white h-10 text-[14px] text-[#9CA3AF] rounded-lg" style={{ fontWeight: 400 }}>
                   <SelectValue placeholder="Custom Field 2" />
                 </SelectTrigger>
                 <SelectContent>
@@ -522,43 +533,45 @@ export function ClientDetail() {
       </div>
 
       {/* RIGHT COLUMN */}
-      <div className="bg-white border border-[#E5E7EB] rounded-lg overflow-hidden">
-        <div className="p-5">
-          <div className="flex items-center justify-between mb-5">
-            <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Finance details</h3>
+      <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
+        <div className="p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-[13px] text-[#111827] uppercase" style={{ fontWeight: 600, letterSpacing: "0.04em" }}>Finance details</h3>
             <button
               onClick={handleEditClick}
-              className="w-7 h-7 flex items-center justify-center hover:bg-[#F5F7FA] rounded-md"
+              className="w-7 h-7 flex items-center justify-center hover:bg-[#F5F7FA] rounded-md transition-colors"
             >
-              <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "16px" }}>edit</span>
+              <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "15px" }}>edit</span>
             </button>
           </div>
-          <div className="space-y-4">
+          <div className="space-y-5">
             <div>
-              <div className="text-[11px] text-[#9CA3AF] mb-0.5">Payment terms</div>
-              <div className="text-[15px] text-[#1A2332]" style={{ fontWeight: 600 }}>{client.paymentTerms}</div>
+              <div className="text-[10px] text-[#9CA3AF] mb-1 uppercase" style={{ fontWeight: 500, letterSpacing: "0.06em" }}>Payment terms</div>
+              <div className="text-[14px] text-[#111827]" style={{ fontWeight: 500 }}>{client.paymentTerms}</div>
             </div>
             <div>
-              <div className="text-[11px] text-[#9CA3AF] mb-0.5">Credit limit</div>
-              <div className="text-[20px] text-[#1A2332]" style={{ fontWeight: 700 }}>${client.creditLimit.toLocaleString()}</div>
+              <div className="text-[10px] text-[#9CA3AF] mb-1 uppercase" style={{ fontWeight: 500, letterSpacing: "0.06em" }}>Credit limit</div>
+              <div className="text-[22px] text-[#111827] tabular-nums tracking-[-0.01em]" style={{ fontWeight: 600 }}>${client.creditLimit.toLocaleString()}</div>
             </div>
             <div>
-              <div className="text-[11px] text-[#9CA3AF] mb-0.5">Payment method</div>
-              <div className="text-[15px] text-[#1A2332]" style={{ fontWeight: 600 }}>{client.paymentMethod}</div>
+              <div className="text-[10px] text-[#9CA3AF] mb-1 uppercase" style={{ fontWeight: 500, letterSpacing: "0.06em" }}>Payment method</div>
+              <div className="text-[14px] text-[#111827]" style={{ fontWeight: 500 }}>{client.paymentMethod}</div>
             </div>
             <div>
-              <div className="text-[11px] text-[#9CA3AF] mb-0.5">Department</div>
-              <div className="text-[15px] text-[#1A2332]" style={{ fontWeight: 600 }}>{client.department}</div>
+              <div className="text-[10px] text-[#9CA3AF] mb-1 uppercase" style={{ fontWeight: 500, letterSpacing: "0.06em" }}>Department</div>
+              <div className="text-[14px] text-[#111827]" style={{ fontWeight: 500 }}>{client.department}</div>
             </div>
-            <label className="flex items-center gap-2.5 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={clientData.isTaxable}
-                onChange={(e) => handleCheckboxChange("isTaxable", e.target.checked)}
-                className="w-4 h-4 accent-[#4A6FA5]"
-              />
-              <span className="text-[14px] text-[#374151]">Taxable</span>
-            </label>
+            <div className="pt-2 border-t border-[#F0F2F5]">
+              <label className="flex items-center gap-2.5 cursor-pointer pt-3">
+                <input
+                  type="checkbox"
+                  checked={clientData.isTaxable}
+                  onChange={(e) => handleCheckboxChange("isTaxable", e.target.checked)}
+                  className="w-4 h-4 accent-[#4A6FA5]"
+                />
+                <span className="text-[13px] text-[#4B5563]">Taxable</span>
+              </label>
+            </div>
           </div>
         </div>
       </div>
@@ -1288,9 +1301,9 @@ export function ClientDetail() {
                     Notes ({client.notesArray.length})
                   </div>
 
-                  {/* Preview of notes - up to 3 */}
+                  {/* Preview of notes - up to 2 */}
                   <div className="flex flex-col gap-1">
-                    {client.notesArray.slice(0, 3).map((note) => (
+                    {client.notesArray.slice(0, 2).map((note) => (
                       <div key={note.id} className="text-[12px] text-[#374151] leading-[18px] truncate max-w-[200px]">
                         {note.text}
                       </div>
@@ -1314,9 +1327,9 @@ export function ClientDetail() {
                       {/* Divider */}
                       <div className="h-px bg-[#E5E7EB] mb-3"></div>
 
-                      {/* Notes list */}
-                      <div className="flex flex-col gap-3">
-                        {client.notesArray.slice(0, 3).map((note, index) => (
+                      {/* Notes list - all notes */}
+                      <div className="flex flex-col gap-3 max-h-[400px] overflow-y-auto">
+                        {client.notesArray.map((note, index) => (
                           <div key={note.id} className="flex flex-col gap-1">
                             <div className="text-[13px] text-[#1A2332] leading-[20px]">
                               {note.text}
@@ -1324,7 +1337,7 @@ export function ClientDetail() {
                             <div className="text-[11px] text-[#6B7280] leading-[16px]">
                               {note.date}
                             </div>
-                            {index < 2 && <div className="h-px bg-[#E5E7EB] mt-2"></div>}
+                            {index < client.notesArray.length - 1 && <div className="h-px bg-[#E5E7EB] mt-2"></div>}
                           </div>
                         ))}
                       </div>
