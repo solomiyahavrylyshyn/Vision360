@@ -21,8 +21,6 @@ export function CreateJob() {
   const [title, setTitle] = useState("");
   const [client, setClient] = useState("");
   const [jobNumber, setJobNumber] = useState("2");
-  const [salesperson, setSalesperson] = useState("");
-  const [salespersonDropdown, setSalespersonDropdown] = useState(false);
   const [jobType, setJobType] = useState<"one-off" | "recurring">("one-off");
   const [jobCategory, setJobCategory] = useState("");
   const availableJobTypes = useSyncExternalStore(jobTypesStore.subscribe, jobTypesStore.getJobTypes);
@@ -115,28 +113,7 @@ export function CreateJob() {
               />
             </div>
           </div>
-          <div className="flex items-center justify-end">
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-[#546478]">Salesperson</span>
-              <div className="relative">
-                <button
-                  onClick={() => setSalespersonDropdown(!salespersonDropdown)}
-                  className="px-3 py-1.5 border border-[#DDE3EE] rounded-md text-sm flex items-center gap-1 hover:bg-[#F5F7FA]"
-                >
-                  {salesperson || "Assign"} <span className="material-icons" style={{ fontSize: "16px" }}>arrow_drop_down</span>
-                </button>
-                {salespersonDropdown && (
-                  <div className="absolute right-0 top-full mt-1 bg-white border border-[#DDE3EE] rounded-lg shadow-lg z-50 w-48 py-1">
-                    {teamMembers.map((m) => (
-                      <button key={m} onClick={() => { setSalesperson(m); setSalespersonDropdown(false); }} className="w-full text-left px-4 py-2 text-sm hover:bg-[#F5F7FA]">
-                        {m}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
+          <div />
         </div>
 
         {/* Job Type & Schedule */}
