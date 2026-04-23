@@ -118,7 +118,7 @@ export function Expenses() {
       {/* Summary Card */}
       <div className="grid grid-cols-4 gap-5 mb-8">
         <Card className="px-4 py-3 border border-[#DDE3EE] bg-white hover:shadow-sm transition-shadow h-[110.5px]">
-          <div className="flex items-start justify-between">
+          <div className="flex items-center justify-between">
             <div>
               <div className="text-[24px] mb-0.5 leading-none" style={{ fontWeight: 700, color: "#1A2332", fontVariantNumeric: "tabular-nums" }}>
                 ${totalAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
@@ -336,7 +336,7 @@ export function Expenses() {
                 <DetailRow label="Category" value={selectedExpense.category} />
 
                 {selectedExpense.jobId && (
-                  <div className="flex items-start justify-between py-2 border-b border-[#F0F2F5]">
+                  <div className="flex items-center justify-between py-2 border-b border-[#F0F2F5]">
                     <span className="text-[12px] text-[#8899AA] uppercase tracking-wide" style={{ fontWeight: 500 }}>Job</span>
                     <span className="text-[13px] text-[#4A6FA5] cursor-pointer hover:underline" style={{ fontWeight: 500 }}
                       onClick={() => { setSelectedExpense(null); navigate(`/jobs/${selectedExpense.jobId!.replace("J-", "")}`); }}>
@@ -346,7 +346,7 @@ export function Expenses() {
                 )}
 
                 {selectedExpense.invoiceId && (
-                  <div className="flex items-start justify-between py-2 border-b border-[#F0F2F5]">
+                  <div className="flex items-center justify-between py-2 border-b border-[#F0F2F5]">
                     <span className="text-[12px] text-[#8899AA] uppercase tracking-wide" style={{ fontWeight: 500 }}>Invoice</span>
                     <span className="text-[13px] text-[#4A6FA5] cursor-pointer hover:underline" style={{ fontWeight: 500 }}
                       onClick={() => { setSelectedExpense(null); navigate(`/invoices/${selectedExpense.invoiceId!.replace("INV-", "")}`); }}>
@@ -423,7 +423,7 @@ export function Expenses() {
 
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-start justify-between py-2 border-b border-[#F0F2F5]">
+    <div className="flex items-center justify-between py-2 border-b border-[#F0F2F5]">
       <span className="text-[12px] text-[#8899AA] uppercase tracking-wide" style={{ fontWeight: 500 }}>{label}</span>
       <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{value}</span>
     </div>

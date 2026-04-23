@@ -255,7 +255,7 @@ export function Clients() {
         {/* ── Stats Cards ── */}
         <div className="grid grid-cols-4 gap-5 mb-8">
           <Card className="px-4 py-3 border border-[#DDE3EE] bg-white hover:shadow-sm transition-shadow h-[110.5px]">
-            <div className="flex items-start justify-between">
+            <div className="flex items-center justify-between">
               <div>
                 <div className="text-[24px] mb-0.5 leading-none" style={{ fontWeight: 700, color: "#1A2332" }}>4</div>
                 <div className="text-[12px] mb-0.5" style={{ fontWeight: 500, color: "#546478" }}>New prospects</div>
@@ -271,7 +271,7 @@ export function Clients() {
             </div>
           </Card>
           <Card className="px-4 py-3 border border-[#DDE3EE] bg-white hover:shadow-sm transition-shadow h-[110.5px]">
-            <div className="flex items-start justify-between">
+            <div className="flex items-center justify-between">
               <div>
                 <div className="text-[24px] mb-0.5 leading-none" style={{ fontWeight: 700, color: "#1A2332" }}>1</div>
                 <div className="text-[12px] mb-0.5" style={{ fontWeight: 500, color: "#546478" }}>New contacts</div>
@@ -287,7 +287,7 @@ export function Clients() {
             </div>
           </Card>
           <Card className="px-4 py-3 border border-[#DDE3EE] bg-white hover:shadow-sm transition-shadow h-[110.5px]">
-            <div className="flex items-start justify-between">
+            <div className="flex items-center justify-between">
               <div>
                 <div className="text-[24px] mb-0.5 leading-none" style={{ fontWeight: 700, color: "#1A2332" }}>6</div>
                 <div className="text-[12px] mb-0.5" style={{ fontWeight: 500, color: "#546478" }}>Total contacts</div>

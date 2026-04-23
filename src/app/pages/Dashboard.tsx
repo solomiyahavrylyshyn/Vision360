@@ -93,7 +93,7 @@ export function Dashboard() {
       {/* Quick Stat Cards */}
       <div className="grid grid-cols-3 gap-5 mb-8">
         <Card className="px-4 py-3 border border-[#DDE3EE] bg-white hover:shadow-sm transition-shadow h-[110.5px]">
-          <div className="flex items-start justify-between">
+          <div className="flex items-center justify-between">
             <div>
               <div className="text-[24px] mb-0.5 leading-none" style={{ fontWeight: 700, color: "#1A2332" }}>{jobCount}</div>
               <div className="text-[12px] mb-0.5" style={{ fontWeight: 500, color: "#546478" }}>Jobs Today</div>
@@ -105,7 +105,7 @@ export function Dashboard() {
         </Card>
 
         <Card className="px-4 py-3 border border-[#DDE3EE] bg-white hover:shadow-sm transition-shadow h-[110.5px]">
-          <div className="flex items-start justify-between">
+          <div className="flex items-center justify-between">
             <div>
               <div className="text-[24px] mb-0.5 leading-none" style={{ fontWeight: 700, color: "#1A2332", fontVariantNumeric: "tabular-nums" }}>$3,480</div>
               <div className="text-[12px] mb-0.5" style={{ fontWeight: 500, color: "#546478" }}>Outstanding Invoices</div>
@@ -115,7 +115,7 @@ export function Dashboard() {
         </Card>
 
         <Card className="px-4 py-3 border border-[#DDE3EE] bg-white hover:shadow-sm transition-shadow h-[110.5px]">
-          <div className="flex items-start justify-between">
+          <div className="flex items-center justify-between">
             <div>
               <div className="text-[24px] mb-0.5 leading-none" style={{ fontWeight: 700, color: "#1A2332", fontVariantNumeric: "tabular-nums" }}>$6,240</div>
               <div className="text-[12px] mb-0.5" style={{ fontWeight: 500, color: "#546478" }}>This Week's Earnings</div>

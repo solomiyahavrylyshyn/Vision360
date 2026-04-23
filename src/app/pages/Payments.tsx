@@ -174,7 +174,7 @@ export function Payments() {
             onClick={() => { setQfStatus(qfStatus === c.filterVal ? "All" : c.filterVal); setPage(1); }}
             className={`px-4 py-3 border bg-white hover:shadow-sm transition-shadow h-[110.5px] cursor-pointer ${qfStatus === c.filterVal ? "border-[#4A6FA5] ring-1 ring-[#4A6FA5]/20" : "border-[#DDE3EE]"}`}
           >
-            <div className="flex items-start justify-between">
+            <div className="flex items-center justify-between">
               <div>
                 <div className="text-[24px] mb-0.5 leading-none" style={{ fontWeight: 700, color: "#1A2332", fontVariantNumeric: "tabular-nums" }}>{c.value}</div>
                 <div className="flex items-center gap-1.5 mb-0.5">

@@ -28,7 +28,7 @@ export function Reports() {
       {/* KPIs */}
       <div className="grid grid-cols-4 gap-5 mb-8">
         <Card className="px-4 py-3 border border-[#DDE3EE] bg-white hover:shadow-sm transition-shadow h-[110.5px]">
-          <div className="flex items-start justify-between">
+          <div className="flex items-center justify-between">
             <div>
               <div className="text-[24px] mb-0.5 leading-none" style={{ fontWeight: 700, color: "#1A2332", fontVariantNumeric: "tabular-nums" }}>$109,800</div>
               <div className="text-[12px] mb-0.5" style={{ fontWeight: 500, color: "#546478" }}>Total Revenue</div>
@@ -42,7 +42,7 @@ export function Reports() {
           </div>
         </Card>
         <Card className="px-4 py-3 border border-[#DDE3EE] bg-white hover:shadow-sm transition-shadow h-[110.5px]">
-          <div className="flex items-start justify-between">
+          <div className="flex items-center justify-between">
             <div>
               <div className="text-[24px] mb-0.5 leading-none" style={{ fontWeight: 700, color: "#1A2332", fontVariantNumeric: "tabular-nums" }}>$61,300</div>
               <div className="text-[12px] mb-0.5" style={{ fontWeight: 500, color: "#546478" }}>Total Expenses</div>
@@ -56,7 +56,7 @@ export function Reports() {
           </div>
         </Card>
         <Card className="px-4 py-3 border border-[#DDE3EE] bg-white hover:shadow-sm transition-shadow h-[110.5px]">
-          <div className="flex items-start justify-between">
+          <div className="flex items-center justify-between">
             <div>
               <div className="text-[24px] mb-0.5 leading-none" style={{ fontWeight: 700, color: "#1A2332", fontVariantNumeric: "tabular-nums" }}>$48,500</div>
               <div className="text-[12px] mb-0.5" style={{ fontWeight: 500, color: "#546478" }}>Net Profit</div>
@@ -70,7 +70,7 @@ export function Reports() {
           </div>
         </Card>
         <Card className="px-4 py-3 border border-[#DDE3EE] bg-white hover:shadow-sm transition-shadow h-[110.5px]">
-          <div className="flex items-start justify-between">
+          <div className="flex items-center justify-between">
             <div>
               <div className="text-[24px] mb-0.5 leading-none" style={{ fontWeight: 700, color: "#1A2332" }}>44.2%</div>
               <div className="text-[12px] mb-0.5" style={{ fontWeight: 500, color: "#546478" }}>Profit Margin</div>
