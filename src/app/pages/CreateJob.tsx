@@ -118,6 +118,7 @@ export function CreateJob() {
 
         {/* Job Type & Schedule */}
         <div className="border border-[#DDE3EE] rounded-lg p-6 mb-6">
+          <h3 className="text-[16px] text-[#1A2332] mb-5" style={{ fontWeight: 700 }}>Job Details</h3>
           <div className="grid grid-cols-2 gap-4 mb-6">
             {/* Schedule type: One-off / Recurring */}
             <div>
