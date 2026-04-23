@@ -310,7 +310,7 @@ export function ClientDetail() {
 
       {/* ROW 1 - COL 1: Identity Card */}
       <div className="bg-white border border-[#E5E7EB] rounded-lg overflow-hidden">
-        <div className="px-5 py-4 grid grid-cols-[auto_1fr_1fr_auto] items-end gap-x-5">
+        <div className="px-5 py-4 grid grid-cols-[auto_minmax(0,1fr)_minmax(0,1fr)_auto] items-end gap-x-6">
           {/* Name */}
           <div className="flex items-baseline gap-1">
             <span className="text-[11px] text-[#9CA3AF]">{client.title}</span>
@@ -326,7 +326,7 @@ export function ClientDetail() {
           {/* Role */}
           <div>
             <div className="text-[11px] text-[#9CA3AF] mb-0.5">Role</div>
-            <div className="text-[12px] text-[#374151]">{client.role || "—"}</div>
+            <div className="text-[12px] text-[#374151] whitespace-nowrap">{client.role || "—"}</div>
           </div>
           {/* Edit */}
           <button
