@@ -102,12 +102,18 @@ export function ClientDetail() {
     paymentTerms: "Net 30",
     paymentMethod: "ACH",
     creditLimit: 10000,
-    mobilePhone: "(833) 602-5487",
-    mobilePhoneExt: "123",
+    department: "Sarasota Branch",
+    salesRep: "Travis Jones",
+    accManager: "Anne Blue",
+    type: "Residential",
+    customField1: "",
+    customField2: "",
+    mobilePhone: "813-286-7572",
+    mobilePhoneExt: "457",
     workPhone: "(833) 555-9999",
     workPhoneExt: "456",
     website: "https://smithplumbing.com",
-    email: "cen046@yahoo.com",
+    email: "mjdelgado84@yahoo.com",
     address: "2105 West Hills Avenue",
     unit: "Suite 201",
     city: "Tampa",
@@ -300,110 +306,113 @@ export function ClientDetail() {
      DETAILS READ-ONLY
   ────────────────────────────────────────── */
   const DetailsView = () => (
-    <div className="space-y-6">
-      {/* 1. Details */}
-      <div className="bg-white border border-[#E5E7EB] rounded-lg overflow-hidden">
-        <div className="px-6 py-4 border-b border-[#E5E7EB]">
-          <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Details</h3>
-        </div>
-        <div className="px-6 py-5 grid grid-cols-2 gap-x-12 gap-y-4">
-          <InfoField label="Customer number" value={client.customerId} />
-          <InfoField label="Title" value={client.title} />
-          <InfoField label="Preferred name" value={client.preferredName} />
-          <InfoField label="Middle initial" value={client.middleInitial} />
-          <InfoField label="Company" value={client.company} />
-          <InfoField label="Role" value={client.role} />
-        </div>
-      </div>
+    <div className="grid grid-cols-[1fr_1.4fr_1fr] gap-4 items-start">
 
-      {/* 2. Billing vs Service Address */}
-      <div className="bg-white border border-[#E5E7EB] rounded-lg overflow-hidden">
-        <div className="px-6 py-5">
-          <label className="flex items-center gap-2.5 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={clientData.isBillingSameAsService}
-              onChange={(e) => handleCheckboxChange("isBillingSameAsService", e.target.checked)}
-              className="w-4 h-4 accent-[#4A6FA5]"
-            />
-            <span className="text-[14px] text-[#374151]">Billing address is the same as service address</span>
-          </label>
-        </div>
-      </div>
-
-      {/* 3. Tags */}
-      <div className="bg-white border border-[#E5E7EB] rounded-lg overflow-hidden">
-        <div className="px-6 py-4 border-b border-[#E5E7EB]">
-          <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Tags</h3>
-        </div>
-        <div className="px-6 py-5 space-y-3">
-          <div className="flex flex-wrap gap-2">
-            {client.tags.map((tag, index) => (
-              <span key={index} className="inline-flex items-center px-2 py-1 rounded bg-[#E0E7FF] text-[11px] text-[#4338CA] leading-[16px] h-[24.5px]" style={{ fontWeight: 500 }}>
-                {tag}
+      {/* LEFT COLUMN */}
+      <div className="space-y-4">
+        {/* Identity Card */}
+        <div className="bg-white border border-[#E5E7EB] rounded-lg overflow-hidden">
+          <div className="p-5 relative">
+            <button
+              onClick={handleEditClick}
+              className="absolute top-4 right-4 w-7 h-7 flex items-center justify-center hover:bg-[#F5F7FA] rounded-md"
+            >
+              <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "16px" }}>edit</span>
+            </button>
+            <div className="flex items-baseline gap-1.5 mb-4 pr-8">
+              <span className="text-[13px] text-[#6B7280]">{client.title}</span>
+              <span className="text-[16px] text-[#1A2332]" style={{ fontWeight: 700 }}>
+                {client.firstName} {client.middleInitial} {client.lastName}
               </span>
-            ))}
+            </div>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+              <div>
+                <div className="text-[11px] text-[#9CA3AF] mb-0.5">Preferred name</div>
+                <div className="text-[13px] text-[#374151]">{client.preferredName}</div>
+              </div>
+              <div>
+                <div className="text-[11px] text-[#9CA3AF] mb-0.5">Role</div>
+                <div className="text-[13px] text-[#374151]" style={{ fontWeight: 500 }}>{client.role}</div>
+              </div>
+            </div>
           </div>
-          <p className="text-[12px] text-[#6B7280]">
-            Manage tags in <span className="text-[#4A6FA5] cursor-pointer hover:underline" onClick={() => navigate("/settings?section=customerTags")}>Settings → Customer Tags</span>
-          </p>
+        </div>
+
+        {/* Address & Contact Card */}
+        <div className="bg-white border border-[#E5E7EB] rounded-lg overflow-hidden">
+          <div className="p-5 relative">
+            <button
+              onClick={handleEditClick}
+              className="absolute top-4 right-4 w-7 h-7 flex items-center justify-center hover:bg-[#F5F7FA] rounded-md"
+            >
+              <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "16px" }}>edit</span>
+            </button>
+            <div className="space-y-4 pr-8">
+              <div>
+                <div className="text-[11px] text-[#9CA3AF] mb-1">Service address</div>
+                <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 700 }}>{client.address}</div>
+                <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 700 }}>
+                  {client.city}, {client.state}, {client.zip}
+                </div>
+              </div>
+              <div>
+                <div className="text-[11px] text-[#9CA3AF] mb-1">Primary phone number</div>
+                <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 700 }}>
+                  {client.mobilePhone}{client.mobilePhoneExt ? ` x ${client.mobilePhoneExt}` : ""}
+                </div>
+              </div>
+              <div>
+                <div className="text-[11px] text-[#9CA3AF] mb-1">Email</div>
+                <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 700 }}>{client.email}</div>
+              </div>
+            </div>
+            <div className="mt-5 pt-4 border-t border-[#E5E7EB]">
+              <label className="flex items-center gap-2.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={clientData.isBillingSameAsService}
+                  onChange={(e) => handleCheckboxChange("isBillingSameAsService", e.target.checked)}
+                  className="w-4 h-4 accent-[#4A6FA5]"
+                />
+                <span className="text-[13px] text-[#374151]">Billing address is the same as service address</span>
+              </label>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* 4. Taxable */}
+      {/* MIDDLE COLUMN */}
       <div className="bg-white border border-[#E5E7EB] rounded-lg overflow-hidden">
-        <div className="px-6 py-5">
-          <label className="flex items-center gap-2.5 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={clientData.isTaxable}
-              onChange={(e) => handleCheckboxChange("isTaxable", e.target.checked)}
-              className="w-4 h-4 accent-[#4A6FA5]"
-            />
-            <span className="text-[14px] text-[#374151]">Taxable</span>
-          </label>
-        </div>
-      </div>
+        <div className="p-5 space-y-4">
+          {/* Tags */}
+          <div className="flex items-start gap-4">
+            <span className="text-[13px] text-[#6B7280] w-[110px] shrink-0 pt-1">Tags</span>
+            <div className="flex flex-wrap gap-1.5">
+              {client.tags.map((tag, index) => (
+                <span
+                  key={index}
+                  className="inline-flex items-center px-2.5 py-1 rounded-full bg-[#E0E7FF] text-[12px] text-[#4338CA]"
+                  style={{ fontWeight: 500 }}
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+          </div>
 
-      {/* 5. Additional Contact Information */}
-      <div className="bg-white border border-[#E5E7EB] rounded-lg overflow-hidden">
-        <div className="px-6 py-4 border-b border-[#E5E7EB]">
-          <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Additional Contact Information</h3>
-        </div>
-        <div className="px-6 py-5 grid grid-cols-2 gap-x-12 gap-y-4">
-          <InfoField label="Mobile phone" value={`${client.mobilePhone}${client.mobilePhoneExt ? ` ext. ${client.mobilePhoneExt}` : ""}`} isLink />
-          <InfoField label="Work phone" value={`${client.workPhone}${client.workPhoneExt ? ` ext. ${client.workPhoneExt}` : ""}`} isLink />
-          <InfoField label="Email" value={client.email} isLink />
-          <InfoField label="Website" value={client.website} isLink />
-        </div>
-      </div>
-
-      {/* 6. Payment Details */}
-      <div className="bg-white border border-[#E5E7EB] rounded-lg overflow-hidden">
-        <div className="px-6 py-4 border-b border-[#E5E7EB]">
-          <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Payment Details</h3>
-        </div>
-        <div className="px-6 py-5 grid grid-cols-2 gap-x-12 gap-y-4">
-          <InfoField label="Payment terms" value={client.paymentTerms} />
-          <InfoField label="Payment method" value={client.paymentMethod} />
-          <InfoField label="Credit limit" value={`$${client.creditLimit.toLocaleString()}`} />
-        </div>
-      </div>
-
-      {/* 7. Lead Source */}
-      <div className="bg-white border border-[#E5E7EB] rounded-lg overflow-hidden">
-        <div className="px-6 py-4 border-b border-[#E5E7EB]">
-          <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Lead Source</h3>
-        </div>
-        <div className="px-6 py-5 space-y-3">
+          {/* Lead Source */}
           <div className="flex items-center gap-4">
+            <span className="text-[13px] text-[#6B7280] w-[110px] shrink-0">Lead Source</span>
             <div className="flex-1">
-              <Select value={clientData.marketingSource || "none"} onValueChange={(v) => {
-                setClientData((prev) => ({ ...prev, marketingSource: v === "none" ? "" : v }));
-                toast.success("Lead source updated");
-              }}>
+              <Select
+                value={clientData.marketingSource || "none"}
+                onValueChange={(v) => {
+                  setClientData((prev) => ({ ...prev, marketingSource: v === "none" ? "" : v }));
+                  toast.success("Lead source updated");
+                }}
+              >
                 <SelectTrigger className="border-[#D1D5DB] bg-white h-10 text-[14px]">
-                  <SelectValue placeholder="Select marketing source" />
+                  <SelectValue placeholder="Select" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">— Select —</SelectItem>
@@ -414,9 +423,143 @@ export function ClientDetail() {
               </Select>
             </div>
           </div>
-          <p className="text-[12px] text-[#6B7280]">
-            Manage sources in <span className="text-[#4A6FA5] cursor-pointer hover:underline" onClick={() => navigate("/settings?section=marketingSources")}>Settings → Lead Sources</span>
-          </p>
+
+          {/* Type */}
+          <div className="flex items-center gap-4">
+            <span className="text-[13px] text-[#6B7280] w-[110px] shrink-0">Type</span>
+            <div className="flex-1">
+              <Select
+                value={clientData.type || "Residential"}
+                onValueChange={(v) => setClientData((prev) => ({ ...prev, type: v }))}
+              >
+                <SelectTrigger className="border-[#D1D5DB] bg-white h-10 text-[14px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Residential">Residential</SelectItem>
+                  <SelectItem value="Commercial">Commercial</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Sales Rep */}
+          <div className="flex items-center gap-4">
+            <span className="text-[13px] text-[#6B7280] w-[110px] shrink-0">Sales Rep</span>
+            <div className="flex-1">
+              <Select
+                value={clientData.salesRep || "none"}
+                onValueChange={(v) => setClientData((prev) => ({ ...prev, salesRep: v === "none" ? "" : v }))}
+              >
+                <SelectTrigger className="border-[#D1D5DB] bg-white h-10 text-[14px]">
+                  <SelectValue placeholder="Select rep" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">— Select —</SelectItem>
+                  <SelectItem value="Travis Jones">Travis Jones</SelectItem>
+                  <SelectItem value="Sarah Miller">Sarah Miller</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Acc. Manager */}
+          <div className="flex items-center gap-4">
+            <span className="text-[13px] text-[#6B7280] w-[110px] shrink-0">Acc. Manager</span>
+            <div className="flex-1">
+              <Select
+                value={clientData.accManager || "none"}
+                onValueChange={(v) => setClientData((prev) => ({ ...prev, accManager: v === "none" ? "" : v }))}
+              >
+                <SelectTrigger className="border-[#D1D5DB] bg-white h-10 text-[14px]">
+                  <SelectValue placeholder="Select manager" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">— Select —</SelectItem>
+                  <SelectItem value="Anne Blue">Anne Blue</SelectItem>
+                  <SelectItem value="John Smith">John Smith</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Custom Field 1 */}
+          <div className="flex items-center gap-4">
+            <span className="text-[13px] text-[#6B7280] w-[110px] shrink-0">Custom Field 1</span>
+            <div className="flex-1">
+              <Select
+                value={clientData.customField1 || "none"}
+                onValueChange={(v) => setClientData((prev) => ({ ...prev, customField1: v === "none" ? "" : v }))}
+              >
+                <SelectTrigger className="border-[#D1D5DB] bg-white h-10 text-[14px]">
+                  <SelectValue placeholder="Custom Field 1" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">— Select —</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Custom Field 2 */}
+          <div className="flex items-center gap-4">
+            <span className="text-[13px] text-[#6B7280] w-[110px] shrink-0">Custom Field 2</span>
+            <div className="flex-1">
+              <Select
+                value={clientData.customField2 || "none"}
+                onValueChange={(v) => setClientData((prev) => ({ ...prev, customField2: v === "none" ? "" : v }))}
+              >
+                <SelectTrigger className="border-[#D1D5DB] bg-white h-10 text-[14px]">
+                  <SelectValue placeholder="Custom Field 2" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">— Select —</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* RIGHT COLUMN */}
+      <div className="bg-white border border-[#E5E7EB] rounded-lg overflow-hidden">
+        <div className="p-5">
+          <div className="flex items-center justify-between mb-5">
+            <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Finance details</h3>
+            <button
+              onClick={handleEditClick}
+              className="w-7 h-7 flex items-center justify-center hover:bg-[#F5F7FA] rounded-md"
+            >
+              <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "16px" }}>edit</span>
+            </button>
+          </div>
+          <div className="space-y-4">
+            <div>
+              <div className="text-[11px] text-[#9CA3AF] mb-0.5">Payment terms</div>
+              <div className="text-[15px] text-[#1A2332]" style={{ fontWeight: 600 }}>{client.paymentTerms}</div>
+            </div>
+            <div>
+              <div className="text-[11px] text-[#9CA3AF] mb-0.5">Credit limit</div>
+              <div className="text-[20px] text-[#1A2332]" style={{ fontWeight: 700 }}>${client.creditLimit.toLocaleString()}</div>
+            </div>
+            <div>
+              <div className="text-[11px] text-[#9CA3AF] mb-0.5">Payment method</div>
+              <div className="text-[15px] text-[#1A2332]" style={{ fontWeight: 600 }}>{client.paymentMethod}</div>
+            </div>
+            <div>
+              <div className="text-[11px] text-[#9CA3AF] mb-0.5">Department</div>
+              <div className="text-[15px] text-[#1A2332]" style={{ fontWeight: 600 }}>{client.department}</div>
+            </div>
+            <label className="flex items-center gap-2.5 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={clientData.isTaxable}
+                onChange={(e) => handleCheckboxChange("isTaxable", e.target.checked)}
+                className="w-4 h-4 accent-[#4A6FA5]"
+              />
+              <span className="text-[14px] text-[#374151]">Taxable</span>
+            </label>
+          </div>
         </div>
       </div>
     </div>
@@ -1211,7 +1354,7 @@ export function ClientDetail() {
                   <div className="text-[12px] text-[#6B7280] leading-[18px]">
                     Total Revenue
                   </div>
-                  <div className="text-[20px] text-[#1A2332] leading-[30px]" style={{ fontWeight: 700 }}>
+                  <div className="text-[20px] text-[#16A34A] leading-[30px]" style={{ fontWeight: 700 }}>
                     ${client.totalRevenue.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                   </div>
                 </div>
