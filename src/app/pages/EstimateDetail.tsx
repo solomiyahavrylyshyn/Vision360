@@ -121,12 +121,19 @@ export function EstimateDetail() {
 
   return (
     <div className="bg-[#F5F7FA] min-h-full">
-      {/* Breadcrumb */}
+      {/* Back arrow */}
       <div className="bg-white border-b border-[#E5E7EB]">
         <div className="px-8 h-10 flex items-center gap-1.5 border-b border-[#F3F4F6]">
-          <button onClick={() => navigate("/estimates")} className="text-[13px] text-[#4A6FA5] hover:underline">Estimates</button>
-          <span className="material-icons text-[#D1D5DB]" style={{ fontSize: "16px" }}>chevron_right</span>
-          <span className="text-[13px] text-[#374151]">{estimate.estimateNumber}</span>
+          <button
+            onClick={() => navigate("/estimates")}
+            className="inline-flex items-center gap-1.5 text-[13px] text-[#4A6FA5] hover:text-[#3d5a85] transition-colors"
+            style={{ fontWeight: 500 }}
+            aria-label="Back to Estimates"
+            title="Back to Estimates"
+          >
+            <span className="material-icons" style={{ fontSize: "18px" }}>arrow_back</span>
+            <span>Back to Estimates</span>
+          </button>
         </div>
       </div>
       <div className="p-6">

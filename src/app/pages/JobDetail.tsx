@@ -674,19 +674,18 @@ export function JobDetail() {
     <div className="min-h-screen bg-[#F5F7FA]">
       {/* ── SUMMARY BAR ── */}
       <div className="bg-white border-b border-[#E5E7EB]">
-        {/* Breadcrumb + Actions */}
+        {/* Back arrow + Actions */}
         <div className="px-8 h-12 flex items-center justify-between gap-1.5 border-b border-[#F3F4F6]">
-          <div className="flex items-center gap-1.5">
-            <button
-              onClick={() => navigate("/jobs")}
-              className="text-[13px] text-[#4A6FA5] hover:underline"
-              style={{ fontWeight: 500 }}
-            >
-              Jobs
-            </button>
-            <span className="material-icons text-[#D1D5DB]" style={{ fontSize: "16px" }}>chevron_right</span>
-            <span className="text-[13px] text-[#374151]">{job.client} — {job.jobNumber}</span>
-          </div>
+          <button
+            onClick={() => navigate("/jobs")}
+            className="inline-flex items-center gap-1.5 text-[13px] text-[#4A6FA5] hover:text-[#3d5a85] transition-colors"
+            style={{ fontWeight: 500 }}
+            aria-label="Back to Jobs"
+            title="Back to Jobs"
+          >
+            <span className="material-icons" style={{ fontSize: "18px" }}>arrow_back</span>
+            <span>Back to Jobs</span>
+          </button>
           <div className="flex items-center gap-2">
             <button
               onClick={() => navigate(`/jobs/${id}/edit`)}

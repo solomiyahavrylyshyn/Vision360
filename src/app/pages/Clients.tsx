@@ -27,22 +27,26 @@ interface Client {
   phone: string;
   address: string;
   tags: string[];
-  status: "Active" | "Archived" | "Prospect";
+  status: "Active" | "Archived" | "Prospect" | "On Hold";
   lastActivity: string;
   totalJobs: number;
   totalBilled: number;
+  pastDue?: number;
+  daysOverdue?: number;
 }
+
+// NOTE: Auto-transition logic — Prospect → Active happens when client gets first
+// invoice with payment > 0. Active → On Hold happens when an invoice goes past due.
+// In production this runs server-side; mock here just reflects the resulting status.
 
 const initialClients: Client[] = [
   { id: "1", initials: "JS", avatarColor: "#4A6FA5", name: "John Smith", company: null, email: "john.smith@email.com", phone: "(555) 123-4567", address: "123 Main St, Austin, TX 78701", tags: ["Residential", "VIP"], status: "Active", lastActivity: "Invoice sent · 2 days ago", totalJobs: 5, totalBilled: 12450.00 },
   { id: "2", initials: "SJ", avatarColor: "#3B82F6", name: "Sarah Johnson", company: null, email: "sarah.j@email.com", phone: "(555) 234-5678", address: "456 Oak Ave, Dallas, TX 75201", tags: ["Commercial"], status: "Prospect", lastActivity: "Estimate sent · 5 days ago", totalJobs: 0, totalBilled: 0 },
-  { id: "3", initials: "MD", avatarColor: "#8B5CF6", name: "Mike Davis", company: "Davis Construction", email: "mike@davis.com", phone: "(555) 345-6789", address: "789 Pine Rd, Houston, TX 77001", tags: ["Residential", "Repeat"], status: "Active", lastActivity: "Job completed · 1 week ago", totalJobs: 3, totalBilled: 8750.50 },
+  { id: "3", initials: "MD", avatarColor: "#8B5CF6", name: "Mike Davis", company: "Davis Construction", email: "mike@davis.com", phone: "(555) 345-6789", address: "789 Pine Rd, Houston, TX 77001", tags: ["Residential", "Repeat"], status: "On Hold", lastActivity: "Invoice overdue · 18 days", totalJobs: 3, totalBilled: 8750.50, pastDue: 1250.00, daysOverdue: 18 },
   { id: "4", initials: "RL", avatarColor: "#D97706", name: "Robert Lee", company: "Lee & Associates", email: "robert.l@email.com", phone: "(555) 456-7890", address: "321 Elm St, San Antonio, TX 78201", tags: ["Commercial", "New"], status: "Prospect", lastActivity: "Contacted · 3 days ago", totalJobs: 0, totalBilled: 0 },
   { id: "5", initials: "EP", avatarColor: "#10B981", name: "Emily Parker", company: null, email: "e.parker@email.com", phone: "(555) 567-8901", address: "654 Maple Dr, Fort Worth, TX 76101", tags: ["Residential"], status: "Active", lastActivity: "Payment received · 4 days ago", totalJobs: 2, totalBilled: 5320.00 },
   { id: "6", initials: "TC", avatarColor: "#DC2626", name: "Tom Carter", company: null, email: "tom.c@email.com", phone: "(555) 678-9012", address: "987 Cedar Ln, Plano, TX 75023", tags: ["Commercial", "Priority"], status: "Archived", lastActivity: "Quote requested · today", totalJobs: 0, totalBilled: 0 },
 ];
-
-const US_STATES = ["AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA","KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY"];
 
 // Elegant quick-filter select class helper
 function qfClass(active: boolean) {
@@ -78,7 +82,7 @@ export function Clients() {
   const [editColumnsOpen, setEditColumnsOpen] = useState(false);
   const [pendingColumns, setPendingColumns] = useState<Set<ColKey>>(new Set<ColKey>(["address", "totalBilled", "status", "lastActivity"]));
   const [changeStatusOpen, setChangeStatusOpen] = useState(false);
-  const [newBulkStatus, setNewBulkStatus] = useState<"Active" | "Prospect" | "Archived">("Active");
+  const [newBulkStatus, setNewBulkStatus] = useState<"Active" | "Prospect" | "On Hold" | "Archived">("Active");
 
   const handleApplyChangeStatus = () => {
     if (selectedClients.size === 0) { setChangeStatusOpen(false); return; }
@@ -113,12 +117,11 @@ export function Clients() {
   // Advanced filter panel state
   const [filterPanelOpen, setFilterPanelOpen] = useState(false);
   const [filterState, setFilterState] = useState({
-    status: "",
-    creationFrom: "", creationTo: "",
+    dateAcquiredFrom: "", dateAcquiredTo: "",
     lastServiceFrom: "", lastServiceTo: "",
     lifetimeMin: "", lifetimeMax: "",
     leadSource: "", customerType: "",
-    city: "", state: "", county: "",
+    city: "", county: "",
     tags: [] as string[],
     paymentTerms: "", paymentMethod: "",
     membership: "", taxable: "", hasCompany: "",
@@ -132,7 +135,7 @@ export function Clients() {
 
   const handleApplyFilters = () => { setFilterState({ ...pendingFilters }); setFilterPanelOpen(false); setCurrentPage(1); };
   const handleClearFilters = () => {
-    const empty = { status: "", creationFrom: "", creationTo: "", lastServiceFrom: "", lastServiceTo: "", lifetimeMin: "", lifetimeMax: "", leadSource: "", customerType: "", city: "", state: "", county: "", tags: [] as string[], paymentTerms: "", paymentMethod: "", membership: "", taxable: "", hasCompany: "" };
+    const empty = { dateAcquiredFrom: "", dateAcquiredTo: "", lastServiceFrom: "", lastServiceTo: "", lifetimeMin: "", lifetimeMax: "", leadSource: "", customerType: "", city: "", county: "", tags: [] as string[], paymentTerms: "", paymentMethod: "", membership: "", taxable: "", hasCompany: "" };
     setPendingFilters(empty); setFilterState(empty); setFilterPanelOpen(false); setCurrentPage(1);
   };
 
@@ -144,6 +147,7 @@ export function Clients() {
     let matchesQfStatus = true;
     if (qfStatus === "active") matchesQfStatus = client.status === "Active";
     else if (qfStatus === "prospect") matchesQfStatus = client.status === "Prospect";
+    else if (qfStatus === "on-hold") matchesQfStatus = client.status === "On Hold";
     else if (qfStatus === "archived") matchesQfStatus = client.status === "Archived";
 
     const matchesQfBalance = qfBalance === "with_balance" ? client.totalBilled > 0 : true;
@@ -158,10 +162,8 @@ export function Clients() {
     if (filterState.lifetimeMin !== "") matchesLifetime = client.totalBilled >= Number(filterState.lifetimeMin);
     if (filterState.lifetimeMax !== "") matchesLifetime = matchesLifetime && client.totalBilled <= Number(filterState.lifetimeMax);
     const matchesCity = !filterState.city || client.address.toLowerCase().includes(filterState.city.toLowerCase());
-    const matchesState = !filterState.state || client.address.toUpperCase().includes(` ${filterState.state.toUpperCase()} `) || client.address.toUpperCase().includes(`, ${filterState.state.toUpperCase()} `);
-    const matchesStatusAdv = !filterState.status || client.status === filterState.status;
 
-    return matchesSearch && matchesQfStatus && matchesQfBalance && matchesCustomerType && matchesTags && matchesLeadSource && matchesMembership && matchesHasCompany && matchesLifetime && matchesCity && matchesState && matchesStatusAdv;
+    return matchesSearch && matchesQfStatus && matchesQfBalance && matchesCustomerType && matchesTags && matchesLeadSource && matchesMembership && matchesHasCompany && matchesLifetime && matchesCity;
   });
 
   // Sort
@@ -194,9 +196,6 @@ export function Clients() {
 
   const handleArchiveClient = (client: Client) => setClients(clients.map(c => c.id === client.id ? { ...c, status: "Archived" as const } : c));
   const handleUnarchiveClient = (client: Client) => setClients(clients.map(c => c.id === client.id ? { ...c, status: "Active" as const } : c));
-  const handleDeleteClient = (client: Client) => {
-    if (window.confirm(`Delete client "${client.name}"?`)) setClients(clients.filter(c => c.id !== client.id));
-  };
 
   const SortIcon = ({ field }: { field: SortField }) => (
     <span className="material-icons text-[#9AA3AF] ml-0.5" style={{ fontSize: "14px" }}>
@@ -255,7 +254,7 @@ export function Clients() {
         {/* ── Stats Cards ── */}
         <div className="grid grid-cols-4 gap-5 mb-8">
           <Card className="px-4 py-3 border border-[#DDE3EE] bg-white hover:shadow-sm transition-shadow h-[110.5px]">
-            <div className="flex items-center justify-between">
+            <div className="flex items-start justify-between">
               <div>
                 <div className="text-[24px] mb-0.5 leading-none" style={{ fontWeight: 700, color: "#1A2332" }}>4</div>
                 <div className="text-[12px] mb-0.5" style={{ fontWeight: 500, color: "#546478" }}>New prospects</div>
@@ -271,7 +270,7 @@ export function Clients() {
             </div>
           </Card>
           <Card className="px-4 py-3 border border-[#DDE3EE] bg-white hover:shadow-sm transition-shadow h-[110.5px]">
-            <div className="flex items-center justify-between">
+            <div className="flex items-start justify-between">
               <div>
                 <div className="text-[24px] mb-0.5 leading-none" style={{ fontWeight: 700, color: "#1A2332" }}>1</div>
                 <div className="text-[12px] mb-0.5" style={{ fontWeight: 500, color: "#546478" }}>New contacts</div>
@@ -287,7 +286,7 @@ export function Clients() {
             </div>
           </Card>
           <Card className="px-4 py-3 border border-[#DDE3EE] bg-white hover:shadow-sm transition-shadow h-[110.5px]">
-            <div className="flex items-center justify-between">
+            <div className="flex items-start justify-between">
               <div>
                 <div className="text-[24px] mb-0.5 leading-none" style={{ fontWeight: 700, color: "#1A2332" }}>6</div>
                 <div className="text-[12px] mb-0.5" style={{ fontWeight: 500, color: "#546478" }}>Total contacts</div>
@@ -331,18 +330,6 @@ export function Clients() {
                 </button>
               </div>
               <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
-                {/* Status (dropdown) */}
-                <div>
-                  <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>Status</label>
-                  <select value={pendingFilters.status} onChange={e => setPendingFilters(p => ({ ...p, status: e.target.value }))}
-                    className="w-full h-10 px-3 border border-[#D1D5DB] rounded-md text-[13px] text-[#374151] bg-white focus:outline-none focus:border-[#4A6FA5]">
-                    <option value="">All</option>
-                    <option value="Active">Active</option>
-                    <option value="Prospect">Prospect</option>
-                    <option value="Archived">Archived</option>
-                  </select>
-                </div>
-
                 {/* Customer type */}
                 <div>
                   <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>Customer type</label>
@@ -352,83 +339,6 @@ export function Clients() {
                     <option value="residential">Residential</option>
                     <option value="commercial">Commercial</option>
                   </select>
-                </div>
-
-                <div className="border-t border-[#E5E7EB] pt-5">
-                  <h3 className="text-[13px] text-[#374151] mb-4" style={{ fontWeight: 600 }}>Date Filters</h3>
-                </div>
-
-                {/* Creation date */}
-                <div>
-                  <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>Creation date</label>
-                  <div className="flex gap-2">
-                    <input type="date" value={pendingFilters.creationFrom} onChange={e => setPendingFilters(p => ({ ...p, creationFrom: e.target.value }))}
-                      className="flex-1 h-10 px-3 border border-[#D1D5DB] rounded-md text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5]" />
-                    <input type="date" value={pendingFilters.creationTo} onChange={e => setPendingFilters(p => ({ ...p, creationTo: e.target.value }))}
-                      className="flex-1 h-10 px-3 border border-[#D1D5DB] rounded-md text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5]" />
-                  </div>
-                </div>
-
-                {/* Last service date */}
-                <div>
-                  <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>Last service date</label>
-                  <div className="flex gap-2">
-                    <input type="date" value={pendingFilters.lastServiceFrom} onChange={e => setPendingFilters(p => ({ ...p, lastServiceFrom: e.target.value }))}
-                      className="flex-1 h-10 px-3 border border-[#D1D5DB] rounded-md text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5]" />
-                    <input type="date" value={pendingFilters.lastServiceTo} onChange={e => setPendingFilters(p => ({ ...p, lastServiceTo: e.target.value }))}
-                      className="flex-1 h-10 px-3 border border-[#D1D5DB] rounded-md text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5]" />
-                  </div>
-                </div>
-
-                <div className="border-t border-[#E5E7EB] pt-5">
-                  <h3 className="text-[13px] text-[#374151] mb-4" style={{ fontWeight: 600 }}>Location</h3>
-                </div>
-
-                {/* City */}
-                <div>
-                  <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>City</label>
-                  <input type="text" placeholder="e.g. Tampa, Orlando" value={pendingFilters.city} onChange={e => setPendingFilters(p => ({ ...p, city: e.target.value }))}
-                    className="w-full h-10 px-3 border border-[#D1D5DB] rounded-md text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5]" />
-                </div>
-
-                {/* State (2-letter) */}
-                <div>
-                  <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>State</label>
-                  <select value={pendingFilters.state} onChange={e => setPendingFilters(p => ({ ...p, state: e.target.value }))}
-                    className="w-full h-10 px-3 border border-[#D1D5DB] rounded-md text-[13px] text-[#374151] bg-white focus:outline-none focus:border-[#4A6FA5]">
-                    <option value="">All states</option>
-                    {US_STATES.map(s => <option key={s} value={s}>{s}</option>)}
-                  </select>
-                </div>
-
-                {/* County (dropdown from store) */}
-                <div>
-                  <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>County</label>
-                  <select value={pendingFilters.county} onChange={e => setPendingFilters(p => ({ ...p, county: e.target.value }))}
-                    className="w-full h-10 px-3 border border-[#D1D5DB] rounded-md text-[13px] text-[#374151] bg-white focus:outline-none focus:border-[#4A6FA5]">
-                    <option value="">All counties</option>
-                    {availableCounties.map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                </div>
-
-                <div className="border-t border-[#E5E7EB] pt-5">
-                  <h3 className="text-[13px] text-[#374151] mb-4" style={{ fontWeight: 600 }}>Financial</h3>
-                </div>
-
-                {/* Lifetime value */}
-                <div>
-                  <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>Lifetime value</label>
-                  <div className="flex items-center gap-2">
-                    <input type="number" placeholder="Min" value={pendingFilters.lifetimeMin} onChange={e => setPendingFilters(p => ({ ...p, lifetimeMin: e.target.value }))}
-                      className="flex-1 h-10 px-3 border border-[#D1D5DB] rounded-md text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5]" />
-                    <span className="text-[#546478] text-[13px]">—</span>
-                    <input type="number" placeholder="Max" value={pendingFilters.lifetimeMax} onChange={e => setPendingFilters(p => ({ ...p, lifetimeMax: e.target.value }))}
-                      className="flex-1 h-10 px-3 border border-[#D1D5DB] rounded-md text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5]" />
-                  </div>
-                </div>
-
-                <div className="border-t border-[#E5E7EB] pt-5">
-                  <h3 className="text-[13px] text-[#374151] mb-4" style={{ fontWeight: 600 }}>More</h3>
                 </div>
 
                 {/* Tags (checkboxes — multi-select) */}
@@ -511,6 +421,65 @@ export function Clients() {
                     <option value="no">No</option>
                   </select>
                 </div>
+
+                <div className="border-t border-[#E5E7EB] pt-5">
+                  <h3 className="text-[13px] text-[#374151] mb-4" style={{ fontWeight: 600 }}>Date Filters</h3>
+                </div>
+
+                {/* Date acquired */}
+                <div>
+                  <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>Date acquired</label>
+                  <div className="flex gap-2">
+                    <input type="date" value={pendingFilters.dateAcquiredFrom} onChange={e => setPendingFilters(p => ({ ...p, dateAcquiredFrom: e.target.value }))}
+                      className="flex-1 h-10 px-3 border border-[#D1D5DB] rounded-md text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5]" />
+                    <input type="date" value={pendingFilters.dateAcquiredTo} onChange={e => setPendingFilters(p => ({ ...p, dateAcquiredTo: e.target.value }))}
+                      className="flex-1 h-10 px-3 border border-[#D1D5DB] rounded-md text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5]" />
+                  </div>
+                </div>
+
+                {/* Last service date */}
+                <div>
+                  <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>Last service date</label>
+                  <div className="flex gap-2">
+                    <input type="date" value={pendingFilters.lastServiceFrom} onChange={e => setPendingFilters(p => ({ ...p, lastServiceFrom: e.target.value }))}
+                      className="flex-1 h-10 px-3 border border-[#D1D5DB] rounded-md text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5]" />
+                    <input type="date" value={pendingFilters.lastServiceTo} onChange={e => setPendingFilters(p => ({ ...p, lastServiceTo: e.target.value }))}
+                      className="flex-1 h-10 px-3 border border-[#D1D5DB] rounded-md text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5]" />
+                  </div>
+                </div>
+
+                <div className="border-t border-[#E5E7EB] pt-5">
+                  <h3 className="text-[13px] text-[#374151] mb-4" style={{ fontWeight: 600 }}>Financial & Location</h3>
+                </div>
+
+                {/* Lifetime value */}
+                <div>
+                  <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>Lifetime value</label>
+                  <div className="flex items-center gap-2">
+                    <input type="number" placeholder="Min" value={pendingFilters.lifetimeMin} onChange={e => setPendingFilters(p => ({ ...p, lifetimeMin: e.target.value }))}
+                      className="flex-1 h-10 px-3 border border-[#D1D5DB] rounded-md text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5]" />
+                    <span className="text-[#546478] text-[13px]">—</span>
+                    <input type="number" placeholder="Max" value={pendingFilters.lifetimeMax} onChange={e => setPendingFilters(p => ({ ...p, lifetimeMax: e.target.value }))}
+                      className="flex-1 h-10 px-3 border border-[#D1D5DB] rounded-md text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5]" />
+                  </div>
+                </div>
+
+                {/* City */}
+                <div>
+                  <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>City</label>
+                  <input type="text" placeholder="e.g. Tampa, Orlando" value={pendingFilters.city} onChange={e => setPendingFilters(p => ({ ...p, city: e.target.value }))}
+                    className="w-full h-10 px-3 border border-[#D1D5DB] rounded-md text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5]" />
+                </div>
+
+                {/* County (dropdown from store) */}
+                <div>
+                  <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>County</label>
+                  <select value={pendingFilters.county} onChange={e => setPendingFilters(p => ({ ...p, county: e.target.value }))}
+                    className="w-full h-10 px-3 border border-[#D1D5DB] rounded-md text-[13px] text-[#374151] bg-white focus:outline-none focus:border-[#4A6FA5]">
+                    <option value="">All counties</option>
+                    {availableCounties.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
               </div>
 
               <div className="px-6 py-4 border-t border-[#E5E7EB] flex items-center gap-3">
@@ -536,6 +505,7 @@ export function Clients() {
                 <option value="all">Status: All</option>
                 <option value="active">Active</option>
                 <option value="prospect">Prospect</option>
+                <option value="on-hold">On Hold</option>
                 <option value="archived">Archived</option>
               </select>
               <select
@@ -590,12 +560,6 @@ export function Clients() {
           <SelectionBar
             count={selectedClients.size}
             onDeselect={() => setSelectedClients(new Set())}
-            onDelete={() => {
-              if (confirm(`Delete ${selectedClients.size} client(s)?`)) {
-                setClients(prev => prev.filter(c => !selectedClients.has(c.id)));
-                setSelectedClients(new Set());
-              }
-            }}
           />
           <table className="w-full">
             <thead className="bg-[#F5F7FA]">
@@ -631,8 +595,29 @@ export function Clients() {
                       className="cursor-pointer w-4 h-4 rounded border-[#DDE3EE]" />
                   </td>
                   <td className="px-4 py-4">
-                    <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>{client.name}</div>
-                    {client.company && <div className="text-[12px] text-[#8899AA]">{client.company}</div>}
+                    <div className="flex items-center gap-1.5">
+                      {client.tags.includes("Commercial") ? (
+                        <span
+                          className="material-icons text-[#4A6FA5] shrink-0"
+                          style={{ fontSize: "16px" }}
+                          title="Commercial"
+                          aria-label="Commercial"
+                        >
+                          business
+                        </span>
+                      ) : client.tags.includes("Residential") ? (
+                        <span
+                          className="material-icons text-[#10B981] shrink-0"
+                          style={{ fontSize: "16px" }}
+                          title="Residential"
+                          aria-label="Residential"
+                        >
+                          home
+                        </span>
+                      ) : null}
+                      <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>{client.name}</div>
+                    </div>
+                    {client.company && <div className="text-[12px] text-[#8899AA] ml-[22px]">{client.company}</div>}
                   </td>
                   <td className="px-4 py-4 text-[14px] text-[#546478]">{client.address}</td>
                   <td className="px-4 py-4">
@@ -644,6 +629,7 @@ export function Clients() {
                     <span className={`px-2.5 py-1 rounded-full text-[12px] inline-flex items-center ${
                       client.status === "Active" ? "bg-[#DCFCE7] text-[#16A34A]" :
                       client.status === "Prospect" ? "bg-[#DBEAFE] text-[#2563EB]" :
+                      client.status === "On Hold" ? "bg-[#FEE2E2] text-[#DC2626]" :
                       "bg-[#F3F4F6] text-[#6B7280]"
                     }`} style={{ fontWeight: 500 }}>{client.status}</span>
                   </td>
@@ -657,7 +643,6 @@ export function Clients() {
                       )}
                       <KebabSeparator />
                       <KebabItem icon="open_in_new" onSelect={e => { e.preventDefault(); window.open(`/clients/${client.id}`, "_blank"); }}>Open in New Tab</KebabItem>
-                      <KebabItem icon="delete" destructive onSelect={e => { e.preventDefault(); handleDeleteClient(client); }}>Delete</KebabItem>
                     </KebabMenu>
                   </td>
                 </tr>
@@ -741,11 +726,11 @@ export function Clients() {
                 </p>
               </div>
               <div className="px-7 py-6 space-y-3">
-                {(["Active", "Prospect", "Archived"] as const).map(s => (
+                {(["Active", "Prospect", "On Hold", "Archived"] as const).map(s => (
                   <label key={s} className="flex items-center gap-3 cursor-pointer p-3 rounded-lg border border-transparent hover:border-[#DDE3EE] hover:bg-[#F9FAFB] transition-colors">
                     <input type="radio" name="bulkStatus" value={s} checked={newBulkStatus === s} onChange={() => setNewBulkStatus(s)} className="w-4 h-4 accent-[#4A6FA5] cursor-pointer" />
                     <span className="text-[14px] text-[#1A2332]">{s}</span>
-                    <span className={`ml-auto px-2.5 py-0.5 rounded-full text-[11px] ${s === "Active" ? "bg-[#DCFCE7] text-[#16A34A]" : s === "Prospect" ? "bg-[#DBEAFE] text-[#2563EB]" : "bg-[#F3F4F6] text-[#6B7280]"}`} style={{ fontWeight: 500 }}>{s}</span>
+                    <span className={`ml-auto px-2.5 py-0.5 rounded-full text-[11px] ${s === "Active" ? "bg-[#DCFCE7] text-[#16A34A]" : s === "Prospect" ? "bg-[#DBEAFE] text-[#2563EB]" : s === "On Hold" ? "bg-[#FEE2E2] text-[#DC2626]" : "bg-[#F3F4F6] text-[#6B7280]"}`} style={{ fontWeight: 500 }}>{s}</span>
                   </label>
                 ))}
               </div>

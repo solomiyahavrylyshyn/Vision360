@@ -33,6 +33,7 @@ export function KebabMenu({
         <button
           type="button"
           aria-label={label}
+          title={label}
           className={cn(
             "inline-flex items-center justify-center w-8 h-8 rounded-md text-[#6B7280] hover:bg-[#F3F4F6] hover:text-[#1A2332] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#4A6FA5] focus-visible:ring-offset-1",
             triggerClassName

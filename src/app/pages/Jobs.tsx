@@ -11,6 +11,7 @@ import { Card } from "../components/ui/card";
 
 interface Job {
   id: number;
+  jobNumber: string; // {customerId}-J{NN} format, e.g. "29899-J01"
   title: string;
   client: string;
   address: string;
@@ -22,10 +23,10 @@ interface Job {
 }
 
 const mockJobs: Job[] = [
-  { id: 1, title: "AC Estimate", client: "Travis Jones", address: "4405 North Clark Avenue, Tampa, Florida 33614", schedule: "March 30, 2026", scheduleDateSort: "2026-03-30", status: "Scheduled", jobType: "One-off", total: 0.0 },
-  { id: 2, title: "Tree Removal", client: "Sarah Johnson", address: "1220 Elm Street, Orlando, Florida 32801", schedule: "April 10, 2026", scheduleDateSort: "2026-04-10", status: "In Progress", jobType: "One-off", total: 450.0 },
-  { id: 3, title: "Monthly Lawn Care", client: "Mike Davis", address: "890 Oak Drive, Miami, Florida 33101", schedule: "April 15, 2026", scheduleDateSort: "2026-04-15", status: "Scheduled", jobType: "Recurring", total: 120.0 },
-  { id: 4, title: "Plumbing Repair", client: "Lisa Brown", address: "567 Pine Road, Jacksonville, Florida 32099", schedule: "April 6, 2026", scheduleDateSort: "2026-04-06", status: "Completed", jobType: "One-off", total: 275.0 },
+  { id: 1, jobNumber: "29899-J01", title: "AC Estimate", client: "Travis Jones", address: "4405 North Clark Avenue, Tampa, Florida 33614", schedule: "March 30, 2026", scheduleDateSort: "2026-03-30", status: "Scheduled", jobType: "One-off", total: 0.0 },
+  { id: 2, jobNumber: "29900-J01", title: "Tree Removal", client: "Sarah Johnson", address: "1220 Elm Street, Orlando, Florida 32801", schedule: "April 10, 2026", scheduleDateSort: "2026-04-10", status: "In Progress", jobType: "One-off", total: 450.0 },
+  { id: 3, jobNumber: "29901-J03", title: "Monthly Lawn Care", client: "Mike Davis", address: "890 Oak Drive, Miami, Florida 33101", schedule: "April 15, 2026", scheduleDateSort: "2026-04-15", status: "Scheduled", jobType: "Recurring", total: 120.0 },
+  { id: 4, jobNumber: "29902-J01", title: "Plumbing Repair", client: "Lisa Brown", address: "567 Pine Road, Jacksonville, Florida 32099", schedule: "April 6, 2026", scheduleDateSort: "2026-04-06", status: "Completed", jobType: "One-off", total: 275.0 },
 ];
 
 const statusColors: Record<string, string> = {
@@ -96,7 +97,7 @@ export function Jobs() {
     if (qfType === "Recurring" && j.jobType !== "Recurring") return false;
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
-      if (!j.title.toLowerCase().includes(q) && !j.client.toLowerCase().includes(q) && !j.address.toLowerCase().includes(q)) return false;
+      if (!j.title.toLowerCase().includes(q) && !j.client.toLowerCase().includes(q) && !j.address.toLowerCase().includes(q) && !j.jobNumber.toLowerCase().includes(q)) return false;
     }
     // Advanced filters
     if (filterState.jobType && j.jobType !== filterState.jobType) return false;
@@ -297,7 +298,7 @@ export function Jobs() {
                   <input type="checkbox" checked={selectedJobs.has(job.id)} onChange={e => handleSelect(job.id, e.target.checked)} className="w-4 h-4 rounded border-[#DDE3EE] cursor-pointer accent-[#4A6FA5]" />
                 </td>
                 <td className="px-4 py-4">
-                  <div className="text-[12px] text-[#8899AA]">#{job.id}</div>
+                  <div className="text-[12px] text-[#8899AA] font-mono tabular-nums">{job.jobNumber}</div>
                   <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{job.title}</div>
                 </td>
                 <td className="px-4 py-4 text-[13px] text-[#546478]">{job.client}</td>

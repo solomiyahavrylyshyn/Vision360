@@ -98,18 +98,17 @@ export function ManageDuplicates() {
 
   return (
     <div className="p-8">
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-[13px] text-[#546478] mb-5">
-        <button
-          onClick={() => navigate("/clients")}
-          className="hover:text-[#4A6FA5] transition-colors"
-          style={{ fontWeight: 500 }}
-        >
-          Clients
-        </button>
-        <span className="material-icons text-[#C5CEDD]" style={{ fontSize: "16px" }}>chevron_right</span>
-        <span className="text-[#1A2332]" style={{ fontWeight: 500 }}>Manage duplicates</span>
-      </div>
+      {/* Back arrow */}
+      <button
+        onClick={() => navigate("/clients")}
+        className="inline-flex items-center gap-1.5 text-[13px] text-[#4A6FA5] hover:text-[#3d5a85] transition-colors mb-5"
+        style={{ fontWeight: 500 }}
+        aria-label="Back to Clients"
+        title="Back to Clients"
+      >
+        <span className="material-icons" style={{ fontSize: "18px" }}>arrow_back</span>
+        <span>Back to Clients</span>
+      </button>
 
       {/* Page header */}
       <PageHeader
