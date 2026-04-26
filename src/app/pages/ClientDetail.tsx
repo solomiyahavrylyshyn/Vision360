@@ -74,6 +74,7 @@ export function ClientDetail() {
   useParams<{ id: string }>();
   const [activeTab, setActiveTab] = useState<TabKey>("details");
   const [isEditing, setIsEditing] = useState(false);
+  const [editingSection, setEditingSection] = useState<null | "name" | "contact" | "finance">(null);
   // Auto-transition rules (server-driven in production):
   //   prospect → active   when first invoice with payment > 0 is recorded
   //   active   → on-hold  when an invoice is past due
@@ -331,8 +332,10 @@ export function ClientDetail() {
             <div className="text-[13px] text-[#1F2937] truncate mt-0.5" style={{ fontWeight: 500 }}>{client.role}</div>
           </div>
           <button
-            onClick={handleEditClick}
+            onClick={() => { setEditedClient(client); setEditingSection("name"); }}
             className="shrink-0 w-7 h-7 flex items-center justify-center hover:bg-[#F5F7FA] rounded-md transition-colors"
+            aria-label="Edit name"
+            title="Edit name"
           >
             <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "15px" }}>edit</span>
           </button>
@@ -361,8 +364,10 @@ export function ClientDetail() {
       <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden flex flex-col">
         <div className="p-5 relative flex-1 flex flex-col">
           <button
-            onClick={handleEditClick}
+            onClick={() => { setEditedClient(client); setEditingSection("contact"); }}
             className="absolute top-4 right-4 w-7 h-7 flex items-center justify-center hover:bg-[#F5F7FA] rounded-md transition-colors"
+            aria-label="Edit contact"
+            title="Edit contact"
           >
             <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "15px" }}>edit</span>
           </button>
@@ -543,8 +548,10 @@ export function ClientDetail() {
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-[13px] text-[#111827] uppercase" style={{ fontWeight: 600, letterSpacing: "0.04em" }}>Finance details</h3>
             <button
-              onClick={handleEditClick}
+              onClick={() => { setEditedClient(client); setEditingSection("finance"); }}
               className="w-7 h-7 flex items-center justify-center hover:bg-[#F5F7FA] rounded-md transition-colors"
+              aria-label="Edit finance"
+              title="Edit finance"
             >
               <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "15px" }}>edit</span>
             </button>
@@ -1500,6 +1507,190 @@ export function ClientDetail() {
       <main className="min-h-[calc(100vh-200px)] p-6 pb-12 space-y-4 bg-[#F5F7FA]">
         {renderContent()}
       </main>
+
+      {/* ── PER-SECTION EDIT MODAL ── */}
+      {editingSection && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={() => setEditingSection(null)}>
+          <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" />
+          <div
+            className="relative bg-white rounded-xl shadow-2xl w-[560px] max-h-[85vh] flex flex-col overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[#E5E7EB]">
+              <h2 className="text-[16px] text-[#111827]" style={{ fontWeight: 600 }}>
+                {editingSection === "name" && "Edit name & role"}
+                {editingSection === "contact" && "Edit address & contact"}
+                {editingSection === "finance" && "Edit finance details"}
+              </h2>
+              <button
+                onClick={() => setEditingSection(null)}
+                className="text-[#6B7280] hover:text-[#111827] w-7 h-7 flex items-center justify-center rounded-md hover:bg-[#F3F4F6]"
+                aria-label="Close"
+              >
+                <span className="material-icons" style={{ fontSize: "20px" }}>close</span>
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+              {editingSection === "name" && (
+                <>
+                  <div>
+                    <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Name</Label>
+                    <div className="grid grid-cols-[100px_1fr_60px_1fr] gap-3">
+                      <Select value={editedClient.title || "none"} onValueChange={(v) => handleFieldChange("title", v === "none" ? "" : v)}>
+                        <SelectTrigger className="border-[#D1D5DB] bg-white h-10 text-[14px]"><SelectValue placeholder="Title" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Title</SelectItem>
+                          {["Mr.", "Mrs.", "Ms.", "Dr.", "Prof."].map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                      <Input placeholder="First name" value={editedClient.firstName} onChange={(e) => handleFieldChange("firstName", e.target.value)} className="border-[#D1D5DB] bg-white h-10 text-[14px]" />
+                      <Input placeholder="M.I." value={editedClient.middleInitial} onChange={(e) => handleFieldChange("middleInitial", e.target.value.slice(0, 1).toUpperCase())} className="border-[#D1D5DB] bg-white h-10 text-[14px]" maxLength={1} />
+                      <Input placeholder="Last name" value={editedClient.lastName} onChange={(e) => handleFieldChange("lastName", e.target.value)} className="border-[#D1D5DB] bg-white h-10 text-[14px]" />
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Preferred name</Label>
+                    <Input placeholder="e.g. Mike" value={editedClient.preferredName} onChange={(e) => handleFieldChange("preferredName", e.target.value)} className="border-[#D1D5DB] bg-white h-10 text-[14px]" />
+                  </div>
+                  <div>
+                    <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Role</Label>
+                    <Input placeholder="e.g. Property Owner" value={editedClient.role} onChange={(e) => handleFieldChange("role", e.target.value)} className="border-[#D1D5DB] bg-white h-10 text-[14px]" />
+                  </div>
+                </>
+              )}
+
+              {editingSection === "contact" && (
+                <>
+                  <div>
+                    <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Service address</Label>
+                    <Input placeholder="Street address" value={editedClient.address} onChange={(e) => handleFieldChange("address", e.target.value)} className="border-[#D1D5DB] bg-white h-10 text-[14px] mb-2" />
+                    <Input placeholder="Unit / Suite" value={editedClient.unit} onChange={(e) => handleFieldChange("unit", e.target.value)} className="border-[#D1D5DB] bg-white h-10 text-[14px]" />
+                  </div>
+                  <div className="grid grid-cols-[1fr_120px_120px] gap-3">
+                    <div>
+                      <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>City</Label>
+                      <Input value={editedClient.city} onChange={(e) => handleFieldChange("city", e.target.value)} className="border-[#D1D5DB] bg-white h-10 text-[14px]" />
+                    </div>
+                    <div>
+                      <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>State</Label>
+                      <Input value={editedClient.state} onChange={(e) => handleFieldChange("state", e.target.value)} className="border-[#D1D5DB] bg-white h-10 text-[14px]" />
+                    </div>
+                    <div>
+                      <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>ZIP</Label>
+                      <Input value={editedClient.zip} onChange={(e) => handleFieldChange("zip", e.target.value)} className="border-[#D1D5DB] bg-white h-10 text-[14px]" />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-[1fr_100px] gap-3">
+                    <div>
+                      <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Primary phone</Label>
+                      <Input value={editedClient.mobilePhone} onChange={(e) => handleFieldChange("mobilePhone", e.target.value)} className="border-[#D1D5DB] bg-white h-10 text-[14px]" />
+                    </div>
+                    <div>
+                      <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Ext.</Label>
+                      <Input value={editedClient.mobilePhoneExt} onChange={(e) => handleFieldChange("mobilePhoneExt", e.target.value)} className="border-[#D1D5DB] bg-white h-10 text-[14px]" />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-[1fr_100px] gap-3">
+                    <div>
+                      <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Secondary phone</Label>
+                      <Input value={editedClient.workPhone} onChange={(e) => handleFieldChange("workPhone", e.target.value)} className="border-[#D1D5DB] bg-white h-10 text-[14px]" />
+                    </div>
+                    <div>
+                      <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Ext.</Label>
+                      <Input value={editedClient.workPhoneExt} onChange={(e) => handleFieldChange("workPhoneExt", e.target.value)} className="border-[#D1D5DB] bg-white h-10 text-[14px]" />
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Email</Label>
+                    <Input type="email" value={editedClient.email} onChange={(e) => handleFieldChange("email", e.target.value)} className="border-[#D1D5DB] bg-white h-10 text-[14px]" />
+                  </div>
+                  <div>
+                    <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Website</Label>
+                    <Input value={editedClient.website} onChange={(e) => handleFieldChange("website", e.target.value)} className="border-[#D1D5DB] bg-white h-10 text-[14px]" />
+                  </div>
+                  <div>
+                    <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Company name</Label>
+                    <Input value={editedClient.company} onChange={(e) => handleFieldChange("company", e.target.value)} className="border-[#D1D5DB] bg-white h-10 text-[14px]" />
+                  </div>
+                </>
+              )}
+
+              {editingSection === "finance" && (
+                <>
+                  <div>
+                    <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Payment terms</Label>
+                    <Select value={editedClient.paymentTerms || "none"} onValueChange={(v) => handleFieldChange("paymentTerms", v === "none" ? "" : v)}>
+                      <SelectTrigger className="border-[#D1D5DB] bg-white h-10 text-[14px]"><SelectValue placeholder="Select terms" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">— Select —</SelectItem>
+                        <SelectItem value="Due on receipt">Due on receipt</SelectItem>
+                        <SelectItem value="Net 15">Net 15</SelectItem>
+                        <SelectItem value="Net 30">Net 30</SelectItem>
+                        <SelectItem value="Net 60">Net 60</SelectItem>
+                        <SelectItem value="Net 90">Net 90</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Credit limit</Label>
+                    <Input type="number" placeholder="0" value={editedClient.creditLimit} onChange={(e) => handleFieldChange("creditLimit", parseFloat(e.target.value) || 0)} className="border-[#D1D5DB] bg-white h-10 text-[14px]" />
+                  </div>
+                  <div>
+                    <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Payment method</Label>
+                    <Select value={editedClient.paymentMethod || "none"} onValueChange={(v) => handleFieldChange("paymentMethod", v === "none" ? "" : v)}>
+                      <SelectTrigger className="border-[#D1D5DB] bg-white h-10 text-[14px]"><SelectValue placeholder="Select method" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">— Select —</SelectItem>
+                        <SelectItem value="Cash">Cash</SelectItem>
+                        <SelectItem value="Check">Check</SelectItem>
+                        <SelectItem value="Credit Card">Credit Card</SelectItem>
+                        <SelectItem value="ACH">ACH</SelectItem>
+                        <SelectItem value="Wire Transfer">Wire Transfer</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Department</Label>
+                    <Input value={editedClient.department} onChange={(e) => handleFieldChange("department", e.target.value)} className="border-[#D1D5DB] bg-white h-10 text-[14px]" />
+                  </div>
+                  <label className="flex items-center gap-2.5 cursor-pointer pt-1">
+                    <input
+                      type="checkbox"
+                      checked={editedClient.isTaxable}
+                      onChange={(e) => handleFieldChange("isTaxable", e.target.checked)}
+                      className="w-4 h-4 accent-[#4A6FA5]"
+                    />
+                    <span className="text-[13px] text-[#374151]">Taxable</span>
+                  </label>
+                </>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-4 border-t border-[#E5E7EB] flex items-center justify-end gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setEditingSection(null)}
+                className="border-[#DDE3EE] text-[#546478] hover:bg-[#EDF0F5] h-9 px-4 text-[13px]"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  toast.success("Changes saved");
+                  setEditingSection(null);
+                }}
+                className="bg-[#4A6FA5] hover:bg-[#3d5a85] h-9 px-4 text-white text-[13px]"
+              >
+                Save
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

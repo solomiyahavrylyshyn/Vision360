@@ -106,6 +106,13 @@ export function JobDetail() {
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
   const [currentStatus, setCurrentStatus] = useState<string>(job.status);
   const [photoTab, setPhotoTab] = useState<"before" | "after">("before");
+  const [editingSection, setEditingSection] = useState<null | "address" | "assigned" | "schedule" | "overview">(null);
+  const [editJob, setEditJob] = useState<any>(job);
+  const openEdit = (section: "address" | "assigned" | "schedule" | "overview") => {
+    setEditJob(job);
+    setEditingSection(section);
+  };
+  const setEditField = (field: string, value: any) => setEditJob((p: any) => ({ ...p, [field]: value }));
 
   const statusColor = statusColors[currentStatus] || "#6B7280";
 
@@ -124,7 +131,7 @@ export function JobDetail() {
       <div className="bg-white border border-[#E5E7EB] rounded-lg p-5 flex flex-col">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Service Address</h3>
-          <button className="text-[#9CA3AF] hover:text-[#6B7280]">
+          <button onClick={() => openEdit("address")} className="text-[#9CA3AF] hover:text-[#6B7280]" aria-label="Edit address" title="Edit address">
             <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
           </button>
         </div>
@@ -140,7 +147,7 @@ export function JobDetail() {
       <div className="col-span-2 bg-white border border-[#E5E7EB] rounded-lg p-5 flex flex-col">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Assigned To</h3>
-          <button className="text-[#9CA3AF] hover:text-[#6B7280]">
+          <button onClick={() => openEdit("assigned")} className="text-[#9CA3AF] hover:text-[#6B7280]" aria-label="Edit assigned" title="Edit assigned">
             <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
           </button>
         </div>
@@ -180,7 +187,7 @@ export function JobDetail() {
       <div className="bg-white border border-[#E5E7EB] rounded-lg p-5 flex flex-col">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Job Date & Time</h3>
-          <button className="text-[#9CA3AF] hover:text-[#6B7280]">
+          <button onClick={() => openEdit("schedule")} className="text-[#9CA3AF] hover:text-[#6B7280]" aria-label="Edit schedule" title="Edit schedule">
             <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
           </button>
         </div>
@@ -215,7 +222,7 @@ export function JobDetail() {
       <div className="bg-white border border-[#E5E7EB] rounded-lg p-5 flex flex-col">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Job Overview</h3>
-          <button className="text-[#9CA3AF] hover:text-[#6B7280]">
+          <button onClick={() => openEdit("overview")} className="text-[#9CA3AF] hover:text-[#6B7280]" aria-label="Edit overview" title="Edit overview">
             <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
           </button>
         </div>
@@ -975,6 +982,204 @@ export function JobDetail() {
       <main className="min-h-[calc(100vh-200px)] p-6 pb-12 space-y-4 bg-[#F5F7FA]">
         {renderContent()}
       </main>
+
+      {/* ── PER-SECTION EDIT MODAL ── */}
+      {editingSection && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={() => setEditingSection(null)}>
+          <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" />
+          <div
+            className="relative bg-white rounded-xl shadow-2xl w-[560px] max-h-[85vh] flex flex-col overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[#E5E7EB]">
+              <h2 className="text-[16px] text-[#111827]" style={{ fontWeight: 600 }}>
+                {editingSection === "address" && "Edit service address"}
+                {editingSection === "assigned" && "Edit assigned technician"}
+                {editingSection === "schedule" && "Edit job date & time"}
+                {editingSection === "overview" && "Edit job overview"}
+              </h2>
+              <button
+                onClick={() => setEditingSection(null)}
+                className="text-[#6B7280] hover:text-[#111827] w-7 h-7 flex items-center justify-center rounded-md hover:bg-[#F3F4F6]"
+                aria-label="Close"
+              >
+                <span className="material-icons" style={{ fontSize: "20px" }}>close</span>
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+              {editingSection === "address" && (
+                <>
+                  <div>
+                    <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>Street address</label>
+                    <input
+                      value={editJob.address || ""}
+                      onChange={(e) => setEditField("address", e.target.value)}
+                      className="w-full h-10 px-3 border border-[#D1D5DB] rounded-md text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
+                    />
+                  </div>
+                  <div className="grid grid-cols-[1fr_120px_120px] gap-3">
+                    <div>
+                      <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>City</label>
+                      <input
+                        value={editJob.city || ""}
+                        onChange={(e) => setEditField("city", e.target.value)}
+                        className="w-full h-10 px-3 border border-[#D1D5DB] rounded-md text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>State</label>
+                      <input
+                        value={editJob.state || ""}
+                        onChange={(e) => setEditField("state", e.target.value)}
+                        className="w-full h-10 px-3 border border-[#D1D5DB] rounded-md text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>ZIP</label>
+                      <input
+                        value={editJob.zip || ""}
+                        onChange={(e) => setEditField("zip", e.target.value)}
+                        className="w-full h-10 px-3 border border-[#D1D5DB] rounded-md text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {editingSection === "assigned" && (
+                <>
+                  <div>
+                    <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>Technician</label>
+                    <select
+                      value={editJob.assignedTo || ""}
+                      onChange={(e) => setEditField("assignedTo", e.target.value)}
+                      className="w-full h-10 px-3 border border-[#D1D5DB] rounded-md text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
+                    >
+                      <option value="Marek Stroz">Marek Stroz</option>
+                      <option value="Travis Jones">Travis Jones</option>
+                      <option value="Sarah Miller">Sarah Miller</option>
+                      <option value="Anne Blue">Anne Blue</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>Role</label>
+                    <select
+                      defaultValue="Lead Technician"
+                      className="w-full h-10 px-3 border border-[#D1D5DB] rounded-md text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
+                    >
+                      <option>Lead Technician</option>
+                      <option>Helper</option>
+                      <option>Apprentice</option>
+                    </select>
+                  </div>
+                </>
+              )}
+
+              {editingSection === "schedule" && (
+                <>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>Job date</label>
+                      <input
+                        value={editJob.startedOn || ""}
+                        onChange={(e) => setEditField("startedOn", e.target.value)}
+                        className="w-full h-10 px-3 border border-[#D1D5DB] rounded-md text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>End date</label>
+                      <input
+                        value={editJob.endsOn || ""}
+                        onChange={(e) => setEditField("endsOn", e.target.value)}
+                        className="w-full h-10 px-3 border border-[#D1D5DB] rounded-md text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>Start time</label>
+                      <input
+                        value={editJob.startTime || ""}
+                        onChange={(e) => setEditField("startTime", e.target.value)}
+                        className="w-full h-10 px-3 border border-[#D1D5DB] rounded-md text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>End time</label>
+                      <input
+                        value={editJob.endTime || ""}
+                        onChange={(e) => setEditField("endTime", e.target.value)}
+                        className="w-full h-10 px-3 border border-[#D1D5DB] rounded-md text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {editingSection === "overview" && (
+                <>
+                  <div>
+                    <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>Job title</label>
+                    <input
+                      value={editJob.title || ""}
+                      onChange={(e) => setEditField("title", e.target.value)}
+                      className="w-full h-10 px-3 border border-[#D1D5DB] rounded-md text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>Job #</label>
+                      <input
+                        value={editJob.jobNumber || ""}
+                        readOnly
+                        className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[14px] bg-[#F9FAFB] text-[#6B7280] font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>Job type</label>
+                      <select
+                        value={editJob.jobType || ""}
+                        onChange={(e) => setEditField("jobType", e.target.value)}
+                        className="w-full h-10 px-3 border border-[#D1D5DB] rounded-md text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
+                      >
+                        <option value="One-off job">One-off job</option>
+                        <option value="Recurring job">Recurring job</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>Customer</label>
+                    <input
+                      value={editJob.client || ""}
+                      readOnly
+                      className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[14px] bg-[#F9FAFB] text-[#6B7280]"
+                    />
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-4 border-t border-[#E5E7EB] flex items-center justify-end gap-3">
+              <button
+                onClick={() => setEditingSection(null)}
+                className="h-9 px-4 border border-[#DDE3EE] rounded-md text-[13px] text-[#546478] hover:bg-[#EDF0F5] transition-colors"
+                style={{ fontWeight: 500 }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => setEditingSection(null)}
+                className="h-9 px-4 bg-[#4A6FA5] hover:bg-[#3d5a85] rounded-md text-[13px] text-white transition-colors"
+                style={{ fontWeight: 500 }}
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
