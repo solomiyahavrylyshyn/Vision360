@@ -550,6 +550,7 @@ export function Items() {
                     </th>
                     {[
                       { key: "id", label: "Id", w: "w-[70px]", sortable: true },
+                      { key: "picture", label: "Picture", w: "w-[60px]", sortable: false },
                       { key: "name", label: "Name", w: "min-w-[200px]", sortable: true },
                       { key: "type", label: "Type", w: "w-[160px]", sortable: true },
                       { key: "category", label: "Category", w: "w-[110px]", sortable: true },
@@ -577,7 +578,7 @@ export function Items() {
                 <tbody>
                   {paginatedItems.length === 0 ? (
                     <tr>
-                      <td colSpan={11} className="px-4 py-16 text-center">
+                      <td colSpan={12} className="px-4 py-16 text-center">
                         <span className="material-icons text-[#C8D5E8] mb-2" style={{ fontSize: "48px" }}>inventory_2</span>
                         <div className="text-[14px] text-[#546478]" style={{ fontWeight: 500 }}>No items found</div>
                         <div className="text-[12px] text-[#8899AA] mt-1">Try adjusting your search or filters</div>
@@ -603,6 +604,15 @@ export function Items() {
                         />
                       </td>
                       <td className="px-3 py-3 text-[13px] text-[#546478]">{item.id}</td>
+                      <td className="px-3 py-2">
+                        <div className="w-9 h-9 rounded border border-[#E5E7EB] bg-[#F9FAFB] flex items-center justify-center overflow-hidden">
+                          {item.picture ? (
+                            <img src={item.picture} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            <span className="material-icons text-[#D1D5DB]" style={{ fontSize: "18px" }}>image</span>
+                          )}
+                        </div>
+                      </td>
                       <td className="px-3 py-3 text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>
                         <button onClick={() => navigate(`/items/${item.id}`)} className="truncate max-w-[220px] text-left hover:text-[#4A6FA5] hover:underline">{item.name}</button>
                       </td>

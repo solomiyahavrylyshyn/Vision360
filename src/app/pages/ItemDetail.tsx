@@ -200,11 +200,16 @@ export function ItemDetail() {
         <div className="grid grid-cols-2 gap-4">
           <Card title="Item Info" onEdit={() => {}}>
             <div className="flex flex-col gap-4">
-              {item.picture && (
-                <div className="w-full h-36 rounded-lg overflow-hidden border border-[#E5E7EB] bg-[#F9FAFB] flex items-center justify-center">
-                  <img src={item.picture} alt={item.name} className="max-h-full max-w-full object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
-                </div>
-              )}
+              <div className="w-full h-36 rounded-lg overflow-hidden border border-[#E5E7EB] bg-[#F9FAFB] flex items-center justify-center">
+                {item.picture ? (
+                  <img src={item.picture} alt={item.name} className="max-h-full max-w-full object-contain" />
+                ) : (
+                  <div className="flex flex-col items-center gap-1.5 text-[#C8D5E8]">
+                    <span className="material-icons" style={{ fontSize: "32px" }}>image</span>
+                    <span className="text-[11px] text-[#9CA3AF]">No image</span>
+                  </div>
+                )}
+              </div>
               <Field label="Description (Internal)" value={item.description} />
               <Field label="Sales Description" value={item.salesDescription} />
               {item.additionalInfo && <Field label="Additional Information" value={item.additionalInfo} />}
