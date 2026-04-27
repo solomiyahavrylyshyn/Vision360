@@ -18,17 +18,23 @@ interface Visit {
   assigned: string;
 }
 
+interface NoteEntry {
+  id: number;
+  text: string;
+  date: string;
+}
+
 const mockJobData: Record<string, any> = {
   "1": {
     id: 1, title: "AC Estimate", client: "Travis Jones", clientInitials: "TJ",
     address: "4405 North Clark Avenue", city: "Tampa", state: "FL", zip: "33614",
     phone: "(813) 612-5487", email: "ccj924@yahoo.com",
-    jobNumber: "29899-J01", jobType: "One-off job",
+    jobNumber: "29899-J01", jobType: "Estimate",
     startedOn: "Mar 30, 2026", endsOn: "Mar 30, 2026",
     startTime: "9:00 AM", endTime: "11:00 AM",
     assignedTo: "Marek Stroz", assignedInitials: "MS",
     status: "Scheduled" as const,
-    // Client-level info (inherited from customer record)
+    priority: "Low" as const,
     customerSince: "Jul - 2021",
     membership: "Silver - Exp. Dec 2027",
     lastService: "Jun-25",
@@ -39,7 +45,9 @@ const mockJobData: Record<string, any> = {
       { id: 3, text: "Requested annual maintenance plan.", date: "Jan 10, 2026" },
       { id: 4, text: "Gate code: 4821", date: "Dec 03, 2025" },
       { id: 5, text: "Large dog on property, call ahead.", date: "Nov 22, 2025" },
-    ],
+    ] as NoteEntry[],
+    privateNotes: [] as NoteEntry[],
+    fieldNotes: [] as NoteEntry[],
     lineItems: [{ name: "Tree Removal", description: "Complete removal of a tree, including cutting it down to ground level, hauling away all wood and debris.", quantity: 1, unitCost: 0, unitPrice: 0, total: 0 }],
     totalCost: 0, totalPrice: 0,
     expenses: [{ id: 1, item: "HD Items", description: "Plywood", date: "Mar 31, 2026", amount: 152.00 }] as Expense[],
@@ -54,17 +62,19 @@ const mockJobData: Record<string, any> = {
     id: 2, title: "Tree Removal", client: "Sarah Johnson", clientInitials: "SJ",
     address: "1220 Elm Street", city: "Orlando", state: "FL", zip: "32801",
     phone: "(407) 555-1234", email: "sarah.j@email.com",
-    jobNumber: "29900-J01", jobType: "One-off job",
+    jobNumber: "29900-J01", jobType: "Install",
     startedOn: "Apr 10, 2026", endsOn: "Apr 10, 2026",
     startTime: "9:00 AM", endTime: "1:00 PM",
     assignedTo: "Marek Stroz", assignedInitials: "MS",
     status: "In Progress" as const,
-    // Client-level info (inherited from customer record)
+    priority: "High" as const,
     customerSince: "Mar - 2023",
     membership: null,
     lastService: "Apr-03",
     tags: ["Landscaping"],
-    notes: [],
+    notes: [] as NoteEntry[],
+    privateNotes: [] as NoteEntry[],
+    fieldNotes: [] as NoteEntry[],
     lineItems: [{ name: "Tree Removal", description: "Full tree removal service", quantity: 1, unitCost: 200, unitPrice: 450, total: 450 }],
     totalCost: 200, totalPrice: 450,
     expenses: [] as Expense[], expenseTotal: 0,
@@ -82,18 +92,23 @@ const statusColors: Record<string, string> = {
   Completed: "#16A34A",
 };
 
-type TabKey = "details" | "appointments" | "checklists" | "attachments" | "items" | "labor" | "expenses" | "finance" | "equipment" | "activity";
+const priorityColors: Record<string, { bg: string; text: string }> = {
+  Low: { bg: "#F0FDF4", text: "#16A34A" },
+  Medium: { bg: "#FEF3C7", text: "#D97706" },
+  High: { bg: "#FEF2F2", text: "#DC2626" },
+};
 
-const TABS: { key: TabKey; label: string; count?: number }[] = [
-  { key: "details", label: "Details" },
+type TabKey = "details" | "appointments" | "documents" | "items" | "labor" | "expenses" | "activity";
+type NotesTabKey = "notes" | "private" | "field";
+type DocTabKey = "estimates" | "invoices" | "photos";
+
+const TABS: { key: TabKey; label: string }[] = [
+  { key: "details", label: "Job Details" },
   { key: "appointments", label: "Appointments" },
-  { key: "checklists", label: "Checklists" },
-  { key: "attachments", label: "Attachments" },
+  { key: "documents", label: "Documents" },
   { key: "items", label: "Items" },
   { key: "labor", label: "Labor" },
   { key: "expenses", label: "Expenses" },
-  { key: "finance", label: "Finance" },
-  { key: "equipment", label: "Equipment" },
   { key: "activity", label: "Activity" },
 ];
 
@@ -105,6 +120,8 @@ export function JobDetail() {
   const [activeTab, setActiveTab] = useState<TabKey>("details");
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
   const [currentStatus, setCurrentStatus] = useState<string>(job.status);
+  const [notesTab, setNotesTab] = useState<NotesTabKey>("notes");
+  const [docTab, setDocTab] = useState<DocTabKey>("estimates");
   const [photoTab, setPhotoTab] = useState<"before" | "after">("before");
   const [editingSection, setEditingSection] = useState<null | "address" | "assigned" | "schedule" | "overview">(null);
   const [editJob, setEditJob] = useState<any>(job);
@@ -126,306 +143,490 @@ export function JobDetail() {
   ────────────────────────────────────────── */
 
   const renderDetailsTab = () => (
-    <div className="grid grid-cols-3 gap-4">
-      {/* ── Row 1: Service Address (col 1) | Assigned To (col 2–3) ── */}
-      <div className="bg-white border border-[#E5E7EB] rounded-lg p-5 flex flex-col">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Service Address</h3>
-          <button onClick={() => openEdit("address")} className="text-[#9CA3AF] hover:text-[#6B7280]" aria-label="Edit address" title="Edit address">
-            <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
-          </button>
-        </div>
-        <div className="flex items-start gap-2">
-          <span className="material-icons text-[#6B7280] mt-0.5" style={{ fontSize: "16px" }}>location_on</span>
-          <div className="text-[13px] text-[#374151] leading-[20px]">
-            {job.address}<br />
-            {job.city}, {job.state}, {job.zip}
-          </div>
-        </div>
-      </div>
-
-      <div className="col-span-2 bg-white border border-[#E5E7EB] rounded-lg p-5 flex flex-col">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Assigned To</h3>
-          <button onClick={() => openEdit("assigned")} className="text-[#9CA3AF] hover:text-[#6B7280]" aria-label="Edit assigned" title="Edit assigned">
-            <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
-          </button>
-        </div>
-        <div className="flex items-center gap-8 flex-wrap flex-1">
-          <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-full bg-[#4A6FA5] flex items-center justify-center text-white text-[13px]" style={{ fontWeight: 600 }}>
-              {job.assignedInitials}
-            </div>
-            <div>
-              <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>{job.assignedTo}</div>
-              <div className="text-[12px] text-[#9CA3AF]">Technician</div>
-            </div>
-          </div>
-          <div className="h-10 w-px bg-[#E5E7EB]" />
-          <div className="flex flex-col gap-1">
-            <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Role</div>
-            <div className="text-[13px] text-[#374151] leading-[20px]">Lead Technician</div>
-          </div>
-          <div className="flex flex-col gap-1">
-            <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Phone</div>
-            <div className="text-[13px] text-[#374151] leading-[20px]">(813) 555-0192</div>
-          </div>
-          <div className="flex flex-col gap-1">
-            <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Email</div>
-            <a href="mailto:marek@vision360.com" className="text-[13px] text-[#4A6FA5] leading-[20px] hover:underline">
-              marek@vision360.com
-            </a>
-          </div>
-          <button className="ml-auto text-[12px] text-[#4A6FA5] hover:underline flex items-center gap-1" style={{ fontWeight: 500 }}>
-            <span className="material-icons" style={{ fontSize: "16px" }}>person_add</span>
-            Reassign
-          </button>
-        </div>
-      </div>
-
-      {/* ── Row 2: Job Date & Time (col 1) | Job Overview (col 2) | Finance details (col 3) ── */}
-      <div className="bg-white border border-[#E5E7EB] rounded-lg p-5 flex flex-col">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Job Date & Time</h3>
-          <button onClick={() => openEdit("schedule")} className="text-[#9CA3AF] hover:text-[#6B7280]" aria-label="Edit schedule" title="Edit schedule">
-            <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
-          </button>
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div className="flex flex-col gap-1">
-            <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Job Date</div>
-            <div className="text-[13px] text-[#374151] leading-[20px]" style={{ fontWeight: 500 }}>
-              {job.startedOn}
-            </div>
-          </div>
-          <div className="flex flex-col gap-1">
-            <div className="text-[11px] text-[#9CA3AF] leading-[16px]">End Date</div>
-            <div className="text-[13px] text-[#374151] leading-[20px]" style={{ fontWeight: 500 }}>
-              {job.endsOn}
-            </div>
-          </div>
-          <div className="flex flex-col gap-1">
-            <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Start Time</div>
-            <div className="text-[13px] text-[#374151] leading-[20px]" style={{ fontWeight: 500 }}>
-              {job.startTime}
-            </div>
-          </div>
-          <div className="flex flex-col gap-1">
-            <div className="text-[11px] text-[#9CA3AF] leading-[16px]">End Time</div>
-            <div className="text-[13px] text-[#374151] leading-[20px]" style={{ fontWeight: 500 }}>
-              {job.endTime}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="bg-white border border-[#E5E7EB] rounded-lg p-5 flex flex-col">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Job Overview</h3>
-          <button onClick={() => openEdit("overview")} className="text-[#9CA3AF] hover:text-[#6B7280]" aria-label="Edit overview" title="Edit overview">
-            <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
-          </button>
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div className="flex flex-col gap-1">
-            <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Job Title</div>
-            <div className="text-[13px] text-[#374151] leading-[20px]" style={{ fontWeight: 500 }}>
-              {job.title}
-            </div>
-          </div>
-          <div className="flex flex-col gap-1">
-            <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Job #</div>
-            <div className="text-[13px] text-[#374151] leading-[20px]">
-              {job.jobNumber}
-            </div>
-          </div>
-          <div className="flex flex-col gap-1">
-            <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Job Type</div>
-            <div className="text-[13px] text-[#374151] leading-[20px]">
-              {job.jobType}
-            </div>
-          </div>
-          <div className="flex flex-col gap-1">
-            <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Customer</div>
-            <button
-              onClick={() => navigate("/clients/1")}
-              className="text-[13px] text-[#4A6FA5] leading-[20px] hover:underline text-left"
-              style={{ fontWeight: 500 }}
-            >
-              {job.client}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div className="bg-white border border-[#E5E7EB] rounded-lg p-5 flex flex-col">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Finance details</h3>
-          <button
-            onClick={() => setActiveTab("finance")}
-            className="text-[#9CA3AF] hover:text-[#6B7280]"
-          >
-            <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
-          </button>
-        </div>
-        <div className="grid grid-cols-2 gap-x-4 gap-y-4">
-          <div className="flex flex-col gap-1">
-            <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Total Price</div>
-            <div className="text-[15px] text-[#16A34A] leading-[22px]" style={{ fontWeight: 600 }}>
-              ${job.profitability.totalPrice.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </div>
-          </div>
-          <div className="flex flex-col gap-1">
-            <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Line Item Cost</div>
-            <div className="text-[15px] text-[#1A2332] leading-[22px]" style={{ fontWeight: 500 }}>
-              ${job.profitability.lineItemCost.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </div>
-          </div>
-          <div className="flex flex-col gap-1">
-            <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Labor</div>
-            <div className="text-[15px] text-[#1A2332] leading-[22px]" style={{ fontWeight: 500 }}>
-              ${job.profitability.labor.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </div>
-          </div>
-          <div className="flex flex-col gap-1">
-            <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Expenses</div>
-            <div className="text-[15px] text-[#1A2332] leading-[22px]" style={{ fontWeight: 500 }}>
-              ${job.profitability.expenses.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </div>
-          </div>
-          <div className="flex flex-col gap-1">
-            <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Profit</div>
-            <div
-              className="text-[15px] leading-[22px]"
-              style={{ fontWeight: 600, color: job.profitability.profit < 0 ? "#DC2626" : "#16A34A" }}
-            >
-              {job.profitability.profit < 0 ? "-" : ""}${Math.abs(job.profitability.profit).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </div>
-          </div>
-          <div className="flex flex-col gap-1">
-            <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Profit Margin</div>
-            <div
-              className="text-[15px] leading-[22px]"
-              style={{ fontWeight: 600, color: job.profitability.margin < 0 ? "#DC2626" : "#16A34A" }}
-            >
-              {job.profitability.margin.toFixed(1)}%
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Row 3: Linked Documents (col 1 only) ── */}
-      <div className="bg-white border border-[#E5E7EB] rounded-lg p-5">
-        <h3 className="text-[14px] text-[#1A2332] mb-4" style={{ fontWeight: 600 }}>Linked Documents</h3>
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="material-icons text-[#6B7280]" style={{ fontSize: "18px" }}>request_quote</span>
-              <span className="text-[13px] text-[#374151]">Estimate</span>
-            </div>
-            {job.linkedEstimate ? (
-              <button
-                onClick={() => navigate(`/estimates/${job.linkedEstimate.id}`)}
-                className="text-[13px] text-[#4A6FA5] hover:underline flex items-center gap-2"
-                style={{ fontWeight: 500 }}
-              >
-                {job.linkedEstimate.title}
-                <span className="px-1.5 py-0.5 rounded text-[11px] bg-[#F3F4F6] text-[#6B7280]" style={{ fontWeight: 500 }}>{job.linkedEstimate.status}</span>
+    <div className="flex gap-4 items-start">
+      {/* ── Main content ── */}
+      <div className="flex-1 min-w-0 flex flex-col gap-4">
+        {/* Row 1: Service Address (col 1) | Assigned To (col 2–3) */}
+        <div className="grid grid-cols-3 gap-4">
+          <div className="bg-white border border-[#E5E7EB] rounded-lg p-5 flex flex-col">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Service Address</h3>
+              <button onClick={() => openEdit("address")} className="text-[#9CA3AF] hover:text-[#6B7280]" aria-label="Edit address" title="Edit address">
+                <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
               </button>
-            ) : (
-              <button
-                onClick={() => navigate("/estimates/create")}
-                className="text-[12px] text-[#4A6FA5] hover:underline"
-                style={{ fontWeight: 500 }}
-              >
-                Create
-              </button>
-            )}
-          </div>
-          <div className="h-px bg-[#F3F4F6]" />
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="material-icons text-[#6B7280]" style={{ fontSize: "18px" }}>receipt</span>
-              <span className="text-[13px] text-[#374151]">Invoice</span>
             </div>
-            {job.linkedInvoice ? (
-              <button
-                onClick={() => navigate(`/invoices/${job.linkedInvoice.id}`)}
-                className="text-[13px] text-[#4A6FA5] hover:underline flex items-center gap-2"
-                style={{ fontWeight: 500 }}
-              >
-                {job.linkedInvoice.title}
-                <span className="px-1.5 py-0.5 rounded text-[11px] bg-[#F3F4F6] text-[#6B7280]" style={{ fontWeight: 500 }}>{job.linkedInvoice.status}</span>
-              </button>
-            ) : (
-              <button
-                onClick={() => navigate("/invoices/create")}
-                className="text-[12px] text-[#4A6FA5] hover:underline"
-                style={{ fontWeight: 500 }}
-              >
-                Create
-              </button>
-            )}
+            <div className="flex items-start gap-2">
+              <span className="material-icons text-[#6B7280] mt-0.5" style={{ fontSize: "16px" }}>location_on</span>
+              <div className="text-[13px] text-[#374151] leading-[20px]">
+                {job.address}<br />
+                {job.city}, {job.state}, {job.zip}
+              </div>
+            </div>
           </div>
+
+          <div className="col-span-2 bg-white border border-[#E5E7EB] rounded-lg p-5 flex flex-col">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Assigned To</h3>
+              <button onClick={() => openEdit("assigned")} className="text-[#9CA3AF] hover:text-[#6B7280]" aria-label="Edit assigned" title="Edit assigned">
+                <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
+              </button>
+            </div>
+            <div className="flex items-center gap-8 flex-wrap flex-1">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-full bg-[#4A6FA5] flex items-center justify-center text-white text-[13px]" style={{ fontWeight: 600 }}>
+                  {job.assignedInitials}
+                </div>
+                <div>
+                  <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>{job.assignedTo}</div>
+                  <div className="text-[12px] text-[#9CA3AF]">Technician</div>
+                </div>
+              </div>
+              <div className="h-10 w-px bg-[#E5E7EB]" />
+              <div className="flex flex-col gap-1">
+                <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Role</div>
+                <div className="text-[13px] text-[#374151] leading-[20px]">Lead Technician</div>
+              </div>
+              <div className="flex flex-col gap-1">
+                <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Phone</div>
+                <div className="text-[13px] text-[#374151] leading-[20px]">(813) 555-0192</div>
+              </div>
+              <div className="flex flex-col gap-1">
+                <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Email</div>
+                <a href="mailto:marek@vision360.com" className="text-[13px] text-[#4A6FA5] leading-[20px] hover:underline">
+                  marek@vision360.com
+                </a>
+              </div>
+              <button className="ml-auto text-[12px] text-[#4A6FA5] hover:underline flex items-center gap-1" style={{ fontWeight: 500 }}>
+                <span className="material-icons" style={{ fontSize: "16px" }}>person_add</span>
+                Reassign
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Row 2: Job Date & Time | Job Overview (with Priority) | Linked Documents */}
+        <div className="grid grid-cols-3 gap-4">
+          <div className="bg-white border border-[#E5E7EB] rounded-lg p-5 flex flex-col">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Job Date & Time</h3>
+              <button onClick={() => openEdit("schedule")} className="text-[#9CA3AF] hover:text-[#6B7280]" aria-label="Edit schedule" title="Edit schedule">
+                <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex flex-col gap-1">
+                <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Start Date</div>
+                <div className="text-[13px] text-[#374151] leading-[20px]" style={{ fontWeight: 500 }}>{job.startedOn}</div>
+              </div>
+              <div className="flex flex-col gap-1">
+                <div className="text-[11px] text-[#9CA3AF] leading-[16px]">End Date</div>
+                <div className="text-[13px] text-[#374151] leading-[20px]" style={{ fontWeight: 500 }}>{job.endsOn}</div>
+              </div>
+              <div className="flex flex-col gap-1">
+                <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Start Time</div>
+                <div className="text-[13px] text-[#374151] leading-[20px]" style={{ fontWeight: 500 }}>{job.startTime}</div>
+              </div>
+              <div className="flex flex-col gap-1">
+                <div className="text-[11px] text-[#9CA3AF] leading-[16px]">End Time</div>
+                <div className="text-[13px] text-[#374151] leading-[20px]" style={{ fontWeight: 500 }}>{job.endTime}</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white border border-[#E5E7EB] rounded-lg p-5 flex flex-col">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Job Overview</h3>
+              <button onClick={() => openEdit("overview")} className="text-[#9CA3AF] hover:text-[#6B7280]" aria-label="Edit overview" title="Edit overview">
+                <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex flex-col gap-1">
+                <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Job Title</div>
+                <div className="text-[13px] text-[#374151] leading-[20px]" style={{ fontWeight: 500 }}>{job.title}</div>
+              </div>
+              <div className="flex flex-col gap-1">
+                <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Job #</div>
+                <div className="text-[13px] text-[#374151] leading-[20px]">{job.jobNumber}</div>
+              </div>
+              <div className="flex flex-col gap-1">
+                <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Job Type</div>
+                <div className="text-[13px] text-[#374151] leading-[20px]">{job.jobType}</div>
+              </div>
+              <div className="flex flex-col gap-1">
+                <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Priority</div>
+                <div>
+                  <span
+                    className="inline-flex items-center px-2 py-0.5 rounded text-[11px]"
+                    style={{
+                      fontWeight: 600,
+                      backgroundColor: priorityColors[job.priority]?.bg ?? "#F3F4F6",
+                      color: priorityColors[job.priority]?.text ?? "#6B7280",
+                    }}
+                  >
+                    {job.priority}
+                  </span>
+                </div>
+              </div>
+              <div className="flex flex-col gap-1">
+                <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Customer</div>
+                <button
+                  onClick={() => navigate("/clients/1")}
+                  className="text-[13px] text-[#4A6FA5] leading-[20px] hover:underline text-left"
+                  style={{ fontWeight: 500 }}
+                >
+                  {job.client}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white border border-[#E5E7EB] rounded-lg p-5">
+            <h3 className="text-[14px] text-[#1A2332] mb-4" style={{ fontWeight: 600 }}>Linked Documents</h3>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="material-icons text-[#6B7280]" style={{ fontSize: "18px" }}>request_quote</span>
+                  <span className="text-[13px] text-[#374151]">Estimate</span>
+                </div>
+                {job.linkedEstimate ? (
+                  <button
+                    onClick={() => navigate(`/estimates/${job.linkedEstimate.id}`)}
+                    className="text-[13px] text-[#4A6FA5] hover:underline flex items-center gap-2"
+                    style={{ fontWeight: 500 }}
+                  >
+                    {job.linkedEstimate.title}
+                    <span className="px-1.5 py-0.5 rounded text-[11px] bg-[#F3F4F6] text-[#6B7280]" style={{ fontWeight: 500 }}>{job.linkedEstimate.status}</span>
+                  </button>
+                ) : (
+                  <button onClick={() => navigate("/estimates/create")} className="text-[12px] text-[#4A6FA5] hover:underline" style={{ fontWeight: 500 }}>
+                    Create
+                  </button>
+                )}
+              </div>
+              <div className="h-px bg-[#F3F4F6]" />
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="material-icons text-[#6B7280]" style={{ fontSize: "18px" }}>receipt</span>
+                  <span className="text-[13px] text-[#374151]">Invoice</span>
+                </div>
+                {job.linkedInvoice ? (
+                  <button
+                    onClick={() => navigate(`/invoices/${job.linkedInvoice.id}`)}
+                    className="text-[13px] text-[#4A6FA5] hover:underline flex items-center gap-2"
+                    style={{ fontWeight: 500 }}
+                  >
+                    {job.linkedInvoice.title}
+                    <span className="px-1.5 py-0.5 rounded text-[11px] bg-[#F3F4F6] text-[#6B7280]" style={{ fontWeight: 500 }}>{job.linkedInvoice.status}</span>
+                  </button>
+                ) : (
+                  <button onClick={() => navigate("/invoices/create")} className="text-[12px] text-[#4A6FA5] hover:underline" style={{ fontWeight: 500 }}>
+                    Create
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Profitability Bar */}
+        <div className="bg-white border border-[#E5E7EB] rounded-lg px-5 py-4">
+          <div className="flex items-center gap-1.5 mb-3">
+            <h3 className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>Profitability</h3>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap text-[13px]">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] text-[#9CA3AF]">Total price</span>
+              <span className="text-[#16A34A]" style={{ fontWeight: 600 }}>
+                ${job.profitability.totalPrice.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
+            </div>
+            <span className="text-[#D1D5DB]">—</span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] text-[#9CA3AF]">Line Item Cost</span>
+              <span className="text-[#374151]" style={{ fontWeight: 500 }}>
+                ${job.profitability.lineItemCost.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
+            </div>
+            <span className="text-[#D1D5DB]">—</span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] text-[#9CA3AF]">Labor</span>
+              <span className="text-[#374151]" style={{ fontWeight: 500 }}>
+                ${job.profitability.labor.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
+            </div>
+            <span className="text-[#D1D5DB]">—</span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] text-[#9CA3AF]">Expenses</span>
+              <span className="text-[#374151]" style={{ fontWeight: 500 }}>
+                ${job.profitability.expenses.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
+            </div>
+            <span className="text-[#D1D5DB] mx-1">=</span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] text-[#9CA3AF]">Profit</span>
+              <span style={{ fontWeight: 700, color: job.profitability.profit < 0 ? "#DC2626" : "#16A34A" }}>
+                {job.profitability.profit < 0 ? "-" : ""}${Math.abs(job.profitability.profit).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
+            </div>
+            <div className="ml-auto flex items-center gap-1.5">
+              <span className="text-[11px] text-[#9CA3AF]">Profit margin</span>
+              <span
+                className="text-[15px]"
+                style={{ fontWeight: 700, color: job.profitability.margin < 0 ? "#DC2626" : "#16A34A" }}
+              >
+                {job.profitability.margin.toFixed(1)}%
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Notes Panel (right side) ── */}
+      <div className="w-[272px] shrink-0 bg-white border border-[#E5E7EB] rounded-lg flex flex-col overflow-hidden">
+        {/* Notes sub-tabs */}
+        <div className="flex border-b border-[#E5E7EB]">
+          {(["notes", "private", "field"] as NotesTabKey[]).map((t) => {
+            const label = t === "notes" ? "Notes" : t === "private" ? "Private Notes" : "Field Notes";
+            return (
+              <button
+                key={t}
+                onClick={() => setNotesTab(t)}
+                className={`flex-1 py-2.5 text-[11px] transition-colors ${
+                  notesTab === t ? "text-[#4A6FA5] border-b-2 border-[#4A6FA5]" : "text-[#6B7280] hover:text-[#374151]"
+                }`}
+                style={{ fontWeight: notesTab === t ? 600 : 500 }}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Notes content */}
+        <div className="flex-1 p-3 flex flex-col gap-2">
+          {notesTab === "notes" && (
+            <>
+              {job.notes.length > 0 ? (
+                <div className="flex flex-col gap-2">
+                  {job.notes.map((note: NoteEntry) => (
+                    <div key={note.id} className="p-2.5 bg-[#F9FAFB] rounded-md">
+                      <div className="text-[12px] text-[#1A2332] leading-[18px]">{note.text}</div>
+                      <div className="text-[11px] text-[#9CA3AF] mt-1">{note.date}</div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-[12px] text-[#9CA3AF] text-center py-6">No notes yet</div>
+              )}
+            </>
+          )}
+          {notesTab === "private" && (
+            <div className="text-[12px] text-[#9CA3AF] text-center py-6">No private notes yet</div>
+          )}
+          {notesTab === "field" && (
+            <div className="text-[12px] text-[#9CA3AF] text-center py-6">No field notes yet</div>
+          )}
+          <button className="mt-auto flex items-center gap-1 text-[12px] text-[#4A6FA5] hover:underline" style={{ fontWeight: 500 }}>
+            <span className="material-icons" style={{ fontSize: "14px" }}>add</span>
+            Add note
+          </button>
         </div>
       </div>
     </div>
   );
 
   const renderAppointmentsTab = () => (
+    <div className="bg-white border border-[#E5E7EB] rounded-lg py-16 text-center">
+      <span className="material-icons text-[#D1D5DB] mb-3 block" style={{ fontSize: "40px" }}>construction</span>
+      <p className="text-[14px] text-[#6B7280]" style={{ fontWeight: 500 }}>Coming soon</p>
+      <p className="text-[13px] text-[#9CA3AF] mt-1">This feature will be available in a future update.</p>
+    </div>
+  );
+
+  const renderDocumentsTab = () => (
     <div className="bg-white border border-[#E5E7EB] rounded-lg p-5">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Scheduled Appointments</h3>
-        <button className="text-[12px] text-[#4A6FA5] hover:underline flex items-center gap-1" style={{ fontWeight: 500 }}>
-          <span className="material-icons" style={{ fontSize: "16px" }}>add</span>
-          Add appointment
-        </button>
+      {/* Sub-tabs */}
+      <div className="flex gap-1 border-b border-[#E5E7EB] mb-5">
+        {(["estimates", "invoices", "photos"] as DocTabKey[]).map((t) => {
+          const label = t === "estimates" ? "Estimates" : t === "invoices" ? "Invoices" : "Photos";
+          return (
+            <button
+              key={t}
+              onClick={() => setDocTab(t)}
+              className={`pb-3 px-3 text-[13px] border-b-2 transition-colors ${
+                docTab === t ? "border-[#4A6FA5] text-[#4A6FA5]" : "border-transparent text-[#6B7280] hover:text-[#374151]"
+              }`}
+              style={{ fontWeight: docTab === t ? 600 : 500 }}
+            >
+              {label}
+            </button>
+          );
+        })}
       </div>
-      {job.visits.length > 0 ? (
-        <table className="w-full text-[13px]">
-          <thead>
-            <tr className="border-b border-[#E5E7EB]">
-              <th className="text-left py-2 text-[11px] uppercase tracking-wide text-[#9CA3AF]" style={{ fontWeight: 600 }}>Date and time</th>
-              <th className="text-left py-2 text-[11px] uppercase tracking-wide text-[#9CA3AF]" style={{ fontWeight: 600 }}>Title</th>
-              <th className="text-left py-2 text-[11px] uppercase tracking-wide text-[#9CA3AF]" style={{ fontWeight: 600 }}>Status</th>
-              <th className="text-left py-2 text-[11px] uppercase tracking-wide text-[#9CA3AF]" style={{ fontWeight: 600 }}>Assigned</th>
-              <th className="py-2"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {job.visits.map((v: Visit) => (
-              <tr key={v.id} className="border-b border-[#F3F4F6]">
-                <td className="py-3 text-[#374151]">{v.dateTime}</td>
-                <td className="py-3 text-[#1A2332]">{v.title}</td>
-                <td className="py-3">
-                  <span
-                    className="inline-flex items-center px-2 py-0.5 rounded text-[11px]"
-                    style={{
-                      fontWeight: 600,
-                      backgroundColor: `${statusColors[v.status]}20`,
-                      color: statusColors[v.status],
-                    }}
-                  >
-                    {v.status}
-                  </span>
-                </td>
-                <td className="py-3">
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-full bg-[#4A6FA5] flex items-center justify-center text-white text-[10px]" style={{ fontWeight: 600 }}>MS</div>
-                    <span className="text-[#374151]">{v.assigned}</span>
-                  </div>
-                </td>
-                <td className="py-3">
-                  <button className="p-1 hover:bg-[#F3F4F6] rounded">
-                    <span className="material-icons text-[#6B7280]" style={{ fontSize: "18px" }}>check_circle_outline</span>
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      ) : (
-        <div className="text-[13px] text-[#9CA3AF] text-center py-8">No appointments scheduled</div>
+
+      {docTab === "estimates" && (
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Estimates</h3>
+            <button
+              onClick={() => navigate("/estimates/create")}
+              className="text-[12px] text-[#4A6FA5] hover:underline flex items-center gap-1"
+              style={{ fontWeight: 500 }}
+            >
+              <span className="material-icons" style={{ fontSize: "16px" }}>add</span>
+              Create estimate
+            </button>
+          </div>
+          {job.linkedEstimate ? (
+            <table className="w-full text-[13px]">
+              <thead>
+                <tr className="border-b border-[#E5E7EB]">
+                  <th className="text-left py-2 text-[11px] uppercase tracking-wide text-[#9CA3AF]" style={{ fontWeight: 600 }}>Estimate</th>
+                  <th className="text-left py-2 text-[11px] uppercase tracking-wide text-[#9CA3AF]" style={{ fontWeight: 600 }}>Status</th>
+                  <th className="py-2"></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-b border-[#F3F4F6]">
+                  <td className="py-3">
+                    <div className="flex items-center gap-2">
+                      <span className="material-icons text-[#6B7280]" style={{ fontSize: "18px" }}>request_quote</span>
+                      <button
+                        onClick={() => navigate(`/estimates/${job.linkedEstimate.id}`)}
+                        className="text-[#4A6FA5] hover:underline"
+                        style={{ fontWeight: 500 }}
+                      >
+                        {job.linkedEstimate.title}
+                      </button>
+                    </div>
+                  </td>
+                  <td className="py-3">
+                    <span className="px-1.5 py-0.5 rounded text-[11px] bg-[#F3F4F6] text-[#6B7280]" style={{ fontWeight: 500 }}>
+                      {job.linkedEstimate.status}
+                    </span>
+                  </td>
+                  <td className="py-3 text-right">
+                    <button className="text-[12px] text-[#6B7280] hover:text-[#374151]">
+                      <span className="material-icons" style={{ fontSize: "18px" }}>open_in_new</span>
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          ) : (
+            <div className="text-center py-8">
+              <span className="material-icons text-[#D1D5DB] mb-2 block" style={{ fontSize: "40px" }}>request_quote</span>
+              <div className="text-[13px] text-[#9CA3AF]">No estimates yet</div>
+              <button
+                onClick={() => navigate("/estimates/create")}
+                className="mt-3 text-[12px] text-[#4A6FA5] hover:underline"
+                style={{ fontWeight: 500 }}
+              >
+                Create the first estimate
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {docTab === "invoices" && (
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Invoices</h3>
+            <button
+              onClick={() => navigate("/invoices/create")}
+              className="text-[12px] text-[#4A6FA5] hover:underline flex items-center gap-1"
+              style={{ fontWeight: 500 }}
+            >
+              <span className="material-icons" style={{ fontSize: "16px" }}>add</span>
+              Create invoice
+            </button>
+          </div>
+          {job.linkedInvoice ? (
+            <table className="w-full text-[13px]">
+              <thead>
+                <tr className="border-b border-[#E5E7EB]">
+                  <th className="text-left py-2 text-[11px] uppercase tracking-wide text-[#9CA3AF]" style={{ fontWeight: 600 }}>Invoice</th>
+                  <th className="text-left py-2 text-[11px] uppercase tracking-wide text-[#9CA3AF]" style={{ fontWeight: 600 }}>Status</th>
+                  <th className="py-2"></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-b border-[#F3F4F6]">
+                  <td className="py-3">
+                    <div className="flex items-center gap-2">
+                      <span className="material-icons text-[#6B7280]" style={{ fontSize: "18px" }}>receipt</span>
+                      <button
+                        onClick={() => navigate(`/invoices/${job.linkedInvoice.id}`)}
+                        className="text-[#4A6FA5] hover:underline"
+                        style={{ fontWeight: 500 }}
+                      >
+                        {job.linkedInvoice.title}
+                      </button>
+                    </div>
+                  </td>
+                  <td className="py-3">
+                    <span className="px-1.5 py-0.5 rounded text-[11px] bg-[#F3F4F6] text-[#6B7280]" style={{ fontWeight: 500 }}>
+                      {job.linkedInvoice.status}
+                    </span>
+                  </td>
+                  <td className="py-3 text-right">
+                    <button className="text-[12px] text-[#6B7280] hover:text-[#374151]">
+                      <span className="material-icons" style={{ fontSize: "18px" }}>open_in_new</span>
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          ) : (
+            <div className="text-center py-8">
+              <span className="material-icons text-[#D1D5DB] mb-2 block" style={{ fontSize: "40px" }}>receipt</span>
+              <div className="text-[13px] text-[#9CA3AF]">No invoices yet</div>
+              <button
+                onClick={() => navigate("/invoices/create")}
+                className="mt-3 text-[12px] text-[#4A6FA5] hover:underline"
+                style={{ fontWeight: 500 }}
+              >
+                Create the first invoice
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {docTab === "photos" && (
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Attachments & Photos</h3>
+            <button className="px-3 py-1.5 border border-[#4A6FA5] text-[#4A6FA5] rounded-md text-[12px] hover:bg-[#EBF0F8] flex items-center gap-1" style={{ fontWeight: 500 }}>
+              <span className="material-icons" style={{ fontSize: "16px" }}>add_a_photo</span>
+              Upload
+            </button>
+          </div>
+          <div className="flex gap-4 border-b border-[#E5E7EB] mb-4">
+            <button
+              onClick={() => setPhotoTab("before")}
+              className={`pb-2 text-[13px] border-b-2 ${photoTab === "before" ? "border-[#4A6FA5] text-[#4A6FA5]" : "border-transparent text-[#6B7280]"}`}
+              style={{ fontWeight: photoTab === "before" ? 600 : 500 }}
+            >
+              Before
+            </button>
+            <button
+              onClick={() => setPhotoTab("after")}
+              className={`pb-2 text-[13px] border-b-2 ${photoTab === "after" ? "border-[#4A6FA5] text-[#4A6FA5]" : "border-transparent text-[#6B7280]"}`}
+              style={{ fontWeight: photoTab === "after" ? 600 : 500 }}
+            >
+              After
+            </button>
+          </div>
+          <div className="border-2 border-dashed border-[#E5E7EB] rounded-lg p-8 text-center">
+            <span className="material-icons text-[#D1D5DB] mb-2 block" style={{ fontSize: "40px" }}>photo_camera</span>
+            <p className="text-[13px] text-[#9CA3AF]">
+              No {photoTab} photos yet. Upload photos to document job progress.
+            </p>
+          </div>
+        </div>
       )}
     </div>
   );
@@ -478,19 +679,10 @@ export function JobDetail() {
   );
 
   const renderLaborTab = () => (
-    <div className="bg-white border border-[#E5E7EB] rounded-lg p-5">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Time Entries</h3>
-        <button className="text-[12px] text-[#4A6FA5] hover:underline flex items-center gap-1" style={{ fontWeight: 500 }}>
-          <span className="material-icons" style={{ fontSize: "16px" }}>add</span>
-          Add time entry
-        </button>
-      </div>
-      <div className="text-center py-8">
-        <span className="material-icons text-[#D1D5DB] mb-2 block" style={{ fontSize: "40px" }}>schedule</span>
-        <div className="text-[13px] text-[#9CA3AF]">No time entries yet</div>
-        <div className="text-[12px] text-[#9CA3AF] mt-1">Time tracked to this job will show here</div>
-      </div>
+    <div className="bg-white border border-[#E5E7EB] rounded-lg py-16 text-center">
+      <span className="material-icons text-[#D1D5DB] mb-3 block" style={{ fontSize: "40px" }}>construction</span>
+      <p className="text-[14px] text-[#6B7280]" style={{ fontWeight: 500 }}>Coming soon</p>
+      <p className="text-[13px] text-[#9CA3AF] mt-1">This feature will be available in a future update.</p>
     </div>
   );
 
@@ -546,84 +738,6 @@ export function JobDetail() {
     </div>
   );
 
-  const renderFinanceTab = () => (
-    <div className="bg-white border border-[#E5E7EB] rounded-lg p-5">
-      <h3 className="text-[14px] text-[#1A2332] mb-5" style={{ fontWeight: 600 }}>Profitability</h3>
-      <div className="grid grid-cols-5 gap-4 mb-6">
-        <div className="flex flex-col gap-1">
-          <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Total Price</div>
-          <div className="text-[18px] text-[#1A2332] leading-[28px]" style={{ fontWeight: 600 }}>${job.profitability.totalPrice.toFixed(2)}</div>
-        </div>
-        <div className="flex flex-col gap-1">
-          <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Line Item Cost</div>
-          <div className="text-[18px] text-[#374151] leading-[28px]" style={{ fontWeight: 500 }}>${job.profitability.lineItemCost.toFixed(2)}</div>
-        </div>
-        <div className="flex flex-col gap-1">
-          <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Labor</div>
-          <div className="text-[18px] text-[#374151] leading-[28px]" style={{ fontWeight: 500 }}>${job.profitability.labor.toFixed(2)}</div>
-        </div>
-        <div className="flex flex-col gap-1">
-          <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Expenses</div>
-          <div className="text-[18px] text-[#374151] leading-[28px]" style={{ fontWeight: 500 }}>${job.profitability.expenses.toFixed(2)}</div>
-        </div>
-        <div className="flex flex-col gap-1">
-          <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Profit</div>
-          <div
-            className="text-[18px] leading-[28px]"
-            style={{ fontWeight: 600, color: job.profitability.profit < 0 ? "#DC2626" : "#16A34A" }}
-          >
-            {job.profitability.profit < 0 ? "-" : ""}${Math.abs(job.profitability.profit).toFixed(2)}
-          </div>
-        </div>
-      </div>
-      <div className="border-t border-[#F3F4F6] pt-4">
-        <div className="flex items-baseline gap-2">
-          <div className="text-[11px] text-[#9CA3AF] uppercase tracking-wide" style={{ fontWeight: 600 }}>Profit margin</div>
-          <div
-            className="text-[28px] leading-none"
-            style={{ fontWeight: 700, color: job.profitability.margin < 0 ? "#DC2626" : "#16A34A" }}
-          >
-            {job.profitability.margin.toFixed(1)}%
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderAttachmentsTab = () => (
-    <div className="bg-white border border-[#E5E7EB] rounded-lg p-5">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Photos</h3>
-        <button className="px-3 py-1.5 border border-[#4A6FA5] text-[#4A6FA5] rounded-md text-[12px] hover:bg-[#EBF0F8] flex items-center gap-1" style={{ fontWeight: 500 }}>
-          <span className="material-icons" style={{ fontSize: "16px" }}>add_a_photo</span>
-          Upload
-        </button>
-      </div>
-      <div className="flex gap-4 border-b border-[#E5E7EB] mb-4">
-        <button
-          onClick={() => setPhotoTab("before")}
-          className={`pb-2 text-[13px] border-b-2 ${photoTab === "before" ? "border-[#4A6FA5] text-[#4A6FA5]" : "border-transparent text-[#6B7280]"}`}
-          style={{ fontWeight: photoTab === "before" ? 600 : 500 }}
-        >
-          Before
-        </button>
-        <button
-          onClick={() => setPhotoTab("after")}
-          className={`pb-2 text-[13px] border-b-2 ${photoTab === "after" ? "border-[#4A6FA5] text-[#4A6FA5]" : "border-transparent text-[#6B7280]"}`}
-          style={{ fontWeight: photoTab === "after" ? 600 : 500 }}
-        >
-          After
-        </button>
-      </div>
-      <div className="border-2 border-dashed border-[#E5E7EB] rounded-lg p-8 text-center">
-        <span className="material-icons text-[#D1D5DB] mb-2 block" style={{ fontSize: "40px" }}>photo_camera</span>
-        <p className="text-[13px] text-[#9CA3AF]">
-          No {photoTab} photos yet. Upload photos to document job progress.
-        </p>
-      </div>
-    </div>
-  );
-
   const renderActivityTab = () => (
     <div className="bg-white border border-[#E5E7EB] rounded-lg p-5">
       <h3 className="text-[14px] text-[#1A2332] mb-5" style={{ fontWeight: 600 }}>Activity Log</h3>
@@ -649,28 +763,16 @@ export function JobDetail() {
     </div>
   );
 
-  const renderComingSoon = () => (
-    <div className="bg-white border border-[#E5E7EB] rounded-lg p-10 text-center">
-      <span className="material-icons text-[#D1D5DB] mb-3 block" style={{ fontSize: "40px" }}>construction</span>
-      <p className="text-[14px] text-[#6B7280]" style={{ fontWeight: 500 }}>Coming soon</p>
-      <p className="text-[13px] text-[#9CA3AF] mt-1">This feature will be available in a future update.</p>
-    </div>
-  );
-
   const renderContent = () => {
     switch (activeTab) {
       case "details": return renderDetailsTab();
       case "appointments": return renderAppointmentsTab();
+      case "documents": return renderDocumentsTab();
       case "items": return renderItemsTab();
       case "labor": return renderLaborTab();
       case "expenses": return renderExpensesTab();
-      case "finance": return renderFinanceTab();
-      case "attachments": return renderAttachmentsTab();
       case "activity": return renderActivityTab();
-      case "checklists":
-      case "equipment":
-      default:
-        return renderComingSoon();
+      default: return null;
     }
   };
 
@@ -736,19 +838,6 @@ export function JobDetail() {
 
                 {/* Icons row + Status */}
                 <div className="flex items-center gap-4">
-                  {/* Customer link */}
-                  <div className="relative group">
-                    <button
-                      onClick={() => navigate("/clients/1")}
-                      className="flex items-center justify-center w-6 h-6 rounded hover:bg-[#F3F4F6] transition-colors"
-                    >
-                      <span className="material-icons text-[#6B7280]" style={{ fontSize: "18px" }}>person</span>
-                    </button>
-                    <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1 hidden group-hover:block bg-white border border-[#E5E7EB] shadow-lg rounded-lg px-3 py-2 whitespace-nowrap z-50">
-                      <div className="text-[13px] text-[#1A2332]">{job.client}</div>
-                    </div>
-                  </div>
-
                   {/* Phone */}
                   <div className="relative group">
                     <button className="flex items-center justify-center w-6 h-6 rounded hover:bg-[#F3F4F6] transition-colors">
@@ -768,6 +857,11 @@ export function JobDetail() {
                       <div className="text-[13px] text-[#1A2332]">{job.email}</div>
                     </div>
                   </div>
+
+                  {/* Job Type */}
+                  <span className="px-2.5 py-1 rounded text-[11px] bg-[#F3F4F6] text-[#374151]" style={{ fontWeight: 500 }}>
+                    {job.jobType}
+                  </span>
 
                   {/* Status badge */}
                   <div className="relative">
@@ -807,14 +901,10 @@ export function JobDetail() {
                 <div className="flex flex-col gap-4">
                   <div className="flex flex-col gap-1">
                     <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Customer since</div>
-                    <div className="text-[13px] text-[#374151] leading-[20px]">
-                      {job.customerSince}
-                    </div>
+                    <div className="text-[13px] text-[#374151] leading-[20px]">{job.customerSince}</div>
                   </div>
                   <div className="flex flex-col gap-1">
-                    <div className="text-[11px] text-[#9CA3AF] leading-[16px]">
-                      Tags ({job.tags.length})
-                    </div>
+                    <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Tags ({job.tags.length})</div>
                     {job.tags.length > 0 ? (
                       <div className="flex gap-1.5 flex-wrap">
                         {job.tags.slice(0, 2).map((tag: string, i: number) => (
@@ -847,12 +937,10 @@ export function JobDetail() {
 
                 {/* Column 3: Notes */}
                 <div className="relative group cursor-pointer flex flex-col gap-1">
-                  <div className="text-[11px] text-[#9CA3AF] leading-[16px]">
-                    Notes ({job.notes.length})
-                  </div>
+                  <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Notes ({job.notes.length})</div>
                   {job.notes.length > 0 ? (
                     <div className="flex flex-col gap-1">
-                      {job.notes.slice(0, 2).map((note: any) => (
+                      {job.notes.slice(0, 2).map((note: NoteEntry) => (
                         <div key={note.id} className="text-[12px] text-[#374151] leading-[18px] truncate max-w-[240px]">
                           {note.text}
                         </div>
@@ -874,14 +962,10 @@ export function JobDetail() {
                         </div>
                         <div className="h-px bg-[#E5E7EB] mb-3"></div>
                         <div className="flex flex-col gap-3 max-h-[400px] overflow-y-auto">
-                          {job.notes.map((note: any, index: number) => (
+                          {job.notes.map((note: NoteEntry, index: number) => (
                             <div key={note.id} className="flex flex-col gap-1">
-                              <div className="text-[13px] text-[#1A2332] leading-[20px]">
-                                {note.text}
-                              </div>
-                              <div className="text-[11px] text-[#6B7280] leading-[16px]">
-                                {note.date}
-                              </div>
+                              <div className="text-[13px] text-[#1A2332] leading-[20px]">{note.text}</div>
+                              <div className="text-[11px] text-[#6B7280] leading-[16px]">{note.date}</div>
                               {index < job.notes.length - 1 && <div className="h-px bg-[#E5E7EB] mt-2"></div>}
                             </div>
                           ))}
@@ -896,31 +980,24 @@ export function JobDetail() {
             {/* Financial Summary */}
             <div className="border-l border-[#E5E7EB] pl-8" style={{ width: "280px" }}>
               <div className="grid grid-cols-2 gap-x-6 gap-y-4 w-[255px]">
-                {/* Total Price */}
                 <div className="flex flex-col gap-1">
                   <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Total Price</div>
                   <div className="text-[18px] text-[#16A34A] leading-[28px]" style={{ fontWeight: 600 }}>
                     ${job.profitability.totalPrice.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
                 </div>
-
-                {/* Labor */}
                 <div className="flex flex-col gap-1">
                   <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Labor</div>
                   <div className="text-[18px] text-[#1A2332] leading-[28px]" style={{ fontWeight: 500 }}>
                     ${job.profitability.labor.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
                 </div>
-
-                {/* All Expenses */}
                 <div className="flex flex-col gap-1">
                   <div className="text-[11px] text-[#9CA3AF] leading-[16px]">All Expenses</div>
                   <div className="text-[18px] text-[#1A2332] leading-[28px]" style={{ fontWeight: 500 }}>
                     ${(job.profitability.lineItemCost + job.profitability.expenses).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
                 </div>
-
-                {/* Profit Margin */}
                 <div className="flex flex-col gap-1">
                   <div className="flex items-center gap-1.5">
                     <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Profit Margin</div>
@@ -933,10 +1010,7 @@ export function JobDetail() {
                   </div>
                   <div
                     className="text-[18px] leading-[28px]"
-                    style={{
-                      fontWeight: 600,
-                      color: job.profitability.margin < 0 ? "#DC2626" : "#16A34A",
-                    }}
+                    style={{ fontWeight: 600, color: job.profitability.margin < 0 ? "#DC2626" : "#16A34A" }}
                   >
                     {job.profitability.margin.toFixed(1)}%
                   </div>
@@ -951,21 +1025,16 @@ export function JobDetail() {
       <div className="bg-white sticky top-0 z-30">
         <div className="flex items-center overflow-x-auto scrollbar-hide border-b border-[#E5E7EB]">
           <div className="flex items-center px-6">
-            {TABS.map(({ key, label, count }) => (
+            {TABS.map(({ key, label }) => (
               <button
                 key={key}
                 onClick={() => setActiveTab(key)}
                 className={`relative h-[45px] px-4 shrink-0 text-[13px] transition-colors whitespace-nowrap ${
-                  activeTab === key
-                    ? "text-[#4A6FA5]"
-                    : "text-[#6B7280] hover:text-[#374151]"
+                  activeTab === key ? "text-[#4A6FA5]" : "text-[#6B7280] hover:text-[#374151]"
                 }`}
                 style={{ fontWeight: 500 }}
               >
                 {label}
-                {count !== undefined && count > 0 && (
-                  <span className="ml-0.5" style={{ fontWeight: 400 }}>({count})</span>
-                )}
                 {activeTab === key && (
                   <div className="absolute bottom-[10px] left-0 right-0 h-[2px] bg-[#4A6FA5]" />
                 )}
@@ -1079,42 +1148,40 @@ export function JobDetail() {
               )}
 
               {editingSection === "schedule" && (
-                <>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>Job date</label>
-                      <input
-                        value={editJob.startedOn || ""}
-                        onChange={(e) => setEditField("startedOn", e.target.value)}
-                        className="w-full h-10 px-3 border border-[#D1D5DB] rounded-md text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>End date</label>
-                      <input
-                        value={editJob.endsOn || ""}
-                        onChange={(e) => setEditField("endsOn", e.target.value)}
-                        className="w-full h-10 px-3 border border-[#D1D5DB] rounded-md text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>Start time</label>
-                      <input
-                        value={editJob.startTime || ""}
-                        onChange={(e) => setEditField("startTime", e.target.value)}
-                        className="w-full h-10 px-3 border border-[#D1D5DB] rounded-md text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>End time</label>
-                      <input
-                        value={editJob.endTime || ""}
-                        onChange={(e) => setEditField("endTime", e.target.value)}
-                        className="w-full h-10 px-3 border border-[#D1D5DB] rounded-md text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
-                      />
-                    </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>Start date</label>
+                    <input
+                      value={editJob.startedOn || ""}
+                      onChange={(e) => setEditField("startedOn", e.target.value)}
+                      className="w-full h-10 px-3 border border-[#D1D5DB] rounded-md text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
+                    />
                   </div>
-                </>
+                  <div>
+                    <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>End date</label>
+                    <input
+                      value={editJob.endsOn || ""}
+                      onChange={(e) => setEditField("endsOn", e.target.value)}
+                      className="w-full h-10 px-3 border border-[#D1D5DB] rounded-md text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>Start time</label>
+                    <input
+                      value={editJob.startTime || ""}
+                      onChange={(e) => setEditField("startTime", e.target.value)}
+                      className="w-full h-10 px-3 border border-[#D1D5DB] rounded-md text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>End time</label>
+                    <input
+                      value={editJob.endTime || ""}
+                      onChange={(e) => setEditField("endTime", e.target.value)}
+                      className="w-full h-10 px-3 border border-[#D1D5DB] rounded-md text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
+                    />
+                  </div>
+                </div>
               )}
 
               {editingSection === "overview" && (
@@ -1143,8 +1210,21 @@ export function JobDetail() {
                         onChange={(e) => setEditField("jobType", e.target.value)}
                         className="w-full h-10 px-3 border border-[#D1D5DB] rounded-md text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
                       >
-                        <option value="One-off job">One-off job</option>
-                        <option value="Recurring job">Recurring job</option>
+                        <option value="Estimate">Estimate</option>
+                        <option value="Install">Install</option>
+                        <option value="Maintenance">Maintenance</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>Priority</label>
+                      <select
+                        value={editJob.priority || "Low"}
+                        onChange={(e) => setEditField("priority", e.target.value)}
+                        className="w-full h-10 px-3 border border-[#D1D5DB] rounded-md text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
+                      >
+                        <option value="Low">Low</option>
+                        <option value="Medium">Medium</option>
+                        <option value="High">High</option>
                       </select>
                     </div>
                   </div>
