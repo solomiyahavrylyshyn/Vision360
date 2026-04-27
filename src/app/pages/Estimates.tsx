@@ -6,7 +6,7 @@ import { PageHeader } from "../components/ui/page-header";
 import { SelectionBar } from "../components/ui/selection-bar";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
-type EstimateStatus = "Unsent" | "Pending" | "Approved" | "Declined" | "Won" | "Archived";
+type EstimateStatus = "Unsent" | "Pending" | "Approved" | "Declined" | "Won" | "Archived" | "Drafted" | "Accepted" | "Sent";
 
 interface Estimate {
   id: number;
@@ -16,8 +16,13 @@ interface Estimate {
   clientEmail: string;
   createdDate: string;
   addedBy: string;
+  option?: string;
   amount: number;
   status: EstimateStatus;
+  job?: string;
+  sentDate?: string;
+  expirationDate?: string;
+  teamMember?: string;
   source: string;
   depositDue: number;
   updatedDate?: string;
@@ -31,6 +36,9 @@ interface Client {
   address: string;
 }
 
+const primaryStatuses: EstimateStatus[] = ["Unsent", "Pending", "Approved", "Declined", "Won", "Archived"];
+const otherStatuses: EstimateStatus[] = ["Drafted", "Accepted", "Sent"];
+
 const statusColors: Record<EstimateStatus, string> = {
   Unsent: "#A855F7",
   Pending: "#F59E0B",
@@ -38,7 +46,30 @@ const statusColors: Record<EstimateStatus, string> = {
   Declined: "#EF4444",
   Won: "#22C55E",
   Archived: "#9CA3AF",
+  Drafted: "#D97706",
+  Accepted: "#15803D",
+  Sent: "#1E40AF",
 };
+
+const statusBg: Record<EstimateStatus, string> = {
+  Unsent: "#F3E8FF",
+  Pending: "#FEF3C7",
+  Approved: "#DBEAFE",
+  Declined: "#FEE2E2",
+  Won: "#DCFCE7",
+  Archived: "#F3F4F6",
+  Drafted: "#FEF9C3",
+  Accepted: "#D1FAE5",
+  Sent: "#EFF6FF",
+};
+
+const avatarColors = ["#4A6FA5", "#3B82F6", "#8B5CF6", "#D97706", "#10B981", "#DC2626"];
+function getInitials(name: string) {
+  return name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase();
+}
+function getAvatarColor(name: string) {
+  return avatarColors[name.charCodeAt(0) % avatarColors.length];
+}
 
 const timeFilters = [
   "All time", "Custom", "Today", "Yesterday", "Last 7 days", "Last 14 days",
@@ -56,15 +87,15 @@ const mockClients: Client[] = [
 ];
 
 const initialEstimates: Estimate[] = [
-  { id: 1, estimateNumber: "1", estimateName: "", clientName: "Travis Jones", clientEmail: "cerb04@yahoo.com", createdDate: "Mon Mar 30, 2026", addedBy: "Marek Ste", amount: 0, status: "Unsent", source: "", depositDue: 0 },
-  { id: 2, estimateNumber: "8-1", estimateName: "Estimate 1", clientName: "John Doe", clientEmail: "cerb04@yahoo.com", createdDate: "Fri Mar 13, 2026", addedBy: "Marek Fie", amount: 0, status: "Unsent", source: "Job - 8", depositDue: 0 },
-  { id: 3, estimateNumber: "4-3", estimateName: "Option C", clientName: "John Doe", clientEmail: "cerb04@yahoo.com", createdDate: "Mon Mar 02, 2026", addedBy: "Marek Fie", amount: 0, status: "Unsent", source: "Job - 4", depositDue: 0 },
-  { id: 4, estimateNumber: "4-2", estimateName: "Option B", clientName: "John Doe", clientEmail: "cerb04@yahoo.com", createdDate: "Mon Mar 02, 2026", addedBy: "Marek Fie", amount: 0, status: "Unsent", source: "Job - 4", depositDue: 0 },
-  { id: 5, estimateNumber: "4-1", estimateName: "Option A", clientName: "John Doe", clientEmail: "cerb04@yahoo.com", createdDate: "Mon Mar 02, 2026", addedBy: "Marek Fie", amount: 3500, status: "Won", source: "Job - 4", depositDue: 0, updatedDate: "Mar 02, 2026" },
-  { id: 6, estimateNumber: "3-1", estimateName: "HVAC Replacement", clientName: "Sarah Williams", clientEmail: "sarah.w@gmail.com", createdDate: "Sat Feb 28, 2026", addedBy: "Marek Fie", amount: 10502, status: "Won", source: "Job - 3", depositDue: 500 },
-  { id: 7, estimateNumber: "5-1", estimateName: "Plumbing Repair", clientName: "Mike Rodriguez", clientEmail: "mike.r@outlook.com", createdDate: "Wed Feb 25, 2026", addedBy: "Marek Fie", amount: 850, status: "Pending", source: "Job - 5", depositDue: 0 },
-  { id: 8, estimateNumber: "6-1", estimateName: "Electrical Upgrade", clientName: "Travis Jones", clientEmail: "cerb04@yahoo.com", createdDate: "Mon Feb 23, 2026", addedBy: "Marek Fie", amount: 2200, status: "Approved", source: "Job - 6", depositDue: 200 },
-  { id: 9, estimateNumber: "7-1", estimateName: "Roof Inspection", clientName: "Sarah Williams", clientEmail: "sarah.w@gmail.com", createdDate: "Fri Feb 20, 2026", addedBy: "Marek Ste", amount: 350, status: "Declined", source: "Job - 7", depositDue: 0 },
+  { id: 1, estimateNumber: "1", estimateName: "", clientName: "Travis Jones", clientEmail: "cerb04@yahoo.com", createdDate: "Mon Mar 30, 2026", addedBy: "Marek Ste", option: "", amount: 0, status: "Unsent", job: "", sentDate: "", expirationDate: "", teamMember: "Marek Stroz", source: "", depositDue: 0 },
+  { id: 2, estimateNumber: "8-1", estimateName: "Estimate 1", clientName: "John Doe", clientEmail: "cerb04@yahoo.com", createdDate: "Fri Mar 13, 2026", addedBy: "Marek Fie", option: "1", amount: 0, status: "Unsent", job: "Job - 8", sentDate: "", expirationDate: "Apr 13, 2026", teamMember: "Marek Stroz", source: "Job - 8", depositDue: 0 },
+  { id: 3, estimateNumber: "4-3", estimateName: "Option C", clientName: "John Doe", clientEmail: "cerb04@yahoo.com", createdDate: "Mon Mar 02, 2026", addedBy: "Marek Fie", option: "C", amount: 0, status: "Unsent", job: "Job - 4", sentDate: "Mar 03, 2026", expirationDate: "Apr 02, 2026", teamMember: "Marek Stroz", source: "Job - 4", depositDue: 0 },
+  { id: 4, estimateNumber: "4-2", estimateName: "Option B", clientName: "John Doe", clientEmail: "cerb04@yahoo.com", createdDate: "Mon Mar 02, 2026", addedBy: "Marek Fie", option: "B", amount: 0, status: "Unsent", job: "Job - 4", sentDate: "Mar 03, 2026", expirationDate: "Apr 02, 2026", teamMember: "Marek Stroz", source: "Job - 4", depositDue: 0 },
+  { id: 5, estimateNumber: "4-1", estimateName: "Option A", clientName: "John Doe", clientEmail: "cerb04@yahoo.com", createdDate: "Mon Mar 02, 2026", addedBy: "Marek Fie", option: "A", amount: 3500, status: "Won", job: "Job - 4", sentDate: "Mar 03, 2026", expirationDate: "Apr 02, 2026", teamMember: "Marek Stroz", source: "Job - 4", depositDue: 0, updatedDate: "Mar 02, 2026" },
+  { id: 6, estimateNumber: "3-1", estimateName: "HVAC Replacement", clientName: "Sarah Williams", clientEmail: "sarah.w@gmail.com", createdDate: "Sat Feb 28, 2026", addedBy: "Marek Fie", option: "1", amount: 10502, status: "Won", job: "Job - 3", sentDate: "Mar 01, 2026", expirationDate: "Mar 31, 2026", teamMember: "Marek Stroz", source: "Job - 3", depositDue: 500 },
+  { id: 7, estimateNumber: "5-1", estimateName: "Plumbing Repair", clientName: "Mike Rodriguez", clientEmail: "mike.r@outlook.com", createdDate: "Wed Feb 25, 2026", addedBy: "Marek Fie", option: "1", amount: 850, status: "Pending", job: "Job - 5", sentDate: "Feb 26, 2026", expirationDate: "Mar 27, 2026", teamMember: "Marek Stroz", source: "Job - 5", depositDue: 0 },
+  { id: 8, estimateNumber: "6-1", estimateName: "Electrical Upgrade", clientName: "Travis Jones", clientEmail: "cerb04@yahoo.com", createdDate: "Mon Feb 23, 2026", addedBy: "Marek Fie", option: "1", amount: 2200, status: "Approved", job: "Job - 6", sentDate: "Feb 24, 2026", expirationDate: "Mar 26, 2026", teamMember: "Marek Stroz", source: "Job - 6", depositDue: 200 },
+  { id: 9, estimateNumber: "7-1", estimateName: "Roof Inspection", clientName: "Sarah Williams", clientEmail: "sarah.w@gmail.com", createdDate: "Fri Feb 20, 2026", addedBy: "Marek Ste", option: "1", amount: 350, status: "Declined", job: "Job - 7", sentDate: "Feb 21, 2026", expirationDate: "Mar 23, 2026", teamMember: "Marek Stroz", source: "Job - 7", depositDue: 0 },
 ];
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -83,11 +114,7 @@ function ModalBackdrop({ children, onClose }: { children: React.ReactNode; onClo
   );
 }
 
-function StatusDot({ status }: { status: EstimateStatus }) {
-  return <span className="inline-block w-2.5 h-2.5 rounded-full mr-2 flex-shrink-0" style={{ backgroundColor: statusColors[status] }} />;
-}
-
-// ─── Status Dropdown (inline in table) ──────────────────────────────────────
+// ─── Status Pill Dropdown (inline in table) ─────────────────────────────────
 function InlineStatusSelect({ status, onChange }: { status: EstimateStatus; onChange: (s: EstimateStatus) => void }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -98,30 +125,37 @@ function InlineStatusSelect({ status, onChange }: { status: EstimateStatus; onCh
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  const allStatuses: EstimateStatus[] = ["Unsent", "Pending", "Approved", "Declined", "Won", "Archived"];
+  const renderOption = (s: EstimateStatus) => (
+    <button
+      key={s}
+      onClick={() => { onChange(s); setOpen(false); }}
+      className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-[13px] transition-colors ${
+        s === status ? "bg-[#EBF0F8]" : "hover:bg-[#F5F7FA]"
+      }`}
+      style={{ fontWeight: s === status ? 600 : 400, color: s === status ? "#1A2332" : "#374151" }}
+    >
+      <span className="inline-block w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: statusColors[s] }} />
+      {s}
+    </button>
+  );
 
   return (
     <div ref={ref} className="relative inline-block">
-      <button onClick={() => setOpen(!open)} className="flex items-center gap-1 hover:bg-[#F5F7FA] rounded px-1.5 py-1 transition-colors">
-        <StatusDot status={status} />
-        <span className="text-[13px]" style={{ fontWeight: 500 }}>{status}</span>
-        <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "16px" }}>{open ? "expand_less" : "expand_more"}</span>
+      <button
+        onClick={() => setOpen(!open)}
+        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[12px] transition-opacity hover:opacity-80"
+        style={{ fontWeight: 600, color: statusColors[status], backgroundColor: statusBg[status] }}
+      >
+        {status}
+        <span className="material-icons" style={{ fontSize: "13px" }}>expand_more</span>
       </button>
       {open && (
-        <div className="absolute left-0 top-[calc(100%+2px)] w-[180px] bg-white border border-[#DDE3EE] rounded-lg shadow-lg z-40 py-1">
-          {allStatuses.map(s => (
-            <button
-              key={s}
-              onClick={() => { onChange(s); setOpen(false); }}
-              className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] transition-colors ${
-                s === status ? "bg-[#4A6FA5] text-white" : "text-[#1A2332] hover:bg-[#F5F7FA]"
-              }`}
-              style={{ fontWeight: s === status ? 600 : 400 }}
-            >
-              <span className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: s === status ? "#fff" : statusColors[s] }} />
-              {s}
-            </button>
-          ))}
+        <div className="absolute left-0 top-[calc(100%+4px)] w-[190px] bg-white border border-[#DDE3EE] rounded-lg shadow-lg z-40 py-1">
+          {primaryStatuses.map(renderOption)}
+          <div className="px-3.5 pt-2 pb-1">
+            <span className="text-[10px] uppercase tracking-wider text-[#9CA3AF]" style={{ fontWeight: 600 }}>other options</span>
+          </div>
+          {otherStatuses.map(renderOption)}
         </div>
       )}
     </div>
@@ -143,6 +177,19 @@ export function Estimates() {
   const [page, setPage] = useState(1);
   const perPage = 10;
 
+  type SortField = "estimateNumber" | "clientName" | "createdDate" | "amount" | "status";
+  const [sortField, setSortField] = useState<SortField>("createdDate");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const toggleSort = (f: SortField) => {
+    if (sortField === f) setSortDir(d => d === "asc" ? "desc" : "asc");
+    else { setSortField(f); setSortDir("asc"); }
+  };
+  const SortIcon = ({ field }: { field: SortField }) => (
+    <span className="material-icons text-[#9AA3AF] ml-0.5" style={{ fontSize: "14px" }}>
+      {sortField === field ? (sortDir === "asc" ? "arrow_upward" : "arrow_downward") : "unfold_more"}
+    </span>
+  );
+
   // Create modal
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [clientSearch, setClientSearch] = useState("");
@@ -150,10 +197,9 @@ export function Estimates() {
   // Delete confirm
   const [deleteConfirm, setDeleteConfirm] = useState<{ ids: number[] } | null>(null);
 
-  // Stats
+  // Stats (only primary statuses on summary cards)
   const statusCounts = useMemo(() => {
-    const all: EstimateStatus[] = ["Unsent", "Pending", "Approved", "Declined", "Won", "Archived"];
-    return all.map(s => ({
+    return primaryStatuses.map(s => ({
       status: s,
       count: estimates.filter(e => e.status === s).length,
       worth: estimates.filter(e => e.status === s).reduce((sum, e) => sum + e.amount, 0),
@@ -182,7 +228,19 @@ export function Estimates() {
     return result;
   }, [estimates, qfStatus, qfSource, search]);
 
-  const paginated = filtered.slice((page - 1) * perPage, page * perPage);
+  const sorted = useMemo(() => {
+    return [...filtered].sort((a, b) => {
+      const dir = sortDir === "asc" ? 1 : -1;
+      if (sortField === "estimateNumber") return a.estimateNumber.localeCompare(b.estimateNumber, undefined, { numeric: true }) * dir;
+      if (sortField === "clientName") return a.clientName.localeCompare(b.clientName) * dir;
+      if (sortField === "createdDate") return a.createdDate.localeCompare(b.createdDate) * dir;
+      if (sortField === "amount") return (a.amount - b.amount) * dir;
+      if (sortField === "status") return a.status.localeCompare(b.status) * dir;
+      return 0;
+    });
+  }, [filtered, sortField, sortDir]);
+
+  const paginated = sorted.slice((page - 1) * perPage, page * perPage);
   const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
   const allSelected = paginated.length > 0 && paginated.every(e => selectedIds.has(e.id));
 
@@ -242,20 +300,16 @@ export function Estimates() {
           <Card
             key={status}
             onClick={() => { setQfStatus(qfStatus === status ? "All" : status); setPage(1); }}
-            className={`px-4 py-3 border bg-white hover:shadow-sm transition-shadow h-[110.5px] cursor-pointer ${
+            className={`px-4 py-4 border bg-white hover:shadow-sm transition-shadow cursor-pointer ${
               qfStatus === status ? "border-[#4A6FA5] ring-1 ring-[#4A6FA5]/20" : "border-[#DDE3EE]"
             }`}
           >
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-[24px] mb-0.5 leading-none" style={{ fontWeight: 700, color: "#1A2332" }}>{count}</div>
-                <div className="flex items-center gap-1.5 mb-0.5">
-                  <span className="inline-block w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: statusColors[status] }} />
-                  <div className="text-[12px]" style={{ fontWeight: 500, color: "#546478" }}>{status}</div>
-                </div>
-                <div className="text-[11px] text-[#546478]">${fmt(worth)}</div>
-              </div>
+            <div className="flex items-center gap-1.5 mb-2">
+              <span className="inline-block w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: statusColors[status] }} />
+              <div className="text-[12px]" style={{ fontWeight: 500, color: "#546478" }}>{status}</div>
             </div>
+            <div className="text-[26px] leading-none mb-1.5" style={{ fontWeight: 700, color: "#1A2332" }}>{count}</div>
+            <div className="text-[13px]" style={{ fontWeight: 500, fontVariantNumeric: "tabular-nums", color: worth > 0 ? "#374151" : "#9CA3AF" }}>${fmt(worth)}</div>
           </Card>
         ))}
       </div>
@@ -268,9 +322,9 @@ export function Estimates() {
           <div className="w-px h-5 bg-[#DDE3EE] mx-1" />
           <select value={qfStatus} onChange={e => { setQfStatus(e.target.value as any); setPage(1); }} className={qfClass(qfStatus !== "All")}>
             <option value="All">All statuses</option>
-            {(["Unsent","Pending","Approved","Declined","Won","Archived"] as EstimateStatus[]).map(s => (
-              <option key={s} value={s}>{s}</option>
-            ))}
+            {primaryStatuses.map(s => <option key={s} value={s}>{s}</option>)}
+            <option disabled>── other options ──</option>
+            {otherStatuses.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
           <select value={qfDate} onChange={e => setQfDate(e.target.value)} className={qfClass(qfDate !== "All time")}>
             {timeFilters.map(t => <option key={t} value={t}>{t}</option>)}
@@ -303,7 +357,7 @@ export function Estimates() {
           <table className="w-full">
             <thead>
               <tr className="bg-[#F5F7FA] border-b border-[#DDE3EE]">
-                <th className="px-3 py-3 w-10">
+                <th className="px-4 py-3 w-10">
                   <input type="checkbox" checked={allSelected}
                     onChange={(e) => {
                       if (e.target.checked) setSelectedIds(new Set(paginated.map(e => e.id)));
@@ -312,28 +366,45 @@ export function Estimates() {
                     className="w-4 h-4 rounded border-[#DDE3EE] cursor-pointer accent-[#4A6FA5]"
                   />
                 </th>
-                {["Estimate", "Estimate Name", "Client", "Created", "Amount", "Status", "Source", "Deposit due"].map(h => (
-                  <th key={h} className="px-3 py-3 text-left text-[11px] uppercase tracking-wider text-[#546478]" style={{ fontWeight: 600 }}>{h}</th>
+                <th className="px-4 py-3 text-left text-[11px] uppercase tracking-wide text-[#546478] cursor-pointer select-none whitespace-nowrap" style={{ fontWeight: 600 }} onClick={() => toggleSort("estimateNumber")}>
+                  <div className="flex items-center">Estimate <SortIcon field="estimateNumber" /></div>
+                </th>
+                <th className="px-4 py-3 text-left text-[11px] uppercase tracking-wide text-[#546478] cursor-pointer select-none whitespace-nowrap" style={{ fontWeight: 600 }} onClick={() => toggleSort("clientName")}>
+                  <div className="flex items-center">Client <SortIcon field="clientName" /></div>
+                </th>
+                <th className="px-4 py-3 text-left text-[11px] uppercase tracking-wide text-[#546478] cursor-pointer select-none whitespace-nowrap" style={{ fontWeight: 600 }} onClick={() => toggleSort("createdDate")}>
+                  <div className="flex items-center">Created <SortIcon field="createdDate" /></div>
+                </th>
+                <th className="px-4 py-3 text-center text-[11px] uppercase tracking-wide text-[#546478] whitespace-nowrap" style={{ fontWeight: 600 }}>Option</th>
+                <th className="px-4 py-3 text-right text-[11px] uppercase tracking-wide text-[#546478] cursor-pointer select-none whitespace-nowrap" style={{ fontWeight: 600 }} onClick={() => toggleSort("amount")}>
+                  <div className="flex items-center justify-end">Amount <SortIcon field="amount" /></div>
+                </th>
+                <th className="px-4 py-3 text-left text-[11px] uppercase tracking-wide text-[#546478] cursor-pointer select-none whitespace-nowrap" style={{ fontWeight: 600 }} onClick={() => toggleSort("status")}>
+                  <div className="flex items-center">Status <SortIcon field="status" /></div>
+                </th>
+                {["Job", "Sent Date", "Expiration Date", "Team Member", "Source", "Deposit due"].map(h => (
+                  <th key={h} className="px-4 py-3 text-left text-[11px] uppercase tracking-wide text-[#546478] whitespace-nowrap" style={{ fontWeight: 600 }}>{h}</th>
                 ))}
+                <th className="px-4 py-3 w-10" />
               </tr>
             </thead>
             <tbody>
               {paginated.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-4 py-16 text-center">
+                  <td colSpan={15} className="px-4 py-16 text-center">
                     <span className="material-icons text-[#C8D5E8] mb-2" style={{ fontSize: "48px" }}>description</span>
                     <div className="text-[14px] text-[#546478]" style={{ fontWeight: 500 }}>No estimates found</div>
                     <div className="text-[12px] text-[#8899AA] mt-1">Try adjusting your filters or create a new estimate</div>
                   </td>
                 </tr>
-              ) : paginated.map((est, idx) => (
+              ) : paginated.map((est) => (
                 <tr
                   key={est.id}
-                  className={`border-b border-[#EDF0F5] hover:bg-[#F9FBFD] transition-colors cursor-pointer ${
-                    selectedIds.has(est.id) ? "bg-[#EBF0F8]" : idx % 2 === 1 ? "bg-[#FAFBFC]" : "bg-white"
+                  className={`group border-b border-[#DDE3EE] hover:bg-[#F9FAFB] transition-colors cursor-pointer ${
+                    selectedIds.has(est.id) ? "bg-[#EBF0F8]" : "bg-white"
                   }`}
                 >
-                  <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
+                  <td className="px-4 py-4" onClick={(e) => e.stopPropagation()}>
                     <input type="checkbox" checked={selectedIds.has(est.id)}
                       onChange={(e) => {
                         const s = new Set(selectedIds);
@@ -343,28 +414,49 @@ export function Estimates() {
                       className="w-4 h-4 rounded border-[#DDE3EE] cursor-pointer accent-[#4A6FA5]"
                     />
                   </td>
-                  <td className="px-3 py-3 text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }} onClick={() => navigate(`/estimates/${est.id}`)}>{est.estimateNumber}</td>
-                  <td className="px-3 py-3 text-[13px] text-[#546478]" onClick={() => navigate(`/estimates/${est.id}`)}>{est.estimateName || ""}</td>
-                  <td className="px-3 py-3" onClick={() => navigate(`/estimates/${est.id}`)}>
+                  <td className="px-4 py-4" onClick={() => navigate(`/estimates/${est.id}`)}>
+                    <div className="text-[12px] text-[#8899AA] font-mono tabular-nums">#{est.estimateNumber}</div>
+                    <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{est.estimateName || <span className="text-[#9CA3AF]">—</span>}</div>
+                  </td>
+                  <td className="px-4 py-4" onClick={() => navigate(`/estimates/${est.id}`)}>
                     <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{est.clientName}</div>
                     <div className="text-[12px] text-[#8899AA]">{est.clientEmail}</div>
                   </td>
-                  <td className="px-3 py-3" onClick={() => navigate(`/estimates/${est.id}`)}>
-                    <div className="text-[13px] text-[#1A2332]">{est.createdDate}</div>
-                    <div className="text-[12px] text-[#8899AA]">Added by {est.addedBy}</div>
+                  <td className="px-4 py-4 whitespace-nowrap" onClick={() => navigate(`/estimates/${est.id}`)}>
+                    <div className="text-[13px] text-[#374151]">{est.createdDate}</div>
+                    <div className="text-[12px] text-[#8899AA]">by {est.addedBy}</div>
                   </td>
-                  <td className="px-3 py-3 text-[13px] text-[#1A2332]" style={{ fontWeight: 500, fontVariantNumeric: "tabular-nums" }} onClick={() => navigate(`/estimates/${est.id}`)}>${fmt(est.amount)}</td>
-                  <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
-                    <InlineStatusSelect
-                      status={est.status}
-                      onChange={(s) => handleStatusChange(est.id, s)}
-                    />
+                  <td className="px-4 py-4 text-[13px] text-center text-[#546478]" onClick={() => navigate(`/estimates/${est.id}`)}>
+                    {est.option ? (
+                      <span className="inline-flex items-center justify-center w-6 h-6 rounded bg-[#F3F4F6] text-[#374151] text-[12px]" style={{ fontWeight: 600 }}>{est.option}</span>
+                    ) : <span className="text-[#D1D5DB]">—</span>}
+                  </td>
+                  <td className="px-4 py-4 text-right whitespace-nowrap" onClick={() => navigate(`/estimates/${est.id}`)}>
+                    <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>${fmt(est.amount)}</div>
+                  </td>
+                  <td className="px-4 py-4" onClick={(e) => e.stopPropagation()}>
+                    <InlineStatusSelect status={est.status} onChange={(s) => handleStatusChange(est.id, s)} />
                     {est.updatedDate && (
-                      <div className="text-[11px] text-[#8899AA] mt-0.5 pl-1.5">Updated: {est.updatedDate}</div>
+                      <div className="text-[11px] text-[#8899AA] mt-1">Updated: {est.updatedDate}</div>
                     )}
                   </td>
-                  <td className="px-3 py-3 text-[13px] text-[#546478]" onClick={() => navigate(`/estimates/${est.id}`)}>{est.source}</td>
-                  <td className="px-3 py-3 text-[13px] text-[#1A2332]" style={{ fontVariantNumeric: "tabular-nums" }} onClick={() => navigate(`/estimates/${est.id}`)}>${fmt(est.depositDue)}</td>
+                  <td className="px-4 py-4 text-[13px] text-[#546478] whitespace-nowrap" onClick={() => navigate(`/estimates/${est.id}`)}>{est.job || <span className="text-[#D1D5DB]">—</span>}</td>
+                  <td className="px-4 py-4 text-[13px] text-[#546478] whitespace-nowrap" onClick={() => navigate(`/estimates/${est.id}`)}>{est.sentDate || <span className="text-[#D1D5DB]">—</span>}</td>
+                  <td className="px-4 py-4 text-[13px] text-[#546478] whitespace-nowrap" onClick={() => navigate(`/estimates/${est.id}`)}>{est.expirationDate || <span className="text-[#D1D5DB]">—</span>}</td>
+                  <td className="px-4 py-4 text-[13px] text-[#546478] whitespace-nowrap" onClick={() => navigate(`/estimates/${est.id}`)}>{est.teamMember || <span className="text-[#D1D5DB]">—</span>}</td>
+                  <td className="px-4 py-4 text-[13px] text-[#546478]" onClick={() => navigate(`/estimates/${est.id}`)}>{est.source || <span className="text-[#D1D5DB]">—</span>}</td>
+                  <td className="px-4 py-4 text-[13px] text-right whitespace-nowrap" onClick={() => navigate(`/estimates/${est.id}`)}>
+                    <span style={{ fontVariantNumeric: "tabular-nums", color: est.depositDue > 0 ? "#1A2332" : "#D1D5DB" }}>${fmt(est.depositDue)}</span>
+                  </td>
+                  <td className="px-4 py-4" onClick={(e) => e.stopPropagation()}>
+                    <KebabMenu triggerClassName="w-7 h-7 rounded hover:bg-[#F3F4F6] flex items-center justify-center opacity-0 group-hover:opacity-100">
+                      <KebabItem icon="open_in_new" onClick={() => navigate(`/estimates/${est.id}`)}>Open</KebabItem>
+                      <KebabItem icon="content_copy">Duplicate</KebabItem>
+                      <KebabItem icon="send">Send to Client</KebabItem>
+                      <KebabSeparator />
+                      <KebabItem icon="archive" destructive>Archive</KebabItem>
+                    </KebabMenu>
+                  </td>
                 </tr>
               ))}
             </tbody>
