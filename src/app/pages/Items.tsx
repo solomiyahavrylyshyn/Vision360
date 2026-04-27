@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useNavigate } from "react-router";
 import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
 import { PageHeader } from "../components/ui/page-header";
 import { SelectionBar } from "../components/ui/selection-bar";
@@ -315,6 +316,7 @@ function Pagination({ total, perPage, page, onPageChange, onPerPageChange }: {
 
 // ─── Main Component ──────────────────────────────────────────────────────────
 export function Items() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabKey>("items");
 
   // Items state
@@ -599,7 +601,7 @@ export function Items() {
                       </td>
                       <td className="px-3 py-3 text-[13px] text-[#546478]">{item.id}</td>
                       <td className="px-3 py-3 text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>
-                        <div className="truncate max-w-[220px]">{item.name}</div>
+                        <button onClick={() => navigate(`/items/${item.id}`)} className="truncate max-w-[220px] text-left hover:text-[#4A6FA5] hover:underline">{item.name}</button>
                       </td>
                       <td className="px-3 py-3">
                         <span className={`inline-block px-2 py-0.5 rounded-full text-[11px] whitespace-nowrap ${getTypeBadgeClass(item.type)}`} style={{ fontWeight: 600 }}>
