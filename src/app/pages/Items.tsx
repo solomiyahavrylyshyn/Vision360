@@ -537,7 +537,7 @@ export function Items() {
               <table className="w-full">
                 <thead>
                   <tr className="bg-[#F5F7FA] border-b border-[#DDE3EE]">
-                    <th className="px-3 py-3 w-10">
+                    <th className="px-4 py-3 w-10">
                       <input
                         type="checkbox"
                         checked={allItemsSelected}
@@ -549,8 +549,7 @@ export function Items() {
                       />
                     </th>
                     {[
-                      { key: "id", label: "Id", w: "w-[70px]", sortable: true },
-                      { key: "picture", label: "Picture", w: "w-[60px]", sortable: false },
+                      { key: "id", label: "ID", w: "w-[70px]", sortable: true },
                       { key: "name", label: "Name", w: "min-w-[200px]", sortable: true },
                       { key: "type", label: "Type", w: "w-[160px]", sortable: true },
                       { key: "category", label: "Category", w: "w-[110px]", sortable: true },
@@ -562,7 +561,7 @@ export function Items() {
                     ].map(col => (
                       <th
                         key={col.key}
-                        className={`px-3 py-3 text-left text-[11px] uppercase tracking-wider text-[#546478] ${col.sortable ? "cursor-pointer hover:text-[#1A2332]" : ""} select-none ${col.w}`}
+                        className={`px-4 py-3 text-left text-[11px] uppercase tracking-wider text-[#546478] ${col.sortable ? "cursor-pointer hover:text-[#1A2332]" : ""} select-none ${col.w}`}
                         style={{ fontWeight: 600 }}
                         onClick={() => { if (col.sortable) handleSortItems(col.key); }}
                       >
@@ -572,7 +571,7 @@ export function Items() {
                         </div>
                       </th>
                     ))}
-                    <th className="px-3 py-3 w-[80px]" />
+                    <th className="px-4 py-3 w-[80px]" />
                   </tr>
                 </thead>
                 <tbody>
@@ -587,11 +586,12 @@ export function Items() {
                   ) : paginatedItems.map((item, idx) => (
                     <tr
                       key={item.id}
-                      className={`border-b border-[#EDF0F5] hover:bg-[#F9FBFD] transition-colors ${
-                        selectedItems.has(item.id) ? "bg-[#EBF0F8]" : idx % 2 === 1 ? "bg-[#FAFBFC]" : "bg-white"
+                      onClick={() => navigate(`/items/${item.id}`)}
+                      className={`group border-b border-[#DDE3EE] hover:bg-[#F9FAFB] transition-colors cursor-pointer ${
+                        selectedItems.has(item.id) ? "bg-[#EBF0F8]" : "bg-white"
                       }`}
                     >
-                      <td className="px-3 py-3">
+                      <td className="px-4 py-3.5" onClick={(e) => e.stopPropagation()}>
                         <input
                           type="checkbox"
                           checked={selectedItems.has(item.id)}
@@ -603,32 +603,23 @@ export function Items() {
                           className="w-4 h-4 rounded border-[#DDE3EE] cursor-pointer accent-[#4A6FA5]"
                         />
                       </td>
-                      <td className="px-3 py-3 text-[13px] text-[#546478]">{item.id}</td>
-                      <td className="px-3 py-2">
-                        <div className="w-9 h-9 rounded border border-[#E5E7EB] bg-[#F9FAFB] flex items-center justify-center overflow-hidden">
-                          {item.picture ? (
-                            <img src={item.picture} alt="" className="w-full h-full object-cover" />
-                          ) : (
-                            <span className="material-icons text-[#D1D5DB]" style={{ fontSize: "18px" }}>image</span>
-                          )}
-                        </div>
+                      <td className="px-4 py-3.5 text-[13px] text-[#8899AA]">{item.id}</td>
+                      <td className="px-4 py-3.5 text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>
+                        <div className="truncate max-w-[220px]">{item.name}</div>
                       </td>
-                      <td className="px-3 py-3 text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>
-                        <button onClick={() => navigate(`/items/${item.id}`)} className="truncate max-w-[220px] text-left hover:text-[#4A6FA5] hover:underline">{item.name}</button>
-                      </td>
-                      <td className="px-3 py-3">
+                      <td className="px-4 py-3.5">
                         <span className={`inline-block px-2 py-0.5 rounded-full text-[11px] whitespace-nowrap ${getTypeBadgeClass(item.type)}`} style={{ fontWeight: 600 }}>
                           {item.type}
                         </span>
                       </td>
-                      <td className="px-3 py-3 text-[13px] text-[#546478]">{item.category || "—"}</td>
-                      <td className="px-3 py-3 text-[13px] text-[#546478]">{item.subcategory || "—"}</td>
-                      <td className="px-3 py-3 text-[13px] text-[#1A2332]" style={{ fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>${item.rate.toFixed(2)}</td>
-                      <td className="px-3 py-3 text-[13px] text-[#546478]" style={{ fontVariantNumeric: "tabular-nums" }}>${item.cost.toFixed(2)}</td>
-                      <td className="px-3 py-3 text-[13px] text-[#546478] text-center">{item.onHand}</td>
-                      <td className="px-3 py-3 text-[13px] text-[#546478]">{item.taxable ? "Yes" : "No"}</td>
-                      <td className="px-3 py-3">
-                        <div className="flex items-center gap-0.5">
+                      <td className="px-4 py-3.5 text-[13px] text-[#546478]">{item.category || "—"}</td>
+                      <td className="px-4 py-3.5 text-[13px] text-[#546478]">{item.subcategory || "—"}</td>
+                      <td className="px-4 py-3.5 text-[13px] text-[#1A2332]" style={{ fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>${item.rate.toFixed(2)}</td>
+                      <td className="px-4 py-3.5 text-[13px] text-[#546478]" style={{ fontVariantNumeric: "tabular-nums" }}>${item.cost.toFixed(2)}</td>
+                      <td className="px-4 py-3.5 text-[13px] text-[#546478] text-center">{item.onHand}</td>
+                      <td className="px-4 py-3.5 text-[13px] text-[#546478]">{item.taxable ? "Yes" : "No"}</td>
+                      <td className="px-4 py-3.5" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100">
                           <button
                             onClick={() => { setEditingItem(item); setItemModalOpen(true); }}
                             className="w-8 h-8 flex items-center justify-center rounded hover:bg-[#EDF0F5]"
