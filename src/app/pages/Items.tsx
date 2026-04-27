@@ -52,6 +52,9 @@ interface Item {
   customField3: string;
   notes: string;
   boldPrint: boolean;
+  group: string;
+  defaultQty: number;
+  picture: string;
   inventory: boolean;         // keep for backward compat
   booking: boolean;           // keep for backward compat
 }
@@ -105,7 +108,7 @@ const initialItems: Item[] = [
     vendor: "", vendorCode: "", department: "Field Service",
     cogsGL: "", salesGL: "4000 · Service Revenue",
     customField1: "", customField2: "", customField3: "", notes: "",
-    boldPrint: false, inventory: false, booking: false,
+    boldPrint: false, group: "", defaultQty: 1, picture: "", inventory: false, booking: false,
   },
   {
     id: 1001, active: true, name: "SEER Heat Pump Condenser Unit",
@@ -118,7 +121,7 @@ const initialItems: Item[] = [
     vendor: "Trane Supply", vendorCode: "TR-XR16048", department: "Equipment",
     cogsGL: "5000 · Cost of Goods", salesGL: "4100 · Equipment Sales",
     customField1: "", customField2: "", customField3: "", notes: "",
-    boldPrint: false, inventory: true, booking: false,
+    boldPrint: false, group: "", defaultQty: 1, picture: "", inventory: true, booking: false,
   },
   {
     id: 1002, active: true, name: "SEER Heat Pump Condenser Premium",
@@ -131,7 +134,7 @@ const initialItems: Item[] = [
     vendor: "Lennox Pro", vendorCode: "LX-XP25048", department: "Equipment",
     cogsGL: "5000 · Cost of Goods", salesGL: "4100 · Equipment Sales",
     customField1: "", customField2: "", customField3: "", notes: "",
-    boldPrint: false, inventory: true, booking: false,
+    boldPrint: false, group: "", defaultQty: 1, picture: "", inventory: true, booking: false,
   },
   {
     id: 1003, active: true, name: "Copper Piping Installation",
@@ -144,7 +147,7 @@ const initialItems: Item[] = [
     vendor: "", vendorCode: "", department: "Field Service",
     cogsGL: "", salesGL: "4000 · Service Revenue",
     customField1: "", customField2: "", customField3: "", notes: "",
-    boldPrint: false, inventory: false, booking: true,
+    boldPrint: false, group: "", defaultQty: 1, picture: "", inventory: false, booking: true,
   },
   {
     id: 1004, active: true, name: "Electrical Panel Upgrade 200A",
@@ -157,7 +160,7 @@ const initialItems: Item[] = [
     vendor: "Graybar Electric", vendorCode: "GB-HOM2040", department: "Equipment",
     cogsGL: "5000 · Cost of Goods", salesGL: "4100 · Equipment Sales",
     customField1: "", customField2: "", customField3: "", notes: "",
-    boldPrint: false, inventory: true, booking: false,
+    boldPrint: false, group: "", defaultQty: 1, picture: "", inventory: true, booking: false,
   },
   {
     id: 1005, active: true, name: "General Labor - Technician",
@@ -170,7 +173,7 @@ const initialItems: Item[] = [
     vendor: "", vendorCode: "", department: "Field Service",
     cogsGL: "", salesGL: "4200 · Labor Revenue",
     customField1: "", customField2: "", customField3: "", notes: "",
-    boldPrint: false, inventory: false, booking: false,
+    boldPrint: false, group: "", defaultQty: 1, picture: "", inventory: false, booking: false,
   },
   {
     id: 1006, active: true, name: "Drain Cleaning Service",
@@ -183,7 +186,7 @@ const initialItems: Item[] = [
     vendor: "", vendorCode: "", department: "Field Service",
     cogsGL: "", salesGL: "4000 · Service Revenue",
     customField1: "", customField2: "", customField3: "", notes: "",
-    boldPrint: false, inventory: false, booking: true,
+    boldPrint: false, group: "", defaultQty: 1, picture: "", inventory: false, booking: true,
   },
   {
     id: 1007, active: true, name: "Thermostat - Smart WiFi",
@@ -196,7 +199,7 @@ const initialItems: Item[] = [
     vendor: "Ecobee Direct", vendorCode: "EC-STATE501", department: "Equipment",
     cogsGL: "5000 · Cost of Goods", salesGL: "4100 · Equipment Sales",
     customField1: "", customField2: "", customField3: "", notes: "",
-    boldPrint: false, inventory: true, booking: false,
+    boldPrint: false, group: "", defaultQty: 1, picture: "", inventory: true, booking: false,
   },
 ];
 
@@ -859,6 +862,7 @@ export function Items() {
           item={editingItem}
           categories={uniqueCategories}
           brands={brands}
+          groups={groups}
           onClose={() => setItemModalOpen(false)}
           onSave={(item) => {
             if (editingItem) {
@@ -979,10 +983,11 @@ export function Items() {
 // ═══════════════════════════════════════════════════════════════════════════════
 // ─── ITEM MODAL ──────────────────────────────────────────────────────────────
 // ═══════════════════════════════════════════════════════════════════════════════
-function ItemModal({ item, categories, brands, onClose, onSave }: {
+function ItemModal({ item, categories, brands, groups, onClose, onSave }: {
   item: Item | null;
   categories: string[];
   brands: ItemBrand[];
+  groups: ItemGroup[];
   onClose: () => void;
   onSave: (item: Item) => void;
 }) {
@@ -995,7 +1000,7 @@ function ItemModal({ item, categories, brands, onClose, onSave }: {
     vendor: "", vendorCode: "", department: "",
     cogsGL: "", salesGL: "",
     customField1: "", customField2: "", customField3: "",
-    notes: "", boldPrint: false, inventory: false, booking: false,
+    notes: "", boldPrint: false, group: "", defaultQty: 1, picture: "", inventory: false, booking: false,
   };
 
   const [form, setForm] = useState<Item>(item || blankItem);
@@ -1066,6 +1071,13 @@ function ItemModal({ item, categories, brands, onClose, onSave }: {
                 placeholder="Additional details (optional)"
                 className="w-full min-h-[72px] px-3 py-2 border border-[#DDE3EE] rounded-lg text-[14px] resize-y focus:outline-none focus:border-[#4A6FA5]"
                 spellCheck
+              />
+            </FieldGroup>
+            <FieldGroup label="Picture (URL)">
+              <input
+                type="text" value={form.picture} onChange={(e) => update("picture", e.target.value)}
+                placeholder="Image URL or file path (optional)"
+                className="w-full h-10 px-3 border border-[#DDE3EE] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]"
               />
             </FieldGroup>
           </div>
@@ -1150,12 +1162,21 @@ function ItemModal({ item, categories, brands, onClose, onSave }: {
                 />
               </FieldGroup>
             </div>
+            <FieldGroup label="Group">
+              <select
+                value={form.group} onChange={(e) => update("group", e.target.value)}
+                className="w-full h-10 px-3 border border-[#DDE3EE] rounded-lg text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
+              >
+                <option value="">No group (optional)</option>
+                {groups.map(g => <option key={g.id} value={g.name}>{g.name}</option>)}
+              </select>
+            </FieldGroup>
           </div>
 
           {/* ── Pricing & Tax ── */}
           <SectionHeader label="Pricing & Tax" />
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <FieldGroup label="Retail Price ($)">
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#546478] text-[14px]">$</span>
@@ -1177,6 +1198,14 @@ function ItemModal({ item, categories, brands, onClose, onSave }: {
                     style={{ fontVariantNumeric: "tabular-nums" }}
                   />
                 </div>
+              </FieldGroup>
+              <FieldGroup label="Default Qty">
+                <input
+                  type="number" min="0" step="1" value={form.defaultQty || ""}
+                  onChange={(e) => update("defaultQty", parseInt(e.target.value) || 1)}
+                  className="w-full h-10 px-3 border border-[#DDE3EE] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]"
+                  style={{ fontVariantNumeric: "tabular-nums" }}
+                />
               </FieldGroup>
             </div>
 

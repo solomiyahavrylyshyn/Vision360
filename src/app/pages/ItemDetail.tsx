@@ -24,6 +24,7 @@ interface Item {
   cogsGL: string; salesGL: string;
   customField1: string; customField2: string; customField3: string;
   notes: string; boldPrint: boolean;
+  group: string; defaultQty: number; picture: string;
   inventory: boolean; booking: boolean;
 }
 
@@ -39,7 +40,7 @@ const mockItems: Record<string, Item> = {
     vendor: "", vendorCode: "", department: "Field Service",
     cogsGL: "", salesGL: "4000 · Service Revenue",
     customField1: "", customField2: "", customField3: "", notes: "",
-    boldPrint: false, inventory: false, booking: false,
+    boldPrint: false, group: "", defaultQty: 1, picture: "", inventory: false, booking: false,
   },
   "1001": {
     id: 1001, active: true, name: "SEER Heat Pump Condenser Unit",
@@ -52,7 +53,7 @@ const mockItems: Record<string, Item> = {
     vendor: "Trane Supply", vendorCode: "TR-XR16048", department: "Equipment",
     cogsGL: "5000 · Cost of Goods", salesGL: "4100 · Equipment Sales",
     customField1: "", customField2: "", customField3: "", notes: "",
-    boldPrint: false, inventory: true, booking: false,
+    boldPrint: false, group: "", defaultQty: 1, picture: "", inventory: true, booking: false,
   },
   "1002": {
     id: 1002, active: true, name: "SEER Heat Pump Condenser Premium",
@@ -65,7 +66,7 @@ const mockItems: Record<string, Item> = {
     vendor: "Lennox Pro", vendorCode: "LX-XP25048", department: "Equipment",
     cogsGL: "5000 · Cost of Goods", salesGL: "4100 · Equipment Sales",
     customField1: "", customField2: "", customField3: "", notes: "",
-    boldPrint: false, inventory: true, booking: false,
+    boldPrint: false, group: "", defaultQty: 1, picture: "", inventory: true, booking: false,
   },
   "1003": {
     id: 1003, active: true, name: "Copper Piping Installation",
@@ -78,7 +79,7 @@ const mockItems: Record<string, Item> = {
     vendor: "", vendorCode: "", department: "Field Service",
     cogsGL: "", salesGL: "4000 · Service Revenue",
     customField1: "", customField2: "", customField3: "", notes: "",
-    boldPrint: false, inventory: false, booking: true,
+    boldPrint: false, group: "", defaultQty: 1, picture: "", inventory: false, booking: true,
   },
   "1004": {
     id: 1004, active: true, name: "Electrical Panel Upgrade 200A",
@@ -91,7 +92,7 @@ const mockItems: Record<string, Item> = {
     vendor: "Electrical Wholesale", vendorCode: "SQD-HOM2040", department: "Equipment",
     cogsGL: "5000 · Cost of Goods", salesGL: "4100 · Equipment Sales",
     customField1: "", customField2: "", customField3: "", notes: "",
-    boldPrint: false, inventory: true, booking: false,
+    boldPrint: false, group: "", defaultQty: 1, picture: "", inventory: true, booking: false,
   },
   "1005": {
     id: 1005, active: true, name: "General Labor - Technician",
@@ -104,7 +105,7 @@ const mockItems: Record<string, Item> = {
     vendor: "", vendorCode: "", department: "Field Service",
     cogsGL: "5100 · Labor Cost", salesGL: "4200 · Labor Revenue",
     customField1: "", customField2: "", customField3: "", notes: "",
-    boldPrint: false, inventory: false, booking: false,
+    boldPrint: false, group: "", defaultQty: 1, picture: "", inventory: false, booking: false,
   },
   "1006": {
     id: 1006, active: true, name: "Drain Cleaning Service",
@@ -117,7 +118,7 @@ const mockItems: Record<string, Item> = {
     vendor: "", vendorCode: "", department: "Field Service",
     cogsGL: "", salesGL: "4000 · Service Revenue",
     customField1: "", customField2: "", customField3: "", notes: "",
-    boldPrint: false, inventory: false, booking: true,
+    boldPrint: false, group: "", defaultQty: 1, picture: "", inventory: false, booking: true,
   },
   "1007": {
     id: 1007, active: true, name: "Thermostat - Smart WiFi",
@@ -130,7 +131,7 @@ const mockItems: Record<string, Item> = {
     vendor: "Ecobee Direct", vendorCode: "EB-STATE5", department: "Equipment",
     cogsGL: "5000 · Cost of Goods", salesGL: "4100 · Equipment Sales",
     customField1: "", customField2: "", customField3: "", notes: "",
-    boldPrint: false, inventory: true, booking: false,
+    boldPrint: false, group: "", defaultQty: 1, picture: "", inventory: true, booking: false,
   },
 };
 
@@ -199,6 +200,11 @@ export function ItemDetail() {
         <div className="grid grid-cols-2 gap-4">
           <Card title="Item Info" onEdit={() => {}}>
             <div className="flex flex-col gap-4">
+              {item.picture && (
+                <div className="w-full h-36 rounded-lg overflow-hidden border border-[#E5E7EB] bg-[#F9FAFB] flex items-center justify-center">
+                  <img src={item.picture} alt={item.name} className="max-h-full max-w-full object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                </div>
+              )}
               <Field label="Description (Internal)" value={item.description} />
               <Field label="Sales Description" value={item.salesDescription} />
               {item.additionalInfo && <Field label="Additional Information" value={item.additionalInfo} />}
@@ -225,6 +231,7 @@ export function ItemDetail() {
               <Field label="Subcategory" value={item.subcategory} />
               <Field label="Mfg." value={item.brand} />
               <Field label="Department" value={item.department} />
+              {item.group && <Field label="Group" value={item.group} />}
             </div>
           </Card>
         </div>
@@ -245,6 +252,7 @@ export function ItemDetail() {
                   ${item.cost.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
               </div>
+              <Field label="Default Qty" value={item.defaultQty} />
               <Field label="Taxable" value={item.taxable ? "Yes" : "No"} />
               <div className="flex flex-col gap-1">
                 <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Tax</div>
