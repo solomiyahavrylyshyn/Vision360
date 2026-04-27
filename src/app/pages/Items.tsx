@@ -4,21 +4,55 @@ import { PageHeader } from "../components/ui/page-header";
 import { SelectionBar } from "../components/ui/selection-bar";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
+type ItemType =
+  // Service
+  | "Service" | "Labor" | "Maintenance" | "Diagnostics" | "Installation" | "Repair"
+  // Material
+  | "Inventory Item" | "Non-Inventory Item" | "Serialized Item"
+  // Equipment & Asset
+  | "Equipment" | "Asset"
+  // Fee
+  | "Fee / Admin Code" | "Discount" | "Other Charge"
+  | "Material Markup" | "Labor Markup" | "Other Markup"
+  | "Material Discount" | "Labor Discount" | "Other Discount"
+  // Other
+  | "Bundle / Kit" | "Expense / Reimbursement";
+
 interface Item {
   id: number;
+  active: boolean;
   name: string;
-  itemDescription: string;
+  description: string;        // internal description
   salesDescription: string;
-  brand: string;
-  modelNumber: string;
-  rate: number;
+  additionalInfo: string;
+  brand: string;              // shown as "Mfg." in UI
+  modelNumber: string;        // shown as "SKU" in UI
+  upc: string;
+  rate: number;               // shown as "Retail Price" in UI
   cost: number;
   taxable: boolean;
-  inventory: boolean;
+  tax1: boolean;
+  tax2: boolean;
+  tax3: boolean;
+  onHand: number;
+  minQty: number;
+  maxQty: number;
+  tracking: boolean;
   category: string;
-  type: "Service" | "Product" | "Labor" | "Equipment";
-  booking: boolean;
-  active: boolean;
+  subcategory: string;
+  type: ItemType;
+  vendor: string;
+  vendorCode: string;
+  department: string;
+  cogsGL: string;
+  salesGL: string;
+  customField1: string;
+  customField2: string;
+  customField3: string;
+  notes: string;
+  boldPrint: boolean;
+  inventory: boolean;         // keep for backward compat
+  booking: boolean;           // keep for backward compat
 }
 
 interface ItemGroup {
@@ -59,14 +93,110 @@ type TabKey = "items" | "groups" | "categories" | "brands" | "catalogs";
 
 // ─── Mock Data ───────────────────────────────────────────────────────────────
 const initialItems: Item[] = [
-  { id: 1000, name: "Heat Pump Repair or Service", itemDescription: "Standard heat pump repair service call", salesDescription: "Heat pump diagnostic, repair and service", brand: "Carrier", modelNumber: "HP-2500", rate: 285, cost: 120, taxable: false, inventory: false, category: "HVAC", type: "Service", booking: false, active: true },
-  { id: 1001, name: "SEER Heat Pump Condenser Unit", itemDescription: "SEER 16 heat pump condenser outdoor unit", salesDescription: "SEER Heat Pump Condenser — high efficiency outdoor unit", brand: "Trane", modelNumber: "XR16-048", rate: 3200, cost: 1800, taxable: true, inventory: true, category: "HVAC", type: "Product", booking: false, active: true },
-  { id: 1002, name: "SEER Heat Pump Condenser Premium", itemDescription: "SEER 20 premium heat pump condenser", salesDescription: "SEER Premium Heat Pump Condenser — ultra high efficiency", brand: "Lennox", modelNumber: "XP25-048", rate: 4800, cost: 2900, taxable: true, inventory: true, category: "HVAC", type: "Product", booking: false, active: true },
-  { id: 1003, name: "Copper Piping Installation", itemDescription: "Install copper piping per linear foot", salesDescription: "Professional copper piping installation (per ft)", brand: "", modelNumber: "", rate: 18.50, cost: 6.75, taxable: true, inventory: false, category: "Plumbing", type: "Service", booking: true, active: true },
-  { id: 1004, name: "Electrical Panel Upgrade 200A", itemDescription: "Upgrade existing panel to 200 amp service", salesDescription: "200A electrical panel upgrade — parts and labor", brand: "Square D", modelNumber: "HOM2040M200PC", rate: 2800, cost: 1100, taxable: true, inventory: true, category: "Electrical", type: "Equipment", booking: false, active: true },
-  { id: 1005, name: "General Labor - Technician", itemDescription: "Standard technician labor rate per hour", salesDescription: "Technician labor (hourly)", brand: "", modelNumber: "", rate: 95, cost: 45, taxable: false, inventory: false, category: "Labor", type: "Labor", booking: false, active: true },
-  { id: 1006, name: "Drain Cleaning Service", itemDescription: "Standard drain cleaning and snaking", salesDescription: "Professional drain cleaning service", brand: "", modelNumber: "", rate: 175, cost: 40, taxable: false, inventory: false, category: "Plumbing", type: "Service", booking: true, active: true },
-  { id: 1007, name: "Thermostat - Smart WiFi", itemDescription: "Smart thermostat with WiFi connectivity", salesDescription: "Smart WiFi Thermostat — professional installation included", brand: "Ecobee", modelNumber: "EB-STATE5-01", rate: 450, cost: 180, taxable: true, inventory: true, category: "HVAC", type: "Product", booking: false, active: true },
+  {
+    id: 1000, active: true, name: "Heat Pump Repair or Service",
+    description: "Standard heat pump repair service call",
+    salesDescription: "Heat pump diagnostic, repair and service",
+    additionalInfo: "", brand: "Carrier", modelNumber: "HP-2500", upc: "",
+    rate: 285, cost: 120, taxable: false, tax1: false, tax2: false, tax3: false,
+    onHand: 0, minQty: 0, maxQty: 0, tracking: false,
+    category: "HVAC", subcategory: "Repair", type: "Service",
+    vendor: "", vendorCode: "", department: "Field Service",
+    cogsGL: "", salesGL: "4000 · Service Revenue",
+    customField1: "", customField2: "", customField3: "", notes: "",
+    boldPrint: false, inventory: false, booking: false,
+  },
+  {
+    id: 1001, active: true, name: "SEER Heat Pump Condenser Unit",
+    description: "SEER 16 heat pump condenser outdoor unit",
+    salesDescription: "SEER Heat Pump Condenser — high efficiency outdoor unit",
+    additionalInfo: "SEER 16 rated", brand: "Trane", modelNumber: "XR16-048", upc: "012345678901",
+    rate: 3200, cost: 1800, taxable: true, tax1: true, tax2: false, tax3: false,
+    onHand: 12, minQty: 2, maxQty: 50, tracking: true,
+    category: "HVAC", subcategory: "Condensers", type: "Inventory Item",
+    vendor: "Trane Supply", vendorCode: "TR-XR16048", department: "Equipment",
+    cogsGL: "5000 · Cost of Goods", salesGL: "4100 · Equipment Sales",
+    customField1: "", customField2: "", customField3: "", notes: "",
+    boldPrint: false, inventory: true, booking: false,
+  },
+  {
+    id: 1002, active: true, name: "SEER Heat Pump Condenser Premium",
+    description: "SEER 20 premium heat pump condenser",
+    salesDescription: "SEER Premium Heat Pump Condenser — ultra high efficiency",
+    additionalInfo: "SEER 20 rated, Energy Star certified", brand: "Lennox", modelNumber: "XP25-048", upc: "098765432109",
+    rate: 4800, cost: 2900, taxable: true, tax1: true, tax2: false, tax3: false,
+    onHand: 5, minQty: 1, maxQty: 20, tracking: true,
+    category: "HVAC", subcategory: "Condensers", type: "Inventory Item",
+    vendor: "Lennox Pro", vendorCode: "LX-XP25048", department: "Equipment",
+    cogsGL: "5000 · Cost of Goods", salesGL: "4100 · Equipment Sales",
+    customField1: "", customField2: "", customField3: "", notes: "",
+    boldPrint: false, inventory: true, booking: false,
+  },
+  {
+    id: 1003, active: true, name: "Copper Piping Installation",
+    description: "Install copper piping per linear foot",
+    salesDescription: "Professional copper piping installation (per ft)",
+    additionalInfo: "", brand: "", modelNumber: "", upc: "",
+    rate: 18.50, cost: 6.75, taxable: true, tax1: true, tax2: false, tax3: false,
+    onHand: 0, minQty: 0, maxQty: 0, tracking: false,
+    category: "Plumbing", subcategory: "Installation", type: "Installation",
+    vendor: "", vendorCode: "", department: "Field Service",
+    cogsGL: "", salesGL: "4000 · Service Revenue",
+    customField1: "", customField2: "", customField3: "", notes: "",
+    boldPrint: false, inventory: false, booking: true,
+  },
+  {
+    id: 1004, active: true, name: "Electrical Panel Upgrade 200A",
+    description: "Upgrade existing panel to 200 amp service",
+    salesDescription: "200A electrical panel upgrade — parts and labor",
+    additionalInfo: "Includes permit filing", brand: "Square D", modelNumber: "HOM2040M200PC", upc: "786549871023",
+    rate: 2800, cost: 1100, taxable: true, tax1: true, tax2: false, tax3: false,
+    onHand: 3, minQty: 1, maxQty: 10, tracking: true,
+    category: "Electrical", subcategory: "Panels", type: "Equipment",
+    vendor: "Graybar Electric", vendorCode: "GB-HOM2040", department: "Equipment",
+    cogsGL: "5000 · Cost of Goods", salesGL: "4100 · Equipment Sales",
+    customField1: "", customField2: "", customField3: "", notes: "",
+    boldPrint: false, inventory: true, booking: false,
+  },
+  {
+    id: 1005, active: true, name: "General Labor - Technician",
+    description: "Standard technician labor rate per hour",
+    salesDescription: "Technician labor (hourly)",
+    additionalInfo: "", brand: "", modelNumber: "", upc: "",
+    rate: 95, cost: 45, taxable: false, tax1: false, tax2: false, tax3: false,
+    onHand: 0, minQty: 0, maxQty: 0, tracking: false,
+    category: "Labor", subcategory: "Technician", type: "Labor",
+    vendor: "", vendorCode: "", department: "Field Service",
+    cogsGL: "", salesGL: "4200 · Labor Revenue",
+    customField1: "", customField2: "", customField3: "", notes: "",
+    boldPrint: false, inventory: false, booking: false,
+  },
+  {
+    id: 1006, active: true, name: "Drain Cleaning Service",
+    description: "Standard drain cleaning and snaking",
+    salesDescription: "Professional drain cleaning service",
+    additionalInfo: "", brand: "", modelNumber: "", upc: "",
+    rate: 175, cost: 40, taxable: false, tax1: false, tax2: false, tax3: false,
+    onHand: 0, minQty: 0, maxQty: 0, tracking: false,
+    category: "Plumbing", subcategory: "Maintenance", type: "Maintenance",
+    vendor: "", vendorCode: "", department: "Field Service",
+    cogsGL: "", salesGL: "4000 · Service Revenue",
+    customField1: "", customField2: "", customField3: "", notes: "",
+    boldPrint: false, inventory: false, booking: true,
+  },
+  {
+    id: 1007, active: true, name: "Thermostat - Smart WiFi",
+    description: "Smart thermostat with WiFi connectivity",
+    salesDescription: "Smart WiFi Thermostat — professional installation included",
+    additionalInfo: "Compatible with most HVAC systems", brand: "Ecobee", modelNumber: "EB-STATE5-01", upc: "854239006800",
+    rate: 450, cost: 180, taxable: true, tax1: true, tax2: false, tax3: false,
+    onHand: 18, minQty: 3, maxQty: 40, tracking: true,
+    category: "HVAC", subcategory: "Controls", type: "Inventory Item",
+    vendor: "Ecobee Direct", vendorCode: "EC-STATE501", department: "Equipment",
+    cogsGL: "5000 · Cost of Goods", salesGL: "4100 · Equipment Sales",
+    customField1: "", customField2: "", customField3: "", notes: "",
+    boldPrint: false, inventory: true, booking: false,
+  },
 ];
 
 const initialGroups: ItemGroup[] = [
@@ -93,6 +223,25 @@ const initialCatalogs: Catalog[] = [
   { id: 1, name: "Plumbing Price Guide 2026", description: "Complete plumbing services and materials catalog", itemCount: 2, active: true },
   { id: 2, name: "HVAC Equipment Catalog", description: "All HVAC units, parts and accessories", itemCount: 4, active: true },
 ];
+
+// ─── Type badge helper ────────────────────────────────────────────────────────
+function getTypeBadgeClass(type: ItemType): string {
+  const serviceTypes: ItemType[] = ["Service", "Labor", "Maintenance", "Diagnostics", "Installation", "Repair"];
+  const materialTypes: ItemType[] = ["Inventory Item", "Non-Inventory Item", "Serialized Item"];
+  const equipmentTypes: ItemType[] = ["Equipment", "Asset"];
+  const feeTypes: ItemType[] = [
+    "Fee / Admin Code", "Discount", "Other Charge",
+    "Material Markup", "Labor Markup", "Other Markup",
+    "Material Discount", "Labor Discount", "Other Discount",
+  ];
+  if (serviceTypes.includes(type)) return "bg-[#EBF0F8] text-[#4A6FA5]";
+  if (materialTypes.includes(type)) return "bg-[#D1FAE5] text-[#16A34A]";
+  if (equipmentTypes.includes(type)) return "bg-[#FEF3C7] text-[#D97706]";
+  if (feeTypes.includes(type)) return "bg-[#EDE9FE] text-[#7C3AED]";
+  if (type === "Bundle / Kit") return "bg-[#CCFBF1] text-[#0D9488]";
+  if (type === "Expense / Reimbursement") return "bg-[#FFEDD5] text-[#EA580C]";
+  return "bg-[#F3F4F6] text-[#6B7280]";
+}
 
 // ─── Helper Components ───────────────────────────────────────────────────────
 
@@ -397,15 +546,12 @@ export function Items() {
                     {[
                       { key: "id", label: "Id", w: "w-[70px]", sortable: true },
                       { key: "name", label: "Name", w: "min-w-[200px]", sortable: true },
-                      { key: "salesDescription", label: "Description", w: "min-w-[180px]", sortable: false },
-                      { key: "rate", label: "Price", w: "w-[90px]", sortable: true },
+                      { key: "type", label: "Type", w: "w-[160px]", sortable: true },
+                      { key: "category", label: "Category", w: "w-[110px]", sortable: true },
+                      { key: "subcategory", label: "Subcategory", w: "w-[120px]", sortable: true },
+                      { key: "rate", label: "Retail Price", w: "w-[110px]", sortable: true },
                       { key: "cost", label: "Cost", w: "w-[90px]", sortable: true },
-                      { key: "type", label: "Type", w: "w-[90px]", sortable: true },
-                      { key: "category", label: "Category", w: "w-[100px]", sortable: true },
-                      { key: "modelNumber", label: "Model #", w: "w-[100px]", sortable: true },
-                      { key: "brand", label: "Brand", w: "w-[100px]", sortable: true },
-                      { key: "booking", label: "Booking", w: "w-[80px]", sortable: true },
-                      { key: "inventory", label: "Inventory", w: "w-[80px]", sortable: true },
+                      { key: "onHand", label: "On Hand", w: "w-[90px]", sortable: true },
                       { key: "taxable", label: "Taxable", w: "w-[80px]", sortable: true },
                     ].map(col => (
                       <th
@@ -426,7 +572,7 @@ export function Items() {
                 <tbody>
                   {paginatedItems.length === 0 ? (
                     <tr>
-                      <td colSpan={14} className="px-4 py-16 text-center">
+                      <td colSpan={11} className="px-4 py-16 text-center">
                         <span className="material-icons text-[#C8D5E8] mb-2" style={{ fontSize: "48px" }}>inventory_2</span>
                         <div className="text-[14px] text-[#546478]" style={{ fontWeight: 500 }}>No items found</div>
                         <div className="text-[12px] text-[#8899AA] mt-1">Try adjusting your search or filters</div>
@@ -455,26 +601,16 @@ export function Items() {
                       <td className="px-3 py-3 text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>
                         <div className="truncate max-w-[220px]">{item.name}</div>
                       </td>
-                      <td className="px-3 py-3 text-[13px] text-[#546478]">
-                        <div className="truncate max-w-[200px]">{item.salesDescription || "—"}</div>
-                      </td>
-                      <td className="px-3 py-3 text-[13px] text-[#1A2332]" style={{ fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>${item.rate.toFixed(2)}</td>
-                      <td className="px-3 py-3 text-[13px] text-[#546478]" style={{ fontVariantNumeric: "tabular-nums" }}>${item.cost.toFixed(2)}</td>
                       <td className="px-3 py-3">
-                        <span className={`inline-block px-2 py-0.5 rounded-full text-[11px] ${
-                          item.type === "Service" ? "bg-[#EBF0F8] text-[#4A6FA5]" :
-                          item.type === "Product" ? "bg-[#D1FAE5] text-[#16A34A]" :
-                          item.type === "Equipment" ? "bg-[#FEF3C7] text-[#D97706]" :
-                          "bg-[#EDE9FE] text-[#7C3AED]"
-                        }`} style={{ fontWeight: 600 }}>
+                        <span className={`inline-block px-2 py-0.5 rounded-full text-[11px] whitespace-nowrap ${getTypeBadgeClass(item.type)}`} style={{ fontWeight: 600 }}>
                           {item.type}
                         </span>
                       </td>
-                      <td className="px-3 py-3 text-[13px] text-[#546478]">{item.category}</td>
-                      <td className="px-3 py-3 text-[13px] text-[#546478]">{item.modelNumber || "—"}</td>
-                      <td className="px-3 py-3 text-[13px] text-[#546478]">{item.brand || "—"}</td>
-                      <td className="px-3 py-3 text-[13px] text-[#546478]">{item.booking ? "Yes" : "No"}</td>
-                      <td className="px-3 py-3 text-[13px] text-[#546478]">{item.inventory ? "Yes" : "No"}</td>
+                      <td className="px-3 py-3 text-[13px] text-[#546478]">{item.category || "—"}</td>
+                      <td className="px-3 py-3 text-[13px] text-[#546478]">{item.subcategory || "—"}</td>
+                      <td className="px-3 py-3 text-[13px] text-[#1A2332]" style={{ fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>${item.rate.toFixed(2)}</td>
+                      <td className="px-3 py-3 text-[13px] text-[#546478]" style={{ fontVariantNumeric: "tabular-nums" }}>${item.cost.toFixed(2)}</td>
+                      <td className="px-3 py-3 text-[13px] text-[#546478] text-center">{item.onHand}</td>
                       <td className="px-3 py-3 text-[13px] text-[#546478]">{item.taxable ? "Yes" : "No"}</td>
                       <td className="px-3 py-3">
                         <div className="flex items-center gap-0.5">
@@ -848,117 +984,351 @@ function ItemModal({ item, categories, brands, onClose, onSave }: {
   onClose: () => void;
   onSave: (item: Item) => void;
 }) {
-  const [form, setForm] = useState<Item>(item || {
-    id: 0, name: "", itemDescription: "", salesDescription: "", brand: "", modelNumber: "",
-    rate: 0, cost: 0, taxable: true, inventory: false, category: "", type: "Service", booking: false, active: true,
-  });
+  const blankItem: Item = {
+    id: 0, active: true, name: "", description: "", salesDescription: "", additionalInfo: "",
+    brand: "", modelNumber: "", upc: "",
+    rate: 0, cost: 0, taxable: true, tax1: false, tax2: false, tax3: false,
+    onHand: 0, minQty: 0, maxQty: 0, tracking: false,
+    category: "", subcategory: "", type: "Service",
+    vendor: "", vendorCode: "", department: "",
+    cogsGL: "", salesGL: "",
+    customField1: "", customField2: "", customField3: "",
+    notes: "", boldPrint: false, inventory: false, booking: false,
+  };
 
+  const [form, setForm] = useState<Item>(item || blankItem);
   const update = (field: keyof Item, value: any) => setForm(prev => ({ ...prev, [field]: value }));
 
   return (
     <ModalBackdrop onClose={onClose}>
-      <div className="bg-white rounded-2xl shadow-2xl w-[680px] max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="bg-white rounded-2xl shadow-2xl w-[780px] max-h-[90vh] overflow-hidden flex flex-col">
+        {/* Header */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-[#DDE3EE]">
           <h2 className="text-[20px] text-[#1A2332]" style={{ fontWeight: 700 }}>{item ? "Edit Item" : "Add New Item"}</h2>
-          <button onClick={onClose} className="w-8 h-8 rounded-lg hover:bg-[#F5F7FA] flex items-center justify-center">
-            <span className="material-icons text-[#546478]" style={{ fontSize: "22px" }}>close</span>
-          </button>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <Toggle checked={form.active} onChange={(v) => update("active", v)} />
+              <span className="text-[13px] text-[#546478]" style={{ fontWeight: 500 }}>Active</span>
+            </div>
+            <button onClick={onClose} className="w-8 h-8 rounded-lg hover:bg-[#F5F7FA] flex items-center justify-center">
+              <span className="material-icons text-[#546478]" style={{ fontSize: "22px" }}>close</span>
+            </button>
+          </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6">
-          <div className="grid grid-cols-[1fr_1fr] gap-x-6 gap-y-5">
-            {/* Left column */}
-            <div className="space-y-5">
-              <FieldGroup label="Title" required>
-                <input type="text" value={form.name} onChange={(e) => update("name", e.target.value)} placeholder="Item name"
-                  className="w-full h-10 px-3 border border-[#DDE3EE] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]" spellCheck />
-              </FieldGroup>
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-6">
 
-              <FieldGroup label="Model #">
-                <input type="text" value={form.modelNumber} onChange={(e) => update("modelNumber", e.target.value)} placeholder="Model number"
-                  className="w-full h-10 px-3 border border-[#DDE3EE] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]" />
-              </FieldGroup>
+          {/* ── Basic Info ── */}
+          <SectionHeader label="Basic Info" />
+          <div className="space-y-4">
+            {/* Name + Bold toggle inline */}
+            <div className="flex items-start gap-4">
+              <div className="flex-1">
+                <FieldGroup label="Name" required>
+                  <input
+                    type="text" value={form.name} onChange={(e) => update("name", e.target.value)}
+                    placeholder="Item name"
+                    className="w-full h-10 px-3 border border-[#DDE3EE] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]"
+                    spellCheck
+                  />
+                </FieldGroup>
+              </div>
+              <div className="flex items-center gap-2 pt-7 shrink-0">
+                <Toggle checked={form.boldPrint} onChange={(v) => update("boldPrint", v)} />
+                <span className="text-[13px] text-[#1A2332] whitespace-nowrap" style={{ fontWeight: 500 }}>Bold When Printed on J-I-E</span>
+              </div>
+            </div>
 
+            <FieldGroup label="Description (internal)">
+              <textarea
+                value={form.description} onChange={(e) => update("description", e.target.value)}
+                placeholder="Internal description (not shown to customers)"
+                className="w-full min-h-[72px] px-3 py-2 border border-[#DDE3EE] rounded-lg text-[14px] resize-y focus:outline-none focus:border-[#4A6FA5]"
+                spellCheck
+              />
+            </FieldGroup>
+
+            <FieldGroup label="Sales Description">
+              <textarea
+                value={form.salesDescription} onChange={(e) => update("salesDescription", e.target.value)}
+                placeholder="Customer-facing description"
+                className="w-full min-h-[72px] px-3 py-2 border border-[#DDE3EE] rounded-lg text-[14px] resize-y focus:outline-none focus:border-[#4A6FA5]"
+                spellCheck
+              />
+            </FieldGroup>
+
+            <FieldGroup label="Additional Information">
+              <textarea
+                value={form.additionalInfo} onChange={(e) => update("additionalInfo", e.target.value)}
+                placeholder="Additional details (optional)"
+                className="w-full min-h-[72px] px-3 py-2 border border-[#DDE3EE] rounded-lg text-[14px] resize-y focus:outline-none focus:border-[#4A6FA5]"
+                spellCheck
+              />
+            </FieldGroup>
+          </div>
+
+          {/* ── Type & Classification ── */}
+          <SectionHeader label="Type & Classification" />
+          <div className="space-y-4">
+            <FieldGroup label="Item Type">
+              <select
+                value={form.type} onChange={(e) => update("type", e.target.value as ItemType)}
+                className="w-full h-10 px-3 border border-[#DDE3EE] rounded-lg text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
+              >
+                <optgroup label="Service">
+                  <option value="Service">Service</option>
+                  <option value="Labor">Labor</option>
+                  <option value="Maintenance">Maintenance</option>
+                  <option value="Diagnostics">Diagnostics</option>
+                  <option value="Installation">Installation</option>
+                  <option value="Repair">Repair</option>
+                </optgroup>
+                <optgroup label="Material">
+                  <option value="Inventory Item">Inventory Item</option>
+                  <option value="Non-Inventory Item">Non-Inventory Item</option>
+                  <option value="Serialized Item">Serialized Item</option>
+                </optgroup>
+                <optgroup label="Equipment &amp; Asset">
+                  <option value="Equipment">Equipment</option>
+                  <option value="Asset">Asset</option>
+                </optgroup>
+                <optgroup label="Fee">
+                  <option value="Fee / Admin Code">Fee / Admin Code</option>
+                  <option value="Discount">Discount</option>
+                  <option value="Other Charge">Other Charge</option>
+                  <option value="Material Markup">Material Markup</option>
+                  <option value="Labor Markup">Labor Markup</option>
+                  <option value="Other Markup">Other Markup</option>
+                  <option value="Material Discount">Material Discount</option>
+                  <option value="Labor Discount">Labor Discount</option>
+                  <option value="Other Discount">Other Discount</option>
+                </optgroup>
+                <optgroup label="Other">
+                  <option value="Bundle / Kit">Bundle / Kit</option>
+                  <option value="Expense / Reimbursement">Expense / Reimbursement</option>
+                </optgroup>
+              </select>
+            </FieldGroup>
+
+            <div className="grid grid-cols-2 gap-4">
               <FieldGroup label="Category">
-                <select value={form.category} onChange={(e) => update("category", e.target.value)}
+                <select
+                  value={form.category} onChange={(e) => update("category", e.target.value)}
                   className="w-full h-10 px-3 border border-[#DDE3EE] rounded-lg text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
                 >
                   <option value="">Choose category (optional)</option>
                   {categories.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </FieldGroup>
-
-              <FieldGroup label="Item Type">
-                <select value={form.type} onChange={(e) => update("type", e.target.value)}
-                  className="w-full h-10 px-3 border border-[#DDE3EE] rounded-lg text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
-                >
-                  {["Service", "Product", "Equipment", "Labor"].map(t => <option key={t} value={t}>{t}</option>)}
-                </select>
-              </FieldGroup>
-
-              <FieldGroup label="Item Description">
-                <textarea value={form.itemDescription} onChange={(e) => update("itemDescription", e.target.value)} placeholder="Internal description (optional)"
-                  className="w-full min-h-[80px] px-3 py-2 border border-[#DDE3EE] rounded-lg text-[14px] resize-y focus:outline-none focus:border-[#4A6FA5]" spellCheck />
-              </FieldGroup>
-
-              <FieldGroup label="Sales Description">
-                <textarea value={form.salesDescription} onChange={(e) => update("salesDescription", e.target.value)} placeholder="Customer-facing description (optional)"
-                  className="w-full min-h-[80px] px-3 py-2 border border-[#DDE3EE] rounded-lg text-[14px] resize-y focus:outline-none focus:border-[#4A6FA5]" spellCheck />
+              <FieldGroup label="Subcategory">
+                <input
+                  type="text" value={form.subcategory} onChange={(e) => update("subcategory", e.target.value)}
+                  placeholder="Subcategory (optional)"
+                  className="w-full h-10 px-3 border border-[#DDE3EE] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]"
+                />
               </FieldGroup>
             </div>
 
-            {/* Right column */}
-            <div className="space-y-5">
-              <FieldGroup label="Price" required>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#546478] text-[14px]">$</span>
-                  <input type="number" min="0" step="0.01" value={form.rate || ""} onChange={(e) => update("rate", parseFloat(e.target.value) || 0)}
-                    className="w-full h-10 pl-7 pr-3 border border-[#DDE3EE] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]" style={{ fontVariantNumeric: "tabular-nums" }} />
-                </div>
-              </FieldGroup>
-
-              <FieldGroup label="Unit Cost">
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#546478] text-[14px]">$</span>
-                  <input type="number" min="0" step="0.01" value={form.cost || ""} onChange={(e) => update("cost", parseFloat(e.target.value) || 0)}
-                    className="w-full h-10 pl-7 pr-3 border border-[#DDE3EE] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]" style={{ fontVariantNumeric: "tabular-nums" }} />
-                </div>
-              </FieldGroup>
-
-              <FieldGroup label="Brand">
-                <select value={form.brand} onChange={(e) => update("brand", e.target.value)}
+            <div className="grid grid-cols-2 gap-4">
+              <FieldGroup label="Mfg.">
+                <select
+                  value={form.brand} onChange={(e) => update("brand", e.target.value)}
                   className="w-full h-10 px-3 border border-[#DDE3EE] rounded-lg text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
                 >
-                  <option value="">Select brand (optional)</option>
+                  <option value="">Select manufacturer (optional)</option>
                   {brands.map(b => <option key={b.id} value={b.name}>{b.name}</option>)}
                 </select>
               </FieldGroup>
-
-              <div className="flex items-center justify-between py-2">
-                <div>
-                  <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Taxable Item</div>
-                  <div className="text-[12px] text-[#8899AA]">Apply tax to this item</div>
-                </div>
-                <Toggle checked={form.taxable} onChange={(v) => update("taxable", v)} />
-              </div>
-
-              <div className="flex items-center justify-between py-2">
-                <div>
-                  <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Add to Booking Items</div>
-                  <div className="text-[12px] text-[#8899AA]">Available during booking flow</div>
-                </div>
-                <Toggle checked={form.booking} onChange={(v) => update("booking", v)} />
-              </div>
-
-              <div className="flex items-center justify-between py-2">
-                <div>
-                  <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Inventory Item</div>
-                  <div className="text-[12px] text-[#8899AA]">Track inventory for this item</div>
-                </div>
-                <Toggle checked={form.inventory} onChange={(v) => update("inventory", v)} />
-              </div>
+              <FieldGroup label="Department">
+                <input
+                  type="text" value={form.department} onChange={(e) => update("department", e.target.value)}
+                  placeholder="e.g. Field Service"
+                  className="w-full h-10 px-3 border border-[#DDE3EE] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]"
+                />
+              </FieldGroup>
             </div>
           </div>
+
+          {/* ── Pricing & Tax ── */}
+          <SectionHeader label="Pricing & Tax" />
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <FieldGroup label="Retail Price ($)">
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#546478] text-[14px]">$</span>
+                  <input
+                    type="number" min="0" step="0.01" value={form.rate || ""}
+                    onChange={(e) => update("rate", parseFloat(e.target.value) || 0)}
+                    className="w-full h-10 pl-7 pr-3 border border-[#DDE3EE] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]"
+                    style={{ fontVariantNumeric: "tabular-nums" }}
+                  />
+                </div>
+              </FieldGroup>
+              <FieldGroup label="Cost ($)">
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#546478] text-[14px]">$</span>
+                  <input
+                    type="number" min="0" step="0.01" value={form.cost || ""}
+                    onChange={(e) => update("cost", parseFloat(e.target.value) || 0)}
+                    className="w-full h-10 pl-7 pr-3 border border-[#DDE3EE] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]"
+                    style={{ fontVariantNumeric: "tabular-nums" }}
+                  />
+                </div>
+              </FieldGroup>
+            </div>
+
+            <div className="flex items-center justify-between py-1">
+              <div>
+                <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Taxable</div>
+                <div className="text-[12px] text-[#8899AA]">Apply tax to this item</div>
+              </div>
+              <Toggle checked={form.taxable} onChange={(v) => update("taxable", v)} />
+            </div>
+
+            <div className="flex items-center gap-6">
+              {(["tax1", "tax2", "tax3"] as const).map((field, i) => (
+                <label key={field} className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form[field]}
+                    onChange={(e) => update(field, e.target.checked)}
+                    className="w-4 h-4 rounded border-[#DDE3EE] accent-[#4A6FA5] cursor-pointer"
+                  />
+                  <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Tax {i + 1}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* ── Inventory ── */}
+          <SectionHeader label="Inventory" />
+          <div className="space-y-4">
+            <div className="grid grid-cols-3 gap-4">
+              <FieldGroup label="On Hand">
+                <input
+                  type="number" min="0" value={form.onHand || ""}
+                  onChange={(e) => update("onHand", parseInt(e.target.value) || 0)}
+                  className="w-full h-10 px-3 border border-[#DDE3EE] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]"
+                />
+              </FieldGroup>
+              <FieldGroup label="Min Qty">
+                <input
+                  type="number" min="0" value={form.minQty || ""}
+                  onChange={(e) => update("minQty", parseInt(e.target.value) || 0)}
+                  className="w-full h-10 px-3 border border-[#DDE3EE] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]"
+                />
+              </FieldGroup>
+              <FieldGroup label="Max Qty">
+                <input
+                  type="number" min="0" value={form.maxQty || ""}
+                  onChange={(e) => update("maxQty", parseInt(e.target.value) || 0)}
+                  className="w-full h-10 px-3 border border-[#DDE3EE] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]"
+                />
+              </FieldGroup>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <FieldGroup label="UPC">
+                <input
+                  type="text" value={form.upc} onChange={(e) => update("upc", e.target.value)}
+                  placeholder="Universal Product Code"
+                  className="w-full h-10 px-3 border border-[#DDE3EE] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]"
+                />
+              </FieldGroup>
+              <FieldGroup label="SKU">
+                <input
+                  type="text" value={form.modelNumber} onChange={(e) => update("modelNumber", e.target.value)}
+                  placeholder="Stock Keeping Unit / Model #"
+                  className="w-full h-10 px-3 border border-[#DDE3EE] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]"
+                />
+              </FieldGroup>
+            </div>
+
+            <div className="flex items-center justify-between py-1">
+              <div>
+                <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Tracking</div>
+                <div className="text-[12px] text-[#8899AA]">Track inventory quantity for this item</div>
+              </div>
+              <Toggle checked={form.tracking} onChange={(v) => update("tracking", v)} />
+            </div>
+          </div>
+
+          {/* ── Vendor ── */}
+          <SectionHeader label="Vendor" />
+          <div className="grid grid-cols-2 gap-4">
+            <FieldGroup label="Vendor">
+              <input
+                type="text" value={form.vendor} onChange={(e) => update("vendor", e.target.value)}
+                placeholder="Vendor name"
+                className="w-full h-10 px-3 border border-[#DDE3EE] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]"
+              />
+            </FieldGroup>
+            <FieldGroup label="Vendor Code">
+              <input
+                type="text" value={form.vendorCode} onChange={(e) => update("vendorCode", e.target.value)}
+                placeholder="Vendor part / item code"
+                className="w-full h-10 px-3 border border-[#DDE3EE] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]"
+              />
+            </FieldGroup>
+          </div>
+
+          {/* ── Accounting ── */}
+          <SectionHeader label="Accounting" />
+          <div className="grid grid-cols-2 gap-4">
+            <FieldGroup label="COGS G/L">
+              <input
+                type="text" value={form.cogsGL} onChange={(e) => update("cogsGL", e.target.value)}
+                placeholder="5000 · Cost of Goods"
+                className="w-full h-10 px-3 border border-[#DDE3EE] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]"
+              />
+            </FieldGroup>
+            <FieldGroup label="Sales G/L">
+              <input
+                type="text" value={form.salesGL} onChange={(e) => update("salesGL", e.target.value)}
+                placeholder="4000 · Sales Revenue"
+                className="w-full h-10 px-3 border border-[#DDE3EE] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]"
+              />
+            </FieldGroup>
+          </div>
+
+          {/* ── Custom Fields ── */}
+          <SectionHeader label="Custom Fields" />
+          <div className="grid grid-cols-3 gap-4">
+            <FieldGroup label="Custom Field 1">
+              <input
+                type="text" value={form.customField1} onChange={(e) => update("customField1", e.target.value)}
+                placeholder="Custom field 1"
+                className="w-full h-10 px-3 border border-[#DDE3EE] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]"
+              />
+            </FieldGroup>
+            <FieldGroup label="Custom Field 2">
+              <input
+                type="text" value={form.customField2} onChange={(e) => update("customField2", e.target.value)}
+                placeholder="Custom field 2"
+                className="w-full h-10 px-3 border border-[#DDE3EE] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]"
+              />
+            </FieldGroup>
+            <FieldGroup label="Custom Field 3">
+              <input
+                type="text" value={form.customField3} onChange={(e) => update("customField3", e.target.value)}
+                placeholder="Custom field 3"
+                className="w-full h-10 px-3 border border-[#DDE3EE] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]"
+              />
+            </FieldGroup>
+          </div>
+
+          {/* ── Notes ── */}
+          <SectionHeader label="Notes" />
+          <FieldGroup label="">
+            <textarea
+              value={form.notes} onChange={(e) => update("notes", e.target.value)}
+              placeholder="Internal notes (optional)"
+              className="w-full min-h-[80px] px-3 py-2 border border-[#DDE3EE] rounded-lg text-[14px] resize-y focus:outline-none focus:border-[#4A6FA5]"
+              spellCheck
+            />
+          </FieldGroup>
+
         </div>
 
         {/* Footer */}
@@ -1221,14 +1591,25 @@ function CatalogModal({ catalog, onClose, onSave }: {
   );
 }
 
-// ─── Shared FieldGroup ───────────────────────────────────────────────────────
+// ─── Shared helpers ───────────────────────────────────────────────────────────
 function FieldGroup({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
   return (
     <div>
-      <label className="block text-[13px] text-[#1A2332] mb-1.5" style={{ fontWeight: 500 }}>
-        {label} {required && <span className="text-[#DC2626]">*</span>}
-      </label>
+      {label && (
+        <label className="block text-[13px] text-[#1A2332] mb-1.5" style={{ fontWeight: 500 }}>
+          {label} {required && <span className="text-[#DC2626]">*</span>}
+        </label>
+      )}
       {children}
+    </div>
+  );
+}
+
+function SectionHeader({ label }: { label: string }) {
+  return (
+    <div className="flex items-center gap-3 pt-2">
+      <span className="text-[12px] uppercase tracking-wider text-[#546478] shrink-0" style={{ fontWeight: 700 }}>{label}</span>
+      <div className="flex-1 h-px bg-[#DDE3EE]" />
     </div>
   );
 }
