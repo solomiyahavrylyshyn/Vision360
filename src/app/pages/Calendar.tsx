@@ -247,17 +247,23 @@ export function Calendar() {
       </div>
 
       {/* Stat tiles */}
-      <div className="flex items-center gap-4 px-6 py-4 border-b border-[#DDE3EE] bg-[#F5F7FA]">
+      <div className="flex items-stretch border-b border-[#DDE3EE] bg-white overflow-x-auto">
         {[
-          { count: 2, label: "Scheduled", color: "#4A6FA5" },
-          { count: 1, label: "In Progress", color: "#C07828" },
-          { count: 1, label: "Completed", color: "#16A34A" },
-        ].map(({ count, label, color }) => (
-          <div key={label} className="bg-white border border-[#DDE3EE] rounded-2xl px-6 py-4 min-w-[160px]">
-            <div className="text-[28px] text-[#1A2332] leading-none mb-2" style={{ fontWeight: 700 }}>{count}</div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
-              <span className="text-[13px] text-[#546478]" style={{ fontWeight: 500 }}>{label}</span>
+          { value: "38", label: "Total Jobs",    icon: "schedule",           iconBg: "#EEF2F8", iconColor: "#4A6FA5" },
+          { value: "32", label: "Scheduled",     icon: "check_circle",       iconBg: "#DCFCE7", iconColor: "#16A34A" },
+          { value: "3",  label: "Unscheduled",   icon: "warning",            iconBg: "#FEF3C7", iconColor: "#D97706" },
+          { value: "2",  label: "In Progress",   icon: "play_circle_filled", iconBg: "#EDE9FE", iconColor: "#7C3AED" },
+          { value: "1",  label: "On Hold",       icon: "pause_circle_filled",iconBg: "#F3F4F6", iconColor: "#6B7280" },
+          { value: "0",  label: "Canceled",      icon: "cancel",             iconBg: "#FEE2E2", iconColor: "#DC2626" },
+          { value: "92%",label: "Utilization",   icon: "speed",              iconBg: "#DCFCE7", iconColor: "#16A34A" },
+        ].map((s, i, arr) => (
+          <div key={s.label} className={`flex items-center gap-3 px-6 py-4 shrink-0 flex-1 ${i < arr.length - 1 ? "border-r border-[#DDE3EE]" : ""}`}>
+            <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: s.iconBg }}>
+              <span className="material-icons" style={{ fontSize: "22px", color: s.iconColor }}>{s.icon}</span>
+            </div>
+            <div>
+              <div className="text-[22px] text-[#1A2332] leading-none" style={{ fontWeight: 700 }}>{s.value}</div>
+              <div className="text-[12px] text-[#546478] mt-0.5 whitespace-nowrap">{s.label}</div>
             </div>
           </div>
         ))}
