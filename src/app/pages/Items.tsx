@@ -1,8 +1,11 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router";
+import { DndProvider } from "react-dnd";
+import { HTML5Backend } from "react-dnd-html5-backend";
 import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
 import { PageHeader } from "../components/ui/page-header";
 import { SelectionBar } from "../components/ui/selection-bar";
+import { useDraggableColumns, DraggableTh } from "../components/ui/draggable-columns";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type ItemType =
@@ -357,6 +360,18 @@ function Pagination({ total, perPage, page, onPageChange, onPerPageChange }: {
   );
 }
 
+// ─── Pricebook column definitions ────────────────────────────────────────────
+const PRICEBOOK_COLS = [
+  { key: "name",        label: "Item Name",   w: "min-w-[180px]", sortable: true  },
+  { key: "category",    label: "Category",    w: "w-[120px]",     sortable: true  },
+  { key: "description", label: "Description", w: "min-w-[200px]", sortable: false },
+  { key: "price",       label: "Price",       w: "w-[90px]",      sortable: true  },
+  { key: "cost",        label: "Cost",        w: "w-[85px]",      sortable: true  },
+  { key: "margin",      label: "Margin",      w: "w-[90px]",      sortable: false },
+  { key: "taxable",     label: "Taxable",     w: "w-[80px]",      sortable: false },
+  { key: "active",      label: "Active",      w: "w-[70px]",      sortable: false },
+] as const;
+
 // ─── Main Component ──────────────────────────────────────────────────────────
 export function Items() {
   const navigate = useNavigate();
@@ -409,6 +424,7 @@ export function Items() {
   const [pbSort, setPbSort] = useState<{ key: string; dir: "asc" | "desc" }>({ key: "id", dir: "asc" });
   const [pbPage, setPbPage] = useState(1);
   const [pbPerPage, setPbPerPage] = useState(10);
+  const [pbCols, movePbCol] = useDraggableColumns([...PRICEBOOK_COLS]);
 
   // ─── Items Logic ─────────────────────────────────────────────────────
   const filteredItems = useMemo(() => {
@@ -512,6 +528,7 @@ export function Items() {
   // ─── RENDER ────────────────────────────────────────────────────────────
   // ═══════════════════════════════════════════════════════════════════════
   return (
+    <DndProvider backend={HTML5Backend}>
     <div className="px-7 py-5 bg-[#F5F7FA] min-h-full">
       {/* Page Header */}
       <PageHeader
@@ -597,20 +614,15 @@ export function Items() {
             <table className="w-full">
               <thead>
                 <tr className="bg-[#F5F7FA] border-b border-[#DDE3EE]">
-                  {[
-                    { key: "name", label: "Item Name", w: "min-w-[180px]", sortable: true },
-                    { key: "category", label: "Category", w: "w-[120px]", sortable: true },
-                    { key: "description", label: "Description", w: "min-w-[200px]", sortable: false },
-                    { key: "price", label: "Price", w: "w-[90px]", sortable: true },
-                    { key: "cost", label: "Cost", w: "w-[85px]", sortable: true },
-                    { key: "margin", label: "Margin", w: "w-[90px]", sortable: false },
-                    { key: "taxable", label: "Taxable", w: "w-[80px]", sortable: false },
-                    { key: "active", label: "Active", w: "w-[70px]", sortable: false },
-                  ].map(col => (
-                    <th key={col.key}
-                      className={`px-4 py-2 text-left text-[11px] uppercase tracking-wider text-[#546478] select-none ${col.sortable ? "cursor-pointer hover:text-[#1A2332]" : ""} ${col.w}`}
+                  {pbCols.map(col => (
+                    <DraggableTh
+                      key={col.key}
+                      colKey={col.key}
+                      onMove={movePbCol}
+                      className={`px-4 py-2 text-left text-[11px] uppercase tracking-wider text-[#546478] select-none ${col.sortable ? "hover:text-[#1A2332]" : ""} ${col.w}`}
                       style={{ fontWeight: 600 }}
-                      onClick={() => col.sortable && setPbSort(prev => ({ key: col.key, dir: prev.key === col.key && prev.dir === "asc" ? "desc" : "asc" }))}>
+                      onClick={col.sortable ? () => setPbSort(prev => ({ key: col.key, dir: prev.key === col.key && prev.dir === "asc" ? "desc" : "asc" })) : undefined}
+                    >
                       <div className="flex items-center gap-0.5">
                         {col.label}
                         {col.sortable && pbSort.key === col.key && (
@@ -619,7 +631,7 @@ export function Items() {
                           </span>
                         )}
                       </div>
-                    </th>
+                    </DraggableTh>
                   ))}
                   <th className="px-4 py-2 w-[60px] text-right text-[11px] uppercase tracking-wider text-[#546478]" style={{ fontWeight: 600 }}>Actions</th>
                 </tr>
@@ -634,24 +646,46 @@ export function Items() {
                   <tr key={item.id}
                     onClick={() => navigate(`/items/pb-${item.id}`)}
                     className="group border-b border-[#DDE3EE] hover:bg-[#F9FAFB] transition-colors cursor-pointer bg-white">
-                    <td className="px-4 py-2">
-                      <div className="text-[13px] text-[#4A6FA5] hover:underline truncate max-w-[200px]" style={{ fontWeight: 500 }}>{item.name}</div>
-                    </td>
-                    <td className="px-4 py-2 text-[13px] text-[#546478]">{item.category}</td>
-                    <td className="px-4 py-2 text-[13px] text-[#546478]">
-                      <div className="truncate max-w-[260px]">{item.description}</div>
-                    </td>
-                    <td className="px-4 py-2 text-[13px] text-[#1A2332]" style={{ fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>${item.price.toFixed(2)}</td>
-                    <td className="px-4 py-2 text-[13px] text-[#546478]" style={{ fontVariantNumeric: "tabular-nums" }}>${item.cost.toFixed(2)}</td>
-                    <td className="px-4 py-2 text-[13px]" style={{ fontWeight: 600, color: "#16A34A" }}>{calcMargin(item.price, item.cost)}</td>
-                    <td className="px-4 py-2">
-                      {item.taxable
-                        ? <span className="material-icons text-[#16A34A]" style={{ fontSize: "18px" }}>check</span>
-                        : <span className="text-[#C8D5E8]">—</span>}
-                    </td>
-                    <td className="px-4 py-2" onClick={e => e.stopPropagation()}>
-                      <Toggle checked={item.active} onChange={v => setPbItems(prev => prev.map(i => i.id === item.id ? { ...i, active: v } : i))} />
-                    </td>
+                    {pbCols.map(col => {
+                      switch (col.key) {
+                        case "name":
+                          return (
+                            <td key="name" className="px-4 py-2">
+                              <div className="text-[13px] text-[#4A6FA5] hover:underline truncate max-w-[200px]" style={{ fontWeight: 500 }}>{item.name}</div>
+                            </td>
+                          );
+                        case "category":
+                          return <td key="category" className="px-4 py-2 text-[13px] text-[#546478]">{item.category}</td>;
+                        case "description":
+                          return (
+                            <td key="description" className="px-4 py-2 text-[13px] text-[#546478]">
+                              <div className="truncate max-w-[260px]">{item.description}</div>
+                            </td>
+                          );
+                        case "price":
+                          return <td key="price" className="px-4 py-2 text-[13px] text-[#1A2332]" style={{ fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>${item.price.toFixed(2)}</td>;
+                        case "cost":
+                          return <td key="cost" className="px-4 py-2 text-[13px] text-[#546478]" style={{ fontVariantNumeric: "tabular-nums" }}>${item.cost.toFixed(2)}</td>;
+                        case "margin":
+                          return <td key="margin" className="px-4 py-2 text-[13px]" style={{ fontWeight: 600, color: "#16A34A" }}>{calcMargin(item.price, item.cost)}</td>;
+                        case "taxable":
+                          return (
+                            <td key="taxable" className="px-4 py-2">
+                              {item.taxable
+                                ? <span className="material-icons text-[#16A34A]" style={{ fontSize: "18px" }}>check</span>
+                                : <span className="text-[#C8D5E8]">—</span>}
+                            </td>
+                          );
+                        case "active":
+                          return (
+                            <td key="active" className="px-4 py-2" onClick={e => e.stopPropagation()}>
+                              <Toggle checked={item.active} onChange={v => setPbItems(prev => prev.map(i => i.id === item.id ? { ...i, active: v } : i))} />
+                            </td>
+                          );
+                        default:
+                          return null;
+                      }
+                    })}
                     <td className="px-4 py-2 text-right" onClick={e => e.stopPropagation()}>
                       <KebabMenu triggerClassName="w-8 h-8 border border-[#DDE3EE] rounded-lg bg-white">
                         <KebabItem icon="edit">Edit</KebabItem>
@@ -1285,6 +1319,7 @@ export function Items() {
         </ModalBackdrop>
       )}
     </div>
+    </DndProvider>
   );
 }
 

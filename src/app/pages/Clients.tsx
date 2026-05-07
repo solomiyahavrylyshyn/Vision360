@@ -6,6 +6,9 @@ import { Card } from "../components/ui/card";
 import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
 import { PageHeader } from "../components/ui/page-header";
 import { SelectionBar } from "../components/ui/selection-bar";
+import { DndProvider } from "react-dnd";
+import { HTML5Backend } from "react-dnd-html5-backend";
+import { useDraggableColumns, DraggableTh } from "../components/ui/draggable-columns";
 import {
   Select,
   SelectContent,
@@ -57,6 +60,14 @@ function qfClass(active: boolean) {
   }`;
 }
 
+const CLIENTS_COLS = [
+  { key: "name",         label: "Name",         sortable: true  },
+  { key: "address",      label: "Address",       sortable: false },
+  { key: "totalBilled",  label: "Total Billed",  sortable: true  },
+  { key: "status",       label: "Status",        sortable: true  },
+  { key: "lastActivity", label: "Last Activity", sortable: true  },
+];
+
 export function Clients() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
@@ -64,6 +75,7 @@ export function Clients() {
   const [selectedClients, setSelectedClients] = useState<Set<string>>(new Set());
   const [rowsPerPage, setRowsPerPage] = useState(50);
   const [currentPage, setCurrentPage] = useState(1);
+  const [clientCols, moveClientCol] = useDraggableColumns(CLIENTS_COLS);
 
   // Quick filters
   const [qfStatus, setQfStatus] = useState("all");
@@ -217,6 +229,7 @@ export function Clients() {
   };
 
   return (
+    <DndProvider backend={HTML5Backend}>
     <>
       <div className="p-8">
         {/* ── Page Header ── */}
@@ -567,19 +580,21 @@ export function Clients() {
                 <th className="px-4 py-3 text-left w-10">
                   <input type="checkbox" checked={allSelected} onChange={e => handleSelectAll(e.target.checked)} className="cursor-pointer w-4 h-4 rounded border-[#DDE3EE]" />
                 </th>
-                <th className="px-4 py-3 text-left text-[11px] uppercase tracking-wide text-[#546478] cursor-pointer select-none" style={{ fontWeight: 600 }} onClick={() => toggleSort("name")}>
-                  <div className="flex items-center">Name <SortIcon field="name" /></div>
-                </th>
-                <th className="px-4 py-3 text-left text-[11px] uppercase tracking-wide text-[#546478]" style={{ fontWeight: 600 }}>Address</th>
-                <th className="px-4 py-3 text-left text-[11px] uppercase tracking-wide text-[#546478] cursor-pointer select-none" style={{ fontWeight: 600 }} onClick={() => toggleSort("totalBilled")}>
-                  <div className="flex items-center">Total Billed <SortIcon field="totalBilled" /></div>
-                </th>
-                <th className="px-4 py-3 text-left text-[11px] uppercase tracking-wide text-[#546478] cursor-pointer select-none" style={{ fontWeight: 600 }} onClick={() => toggleSort("status")}>
-                  <div className="flex items-center">Status <SortIcon field="status" /></div>
-                </th>
-                <th className="px-4 py-3 text-left text-[11px] uppercase tracking-wide text-[#546478] cursor-pointer select-none" style={{ fontWeight: 600 }} onClick={() => toggleSort("lastActivity")}>
-                  <div className="flex items-center">Last Activity <SortIcon field="lastActivity" /></div>
-                </th>
+                {clientCols.map(col => (
+                  <DraggableTh
+                    key={col.key}
+                    colKey={col.key}
+                    onMove={moveClientCol}
+                    className={`px-4 py-3 text-left text-[11px] uppercase tracking-wide text-[#546478] select-none${col.sortable ? " cursor-pointer" : ""}`}
+                    style={{ fontWeight: 600 }}
+                    onClick={col.sortable ? () => toggleSort(col.key as SortField) : undefined}
+                  >
+                    <div className="flex items-center">
+                      {col.label}
+                      {col.sortable && <SortIcon field={col.key as SortField} />}
+                    </div>
+                  </DraggableTh>
+                ))}
                 <th className="px-4 py-3 w-10" />
               </tr>
             </thead>
@@ -594,46 +609,49 @@ export function Clients() {
                       onClick={e => e.stopPropagation()}
                       className="cursor-pointer w-4 h-4 rounded border-[#DDE3EE]" />
                   </td>
-                  <td className="px-4 py-4">
-                    <div className="flex items-center gap-1.5">
-                      {client.tags.includes("Commercial") ? (
-                        <span
-                          className="material-icons text-[#4A6FA5] shrink-0"
-                          style={{ fontSize: "16px" }}
-                          title="Commercial"
-                          aria-label="Commercial"
-                        >
-                          business
-                        </span>
-                      ) : client.tags.includes("Residential") ? (
-                        <span
-                          className="material-icons text-[#10B981] shrink-0"
-                          style={{ fontSize: "16px" }}
-                          title="Residential"
-                          aria-label="Residential"
-                        >
-                          home
-                        </span>
-                      ) : null}
-                      <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>{client.name}</div>
-                    </div>
-                    {client.company && <div className="text-[12px] text-[#8899AA] ml-[22px]">{client.company}</div>}
-                  </td>
-                  <td className="px-4 py-4 text-[14px] text-[#546478]">{client.address}</td>
-                  <td className="px-4 py-4">
-                    <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>
-                      ${client.totalBilled.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </div>
-                  </td>
-                  <td className="px-4 py-4">
-                    <span className={`px-2.5 py-1 rounded-full text-[12px] inline-flex items-center ${
-                      client.status === "Active" ? "bg-[#DCFCE7] text-[#16A34A]" :
-                      client.status === "Prospect" ? "bg-[#DBEAFE] text-[#2563EB]" :
-                      client.status === "On Hold" ? "bg-[#FEE2E2] text-[#DC2626]" :
-                      "bg-[#F3F4F6] text-[#6B7280]"
-                    }`} style={{ fontWeight: 500 }}>{client.status}</span>
-                  </td>
-                  <td className="px-4 py-4 text-[14px] text-[#546478]">{client.lastActivity}</td>
+                  {clientCols.map(col => {
+                    switch (col.key) {
+                      case "name":
+                        return (
+                          <td key="name" className="px-4 py-4">
+                            <div className="flex items-center gap-1.5">
+                              {client.tags.includes("Commercial") ? (
+                                <span className="material-icons text-[#4A6FA5] shrink-0" style={{ fontSize: "16px" }} title="Commercial" aria-label="Commercial">business</span>
+                              ) : client.tags.includes("Residential") ? (
+                                <span className="material-icons text-[#10B981] shrink-0" style={{ fontSize: "16px" }} title="Residential" aria-label="Residential">home</span>
+                              ) : null}
+                              <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>{client.name}</div>
+                            </div>
+                            {client.company && <div className="text-[12px] text-[#8899AA] ml-[22px]">{client.company}</div>}
+                          </td>
+                        );
+                      case "address":
+                        return <td key="address" className="px-4 py-4 text-[14px] text-[#546478]">{client.address}</td>;
+                      case "totalBilled":
+                        return (
+                          <td key="totalBilled" className="px-4 py-4">
+                            <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>
+                              ${client.totalBilled.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </div>
+                          </td>
+                        );
+                      case "status":
+                        return (
+                          <td key="status" className="px-4 py-4">
+                            <span className={`px-2.5 py-1 rounded-full text-[12px] inline-flex items-center ${
+                              client.status === "Active" ? "bg-[#DCFCE7] text-[#16A34A]" :
+                              client.status === "Prospect" ? "bg-[#DBEAFE] text-[#2563EB]" :
+                              client.status === "On Hold" ? "bg-[#FEE2E2] text-[#DC2626]" :
+                              "bg-[#F3F4F6] text-[#6B7280]"
+                            }`} style={{ fontWeight: 500 }}>{client.status}</span>
+                          </td>
+                        );
+                      case "lastActivity":
+                        return <td key="lastActivity" className="px-4 py-4 text-[14px] text-[#546478]">{client.lastActivity}</td>;
+                      default:
+                        return null;
+                    }
+                  })}
                   <td className="px-4 py-4">
                     <KebabMenu>
                       {client.status === "Active" ? (
@@ -743,5 +761,6 @@ export function Clients() {
         )}
       </div>
     </>
+    </DndProvider>
   );
 }

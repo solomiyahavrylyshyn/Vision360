@@ -1,8 +1,11 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
+import { DndProvider } from "react-dnd";
+import { HTML5Backend } from "react-dnd-html5-backend";
 import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
 import { PageHeader } from "../components/ui/page-header";
 import { SelectionBar } from "../components/ui/selection-bar";
+import { useDraggableColumns, DraggableTh } from "../components/ui/draggable-columns";
 import {
   Select, SelectContent, SelectItem,
   SelectTrigger, SelectValue,
@@ -50,6 +53,15 @@ function qfClass(active: boolean) {
   }`;
 }
 
+const JOBS_COLS = [
+  { key: "id",       label: "#",         sortable: true  },
+  { key: "client",   label: "Client",    sortable: true  },
+  { key: "address",  label: "Address",   sortable: false },
+  { key: "schedule", label: "Scheduled", sortable: true  },
+  { key: "status",   label: "Status",    sortable: true  },
+  { key: "total",    label: "Total",     sortable: true  },
+];
+
 export function Jobs() {
   const navigate = useNavigate();
   const [jobs, setJobs] = useState<Job[]>(mockJobs);
@@ -64,6 +76,7 @@ export function Jobs() {
   // Pagination
   const [rowsPerPage, setRowsPerPage] = useState(50);
   const [currentPage, setCurrentPage] = useState(1);
+  const [jobCols, moveJobCol] = useDraggableColumns(JOBS_COLS);
 
   // Advanced filter panel
   const [filterPanelOpen, setFilterPanelOpen] = useState(false);
@@ -140,6 +153,7 @@ export function Jobs() {
   );
 
   return (
+    <DndProvider backend={HTML5Backend}>
     <>
     <div className="p-8 bg-[#F5F7FA] min-h-full">
       {/* ── Header ── */}
@@ -266,24 +280,21 @@ export function Jobs() {
               <th className="px-4 py-3 w-10">
                 <input type="checkbox" checked={allSelected} onChange={e => handleSelectAll(e.target.checked)} className="w-4 h-4 rounded border-[#DDE3EE] cursor-pointer accent-[#4A6FA5]" />
               </th>
-              <th className="px-4 py-3 text-left text-[11px] uppercase tracking-wide text-[#546478] cursor-pointer select-none" style={{ fontWeight: 600 }} onClick={() => toggleSort("id")}>
-                <div className="flex items-center">Job # <SortIcon field="id" /></div>
-              </th>
-              <th className="px-4 py-3 text-left text-[11px] uppercase tracking-wide text-[#546478] cursor-pointer select-none" style={{ fontWeight: 600 }} onClick={() => toggleSort("client")}>
-                <div className="flex items-center">Client <SortIcon field="client" /></div>
-              </th>
-              <th className="px-4 py-3 text-left text-[11px] uppercase tracking-wide text-[#546478] select-none" style={{ fontWeight: 600 }}>
-                <div className="flex items-center">Address</div>
-              </th>
-              <th className="px-4 py-3 text-left text-[11px] uppercase tracking-wide text-[#546478] cursor-pointer select-none" style={{ fontWeight: 600 }} onClick={() => toggleSort("schedule")}>
-                <div className="flex items-center">Schedule <SortIcon field="schedule" /></div>
-              </th>
-              <th className="px-4 py-3 text-left text-[11px] uppercase tracking-wide text-[#546478] cursor-pointer select-none" style={{ fontWeight: 600 }} onClick={() => toggleSort("status")}>
-                <div className="flex items-center">Status <SortIcon field="status" /></div>
-              </th>
-              <th className="px-4 py-3 text-right text-[11px] uppercase tracking-wide text-[#546478] cursor-pointer select-none" style={{ fontWeight: 600 }} onClick={() => toggleSort("total")}>
-                <div className="flex items-center justify-end">Total <SortIcon field="total" /></div>
-              </th>
+              {jobCols.map(col => (
+                <DraggableTh
+                  key={col.key}
+                  colKey={col.key}
+                  onMove={moveJobCol}
+                  className={`px-4 py-3 text-left text-[11px] uppercase tracking-wide text-[#546478] select-none${col.sortable ? " cursor-pointer" : ""}${col.key === "total" ? " text-right" : ""}`}
+                  style={{ fontWeight: 600 }}
+                  onClick={col.sortable ? () => toggleSort(col.key as SortField) : undefined}
+                >
+                  <div className={`flex items-center${col.key === "total" ? " justify-end" : ""}`}>
+                    {col.label}
+                    {col.sortable && <SortIcon field={col.key as SortField} />}
+                  </div>
+                </DraggableTh>
+              ))}
               <th className="px-4 py-3 w-10" />
             </tr>
           </thead>
@@ -297,17 +308,33 @@ export function Jobs() {
                 <td className="px-4 py-4" onClick={e => e.stopPropagation()}>
                   <input type="checkbox" checked={selectedJobs.has(job.id)} onChange={e => handleSelect(job.id, e.target.checked)} className="w-4 h-4 rounded border-[#DDE3EE] cursor-pointer accent-[#4A6FA5]" />
                 </td>
-                <td className="px-4 py-4">
-                  <div className="text-[12px] text-[#8899AA] font-mono tabular-nums">{job.jobNumber}</div>
-                  <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{job.title}</div>
-                </td>
-                <td className="px-4 py-4 text-[13px] text-[#546478]">{job.client}</td>
-                <td className="px-4 py-4 text-[13px] text-[#546478]">{job.address}</td>
-                <td className="px-4 py-4 text-[13px] text-[#546478]">{job.schedule}</td>
-                <td className="px-4 py-4">
-                  <span className="px-2.5 py-1 rounded-full text-[12px]" style={{ fontWeight: 500, color: statusColors[job.status], backgroundColor: statusBg[job.status] }}>{job.status}</span>
-                </td>
-                <td className="px-4 py-4 text-[13px] text-right text-[#1A2332]" style={{ fontWeight: 500 }}>${job.total.toFixed(2)}</td>
+                {jobCols.map(col => {
+                  switch (col.key) {
+                    case "id":
+                      return (
+                        <td key="id" className="px-4 py-4">
+                          <div className="text-[12px] text-[#8899AA] font-mono tabular-nums">{job.jobNumber}</div>
+                          <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{job.title}</div>
+                        </td>
+                      );
+                    case "client":
+                      return <td key="client" className="px-4 py-4 text-[13px] text-[#546478]">{job.client}</td>;
+                    case "address":
+                      return <td key="address" className="px-4 py-4 text-[13px] text-[#546478]">{job.address}</td>;
+                    case "schedule":
+                      return <td key="schedule" className="px-4 py-4 text-[13px] text-[#546478]">{job.schedule}</td>;
+                    case "status":
+                      return (
+                        <td key="status" className="px-4 py-4">
+                          <span className="px-2.5 py-1 rounded-full text-[12px]" style={{ fontWeight: 500, color: statusColors[job.status], backgroundColor: statusBg[job.status] }}>{job.status}</span>
+                        </td>
+                      );
+                    case "total":
+                      return <td key="total" className="px-4 py-4 text-[13px] text-right text-[#1A2332]" style={{ fontWeight: 500 }}>${job.total.toFixed(2)}</td>;
+                    default:
+                      return null;
+                  }
+                })}
                 <td className="px-4 py-4" onClick={e => e.stopPropagation()}>
                   <KebabMenu>
                     <KebabItem icon="visibility" onSelect={() => navigate(`/jobs/${job.id}`)}>View Job</KebabItem>
@@ -433,5 +460,6 @@ export function Jobs() {
       </div>
     )}
     </>
+    </DndProvider>
   );
 }
