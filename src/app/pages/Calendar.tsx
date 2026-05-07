@@ -391,12 +391,18 @@ export function Calendar() {
                   <div />
                   {weekDays.map((d, i) => {
                     const isTodayD = isSameDay(d, new Date(2026, 3, 6));
+                    const dayTotal = dispatchJobs.filter(j => j.dayIdx === i).reduce((sum, j) => sum + j.amount, 0);
                     return (
-                      <div key={i} className="py-3 text-center border-l border-[#EDF0F5]">
+                      <div key={i} className="py-2 text-center border-l border-[#EDF0F5]">
                         <div className="text-[11px] text-[#8899AA] uppercase tracking-wider" style={{ fontWeight: 600 }}>{format(d, "EEE")}</div>
                         <div className={`text-[18px] mt-0.5 ${isTodayD ? "text-[#4A6FA5]" : "text-[#1A2332]"}`} style={{ fontWeight: isTodayD ? 700 : 500 }}>
                           {format(d, "d")}
                         </div>
+                        {dayTotal > 0 && (
+                          <div className="text-[11px] mt-0.5" style={{ fontWeight: 600, color: "#16A34A" }}>
+                            ${dayTotal.toLocaleString()}
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -449,11 +455,12 @@ export function Calendar() {
                             <div className="text-[12px] leading-tight truncate" style={{ fontWeight: 600, color: "#1A2332" }}>{job.client}</div>
                             <div className="text-[11px] text-[#546478] truncate">{job.service}</div>
                             {height > 62 && <div className="text-[11px] text-[#8899AA] truncate">{job.address}</div>}
-                            {job.statusIcon && height > 50 && (
-                              <div className="flex justify-end mt-auto">
-                                <span className="material-icons" style={{ fontSize: "16px", color: job.statusIconColor }}>{job.statusIcon}</span>
-                              </div>
-                            )}
+                            <div className="flex items-center justify-between mt-auto pt-0.5">
+                              <span className="text-[11px] tabular-nums" style={{ fontWeight: 600, color: job.border }}>${job.amount.toLocaleString()}</span>
+                              {job.statusIcon && (
+                                <span className="material-icons" style={{ fontSize: "14px", color: job.statusIconColor }}>{job.statusIcon}</span>
+                              )}
+                            </div>
                           </div>
                         </div>
                       );
