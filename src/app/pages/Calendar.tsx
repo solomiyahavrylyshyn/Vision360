@@ -342,7 +342,7 @@ export function Calendar() {
           <div className="flex flex-col h-full overflow-hidden">
 
             {/* Main: Left + Grid + Right */}
-            <div className="flex flex-1 overflow-hidden">
+            <div className="flex flex-1 overflow-hidden relative">
 
               {/* Left: Unscheduled Jobs */}
               <div className="w-[210px] shrink-0 border-r border-[#DDE3EE] flex flex-col bg-[#FAFBFC] overflow-hidden">
@@ -506,9 +506,9 @@ export function Calendar() {
                 </div>
               </div>
 
-              {/* Right: Job Detail Panel */}
+              {/* Right: Job Detail Panel (floating) */}
               {selectedDispatchJob && (
-                <div className="w-[300px] shrink-0 border-l border-[#DDE3EE] flex flex-col bg-white overflow-hidden">
+                <div className="absolute right-3 top-3 bottom-3 w-[300px] z-20 flex flex-col bg-white rounded-2xl shadow-xl border border-[#DDE3EE] overflow-hidden">
                   {/* Header */}
                   <div className="flex items-center justify-between px-4 py-3 border-b border-[#DDE3EE] shrink-0">
                     <div className="flex items-center gap-2">
