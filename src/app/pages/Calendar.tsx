@@ -246,22 +246,6 @@ export function Calendar() {
         </div>
       </div>
 
-      {/* Status Legend */}
-      <div className="flex items-center gap-5 px-6 py-2.5 border-b border-[#DDE3EE] bg-[#FAFBFC]">
-        <span className="text-[11px] text-[#8899AA] uppercase tracking-wider" style={{ fontWeight: 600 }}>Status:</span>
-        {[
-          { label: "Scheduled", color: "#4A6FA5" },
-          { label: "In Progress", color: "#D97706" },
-          { label: "Completed", color: "#16A34A" },
-          { label: "Overdue", color: "#DC2626" },
-        ].map((s) => (
-          <div key={s.label} className="flex items-center gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: s.color }} />
-            <span className="text-[12px] text-[#546478]" style={{ fontWeight: 500 }}>{s.label}</span>
-          </div>
-        ))}
-      </div>
-
       {/* Calendar Content */}
       <div className="flex-1 overflow-auto">
         {/* ====== MONTH VIEW ====== */}
