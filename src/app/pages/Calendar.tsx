@@ -374,10 +374,6 @@ export function Calendar() {
                       </div>
                     </div>
                   ))}
-                  <div className="flex flex-col items-center justify-center py-6 text-center opacity-40">
-                    <span className="material-icons text-[#8899AA] mb-1" style={{ fontSize: "32px" }}>account_circle</span>
-                    <div className="text-[11px] text-[#546478]">Drag & drop jobs<br />to assign</div>
-                  </div>
                 </div>
               </div>
 
