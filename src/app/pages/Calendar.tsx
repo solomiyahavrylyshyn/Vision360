@@ -247,17 +247,17 @@ export function Calendar() {
       </div>
 
       {/* Stat tiles */}
-      <div className="flex items-stretch border-b border-[#DDE3EE] bg-white overflow-x-auto">
+      <div className="flex items-center gap-3 px-6 py-4 border-b border-[#DDE3EE] bg-[#F5F7FA] overflow-x-auto">
         {[
-          { value: "38", label: "Total Jobs",    icon: "schedule",           iconBg: "#EEF2F8", iconColor: "#4A6FA5" },
-          { value: "32", label: "Scheduled",     icon: "check_circle",       iconBg: "#DCFCE7", iconColor: "#16A34A" },
-          { value: "3",  label: "Unscheduled",   icon: "warning",            iconBg: "#FEF3C7", iconColor: "#D97706" },
-          { value: "2",  label: "In Progress",   icon: "play_circle_filled", iconBg: "#EDE9FE", iconColor: "#7C3AED" },
-          { value: "1",  label: "On Hold",       icon: "pause_circle_filled",iconBg: "#F3F4F6", iconColor: "#6B7280" },
-          { value: "0",  label: "Canceled",      icon: "cancel",             iconBg: "#FEE2E2", iconColor: "#DC2626" },
-          { value: "92%",label: "Utilization",   icon: "speed",              iconBg: "#DCFCE7", iconColor: "#16A34A" },
-        ].map((s, i, arr) => (
-          <div key={s.label} className={`flex items-center gap-3 px-6 py-4 shrink-0 flex-1 ${i < arr.length - 1 ? "border-r border-[#DDE3EE]" : ""}`}>
+          { value: "38", label: "Total Jobs",    icon: "schedule",            iconBg: "#EEF2F8", iconColor: "#4A6FA5" },
+          { value: "32", label: "Scheduled",     icon: "check_circle",        iconBg: "#DCFCE7", iconColor: "#16A34A" },
+          { value: "3",  label: "Unscheduled",   icon: "warning",             iconBg: "#FEF3C7", iconColor: "#D97706" },
+          { value: "2",  label: "In Progress",   icon: "play_circle_filled",  iconBg: "#EDE9FE", iconColor: "#7C3AED" },
+          { value: "1",  label: "On Hold",       icon: "pause_circle_filled", iconBg: "#F3F4F6", iconColor: "#6B7280" },
+          { value: "0",  label: "Canceled",      icon: "cancel",              iconBg: "#FEE2E2", iconColor: "#DC2626" },
+          { value: "92%",label: "Utilization",   icon: "speed",               iconBg: "#DCFCE7", iconColor: "#16A34A" },
+        ].map(s => (
+          <div key={s.label} className="flex items-center gap-3 bg-white border border-[#DDE3EE] rounded-2xl px-5 py-4 shrink-0">
             <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: s.iconBg }}>
               <span className="material-icons" style={{ fontSize: "22px", color: s.iconColor }}>{s.icon}</span>
             </div>
