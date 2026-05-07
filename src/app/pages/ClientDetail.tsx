@@ -1,4 +1,7 @@
 import { useState, useSyncExternalStore } from "react";
+import { DndProvider } from "react-dnd";
+import { HTML5Backend } from "react-dnd-html5-backend";
+import { useDraggableColumns, DraggableTh } from "../components/ui/draggable-columns";
 import { useNavigate, useParams } from "react-router";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -60,6 +63,97 @@ const TABS: { key: TabKey; label: string; count?: number }[] = [
   { key: "payments",    label: "Payments" },
   { key: "documents", label: "Documents" },
 ];
+
+/* ── WorkTable: reusable draggable-column table for jobs/estimates/invoices ── */
+interface WorkItem {
+  id: number; type: string; title: string; subtitle: string;
+  date: string; status: string; statusColor: string; amount: string;
+}
+
+const WORK_COLS = [
+  { key: "item",   label: "Item"   },
+  { key: "date",   label: "Date"   },
+  { key: "status", label: "Status" },
+  { key: "amount", label: "Amount" },
+] as const;
+
+function WorkTable({ items, emptyIcon, emptyLabel }: {
+  items: WorkItem[]; emptyIcon: string; emptyLabel: string;
+}) {
+  const [cols, moveCols] = useDraggableColumns([...WORK_COLS]);
+
+  if (items.length === 0) {
+    return (
+      <div className="py-12 text-center">
+        <span className="material-icons text-[#D1D5DB] mb-2 block" style={{ fontSize: "36px" }}>{emptyIcon}</span>
+        <p className="text-[13px] text-[#9CA3AF]">{emptyLabel}</p>
+      </div>
+    );
+  }
+
+  return (
+    <DndProvider backend={HTML5Backend}>
+      <table className="w-full">
+        <thead>
+          <tr className="border-b border-[#E5E7EB]">
+            {cols.map(col => (
+              <DraggableTh
+                key={col.key}
+                colKey={col.key}
+                onMove={moveCols}
+                className={`pb-3 text-[12px] text-[#6B7280] ${col.key === "amount" ? "text-right" : "text-left"}`}
+                style={{ fontWeight: 500 }}
+              >
+                {col.label}
+              </DraggableTh>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {items.map(item => (
+            <tr key={item.id} className="border-b border-[#E5E7EB] hover:bg-[#F9FAFB] cursor-pointer">
+              {cols.map(col => {
+                switch (col.key) {
+                  case "item": return (
+                    <td key="item" className="py-4">
+                      <div className="flex items-center gap-3">
+                        <span className="material-icons text-[#546478]" style={{ fontSize: "20px" }}>
+                          {item.type === "estimate" ? "request_quote" : item.type === "invoice" ? "receipt" : "work"}
+                        </span>
+                        <div>
+                          <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>{item.title}</div>
+                          <div className="text-[12px] text-[#6B7280]">{item.subtitle}</div>
+                        </div>
+                      </div>
+                    </td>
+                  );
+                  case "date": return (
+                    <td key="date" className="py-4">
+                      <div className="text-[13px] text-[#6B7280]">{item.date}</div>
+                    </td>
+                  );
+                  case "status": return (
+                    <td key="status" className="py-4">
+                      <span className="px-2 py-1 rounded text-[11px] text-white" style={{ fontWeight: 500, backgroundColor: item.statusColor }}>
+                        {item.status}
+                      </span>
+                    </td>
+                  );
+                  case "amount": return (
+                    <td key="amount" className="py-4 text-right">
+                      <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>{item.amount || "—"}</div>
+                    </td>
+                  );
+                  default: return null;
+                }
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </DndProvider>
+  );
+}
 
 export function ClientDetail() {
   const navigate = useNavigate();
@@ -242,61 +336,6 @@ export function ClientDetail() {
     </KebabMenuShared>
   );
 
-  /* ──────────────────────────────────────────
-     WORK TABLE (jobs / estimates / invoices)
-  ────────────────────────────────────────── */
-  const WorkTable = ({ items, emptyIcon, emptyLabel }: {
-    items: typeof jobItems;
-    emptyIcon: string;
-    emptyLabel: string;
-  }) => (
-    items.length > 0 ? (
-      <table className="w-full">
-        <thead>
-          <tr className="border-b border-[#E5E7EB]">
-            <th className="text-left pb-3 text-[12px] text-[#6B7280]" style={{ fontWeight: 500 }}>Item</th>
-            <th className="text-left pb-3 text-[12px] text-[#6B7280]" style={{ fontWeight: 500 }}>Date</th>
-            <th className="text-left pb-3 text-[12px] text-[#6B7280]" style={{ fontWeight: 500 }}>Status</th>
-            <th className="text-right pb-3 text-[12px] text-[#6B7280]" style={{ fontWeight: 500 }}>Amount</th>
-          </tr>
-        </thead>
-        <tbody>
-          {items.map((item) => (
-            <tr key={item.id} className="border-b border-[#E5E7EB] hover:bg-[#F9FAFB] cursor-pointer">
-              <td className="py-4">
-                <div className="flex items-center gap-3">
-                  <span className="material-icons text-[#546478]" style={{ fontSize: "20px" }}>
-                    {item.type === "estimate" ? "request_quote" : item.type === "invoice" ? "receipt" : "work"}
-                  </span>
-                  <div>
-                    <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>{item.title}</div>
-                    <div className="text-[12px] text-[#6B7280]">{item.subtitle}</div>
-                  </div>
-                </div>
-              </td>
-              <td className="py-4"><div className="text-[13px] text-[#6B7280]">{item.date}</div></td>
-              <td className="py-4">
-                <span
-                  className="px-2 py-1 rounded text-[11px] text-white"
-                  style={{ fontWeight: 500, backgroundColor: item.statusColor }}
-                >
-                  {item.status}
-                </span>
-              </td>
-              <td className="py-4 text-right">
-                <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>{item.amount || "—"}</div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    ) : (
-      <div className="py-12 text-center">
-        <span className="material-icons text-[#D1D5DB] mb-2 block" style={{ fontSize: "36px" }}>{emptyIcon}</span>
-        <p className="text-[13px] text-[#9CA3AF]">{emptyLabel}</p>
-      </div>
-    )
-  );
 
   /* ──────────────────────────────────────────
      DETAILS READ-ONLY
