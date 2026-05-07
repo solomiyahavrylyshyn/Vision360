@@ -340,20 +340,6 @@ export function Calendar() {
         {/* ====== WEEK VIEW — DISPATCH BOARD ====== */}
         {viewMode === "week" && (
           <div className="flex flex-col h-full overflow-hidden">
-            {/* Stats Bar */}
-            <div className="flex items-center border-b border-[#DDE3EE] bg-white shrink-0 overflow-x-auto">
-              {dispatchStats.map((s, i) => (
-                <div key={s.label} className={`flex items-center gap-3 px-5 py-3 shrink-0 ${i < dispatchStats.length - 1 ? "border-r border-[#DDE3EE]" : ""}`}>
-                  <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${s.color}18` }}>
-                    <span className="material-icons" style={{ fontSize: "20px", color: s.color }}>{s.icon}</span>
-                  </div>
-                  <div>
-                    <div className="text-[20px] text-[#1A2332] leading-none" style={{ fontWeight: 700 }}>{s.value}</div>
-                    <div className="text-[11px] text-[#546478] mt-0.5 whitespace-nowrap">{s.label}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
 
             {/* Main: Left + Grid + Right */}
             <div className="flex flex-1 overflow-hidden">
