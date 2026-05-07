@@ -651,6 +651,51 @@ export function Items() {
         />
       </div>
 
+      {/* ═══════════════ ABOUT ITEMS PANEL ═══════════════ */}
+      <div className="mt-5 bg-white border border-[#DDE3EE] rounded-xl px-6 py-5 flex gap-8">
+        {/* Left: About */}
+        <div className="w-[220px] flex-shrink-0">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "18px" }}>info</span>
+            <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 700 }}>About Items</span>
+          </div>
+          <p className="text-[12.5px] text-[#546478] leading-relaxed mb-2">
+            Items include everything you sell or use in your business.
+          </p>
+          <p className="text-[12.5px] text-[#546478] leading-relaxed">
+            Use the tabs above to quickly view items by type.
+          </p>
+        </div>
+
+        {/* Divider */}
+        <div className="w-px bg-[#DDE3EE] self-stretch flex-shrink-0" />
+
+        {/* Right: Item Types */}
+        <div className="flex-1">
+          <div className="text-[13px] text-[#1A2332] mb-3" style={{ fontWeight: 700 }}>Item Types</div>
+          <div className="grid grid-cols-6 gap-5">
+            {[
+              { bg: "#4A6FA5", icon: "build", label: "Services", desc: "Labor, inspections, maintenance and other services." },
+              { bg: "#16A34A", icon: "category", label: "Materials", desc: "Parts, supplies, and consumables." },
+              { bg: "#7C3AED", icon: "settings", label: "Equipment", desc: "Installable or sellable equipment." },
+              { bg: "#EA580C", icon: "attach_money", label: "Fees", desc: "Admin, permit, disposal and other fees." },
+              { bg: "#D97706", icon: "menu_book", label: "Pricebook", desc: "Sellable flat-rate items for estimates & invoices." },
+              { bg: "#0D9488", icon: "inventory_2", label: "Asset Type", desc: "System types, locations, and asset classifications." },
+            ].map(({ bg, icon, label, desc }) => (
+              <div key={label}>
+                <div className="flex items-center gap-2 mb-1.5">
+                  <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: bg }}>
+                    <span className="material-icons text-white" style={{ fontSize: "14px" }}>{icon}</span>
+                  </div>
+                  <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>{label}</span>
+                </div>
+                <p className="text-[11.5px] text-[#546478] leading-relaxed">{desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
       {/* ═══════════════ ITEM GROUPS (modal-only) ═══════════════ */}
       {false && (
         <div>
