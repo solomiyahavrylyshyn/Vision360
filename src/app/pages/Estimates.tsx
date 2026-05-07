@@ -449,7 +449,7 @@ export function Estimates() {
                     <span style={{ fontVariantNumeric: "tabular-nums", color: est.depositDue > 0 ? "#1A2332" : "#D1D5DB" }}>${fmt(est.depositDue)}</span>
                   </td>
                   <td className="px-4 py-4" onClick={(e) => e.stopPropagation()}>
-                    <KebabMenu triggerClassName="w-7 h-7 rounded hover:bg-[#F3F4F6] flex items-center justify-center opacity-0 group-hover:opacity-100">
+                    <KebabMenu triggerClassName="w-7 h-7 rounded hover:bg-[#F3F4F6] flex items-center justify-center">
                       <KebabItem icon="open_in_new" onClick={() => navigate(`/estimates/${est.id}`)}>Open</KebabItem>
                       <KebabItem icon="content_copy">Duplicate</KebabItem>
                       <KebabItem icon="send">Send to Client</KebabItem>

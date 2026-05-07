@@ -653,7 +653,7 @@ export function Items() {
                       <Toggle checked={item.active} onChange={v => setPbItems(prev => prev.map(i => i.id === item.id ? { ...i, active: v } : i))} />
                     </td>
                     <td className="px-4 py-2 text-right" onClick={e => e.stopPropagation()}>
-                      <KebabMenu triggerClassName="w-8 h-8 border border-[#DDE3EE] rounded-lg bg-white opacity-0 group-hover:opacity-100 transition-opacity">
+                      <KebabMenu triggerClassName="w-8 h-8 border border-[#DDE3EE] rounded-lg bg-white">
                         <KebabItem icon="edit">Edit</KebabItem>
                         <KebabItem icon="content_copy">Duplicate</KebabItem>
                         <KebabSeparator />
@@ -841,7 +841,7 @@ export function Items() {
                         />
                       </td>
                       <td className="px-4 py-2 text-right" onClick={(e) => e.stopPropagation()}>
-                        <KebabMenu triggerClassName="w-8 h-8 border border-[#DDE3EE] rounded-lg bg-white opacity-0 group-hover:opacity-100 transition-opacity">
+                        <KebabMenu triggerClassName="w-8 h-8 border border-[#DDE3EE] rounded-lg bg-white">
                           <KebabItem icon="edit" onClick={() => { setEditingItem(item); setItemModalOpen(true); }}>Edit</KebabItem>
                           <KebabItem icon="content_copy">Duplicate</KebabItem>
                           <KebabSeparator />
