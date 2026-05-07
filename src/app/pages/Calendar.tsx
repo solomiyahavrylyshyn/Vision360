@@ -246,6 +246,23 @@ export function Calendar() {
         </div>
       </div>
 
+      {/* Stat tiles */}
+      <div className="flex items-center gap-4 px-6 py-4 border-b border-[#DDE3EE] bg-[#F5F7FA]">
+        {[
+          { count: 2, label: "Scheduled", color: "#4A6FA5" },
+          { count: 1, label: "In Progress", color: "#C07828" },
+          { count: 1, label: "Completed", color: "#16A34A" },
+        ].map(({ count, label, color }) => (
+          <div key={label} className="bg-white border border-[#DDE3EE] rounded-2xl px-6 py-4 min-w-[160px]">
+            <div className="text-[28px] text-[#1A2332] leading-none mb-2" style={{ fontWeight: 700 }}>{count}</div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
+              <span className="text-[13px] text-[#546478]" style={{ fontWeight: 500 }}>{label}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+
       {/* Calendar Content */}
       <div className="flex-1 overflow-auto">
         {/* ====== MONTH VIEW ====== */}
