@@ -45,35 +45,28 @@ const mockEvents: CalendarEvent[] = [
 ];
 
 // ─── Dispatch Board Data ──────────────────────────────────────────────────────
-interface DTech { id: number; name: string; specialty: string; util: number; color: string; initials: string; }
-interface DJob { id: number; num: string; client: string; address: string; service: string; start: number; end: number; techId: number; bg: string; border: string; statusIcon: string; statusIconColor: string; jobType: string; source: string; priority: string; amount: number; }
+interface DJob { id: number; num: string; client: string; address: string; service: string; start: number; end: number; dayIdx: number; techName: string; bg: string; border: string; statusIcon: string; statusIconColor: string; jobType: string; source: string; priority: string; amount: number; }
 interface UJob { id: number; client: string; service: string; address: string; typeLabel: string; typeBg: string; typeColor: string; amount: string; distance: string; date: string; highPriority?: boolean; }
 
-const dispatchTechs: DTech[] = [
-  { id: 1, name: "Mike Tech", specialty: "HVAC", util: 92, color: "#4A6FA5", initials: "MT" },
-  { id: 2, name: "Sarah Tech", specialty: "HVAC", util: 85, color: "#16A34A", initials: "ST" },
-  { id: 3, name: "John Tech", specialty: "Plumbing", util: 78, color: "#7C3AED", initials: "JT" },
-  { id: 4, name: "David Tech", specialty: "Electrical", util: 90, color: "#D97706", initials: "DT" },
-];
-
+// dayIdx: 0=Sun 1=Mon 2=Tue 3=Wed 4=Thu 5=Fri 6=Sat (matches weekDays array index)
 const dispatchJobs: DJob[] = [
-  { id: 101, num: "10241", client: "Smith Residence", address: "123 Main St", service: "AC Tune-Up", start: 8, end: 10, techId: 1, bg: "#D1FAE5", border: "#16A34A", statusIcon: "check_circle", statusIconColor: "#16A34A", jobType: "Maintenance", source: "Website", priority: "Normal", amount: 89 },
-  { id: 102, num: "10245", client: "Brown Home", address: "456 Elm St", service: "AC Repair", start: 10.25, end: 12.25, techId: 1, bg: "#EBF0F8", border: "#4A6FA5", statusIcon: "play_circle_filled", statusIconColor: "#4A6FA5", jobType: "Repair", source: "Website", priority: "Normal", amount: 385 },
-  { id: 201, num: "10238", client: "Miller Residence", address: "852 Pine St", service: "AC Repair", start: 8, end: 10, techId: 2, bg: "#D1FAE5", border: "#16A34A", statusIcon: "check_circle", statusIconColor: "#16A34A", jobType: "Repair", source: "Phone", priority: "Normal", amount: 210 },
-  { id: 202, num: "10242", client: "Wilson Home", address: "159 Cedar Dr", service: "AC Tune-Up", start: 10.25, end: 12, techId: 2, bg: "#D1FAE5", border: "#16A34A", statusIcon: "check_circle", statusIconColor: "#16A34A", jobType: "Maintenance", source: "App", priority: "Normal", amount: 89 },
-  { id: 203, num: "10247", client: "Moore Residence", address: "753 Spruce St", service: "System Check", start: 12.5, end: 14.5, techId: 2, bg: "#EDE9FE", border: "#7C3AED", statusIcon: "play_circle_filled", statusIconColor: "#7C3AED", jobType: "Inspection", source: "Website", priority: "Normal", amount: 129 },
-  { id: 301, num: "10239", client: "Taylor Home", address: "852 Bay St", service: "Water Heater Install", start: 8, end: 11, techId: 3, bg: "#EBF0F8", border: "#4A6FA5", statusIcon: "", statusIconColor: "", jobType: "Installation", source: "Referral", priority: "Normal", amount: 1200 },
-  { id: 302, num: "10246", client: "Jackson Residence", address: "951 Lake Dr", service: "Leak Repair", start: 11.5, end: 13.5, techId: 3, bg: "#EBF0F8", border: "#4A6FA5", statusIcon: "play_circle_filled", statusIconColor: "#4A6FA5", jobType: "Repair", source: "Phone", priority: "High", amount: 320 },
-  { id: 303, num: "10248", client: "White Home", address: "357 River St", service: "Pipe Replacement", start: 14, end: 16, techId: 3, bg: "#D1FAE5", border: "#16A34A", statusIcon: "check_circle", statusIconColor: "#16A34A", jobType: "Repair", source: "Website", priority: "Normal", amount: 485 },
-  { id: 401, num: "10240", client: "Clark Residence", address: "951 Hillside Dr", service: "Panel Upgrade", start: 8, end: 10, techId: 4, bg: "#EBF0F8", border: "#4A6FA5", statusIcon: "", statusIconColor: "", jobType: "Installation", source: "Website", priority: "Normal", amount: 2400 },
-  { id: 402, num: "10243", client: "Hall Home", address: "753 Summit St", service: "Recessed Lights", start: 10.5, end: 12, techId: 4, bg: "#FEF3C7", border: "#D97706", statusIcon: "play_circle_filled", statusIconColor: "#D97706", jobType: "Installation", source: "App", priority: "Normal", amount: 750 },
-  { id: 403, num: "10249", client: "Lewis Residence", address: "852 Ridge Dr", service: "Wiring Inspection", start: 13, end: 15, techId: 4, bg: "#FEF3C7", border: "#D97706", statusIcon: "play_circle_filled", statusIconColor: "#D97706", jobType: "Inspection", source: "Phone", priority: "Normal", amount: 175 },
-  { id: 404, num: "10251", client: "Walker Office", address: "159 Commerce St", service: "Troubleshooting", start: 15.5, end: 17, techId: 4, bg: "#EDE9FE", border: "#7C3AED", statusIcon: "play_circle_filled", statusIconColor: "#7C3AED", jobType: "Service", source: "Website", priority: "Normal", amount: 225 },
+  { id: 101, num: "10241", client: "Smith Residence", address: "123 Main St", service: "AC Tune-Up", start: 8, end: 10, dayIdx: 1, techName: "Mike Tech", bg: "#D1FAE5", border: "#16A34A", statusIcon: "check_circle", statusIconColor: "#16A34A", jobType: "Maintenance", source: "Website", priority: "Normal", amount: 89 },
+  { id: 102, num: "10245", client: "Brown Home", address: "456 Elm St", service: "AC Repair", start: 10.25, end: 12.25, dayIdx: 1, techName: "Mike Tech", bg: "#EBF0F8", border: "#4A6FA5", statusIcon: "play_circle_filled", statusIconColor: "#4A6FA5", jobType: "Repair", source: "Website", priority: "Normal", amount: 385 },
+  { id: 201, num: "10238", client: "Miller Residence", address: "852 Pine St", service: "AC Repair", start: 8, end: 10, dayIdx: 2, techName: "Sarah Tech", bg: "#D1FAE5", border: "#16A34A", statusIcon: "check_circle", statusIconColor: "#16A34A", jobType: "Repair", source: "Phone", priority: "Normal", amount: 210 },
+  { id: 202, num: "10242", client: "Wilson Home", address: "159 Cedar Dr", service: "AC Tune-Up", start: 10.25, end: 12, dayIdx: 2, techName: "Sarah Tech", bg: "#D1FAE5", border: "#16A34A", statusIcon: "check_circle", statusIconColor: "#16A34A", jobType: "Maintenance", source: "App", priority: "Normal", amount: 89 },
+  { id: 203, num: "10247", client: "Moore Residence", address: "753 Spruce St", service: "System Check", start: 12.5, end: 14.5, dayIdx: 2, techName: "Sarah Tech", bg: "#EDE9FE", border: "#7C3AED", statusIcon: "play_circle_filled", statusIconColor: "#7C3AED", jobType: "Inspection", source: "Website", priority: "Normal", amount: 129 },
+  { id: 301, num: "10239", client: "Taylor Home", address: "852 Bay St", service: "Water Heater Install", start: 8, end: 11, dayIdx: 3, techName: "John Tech", bg: "#EBF0F8", border: "#4A6FA5", statusIcon: "", statusIconColor: "", jobType: "Installation", source: "Referral", priority: "Normal", amount: 1200 },
+  { id: 302, num: "10246", client: "Jackson Residence", address: "951 Lake Dr", service: "Leak Repair", start: 11.5, end: 13.5, dayIdx: 3, techName: "John Tech", bg: "#EBF0F8", border: "#4A6FA5", statusIcon: "play_circle_filled", statusIconColor: "#4A6FA5", jobType: "Repair", source: "Phone", priority: "High", amount: 320 },
+  { id: 303, num: "10248", client: "White Home", address: "357 River St", service: "Pipe Replacement", start: 14, end: 16, dayIdx: 3, techName: "John Tech", bg: "#D1FAE5", border: "#16A34A", statusIcon: "check_circle", statusIconColor: "#16A34A", jobType: "Repair", source: "Website", priority: "Normal", amount: 485 },
+  { id: 401, num: "10240", client: "Clark Residence", address: "951 Hillside Dr", service: "Panel Upgrade", start: 8, end: 10, dayIdx: 4, techName: "David Tech", bg: "#EBF0F8", border: "#4A6FA5", statusIcon: "", statusIconColor: "", jobType: "Installation", source: "Website", priority: "Normal", amount: 2400 },
+  { id: 402, num: "10243", client: "Hall Home", address: "753 Summit St", service: "Recessed Lights", start: 10.5, end: 12, dayIdx: 4, techName: "David Tech", bg: "#FEF3C7", border: "#D97706", statusIcon: "play_circle_filled", statusIconColor: "#D97706", jobType: "Installation", source: "App", priority: "Normal", amount: 750 },
+  { id: 403, num: "10249", client: "Lewis Residence", address: "852 Ridge Dr", service: "Wiring Inspection", start: 13, end: 15, dayIdx: 4, techName: "David Tech", bg: "#FEF3C7", border: "#D97706", statusIcon: "play_circle_filled", statusIconColor: "#D97706", jobType: "Inspection", source: "Phone", priority: "Normal", amount: 175 },
+  { id: 404, num: "10251", client: "Walker Office", address: "159 Commerce St", service: "Troubleshooting", start: 15.5, end: 17, dayIdx: 4, techName: "David Tech", bg: "#EDE9FE", border: "#7C3AED", statusIcon: "play_circle_filled", statusIconColor: "#7C3AED", jobType: "Service", source: "Website", priority: "Normal", amount: 225 },
 ];
 
 const openTimeBlocks = [
-  { techId: 2, start: 15, end: 16.5 },
-  { techId: 3, start: 16.25, end: 17 },
+  { dayIdx: 2, start: 15, end: 16.5 },
+  { dayIdx: 3, start: 16.25, end: 17 },
 ];
 
 const unscheduledJobs: UJob[] = [
@@ -404,31 +397,25 @@ export function Calendar() {
                 </div>
               </div>
 
-              {/* Center: Time × Tech grid */}
+              {/* Center: Time × Day grid */}
               <div className="flex-1 overflow-hidden flex flex-col min-w-0">
-                {/* Tech headers */}
+                {/* Day headers */}
                 <div
                   className="grid shrink-0 border-b border-[#DDE3EE] bg-white"
-                  style={{ gridTemplateColumns: "52px repeat(4, 1fr)" }}
+                  style={{ gridTemplateColumns: "52px repeat(7, 1fr)" }}
                 >
                   <div />
-                  {dispatchTechs.map(tech => (
-                    <div key={tech.id} className="py-3 px-3 border-l border-[#EDF0F5] flex items-center gap-2.5">
-                      <div
-                        className="w-9 h-9 rounded-full flex items-center justify-center text-white text-[12px] shrink-0"
-                        style={{ backgroundColor: tech.color, fontWeight: 700 }}
-                      >
-                        {tech.initials}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="text-[13px] text-[#1A2332] truncate" style={{ fontWeight: 600 }}>{tech.name}</div>
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[11px] text-[#546478]">{tech.specialty}</span>
-                          <span className="text-[11px]" style={{ fontWeight: 700, color: tech.util >= 85 ? "#16A34A" : "#D97706" }}>{tech.util}%</span>
+                  {weekDays.map((d, i) => {
+                    const isTodayD = isSameDay(d, new Date(2026, 3, 6));
+                    return (
+                      <div key={i} className="py-3 text-center border-l border-[#EDF0F5]">
+                        <div className="text-[11px] text-[#8899AA] uppercase tracking-wider" style={{ fontWeight: 600 }}>{format(d, "EEE")}</div>
+                        <div className={`text-[18px] mt-0.5 ${isTodayD ? "text-[#4A6FA5]" : "text-[#1A2332]"}`} style={{ fontWeight: isTodayD ? 700 : 500 }}>
+                          {format(d, "d")}
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 {/* Scrollable time grid */}
@@ -444,7 +431,7 @@ export function Calendar() {
                         <div className="w-[52px] shrink-0 flex items-start justify-end pr-2 -mt-2 text-[11px] text-[#8899AA]" style={{ fontWeight: 500 }}>
                           {h > 12 ? h - 12 : h}{h >= 12 ? "PM" : "AM"}
                         </div>
-                        {dispatchTechs.map((_, ti) => (
+                        {weekDays.map((_, ti) => (
                           <div key={ti} className="flex-1 border-l border-b border-[#EDF0F5]" />
                         ))}
                       </div>
@@ -452,8 +439,6 @@ export function Calendar() {
 
                     {/* Job blocks */}
                     {dispatchJobs.map(job => {
-                      const techIdx = dispatchTechs.findIndex(t => t.id === job.techId);
-                      if (techIdx < 0) return null;
                       const top = (job.start - 7) * 64;
                       const height = Math.max((job.end - job.start) * 64 - 2, 30);
                       const isSelected = selectedDispatchJob?.id === job.id;
@@ -464,8 +449,8 @@ export function Calendar() {
                           style={{
                             top,
                             height,
-                            left: `calc(52px + ${techIdx} * ((100% - 52px) / 4) + 2px)`,
-                            width: `calc((100% - 52px) / 4 - 4px)`,
+                            left: `calc(52px + ${job.dayIdx} * ((100% - 52px) / 7) + 2px)`,
+                            width: `calc((100% - 52px) / 7 - 4px)`,
                             backgroundColor: job.bg,
                             borderLeft: `3px solid ${job.border}`,
                             outline: isSelected ? `2px solid ${job.border}` : "none",
@@ -492,8 +477,6 @@ export function Calendar() {
 
                     {/* Open time blocks */}
                     {openTimeBlocks.map((block, bi) => {
-                      const techIdx = dispatchTechs.findIndex(t => t.id === block.techId);
-                      if (techIdx < 0) return null;
                       const top = (block.start - 7) * 64;
                       const height = (block.end - block.start) * 64 - 2;
                       return (
@@ -503,8 +486,8 @@ export function Calendar() {
                           style={{
                             top,
                             height,
-                            left: `calc(52px + ${techIdx} * ((100% - 52px) / 4) + 2px)`,
-                            width: `calc((100% - 52px) / 4 - 4px)`,
+                            left: `calc(52px + ${block.dayIdx} * ((100% - 52px) / 7) + 2px)`,
+                            width: `calc((100% - 52px) / 7 - 4px)`,
                           }}
                         >
                           <div className="text-center">
@@ -571,7 +554,7 @@ export function Calendar() {
                       {/* Fields */}
                       {[
                         { icon: "event", label: "Appointment", value: `${fmtHour(selectedDispatchJob.start)} – ${fmtHour(selectedDispatchJob.end)} (Today)` },
-                        { icon: "engineering", label: "Technician", value: dispatchTechs.find(t => t.id === selectedDispatchJob.techId)?.name ?? "" },
+                        { icon: "engineering", label: "Technician", value: selectedDispatchJob.techName },
                         { icon: "schedule", label: "Duration", value: `${Math.floor(selectedDispatchJob.end - selectedDispatchJob.start)}h ${String(Math.round(((selectedDispatchJob.end - selectedDispatchJob.start) % 1) * 60)).padStart(2, "0")}m` },
                         { icon: "stars", label: "Priority", value: selectedDispatchJob.priority },
                         { icon: "attach_money", label: "Amount", value: `$${selectedDispatchJob.amount.toFixed(2)}` },
