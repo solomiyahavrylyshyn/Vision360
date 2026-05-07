@@ -963,13 +963,6 @@ export function ClientDetail() {
             {!isEditing ? (
               <>
                 <CreateDropdown />
-                <Button
-                  variant="outline"
-                  onClick={handleEditClick}
-                  className="border-[#DDE3EE] text-[#546478] hover:bg-[#EDF0F5] h-8 px-2.5"
-                >
-                  <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
-                </Button>
                 <KebabMenu />
               </>
             ) : (
