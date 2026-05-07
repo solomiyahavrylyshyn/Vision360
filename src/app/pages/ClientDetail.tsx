@@ -307,7 +307,7 @@ export function ClientDetail() {
      DETAILS READ-ONLY
   ────────────────────────────────────────── */
   const DetailsView = () => (
-    <div className="grid grid-cols-3 gap-4 items-start">
+    <div className="grid grid-cols-3 gap-4 items-stretch">
 
       {/* Card 1: Contact Information */}
       <div className="bg-white border border-[#DDE3EE] rounded-xl overflow-hidden">
