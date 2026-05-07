@@ -70,7 +70,7 @@ interface ItemGroup {
   total: number;
 }
 
-interface ItemCategory {
+interface ItemCategoryRecord {
   id: number;
   name: string;
   description: string;
@@ -93,113 +93,81 @@ interface Catalog {
   active: boolean;
 }
 
-type TabKey = "items" | "groups" | "categories" | "brands" | "catalogs";
+type TabKey = "all" | "pricebook" | "services" | "materials" | "equipment" | "asset" | "fees";
 
 // ─── Mock Data ───────────────────────────────────────────────────────────────
 const initialItems: Item[] = [
   {
-    id: 1000, active: true, name: "Heat Pump Repair or Service",
-    description: "Standard heat pump repair service call",
-    salesDescription: "Heat pump diagnostic, repair and service",
-    additionalInfo: "", brand: "Carrier", modelNumber: "HP-2500", upc: "",
-    rate: 285, cost: 120, taxable: false, tax1: false, tax2: false, tax3: false,
+    id: 1, active: true, name: "Diagnostic Visit",
+    description: "Standard diagnostic service call", salesDescription: "Diagnostic visit — inspects and identifies system issues",
+    additionalInfo: "", brand: "", modelNumber: "SVC-1001", upc: "",
+    rate: 99, cost: 0, taxable: true, tax1: true, tax2: false, tax3: false,
     onHand: 0, minQty: 0, maxQty: 0, tracking: false,
-    category: "HVAC", subcategory: "Repair", type: "Service",
+    category: "Diagnostics", subcategory: "", type: "Diagnostics",
     vendor: "", vendorCode: "", department: "Field Service",
     cogsGL: "", salesGL: "4000 · Service Revenue",
     customField1: "", customField2: "", customField3: "", notes: "",
     boldPrint: false, group: "", defaultQty: 1, picture: "", inventory: false, booking: false,
   },
   {
-    id: 1001, active: true, name: "SEER Heat Pump Condenser Unit",
-    description: "SEER 16 heat pump condenser outdoor unit",
-    salesDescription: "SEER Heat Pump Condenser — high efficiency outdoor unit",
-    additionalInfo: "SEER 16 rated", brand: "Trane", modelNumber: "XR16-048", upc: "012345678901",
-    rate: 3200, cost: 1800, taxable: true, tax1: true, tax2: false, tax3: false,
-    onHand: 12, minQty: 2, maxQty: 50, tracking: true,
-    category: "HVAC", subcategory: "Condensers", type: "Inventory Item",
-    vendor: "Trane Supply", vendorCode: "TR-XR16048", department: "Equipment",
-    cogsGL: "5000 · Cost of Goods", salesGL: "4100 · Equipment Sales",
-    customField1: "", customField2: "", customField3: "", notes: "",
-    boldPrint: false, group: "", defaultQty: 1, picture: "", inventory: true, booking: false,
-  },
-  {
-    id: 1002, active: true, name: "SEER Heat Pump Condenser Premium",
-    description: "SEER 20 premium heat pump condenser",
-    salesDescription: "SEER Premium Heat Pump Condenser — ultra high efficiency",
-    additionalInfo: "SEER 20 rated, Energy Star certified", brand: "Lennox", modelNumber: "XP25-048", upc: "098765432109",
-    rate: 4800, cost: 2900, taxable: true, tax1: true, tax2: false, tax3: false,
-    onHand: 5, minQty: 1, maxQty: 20, tracking: true,
-    category: "HVAC", subcategory: "Condensers", type: "Inventory Item",
-    vendor: "Lennox Pro", vendorCode: "LX-XP25048", department: "Equipment",
-    cogsGL: "5000 · Cost of Goods", salesGL: "4100 · Equipment Sales",
-    customField1: "", customField2: "", customField3: "", notes: "",
-    boldPrint: false, group: "", defaultQty: 1, picture: "", inventory: true, booking: false,
-  },
-  {
-    id: 1003, active: true, name: "Copper Piping Installation",
-    description: "Install copper piping per linear foot",
-    salesDescription: "Professional copper piping installation (per ft)",
-    additionalInfo: "", brand: "", modelNumber: "", upc: "",
-    rate: 18.50, cost: 6.75, taxable: true, tax1: true, tax2: false, tax3: false,
+    id: 2, active: true, name: "AC Tune-Up",
+    description: "Annual AC maintenance and tune-up", salesDescription: "AC tune-up — cleaning, inspection and performance check",
+    additionalInfo: "", brand: "", modelNumber: "SVC-1002", upc: "",
+    rate: 129, cost: 0, taxable: true, tax1: true, tax2: false, tax3: false,
     onHand: 0, minQty: 0, maxQty: 0, tracking: false,
-    category: "Plumbing", subcategory: "Installation", type: "Installation",
+    category: "Maintenance", subcategory: "", type: "Maintenance",
     vendor: "", vendorCode: "", department: "Field Service",
     cogsGL: "", salesGL: "4000 · Service Revenue",
-    customField1: "", customField2: "", customField3: "", notes: "",
-    boldPrint: false, group: "", defaultQty: 1, picture: "", inventory: false, booking: true,
-  },
-  {
-    id: 1004, active: true, name: "Electrical Panel Upgrade 200A",
-    description: "Upgrade existing panel to 200 amp service",
-    salesDescription: "200A electrical panel upgrade — parts and labor",
-    additionalInfo: "Includes permit filing", brand: "Square D", modelNumber: "HOM2040M200PC", upc: "786549871023",
-    rate: 2800, cost: 1100, taxable: true, tax1: true, tax2: false, tax3: false,
-    onHand: 3, minQty: 1, maxQty: 10, tracking: true,
-    category: "Electrical", subcategory: "Panels", type: "Equipment",
-    vendor: "Graybar Electric", vendorCode: "GB-HOM2040", department: "Equipment",
-    cogsGL: "5000 · Cost of Goods", salesGL: "4100 · Equipment Sales",
-    customField1: "", customField2: "", customField3: "", notes: "",
-    boldPrint: false, group: "", defaultQty: 1, picture: "", inventory: true, booking: false,
-  },
-  {
-    id: 1005, active: true, name: "General Labor - Technician",
-    description: "Standard technician labor rate per hour",
-    salesDescription: "Technician labor (hourly)",
-    additionalInfo: "", brand: "", modelNumber: "", upc: "",
-    rate: 95, cost: 45, taxable: false, tax1: false, tax2: false, tax3: false,
-    onHand: 0, minQty: 0, maxQty: 0, tracking: false,
-    category: "Labor", subcategory: "Technician", type: "Labor",
-    vendor: "", vendorCode: "", department: "Field Service",
-    cogsGL: "", salesGL: "4200 · Labor Revenue",
     customField1: "", customField2: "", customField3: "", notes: "",
     boldPrint: false, group: "", defaultQty: 1, picture: "", inventory: false, booking: false,
   },
   {
-    id: 1006, active: true, name: "Drain Cleaning Service",
-    description: "Standard drain cleaning and snaking",
-    salesDescription: "Professional drain cleaning service",
-    additionalInfo: "", brand: "", modelNumber: "", upc: "",
-    rate: 175, cost: 40, taxable: false, tax1: false, tax2: false, tax3: false,
-    onHand: 0, minQty: 0, maxQty: 0, tracking: false,
-    category: "Plumbing", subcategory: "Maintenance", type: "Maintenance",
-    vendor: "", vendorCode: "", department: "Field Service",
-    cogsGL: "", salesGL: "4000 · Service Revenue",
+    id: 3, active: true, name: "R-410A Refrigerant (lb)",
+    description: "R-410A refrigerant per pound", salesDescription: "R-410A refrigerant recharge — per pound",
+    additionalInfo: "", brand: "", modelNumber: "MAT-2001", upc: "",
+    rate: 18, cost: 9, taxable: true, tax1: true, tax2: false, tax3: false,
+    onHand: 50, minQty: 10, maxQty: 200, tracking: true,
+    category: "Refrigerant", subcategory: "", type: "Inventory Item",
+    vendor: "HVAC Supply", vendorCode: "", department: "Materials",
+    cogsGL: "5000 · Cost of Goods", salesGL: "4100 · Material Sales",
     customField1: "", customField2: "", customField3: "", notes: "",
-    boldPrint: false, group: "", defaultQty: 1, picture: "", inventory: false, booking: true,
+    boldPrint: false, group: "", defaultQty: 1, picture: "", inventory: true, booking: false,
   },
   {
-    id: 1007, active: true, name: "Thermostat - Smart WiFi",
-    description: "Smart thermostat with WiFi connectivity",
-    salesDescription: "Smart WiFi Thermostat — professional installation included",
-    additionalInfo: "Compatible with most HVAC systems", brand: "Ecobee", modelNumber: "EB-STATE5-01", upc: "854239006800",
-    rate: 450, cost: 180, taxable: true, tax1: true, tax2: false, tax3: false,
-    onHand: 18, minQty: 3, maxQty: 40, tracking: true,
-    category: "HVAC", subcategory: "Controls", type: "Inventory Item",
-    vendor: "Ecobee Direct", vendorCode: "EC-STATE501", department: "Equipment",
+    id: 4, active: true, name: "Capacitor 45/5 MFD",
+    description: "Dual run capacitor 45/5 MFD 440V", salesDescription: "Capacitor 45/5 MFD — dual run capacitor replacement",
+    additionalInfo: "", brand: "", modelNumber: "MAT-2002", upc: "",
+    rate: 25, cost: 12, taxable: true, tax1: true, tax2: false, tax3: false,
+    onHand: 20, minQty: 5, maxQty: 100, tracking: true,
+    category: "Parts", subcategory: "", type: "Inventory Item",
+    vendor: "HVAC Supply", vendorCode: "", department: "Materials",
+    cogsGL: "5000 · Cost of Goods", salesGL: "4100 · Material Sales",
+    customField1: "", customField2: "", customField3: "", notes: "",
+    boldPrint: false, group: "", defaultQty: 1, picture: "", inventory: true, booking: false,
+  },
+  {
+    id: 5, active: true, name: "Blower Motor 1/2 HP",
+    description: "ECM blower motor 1/2 HP replacement", salesDescription: "Blower motor 1/2 HP — ECM variable speed",
+    additionalInfo: "", brand: "", modelNumber: "EQU-3001", upc: "",
+    rate: 225, cost: 98, taxable: true, tax1: true, tax2: false, tax3: false,
+    onHand: 8, minQty: 2, maxQty: 30, tracking: true,
+    category: "Motors", subcategory: "", type: "Equipment",
+    vendor: "Equipment Depot", vendorCode: "", department: "Equipment",
     cogsGL: "5000 · Cost of Goods", salesGL: "4100 · Equipment Sales",
     customField1: "", customField2: "", customField3: "", notes: "",
     boldPrint: false, group: "", defaultQty: 1, picture: "", inventory: true, booking: false,
+  },
+  {
+    id: 6, active: true, name: "Permit Fee",
+    description: "Administrative permit processing fee", salesDescription: "Permit fee — municipal permit filing and processing",
+    additionalInfo: "", brand: "", modelNumber: "FEE-4001", upc: "",
+    rate: 75, cost: 0, taxable: true, tax1: true, tax2: false, tax3: false,
+    onHand: 0, minQty: 0, maxQty: 0, tracking: false,
+    category: "Administrative", subcategory: "", type: "Fee / Admin Code",
+    vendor: "", vendorCode: "", department: "",
+    cogsGL: "", salesGL: "4300 · Admin Revenue",
+    customField1: "", customField2: "", customField3: "", notes: "",
+    boldPrint: false, group: "", defaultQty: 1, picture: "", inventory: false, booking: false,
   },
 ];
 
@@ -208,7 +176,7 @@ const initialGroups: ItemGroup[] = [
   { id: 2, name: "Plumbing Emergency Kit", description: "Emergency plumbing service items", groupType: "Individual items", category: "Plumbing", items: [1003, 1006], active: true, total: 193.50 },
 ];
 
-const initialCategories: ItemCategory[] = [
+const initialCategories: ItemCategoryRecord[] = [
   { id: 1, name: "HVAC", description: "Heating, ventilation, and air conditioning", parentCategory: "", activeItems: 4, active: true },
   { id: 2, name: "Plumbing", description: "Plumbing services and materials", parentCategory: "", activeItems: 2, active: true },
   { id: 3, name: "Electrical", description: "Electrical services and equipment", parentCategory: "", activeItems: 1, active: true },
@@ -228,23 +196,45 @@ const initialCatalogs: Catalog[] = [
   { id: 2, name: "HVAC Equipment Catalog", description: "All HVAC units, parts and accessories", itemCount: 4, active: true },
 ];
 
-// ─── Type badge helper ────────────────────────────────────────────────────────
-function getTypeBadgeClass(type: ItemType): string {
-  const serviceTypes: ItemType[] = ["Service", "Labor", "Maintenance", "Diagnostics", "Installation", "Repair"];
-  const materialTypes: ItemType[] = ["Inventory Item", "Non-Inventory Item", "Serialized Item"];
-  const equipmentTypes: ItemType[] = ["Equipment", "Asset"];
-  const feeTypes: ItemType[] = [
-    "Fee / Admin Code", "Discount", "Other Charge",
-    "Material Markup", "Labor Markup", "Other Markup",
-    "Material Discount", "Labor Discount", "Other Discount",
-  ];
-  if (serviceTypes.includes(type)) return "bg-[#EBF0F8] text-[#4A6FA5]";
-  if (materialTypes.includes(type)) return "bg-[#D1FAE5] text-[#16A34A]";
-  if (equipmentTypes.includes(type)) return "bg-[#FEF3C7] text-[#D97706]";
-  if (feeTypes.includes(type)) return "bg-[#EDE9FE] text-[#7C3AED]";
-  if (type === "Bundle / Kit") return "bg-[#CCFBF1] text-[#0D9488]";
-  if (type === "Expense / Reimbursement") return "bg-[#FFEDD5] text-[#EA580C]";
-  return "bg-[#F3F4F6] text-[#6B7280]";
+// ─── Type helpers ────────────────────────────────────────────────────────────
+type ItemCategory = "Service" | "Material" | "Equipment" | "Asset" | "Fee" | "Other";
+
+function getItemCategory(type: ItemType): ItemCategory {
+  if (["Service", "Labor", "Maintenance", "Diagnostics", "Installation", "Repair"].includes(type)) return "Service";
+  if (["Inventory Item", "Non-Inventory Item", "Serialized Item"].includes(type)) return "Material";
+  if (type === "Equipment") return "Equipment";
+  if (type === "Asset") return "Asset";
+  if (["Fee / Admin Code", "Discount", "Other Charge", "Material Markup", "Labor Markup", "Other Markup",
+    "Material Discount", "Labor Discount", "Other Discount"].includes(type)) return "Fee";
+  return "Other";
+}
+
+function getTypeBadge(type: ItemType): { label: string; bg: string; color: string } {
+  const cat = getItemCategory(type);
+  if (cat === "Service") return { label: "Service", bg: "#EBF0F8", color: "#4A6FA5" };
+  if (cat === "Material") return { label: "Material", bg: "#D1FAE5", color: "#16A34A" };
+  if (cat === "Equipment") return { label: "Equipment", bg: "#EDE9FE", color: "#7C3AED" };
+  if (cat === "Asset") return { label: "Asset", bg: "#FEF3C7", color: "#D97706" };
+  if (cat === "Fee") return { label: "Fee", bg: "#FFEDD5", color: "#EA580C" };
+  return { label: "Other", bg: "#F3F4F6", color: "#6B7280" };
+}
+
+function ItemIcon({ type }: { type: ItemType }) {
+  const cat = getItemCategory(type);
+  const cfg: Record<ItemCategory, { bg: string; icon: string }> = {
+    Service: { bg: "#4A6FA5", icon: "build" },
+    Material: { bg: "#16A34A", icon: "category" },
+    Equipment: { bg: "#7C3AED", icon: "settings" },
+    Asset: { bg: "#D97706", icon: "location_on" },
+    Fee: { bg: "#EA580C", icon: "attach_money" },
+    Other: { bg: "#6B7280", icon: "list" },
+  };
+  const { bg, icon } = cfg[cat];
+  return (
+    <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: bg }}>
+      <span className="material-icons text-white" style={{ fontSize: "16px" }}>{icon}</span>
+    </div>
+  );
 }
 
 // ─── Helper Components ───────────────────────────────────────────────────────
@@ -320,12 +310,13 @@ function Pagination({ total, perPage, page, onPageChange, onPerPageChange }: {
 // ─── Main Component ──────────────────────────────────────────────────────────
 export function Items() {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<TabKey>("items");
+  const [activeTab, setActiveTab] = useState<TabKey>("all");
 
   // Items state
   const [items, setItems] = useState<Item[]>(initialItems);
   const [itemSearch, setItemSearch] = useState("");
   const [itemFilter, setItemFilter] = useState("All");
+  const [itemStatusFilter, setItemStatusFilter] = useState("All");
   const [itemSort, setItemSort] = useState<{ key: string; dir: "asc" | "desc" }>({ key: "id", dir: "asc" });
   const [itemPage, setItemPage] = useState(1);
   const [itemPerPage, setItemPerPage] = useState(10);
@@ -340,10 +331,10 @@ export function Items() {
   const [editingGroup, setEditingGroup] = useState<ItemGroup | null>(null);
 
   // Categories state
-  const [categories, setCategories] = useState<ItemCategory[]>(initialCategories);
+  const [categories, setCategories] = useState<ItemCategoryRecord[]>(initialCategories);
   const [catSearch, setCatSearch] = useState("");
   const [catModalOpen, setCatModalOpen] = useState(false);
-  const [editingCat, setEditingCat] = useState<ItemCategory | null>(null);
+  const [editingCat, setEditingCat] = useState<ItemCategoryRecord | null>(null);
 
   // Brands state
   const [brands, setBrands] = useState<ItemBrand[]>(initialBrands);
@@ -362,14 +353,26 @@ export function Items() {
 
   // ─── Items Logic ─────────────────────────────────────────────────────
   const filteredItems = useMemo(() => {
-    let result = items.filter(i => i.active);
+    let result = [...items];
+    // Type-tab filter
+    const tabCatMap: Record<TabKey, ItemCategory | null> = {
+      all: null, pricebook: null,
+      services: "Service", materials: "Material",
+      equipment: "Equipment", asset: "Asset", fees: "Fee",
+    };
+    const tabCat = tabCatMap[activeTab];
+    if (tabCat) result = result.filter(i => getItemCategory(i.type) === tabCat);
+    // Category dropdown filter
     if (itemFilter !== "All") result = result.filter(i => i.category === itemFilter);
+    // Status filter
+    if (itemStatusFilter === "Active") result = result.filter(i => i.active);
+    else if (itemStatusFilter === "Inactive") result = result.filter(i => !i.active);
+    // Search
     if (itemSearch) {
       const q = itemSearch.toLowerCase();
       result = result.filter(i =>
         i.name.toLowerCase().includes(q) ||
         i.category.toLowerCase().includes(q) ||
-        i.brand.toLowerCase().includes(q) ||
         i.modelNumber.toLowerCase().includes(q) ||
         String(i.id).includes(q)
       );
@@ -381,7 +384,7 @@ export function Items() {
       return itemSort.dir === "asc" ? String(av).localeCompare(String(bv)) : String(bv).localeCompare(String(av));
     });
     return result;
-  }, [items, itemFilter, itemSearch, itemSort]);
+  }, [items, itemFilter, itemStatusFilter, itemSearch, itemSort, activeTab]);
 
   const paginatedItems = filteredItems.slice((itemPage - 1) * itemPerPage, itemPage * itemPerPage);
   const allItemsSelected = paginatedItems.length > 0 && paginatedItems.every(i => selectedItems.has(i.id));
@@ -399,21 +402,14 @@ export function Items() {
     ) : null
   );
 
-  // ─── Tab content descriptions ────────────────────────────────────────
-  const tabDescriptions: Record<TabKey, string> = {
-    items: "Manage your catalog of services, products, equipment, and labor rates.",
-    groups: "Item groups help you add multiple items to invoices and estimates.",
-    categories: "Item categories help manage and streamline your items, making it easy to navigate your catalog.",
-    brands: "Manage brands associated with your products and equipment.",
-    catalogs: "Organize your items into catalogs for different use cases.",
-  };
-
   const tabs: { key: TabKey; label: string }[] = [
-    { key: "items", label: "Items & Products" },
-    { key: "groups", label: "Item Groups" },
-    { key: "categories", label: "Item Categories" },
-    { key: "brands", label: "Item Brands" },
-    { key: "catalogs", label: "Catalogs" },
+    { key: "all", label: "All Items" },
+    { key: "pricebook", label: "Pricebook" },
+    { key: "services", label: "Services" },
+    { key: "materials", label: "Materials" },
+    { key: "equipment", label: "Equipment" },
+    { key: "asset", label: "Asset" },
+    { key: "fees", label: "Fees" },
   ];
 
   // ─── Export mock ─────────────────────────────────────────────────────
@@ -422,11 +418,13 @@ export function Items() {
   };
 
   const tabRecordCounts: Record<TabKey, number> = {
-    items: filteredItems.length,
-    groups: groups.filter(g => !groupSearch || g.name.toLowerCase().includes(groupSearch.toLowerCase())).length,
-    categories: categories.filter(c => !catSearch || c.name.toLowerCase().includes(catSearch.toLowerCase())).length,
-    brands: brands.filter(b => !brandSearch || b.name.toLowerCase().includes(brandSearch.toLowerCase())).length,
-    catalogs: catalogs.filter(c => !catalogSearch || c.name.toLowerCase().includes(catalogSearch.toLowerCase())).length,
+    all: items.length,
+    pricebook: items.filter(i => ["Inventory Item", "Non-Inventory Item"].includes(i.type)).length,
+    services: items.filter(i => getItemCategory(i.type) === "Service").length,
+    materials: items.filter(i => getItemCategory(i.type) === "Material").length,
+    equipment: items.filter(i => getItemCategory(i.type) === "Equipment").length,
+    asset: items.filter(i => getItemCategory(i.type) === "Asset").length,
+    fees: items.filter(i => getItemCategory(i.type) === "Fee").length,
   };
 
   // ═══════════════════════════════════════════════════════════════════════
@@ -441,19 +439,12 @@ export function Items() {
         actions={
           <>
             <button
-              onClick={() => {
-                if (activeTab === "items") { setEditingItem(null); setItemModalOpen(true); }
-                else if (activeTab === "groups") { setEditingGroup(null); setGroupModalOpen(true); }
-                else if (activeTab === "categories") { setEditingCat(null); setCatModalOpen(true); }
-              }}
+              onClick={() => { setEditingItem(null); setItemModalOpen(true); }}
               className="h-9 px-4 bg-[#4A6FA5] text-white rounded-lg text-[13px] hover:bg-[#3d5a85] flex items-center gap-1.5"
               style={{ fontWeight: 600 }}
             >
               <span className="material-icons" style={{ fontSize: "18px" }}>add</span>
-              {activeTab === "items" && "Create Item"}
-              {activeTab === "groups" && "Create Group"}
-              {activeTab === "categories" && "Create Category"}
-              {activeTab !== "items" && activeTab !== "groups" && activeTab !== "categories" && "Create"}
+              Create Item
             </button>
             <KebabMenu triggerClassName="w-9 h-9 border border-[#DDE3EE] rounded-lg bg-white">
               <KebabItem icon="file_upload" onClick={() => alert("Import functionality — CSV/Google Sheets import will be available with backend integration.")}>Import</KebabItem>
@@ -489,172 +480,179 @@ export function Items() {
         </div>
       </div>
 
-      {/* ═══════════════ ITEMS & PRODUCTS TAB ═══════════════ */}
-      {activeTab === "items" && (
-        <div>
-          {/* Search + Filter bar */}
-          <div className="bg-white border border-[#DDE3EE] rounded-t-lg">
-            <div className="flex items-center justify-between p-3 border-b border-[#DDE3EE]">
-              <div className="flex items-center gap-2">
-                <span className="text-[13px] text-[#546478]" style={{ fontWeight: 500 }}>{filteredItems.length} results</span>
-                <div className="w-px h-5 bg-[#DDE3EE] mx-1" />
-                <span className="text-[13px] text-[#546478]" style={{ fontWeight: 500 }}>Category:</span>
-                <select
-                  value={itemFilter}
-                  onChange={(e) => { setItemFilter(e.target.value); setItemPage(1); }}
-                  className="px-3 py-1.5 border border-[#DDE3EE] rounded-lg text-[13px] bg-white min-w-[160px] focus:outline-none focus:border-[#4A6FA5]"
-                >
-                  <option value="All">All Categories</option>
-                  {uniqueCategories.map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
-              </div>
-              <div className="relative w-[260px]">
-                <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: "18px" }}>search</span>
-                <input
-                  type="text"
-                  placeholder="Search"
-                  value={itemSearch}
-                  onChange={(e) => { setItemSearch(e.target.value); setItemPage(1); }}
-                  className="w-full h-9 pl-10 pr-3 border border-[#DDE3EE] rounded-lg text-[13px] focus:outline-none focus:border-[#4A6FA5]"
-                />
-              </div>
-            </div>
-
-            {/* Bulk actions */}
-            <SelectionBar
-              count={selectedItems.size}
-              onDeselect={() => setSelectedItems(new Set())}
-              onDelete={() => {
-                if (confirm(`Delete ${selectedItems.size} item(s)?`)) {
-                  setItems(prev => prev.filter(i => !selectedItems.has(i.id)));
-                  setSelectedItems(new Set());
-                }
-              }}
+      {/* ═══════════════ ITEMS TABLE (all type-filter tabs) ═══════════════ */}
+      <div className="bg-white border border-[#DDE3EE] rounded-xl">
+        {/* Filter bar */}
+        <div className="flex items-center gap-2.5 px-4 py-3 border-b border-[#DDE3EE]">
+          <div className="relative flex-1 max-w-[260px]">
+            <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: "17px" }}>search</span>
+            <input
+              type="text"
+              placeholder="Search items..."
+              value={itemSearch}
+              onChange={(e) => { setItemSearch(e.target.value); setItemPage(1); }}
+              className="w-full h-9 pl-9 pr-3 border border-[#DDE3EE] rounded-lg text-[13px] focus:outline-none focus:border-[#4A6FA5] bg-white"
             />
+          </div>
+          <select
+            value={itemFilter}
+            onChange={(e) => { setItemFilter(e.target.value); setItemPage(1); }}
+            className="h-9 px-3 pr-8 border border-[#DDE3EE] rounded-lg text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5] min-w-[150px]"
+            style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23546478' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`, backgroundRepeat: "no-repeat", backgroundPosition: "right 10px center", appearance: "none" }}
+          >
+            <option value="All">All Categories</option>
+            {uniqueCategories.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+          <select
+            value={itemStatusFilter}
+            onChange={(e) => { setItemStatusFilter(e.target.value); setItemPage(1); }}
+            className="h-9 px-3 pr-8 border border-[#DDE3EE] rounded-lg text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5] min-w-[130px]"
+            style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23546478' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`, backgroundRepeat: "no-repeat", backgroundPosition: "right 10px center", appearance: "none" }}
+          >
+            <option value="All">All Statuses</option>
+            <option value="Active">Active</option>
+            <option value="Inactive">Inactive</option>
+          </select>
+          <button className="h-9 px-3.5 border border-[#DDE3EE] rounded-lg text-[13px] text-[#546478] bg-white hover:bg-[#F5F7FA] flex items-center gap-1.5 transition-colors">
+            <span className="material-icons" style={{ fontSize: "17px" }}>tune</span>
+            Filters
+          </button>
+        </div>
 
-            {/* Table */}
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="bg-[#F5F7FA] border-b border-[#DDE3EE]">
-                    <th className="px-4 py-3 w-10">
+        {/* Bulk actions bar */}
+        <SelectionBar
+          count={selectedItems.size}
+          onDeselect={() => setSelectedItems(new Set())}
+          onDelete={() => {
+            if (confirm(`Delete ${selectedItems.size} item(s)?`)) {
+              setItems(prev => prev.filter(i => !selectedItems.has(i.id)));
+              setSelectedItems(new Set());
+            }
+          }}
+        />
+
+        {/* Table */}
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="bg-[#F5F7FA] border-b border-[#DDE3EE]">
+                <th className="px-4 py-3 w-10">
+                  <input
+                    type="checkbox"
+                    checked={allItemsSelected}
+                    onChange={(e) => {
+                      if (e.target.checked) setSelectedItems(new Set(paginatedItems.map(i => i.id)));
+                      else setSelectedItems(new Set());
+                    }}
+                    className="w-4 h-4 rounded border-[#DDE3EE] cursor-pointer accent-[#4A6FA5]"
+                  />
+                </th>
+                {[
+                  { key: "name", label: "Item Name", w: "min-w-[220px]", sortable: true },
+                  { key: "type", label: "Type", w: "w-[110px]", sortable: true },
+                  { key: "category", label: "Category", w: "w-[120px]", sortable: true },
+                  { key: "modelNumber", label: "SKU / Item Code", w: "w-[130px]", sortable: true },
+                  { key: "rate", label: "Price", w: "w-[90px]", sortable: true },
+                  { key: "cost", label: "Cost", w: "w-[85px]", sortable: true },
+                  { key: "taxable", label: "Taxable", w: "w-[80px]", sortable: false },
+                  { key: "active", label: "Active", w: "w-[70px]", sortable: false },
+                ].map(col => (
+                  <th
+                    key={col.key}
+                    className={`px-4 py-3 text-left text-[11px] uppercase tracking-wider text-[#546478] ${col.sortable ? "cursor-pointer hover:text-[#1A2332]" : ""} select-none ${col.w}`}
+                    style={{ fontWeight: 600 }}
+                    onClick={() => { if (col.sortable) handleSortItems(col.key); }}
+                  >
+                    <div className="flex items-center gap-0.5">
+                      {col.label}
+                      {col.sortable && <SortIcon col={col.key} />}
+                    </div>
+                  </th>
+                ))}
+                <th className="px-4 py-3 w-[60px] text-right text-[11px] uppercase tracking-wider text-[#546478]" style={{ fontWeight: 600 }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {paginatedItems.length === 0 ? (
+                <tr>
+                  <td colSpan={10} className="px-4 py-16 text-center">
+                    <span className="material-icons text-[#C8D5E8] mb-2 block" style={{ fontSize: "48px" }}>inventory_2</span>
+                    <div className="text-[14px] text-[#546478]" style={{ fontWeight: 500 }}>No items found</div>
+                    <div className="text-[12px] text-[#8899AA] mt-1">Try adjusting your search or filters</div>
+                  </td>
+                </tr>
+              ) : paginatedItems.map((item) => {
+                const badge = getTypeBadge(item.type);
+                return (
+                  <tr
+                    key={item.id}
+                    onClick={() => navigate(`/items/${item.id}`)}
+                    className={`group border-b border-[#DDE3EE] hover:bg-[#F9FAFB] transition-colors cursor-pointer ${selectedItems.has(item.id) ? "bg-[#EBF0F8]" : "bg-white"}`}
+                  >
+                    <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                       <input
                         type="checkbox"
-                        checked={allItemsSelected}
+                        checked={selectedItems.has(item.id)}
                         onChange={(e) => {
-                          if (e.target.checked) setSelectedItems(new Set(paginatedItems.map(i => i.id)));
-                          else setSelectedItems(new Set());
+                          const s = new Set(selectedItems);
+                          e.target.checked ? s.add(item.id) : s.delete(item.id);
+                          setSelectedItems(s);
                         }}
                         className="w-4 h-4 rounded border-[#DDE3EE] cursor-pointer accent-[#4A6FA5]"
                       />
-                    </th>
-                    {[
-                      { key: "id", label: "ID", w: "w-[70px]", sortable: true },
-                      { key: "name", label: "Name", w: "min-w-[200px]", sortable: true },
-                      { key: "type", label: "Type", w: "w-[160px]", sortable: true },
-                      { key: "category", label: "Category", w: "w-[110px]", sortable: true },
-                      { key: "subcategory", label: "Subcategory", w: "w-[120px]", sortable: true },
-                      { key: "rate", label: "Retail Price", w: "w-[110px]", sortable: true },
-                      { key: "cost", label: "Cost", w: "w-[90px]", sortable: true },
-                      { key: "onHand", label: "On Hand", w: "w-[90px]", sortable: true },
-                      { key: "taxable", label: "Taxable", w: "w-[80px]", sortable: true },
-                    ].map(col => (
-                      <th
-                        key={col.key}
-                        className={`px-4 py-3 text-left text-[11px] uppercase tracking-wider text-[#546478] ${col.sortable ? "cursor-pointer hover:text-[#1A2332]" : ""} select-none ${col.w}`}
-                        style={{ fontWeight: 600 }}
-                        onClick={() => { if (col.sortable) handleSortItems(col.key); }}
-                      >
-                        <div className="flex items-center">
-                          {col.label}
-                          {col.sortable && <SortIcon col={col.key} />}
-                        </div>
-                      </th>
-                    ))}
-                    <th className="px-4 py-3 w-[80px]" />
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <ItemIcon type={item.type} />
+                        <div className="truncate max-w-[200px] text-[13px] text-[#4A6FA5] hover:underline" style={{ fontWeight: 500 }}>{item.name}</div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="inline-block px-2 py-0.5 rounded text-[11px] whitespace-nowrap" style={{ fontWeight: 600, backgroundColor: badge.bg, color: badge.color }}>
+                        {badge.label}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-[13px] text-[#546478]">{item.category || "—"}</td>
+                    <td className="px-4 py-3 text-[13px] text-[#546478]" style={{ fontVariantNumeric: "tabular-nums" }}>{item.modelNumber || "—"}</td>
+                    <td className="px-4 py-3 text-[13px] text-[#1A2332]" style={{ fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>${item.rate.toFixed(2)}</td>
+                    <td className="px-4 py-3 text-[13px] text-[#546478]" style={{ fontVariantNumeric: "tabular-nums" }}>${item.cost.toFixed(2)}</td>
+                    <td className="px-4 py-3">
+                      {item.taxable
+                        ? <span className="material-icons text-[#16A34A]" style={{ fontSize: "18px" }}>check</span>
+                        : <span className="text-[#C8D5E8]">—</span>}
+                    </td>
+                    <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                      <Toggle
+                        checked={item.active}
+                        onChange={(v) => setItems(prev => prev.map(i => i.id === item.id ? { ...i, active: v } : i))}
+                      />
+                    </td>
+                    <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+                      <KebabMenu triggerClassName="w-8 h-8 border border-[#DDE3EE] rounded-lg bg-white opacity-0 group-hover:opacity-100 transition-opacity">
+                        <KebabItem icon="edit" onClick={() => { setEditingItem(item); setItemModalOpen(true); }}>Edit</KebabItem>
+                        <KebabItem icon="content_copy">Duplicate</KebabItem>
+                        <KebabSeparator />
+                        <KebabItem icon="delete" destructive onClick={() => setDeleteConfirm({ type: "item", id: item.id, name: item.name })}>Delete</KebabItem>
+                      </KebabMenu>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {paginatedItems.length === 0 ? (
-                    <tr>
-                      <td colSpan={12} className="px-4 py-16 text-center">
-                        <span className="material-icons text-[#C8D5E8] mb-2" style={{ fontSize: "48px" }}>inventory_2</span>
-                        <div className="text-[14px] text-[#546478]" style={{ fontWeight: 500 }}>No items found</div>
-                        <div className="text-[12px] text-[#8899AA] mt-1">Try adjusting your search or filters</div>
-                      </td>
-                    </tr>
-                  ) : paginatedItems.map((item, idx) => (
-                    <tr
-                      key={item.id}
-                      onClick={() => navigate(`/items/${item.id}`)}
-                      className={`group border-b border-[#DDE3EE] hover:bg-[#F9FAFB] transition-colors cursor-pointer ${
-                        selectedItems.has(item.id) ? "bg-[#EBF0F8]" : "bg-white"
-                      }`}
-                    >
-                      <td className="px-4 py-3.5" onClick={(e) => e.stopPropagation()}>
-                        <input
-                          type="checkbox"
-                          checked={selectedItems.has(item.id)}
-                          onChange={(e) => {
-                            const s = new Set(selectedItems);
-                            e.target.checked ? s.add(item.id) : s.delete(item.id);
-                            setSelectedItems(s);
-                          }}
-                          className="w-4 h-4 rounded border-[#DDE3EE] cursor-pointer accent-[#4A6FA5]"
-                        />
-                      </td>
-                      <td className="px-4 py-3.5 text-[13px] text-[#8899AA]">{item.id}</td>
-                      <td className="px-4 py-3.5 text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>
-                        <div className="truncate max-w-[220px]">{item.name}</div>
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <span className={`inline-block px-2 py-0.5 rounded-full text-[11px] whitespace-nowrap ${getTypeBadgeClass(item.type)}`} style={{ fontWeight: 600 }}>
-                          {item.type}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3.5 text-[13px] text-[#546478]">{item.category || "—"}</td>
-                      <td className="px-4 py-3.5 text-[13px] text-[#546478]">{item.subcategory || "—"}</td>
-                      <td className="px-4 py-3.5 text-[13px] text-[#1A2332]" style={{ fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>${item.rate.toFixed(2)}</td>
-                      <td className="px-4 py-3.5 text-[13px] text-[#546478]" style={{ fontVariantNumeric: "tabular-nums" }}>${item.cost.toFixed(2)}</td>
-                      <td className="px-4 py-3.5 text-[13px] text-[#546478] text-center">{item.onHand}</td>
-                      <td className="px-4 py-3.5 text-[13px] text-[#546478]">{item.taxable ? "Yes" : "No"}</td>
-                      <td className="px-4 py-3.5" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100">
-                          <button
-                            onClick={() => { setEditingItem(item); setItemModalOpen(true); }}
-                            className="w-8 h-8 flex items-center justify-center rounded hover:bg-[#EDF0F5]"
-                            title="Edit"
-                          >
-                            <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>edit</span>
-                          </button>
-                          <button
-                            onClick={() => setDeleteConfirm({ type: "item", id: item.id, name: item.name })}
-                            className="w-8 h-8 flex items-center justify-center rounded hover:bg-[#FEE2E2]"
-                            title="Delete"
-                          >
-                            <span className="material-icons text-[#DC2626]" style={{ fontSize: "18px" }}>delete</span>
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            <Pagination
-              total={filteredItems.length}
-              perPage={itemPerPage}
-              page={itemPage}
-              onPageChange={setItemPage}
-              onPerPageChange={setItemPerPage}
-            />
-          </div>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
-      )}
 
-      {/* ═══════════════ ITEM GROUPS TAB ═══════════════ */}
-      {activeTab === "groups" && (
+        <Pagination
+          total={filteredItems.length}
+          perPage={itemPerPage}
+          page={itemPage}
+          onPageChange={setItemPage}
+          onPerPageChange={setItemPerPage}
+        />
+      </div>
+
+      {/* ═══════════════ ITEM GROUPS (modal-only) ═══════════════ */}
+      {false && (
         <div>
           <div className="bg-white border border-[#DDE3EE] rounded-lg">
             <div className="flex items-center justify-between p-3 border-b border-[#DDE3EE]">
@@ -701,8 +699,8 @@ export function Items() {
         </div>
       )}
 
-      {/* ═══════════════ ITEM CATEGORIES TAB ═══════════════ */}
-      {activeTab === "categories" && (
+      {/* categories (modal-only) */}
+      {false && (
         <div>
           <div className="bg-white border border-[#DDE3EE] rounded-lg">
             <div className="flex items-center justify-between p-3 border-b border-[#DDE3EE]">
@@ -745,8 +743,8 @@ export function Items() {
         </div>
       )}
 
-      {/* ═══════════════ ITEM BRANDS TAB ═══════════════ */}
-      {activeTab === "brands" && (
+      {/* brands (modal-only) */}
+      {false && (
         <div>
           <div className="flex items-center justify-end mb-4">
             <button
@@ -796,8 +794,8 @@ export function Items() {
         </div>
       )}
 
-      {/* ═══════════════ CATALOGS TAB ═══════════════ */}
-      {activeTab === "catalogs" && (
+      {/* catalogs (modal-only) */}
+      {false && (
         <div>
           <div className="flex items-center justify-end mb-4">
             <button
@@ -1498,10 +1496,10 @@ function GroupModal({ group, items, categories, onClose, onSave }: {
 
 // ─── CATEGORY MODAL ──────────────────────────────────────────────────────────
 function CategoryModal({ category, categories, onClose, onSave }: {
-  category: ItemCategory | null; categories: ItemCategory[];
-  onClose: () => void; onSave: (c: ItemCategory) => void;
+  category: ItemCategoryRecord | null; categories: ItemCategoryRecord[];
+  onClose: () => void; onSave: (c: ItemCategoryRecord) => void;
 }) {
-  const [form, setForm] = useState<ItemCategory>(category || {
+  const [form, setForm] = useState<ItemCategoryRecord>(category || {
     id: 0, name: "", description: "", parentCategory: "", activeItems: 0, active: true,
   });
 

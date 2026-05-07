@@ -1129,27 +1129,6 @@ export function ClientDetail() {
           </div>
         </div>
 
-        {/* On Hold alert — shows when client has past-due balance */}
-        {clientStatus === "on-hold" && client.pastDueBalance > 0 && (
-          <div className="mx-8 mt-4 flex items-center gap-3 px-4 py-3 rounded-lg bg-[#FEF2F2] border border-[#FECACA]">
-            <span className="material-icons text-[#DC2626] shrink-0" style={{ fontSize: "20px" }}>error_outline</span>
-            <div className="flex-1 min-w-0">
-              <div className="text-[13px] text-[#991B1B] leading-[18px]" style={{ fontWeight: 600 }}>
-                Account on hold — past due ${client.pastDueBalance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} · {daysOverdue} days overdue
-              </div>
-              <div className="text-[12px] text-[#B91C1C] mt-0.5">
-                Do not dispatch service until the past-due balance is settled.
-              </div>
-            </div>
-            <button
-              onClick={() => setActiveTab("invoices")}
-              className="shrink-0 text-[12px] text-[#991B1B] hover:text-[#7F1D1D] underline"
-              style={{ fontWeight: 500 }}
-            >
-              View invoices →
-            </button>
-          </div>
-        )}
 
         {/* Summary content */}
         <div className="px-8 pt-5 pb-[14px]">
