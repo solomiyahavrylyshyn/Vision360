@@ -508,7 +508,7 @@ export function Calendar() {
 
               {/* Right: Job Detail Panel */}
               {selectedDispatchJob && (
-                <div className="w-[308px] shrink-0 flex flex-col overflow-hidden p-3">
+                <div className="w-[308px] shrink-0 flex flex-col overflow-hidden p-3 bg-[#F0F2F5]">
                 <div className="flex flex-col flex-1 bg-white rounded-2xl shadow-lg border border-[#DDE3EE] overflow-hidden">
                   {/* Header */}
                   <div className="flex items-center justify-between px-4 py-3 border-b border-[#DDE3EE] shrink-0">
