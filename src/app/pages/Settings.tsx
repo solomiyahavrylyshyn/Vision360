@@ -25,7 +25,17 @@ type SettingsSection =
   | "marketingSources"
   | "customerTags"
   | "counties"
-  | "jobTypes";
+  | "jobTypes"
+  | "customFields";
+
+type CfFieldType = "text" | "number" | "date" | "checkbox" | "dropdown";
+type CfEntity = "clients" | "jobs" | "estimates" | "invoices" | "items";
+interface CfField { label: string; type: CfFieldType; options: string[] }
+const defaultCfFields = (): CfField[] => [
+  { label: "Custom Field 1", type: "text", options: [] },
+  { label: "Custom Field 2", type: "text", options: [] },
+  { label: "Custom Field 3", type: "text", options: [] },
+];
 
 export function Settings() {
   const [searchParams] = useSearchParams();
@@ -63,6 +73,17 @@ export function Settings() {
   const [newJobTypeName, setNewJobTypeName] = useState("");
   const [editingJobType, setEditingJobType] = useState<string | null>(null);
   const [editingJobTypeValue, setEditingJobTypeValue] = useState("");
+
+  // Custom Fields state
+  const [cfEntity, setCfEntity] = useState<CfEntity>("clients");
+  const [customFields, setCustomFields] = useState<Record<CfEntity, CfField[]>>({
+    clients: defaultCfFields(),
+    jobs: defaultCfFields(),
+    estimates: defaultCfFields(),
+    invoices: defaultCfFields(),
+    items: defaultCfFields(),
+  });
+  const [cfNewOption, setCfNewOption] = useState<Record<string, string>>({});
 
   return (
     <div className="flex h-full bg-[#F2F4F7]" style={{ height: "calc(100vh - 64px)" }}>
@@ -221,6 +242,16 @@ export function Settings() {
                 }`}
               >
                 Job Types
+              </button>
+              <button
+                onClick={() => setActiveSection("customFields")}
+                className={`w-full block px-3.5 py-1.5 pl-9 text-[12.5px] transition-colors text-left ${
+                  activeSection === "customFields"
+                    ? "bg-[#EBF0F8] text-[#4A6FA5] font-semibold border-l-[3px] border-l-[#4A6FA5] pl-[33px]"
+                    : "text-[#546478] hover:bg-[#F5F7FA] hover:text-[#1A2332]"
+                }`}
+              >
+                Custom Fields
               </button>
             </div>
           </div>
@@ -1049,6 +1080,162 @@ export function Settings() {
                   </tbody>
                 </table>
               </Card>
+            </>
+          )}
+
+          {activeSection === "customFields" && (
+            <>
+              <h1 className="text-[26px] text-[#1A2332] mb-1" style={{ fontWeight: 700 }}>Custom Fields</h1>
+              <p className="text-[13px] text-[#546478] mb-5 leading-relaxed max-w-[680px]">
+                Configure up to 3 custom fields for each entity. Rename the label, choose the field type, and — for Dropdown fields — define the list of selectable options.
+              </p>
+
+              {/* Entity tabs */}
+              <div className="flex border-b border-[#DDE3EE] mb-5">
+                {(["clients", "jobs", "estimates", "invoices", "items"] as CfEntity[]).map((entity) => (
+                  <button
+                    key={entity}
+                    onClick={() => setCfEntity(entity)}
+                    className={`px-4 py-2 text-[13px] font-medium border-b-2 -mb-px transition-colors capitalize ${
+                      cfEntity === entity
+                        ? "border-[#4A6FA5] text-[#4A6FA5]"
+                        : "border-transparent text-[#546478] hover:text-[#1A2332]"
+                    }`}
+                  >
+                    {entity.charAt(0).toUpperCase() + entity.slice(1)}
+                  </button>
+                ))}
+              </div>
+
+              <Card className="border border-[#DDE3EE] overflow-hidden mb-4">
+                {customFields[cfEntity].map((field, idx) => (
+                  <div key={idx} className={idx > 0 ? "border-t border-[#DDE3EE]" : ""}>
+                    {/* Field header row */}
+                    <div className="px-6 py-4 flex items-start gap-4">
+                      <div className="w-6 h-6 rounded-full bg-[#EBF0F8] flex items-center justify-center flex-shrink-0 mt-1">
+                        <span className="text-[11px] font-bold text-[#4A6FA5]">{idx + 1}</span>
+                      </div>
+                      <div className="flex-1 flex flex-wrap items-start gap-4">
+                        <div className="min-w-[260px] flex-1">
+                          <label className="text-[11px] font-semibold uppercase tracking-wider text-[#546478] mb-1.5 block">Field Label</label>
+                          <Input
+                            value={field.label}
+                            onChange={(e) => {
+                              const updated = [...customFields[cfEntity]];
+                              updated[idx] = { ...updated[idx], label: e.target.value };
+                              setCustomFields({ ...customFields, [cfEntity]: updated });
+                            }}
+                            onBlur={() => toast.success("Field label updated")}
+                            className="border-[#DDE3EE] h-8 text-[13px]"
+                            placeholder="Field label..."
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[11px] font-semibold uppercase tracking-wider text-[#546478] mb-1.5 block">Field Type</label>
+                          <select
+                            value={field.type}
+                            onChange={(e) => {
+                              const updated = [...customFields[cfEntity]];
+                              updated[idx] = { ...updated[idx], type: e.target.value as CfFieldType };
+                              setCustomFields({ ...customFields, [cfEntity]: updated });
+                            }}
+                            className="h-8 px-2.5 pr-8 border border-[#DDE3EE] rounded-md text-[13px] text-[#1A2332] bg-white outline-none focus:border-[#4A6FA5] cursor-pointer"
+                            style={{
+                              backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23546478' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`,
+                              backgroundRepeat: "no-repeat",
+                              backgroundPosition: "right 8px center",
+                              appearance: "none",
+                            }}
+                          >
+                            <option value="text">Text</option>
+                            <option value="number">Number</option>
+                            <option value="date">Date</option>
+                            <option value="checkbox">Checkbox</option>
+                            <option value="dropdown">Dropdown</option>
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Dropdown options panel */}
+                    {field.type === "dropdown" && (
+                      <div className="px-6 pb-5 pl-16 bg-[#FAFBFC] border-t border-[#EDF0F5]">
+                        <label className="text-[11px] font-semibold uppercase tracking-wider text-[#546478] mb-2.5 mt-3.5 block">Dropdown Options</label>
+                        {field.options.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5 mb-3">
+                            {field.options.map((opt, oi) => (
+                              <span
+                                key={oi}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 bg-white border border-[#DDE3EE] rounded-md text-[12.5px] text-[#1A2332]"
+                              >
+                                {opt}
+                                <button
+                                  onClick={() => {
+                                    const updated = [...customFields[cfEntity]];
+                                    const newOpts = [...updated[idx].options];
+                                    newOpts.splice(oi, 1);
+                                    updated[idx] = { ...updated[idx], options: newOpts };
+                                    setCustomFields({ ...customFields, [cfEntity]: updated });
+                                  }}
+                                  className="text-[#8899AA] hover:text-[#DC2626] transition-colors ml-0.5"
+                                >
+                                  <span className="material-icons" style={{ fontSize: "13px", lineHeight: 1 }}>close</span>
+                                </button>
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        {field.options.length === 0 && (
+                          <p className="text-[12px] text-[#8899AA] mb-3">No options yet. Add the first one below.</p>
+                        )}
+                        <div className="flex gap-2">
+                          <Input
+                            value={cfNewOption[`${cfEntity}-${idx}`] || ""}
+                            onChange={(e) => setCfNewOption({ ...cfNewOption, [`${cfEntity}-${idx}`]: e.target.value })}
+                            placeholder="New option..."
+                            className="border-[#DDE3EE] h-8 text-[13px] max-w-[260px]"
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                const val = (cfNewOption[`${cfEntity}-${idx}`] || "").trim();
+                                if (val) {
+                                  const updated = [...customFields[cfEntity]];
+                                  updated[idx] = { ...updated[idx], options: [...updated[idx].options, val] };
+                                  setCustomFields({ ...customFields, [cfEntity]: updated });
+                                  setCfNewOption({ ...cfNewOption, [`${cfEntity}-${idx}`]: "" });
+                                }
+                              }
+                            }}
+                          />
+                          <button
+                            onClick={() => {
+                              const val = (cfNewOption[`${cfEntity}-${idx}`] || "").trim();
+                              if (val) {
+                                const updated = [...customFields[cfEntity]];
+                                updated[idx] = { ...updated[idx], options: [...updated[idx].options, val] };
+                                setCustomFields({ ...customFields, [cfEntity]: updated });
+                                setCfNewOption({ ...cfNewOption, [`${cfEntity}-${idx}`]: "" });
+                              }
+                            }}
+                            className="px-3 h-8 bg-[#EBF0F8] text-[#4A6FA5] border border-[#C8D5E8] rounded-md text-[12px] font-medium hover:bg-[#4A6FA5] hover:text-white transition-colors"
+                          >
+                            + Add
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </Card>
+
+              <div className="flex justify-end">
+                <Button
+                  className="bg-[#4A6FA5] hover:bg-[#3d5a85]"
+                  onClick={() => toast.success("Custom fields saved")}
+                >
+                  Save Changes
+                </Button>
+              </div>
             </>
           )}
         </div>
