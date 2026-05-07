@@ -799,34 +799,6 @@ export function ClientDetail() {
       case "addresses":
         return (
           <div className="space-y-6">
-            {/* Billing Address */}
-            <div className="bg-white border border-[#E5E7EB] rounded-lg overflow-hidden">
-              <div className="border-b border-[#E5E7EB] px-6 py-4 flex items-center justify-between">
-                <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Billing Address</h3>
-                <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-[#F5F7FA]" onClick={() => toast.info("Edit address coming soon")}>
-                  <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>edit</span>
-                </Button>
-              </div>
-              <div className="p-6">
-                <div className="border border-[#E5E7EB] rounded-lg p-4 flex items-start gap-3 hover:bg-[#F9FAFB] cursor-pointer transition-colors">
-                  <span className="material-icons text-[#4A6FA5] mt-0.5" style={{ fontSize: "20px" }}>receipt_long</span>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>
-                        {client.billingAddress}{client.billingUnit ? `, ${client.billingUnit}` : ""}
-                      </div>
-                    </div>
-                    <div className="text-[13px] text-[#6B7280]">
-                      {client.billingCity}, {client.billingState} {client.billingZip}
-                    </div>
-                    <div className="text-[12px] text-[#9CA3AF] mt-0.5">
-                      {client.billingCounty} County
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
             {/* Service Address */}
             <div className="bg-white border border-[#E5E7EB] rounded-lg overflow-hidden">
               <div className="border-b border-[#E5E7EB] px-6 py-4 flex items-center justify-between">
