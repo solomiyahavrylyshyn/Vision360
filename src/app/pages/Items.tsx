@@ -171,6 +171,56 @@ const initialItems: Item[] = [
   },
 ];
 
+interface PricebookItem {
+  id: number; active: boolean; name: string; category: string;
+  description: string; price: number; cost: number; taxable: boolean;
+}
+
+const initialPricebookItems: PricebookItem[] = [
+  { id: 1, active: true, name: "AC Tune-Up", category: "Maintenance", description: "Comprehensive AC system tune-up and inspection", price: 89, cost: 28, taxable: true },
+  { id: 2, active: true, name: "Diagnostic Fee", category: "Diagnostics", description: "System diagnostic and evaluation", price: 79, cost: 0, taxable: true },
+  { id: 3, active: true, name: "Capacitor Replacement", category: "Repairs", description: "Replace run capacitor – includes labor and capacitor", price: 289, cost: 108.50, taxable: true },
+  { id: 4, active: true, name: "Blower Motor Replacement", category: "Repairs", description: "Replace indoor blower motor – includes labor and motor", price: 649, cost: 274, taxable: true },
+  { id: 5, active: true, name: "Drain Line Clearing", category: "Repairs", description: "Clear primary drain line", price: 159, cost: 45, taxable: true },
+  { id: 6, active: true, name: "Thermostat Installation", category: "Installation", description: "Install new standard thermostat", price: 149, cost: 45, taxable: true },
+  { id: 7, active: true, name: "System Installation – 3 Ton", category: "Installation", description: "Complete 3 ton system installation", price: 6995, cost: 4250, taxable: true },
+  { id: 8, active: true, name: "R-410A Refrigerant (per lb)", category: "Materials", description: "R-410A refrigerant", price: 24, cost: 12.50, taxable: true },
+  { id: 9, active: true, name: "Permit Fee", category: "Fees", description: "Local permit fee", price: 35, cost: 0, taxable: true },
+  { id: 10, active: true, name: "After-Hours Service", category: "Fees", description: "After-hours service call", price: 125, cost: 0, taxable: true },
+  { id: 11, active: true, name: "Annual Maintenance Plan", category: "Membership", description: "Annual HVAC maintenance membership", price: 299, cost: 80, taxable: false },
+  { id: 12, active: true, name: "Filter Replacement", category: "Maintenance", description: "Replace air filter – includes filter and labor", price: 49, cost: 12, taxable: true },
+  { id: 13, active: true, name: "Coil Cleaning", category: "Maintenance", description: "Evaporator and condenser coil cleaning", price: 199, cost: 55, taxable: true },
+  { id: 14, active: true, name: "Refrigerant Recharge", category: "Repairs", description: "Recharge system refrigerant – up to 2 lbs", price: 175, cost: 40, taxable: true },
+  { id: 15, active: true, name: "Contactor Replacement", category: "Repairs", description: "Replace contactor in condenser unit", price: 189, cost: 65, taxable: true },
+  { id: 16, active: true, name: "Smart Thermostat Install", category: "Installation", description: "Install and configure smart WiFi thermostat", price: 249, cost: 95, taxable: true },
+  { id: 17, active: true, name: "Duct Inspection", category: "Diagnostics", description: "Full duct system inspection and report", price: 129, cost: 35, taxable: true },
+  { id: 18, active: true, name: "System Replacement – 2 Ton", category: "Replacement", description: "Full 2 ton system replacement – parts and labor", price: 4995, cost: 2800, taxable: true },
+  { id: 19, active: true, name: "Duct Sealing", category: "Repairs", description: "Seal duct leaks throughout system", price: 349, cost: 120, taxable: true },
+  { id: 20, active: true, name: "Emergency Service Call", category: "Fees", description: "Emergency after-hours dispatch fee", price: 199, cost: 0, taxable: true },
+  { id: 21, active: true, name: "UV Light Installation", category: "Installation", description: "Install UV germicidal light in air handler", price: 399, cost: 145, taxable: true },
+  { id: 22, active: true, name: "Drain Pan Treatment", category: "Maintenance", description: "Treat drain pan with algaecide tablets", price: 39, cost: 8, taxable: true },
+  { id: 23, active: true, name: "Float Switch Install", category: "Installation", description: "Install safety float switch on drain pan", price: 89, cost: 22, taxable: true },
+  { id: 24, active: true, name: "System Installation – 4 Ton", category: "Installation", description: "Complete 4 ton system installation", price: 8495, cost: 5100, taxable: true },
+  { id: 25, active: true, name: "Heat Strip Replacement", category: "Repairs", description: "Replace electric heat strip in air handler", price: 375, cost: 140, taxable: true },
+  { id: 26, active: true, name: "Expansion Valve Replacement", category: "Repairs", description: "Replace TXV expansion valve", price: 425, cost: 165, taxable: true },
+  { id: 27, active: true, name: "System Tune-Up – Premium", category: "Maintenance", description: "Premium system tune-up with priority scheduling", price: 149, cost: 42, taxable: true },
+  { id: 28, active: true, name: "Condenser Fan Motor", category: "Replacement", description: "Replace condenser fan motor – includes motor and labor", price: 485, cost: 195, taxable: true },
+  { id: 29, active: true, name: "Ductless Mini-Split Install", category: "Installation", description: "Install single-zone ductless mini-split system", price: 2995, cost: 1650, taxable: true },
+  { id: 30, active: true, name: "Membership – Silver", category: "Membership", description: "Silver tier annual maintenance membership", price: 199, cost: 55, taxable: false },
+  { id: 31, active: true, name: "Membership – Gold", category: "Membership", description: "Gold tier annual membership with priority service", price: 349, cost: 90, taxable: false },
+  { id: 32, active: true, name: "Pipe Insulation", category: "Materials", description: "Insulate refrigerant line set – per linear foot", price: 8, cost: 2.50, taxable: true },
+  { id: 33, active: true, name: "Humidifier Installation", category: "Installation", description: "Whole-home humidifier installation", price: 699, cost: 285, taxable: true },
+  { id: 34, active: true, name: "Air Purifier Install", category: "Installation", description: "Install electronic air purifier in air handler", price: 549, cost: 220, taxable: true },
+  { id: 35, active: true, name: "Gas Furnace Tune-Up", category: "Maintenance", description: "Gas furnace annual inspection and tune-up", price: 109, cost: 32, taxable: true },
+  { id: 36, active: true, name: "Heat Exchanger Inspection", category: "Diagnostics", description: "Inspect heat exchanger for cracks or failures", price: 159, cost: 40, taxable: true },
+  { id: 37, active: true, name: "Capacitor – Dual Run", category: "Replacement", description: "Dual run capacitor replacement – standard", price: 169, cost: 45, taxable: true },
+  { id: 38, active: true, name: "Condenser Coil Replacement", category: "Replacement", description: "Replace condenser coil – labor and parts", price: 895, cost: 420, taxable: true },
+  { id: 39, active: true, name: "Attic Insulation – per sqft", category: "Custom", description: "Add blown-in attic insulation per square foot", price: 2.50, cost: 0.80, taxable: true },
+  { id: 40, active: true, name: "Zone Damper Installation", category: "Installation", description: "Install motorized zone damper in duct", price: 299, cost: 110, taxable: true },
+  { id: 41, active: true, name: "Service Agreement – 2 Year", category: "Membership", description: "Two-year service and parts agreement", price: 499, cost: 130, taxable: false },
+  { id: 42, active: true, name: "System Flush", category: "Repairs", description: "Full refrigerant system flush and recharge", price: 325, cost: 95, taxable: true },
+];
+
 const initialGroups: ItemGroup[] = [
   { id: 1, name: "HVAC Full Install Package", description: "Complete HVAC install bundle including unit, labor and thermostat", groupType: "Bundle", category: "HVAC", items: [1001, 1005, 1007], active: true, total: 7495 },
   { id: 2, name: "Plumbing Emergency Kit", description: "Emergency plumbing service items", groupType: "Individual items", category: "Plumbing", items: [1003, 1006], active: true, total: 193.50 },
@@ -351,6 +401,15 @@ export function Items() {
   // Delete confirmation
   const [deleteConfirm, setDeleteConfirm] = useState<{ type: string; id: number; name: string } | null>(null);
 
+  // Pricebook state
+  const [pbItems, setPbItems] = useState<PricebookItem[]>(initialPricebookItems);
+  const [pbSearch, setPbSearch] = useState("");
+  const [pbCategoryFilter, setPbCategoryFilter] = useState("All");
+  const [pbStatusFilter, setPbStatusFilter] = useState("All");
+  const [pbSort, setPbSort] = useState<{ key: string; dir: "asc" | "desc" }>({ key: "id", dir: "asc" });
+  const [pbPage, setPbPage] = useState(1);
+  const [pbPerPage, setPbPerPage] = useState(10);
+
   // ─── Items Logic ─────────────────────────────────────────────────────
   const filteredItems = useMemo(() => {
     let result = [...items];
@@ -389,6 +448,28 @@ export function Items() {
   const paginatedItems = filteredItems.slice((itemPage - 1) * itemPerPage, itemPage * itemPerPage);
   const allItemsSelected = paginatedItems.length > 0 && paginatedItems.every(i => selectedItems.has(i.id));
   const uniqueCategories = [...new Set(items.map(i => i.category))];
+
+  const filteredPbItems = useMemo(() => {
+    let result = [...pbItems];
+    if (pbCategoryFilter !== "All") result = result.filter(i => i.category === pbCategoryFilter);
+    if (pbStatusFilter === "Active") result = result.filter(i => i.active);
+    else if (pbStatusFilter === "Inactive") result = result.filter(i => !i.active);
+    if (pbSearch) {
+      const q = pbSearch.toLowerCase();
+      result = result.filter(i => i.name.toLowerCase().includes(q) || i.category.toLowerCase().includes(q) || i.description.toLowerCase().includes(q));
+    }
+    result.sort((a, b) => {
+      const av = (a as any)[pbSort.key], bv = (b as any)[pbSort.key];
+      if (typeof av === "number" && typeof bv === "number") return pbSort.dir === "asc" ? av - bv : bv - av;
+      return pbSort.dir === "asc" ? String(av).localeCompare(String(bv)) : String(bv).localeCompare(String(av));
+    });
+    return result;
+  }, [pbItems, pbCategoryFilter, pbStatusFilter, pbSearch, pbSort]);
+
+  const paginatedPbItems = filteredPbItems.slice((pbPage - 1) * pbPerPage, pbPage * pbPerPage);
+  const pbCategories = [...new Set(pbItems.map(i => i.category))];
+  const calcMargin = (price: number, cost: number) =>
+    price === 0 ? "0%" : cost === 0 ? "100%" : ((price - cost) / price * 100).toFixed(1) + "%";
 
   const handleSortItems = (key: string) => {
     setItemSort(prev => ({ key, dir: prev.key === key && prev.dir === "asc" ? "desc" : "asc" }));
@@ -445,7 +526,7 @@ export function Items() {
               style={{ fontWeight: 600 }}
             >
               <span className="material-icons" style={{ fontSize: "18px" }}>add</span>
-              Create Item
+              {activeTab === "pricebook" ? "Create Pricebook Item" : "Create Item"}
             </button>
             <KebabMenu triggerClassName="w-9 h-9 border border-[#DDE3EE] rounded-lg bg-white">
               <KebabItem icon="file_upload" onClick={() => alert("Import functionality — CSV/Google Sheets import will be available with backend integration.")}>Import</KebabItem>
@@ -481,221 +562,403 @@ export function Items() {
         </div>
       </div>
 
-      {/* ═══════════════ ITEMS TABLE (all type-filter tabs) ═══════════════ */}
-      <div className="bg-white border border-[#DDE3EE] rounded-xl">
-        {/* Filter bar */}
-        <div className="flex items-center gap-2 px-4 py-2 border-b border-[#DDE3EE]">
-          <div className="relative flex-1 max-w-[240px]">
-            <span className="material-icons absolute left-2.5 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: "16px" }}>search</span>
-            <input
-              type="text"
-              placeholder="Search items..."
-              value={itemSearch}
-              onChange={(e) => { setItemSearch(e.target.value); setItemPage(1); }}
-              className="w-full h-8 pl-8 pr-3 border border-[#DDE3EE] rounded-lg text-[13px] focus:outline-none focus:border-[#4A6FA5] bg-white"
-            />
+      {/* ═══════════════ TABLE (conditional on activeTab) ═══════════════ */}
+      {activeTab === "pricebook" ? (
+        <div className="bg-white border border-[#DDE3EE] rounded-xl">
+          {/* Filter bar */}
+          <div className="flex items-center gap-2 px-4 py-2 border-b border-[#DDE3EE]">
+            <div className="relative flex-1 max-w-[240px]">
+              <span className="material-icons absolute left-2.5 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: "16px" }}>search</span>
+              <input type="text" placeholder="Search pricebook items..."
+                value={pbSearch} onChange={(e) => { setPbSearch(e.target.value); setPbPage(1); }}
+                className="w-full h-8 pl-8 pr-3 border border-[#DDE3EE] rounded-lg text-[13px] focus:outline-none focus:border-[#4A6FA5] bg-white" />
+            </div>
+            <select value={pbCategoryFilter} onChange={(e) => { setPbCategoryFilter(e.target.value); setPbPage(1); }}
+              className="h-8 px-3 pr-8 border border-[#DDE3EE] rounded-lg text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5] min-w-[145px]"
+              style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23546478' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`, backgroundRepeat: "no-repeat", backgroundPosition: "right 10px center", appearance: "none" }}>
+              <option value="All">All Categories</option>
+              {pbCategories.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+            <select value={pbStatusFilter} onChange={(e) => { setPbStatusFilter(e.target.value); setPbPage(1); }}
+              className="h-8 px-3 pr-8 border border-[#DDE3EE] rounded-lg text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5] min-w-[125px]"
+              style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23546478' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`, backgroundRepeat: "no-repeat", backgroundPosition: "right 10px center", appearance: "none" }}>
+              <option value="All">All Statuses</option>
+              <option value="Active">Active</option>
+              <option value="Inactive">Inactive</option>
+            </select>
+            <button className="h-8 px-3 border border-[#DDE3EE] rounded-lg text-[13px] text-[#546478] bg-white hover:bg-[#F5F7FA] flex items-center gap-1.5 transition-colors">
+              <span className="material-icons" style={{ fontSize: "16px" }}>tune</span>
+              Filters
+            </button>
           </div>
-          <select
-            value={itemFilter}
-            onChange={(e) => { setItemFilter(e.target.value); setItemPage(1); }}
-            className="h-8 px-3 pr-8 border border-[#DDE3EE] rounded-lg text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5] min-w-[145px]"
-            style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23546478' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`, backgroundRepeat: "no-repeat", backgroundPosition: "right 10px center", appearance: "none" }}
-          >
-            <option value="All">All Categories</option>
-            {uniqueCategories.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
-          <select
-            value={itemStatusFilter}
-            onChange={(e) => { setItemStatusFilter(e.target.value); setItemPage(1); }}
-            className="h-8 px-3 pr-8 border border-[#DDE3EE] rounded-lg text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5] min-w-[125px]"
-            style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23546478' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`, backgroundRepeat: "no-repeat", backgroundPosition: "right 10px center", appearance: "none" }}
-          >
-            <option value="All">All Statuses</option>
-            <option value="Active">Active</option>
-            <option value="Inactive">Inactive</option>
-          </select>
-          <button className="h-8 px-3 border border-[#DDE3EE] rounded-lg text-[13px] text-[#546478] bg-white hover:bg-[#F5F7FA] flex items-center gap-1.5 transition-colors">
-            <span className="material-icons" style={{ fontSize: "16px" }}>tune</span>
-            Filters
-          </button>
-        </div>
 
-        {/* Bulk actions bar */}
-        <SelectionBar
-          count={selectedItems.size}
-          onDeselect={() => setSelectedItems(new Set())}
-          onDelete={() => {
-            if (confirm(`Delete ${selectedItems.size} item(s)?`)) {
-              setItems(prev => prev.filter(i => !selectedItems.has(i.id)));
-              setSelectedItems(new Set());
-            }
-          }}
-        />
-
-        {/* Table */}
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-[#F5F7FA] border-b border-[#DDE3EE]">
-                <th className="px-4 py-2 w-10">
-                  <input
-                    type="checkbox"
-                    checked={allItemsSelected}
-                    onChange={(e) => {
-                      if (e.target.checked) setSelectedItems(new Set(paginatedItems.map(i => i.id)));
-                      else setSelectedItems(new Set());
-                    }}
-                    className="w-4 h-4 rounded border-[#DDE3EE] cursor-pointer accent-[#4A6FA5]"
-                  />
-                </th>
-                {[
-                  { key: "name", label: "Item Name", w: "min-w-[220px]", sortable: true },
-                  { key: "type", label: "Type", w: "w-[110px]", sortable: true },
-                  { key: "category", label: "Category", w: "w-[120px]", sortable: true },
-                  { key: "modelNumber", label: "SKU / Item Code", w: "w-[130px]", sortable: true },
-                  { key: "rate", label: "Price", w: "w-[90px]", sortable: true },
-                  { key: "cost", label: "Cost", w: "w-[85px]", sortable: true },
-                  { key: "taxable", label: "Taxable", w: "w-[80px]", sortable: false },
-                  { key: "active", label: "Active", w: "w-[70px]", sortable: false },
-                ].map(col => (
-                  <th
-                    key={col.key}
-                    className={`px-4 py-2 text-left text-[11px] uppercase tracking-wider text-[#546478] ${col.sortable ? "cursor-pointer hover:text-[#1A2332]" : ""} select-none ${col.w}`}
-                    style={{ fontWeight: 600 }}
-                    onClick={() => { if (col.sortable) handleSortItems(col.key); }}
-                  >
-                    <div className="flex items-center gap-0.5">
-                      {col.label}
-                      {col.sortable && <SortIcon col={col.key} />}
-                    </div>
-                  </th>
-                ))}
-                <th className="px-4 py-2 w-[60px] text-right text-[11px] uppercase tracking-wider text-[#546478]" style={{ fontWeight: 600 }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {paginatedItems.length === 0 ? (
-                <tr>
-                  <td colSpan={10} className="px-4 py-16 text-center">
-                    <span className="material-icons text-[#C8D5E8] mb-2 block" style={{ fontSize: "48px" }}>inventory_2</span>
-                    <div className="text-[14px] text-[#546478]" style={{ fontWeight: 500 }}>No items found</div>
-                    <div className="text-[12px] text-[#8899AA] mt-1">Try adjusting your search or filters</div>
-                  </td>
-                </tr>
-              ) : paginatedItems.map((item) => {
-                const badge = getTypeBadge(item.type);
-                return (
-                  <tr
-                    key={item.id}
-                    onClick={() => navigate(`/items/${item.id}`)}
-                    className={`group border-b border-[#DDE3EE] hover:bg-[#F9FAFB] transition-colors cursor-pointer ${selectedItems.has(item.id) ? "bg-[#EBF0F8]" : "bg-white"}`}
-                  >
-                    <td className="px-4 py-2" onClick={(e) => e.stopPropagation()}>
-                      <input
-                        type="checkbox"
-                        checked={selectedItems.has(item.id)}
-                        onChange={(e) => {
-                          const s = new Set(selectedItems);
-                          e.target.checked ? s.add(item.id) : s.delete(item.id);
-                          setSelectedItems(s);
-                        }}
-                        className="w-4 h-4 rounded border-[#DDE3EE] cursor-pointer accent-[#4A6FA5]"
-                      />
-                    </td>
-                    <td className="px-4 py-2">
-                      <div className="flex items-center gap-2.5">
-                        <ItemIcon type={item.type} />
-                        <div className="truncate max-w-[200px] text-[13px] text-[#4A6FA5] hover:underline" style={{ fontWeight: 500 }}>{item.name}</div>
+          {/* Table */}
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-[#F5F7FA] border-b border-[#DDE3EE]">
+                  {[
+                    { key: "name", label: "Item Name", w: "min-w-[180px]", sortable: true },
+                    { key: "category", label: "Category", w: "w-[120px]", sortable: true },
+                    { key: "description", label: "Description", w: "min-w-[200px]", sortable: false },
+                    { key: "price", label: "Price", w: "w-[90px]", sortable: true },
+                    { key: "cost", label: "Cost", w: "w-[85px]", sortable: true },
+                    { key: "margin", label: "Margin", w: "w-[90px]", sortable: false },
+                    { key: "taxable", label: "Taxable", w: "w-[80px]", sortable: false },
+                    { key: "active", label: "Active", w: "w-[70px]", sortable: false },
+                  ].map(col => (
+                    <th key={col.key}
+                      className={`px-4 py-2 text-left text-[11px] uppercase tracking-wider text-[#546478] select-none ${col.sortable ? "cursor-pointer hover:text-[#1A2332]" : ""} ${col.w}`}
+                      style={{ fontWeight: 600 }}
+                      onClick={() => col.sortable && setPbSort(prev => ({ key: col.key, dir: prev.key === col.key && prev.dir === "asc" ? "desc" : "asc" }))}>
+                      <div className="flex items-center gap-0.5">
+                        {col.label}
+                        {col.sortable && pbSort.key === col.key && (
+                          <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "14px" }}>
+                            {pbSort.dir === "asc" ? "arrow_upward" : "arrow_downward"}
+                          </span>
+                        )}
                       </div>
-                    </td>
+                    </th>
+                  ))}
+                  <th className="px-4 py-2 w-[60px] text-right text-[11px] uppercase tracking-wider text-[#546478]" style={{ fontWeight: 600 }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paginatedPbItems.length === 0 ? (
+                  <tr><td colSpan={9} className="px-4 py-16 text-center">
+                    <span className="material-icons text-[#C8D5E8] mb-2 block" style={{ fontSize: "48px" }}>menu_book</span>
+                    <div className="text-[14px] text-[#546478]" style={{ fontWeight: 500 }}>No pricebook items found</div>
+                  </td></tr>
+                ) : paginatedPbItems.map(item => (
+                  <tr key={item.id}
+                    onClick={() => navigate(`/items/pb-${item.id}`)}
+                    className="group border-b border-[#DDE3EE] hover:bg-[#F9FAFB] transition-colors cursor-pointer bg-white">
                     <td className="px-4 py-2">
-                      <span className="inline-block px-2 py-0.5 rounded text-[11px] whitespace-nowrap" style={{ fontWeight: 600, backgroundColor: badge.bg, color: badge.color }}>
-                        {badge.label}
-                      </span>
+                      <div className="text-[13px] text-[#4A6FA5] hover:underline truncate max-w-[200px]" style={{ fontWeight: 500 }}>{item.name}</div>
                     </td>
-                    <td className="px-4 py-2 text-[13px] text-[#546478]">{item.category || "—"}</td>
-                    <td className="px-4 py-2 text-[13px] text-[#546478]" style={{ fontVariantNumeric: "tabular-nums" }}>{item.modelNumber || "—"}</td>
-                    <td className="px-4 py-2 text-[13px] text-[#1A2332]" style={{ fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>${item.rate.toFixed(2)}</td>
+                    <td className="px-4 py-2 text-[13px] text-[#546478]">{item.category}</td>
+                    <td className="px-4 py-2 text-[13px] text-[#546478]">
+                      <div className="truncate max-w-[260px]">{item.description}</div>
+                    </td>
+                    <td className="px-4 py-2 text-[13px] text-[#1A2332]" style={{ fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>${item.price.toFixed(2)}</td>
                     <td className="px-4 py-2 text-[13px] text-[#546478]" style={{ fontVariantNumeric: "tabular-nums" }}>${item.cost.toFixed(2)}</td>
+                    <td className="px-4 py-2 text-[13px]" style={{ fontWeight: 600, color: "#16A34A" }}>{calcMargin(item.price, item.cost)}</td>
                     <td className="px-4 py-2">
                       {item.taxable
                         ? <span className="material-icons text-[#16A34A]" style={{ fontSize: "18px" }}>check</span>
                         : <span className="text-[#C8D5E8]">—</span>}
                     </td>
-                    <td className="px-4 py-2" onClick={(e) => e.stopPropagation()}>
-                      <Toggle
-                        checked={item.active}
-                        onChange={(v) => setItems(prev => prev.map(i => i.id === item.id ? { ...i, active: v } : i))}
-                      />
+                    <td className="px-4 py-2" onClick={e => e.stopPropagation()}>
+                      <Toggle checked={item.active} onChange={v => setPbItems(prev => prev.map(i => i.id === item.id ? { ...i, active: v } : i))} />
                     </td>
-                    <td className="px-4 py-2 text-right" onClick={(e) => e.stopPropagation()}>
+                    <td className="px-4 py-2 text-right" onClick={e => e.stopPropagation()}>
                       <KebabMenu triggerClassName="w-8 h-8 border border-[#DDE3EE] rounded-lg bg-white opacity-0 group-hover:opacity-100 transition-opacity">
-                        <KebabItem icon="edit" onClick={() => { setEditingItem(item); setItemModalOpen(true); }}>Edit</KebabItem>
+                        <KebabItem icon="edit">Edit</KebabItem>
                         <KebabItem icon="content_copy">Duplicate</KebabItem>
                         <KebabSeparator />
-                        <KebabItem icon="delete" destructive onClick={() => setDeleteConfirm({ type: "item", id: item.id, name: item.name })}>Delete</KebabItem>
+                        <KebabItem icon="delete" destructive>Delete</KebabItem>
                       </KebabMenu>
                     </td>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-
-        <Pagination
-          total={filteredItems.length}
-          perPage={itemPerPage}
-          page={itemPage}
-          onPageChange={setItemPage}
-          onPerPageChange={setItemPerPage}
-        />
-      </div>
-
-      {/* ═══════════════ ABOUT ITEMS PANEL ═══════════════ */}
-      <div className="mt-3 bg-white border border-[#DDE3EE] rounded-xl px-5 py-4 flex gap-6">
-        {/* Left: About */}
-        <div className="w-[200px] flex-shrink-0">
-          <div className="flex items-center gap-1.5 mb-1.5">
-            <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "17px" }}>info</span>
-            <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 700 }}>About Items</span>
+                ))}
+              </tbody>
+            </table>
           </div>
-          <p className="text-[12px] text-[#546478] leading-snug mb-1.5">
-            Items include everything you sell or use in your business.
-          </p>
-          <p className="text-[12px] text-[#546478] leading-snug">
-            Use the tabs above to quickly view items by type.
-          </p>
+
+          {/* Pagination */}
+          <div className="flex items-center justify-between px-4 py-2 border-t border-[#DDE3EE] bg-[#FAFBFC]">
+            <span className="text-[13px] text-[#546478]">
+              Showing {filteredPbItems.length === 0 ? 0 : (pbPage - 1) * pbPerPage + 1} to {Math.min(pbPage * pbPerPage, filteredPbItems.length)} of {filteredPbItems.length} pricebook items
+            </span>
+            <div className="flex items-center gap-4">
+              <select value={pbPerPage} onChange={e => { setPbPerPage(Number(e.target.value)); setPbPage(1); }}
+                className="px-2 py-1 border border-[#DDE3EE] rounded text-[13px] bg-white">
+                {[10, 25, 50].map(n => <option key={n} value={n}>{n}</option>)}
+              </select>
+              <div className="flex items-center gap-1">
+                <button onClick={() => setPbPage(p => Math.max(1, p - 1))} disabled={pbPage <= 1}
+                  className="w-8 h-8 flex items-center justify-center rounded hover:bg-[#EDF0F5] disabled:opacity-30">
+                  <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>chevron_left</span>
+                </button>
+                <span className="text-[13px] text-[#1A2332] min-w-[80px] text-center" style={{ fontWeight: 500 }}>
+                  Page {pbPage} of {Math.max(1, Math.ceil(filteredPbItems.length / pbPerPage))}
+                </span>
+                <button onClick={() => setPbPage(p => Math.min(Math.ceil(filteredPbItems.length / pbPerPage), p + 1))} disabled={pbPage >= Math.ceil(filteredPbItems.length / pbPerPage)}
+                  className="w-8 h-8 flex items-center justify-center rounded hover:bg-[#EDF0F5] disabled:opacity-30">
+                  <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>chevron_right</span>
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
+      ) : (
+        /* existing All Items / Services / etc table */
+        <div className="bg-white border border-[#DDE3EE] rounded-xl">
+          {/* Filter bar */}
+          <div className="flex items-center gap-2 px-4 py-2 border-b border-[#DDE3EE]">
+            <div className="relative flex-1 max-w-[240px]">
+              <span className="material-icons absolute left-2.5 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: "16px" }}>search</span>
+              <input
+                type="text"
+                placeholder="Search items..."
+                value={itemSearch}
+                onChange={(e) => { setItemSearch(e.target.value); setItemPage(1); }}
+                className="w-full h-8 pl-8 pr-3 border border-[#DDE3EE] rounded-lg text-[13px] focus:outline-none focus:border-[#4A6FA5] bg-white"
+              />
+            </div>
+            <select
+              value={itemFilter}
+              onChange={(e) => { setItemFilter(e.target.value); setItemPage(1); }}
+              className="h-8 px-3 pr-8 border border-[#DDE3EE] rounded-lg text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5] min-w-[145px]"
+              style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23546478' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`, backgroundRepeat: "no-repeat", backgroundPosition: "right 10px center", appearance: "none" }}
+            >
+              <option value="All">All Categories</option>
+              {uniqueCategories.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+            <select
+              value={itemStatusFilter}
+              onChange={(e) => { setItemStatusFilter(e.target.value); setItemPage(1); }}
+              className="h-8 px-3 pr-8 border border-[#DDE3EE] rounded-lg text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5] min-w-[125px]"
+              style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23546478' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`, backgroundRepeat: "no-repeat", backgroundPosition: "right 10px center", appearance: "none" }}
+            >
+              <option value="All">All Statuses</option>
+              <option value="Active">Active</option>
+              <option value="Inactive">Inactive</option>
+            </select>
+            <button className="h-8 px-3 border border-[#DDE3EE] rounded-lg text-[13px] text-[#546478] bg-white hover:bg-[#F5F7FA] flex items-center gap-1.5 transition-colors">
+              <span className="material-icons" style={{ fontSize: "16px" }}>tune</span>
+              Filters
+            </button>
+          </div>
 
-        {/* Divider */}
-        <div className="w-px bg-[#DDE3EE] self-stretch flex-shrink-0" />
+          {/* Bulk actions bar */}
+          <SelectionBar
+            count={selectedItems.size}
+            onDeselect={() => setSelectedItems(new Set())}
+            onDelete={() => {
+              if (confirm(`Delete ${selectedItems.size} item(s)?`)) {
+                setItems(prev => prev.filter(i => !selectedItems.has(i.id)));
+                setSelectedItems(new Set());
+              }
+            }}
+          />
 
-        {/* Right: Item Types */}
-        <div className="flex-1">
-          <div className="text-[12.5px] text-[#1A2332] mb-2.5" style={{ fontWeight: 700 }}>Item Types</div>
-          <div className="grid grid-cols-6 gap-4">
-            {[
-              { bg: "#4A6FA5", icon: "build", label: "Services", desc: "Labor, inspections, maintenance and other services." },
-              { bg: "#16A34A", icon: "category", label: "Materials", desc: "Parts, supplies, and consumables." },
-              { bg: "#7C3AED", icon: "settings", label: "Equipment", desc: "Installable or sellable equipment." },
-              { bg: "#EA580C", icon: "attach_money", label: "Fees", desc: "Admin, permit, disposal and other fees." },
-              { bg: "#D97706", icon: "menu_book", label: "Pricebook", desc: "Sellable flat-rate items for estimates & invoices." },
-              { bg: "#0D9488", icon: "inventory_2", label: "Asset Type", desc: "System types, locations, and asset classifications." },
-            ].map(({ bg, icon, label, desc }) => (
-              <div key={label}>
-                <div className="flex items-center gap-1.5 mb-1">
-                  <div className="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0" style={{ backgroundColor: bg }}>
-                    <span className="material-icons text-white" style={{ fontSize: "13px" }}>{icon}</span>
-                  </div>
-                  <span className="text-[12.5px] text-[#1A2332]" style={{ fontWeight: 600 }}>{label}</span>
-                </div>
-                <p className="text-[11px] text-[#546478] leading-snug">{desc}</p>
+          {/* Table */}
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-[#F5F7FA] border-b border-[#DDE3EE]">
+                  <th className="px-4 py-2 w-10">
+                    <input
+                      type="checkbox"
+                      checked={allItemsSelected}
+                      onChange={(e) => {
+                        if (e.target.checked) setSelectedItems(new Set(paginatedItems.map(i => i.id)));
+                        else setSelectedItems(new Set());
+                      }}
+                      className="w-4 h-4 rounded border-[#DDE3EE] cursor-pointer accent-[#4A6FA5]"
+                    />
+                  </th>
+                  {[
+                    { key: "name", label: "Item Name", w: "min-w-[220px]", sortable: true },
+                    { key: "type", label: "Type", w: "w-[110px]", sortable: true },
+                    { key: "category", label: "Category", w: "w-[120px]", sortable: true },
+                    { key: "modelNumber", label: "SKU / Item Code", w: "w-[130px]", sortable: true },
+                    { key: "rate", label: "Price", w: "w-[90px]", sortable: true },
+                    { key: "cost", label: "Cost", w: "w-[85px]", sortable: true },
+                    { key: "taxable", label: "Taxable", w: "w-[80px]", sortable: false },
+                    { key: "active", label: "Active", w: "w-[70px]", sortable: false },
+                  ].map(col => (
+                    <th
+                      key={col.key}
+                      className={`px-4 py-2 text-left text-[11px] uppercase tracking-wider text-[#546478] ${col.sortable ? "cursor-pointer hover:text-[#1A2332]" : ""} select-none ${col.w}`}
+                      style={{ fontWeight: 600 }}
+                      onClick={() => { if (col.sortable) handleSortItems(col.key); }}
+                    >
+                      <div className="flex items-center gap-0.5">
+                        {col.label}
+                        {col.sortable && <SortIcon col={col.key} />}
+                      </div>
+                    </th>
+                  ))}
+                  <th className="px-4 py-2 w-[60px] text-right text-[11px] uppercase tracking-wider text-[#546478]" style={{ fontWeight: 600 }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paginatedItems.length === 0 ? (
+                  <tr>
+                    <td colSpan={10} className="px-4 py-16 text-center">
+                      <span className="material-icons text-[#C8D5E8] mb-2 block" style={{ fontSize: "48px" }}>inventory_2</span>
+                      <div className="text-[14px] text-[#546478]" style={{ fontWeight: 500 }}>No items found</div>
+                      <div className="text-[12px] text-[#8899AA] mt-1">Try adjusting your search or filters</div>
+                    </td>
+                  </tr>
+                ) : paginatedItems.map((item) => {
+                  const badge = getTypeBadge(item.type);
+                  return (
+                    <tr
+                      key={item.id}
+                      onClick={() => navigate(`/items/${item.id}`)}
+                      className={`group border-b border-[#DDE3EE] hover:bg-[#F9FAFB] transition-colors cursor-pointer ${selectedItems.has(item.id) ? "bg-[#EBF0F8]" : "bg-white"}`}
+                    >
+                      <td className="px-4 py-2" onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          checked={selectedItems.has(item.id)}
+                          onChange={(e) => {
+                            const s = new Set(selectedItems);
+                            e.target.checked ? s.add(item.id) : s.delete(item.id);
+                            setSelectedItems(s);
+                          }}
+                          className="w-4 h-4 rounded border-[#DDE3EE] cursor-pointer accent-[#4A6FA5]"
+                        />
+                      </td>
+                      <td className="px-4 py-2">
+                        <div className="flex items-center gap-2.5">
+                          <ItemIcon type={item.type} />
+                          <div className="truncate max-w-[200px] text-[13px] text-[#4A6FA5] hover:underline" style={{ fontWeight: 500 }}>{item.name}</div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-2">
+                        <span className="inline-block px-2 py-0.5 rounded text-[11px] whitespace-nowrap" style={{ fontWeight: 600, backgroundColor: badge.bg, color: badge.color }}>
+                          {badge.label}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2 text-[13px] text-[#546478]">{item.category || "—"}</td>
+                      <td className="px-4 py-2 text-[13px] text-[#546478]" style={{ fontVariantNumeric: "tabular-nums" }}>{item.modelNumber || "—"}</td>
+                      <td className="px-4 py-2 text-[13px] text-[#1A2332]" style={{ fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>${item.rate.toFixed(2)}</td>
+                      <td className="px-4 py-2 text-[13px] text-[#546478]" style={{ fontVariantNumeric: "tabular-nums" }}>${item.cost.toFixed(2)}</td>
+                      <td className="px-4 py-2">
+                        {item.taxable
+                          ? <span className="material-icons text-[#16A34A]" style={{ fontSize: "18px" }}>check</span>
+                          : <span className="text-[#C8D5E8]">—</span>}
+                      </td>
+                      <td className="px-4 py-2" onClick={(e) => e.stopPropagation()}>
+                        <Toggle
+                          checked={item.active}
+                          onChange={(v) => setItems(prev => prev.map(i => i.id === item.id ? { ...i, active: v } : i))}
+                        />
+                      </td>
+                      <td className="px-4 py-2 text-right" onClick={(e) => e.stopPropagation()}>
+                        <KebabMenu triggerClassName="w-8 h-8 border border-[#DDE3EE] rounded-lg bg-white opacity-0 group-hover:opacity-100 transition-opacity">
+                          <KebabItem icon="edit" onClick={() => { setEditingItem(item); setItemModalOpen(true); }}>Edit</KebabItem>
+                          <KebabItem icon="content_copy">Duplicate</KebabItem>
+                          <KebabSeparator />
+                          <KebabItem icon="delete" destructive onClick={() => setDeleteConfirm({ type: "item", id: item.id, name: item.name })}>Delete</KebabItem>
+                        </KebabMenu>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          <Pagination
+            total={filteredItems.length}
+            perPage={itemPerPage}
+            page={itemPage}
+            onPageChange={setItemPage}
+            onPerPageChange={setItemPerPage}
+          />
+        </div>
+      )}
+
+      {/* ═══════════════ BOTTOM INFO PANEL (conditional) ═══════════════ */}
+      {activeTab === "pricebook" ? (
+        <div className="mt-3 bg-white border border-[#DDE3EE] rounded-xl px-5 py-4 flex gap-6">
+          {/* Left: About Pricebook Items */}
+          <div className="w-[220px] flex-shrink-0">
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "17px" }}>info</span>
+              <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 700 }}>About Pricebook Items</span>
+            </div>
+            <p className="text-[12px] text-[#546478] leading-snug">
+              Pricebook items are the flat-rate services, repairs, installations and fees that you sell to your customers. These items are used in estimates, invoices and jobs.
+            </p>
+          </div>
+          <div className="w-px bg-[#DDE3EE] self-stretch flex-shrink-0" />
+          {/* Middle: How it works */}
+          <div className="w-[240px] flex-shrink-0">
+            <div className="text-[12.5px] text-[#1A2332] mb-2" style={{ fontWeight: 700 }}>How it works</div>
+            {["Create flat-rate items with your selling price", "Use them in estimates and invoices", "Track costs and profit margins", "Keep your pricing consistent"].map(text => (
+              <div key={text} className="flex items-start gap-2 mb-1.5">
+                <span className="material-icons text-[#16A34A] flex-shrink-0 mt-0.5" style={{ fontSize: "15px" }}>check_circle</span>
+                <span className="text-[12px] text-[#546478] leading-snug">{text}</span>
               </div>
             ))}
           </div>
+          <div className="w-px bg-[#DDE3EE] self-stretch flex-shrink-0" />
+          {/* Right: Popular Categories */}
+          <div className="flex-1">
+            <div className="text-[12.5px] text-[#1A2332] mb-2.5" style={{ fontWeight: 700 }}>Popular Categories</div>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { label: "Maintenance", bg: "#EBF0F8", color: "#4A6FA5" },
+                { label: "Diagnostics", bg: "#EDE9FE", color: "#7C3AED" },
+                { label: "Repairs", bg: "#FEF3C7", color: "#D97706" },
+                { label: "Installation", bg: "#D1FAE5", color: "#16A34A" },
+                { label: "Replacement", bg: "#FFEDD5", color: "#EA580C" },
+                { label: "Membership", bg: "#FCE7F3", color: "#DB2777" },
+                { label: "Fees", bg: "#FEE2E2", color: "#DC2626" },
+                { label: "Custom", bg: "#F3F4F6", color: "#6B7280" },
+              ].map(({ label, bg, color }) => (
+                <button key={label}
+                  onClick={() => { setPbCategoryFilter(label); setPbPage(1); }}
+                  className="px-2.5 py-1 rounded-full text-[12px] transition-colors hover:opacity-80"
+                  style={{ fontWeight: 500, backgroundColor: bg, color }}>
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="mt-3 bg-white border border-[#DDE3EE] rounded-xl px-5 py-4 flex gap-6">
+          {/* Left: About */}
+          <div className="w-[200px] flex-shrink-0">
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "17px" }}>info</span>
+              <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 700 }}>About Items</span>
+            </div>
+            <p className="text-[12px] text-[#546478] leading-snug mb-1.5">
+              Items include everything you sell or use in your business.
+            </p>
+            <p className="text-[12px] text-[#546478] leading-snug">
+              Use the tabs above to quickly view items by type.
+            </p>
+          </div>
+
+          {/* Divider */}
+          <div className="w-px bg-[#DDE3EE] self-stretch flex-shrink-0" />
+
+          {/* Right: Item Types */}
+          <div className="flex-1">
+            <div className="text-[12.5px] text-[#1A2332] mb-2.5" style={{ fontWeight: 700 }}>Item Types</div>
+            <div className="grid grid-cols-6 gap-4">
+              {[
+                { bg: "#4A6FA5", icon: "build", label: "Services", desc: "Labor, inspections, maintenance and other services." },
+                { bg: "#16A34A", icon: "category", label: "Materials", desc: "Parts, supplies, and consumables." },
+                { bg: "#7C3AED", icon: "settings", label: "Equipment", desc: "Installable or sellable equipment." },
+                { bg: "#EA580C", icon: "attach_money", label: "Fees", desc: "Admin, permit, disposal and other fees." },
+                { bg: "#D97706", icon: "menu_book", label: "Pricebook", desc: "Sellable flat-rate items for estimates & invoices." },
+                { bg: "#0D9488", icon: "inventory_2", label: "Asset Type", desc: "System types, locations, and asset classifications." },
+              ].map(({ bg, icon, label, desc }) => (
+                <div key={label}>
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <div className="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0" style={{ backgroundColor: bg }}>
+                      <span className="material-icons text-white" style={{ fontSize: "13px" }}>{icon}</span>
+                    </div>
+                    <span className="text-[12.5px] text-[#1A2332]" style={{ fontWeight: 600 }}>{label}</span>
+                  </div>
+                  <p className="text-[11px] text-[#546478] leading-snug">{desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ═══════════════ ITEM GROUPS (modal-only) ═══════════════ */}
       {false && (
