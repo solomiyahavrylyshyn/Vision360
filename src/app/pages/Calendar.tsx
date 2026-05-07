@@ -44,6 +44,54 @@ const mockEvents: CalendarEvent[] = [
   { id: 10, title: "Window Install", client: "Karen White", date: new Date(2026, 3, 20), startHour: 9, duration: 5, color: "purple", status: "Scheduled", tech: "John Smith", techInitials: "JS", property: "45 Spruce Rd" },
 ];
 
+// ─── Dispatch Board Data ──────────────────────────────────────────────────────
+interface DTech { id: number; name: string; specialty: string; util: number; color: string; initials: string; }
+interface DJob { id: number; num: string; client: string; address: string; service: string; start: number; end: number; techId: number; bg: string; border: string; statusIcon: string; statusIconColor: string; jobType: string; source: string; priority: string; amount: number; }
+interface UJob { id: number; client: string; service: string; address: string; typeLabel: string; typeBg: string; typeColor: string; amount: string; distance: string; date: string; highPriority?: boolean; }
+
+const dispatchTechs: DTech[] = [
+  { id: 1, name: "Mike Tech", specialty: "HVAC", util: 92, color: "#4A6FA5", initials: "MT" },
+  { id: 2, name: "Sarah Tech", specialty: "HVAC", util: 85, color: "#16A34A", initials: "ST" },
+  { id: 3, name: "John Tech", specialty: "Plumbing", util: 78, color: "#7C3AED", initials: "JT" },
+  { id: 4, name: "David Tech", specialty: "Electrical", util: 90, color: "#D97706", initials: "DT" },
+];
+
+const dispatchJobs: DJob[] = [
+  { id: 101, num: "10241", client: "Smith Residence", address: "123 Main St", service: "AC Tune-Up", start: 8, end: 10, techId: 1, bg: "#D1FAE5", border: "#16A34A", statusIcon: "check_circle", statusIconColor: "#16A34A", jobType: "Maintenance", source: "Website", priority: "Normal", amount: 89 },
+  { id: 102, num: "10245", client: "Brown Home", address: "456 Elm St", service: "AC Repair", start: 10.25, end: 12.25, techId: 1, bg: "#EBF0F8", border: "#4A6FA5", statusIcon: "play_circle_filled", statusIconColor: "#4A6FA5", jobType: "Repair", source: "Website", priority: "Normal", amount: 385 },
+  { id: 201, num: "10238", client: "Miller Residence", address: "852 Pine St", service: "AC Repair", start: 8, end: 10, techId: 2, bg: "#D1FAE5", border: "#16A34A", statusIcon: "check_circle", statusIconColor: "#16A34A", jobType: "Repair", source: "Phone", priority: "Normal", amount: 210 },
+  { id: 202, num: "10242", client: "Wilson Home", address: "159 Cedar Dr", service: "AC Tune-Up", start: 10.25, end: 12, techId: 2, bg: "#D1FAE5", border: "#16A34A", statusIcon: "check_circle", statusIconColor: "#16A34A", jobType: "Maintenance", source: "App", priority: "Normal", amount: 89 },
+  { id: 203, num: "10247", client: "Moore Residence", address: "753 Spruce St", service: "System Check", start: 12.5, end: 14.5, techId: 2, bg: "#EDE9FE", border: "#7C3AED", statusIcon: "play_circle_filled", statusIconColor: "#7C3AED", jobType: "Inspection", source: "Website", priority: "Normal", amount: 129 },
+  { id: 301, num: "10239", client: "Taylor Home", address: "852 Bay St", service: "Water Heater Install", start: 8, end: 11, techId: 3, bg: "#EBF0F8", border: "#4A6FA5", statusIcon: "", statusIconColor: "", jobType: "Installation", source: "Referral", priority: "Normal", amount: 1200 },
+  { id: 302, num: "10246", client: "Jackson Residence", address: "951 Lake Dr", service: "Leak Repair", start: 11.5, end: 13.5, techId: 3, bg: "#EBF0F8", border: "#4A6FA5", statusIcon: "play_circle_filled", statusIconColor: "#4A6FA5", jobType: "Repair", source: "Phone", priority: "High", amount: 320 },
+  { id: 303, num: "10248", client: "White Home", address: "357 River St", service: "Pipe Replacement", start: 14, end: 16, techId: 3, bg: "#D1FAE5", border: "#16A34A", statusIcon: "check_circle", statusIconColor: "#16A34A", jobType: "Repair", source: "Website", priority: "Normal", amount: 485 },
+  { id: 401, num: "10240", client: "Clark Residence", address: "951 Hillside Dr", service: "Panel Upgrade", start: 8, end: 10, techId: 4, bg: "#EBF0F8", border: "#4A6FA5", statusIcon: "", statusIconColor: "", jobType: "Installation", source: "Website", priority: "Normal", amount: 2400 },
+  { id: 402, num: "10243", client: "Hall Home", address: "753 Summit St", service: "Recessed Lights", start: 10.5, end: 12, techId: 4, bg: "#FEF3C7", border: "#D97706", statusIcon: "play_circle_filled", statusIconColor: "#D97706", jobType: "Installation", source: "App", priority: "Normal", amount: 750 },
+  { id: 403, num: "10249", client: "Lewis Residence", address: "852 Ridge Dr", service: "Wiring Inspection", start: 13, end: 15, techId: 4, bg: "#FEF3C7", border: "#D97706", statusIcon: "play_circle_filled", statusIconColor: "#D97706", jobType: "Inspection", source: "Phone", priority: "Normal", amount: 175 },
+  { id: 404, num: "10251", client: "Walker Office", address: "159 Commerce St", service: "Troubleshooting", start: 15.5, end: 17, techId: 4, bg: "#EDE9FE", border: "#7C3AED", statusIcon: "play_circle_filled", statusIconColor: "#7C3AED", jobType: "Service", source: "Website", priority: "Normal", amount: 225 },
+];
+
+const openTimeBlocks = [
+  { techId: 2, start: 15, end: 16.5 },
+  { techId: 3, start: 16.25, end: 17 },
+];
+
+const unscheduledJobs: UJob[] = [
+  { id: 1, client: "Johnson Residence", service: "AC Not Cooling", address: "1250 Oak Dr, Tampa, FL 33602", typeLabel: "Estimate", typeBg: "#EBF0F8", typeColor: "#4A6FA5", amount: "$350 – $450", distance: "2.5 mi", date: "Today", highPriority: true },
+  { id: 2, client: "Williams Home", service: "Install New System", address: "5332 Pine Ridge Rd, Tampa, FL", typeLabel: "Installation", typeBg: "#D1FAE5", typeColor: "#16A34A", amount: "$6,800", distance: "8.7 mi", date: "Tomorrow" },
+  { id: 3, client: "Anderson Office", service: "Duct Cleaning", address: "777 Business Park Dr, Tampa, FL", typeLabel: "Service", typeBg: "#EDE9FE", typeColor: "#7C3AED", amount: "$600", distance: "5.3 mi", date: "Tomorrow" },
+];
+
+const dispatchStats = [
+  { label: "Total Jobs", value: "38", icon: "schedule", color: "#4A6FA5" },
+  { label: "Scheduled", value: "32", icon: "check_circle", color: "#16A34A" },
+  { label: "Unscheduled", value: "3", icon: "warning", color: "#D97706" },
+  { label: "In Progress", value: "2", icon: "play_circle_filled", color: "#7C3AED" },
+  { label: "On Hold", value: "1", icon: "pause_circle_filled", color: "#6B7280" },
+  { label: "Canceled", value: "0", icon: "cancel", color: "#DC2626" },
+  { label: "Utilization", value: "92%", icon: "speed", color: "#16A34A" },
+];
+
 type ViewMode = "month" | "week" | "day";
 
 export function Calendar() {
@@ -52,6 +100,7 @@ export function Calendar() {
   const [viewMode, setViewMode] = useState<ViewMode>("month");
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [hoveredDay, setHoveredDay] = useState<Date | null>(null);
+  const [selectedDispatchJob, setSelectedDispatchJob] = useState<DJob | null>(dispatchJobs[1]); // default Brown Home selected
 
   // Navigation
   const goBack = () => {
@@ -84,6 +133,14 @@ export function Calendar() {
   const getEventsForDay = (day: Date) => mockEvents.filter(e => isSameDay(e.date, day));
 
   const getC = (color: string) => COLORS[color as keyof typeof COLORS] || COLORS.blue;
+
+  const fmtHour = (h: number) => {
+    const hh = Math.floor(h);
+    const mm = Math.round((h % 1) * 60);
+    const ampm = hh >= 12 ? "PM" : "AM";
+    const h12 = hh > 12 ? hh - 12 : hh === 0 ? 12 : hh;
+    return mm === 0 ? `${h12}:00 ${ampm}` : `${h12}:${String(mm).padStart(2, "0")} ${ampm}`;
+  };
 
   const headerLabel = viewMode === "month"
     ? format(currentDate, "MMMM yyyy")
@@ -280,71 +337,295 @@ export function Calendar() {
           </div>
         )}
 
-        {/* ====== WEEK VIEW ====== */}
+        {/* ====== WEEK VIEW — DISPATCH BOARD ====== */}
         {viewMode === "week" && (
-          <div className="flex flex-col h-full">
-            {/* Day headers */}
-            <div className="grid grid-cols-[64px_repeat(7,1fr)] border-b border-[#DDE3EE] sticky top-0 bg-white z-10">
-              <div />
-              {weekDays.map((d, i) => {
-                const isTodayD = isSameDay(d, new Date(2026, 3, 6));
-                return (
-                  <div key={i} className="py-3 text-center border-l border-[#EDF0F5]">
-                    <div className="text-[11px] text-[#8899AA] uppercase tracking-wider" style={{ fontWeight: 600 }}>{format(d, "EEE")}</div>
-                    <div className={`text-[18px] mt-0.5 ${isTodayD ? "text-[#4A6FA5]" : "text-[#1A2332]"}`} style={{ fontWeight: isTodayD ? 700 : 500 }}>
-                      {format(d, "d")}
+          <div className="flex flex-col h-full overflow-hidden">
+            {/* Stats Bar */}
+            <div className="flex items-center border-b border-[#DDE3EE] bg-white shrink-0 overflow-x-auto">
+              {dispatchStats.map((s, i) => (
+                <div key={s.label} className={`flex items-center gap-3 px-5 py-3 shrink-0 ${i < dispatchStats.length - 1 ? "border-r border-[#DDE3EE]" : ""}`}>
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${s.color}18` }}>
+                    <span className="material-icons" style={{ fontSize: "20px", color: s.color }}>{s.icon}</span>
+                  </div>
+                  <div>
+                    <div className="text-[20px] text-[#1A2332] leading-none" style={{ fontWeight: 700 }}>{s.value}</div>
+                    <div className="text-[11px] text-[#546478] mt-0.5 whitespace-nowrap">{s.label}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Main: Left + Grid + Right */}
+            <div className="flex flex-1 overflow-hidden">
+
+              {/* Left: Unscheduled Jobs */}
+              <div className="w-[210px] shrink-0 border-r border-[#DDE3EE] flex flex-col bg-[#FAFBFC] overflow-hidden">
+                <div className="flex items-center justify-between px-3 py-2.5 border-b border-[#DDE3EE] shrink-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>Unscheduled Jobs</span>
+                    <span className="w-5 h-5 rounded-full bg-[#D97706] text-white text-[10px] flex items-center justify-center" style={{ fontWeight: 700 }}>3</span>
+                  </div>
+                  <button className="w-7 h-7 flex items-center justify-center rounded hover:bg-[#EDF0F5]">
+                    <span className="material-icons text-[#6B7280]" style={{ fontSize: "18px" }}>more_horiz</span>
+                  </button>
+                </div>
+                <div className="flex-1 overflow-y-auto p-2 space-y-2">
+                  {unscheduledJobs.map(job => (
+                    <div key={job.id} className="bg-white border border-[#DDE3EE] rounded-xl p-3 cursor-pointer hover:shadow-sm transition-shadow">
+                      {job.highPriority && (
+                        <div className="text-[10px] text-[#DC2626] mb-1.5 flex items-center gap-1" style={{ fontWeight: 600 }}>
+                          <span className="material-icons" style={{ fontSize: "12px" }}>priority_high</span>
+                          High Priority
+                        </div>
+                      )}
+                      <div className="text-[13px] text-[#1A2332] mb-0.5" style={{ fontWeight: 600 }}>{job.client}</div>
+                      <div className="text-[12px] text-[#546478] mb-1.5">{job.service}</div>
+                      <div className="text-[11px] text-[#8899AA] mb-2 flex items-start gap-1">
+                        <span className="material-icons mt-0.5 shrink-0" style={{ fontSize: "12px", color: "#DC2626" }}>location_on</span>
+                        <span className="leading-snug">{job.address}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="px-2 py-0.5 rounded text-[11px]" style={{ fontWeight: 600, backgroundColor: job.typeBg, color: job.typeColor }}>{job.typeLabel}</span>
+                        <span className="text-[12px] text-[#1A2332]" style={{ fontWeight: 600 }}>{job.amount}</span>
+                      </div>
+                      <div className="flex items-center justify-between mt-1.5">
+                        <div className="flex items-center gap-1 text-[11px] text-[#8899AA]">
+                          <span className="material-icons" style={{ fontSize: "12px" }}>near_me</span>
+                          {job.distance}
+                        </div>
+                        <span className="text-[11px] text-[#8899AA]">{job.date}</span>
+                      </div>
+                    </div>
+                  ))}
+                  <div className="flex flex-col items-center justify-center py-6 text-center opacity-40">
+                    <span className="material-icons text-[#8899AA] mb-1" style={{ fontSize: "32px" }}>account_circle</span>
+                    <div className="text-[11px] text-[#546478]">Drag & drop jobs<br />to assign</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Center: Time × Tech grid */}
+              <div className="flex-1 overflow-hidden flex flex-col min-w-0">
+                {/* Tech headers */}
+                <div
+                  className="grid shrink-0 border-b border-[#DDE3EE] bg-white"
+                  style={{ gridTemplateColumns: "52px repeat(4, 1fr)" }}
+                >
+                  <div />
+                  {dispatchTechs.map(tech => (
+                    <div key={tech.id} className="py-3 px-3 border-l border-[#EDF0F5] flex items-center gap-2.5">
+                      <div
+                        className="w-9 h-9 rounded-full flex items-center justify-center text-white text-[12px] shrink-0"
+                        style={{ backgroundColor: tech.color, fontWeight: 700 }}
+                      >
+                        {tech.initials}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-[13px] text-[#1A2332] truncate" style={{ fontWeight: 600 }}>{tech.name}</div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[11px] text-[#546478]">{tech.specialty}</span>
+                          <span className="text-[11px]" style={{ fontWeight: 700, color: tech.util >= 85 ? "#16A34A" : "#D97706" }}>{tech.util}%</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Scrollable time grid */}
+                <div className="flex-1 overflow-y-auto">
+                  <div className="relative" style={{ height: `${hours.length * 64}px` }}>
+                    {/* Hour row backgrounds */}
+                    {hours.map(h => (
+                      <div
+                        key={h}
+                        className="absolute w-full flex"
+                        style={{ top: `${(h - 7) * 64}px`, height: "64px" }}
+                      >
+                        <div className="w-[52px] shrink-0 flex items-start justify-end pr-2 -mt-2 text-[11px] text-[#8899AA]" style={{ fontWeight: 500 }}>
+                          {h > 12 ? h - 12 : h}{h >= 12 ? "PM" : "AM"}
+                        </div>
+                        {dispatchTechs.map((_, ti) => (
+                          <div key={ti} className="flex-1 border-l border-b border-[#EDF0F5]" />
+                        ))}
+                      </div>
+                    ))}
+
+                    {/* Job blocks */}
+                    {dispatchJobs.map(job => {
+                      const techIdx = dispatchTechs.findIndex(t => t.id === job.techId);
+                      if (techIdx < 0) return null;
+                      const top = (job.start - 7) * 64;
+                      const height = Math.max((job.end - job.start) * 64 - 2, 30);
+                      const isSelected = selectedDispatchJob?.id === job.id;
+                      return (
+                        <div
+                          key={job.id}
+                          className="absolute rounded-lg overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
+                          style={{
+                            top,
+                            height,
+                            left: `calc(52px + ${techIdx} * ((100% - 52px) / 4) + 2px)`,
+                            width: `calc((100% - 52px) / 4 - 4px)`,
+                            backgroundColor: job.bg,
+                            borderLeft: `3px solid ${job.border}`,
+                            outline: isSelected ? `2px solid ${job.border}` : "none",
+                            outlineOffset: "1px",
+                          }}
+                          onClick={() => setSelectedDispatchJob(job)}
+                        >
+                          <div className="px-2 py-1.5 h-full flex flex-col">
+                            <div className="text-[10px] text-[#8899AA] tabular-nums mb-0.5">
+                              {fmtHour(job.start)} – {fmtHour(job.end)}
+                            </div>
+                            <div className="text-[12px] leading-tight truncate" style={{ fontWeight: 600, color: "#1A2332" }}>{job.client}</div>
+                            <div className="text-[11px] text-[#546478] truncate">{job.service}</div>
+                            {height > 62 && <div className="text-[11px] text-[#8899AA] truncate">{job.address}</div>}
+                            {job.statusIcon && height > 50 && (
+                              <div className="flex justify-end mt-auto">
+                                <span className="material-icons" style={{ fontSize: "16px", color: job.statusIconColor }}>{job.statusIcon}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    {/* Open time blocks */}
+                    {openTimeBlocks.map((block, bi) => {
+                      const techIdx = dispatchTechs.findIndex(t => t.id === block.techId);
+                      if (techIdx < 0) return null;
+                      const top = (block.start - 7) * 64;
+                      const height = (block.end - block.start) * 64 - 2;
+                      return (
+                        <div
+                          key={`open-${bi}`}
+                          className="absolute rounded-lg border border-dashed border-[#D1D5DB] bg-[#F9FAFB] flex items-center justify-center"
+                          style={{
+                            top,
+                            height,
+                            left: `calc(52px + ${techIdx} * ((100% - 52px) / 4) + 2px)`,
+                            width: `calc((100% - 52px) / 4 - 4px)`,
+                          }}
+                        >
+                          <div className="text-center">
+                            <div className="text-[11px] text-[#8899AA]" style={{ fontWeight: 500 }}>Open Time</div>
+                            <div className="text-[10px] text-[#B0BCC8]">Available</div>
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    {/* Current time indicator */}
+                    <div
+                      className="absolute z-10 pointer-events-none"
+                      style={{ top: `${(10.5 - 7) * 64}px`, left: "52px", right: 0, height: "2px", backgroundColor: "#DC2626" }}
+                    >
+                      <div className="w-2.5 h-2.5 bg-[#DC2626] rounded-full absolute -left-1 -top-1" />
+                      <div className="absolute -top-4 left-2 text-[10px] text-[#DC2626] bg-white px-1 rounded" style={{ fontWeight: 600 }}>10:30 AM</div>
                     </div>
                   </div>
-                );
-              })}
-            </div>
-            {/* Time grid */}
-            <div className="flex-1 overflow-auto">
-              <div className="grid grid-cols-[64px_repeat(7,1fr)] relative">
-                {hours.map((h) => (
-                  <div key={h} className="contents">
-                    <div className="h-16 flex items-start justify-end pr-3 pt-0 text-[11px] text-[#8899AA] -mt-2" style={{ fontWeight: 500 }}>
-                      {h > 12 ? h - 12 : h} {h >= 12 ? "PM" : "AM"}
+                </div>
+              </div>
+
+              {/* Right: Job Detail Panel */}
+              {selectedDispatchJob && (
+                <div className="w-[300px] shrink-0 border-l border-[#DDE3EE] flex flex-col bg-white overflow-hidden">
+                  {/* Header */}
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-[#DDE3EE] shrink-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 700 }}>Job #{selectedDispatchJob.num}</span>
+                      <span className="px-2 py-0.5 rounded-full text-[11px]" style={{ fontWeight: 600, backgroundColor: "#D1FAE5", color: "#16A34A" }}>Scheduled</span>
                     </div>
-                    {weekDays.map((d, di) => (
-                      <div key={di} className="h-16 border-l border-b border-[#EDF0F5] relative" />
+                    <button onClick={() => setSelectedDispatchJob(null)} className="w-7 h-7 flex items-center justify-center rounded hover:bg-[#F5F7FA]">
+                      <span className="material-icons text-[#8899AA]" style={{ fontSize: "18px" }}>close</span>
+                    </button>
+                  </div>
+                  {/* Tabs */}
+                  <div className="flex border-b border-[#DDE3EE] shrink-0">
+                    {["Details", "Customer", "Job Info", "History"].map((tab, i) => (
+                      <button key={tab} className={`flex-1 py-2 text-[12px] transition-colors ${i === 0 ? "text-[#4A6FA5] border-b-2 border-[#4A6FA5]" : "text-[#546478] hover:text-[#1A2332]"}`} style={{ fontWeight: 500 }}>
+                        {tab}
+                      </button>
                     ))}
                   </div>
-                ))}
-                {/* Render events */}
-                {weekDays.map((d, di) => {
-                  const dayEvents = getEventsForDay(d);
-                  return dayEvents.map((ev) => {
-                    const c = getC(ev.color);
-                    const top = (ev.startHour - 7) * 64;
-                    const height = ev.duration * 64 - 2;
-                    return (
-                      <div
-                        key={ev.id}
-                        className="absolute rounded-lg px-2 py-1.5 cursor-pointer hover:shadow-md transition-shadow overflow-hidden"
-                        style={{
-                          top: `${top}px`,
-                          left: `calc(64px + ${di} * ((100% - 64px) / 7) + 2px)`,
-                          width: `calc((100% - 64px) / 7 - 4px)`,
-                          height: `${height}px`,
-                          backgroundColor: c.bg,
-                          borderLeft: `3px solid ${c.border}`,
-                        }}
-                        onClick={() => setSelectedEvent(ev)}
-                      >
-                        <div className="text-[11px] truncate" style={{ fontWeight: 600, color: c.text }}>{ev.title}</div>
-                        <div className="text-[10px] truncate" style={{ color: c.accent }}>{ev.client}</div>
-                        {ev.duration >= 2 && (
-                          <div className="flex items-center gap-1 mt-1">
-                            <div className="w-4 h-4 rounded-full bg-[#4A6FA5] flex items-center justify-center text-white text-[8px]" style={{ fontWeight: 600 }}>{ev.techInitials}</div>
-                            <span className="text-[10px]" style={{ color: c.text }}>{ev.tech.split(" ")[0]}</span>
-                          </div>
-                        )}
+                  {/* Scrollable content */}
+                  <div className="flex-1 overflow-y-auto">
+                    <div className="p-4">
+                      {/* Client info */}
+                      <div className="flex items-start justify-between mb-4">
+                        <div>
+                          <div className="text-[15px] text-[#1A2332]" style={{ fontWeight: 700 }}>{selectedDispatchJob.client}</div>
+                          <div className="text-[12px] text-[#546478] mt-0.5">{selectedDispatchJob.service}</div>
+                          <div className="text-[12px] text-[#8899AA] mt-0.5">{selectedDispatchJob.address}</div>
+                          <div className="text-[12px] text-[#8899AA]">Tampa, FL 33602</div>
+                        </div>
+                        <div className="flex gap-1 shrink-0">
+                          <button className="w-8 h-8 rounded-lg border border-[#DDE3EE] flex items-center justify-center hover:bg-[#F5F7FA]">
+                            <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "18px" }}>phone</span>
+                          </button>
+                          <button className="w-8 h-8 rounded-lg border border-[#DDE3EE] flex items-center justify-center hover:bg-[#F5F7FA]">
+                            <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "18px" }}>chat</span>
+                          </button>
+                        </div>
                       </div>
-                    );
-                  });
-                })}
-              </div>
+                      {/* Fields */}
+                      {[
+                        { icon: "event", label: "Appointment", value: `${fmtHour(selectedDispatchJob.start)} – ${fmtHour(selectedDispatchJob.end)} (Today)` },
+                        { icon: "engineering", label: "Technician", value: dispatchTechs.find(t => t.id === selectedDispatchJob.techId)?.name ?? "" },
+                        { icon: "schedule", label: "Duration", value: `${Math.floor(selectedDispatchJob.end - selectedDispatchJob.start)}h ${String(Math.round(((selectedDispatchJob.end - selectedDispatchJob.start) % 1) * 60)).padStart(2, "0")}m` },
+                        { icon: "stars", label: "Priority", value: selectedDispatchJob.priority },
+                        { icon: "attach_money", label: "Amount", value: `$${selectedDispatchJob.amount.toFixed(2)}` },
+                        { icon: "build", label: "Job Type", value: selectedDispatchJob.jobType },
+                        { icon: "web", label: "Source", value: selectedDispatchJob.source },
+                      ].map(f => (
+                        <div key={f.label} className="flex items-center gap-3 py-2.5 border-b border-[#F5F7FA]">
+                          <span className="material-icons text-[#4A6FA5] shrink-0" style={{ fontSize: "16px" }}>{f.icon}</span>
+                          <span className="text-[12px] text-[#8899AA] w-[88px] shrink-0">{f.label}</span>
+                          <span className="text-[12px] text-[#1A2332] flex-1" style={{ fontWeight: 500 }}>
+                            {f.label === "Priority" ? (
+                              <span className="flex items-center gap-1.5">
+                                <span className="w-2 h-2 rounded-full bg-[#4A6FA5] inline-block shrink-0" />
+                                {f.value}
+                              </span>
+                            ) : f.value}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  {/* Action buttons */}
+                  <div className="p-4 space-y-2 border-t border-[#DDE3EE] shrink-0">
+                    <button className="w-full py-2.5 bg-[#4A6FA5] text-white rounded-xl text-[13px] hover:bg-[#3d5a85] transition-colors" style={{ fontWeight: 600 }}>
+                      Start Job
+                    </button>
+                    <div className="flex gap-2">
+                      <button className="flex-1 py-2.5 border border-[#DDE3EE] text-[#546478] rounded-xl text-[13px] hover:bg-[#F5F7FA] transition-colors" style={{ fontWeight: 500 }}>Reschedule</button>
+                      <button className="flex-1 py-2.5 border border-[#DDE3EE] text-[#546478] rounded-xl text-[13px] hover:bg-[#F5F7FA] transition-colors" style={{ fontWeight: 500 }}>Edit</button>
+                    </div>
+                    <button className="w-full py-2.5 border border-[#FCA5A5] text-[#DC2626] rounded-xl text-[13px] hover:bg-[#FEF2F2] transition-colors" style={{ fontWeight: 500 }}>
+                      Cancel Job
+                    </button>
+                    {/* Map placeholder */}
+                    <div className="pt-2">
+                      <div className="text-[12px] text-[#1A2332] mb-2" style={{ fontWeight: 600 }}>Location</div>
+                      <div className="h-24 bg-[#EEF2F8] rounded-xl relative flex items-center justify-center border border-[#DDE3EE] overflow-hidden">
+                        <div className="absolute inset-0 opacity-20" style={{ backgroundImage: "repeating-linear-gradient(0deg,#4A6FA530 0,#4A6FA530 1px,transparent 1px,transparent 32px),repeating-linear-gradient(90deg,#4A6FA530 0,#4A6FA530 1px,transparent 1px,transparent 48px)" }} />
+                        <span className="material-icons text-[#DC2626] relative z-10" style={{ fontSize: "32px" }}>location_on</span>
+                      </div>
+                      <div className="flex items-center justify-between mt-2">
+                        <div className="flex items-center gap-1 text-[11px] text-[#546478]">
+                          <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "13px" }}>near_me</span>
+                          2.4 mi away
+                        </div>
+                        <button className="text-[11px] text-[#4A6FA5]" style={{ fontWeight: 500 }}>Get Directions</button>
+                      </div>
+                      <button className="w-full mt-2 py-2 border border-[#DDE3EE] text-[#546478] rounded-xl text-[12px] hover:bg-[#F5F7FA] transition-colors" style={{ fontWeight: 500 }}>
+                        View on Map
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
