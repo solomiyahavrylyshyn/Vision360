@@ -22,7 +22,6 @@ import {
 } from "../components/ui/dropdown-menu";
 import { KebabMenu as KebabMenuShared, KebabItem } from "../components/ui/kebab-menu";
 import { toast } from "sonner";
-import { marketingSourcesStore } from "../stores/marketingSourcesStore";
 import { tagsStore } from "../stores/tagsStore";
 
 const US_STATES = [
@@ -49,7 +48,7 @@ const STATE_NAMES: Record<string, string> = {
 type TabKey =
   | "details" | "appointments" | "jobs" | "estimates"
   | "invoices" | "payments" | "pos" | "addresses"
-  | "service-agreements" | "attachments" | "notes"
+  | "service-agreements" | "documents" | "notes"
   | "equipment" | "activity" | "marketing";
 
 const TABS: { key: TabKey; label: string; count?: number }[] = [
@@ -59,7 +58,7 @@ const TABS: { key: TabKey; label: string; count?: number }[] = [
   { key: "estimates",   label: "Estimates" },
   { key: "invoices",    label: "Invoices" },
   { key: "payments",    label: "Payments" },
-  { key: "attachments", label: "Files" },
+  { key: "documents", label: "Documents" },
 ];
 
 export function ClientDetail() {
@@ -74,10 +73,6 @@ export function ClientDetail() {
   //   on-hold  → active   when past-due balance is settled
   const [clientStatus, setClientStatus] = useState<"prospect" | "active" | "on-hold" | "archived">("on-hold");
   const daysOverdue = 18;
-  const marketingSources = useSyncExternalStore(
-    marketingSourcesStore.subscribe,
-    marketingSourcesStore.getSources
-  );
   const availableTags = useSyncExternalStore(
     tagsStore.subscribe,
     tagsStore.getTags
@@ -379,12 +374,15 @@ export function ClientDetail() {
             <div className="text-[13px] text-[#1A2332] font-medium leading-[20px]">{client.address}</div>
             <div className="text-[13px] text-[#1A2332] font-medium leading-[20px]">{client.city}, {client.state} {client.zip}</div>
           </div>
-          {client.gateCode && (
-            <div>
-              <div className="text-[11px] uppercase tracking-wider text-[#546478] font-semibold mb-0.5">Gate Code</div>
-              <div className="text-[13px] text-[#1A2332] font-medium">{client.gateCode}</div>
-            </div>
-          )}
+          <div>
+            <div className="text-[11px] uppercase tracking-wider text-[#546478] font-semibold mb-1">Address Notes</div>
+            <textarea
+              defaultValue={client.gateCode ? `Gate code: ${client.gateCode}` : ""}
+              placeholder="Gate code, access notes…"
+              rows={2}
+              className="w-full text-[12px] text-[#374151] border border-[#DDE3EE] rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-[#4A6FA5] bg-[#F9FAFB] placeholder:text-[#9CA3AF]"
+            />
+          </div>
         </div>
       </div>
 
@@ -508,18 +506,6 @@ export function ClientDetail() {
             <div>
               <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Role</Label>
               <Input placeholder="e.g. Owner, Manager" value={editedClient.role} onChange={(e) => handleFieldChange("role", e.target.value)} className="border-[#D1D5DB] bg-white h-10 text-[14px]" />
-            </div>
-          </div>
-          {/* Customer type */}
-          <div>
-            <Label className="text-[13px] text-[#374151] mb-3 block" style={{ fontWeight: 500 }}>Customer type</Label>
-            <div className="flex items-center gap-6">
-              {[{ value: "homeowner", label: "Residential" }, { value: "business", label: "Commercial" }].map(({ value, label }) => (
-                <label key={value} className="flex items-center gap-2.5 cursor-pointer">
-                  <input type="radio" name="customerType" checked={editedClient.customerType === value} onChange={() => handleFieldChange("customerType", value)} className="w-4 h-4 accent-[#4A6FA5]" />
-                  <span className="text-[14px] text-[#374151]">{label}</span>
-                </label>
-              ))}
             </div>
           </div>
         </div>
@@ -686,28 +672,6 @@ export function ClientDetail() {
         </div>
       </div>
 
-      {/* 7. Lead Source */}
-      <div className="bg-white border border-[#E5E7EB] rounded-lg overflow-hidden">
-        <div className="px-6 py-4 border-b border-[#E5E7EB]">
-          <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Lead Source</h3>
-        </div>
-        <div className="px-6 py-5 space-y-3">
-          <div>
-            <Select value={editedClient.marketingSource || "none"} onValueChange={(v) => handleFieldChange("marketingSource", v === "none" ? "" : v)}>
-              <SelectTrigger className="border-[#D1D5DB] bg-white h-10 text-[14px]"><SelectValue placeholder="Select marketing source" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">— Select —</SelectItem>
-                {marketingSources.map((source) => (
-                  <SelectItem key={source} value={source}>{source}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <p className="text-[12px] text-[#6B7280]">
-            Manage sources in <span className="text-[#4A6FA5] cursor-pointer hover:underline" onClick={() => navigate("/settings?section=marketingSources")}>Settings → Lead Sources</span>
-          </p>
-        </div>
-      </div>
     </div>
   );
 
@@ -830,11 +794,11 @@ export function ClientDetail() {
           </div>
         );
 
-      case "attachments":
+      case "documents":
         return (
           <div className="bg-white border border-[#E5E7EB] rounded-lg overflow-hidden">
             <div className="border-b border-[#E5E7EB] px-6 py-4 flex items-center justify-between">
-              <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Attachments</h3>
+              <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Documents</h3>
               <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-[#F5F7FA]" onClick={() => toast.info("Upload attachment coming soon")}>
                 <span className="material-icons text-[#546478]" style={{ fontSize: "20px" }}>add</span>
               </Button>
@@ -1039,14 +1003,14 @@ export function ClientDetail() {
             </div>
 
             {/* Financial Summary — 4 horizontal stat cards */}
-            <div className="flex gap-3 flex-shrink-0">
+            <div className="flex gap-3 w-full">
               {[
                 { label: "Total Revenue", value: `$${client.totalRevenue.toLocaleString("en-US", { minimumFractionDigits: 0 })}`, color: "#1A2332" },
                 { label: "Balance",       value: `$${client.openBalance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, color: "#1A2332" },
                 { label: "Past Due",      value: `$${client.pastDueBalance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, color: "#DC2626" },
                 { label: "Open Jobs",     value: "3", color: "#1A2332" },
               ].map(({ label, value, color }) => (
-                <div key={label} className="w-[148px] bg-white border border-[#DDE3EE] rounded-xl px-4 py-3">
+                <div key={label} className="flex-1 bg-white border border-[#DDE3EE] rounded-xl px-4 py-3">
                   <div className="text-[12px] text-[#546478] mb-1">{label}</div>
                   <div className="text-[22px] tabular-nums" style={{ fontWeight: 700, color, letterSpacing: "-0.01em" }}>{value}</div>
                 </div>
@@ -1158,7 +1122,7 @@ export function ClientDetail() {
               {editingSection === "contact" && (
                 <>
                   <div>
-                    <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Service address</Label>
+                    <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Billing Address</Label>
                     <Input placeholder="Street address" value={editedClient.address} onChange={(e) => handleFieldChange("address", e.target.value)} className="border-[#D1D5DB] bg-white h-10 text-[14px] mb-2" />
                     <Input placeholder="Unit / Suite" value={editedClient.unit} onChange={(e) => handleFieldChange("unit", e.target.value)} className="border-[#D1D5DB] bg-white h-10 text-[14px]" />
                   </div>

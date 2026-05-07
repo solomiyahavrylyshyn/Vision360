@@ -12,7 +12,6 @@ import {
   SelectValue,
 } from "../components/ui/select";
 import { toast } from "sonner";
-import { marketingSourcesStore } from "../stores/marketingSourcesStore";
 import { countiesStore } from "../stores/countiesStore";
 import { useSyncExternalStore } from "react";
 
@@ -189,10 +188,6 @@ export function CreateClient() {
   const navigate = useNavigate();
   const [formData, setFormData] =
     useState<ClientFormData>(initialFormData);
-  const marketingSources = useSyncExternalStore(
-    marketingSourcesStore.subscribe,
-    marketingSourcesStore.getSources,
-  );
   const counties = useSyncExternalStore(
     countiesStore.subscribe,
     countiesStore.getCounties,
@@ -435,56 +430,6 @@ export function CreateClient() {
                     </div>
                   </div>
 
-                  {/* Customer Type */}
-                  <div>
-                    <Label
-                      className="text-[13px] text-[#374151] mb-3 block"
-                      style={{ fontWeight: 500 }}
-                    >
-                      Customer type
-                    </Label>
-                    <div className="flex items-center gap-6">
-                      <label className="flex items-center gap-2.5 cursor-pointer">
-                        <input
-                          type="radio"
-                          name="customerType"
-                          checked={
-                            formData.customerType ===
-                            "homeowner"
-                          }
-                          onChange={() =>
-                            handleChange(
-                              "customerType",
-                              "homeowner",
-                            )
-                          }
-                          className="w-4 h-4 accent-[#4A6FA5] cursor-pointer"
-                        />
-                        <span className="text-[14px] text-[#374151]">
-                          Residential
-                        </span>
-                      </label>
-                      <label className="flex items-center gap-2.5 cursor-pointer">
-                        <input
-                          type="radio"
-                          name="customerType"
-                          checked={
-                            formData.customerType === "business"
-                          }
-                          onChange={() =>
-                            handleChange(
-                              "customerType",
-                              "business",
-                            )
-                          }
-                          className="w-4 h-4 accent-[#4A6FA5] cursor-pointer"
-                        />
-                        <span className="text-[14px] text-[#374151]">
-                          Commercial
-                        </span>
-                      </label>
-                    </div>
-                  </div>
                 </div>
               </div>
 
@@ -609,46 +554,6 @@ export function CreateClient() {
 
               <div className="border-t border-[#E5E7EB]"></div>
 
-              {/* Marketing source */}
-              <div className="grid grid-cols-[280px_1fr] gap-12">
-                <div>
-                  <h2
-                    className="text-[16px] text-[#1A2332] mb-2"
-                    style={{ fontWeight: 600 }}
-                  >
-                    Lead source
-                  </h2>
-                  <p className="text-[13px] text-[#6B7280] leading-relaxed"></p>
-                </div>
-                <div className="max-w-[600px]">
-                  <Select
-                    value={formData.marketingSource || "none"}
-                    onValueChange={(value) =>
-                      handleChange(
-                        "marketingSource",
-                        value === "none" ? "" : value,
-                      )
-                    }
-                  >
-                    <SelectTrigger className="border-[#D1D5DB] bg-white h-10 text-[14px]">
-                      <SelectValue placeholder="Select a source" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">
-                        — Select —
-                      </SelectItem>
-                      {marketingSources.map((source) => (
-                        <SelectItem key={source} value={source}>
-                          {source}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="border-t border-[#E5E7EB]"></div>
-
               {/* Notes */}
               <div className="grid grid-cols-[280px_1fr] gap-12">
                 <div>
@@ -682,7 +587,7 @@ export function CreateClient() {
                     className="text-[16px] text-[#1A2332] mb-2"
                     style={{ fontWeight: 600 }}
                   >
-                    Service address
+                    Billing Address
                   </h2>
                 </div>
                 <div className="space-y-4 max-w-[600px]">
