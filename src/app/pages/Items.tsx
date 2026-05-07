@@ -231,8 +231,8 @@ function ItemIcon({ type }: { type: ItemType }) {
   };
   const { bg, icon } = cfg[cat];
   return (
-    <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: bg }}>
-      <span className="material-icons text-white" style={{ fontSize: "16px" }}>{icon}</span>
+    <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: bg }}>
+      <span className="material-icons text-white" style={{ fontSize: "15px" }}>{icon}</span>
     </div>
   );
 }
@@ -271,7 +271,7 @@ function Pagination({ total, perPage, page, onPageChange, onPerPageChange }: {
   const to = Math.min(page * perPage, total);
 
   return (
-    <div className="flex items-center justify-between px-4 py-3 border-t border-[#DDE3EE] bg-[#FAFBFC]">
+    <div className="flex items-center justify-between px-4 py-2 border-t border-[#DDE3EE] bg-[#FAFBFC]">
       <span className="text-[13px] text-[#546478]">
         Showing {from} to {to} of {total} results
       </span>
@@ -431,7 +431,7 @@ export function Items() {
   // ─── RENDER ────────────────────────────────────────────────────────────
   // ═══════════════════════════════════════════════════════════════════════
   return (
-    <div className="p-8 bg-[#F5F7FA] min-h-full">
+    <div className="px-7 py-5 bg-[#F5F7FA] min-h-full">
       {/* Page Header */}
       <PageHeader
         title="Items"
@@ -458,13 +458,13 @@ export function Items() {
       />
 
       {/* Tabs */}
-      <div className="border-b border-[#E5E7EB] mb-6">
+      <div className="border-b border-[#E5E7EB] mb-3">
         <div className="flex items-center">
           {tabs.map((tab) => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`relative h-[45px] px-4 shrink-0 text-[13px] transition-colors whitespace-nowrap ${
+              className={`relative h-[38px] px-4 shrink-0 text-[13px] transition-colors whitespace-nowrap ${
                 activeTab === tab.key
                   ? "text-[#4A6FA5]"
                   : "text-[#6B7280] hover:text-[#374151]"
@@ -473,7 +473,7 @@ export function Items() {
             >
               {tab.label}
               {activeTab === tab.key && (
-                <div className="absolute bottom-[10px] left-0 right-0 h-[2px] bg-[#4A6FA5]" />
+                <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#4A6FA5]" />
               )}
             </button>
           ))}
@@ -483,21 +483,21 @@ export function Items() {
       {/* ═══════════════ ITEMS TABLE (all type-filter tabs) ═══════════════ */}
       <div className="bg-white border border-[#DDE3EE] rounded-xl">
         {/* Filter bar */}
-        <div className="flex items-center gap-2.5 px-4 py-3 border-b border-[#DDE3EE]">
-          <div className="relative flex-1 max-w-[260px]">
-            <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: "17px" }}>search</span>
+        <div className="flex items-center gap-2 px-4 py-2 border-b border-[#DDE3EE]">
+          <div className="relative flex-1 max-w-[240px]">
+            <span className="material-icons absolute left-2.5 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: "16px" }}>search</span>
             <input
               type="text"
               placeholder="Search items..."
               value={itemSearch}
               onChange={(e) => { setItemSearch(e.target.value); setItemPage(1); }}
-              className="w-full h-9 pl-9 pr-3 border border-[#DDE3EE] rounded-lg text-[13px] focus:outline-none focus:border-[#4A6FA5] bg-white"
+              className="w-full h-8 pl-8 pr-3 border border-[#DDE3EE] rounded-lg text-[13px] focus:outline-none focus:border-[#4A6FA5] bg-white"
             />
           </div>
           <select
             value={itemFilter}
             onChange={(e) => { setItemFilter(e.target.value); setItemPage(1); }}
-            className="h-9 px-3 pr-8 border border-[#DDE3EE] rounded-lg text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5] min-w-[150px]"
+            className="h-8 px-3 pr-8 border border-[#DDE3EE] rounded-lg text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5] min-w-[145px]"
             style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23546478' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`, backgroundRepeat: "no-repeat", backgroundPosition: "right 10px center", appearance: "none" }}
           >
             <option value="All">All Categories</option>
@@ -506,15 +506,15 @@ export function Items() {
           <select
             value={itemStatusFilter}
             onChange={(e) => { setItemStatusFilter(e.target.value); setItemPage(1); }}
-            className="h-9 px-3 pr-8 border border-[#DDE3EE] rounded-lg text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5] min-w-[130px]"
+            className="h-8 px-3 pr-8 border border-[#DDE3EE] rounded-lg text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5] min-w-[125px]"
             style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23546478' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`, backgroundRepeat: "no-repeat", backgroundPosition: "right 10px center", appearance: "none" }}
           >
             <option value="All">All Statuses</option>
             <option value="Active">Active</option>
             <option value="Inactive">Inactive</option>
           </select>
-          <button className="h-9 px-3.5 border border-[#DDE3EE] rounded-lg text-[13px] text-[#546478] bg-white hover:bg-[#F5F7FA] flex items-center gap-1.5 transition-colors">
-            <span className="material-icons" style={{ fontSize: "17px" }}>tune</span>
+          <button className="h-8 px-3 border border-[#DDE3EE] rounded-lg text-[13px] text-[#546478] bg-white hover:bg-[#F5F7FA] flex items-center gap-1.5 transition-colors">
+            <span className="material-icons" style={{ fontSize: "16px" }}>tune</span>
             Filters
           </button>
         </div>
@@ -536,7 +536,7 @@ export function Items() {
           <table className="w-full">
             <thead>
               <tr className="bg-[#F5F7FA] border-b border-[#DDE3EE]">
-                <th className="px-4 py-3 w-10">
+                <th className="px-4 py-2 w-10">
                   <input
                     type="checkbox"
                     checked={allItemsSelected}
@@ -559,7 +559,7 @@ export function Items() {
                 ].map(col => (
                   <th
                     key={col.key}
-                    className={`px-4 py-3 text-left text-[11px] uppercase tracking-wider text-[#546478] ${col.sortable ? "cursor-pointer hover:text-[#1A2332]" : ""} select-none ${col.w}`}
+                    className={`px-4 py-2 text-left text-[11px] uppercase tracking-wider text-[#546478] ${col.sortable ? "cursor-pointer hover:text-[#1A2332]" : ""} select-none ${col.w}`}
                     style={{ fontWeight: 600 }}
                     onClick={() => { if (col.sortable) handleSortItems(col.key); }}
                   >
@@ -569,7 +569,7 @@ export function Items() {
                     </div>
                   </th>
                 ))}
-                <th className="px-4 py-3 w-[60px] text-right text-[11px] uppercase tracking-wider text-[#546478]" style={{ fontWeight: 600 }}>Actions</th>
+                <th className="px-4 py-2 w-[60px] text-right text-[11px] uppercase tracking-wider text-[#546478]" style={{ fontWeight: 600 }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -589,7 +589,7 @@ export function Items() {
                     onClick={() => navigate(`/items/${item.id}`)}
                     className={`group border-b border-[#DDE3EE] hover:bg-[#F9FAFB] transition-colors cursor-pointer ${selectedItems.has(item.id) ? "bg-[#EBF0F8]" : "bg-white"}`}
                   >
-                    <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                    <td className="px-4 py-2" onClick={(e) => e.stopPropagation()}>
                       <input
                         type="checkbox"
                         checked={selectedItems.has(item.id)}
@@ -601,33 +601,33 @@ export function Items() {
                         className="w-4 h-4 rounded border-[#DDE3EE] cursor-pointer accent-[#4A6FA5]"
                       />
                     </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-3">
+                    <td className="px-4 py-2">
+                      <div className="flex items-center gap-2.5">
                         <ItemIcon type={item.type} />
                         <div className="truncate max-w-[200px] text-[13px] text-[#4A6FA5] hover:underline" style={{ fontWeight: 500 }}>{item.name}</div>
                       </div>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-2">
                       <span className="inline-block px-2 py-0.5 rounded text-[11px] whitespace-nowrap" style={{ fontWeight: 600, backgroundColor: badge.bg, color: badge.color }}>
                         {badge.label}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-[13px] text-[#546478]">{item.category || "—"}</td>
-                    <td className="px-4 py-3 text-[13px] text-[#546478]" style={{ fontVariantNumeric: "tabular-nums" }}>{item.modelNumber || "—"}</td>
-                    <td className="px-4 py-3 text-[13px] text-[#1A2332]" style={{ fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>${item.rate.toFixed(2)}</td>
-                    <td className="px-4 py-3 text-[13px] text-[#546478]" style={{ fontVariantNumeric: "tabular-nums" }}>${item.cost.toFixed(2)}</td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-2 text-[13px] text-[#546478]">{item.category || "—"}</td>
+                    <td className="px-4 py-2 text-[13px] text-[#546478]" style={{ fontVariantNumeric: "tabular-nums" }}>{item.modelNumber || "—"}</td>
+                    <td className="px-4 py-2 text-[13px] text-[#1A2332]" style={{ fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>${item.rate.toFixed(2)}</td>
+                    <td className="px-4 py-2 text-[13px] text-[#546478]" style={{ fontVariantNumeric: "tabular-nums" }}>${item.cost.toFixed(2)}</td>
+                    <td className="px-4 py-2">
                       {item.taxable
                         ? <span className="material-icons text-[#16A34A]" style={{ fontSize: "18px" }}>check</span>
                         : <span className="text-[#C8D5E8]">—</span>}
                     </td>
-                    <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                    <td className="px-4 py-2" onClick={(e) => e.stopPropagation()}>
                       <Toggle
                         checked={item.active}
                         onChange={(v) => setItems(prev => prev.map(i => i.id === item.id ? { ...i, active: v } : i))}
                       />
                     </td>
-                    <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+                    <td className="px-4 py-2 text-right" onClick={(e) => e.stopPropagation()}>
                       <KebabMenu triggerClassName="w-8 h-8 border border-[#DDE3EE] rounded-lg bg-white opacity-0 group-hover:opacity-100 transition-opacity">
                         <KebabItem icon="edit" onClick={() => { setEditingItem(item); setItemModalOpen(true); }}>Edit</KebabItem>
                         <KebabItem icon="content_copy">Duplicate</KebabItem>
@@ -652,17 +652,17 @@ export function Items() {
       </div>
 
       {/* ═══════════════ ABOUT ITEMS PANEL ═══════════════ */}
-      <div className="mt-5 bg-white border border-[#DDE3EE] rounded-xl px-6 py-5 flex gap-8">
+      <div className="mt-3 bg-white border border-[#DDE3EE] rounded-xl px-5 py-4 flex gap-6">
         {/* Left: About */}
-        <div className="w-[220px] flex-shrink-0">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "18px" }}>info</span>
+        <div className="w-[200px] flex-shrink-0">
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "17px" }}>info</span>
             <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 700 }}>About Items</span>
           </div>
-          <p className="text-[12.5px] text-[#546478] leading-relaxed mb-2">
+          <p className="text-[12px] text-[#546478] leading-snug mb-1.5">
             Items include everything you sell or use in your business.
           </p>
-          <p className="text-[12.5px] text-[#546478] leading-relaxed">
+          <p className="text-[12px] text-[#546478] leading-snug">
             Use the tabs above to quickly view items by type.
           </p>
         </div>
@@ -672,8 +672,8 @@ export function Items() {
 
         {/* Right: Item Types */}
         <div className="flex-1">
-          <div className="text-[13px] text-[#1A2332] mb-3" style={{ fontWeight: 700 }}>Item Types</div>
-          <div className="grid grid-cols-6 gap-5">
+          <div className="text-[12.5px] text-[#1A2332] mb-2.5" style={{ fontWeight: 700 }}>Item Types</div>
+          <div className="grid grid-cols-6 gap-4">
             {[
               { bg: "#4A6FA5", icon: "build", label: "Services", desc: "Labor, inspections, maintenance and other services." },
               { bg: "#16A34A", icon: "category", label: "Materials", desc: "Parts, supplies, and consumables." },
@@ -683,13 +683,13 @@ export function Items() {
               { bg: "#0D9488", icon: "inventory_2", label: "Asset Type", desc: "System types, locations, and asset classifications." },
             ].map(({ bg, icon, label, desc }) => (
               <div key={label}>
-                <div className="flex items-center gap-2 mb-1.5">
-                  <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: bg }}>
-                    <span className="material-icons text-white" style={{ fontSize: "14px" }}>{icon}</span>
+                <div className="flex items-center gap-1.5 mb-1">
+                  <div className="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0" style={{ backgroundColor: bg }}>
+                    <span className="material-icons text-white" style={{ fontSize: "13px" }}>{icon}</span>
                   </div>
-                  <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>{label}</span>
+                  <span className="text-[12.5px] text-[#1A2332]" style={{ fontWeight: 600 }}>{label}</span>
                 </div>
-                <p className="text-[11.5px] text-[#546478] leading-relaxed">{desc}</p>
+                <p className="text-[11px] text-[#546478] leading-snug">{desc}</p>
               </div>
             ))}
           </div>
