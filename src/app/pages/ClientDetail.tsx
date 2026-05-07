@@ -53,20 +53,13 @@ type TabKey =
   | "equipment" | "activity" | "marketing";
 
 const TABS: { key: TabKey; label: string; count?: number }[] = [
-  { key: "details",            label: "Details" },
-  { key: "appointments",       label: "Appointments",       count: 0 },
-  { key: "jobs",               label: "Jobs",               count: 1 },
-  { key: "estimates",          label: "Estimates",          count: 0 },
-  { key: "invoices",           label: "Invoices",           count: 0 },
-  { key: "payments",           label: "Payments",           count: 0 },
-  { key: "pos",                label: "POs",                count: 0 },
-  { key: "addresses",          label: "Addresses",          count: 2 },
-  { key: "service-agreements", label: "Service Agreements", count: 0 },
-  { key: "attachments",        label: "Attachments",        count: 43 },
-  { key: "notes",              label: "Notes",              count: 2 },
-  { key: "equipment",          label: "Equipment",          count: 0 },
-  { key: "activity",           label: "Activity" },
-  { key: "marketing",          label: "Marketing" },
+  { key: "details",     label: "Details" },
+  { key: "addresses",   label: "Properties", count: 3 },
+  { key: "jobs",        label: "Jobs",       count: 11 },
+  { key: "estimates",   label: "Estimates" },
+  { key: "invoices",    label: "Invoices" },
+  { key: "payments",    label: "Payments" },
+  { key: "attachments", label: "Files" },
 ];
 
 export function ClientDetail() {
@@ -101,7 +94,7 @@ export function ClientDetail() {
     company: "Delgado Property Solutions",
     role: "Property Owner",
     customerType: "homeowner" as const,
-    customerSince: "Jul - 2021",
+    customerSince: "Apr 12, 2022",
     lastService: "Jun-25",
     isBillingSameAsService: true,
     isTaxable: true,
@@ -135,12 +128,14 @@ export function ClientDetail() {
     billingCounty: "Hillsborough",
     marketingSource: "Google",
     notes: "Prefers morning appointments. Has three properties requiring service.",
+    gateCode: "2486",
     notesArray: [
       { id: 1, text: "Prefers morning appointments.", date: "Added Mar 10, 2026" },
       { id: 2, text: "Has three properties requiring service.", date: "Added Jan 15, 2024" },
       { id: 3, text: "Requested annual maintenance plan.", date: "Added Dec 5, 2023" },
-      { id: 4, text: "Prefers email communication over phone.", date: "Added Oct 20, 2023" },
-      { id: 5, text: "Has two dogs, please close gates.", date: "Added Jul 15, 2021" },
+      { id: 4, text: "Requested annual maintenance plan.", date: "Added Nov 3, 2023" },
+      { id: 5, text: "Prefers email communication over phone.", date: "Added Oct 20, 2023" },
+      { id: 6, text: "Has two dogs, please close gates.", date: "Added Jul 15, 2021" },
     ],
     tags: ["New Homeowner", "Self-Generated Lead", "VIP Customer"],
     membership: "Silver",
@@ -312,279 +307,147 @@ export function ClientDetail() {
      DETAILS READ-ONLY
   ────────────────────────────────────────── */
   const DetailsView = () => (
-    <div className="grid grid-cols-[1.25fr_1.3fr_1fr] gap-4 items-stretch">
+    <div className="grid grid-cols-3 gap-4 items-start">
 
-      {/* ROW 1 - COL 1: Identity Card */}
-      <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
-        <div className="px-5 py-4 relative flex items-center gap-4">
-          <div className="flex items-baseline gap-1.5 shrink-0">
-            <span className="text-[12px] text-[#9CA3AF]" style={{ fontWeight: 400 }}>{client.title}</span>
-            <span className="text-[15px] text-[#111827] tracking-[-0.01em]" style={{ fontWeight: 600 }}>
-              {client.firstName} {client.middleInitial} {client.lastName}
-            </span>
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="text-[11px] text-[#9CA3AF] leading-[14px]" style={{ fontWeight: 400 }}>Preferred name</div>
-            <div className="text-[13px] text-[#1F2937] truncate mt-0.5" style={{ fontWeight: 500 }}>{client.preferredName}</div>
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="text-[11px] text-[#9CA3AF] leading-[14px]" style={{ fontWeight: 400 }}>Role</div>
-            <div className="text-[13px] text-[#1F2937] truncate mt-0.5" style={{ fontWeight: 500 }}>{client.role}</div>
-          </div>
-          <button
-            onClick={() => { setEditedClient(client); setEditingSection("name"); }}
-            className="shrink-0 w-7 h-7 flex items-center justify-center hover:bg-[#F5F7FA] rounded-md transition-colors"
-            aria-label="Edit name"
-            title="Edit name"
-          >
-            <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "15px" }}>edit</span>
-          </button>
-        </div>
-      </div>
-
-      {/* ROW 1 - COL 2+3: Tags Card */}
-      <div className="col-span-2 bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
-        <div className="p-6 flex items-center gap-5">
-          <span className="text-[10px] text-[#9CA3AF] uppercase shrink-0" style={{ fontWeight: 500, letterSpacing: "0.06em" }}>Tags</span>
-          <div className="flex flex-wrap gap-2">
-            {client.tags.map((tag, index) => (
-              <span
-                key={index}
-                className="inline-flex items-center px-2.5 py-1 rounded-full bg-[#EEF2FF] text-[12px] text-[#4338CA]"
-                style={{ fontWeight: 500 }}
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* ROW 2 - COL 1: Address & Contact Card */}
-      <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden flex flex-col">
-        <div className="p-5 relative flex-1 flex flex-col">
+      {/* Card 1: Contact Information */}
+      <div className="bg-white border border-[#DDE3EE] rounded-xl overflow-hidden">
+        {/* Card header */}
+        <div className="flex items-center gap-2 px-5 py-3.5 border-b border-[#DDE3EE]">
+          <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>person</span>
+          <span className="flex-1 text-[13px] font-semibold text-[#1A2332]">Contact Information</span>
           <button
             onClick={() => { setEditedClient(client); setEditingSection("contact"); }}
-            className="absolute top-4 right-4 w-7 h-7 flex items-center justify-center hover:bg-[#F5F7FA] rounded-md transition-colors"
+            className="w-7 h-7 flex items-center justify-center hover:bg-[#F5F7FA] rounded-md transition-colors"
             aria-label="Edit contact"
-            title="Edit contact"
           >
             <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "15px" }}>edit</span>
           </button>
-          <div className="space-y-3.5 pr-8 flex-1">
-            <div>
-              <div className="text-[10px] text-[#9CA3AF] mb-0.5 uppercase" style={{ fontWeight: 500, letterSpacing: "0.06em" }}>Service address</div>
-              <div className="text-[14px] text-[#111827] leading-[20px]" style={{ fontWeight: 500 }}>{client.address}</div>
-              <div className="text-[14px] text-[#111827] leading-[20px]" style={{ fontWeight: 500 }}>
-                {client.city}, {client.state} {client.zip}
-              </div>
-            </div>
-            <div>
-              <div className="text-[10px] text-[#9CA3AF] mb-0.5 uppercase" style={{ fontWeight: 500, letterSpacing: "0.06em" }}>Primary phone</div>
-              <div className="text-[14px] text-[#111827] tabular-nums" style={{ fontWeight: 500 }}>
-                {client.mobilePhone}{client.mobilePhoneExt ? ` · ext. ${client.mobilePhoneExt}` : ""}
-              </div>
-            </div>
-            <div>
-              <div className="text-[10px] text-[#9CA3AF] mb-0.5 uppercase" style={{ fontWeight: 500, letterSpacing: "0.06em" }}>Secondary phone</div>
-              <div className="text-[14px] text-[#111827] tabular-nums" style={{ fontWeight: 500 }}>
-                {client.workPhone}{client.workPhoneExt ? ` · ext. ${client.workPhoneExt}` : ""}
-              </div>
-            </div>
-            <div>
-              <div className="text-[10px] text-[#9CA3AF] mb-0.5 uppercase" style={{ fontWeight: 500, letterSpacing: "0.06em" }}>Email</div>
-              <div className="text-[14px] text-[#111827]" style={{ fontWeight: 500 }}>{client.email}</div>
-            </div>
-            <div>
-              <div className="text-[10px] text-[#9CA3AF] mb-0.5 uppercase" style={{ fontWeight: 500, letterSpacing: "0.06em" }}>Website</div>
-              <div className="text-[14px] text-[#4A6FA5] truncate" style={{ fontWeight: 500 }}>{client.website}</div>
-            </div>
-            <div>
-              <div className="text-[10px] text-[#9CA3AF] mb-0.5 uppercase" style={{ fontWeight: 500, letterSpacing: "0.06em" }}>Company name</div>
-              <div className="text-[14px] text-[#111827]" style={{ fontWeight: 500 }}>{client.company}</div>
-            </div>
+        </div>
+        <div className="p-5 space-y-4">
+          <div>
+            <div className="text-[11px] uppercase tracking-wider text-[#546478] font-semibold mb-0.5">Primary Phone</div>
+            <div className="text-[13px] text-[#1A2332] font-medium">{client.mobilePhone}</div>
           </div>
-          <div className="pt-4 mt-4 border-t border-[#F0F2F5]">
-            <label className="flex items-center gap-2.5 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={clientData.isBillingSameAsService}
-                onChange={(e) => handleCheckboxChange("isBillingSameAsService", e.target.checked)}
-                className="w-4 h-4 accent-[#4A6FA5]"
-              />
-              <span className="text-[13px] text-[#4B5563]">Billing address is the same as service address</span>
-            </label>
+          <div>
+            <div className="text-[11px] uppercase tracking-wider text-[#546478] font-semibold mb-0.5">Email</div>
+            <div className="text-[13px] text-[#1A2332] font-medium">{client.email}</div>
+          </div>
+          <div>
+            <div className="text-[11px] uppercase tracking-wider text-[#546478] font-semibold mb-0.5">Company Name</div>
+            <div className="text-[13px] text-[#1A2332] font-medium">{client.company}</div>
+          </div>
+          <div>
+            <div className="text-[11px] uppercase tracking-wider text-[#546478] font-semibold mb-0.5">Customer Since</div>
+            <div className="text-[13px] text-[#1A2332] font-medium">{client.customerSince}</div>
           </div>
         </div>
       </div>
 
-      {/* ROW 2 - COL 2: Dropdowns */}
-      <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
-        <div className="p-6 space-y-5">
-          {/* Lead Source */}
-          <div className="flex items-center gap-5">
-            <span className="text-[13px] text-[#6B7280] w-[110px] shrink-0" style={{ fontWeight: 400 }}>Lead Source</span>
-            <div className="flex-1">
-              <Select
-                value={clientData.marketingSource || "none"}
-                onValueChange={(v) => {
-                  setClientData((prev) => ({ ...prev, marketingSource: v === "none" ? "" : v }));
-                  toast.success("Lead source updated");
-                }}
-              >
-                <SelectTrigger className="border-[#E5E7EB] bg-white h-10 text-[14px] text-[#111827] rounded-lg" style={{ fontWeight: 500 }}>
-                  <SelectValue placeholder="Select" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">— Select —</SelectItem>
-                  {marketingSources.map((source) => (
-                    <SelectItem key={source} value={source}>{source}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+      {/* Card 2: Addresses */}
+      <div className="bg-white border border-[#DDE3EE] rounded-xl overflow-hidden">
+        {/* Card header */}
+        <div className="flex items-center gap-2 px-5 py-3.5 border-b border-[#DDE3EE]">
+          <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>location_on</span>
+          <span className="flex-1 text-[13px] font-semibold text-[#1A2332]">Addresses</span>
+          <button
+            onClick={() => { setEditedClient(client); setEditingSection("contact"); }}
+            className="w-7 h-7 flex items-center justify-center hover:bg-[#F5F7FA] rounded-md transition-colors"
+            aria-label="Edit addresses"
+          >
+            <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "15px" }}>edit</span>
+          </button>
+        </div>
+        <div className="p-5 space-y-4">
+          {/* Billing Address */}
+          <div>
+            <div className="text-[12px] font-semibold text-[#1A2332] mb-1">Billing Address</div>
+            <div className="text-[13px] text-[#1A2332] font-medium leading-[20px]">{client.billingAddress}</div>
+            <div className="text-[13px] text-[#1A2332] font-medium leading-[20px]">{client.billingCity}, {client.billingState} {client.billingZip}</div>
           </div>
-
-          {/* Type */}
-          <div className="flex items-center gap-5">
-            <span className="text-[13px] text-[#6B7280] w-[110px] shrink-0" style={{ fontWeight: 400 }}>Type</span>
-            <div className="flex-1">
-              <Select
-                value={clientData.type || "Residential"}
-                onValueChange={(v) => setClientData((prev) => ({ ...prev, type: v }))}
-              >
-                <SelectTrigger className="border-[#E5E7EB] bg-white h-10 text-[14px] text-[#111827] rounded-lg" style={{ fontWeight: 500 }}>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Residential">Residential</SelectItem>
-                  <SelectItem value="Commercial">Commercial</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={clientData.isBillingSameAsService}
+              onChange={(e) => handleCheckboxChange("isBillingSameAsService", e.target.checked)}
+              className="w-4 h-4 accent-[#4A6FA5]"
+            />
+            <span className="text-[13px] text-[#4B5563]">Use as service address</span>
+          </label>
+          {/* Service Address */}
+          <div>
+            <div className="text-[12px] font-semibold text-[#1A2332] mb-1">Service Address</div>
+            <div className="text-[13px] text-[#1A2332] font-medium leading-[20px]">{client.address}</div>
+            <div className="text-[13px] text-[#1A2332] font-medium leading-[20px]">{client.city}, {client.state} {client.zip}</div>
           </div>
-
-          {/* Sales Rep */}
-          <div className="flex items-center gap-5">
-            <span className="text-[13px] text-[#6B7280] w-[110px] shrink-0" style={{ fontWeight: 400 }}>Sales Rep</span>
-            <div className="flex-1">
-              <Select
-                value={clientData.salesRep || "none"}
-                onValueChange={(v) => setClientData((prev) => ({ ...prev, salesRep: v === "none" ? "" : v }))}
-              >
-                <SelectTrigger className="border-[#E5E7EB] bg-white h-10 text-[14px] text-[#111827] rounded-lg" style={{ fontWeight: 500 }}>
-                  <SelectValue placeholder="Select rep" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">— Select —</SelectItem>
-                  <SelectItem value="Travis Jones">Travis Jones</SelectItem>
-                  <SelectItem value="Sarah Miller">Sarah Miller</SelectItem>
-                </SelectContent>
-              </Select>
+          {client.gateCode && (
+            <div>
+              <div className="text-[11px] uppercase tracking-wider text-[#546478] font-semibold mb-0.5">Gate Code</div>
+              <div className="text-[13px] text-[#1A2332] font-medium">{client.gateCode}</div>
             </div>
-          </div>
-
-          {/* Acc. Manager */}
-          <div className="flex items-center gap-5">
-            <span className="text-[13px] text-[#6B7280] w-[110px] shrink-0" style={{ fontWeight: 400 }}>Acc. Manager</span>
-            <div className="flex-1">
-              <Select
-                value={clientData.accManager || "none"}
-                onValueChange={(v) => setClientData((prev) => ({ ...prev, accManager: v === "none" ? "" : v }))}
-              >
-                <SelectTrigger className="border-[#E5E7EB] bg-white h-10 text-[14px] text-[#111827] rounded-lg" style={{ fontWeight: 500 }}>
-                  <SelectValue placeholder="Select manager" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">— Select —</SelectItem>
-                  <SelectItem value="Anne Blue">Anne Blue</SelectItem>
-                  <SelectItem value="John Smith">John Smith</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {/* Custom Field 1 */}
-          <div className="flex items-center gap-5">
-            <span className="text-[13px] text-[#6B7280] w-[110px] shrink-0" style={{ fontWeight: 400 }}>Custom Field 1</span>
-            <div className="flex-1">
-              <Select
-                value={clientData.customField1 || "none"}
-                onValueChange={(v) => setClientData((prev) => ({ ...prev, customField1: v === "none" ? "" : v }))}
-              >
-                <SelectTrigger className="border-[#E5E7EB] bg-white h-10 text-[14px] text-[#9CA3AF] rounded-lg" style={{ fontWeight: 400 }}>
-                  <SelectValue placeholder="Custom Field 1" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">— Select —</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {/* Custom Field 2 */}
-          <div className="flex items-center gap-5">
-            <span className="text-[13px] text-[#6B7280] w-[110px] shrink-0" style={{ fontWeight: 400 }}>Custom Field 2</span>
-            <div className="flex-1">
-              <Select
-                value={clientData.customField2 || "none"}
-                onValueChange={(v) => setClientData((prev) => ({ ...prev, customField2: v === "none" ? "" : v }))}
-              >
-                <SelectTrigger className="border-[#E5E7EB] bg-white h-10 text-[14px] text-[#9CA3AF] rounded-lg" style={{ fontWeight: 400 }}>
-                  <SelectValue placeholder="Custom Field 2" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">— Select —</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+          )}
         </div>
       </div>
 
-      {/* RIGHT COLUMN */}
-      <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
-        <div className="p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-[13px] text-[#111827] uppercase" style={{ fontWeight: 600, letterSpacing: "0.04em" }}>Finance details</h3>
-            <button
-              onClick={() => { setEditedClient(client); setEditingSection("finance"); }}
-              className="w-7 h-7 flex items-center justify-center hover:bg-[#F5F7FA] rounded-md transition-colors"
-              aria-label="Edit finance"
-              title="Edit finance"
+      {/* Card 3: Notes */}
+      <div className="bg-white border border-[#DDE3EE] rounded-xl overflow-hidden">
+        {/* Card header */}
+        <div className="flex items-center gap-2 px-5 py-3.5 border-b border-[#DDE3EE]">
+          <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>notes</span>
+          <span className="flex-1 text-[13px] font-semibold text-[#1A2332]">Notes</span>
+          <button
+            onClick={() => toast.info("Add note coming soon")}
+            className="w-7 h-7 flex items-center justify-center hover:bg-[#F5F7FA] rounded-md transition-colors"
+            aria-label="Add note"
+          >
+            <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "15px" }}>edit</span>
+          </button>
+        </div>
+        <div className="px-5 pt-4">
+          {/* Notes list */}
+          {clientData.notesArray.slice(0, 4).map((note, index, arr) => (
+            <div
+              key={note.id}
+              className={`py-3 text-[13px] text-[#1A2332] font-medium leading-[20px] ${index < arr.length - 1 ? "border-b border-[#DDE3EE]" : ""}`}
             >
-              <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "15px" }}>edit</span>
-            </button>
-          </div>
-          <div className="space-y-5">
-            <div>
-              <div className="text-[10px] text-[#9CA3AF] mb-1 uppercase" style={{ fontWeight: 500, letterSpacing: "0.06em" }}>Payment terms</div>
-              <div className="text-[14px] text-[#111827]" style={{ fontWeight: 500 }}>{client.paymentTerms}</div>
+              {note.text}
             </div>
-            <div>
-              <div className="text-[10px] text-[#9CA3AF] mb-1 uppercase" style={{ fontWeight: 500, letterSpacing: "0.06em" }}>Credit limit</div>
-              <div className="text-[22px] text-[#111827] tabular-nums tracking-[-0.01em]" style={{ fontWeight: 600 }}>${client.creditLimit.toLocaleString()}</div>
-            </div>
-            <div>
-              <div className="text-[10px] text-[#9CA3AF] mb-1 uppercase" style={{ fontWeight: 500, letterSpacing: "0.06em" }}>Payment method</div>
-              <div className="text-[14px] text-[#111827]" style={{ fontWeight: 500 }}>{client.paymentMethod}</div>
-            </div>
-            <div>
-              <div className="text-[10px] text-[#9CA3AF] mb-1 uppercase" style={{ fontWeight: 500, letterSpacing: "0.06em" }}>Department</div>
-              <div className="text-[14px] text-[#111827]" style={{ fontWeight: 500 }}>{client.department}</div>
-            </div>
-            <div className="pt-2 border-t border-[#F0F2F5]">
-              <label className="flex items-center gap-2.5 cursor-pointer pt-3">
-                <input
-                  type="checkbox"
-                  checked={clientData.isTaxable}
-                  onChange={(e) => handleCheckboxChange("isTaxable", e.target.checked)}
-                  className="w-4 h-4 accent-[#4A6FA5]"
-                />
-                <span className="text-[13px] text-[#4B5563]">Taxable</span>
-              </label>
-            </div>
-          </div>
+          ))}
+        </div>
+        <div className="p-5 space-y-3 border-t border-[#DDE3EE] mt-1">
+          {/* Custom Field 1 */}
+          <Select
+            value={clientData.customField1 || "none"}
+            onValueChange={(v) => setClientData((prev) => ({ ...prev, customField1: v === "none" ? "" : v }))}
+          >
+            <SelectTrigger className="border-[#DDE3EE] bg-white h-9 text-[13px] text-[#9CA3AF] rounded-lg" style={{ fontWeight: 400 }}>
+              <SelectValue placeholder="Custom Field 1" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">— Select —</SelectItem>
+            </SelectContent>
+          </Select>
+          {/* Custom Field 2 */}
+          <Select
+            value={clientData.customField2 || "none"}
+            onValueChange={(v) => setClientData((prev) => ({ ...prev, customField2: v === "none" ? "" : v }))}
+          >
+            <SelectTrigger className="border-[#DDE3EE] bg-white h-9 text-[13px] text-[#9CA3AF] rounded-lg" style={{ fontWeight: 400 }}>
+              <SelectValue placeholder="Custom Field 2" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">— Select —</SelectItem>
+            </SelectContent>
+          </Select>
+          {/* Taxable checkbox */}
+          <label className="flex items-center gap-2.5 cursor-pointer pt-1">
+            <input
+              type="checkbox"
+              checked={clientData.isTaxable}
+              onChange={(e) => handleCheckboxChange("isTaxable", e.target.checked)}
+              className="w-4 h-4 accent-[#4A6FA5]"
+            />
+            <span className="text-[13px] text-[#4B5563]">Taxable Customer</span>
+          </label>
         </div>
       </div>
     </div>
@@ -1147,51 +1010,25 @@ export function ClientDetail() {
                 </div>
 
                 {/* Address */}
-                <div className="flex items-start gap-1.5">
-                  <span className="material-icons text-[#6B7280] mt-0.5" style={{ fontSize: "14px" }}>location_on</span>
-                  <div className="text-[13px] text-[#374151] leading-[19px]">
-                    {client.address}
-                    <br />
-                    {client.city}, {client.state}, {client.zip}
-                  </div>
+                <div className="flex items-center gap-1.5 text-[13px] text-[#374151]">
+                  <span className="material-icons text-[#6B7280]" style={{ fontSize: "15px" }}>location_on</span>
+                  {client.address}, {client.city}, {client.state} {client.zip}
                 </div>
 
-                {/* Icons row + Status */}
+                {/* Phone + Email row + Status */}
+                <div className="flex items-center gap-5">
+                  <a href={`tel:${client.mobilePhone}`} className="flex items-center gap-1.5 text-[13px] text-[#4A6FA5] hover:underline">
+                    <span className="material-icons" style={{ fontSize: "15px" }}>phone</span>
+                    {client.mobilePhone}
+                  </a>
+                  <a href={`mailto:${client.email}`} className="flex items-center gap-1.5 text-[13px] text-[#4A6FA5] hover:underline">
+                    <span className="material-icons" style={{ fontSize: "15px" }}>email</span>
+                    {client.email}
+                  </a>
+                </div>
+
+                {/* Status badge */}
                 <div className="flex items-center gap-4">
-                  {/* Customer type icon with tooltip */}
-                  <div className="relative group">
-                    <button className="flex items-center justify-center w-6 h-6 rounded hover:bg-[#F3F4F6] transition-colors">
-                      <span className="material-icons text-[#6B7280]" style={{ fontSize: "18px" }}>
-                        {client.customerType === "business" ? "business" : "home"}
-                      </span>
-                    </button>
-                    <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1 hidden group-hover:block bg-white border border-[#E5E7EB] shadow-lg rounded-lg px-3 py-2 whitespace-nowrap z-50">
-                      <div className="text-[13px] text-[#1A2332]">
-                        {client.customerType === "business" ? "Commercial" : "Residential"}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Phone icon with tooltip */}
-                  <div className="relative group">
-                    <button className="flex items-center justify-center w-6 h-6 rounded hover:bg-[#F3F4F6] transition-colors">
-                      <span className="material-icons text-[#6B7280]" style={{ fontSize: "18px" }}>phone</span>
-                    </button>
-                    <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1 hidden group-hover:block bg-white border border-[#E5E7EB] shadow-lg rounded-lg px-3 py-2 whitespace-nowrap z-50">
-                      <div className="text-[13px] text-[#1A2332]">{client.mobilePhone}</div>
-                    </div>
-                  </div>
-
-                  {/* Email icon with tooltip */}
-                  <div className="relative group">
-                    <button className="flex items-center justify-center w-6 h-6 rounded hover:bg-[#F3F4F6] transition-colors">
-                      <span className="material-icons text-[#6B7280]" style={{ fontSize: "18px" }}>email</span>
-                    </button>
-                    <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1 hidden group-hover:block bg-white border border-[#E5E7EB] shadow-lg rounded-lg px-3 py-2 whitespace-nowrap z-50">
-                      <div className="text-[13px] text-[#1A2332]">{client.email}</div>
-                    </div>
-                  </div>
-
                   {/* Status badge (only active one, clickable) */}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -1234,209 +1071,21 @@ export function ClientDetail() {
                   </DropdownMenu>
                 </div>
               </div>
-
-              {/* Three-column data grid */}
-              <div className="grid grid-cols-3 gap-[12px] flex-1 border-l border-[#E5E7EB] pl-8">
-                {/* Column 1: Customer since + Tags */}
-                <div className="flex flex-col gap-4">
-                  <div className="flex flex-col gap-1">
-                    <div className="text-[12px] text-[#6B7280] leading-[18px]">Customer since</div>
-                    <div className="text-[14px] text-[#1A2332] leading-[21px]">
-                      {client.customerSince}
-                    </div>
-                  </div>
-                  <div className="relative group cursor-pointer flex flex-col gap-1">
-                    <div className="text-[12px] text-[#6B7280] leading-[18px]">
-                      Tags ({client.tags.length})
-                    </div>
-                    <div className="flex gap-2">
-                      <span className="inline-flex items-center px-2 py-1 rounded bg-[#E0E7FF] text-[11px] text-[#4338CA] leading-[16px] h-[24.5px]" style={{ fontWeight: 500 }}>
-                        {client.tags[0]}
-                      </span>
-                    </div>
-                    {/* Tags tooltip */}
-                    <div className="absolute left-0 top-full mt-2 hidden group-hover:block w-[180px] z-[60]">
-                      <div className="bg-white border border-[#E5E7EB] rounded-md shadow-lg px-3.5 pt-3 pb-0">
-                        {/* Header */}
-                        <div className="text-[11px] text-[#6B7280] uppercase tracking-wider mb-2" style={{ fontWeight: 600, letterSpacing: "0.5px" }}>
-                          Tags
-                        </div>
-
-                        {/* Divider */}
-                        <div className="h-px bg-[#E5E7EB] mb-2"></div>
-
-                        {/* Tags list */}
-                        <div className="flex flex-col gap-1.5 pb-3">
-                          {client.tags.map((tag, i) => (
-                            <div key={i} className="flex items-center gap-2">
-                              <div className="w-1 h-1 rounded-full bg-[#6B7280] flex-shrink-0"></div>
-                              <div className="text-[13px] text-[#1A2332] leading-[20px]">
-                                {tag}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Column 2: Membership + Last Service */}
-                <div className="flex flex-col gap-4">
-                  {client.membership && (
-                    <div className="flex flex-col gap-1">
-                      <div className="text-[12px] text-[#6B7280] leading-[18px]">Membership</div>
-                      <div className="text-[14px] text-[#1A2332] leading-[21px]">
-                        Silver - Exp. Dec 2027
-                      </div>
-                    </div>
-                  )}
-                  {!client.membership && (
-                    <div className="relative group cursor-pointer">
-                      <div className="text-[12px] text-[#6B7280] leading-[18px]">Membership</div>
-                      <div className="text-[14px] text-[#4A6FA5] leading-[21px] mt-1">
-                        Click to sell
-                      </div>
-                      {/* No membership tooltip */}
-                      <div className="absolute left-0 top-full mt-2 hidden group-hover:block bg-white border border-[#E5E7EB] rounded-md shadow-lg px-3.5 py-2 z-[60] whitespace-nowrap">
-                        <div className="text-[13px] text-[#1A2332] leading-[20px]">
-                          Click to sell membership
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  <div className="flex flex-col gap-1">
-                    <div className="text-[12px] text-[#6B7280] leading-[18px]">Last Service</div>
-                    <div className="text-[14px] text-[#1A2332] leading-[21px]">
-                      {client.lastService}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Column 3: Notes */}
-                <div className="relative group cursor-pointer flex flex-col gap-1">
-                  {/* Notes label */}
-                  <div className="text-[12px] text-[#6B7280] leading-[18px]">
-                    Notes ({client.notesArray.length})
-                  </div>
-
-                  {/* Preview of notes - up to 2 */}
-                  <div className="flex flex-col gap-1">
-                    {client.notesArray.slice(0, 2).map((note) => (
-                      <div key={note.id} className="text-[12px] text-[#374151] leading-[18px] truncate max-w-[200px]">
-                        {note.text}
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Notes hover tooltip */}
-                  <div className="absolute left-0 top-full mt-2 hidden group-hover:flex flex-col gap-2 w-[320px] z-[60]">
-                    {/* Tooltip arrow */}
-                    <div className="absolute -top-1.5 left-5 w-3 h-1.5 overflow-hidden">
-                      <div className="absolute w-2 h-2 bg-white border-l border-t border-[#E5E7EB] rotate-45 left-1/2 -translate-x-1/2"></div>
-                    </div>
-
-                    {/* Tooltip content */}
-                    <div className="bg-white border border-[#E5E7EB] rounded-md shadow-lg p-3.5">
-                      {/* Header */}
-                      <div className="text-[11px] text-[#6B7280] uppercase tracking-wider mb-2" style={{ fontWeight: 600, letterSpacing: "0.5px" }}>
-                        Notes
-                      </div>
-
-                      {/* Divider */}
-                      <div className="h-px bg-[#E5E7EB] mb-3"></div>
-
-                      {/* Notes list - all notes */}
-                      <div className="flex flex-col gap-3 max-h-[400px] overflow-y-auto">
-                        {client.notesArray.map((note, index) => (
-                          <div key={note.id} className="flex flex-col gap-1">
-                            <div className="text-[13px] text-[#1A2332] leading-[20px]">
-                              {note.text}
-                            </div>
-                            <div className="text-[11px] text-[#6B7280] leading-[16px]">
-                              {note.date}
-                            </div>
-                            {index < client.notesArray.length - 1 && <div className="h-px bg-[#E5E7EB] mt-2"></div>}
-                          </div>
-                        ))}
-                      </div>
-
-                      {/* Bottom divider */}
-                      <div className="h-px bg-[#E5E7EB] my-4"></div>
-
-                      {/* View all link */}
-                      <button
-                        onClick={() => setActiveTab("notes")}
-                        className="text-[12px] text-[#4A6FA5] leading-[18px] hover:underline"
-                        style={{ fontWeight: 500 }}
-                      >
-                        View all {client.notesArray.length} notes →
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
             </div>
 
-            {/* Financial Summary */}
-            <div className="border-l border-[#E5E7EB] pl-[25px]" style={{ width: "280px" }}>
-              <div className="grid grid-cols-2 gap-x-6 gap-y-[13px] w-[255px]">
-                {/* Total Revenue */}
-                <div className="flex flex-col gap-1">
-                  <div className="text-[12px] text-[#6B7280] leading-[18px]">
-                    Total Revenue
-                  </div>
-                  <div className="text-[18px] text-[#16A34A] leading-[26px] tabular-nums" style={{ fontWeight: 600, letterSpacing: "-0.01em" }}>
-                    ${client.totalRevenue.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-                  </div>
+            {/* Financial Summary — 4 horizontal stat cards */}
+            <div className="flex gap-3 flex-shrink-0">
+              {[
+                { label: "Total Revenue", value: `$${client.totalRevenue.toLocaleString("en-US", { minimumFractionDigits: 0 })}`, color: "#1A2332" },
+                { label: "Balance",       value: `$${client.openBalance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, color: "#1A2332" },
+                { label: "Past Due",      value: `$${client.pastDueBalance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, color: "#DC2626" },
+                { label: "Open Jobs",     value: "3", color: "#1A2332" },
+              ].map(({ label, value, color }) => (
+                <div key={label} className="w-[148px] bg-white border border-[#DDE3EE] rounded-xl px-4 py-3">
+                  <div className="text-[12px] text-[#546478] mb-1">{label}</div>
+                  <div className="text-[22px] tabular-nums" style={{ fontWeight: 700, color, letterSpacing: "-0.01em" }}>{value}</div>
                 </div>
-
-                {/* Balance */}
-                <div className="flex flex-col gap-1">
-                  <div className="flex items-center gap-1.5">
-                    <div className="text-[12px] text-[#6B7280] leading-[18px]">
-                      Balance
-                    </div>
-                    <div className="relative group">
-                      <span className="material-icons text-[#9CA3AF] cursor-help" style={{ fontSize: "14px" }}>info</span>
-                      <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden group-hover:block bg-white border border-[#E5E7EB] rounded-md shadow-lg px-3 py-2 z-50 whitespace-nowrap">
-                        <div className="text-[12px] text-[#1A2332]">Total outstanding balance including all unpaid invoices</div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="text-[18px] text-[#1A2332] leading-[26px] tabular-nums" style={{ fontWeight: 500, letterSpacing: "-0.01em" }}>
-                    ${client.openBalance.toLocaleString("en-US", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
-                  </div>
-                </div>
-
-                {/* Estimates */}
-                <div className="flex flex-col gap-1">
-                  <div className="text-[12px] text-[#6B7280] leading-[18px]">
-                    Estimates
-                  </div>
-                  <div className="text-[18px] text-[#1A2332] leading-[26px] tabular-nums" style={{ fontWeight: 500, letterSpacing: "-0.01em" }}>
-                    ${client.estimatesTotal.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-                  </div>
-                </div>
-
-                {/* Past Due */}
-                <div className="flex flex-col gap-1">
-                  <div className="flex items-center gap-1.5">
-                    <div className="text-[12px] text-[#6B7280] leading-[18px]">
-                      Past Due
-                    </div>
-                    <div className="relative group">
-                      <span className="material-icons text-[#9CA3AF] cursor-help" style={{ fontSize: "14px" }}>info</span>
-                      <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden group-hover:block bg-white border border-[#E5E7EB] rounded-md shadow-lg px-3 py-2 z-50 whitespace-nowrap">
-                        <div className="text-[12px] text-[#1A2332]">Overdue invoices requiring immediate attention</div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="text-[18px] text-[#DC2626] leading-[26px] tabular-nums" style={{ fontWeight: 500, letterSpacing: "-0.01em" }}>
-                    ${client.pastDueBalance.toLocaleString("en-US", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
-                  </div>
-                </div>
-              </div>
+              ))}
             </div>
           </div>
         </div>
