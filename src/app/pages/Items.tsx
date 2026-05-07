@@ -436,6 +436,7 @@ export function Items() {
       <PageHeader
         title="Items"
         count={`${tabRecordCounts[activeTab]} records`}
+        className="mb-3"
         actions={
           <>
             <button
