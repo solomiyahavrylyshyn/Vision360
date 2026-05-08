@@ -352,7 +352,6 @@ export function ClientDetail() {
   const visibleTabs = tabs.filter(t => !hiddenTabs.has(t.key));
   const [isEditing, setIsEditing] = useState(false);
   const [editingSection, setEditingSection] = useState<null | "name" | "contact" | "finance">(null);
-  const [clientNotesTab, setClientNotesTab] = useState<"notes" | "private" | "field">("notes");
   const [notesExpanded, setNotesExpanded] = useState(false);
   const [addingNote, setAddingNote] = useState(false);
   const [newNoteText, setNewNoteText] = useState("");
@@ -735,27 +734,8 @@ export function ClientDetail() {
           </button>
         </div>
 
-        {/* Note type tabs */}
-        <div className="flex border-b border-[#DDE3EE] px-5">
-          {(["notes", "private", "field"] as const).map((t) => {
-            const label = t === "notes" ? "Notes" : t === "private" ? "Private Notes" : "Field Notes";
-            return (
-              <button
-                key={t}
-                onClick={() => { setClientNotesTab(t); setAddingNote(false); }}
-                className={`py-2.5 mr-4 text-[12px] border-b-2 transition-colors ${
-                  clientNotesTab === t ? "border-[#4A6FA5] text-[#4A6FA5]" : "border-transparent text-[#6B7280] hover:text-[#374151]"
-                }`}
-                style={{ fontWeight: clientNotesTab === t ? 600 : 500 }}
-              >
-                {label}
-              </button>
-            );
-          })}
-        </div>
-
         {/* Add note form */}
-        {addingNote && clientNotesTab === "notes" && (
+        {addingNote && (
           <div className="px-5 py-3 border-b border-[#DDE3EE] bg-[#F9FAFB]">
             <textarea
               autoFocus
@@ -795,16 +775,10 @@ export function ClientDetail() {
         )}
 
         <div className="px-5 pt-2 pb-1">
-          {clientNotesTab === "private" && (
-            <div className="py-6 text-center text-[12px] text-[#9CA3AF]">No private notes yet</div>
-          )}
-          {clientNotesTab === "field" && (
-            <div className="py-6 text-center text-[12px] text-[#9CA3AF]">No field notes yet</div>
-          )}
-          {clientNotesTab === "notes" && clientData.notesArray.length === 0 && !addingNote && (
+          {clientData.notesArray.length === 0 && !addingNote && (
             <div className="py-6 text-center text-[12px] text-[#9CA3AF]">No notes yet</div>
           )}
-          {clientNotesTab === "notes" && <>{(notesExpanded ? clientData.notesArray : clientData.notesArray.slice(0, 4)).map((note, index, arr) => {
+          <>{(notesExpanded ? clientData.notesArray : clientData.notesArray.slice(0, 4)).map((note, index, arr) => {
             const isLong = note.text.length > 120;
             const isExpanded = expandedNoteIds.has(note.id);
             const isEditingThis = editingNoteId === note.id;
@@ -902,7 +876,7 @@ export function ClientDetail() {
               </span>
               {notesExpanded ? "Show less" : `Show ${clientData.notesArray.length - 4} more`}
             </button>
-          )}</>}
+          )}</>
         </div>
         {/* Custom Fields + Taxable */}
         <div className="p-5 space-y-3 border-t border-[#DDE3EE]">
