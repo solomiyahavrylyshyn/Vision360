@@ -565,6 +565,7 @@ export function ClientDetail() {
   ────────────────────────────────────────── */
   const KebabMenu = () => (
     <KebabMenuShared triggerClassName="w-9 h-9 border border-[#DDE3EE] rounded-md bg-white" contentClassName="min-w-[220px]">
+      <KebabItem icon="tab_unselected" onClick={() => setShowTabSettings(true)}>Edit Tabs</KebabItem>
       <KebabItem icon="print" onClick={() => toast.info("Print functionality coming soon")}>Print</KebabItem>
       <DropdownMenuSub>
         <DropdownMenuSubTrigger className="flex items-center gap-2.5 px-3 h-9 text-[13px] text-[#374151] cursor-pointer rounded-none" style={{ fontWeight: 500 }}>
@@ -587,7 +588,6 @@ export function ClientDetail() {
         </DropdownMenuSubContent>
       </DropdownMenuSub>
       <KebabItem icon="payments" onClick={() => toast.info("Collect Payment coming soon")}>Collect Payment</KebabItem>
-      <KebabItem icon="event_repeat" onClick={() => toast.info("Add Recurring Service coming soon")}>Add Recurring Service</KebabItem>
     </KebabMenuShared>
   );
 
@@ -1604,36 +1604,6 @@ export function ClientDetail() {
                 />
               ))}
             </div>
-            {/* Settings button + dropdown — outside overflow container so dropdown isn't clipped */}
-            <div className="relative shrink-0" ref={tabSettingsRef}>
-              <button
-                className={`h-[45px] w-[50px] flex items-center justify-center hover:bg-[#F3F4F6] transition-colors ${showTabSettings ? "bg-[#F3F4F6]" : ""}`}
-                onClick={() => setShowTabSettings(v => !v)}
-              >
-                <span className="material-icons text-[#6B7280]" style={{ fontSize: "18px" }}>settings</span>
-              </button>
-              {showTabSettings && (
-                <>
-                  <div className="fixed inset-0 z-40" onClick={() => setShowTabSettings(false)} />
-                  <div className="absolute right-0 top-full mt-1 z-50 bg-white border border-[#E5E7EB] rounded-lg shadow-lg w-[200px] py-2">
-                    <div className="px-3 pb-2 pt-1">
-                      <p className="text-[11px] text-[#9CA3AF] uppercase tracking-wider" style={{ fontWeight: 600 }}>Show / hide tabs</p>
-                    </div>
-                    {tabs.map(({ key, label }) => (
-                      <label key={key} className="flex items-center gap-2.5 px-3 py-2 hover:bg-[#F9FAFB] cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={!hiddenTabs.has(key)}
-                          onChange={() => toggleTabVisibility(key)}
-                          className="w-4 h-4 accent-[#4A6FA5]"
-                        />
-                        <span className="text-[13px] text-[#374151]" style={{ fontWeight: 500 }}>{label}</span>
-                      </label>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
           </div>
         </DndProvider>
       </div>
@@ -1825,6 +1795,34 @@ export function ClientDetail() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* ── Tab Settings Modal ── */}
+      {showTabSettings && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setShowTabSettings(false)} />
+          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 bg-white border border-[#E5E7EB] rounded-xl shadow-2xl w-[260px] py-3">
+            <div className="px-4 pb-2 pt-1 flex items-center justify-between">
+              <p className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>Show / Hide Tabs</p>
+              <button onClick={() => setShowTabSettings(false)} className="text-[#9CA3AF] hover:text-[#374151]">
+                <span className="material-icons" style={{ fontSize: "18px" }}>close</span>
+              </button>
+            </div>
+            <div className="border-t border-[#F3F4F6] pt-1">
+              {tabs.map(({ key, label }) => (
+                <label key={key} className="flex items-center gap-2.5 px-4 py-2 hover:bg-[#F9FAFB] cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={!hiddenTabs.has(key)}
+                    onChange={() => toggleTabVisibility(key)}
+                    className="w-4 h-4 accent-[#4A6FA5]"
+                  />
+                  <span className="text-[13px] text-[#374151]" style={{ fontWeight: 500 }}>{label}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        </>
       )}
     </div>
   );

@@ -118,6 +118,8 @@ export function JobDetail() {
   const job = mockJobData[id || "1"] || mockJobData["1"];
 
   const [activeTab, setActiveTab] = useState<TabKey>("details");
+  const [hiddenTabs, setHiddenTabs] = useState<Set<TabKey>>(new Set());
+  const [showTabSettings, setShowTabSettings] = useState(false);
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
   const [currentStatus, setCurrentStatus] = useState<string>(job.status);
   const [notesTab, setNotesTab] = useState<NotesTabKey>("notes");
@@ -130,6 +132,23 @@ export function JobDetail() {
     setEditingSection(section);
   };
   const setEditField = (field: string, value: any) => setEditJob((p: any) => ({ ...p, [field]: value }));
+
+  const toggleTabVisibility = (key: TabKey) => {
+    setHiddenTabs(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) { next.delete(key); }
+      else {
+        next.add(key);
+        if (activeTab === key) {
+          const firstVisible = TABS.find(t => t.key !== key && !next.has(t.key));
+          if (firstVisible) setActiveTab(firstVisible.key);
+        }
+      }
+      return next;
+    });
+  };
+
+  const visibleTabs = TABS.filter(t => !hiddenTabs.has(t.key));
 
   const statusColor = statusColors[currentStatus] || "#6B7280";
 
@@ -803,9 +822,10 @@ export function JobDetail() {
               <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
             </button>
             <KebabMenu triggerClassName="h-8 w-8 border border-[#DDE3EE] rounded-md hover:bg-[#EDF0F5] flex items-center justify-center">
+              <KebabItem icon="tab_unselected" onClick={() => setShowTabSettings(true)}>Edit Tabs</KebabItem>
               <KebabItem icon="edit" onClick={() => navigate(`/jobs/${id}/edit`)}>Edit Job</KebabItem>
               <KebabItem icon="content_copy">Duplicate Job</KebabItem>
-              <KebabItem icon="delete" destructive>Delete Job</KebabItem>
+              <KebabItem icon="block" destructive>Inactivate Job</KebabItem>
             </KebabMenu>
           </div>
         </div>
@@ -1025,7 +1045,7 @@ export function JobDetail() {
       <div className="bg-white sticky top-0 z-30">
         <div className="flex items-center overflow-x-auto scrollbar-hide border-b border-[#E5E7EB]">
           <div className="flex items-center px-6">
-            {TABS.map(({ key, label }) => (
+            {visibleTabs.map(({ key, label }) => (
               <button
                 key={key}
                 onClick={() => setActiveTab(key)}
@@ -1041,9 +1061,6 @@ export function JobDetail() {
               </button>
             ))}
           </div>
-          <button className="ml-auto h-[45px] w-[50px] flex items-center justify-center shrink-0 hover:bg-[#F3F4F6] transition-colors">
-            <span className="material-icons text-[#6B7280]" style={{ fontSize: "18px" }}>settings</span>
-          </button>
         </div>
       </div>
 
@@ -1259,6 +1276,34 @@ export function JobDetail() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* ── Tab Settings Modal ── */}
+      {showTabSettings && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setShowTabSettings(false)} />
+          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 bg-white border border-[#E5E7EB] rounded-xl shadow-2xl w-[260px] py-3">
+            <div className="px-4 pb-2 pt-1 flex items-center justify-between">
+              <p className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>Show / Hide Tabs</p>
+              <button onClick={() => setShowTabSettings(false)} className="text-[#9CA3AF] hover:text-[#374151]">
+                <span className="material-icons" style={{ fontSize: "18px" }}>close</span>
+              </button>
+            </div>
+            <div className="border-t border-[#F3F4F6] pt-1">
+              {TABS.map(({ key, label }) => (
+                <label key={key} className="flex items-center gap-2.5 px-4 py-2 hover:bg-[#F9FAFB] cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={!hiddenTabs.has(key)}
+                    onChange={() => toggleTabVisibility(key)}
+                    className="w-4 h-4 accent-[#4A6FA5]"
+                  />
+                  <span className="text-[13px] text-[#374151]" style={{ fontWeight: 500 }}>{label}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        </>
       )}
     </div>
   );
