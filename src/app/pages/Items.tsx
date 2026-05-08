@@ -1394,6 +1394,45 @@ function ItemModal({ item, categories, brands, groups, onClose, onSave }: {
 
   const [form, setForm] = useState<Item>(item || blankItem);
   const update = (field: keyof Item, value: any) => setForm(prev => ({ ...prev, [field]: value }));
+  const [taxProfile, setTaxProfile] = useState<string>("");
+
+  // Map item type to one of the 6 chip categories
+  type ChipType = "Service" | "Material" | "Equipment" | "Asset" | "Fees" | "Price Book";
+  const typeToChip = (t: ItemType): ChipType => {
+    if (["Service", "Labor", "Maintenance", "Diagnostics", "Installation", "Repair"].includes(t)) return "Service";
+    if (["Inventory Item", "Non-Inventory Item", "Serialized Item"].includes(t)) return "Material";
+    if (t === "Equipment") return "Equipment";
+    if (t === "Asset") return "Asset";
+    if (["Fee / Admin Code", "Discount", "Other Charge", "Material Markup", "Labor Markup", "Other Markup",
+      "Material Discount", "Labor Discount", "Other Discount"].includes(t)) return "Fees";
+    if (["Bundle / Kit", "Expense / Reimbursement"].includes(t)) return "Price Book";
+    return "Service";
+  };
+  const chipToType: Record<ChipType, ItemType> = {
+    Service: "Service",
+    Material: "Inventory Item",
+    Equipment: "Equipment",
+    Asset: "Asset",
+    Fees: "Fee / Admin Code",
+    "Price Book": "Bundle / Kit",
+  };
+  const [selectedChip, setSelectedChip] = useState<ChipType>(typeToChip(form.type));
+
+  const chipDefs: { key: ChipType; color: string; icon: string }[] = [
+    { key: "Service",    color: "#4A6FA5", icon: "build" },
+    { key: "Material",   color: "#16A34A", icon: "category" },
+    { key: "Equipment",  color: "#7C3AED", icon: "settings" },
+    { key: "Asset",      color: "#D97706", icon: "location_on" },
+    { key: "Fees",       color: "#EA580C", icon: "attach_money" },
+    { key: "Price Book", color: "#0D9488", icon: "menu_book" },
+  ];
+
+  const handleChipSelect = (chip: ChipType) => {
+    setSelectedChip(chip);
+    update("type", chipToType[chip]);
+  };
+
+  const mockVendors = ["—", "HVAC Supply Co.", "Ferguson Enterprises", "Johnstone Supply", "Grainger", "HD Supply"];
 
   return (
     <ModalBackdrop onClose={onClose}>
@@ -1402,10 +1441,6 @@ function ItemModal({ item, categories, brands, groups, onClose, onSave }: {
         <div className="flex items-center justify-between px-6 py-5 border-b border-[#DDE3EE]">
           <h2 className="text-[20px] text-[#1A2332]" style={{ fontWeight: 700 }}>{item ? "Edit Item" : "Add New Item"}</h2>
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <Toggle checked={form.active} onChange={(v) => update("active", v)} />
-              <span className="text-[13px] text-[#546478]" style={{ fontWeight: 500 }}>Active</span>
-            </div>
             <button onClick={onClose} className="w-8 h-8 rounded-lg hover:bg-[#F5F7FA] flex items-center justify-center">
               <span className="material-icons text-[#546478]" style={{ fontSize: "22px" }}>close</span>
             </button>
@@ -1415,26 +1450,39 @@ function ItemModal({ item, categories, brands, groups, onClose, onSave }: {
         {/* Body */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
 
-          {/* ── Basic Info ── */}
+          {/* ── 1. Basic Info ── */}
           <SectionHeader label="Basic Info" />
           <div className="space-y-4">
-            {/* Name + Bold toggle inline */}
-            <div className="flex items-start gap-4">
-              <div className="flex-1">
-                <FieldGroup label="Name" required>
-                  <input
-                    type="text" value={form.name} onChange={(e) => update("name", e.target.value)}
-                    placeholder="Item name"
-                    className="w-full h-10 px-3 border border-[#DDE3EE] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]"
-                    spellCheck
-                  />
-                </FieldGroup>
-              </div>
-              <div className="flex items-center gap-2 pt-7 shrink-0">
-                <Toggle checked={form.boldPrint} onChange={(v) => update("boldPrint", v)} />
-                <span className="text-[13px] text-[#1A2332] whitespace-nowrap" style={{ fontWeight: 500 }}>Bold When Printed on J-I-E</span>
-              </div>
+            {/* Item ID + Status side by side */}
+            <div className="grid grid-cols-2 gap-4">
+              <FieldGroup label="Item ID">
+                <input
+                  type="text"
+                  value={form.id || "Auto"}
+                  readOnly
+                  className="w-full h-10 px-3 border border-[#DDE3EE] rounded-lg text-[14px] bg-[#F5F7FA] text-[#8899AA] cursor-default focus:outline-none"
+                />
+              </FieldGroup>
+              <FieldGroup label="Status">
+                <select
+                  value={form.active ? "active" : "inactive"}
+                  onChange={(e) => update("active", e.target.value === "active")}
+                  className="w-full h-10 px-3 border border-[#DDE3EE] rounded-lg text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
+                >
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+              </FieldGroup>
             </div>
+
+            <FieldGroup label="Name" required>
+              <input
+                type="text" value={form.name} onChange={(e) => update("name", e.target.value)}
+                placeholder="Item name"
+                className="w-full h-10 px-3 border border-[#DDE3EE] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]"
+                spellCheck
+              />
+            </FieldGroup>
 
             <FieldGroup label="Description (internal)">
               <textarea
@@ -1462,107 +1510,66 @@ function ItemModal({ item, categories, brands, groups, onClose, onSave }: {
                 spellCheck
               />
             </FieldGroup>
-            <FieldGroup label="Picture (URL)">
-              <input
-                type="text" value={form.picture} onChange={(e) => update("picture", e.target.value)}
-                placeholder="Image URL or file path (optional)"
-                className="w-full h-10 px-3 border border-[#DDE3EE] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]"
-              />
-            </FieldGroup>
           </div>
 
-          {/* ── Type & Classification ── */}
-          <SectionHeader label="Type & Classification" />
-          <div className="space-y-4">
-            <FieldGroup label="Item Type">
+          {/* ── 2. Type ── */}
+          <SectionHeader label="Type" />
+          <div className="grid grid-cols-3 gap-3">
+            {chipDefs.map(({ key, color, icon }) => {
+              const isSelected = selectedChip === key;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => handleChipSelect(key)}
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition-all text-left"
+                  style={{
+                    borderColor: isSelected ? color : "#DDE3EE",
+                    backgroundColor: isSelected ? `${color}12` : "#FFFFFF",
+                  }}
+                >
+                  <div
+                    className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                    style={{ backgroundColor: color }}
+                  >
+                    <span className="material-icons text-white" style={{ fontSize: "16px" }}>{icon}</span>
+                  </div>
+                  <span
+                    className="text-[14px]"
+                    style={{ fontWeight: isSelected ? 600 : 500, color: isSelected ? color : "#1A2332" }}
+                  >
+                    {key}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* ── 3. Classification ── */}
+          <SectionHeader label="Classification" />
+          <div className="grid grid-cols-2 gap-4">
+            <FieldGroup label="Category">
               <select
-                value={form.type} onChange={(e) => update("type", e.target.value as ItemType)}
+                value={form.category} onChange={(e) => update("category", e.target.value)}
                 className="w-full h-10 px-3 border border-[#DDE3EE] rounded-lg text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
               >
-                <optgroup label="Service">
-                  <option value="Service">Service</option>
-                  <option value="Labor">Labor</option>
-                  <option value="Maintenance">Maintenance</option>
-                  <option value="Diagnostics">Diagnostics</option>
-                  <option value="Installation">Installation</option>
-                  <option value="Repair">Repair</option>
-                </optgroup>
-                <optgroup label="Material">
-                  <option value="Inventory Item">Inventory Item</option>
-                  <option value="Non-Inventory Item">Non-Inventory Item</option>
-                  <option value="Serialized Item">Serialized Item</option>
-                </optgroup>
-                <optgroup label="Equipment &amp; Asset">
-                  <option value="Equipment">Equipment</option>
-                  <option value="Asset">Asset</option>
-                </optgroup>
-                <optgroup label="Fee">
-                  <option value="Fee / Admin Code">Fee / Admin Code</option>
-                  <option value="Discount">Discount</option>
-                  <option value="Other Charge">Other Charge</option>
-                  <option value="Material Markup">Material Markup</option>
-                  <option value="Labor Markup">Labor Markup</option>
-                  <option value="Other Markup">Other Markup</option>
-                  <option value="Material Discount">Material Discount</option>
-                  <option value="Labor Discount">Labor Discount</option>
-                  <option value="Other Discount">Other Discount</option>
-                </optgroup>
-                <optgroup label="Other">
-                  <option value="Bundle / Kit">Bundle / Kit</option>
-                  <option value="Expense / Reimbursement">Expense / Reimbursement</option>
-                </optgroup>
+                <option value="">Choose category (optional)</option>
+                {categories.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
+              <p className="text-[11px] text-[#8899AA] mt-1">(Configure in Settings)</p>
             </FieldGroup>
-
-            <div className="grid grid-cols-2 gap-4">
-              <FieldGroup label="Category">
-                <select
-                  value={form.category} onChange={(e) => update("category", e.target.value)}
-                  className="w-full h-10 px-3 border border-[#DDE3EE] rounded-lg text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
-                >
-                  <option value="">Choose category (optional)</option>
-                  {categories.map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
-              </FieldGroup>
-              <FieldGroup label="Subcategory">
-                <input
-                  type="text" value={form.subcategory} onChange={(e) => update("subcategory", e.target.value)}
-                  placeholder="Subcategory (optional)"
-                  className="w-full h-10 px-3 border border-[#DDE3EE] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]"
-                />
-              </FieldGroup>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <FieldGroup label="Mfg.">
-                <select
-                  value={form.brand} onChange={(e) => update("brand", e.target.value)}
-                  className="w-full h-10 px-3 border border-[#DDE3EE] rounded-lg text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
-                >
-                  <option value="">Select manufacturer (optional)</option>
-                  {brands.map(b => <option key={b.id} value={b.name}>{b.name}</option>)}
-                </select>
-              </FieldGroup>
-              <FieldGroup label="Department">
-                <input
-                  type="text" value={form.department} onChange={(e) => update("department", e.target.value)}
-                  placeholder="e.g. Field Service"
-                  className="w-full h-10 px-3 border border-[#DDE3EE] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]"
-                />
-              </FieldGroup>
-            </div>
-            <FieldGroup label="Group">
+            <FieldGroup label="Manufacturer">
               <select
-                value={form.group} onChange={(e) => update("group", e.target.value)}
+                value={form.brand} onChange={(e) => update("brand", e.target.value)}
                 className="w-full h-10 px-3 border border-[#DDE3EE] rounded-lg text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
               >
-                <option value="">No group (optional)</option>
-                {groups.map(g => <option key={g.id} value={g.name}>{g.name}</option>)}
+                <option value="">Select manufacturer (optional)</option>
+                {brands.map(b => <option key={b.id} value={b.name}>{b.name}</option>)}
               </select>
             </FieldGroup>
           </div>
 
-          {/* ── Pricing & Tax ── */}
+          {/* ── 4. Pricing & Tax ── */}
           <SectionHeader label="Pricing & Tax" />
           <div className="space-y-4">
             <div className="grid grid-cols-3 gap-4">
@@ -1598,123 +1605,73 @@ function ItemModal({ item, categories, brands, groups, onClose, onSave }: {
               </FieldGroup>
             </div>
 
-            <div className="flex items-center justify-between py-1">
-              <div>
-                <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Taxable</div>
-                <div className="text-[12px] text-[#8899AA]">Apply tax to this item</div>
+            <div className="flex items-end gap-4">
+              <div className="flex-1">
+                <FieldGroup label="Tax Profile">
+                  <select
+                    value={taxProfile}
+                    onChange={(e) => setTaxProfile(e.target.value)}
+                    className="w-full h-10 px-3 border border-[#DDE3EE] rounded-lg text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
+                  >
+                    <option value="">Select tax profile…</option>
+                    <option value="no_tax">No Tax</option>
+                    <option value="fl_7">Florida Sales Tax 7%</option>
+                    <option value="tx_8">Texas Sales Tax 8.25%</option>
+                    <option value="pl_23">Polish Sales Tax 23%</option>
+                  </select>
+                  <p className="text-[11px] text-[#8899AA] mt-1">(Configure in Settings → Tax Profiles)</p>
+                </FieldGroup>
               </div>
-              <Toggle checked={form.taxable} onChange={(v) => update("taxable", v)} />
-            </div>
-
-            <div className="flex items-center gap-6">
-              {(["tax1", "tax2", "tax3"] as const).map((field, i) => (
-                <label key={field} className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={form[field]}
-                    onChange={(e) => update(field, e.target.checked)}
-                    className="w-4 h-4 rounded border-[#DDE3EE] accent-[#4A6FA5] cursor-pointer"
-                  />
-                  <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Tax {i + 1}</span>
-                </label>
-              ))}
+              <div className="flex items-center gap-2 pb-6 shrink-0">
+                <Toggle checked={form.taxable} onChange={(v) => update("taxable", v)} />
+                <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>Taxable</span>
+              </div>
             </div>
           </div>
 
-          {/* ── Inventory ── */}
-          <SectionHeader label="Inventory" />
-          <div className="space-y-4">
-            <div className="grid grid-cols-3 gap-4">
-              <FieldGroup label="On Hand">
-                <input
-                  type="number" min="0" value={form.onHand || ""}
-                  onChange={(e) => update("onHand", parseInt(e.target.value) || 0)}
-                  className="w-full h-10 px-3 border border-[#DDE3EE] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]"
-                />
-              </FieldGroup>
-              <FieldGroup label="Min Qty">
-                <input
-                  type="number" min="0" value={form.minQty || ""}
-                  onChange={(e) => update("minQty", parseInt(e.target.value) || 0)}
-                  className="w-full h-10 px-3 border border-[#DDE3EE] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]"
-                />
-              </FieldGroup>
-              <FieldGroup label="Max Qty">
-                <input
-                  type="number" min="0" value={form.maxQty || ""}
-                  onChange={(e) => update("maxQty", parseInt(e.target.value) || 0)}
-                  className="w-full h-10 px-3 border border-[#DDE3EE] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]"
-                />
-              </FieldGroup>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <FieldGroup label="UPC">
-                <input
-                  type="text" value={form.upc} onChange={(e) => update("upc", e.target.value)}
-                  placeholder="Universal Product Code"
-                  className="w-full h-10 px-3 border border-[#DDE3EE] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]"
-                />
-              </FieldGroup>
-              <FieldGroup label="SKU">
-                <input
-                  type="text" value={form.modelNumber} onChange={(e) => update("modelNumber", e.target.value)}
-                  placeholder="Stock Keeping Unit / Model #"
-                  className="w-full h-10 px-3 border border-[#DDE3EE] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]"
-                />
-              </FieldGroup>
-            </div>
-
-            <div className="flex items-center justify-between py-1">
-              <div>
-                <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Tracking</div>
-                <div className="text-[12px] text-[#8899AA]">Track inventory quantity for this item</div>
-              </div>
-              <Toggle checked={form.tracking} onChange={(v) => update("tracking", v)} />
-            </div>
-          </div>
-
-          {/* ── Vendor ── */}
+          {/* ── 5. Vendor ── */}
           <SectionHeader label="Vendor" />
-          <div className="grid grid-cols-2 gap-4">
-            <FieldGroup label="Vendor">
+          <FieldGroup label="Vendor">
+            <select
+              value={form.vendor} onChange={(e) => update("vendor", e.target.value === "—" ? "" : e.target.value)}
+              className="w-full h-10 px-3 border border-[#DDE3EE] rounded-lg text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
+            >
+              {mockVendors.map(v => <option key={v} value={v}>{v}</option>)}
+            </select>
+          </FieldGroup>
+
+          {/* ── 6. Pictures ── */}
+          <SectionHeader label="Pictures" />
+          <div className="flex items-start gap-4">
+            <div className="flex-1 space-y-3">
+              {/* Dashed upload area */}
+              <div className="flex flex-col items-center justify-center gap-1 border-2 border-dashed border-[#DDE3EE] rounded-xl py-5 px-4 bg-[#FAFBFC] cursor-pointer hover:border-[#4A6FA5] transition-colors">
+                <span className="material-icons text-[#8899AA]" style={{ fontSize: "32px" }}>upload_file</span>
+                <span className="text-[13px] text-[#546478]" style={{ fontWeight: 500 }}>Upload image or paste URL</span>
+              </div>
+              {/* URL input */}
               <input
-                type="text" value={form.vendor} onChange={(e) => update("vendor", e.target.value)}
-                placeholder="Vendor name"
+                type="text" value={form.picture} onChange={(e) => update("picture", e.target.value)}
+                placeholder="Paste image URL (optional)"
                 className="w-full h-10 px-3 border border-[#DDE3EE] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]"
               />
-            </FieldGroup>
-            <FieldGroup label="Vendor Code">
-              <input
-                type="text" value={form.vendorCode} onChange={(e) => update("vendorCode", e.target.value)}
-                placeholder="Vendor part / item code"
-                className="w-full h-10 px-3 border border-[#DDE3EE] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]"
-              />
-            </FieldGroup>
+            </div>
+            {/* Preview */}
+            {form.picture && (
+              <div className="flex-shrink-0">
+                <img
+                  src={form.picture}
+                  alt="Item preview"
+                  className="h-[60px] w-auto rounded-lg border border-[#DDE3EE] object-contain bg-[#F5F7FA]"
+                />
+              </div>
+            )}
           </div>
 
-          {/* ── Accounting ── */}
-          <SectionHeader label="Accounting" />
-          <div className="grid grid-cols-2 gap-4">
-            <FieldGroup label="COGS G/L">
-              <input
-                type="text" value={form.cogsGL} onChange={(e) => update("cogsGL", e.target.value)}
-                placeholder="5000 · Cost of Goods"
-                className="w-full h-10 px-3 border border-[#DDE3EE] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]"
-              />
-            </FieldGroup>
-            <FieldGroup label="Sales G/L">
-              <input
-                type="text" value={form.salesGL} onChange={(e) => update("salesGL", e.target.value)}
-                placeholder="4000 · Sales Revenue"
-                className="w-full h-10 px-3 border border-[#DDE3EE] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]"
-              />
-            </FieldGroup>
-          </div>
-
-          {/* ── Custom Fields ── */}
+          {/* ── 7. Custom Fields ── */}
           <SectionHeader label="Custom Fields" />
-          <div className="grid grid-cols-3 gap-4">
+          <p className="text-[11px] text-[#8899AA] -mt-4">(Configure labels in Settings → Custom Fields)</p>
+          <div className="grid grid-cols-2 gap-4">
             <FieldGroup label="Custom Field 1">
               <input
                 type="text" value={form.customField1} onChange={(e) => update("customField1", e.target.value)}
@@ -1729,25 +1686,48 @@ function ItemModal({ item, categories, brands, groups, onClose, onSave }: {
                 className="w-full h-10 px-3 border border-[#DDE3EE] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]"
               />
             </FieldGroup>
-            <FieldGroup label="Custom Field 3">
-              <input
-                type="text" value={form.customField3} onChange={(e) => update("customField3", e.target.value)}
-                placeholder="Custom field 3"
-                className="w-full h-10 px-3 border border-[#DDE3EE] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]"
-              />
-            </FieldGroup>
           </div>
 
-          {/* ── Notes ── */}
+          {/* ── 8. Notes ── */}
           <SectionHeader label="Notes" />
-          <FieldGroup label="">
-            <textarea
-              value={form.notes} onChange={(e) => update("notes", e.target.value)}
-              placeholder="Internal notes (optional)"
-              className="w-full min-h-[80px] px-3 py-2 border border-[#DDE3EE] rounded-lg text-[14px] resize-y focus:outline-none focus:border-[#4A6FA5]"
-              spellCheck
-            />
-          </FieldGroup>
+          <textarea
+            value={form.notes} onChange={(e) => update("notes", e.target.value)}
+            placeholder="Internal notes (optional)"
+            className="w-full min-h-[80px] px-3 py-2 border border-[#DDE3EE] rounded-lg text-[14px] resize-y focus:outline-none focus:border-[#4A6FA5]"
+            spellCheck
+          />
+
+          {/* ── 9. Enterprise Fields (greyed out placeholder) ── */}
+          <div className="bg-[#F9FAFB] border border-dashed border-[#DDE3EE] rounded-xl p-5 opacity-60 pointer-events-none select-none">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="text-[16px]">🔒</span>
+              <span className="text-[15px] text-[#546478]" style={{ fontWeight: 700 }}>Enterprise Fields</span>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              {[
+                { label: "SKU / Item Code", placeholder: "SKU / Item Code" },
+                { label: "UPC", placeholder: "UPC" },
+                { label: "Subcategory", placeholder: "Subcategory" },
+                { label: "Department", placeholder: "Department" },
+                { label: "Group", placeholder: "Group" },
+                { label: "On Hand", placeholder: "On Hand" },
+                { label: "COGS G/L", placeholder: "COGS G/L" },
+                { label: "Sales G/L", placeholder: "Sales G/L" },
+                { label: "Vendor Code", placeholder: "Vendor Code" },
+              ].map(({ label, placeholder }) => (
+                <div key={label}>
+                  <div className="text-[12px] text-[#8899AA] mb-1" style={{ fontWeight: 500 }}>{label}</div>
+                  <input
+                    type="text"
+                    readOnly
+                    placeholder={placeholder}
+                    className="w-full h-9 px-3 border border-[#DDE3EE] rounded-lg text-[13px] bg-white text-[#8899AA] cursor-default focus:outline-none"
+                  />
+                </div>
+              ))}
+            </div>
+            <p className="text-[12px] text-[#8899AA] mt-4">These fields are available in the Enterprise plan.</p>
+          </div>
 
         </div>
 
