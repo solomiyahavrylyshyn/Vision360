@@ -1002,7 +1002,7 @@ export function ClientDetail() {
                 { label: "Past Due",      value: `$${client.pastDueBalance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, color: "#DC2626" },
                 { label: "Open Jobs",     value: "3", color: "#1A2332" },
               ].map(({ label, value, color }) => (
-                <div key={label} className="w-[170px] bg-white border border-[#DDE3EE] rounded-xl px-4 py-3">
+                <div key={label} className="w-[180px] bg-white border border-[#DDE3EE] rounded-xl px-4 py-3">
                   <div className="text-[12px] text-[#546478] mb-1">{label}</div>
                   <div className="text-[22px] tabular-nums" style={{ fontWeight: 700, color, letterSpacing: "-0.01em" }}>{value}</div>
                 </div>
