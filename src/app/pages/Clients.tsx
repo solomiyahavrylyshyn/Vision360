@@ -508,7 +508,7 @@ export function Clients() {
           <div className="flex items-center gap-2 px-4 py-3 bg-white border-b border-[#DDE3EE]">
             <div className="relative">
               <span className="material-icons absolute left-2.5 top-1/2 -translate-y-1/2 text-[#9AA3AF]" style={{ fontSize: "16px" }}>search</span>
-              <Input type="text" placeholder="Search" value={searchQuery}
+              <Input type="text" placeholder="Search clients..." value={searchQuery}
                 onChange={e => { setSearchQuery(e.target.value); setCurrentPage(1); }}
                 className="pl-8 pr-3 h-8 w-[220px] border-[#DDE3EE] text-[13px] bg-white focus:bg-white" />
             </div>

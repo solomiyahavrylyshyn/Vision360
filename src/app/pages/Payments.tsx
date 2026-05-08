@@ -195,7 +195,7 @@ export function Payments() {
           <div className="flex items-center gap-2 px-4 py-3 bg-white border-b border-[#DDE3EE]">
             <div className="relative">
               <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: "18px" }}>search</span>
-              <input type="text" placeholder="Search" value={search}
+              <input type="text" placeholder="Search payments..." value={search}
                 onChange={(e) => { setSearch(e.target.value); setPage(1); }}
                 className="w-[220px] h-9 pl-10 pr-3 border border-[#DDE3EE] rounded-lg text-[13px] focus:outline-none focus:border-[#4A6FA5] bg-white" />
             </div>

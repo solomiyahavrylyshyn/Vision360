@@ -1001,7 +1001,7 @@ export function Items() {
             <div className="flex items-center justify-between p-3 border-b border-[#DDE3EE]">
               <div className="relative w-[260px]">
                 <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: "18px" }}>search</span>
-                <input type="text" placeholder="Search" value={groupSearch} onChange={(e) => setGroupSearch(e.target.value)}
+                <input type="text" placeholder="Search groups..." value={groupSearch} onChange={(e) => setGroupSearch(e.target.value)}
                   className="w-full h-9 pl-10 pr-3 border border-[#DDE3EE] rounded-lg text-[13px] focus:outline-none focus:border-[#4A6FA5]" />
               </div>
             </div>
@@ -1049,7 +1049,7 @@ export function Items() {
             <div className="flex items-center justify-between p-3 border-b border-[#DDE3EE]">
               <div className="relative w-[260px]">
                 <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: "18px" }}>search</span>
-                <input type="text" placeholder="Search" value={catSearch} onChange={(e) => setCatSearch(e.target.value)}
+                <input type="text" placeholder="Search categories..." value={catSearch} onChange={(e) => setCatSearch(e.target.value)}
                   className="w-full h-9 pl-10 pr-3 border border-[#DDE3EE] rounded-lg text-[13px] focus:outline-none focus:border-[#4A6FA5]" />
               </div>
             </div>
@@ -1104,7 +1104,7 @@ export function Items() {
             <div className="flex items-center justify-between p-3 border-b border-[#DDE3EE]">
               <div className="relative w-[260px]">
                 <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: "18px" }}>search</span>
-                <input type="text" placeholder="Search" value={brandSearch} onChange={(e) => setBrandSearch(e.target.value)}
+                <input type="text" placeholder="Search brands..." value={brandSearch} onChange={(e) => setBrandSearch(e.target.value)}
                   className="w-full h-9 pl-10 pr-3 border border-[#DDE3EE] rounded-lg text-[13px] focus:outline-none focus:border-[#4A6FA5]" />
               </div>
             </div>
@@ -1155,7 +1155,7 @@ export function Items() {
             <div className="flex items-center justify-between p-3 border-b border-[#DDE3EE]">
               <div className="relative w-[260px]">
                 <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: "18px" }}>search</span>
-                <input type="text" placeholder="Search" value={catalogSearch} onChange={(e) => setCatalogSearch(e.target.value)}
+                <input type="text" placeholder="Search catalogs..." value={catalogSearch} onChange={(e) => setCatalogSearch(e.target.value)}
                   className="w-full h-9 pl-10 pr-3 border border-[#DDE3EE] rounded-lg text-[13px] focus:outline-none focus:border-[#4A6FA5]" />
               </div>
             </div>
