@@ -376,6 +376,7 @@ export function Items() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabKey>("all");
   const [showInfoBar, setShowInfoBar] = useState(true);
+  const [showInfoBarDismiss, setShowInfoBarDismiss] = useState(false);
 
   // Items state
   const [items, setItems] = useState<Item[]>(initialItems);
@@ -891,7 +892,7 @@ export function Items() {
         <div className="mt-3 bg-white border border-[#DDE3EE] rounded-xl px-5 py-4 flex gap-6 relative">
           {/* Close button */}
           <button
-            onClick={() => setShowInfoBar(false)}
+            onClick={() => setShowInfoBarDismiss(true)}
             className="absolute top-3 right-3 w-6 h-6 flex items-center justify-center rounded hover:bg-[#F3F4F6] text-[#9CA3AF] hover:text-[#546478] transition-colors"
             title="Close"
           >
@@ -942,19 +943,12 @@ export function Items() {
               ))}
             </div>
           </div>
-          {/* Don't show again */}
-          <div className="absolute bottom-3 right-10">
-            <label className="flex items-center gap-1.5 cursor-pointer">
-              <input type="checkbox" className="w-3.5 h-3.5 accent-[#4A6FA5]" onChange={() => setShowInfoBar(false)} />
-              <span className="text-[11px] text-[#9CA3AF]">Don't show again</span>
-            </label>
-          </div>
         </div>
       ) : (
         <div className="mt-3 bg-white border border-[#DDE3EE] rounded-xl px-5 py-4 flex gap-6 relative">
           {/* Close button */}
           <button
-            onClick={() => setShowInfoBar(false)}
+            onClick={() => setShowInfoBarDismiss(true)}
             className="absolute top-3 right-3 w-6 h-6 flex items-center justify-center rounded hover:bg-[#F3F4F6] text-[#9CA3AF] hover:text-[#546478] transition-colors"
             title="Close"
           >
@@ -1000,13 +994,6 @@ export function Items() {
                 </div>
               ))}
             </div>
-          </div>
-          {/* Don't show again */}
-          <div className="absolute bottom-3 right-10">
-            <label className="flex items-center gap-1.5 cursor-pointer">
-              <input type="checkbox" className="w-3.5 h-3.5 accent-[#4A6FA5]" onChange={() => setShowInfoBar(false)} />
-              <span className="text-[11px] text-[#9CA3AF]">Don't show again</span>
-            </label>
           </div>
         </div>
       ))}
@@ -1299,6 +1286,46 @@ export function Items() {
             setCatalogModalOpen(false);
           }}
         />
+      )}
+
+      {/* ── Info Bar Dismiss Modal ── */}
+      {showInfoBarDismiss && (
+        <ModalBackdrop onClose={() => setShowInfoBarDismiss(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-[360px] p-6">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-full bg-[#EBF0F8] flex items-center justify-center flex-shrink-0">
+                <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "20px" }}>info</span>
+              </div>
+              <h3 className="text-[16px] text-[#1A2332]" style={{ fontWeight: 700 }}>Hide this panel?</h3>
+            </div>
+            <p className="text-[13px] text-[#546478] mb-5">
+              Do you want to hide the info panel just for now, or don't show it again?
+            </p>
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={() => { setShowInfoBar(false); setShowInfoBarDismiss(false); }}
+                className="w-full px-4 py-2.5 bg-[#4A6FA5] text-white rounded-lg text-[13px] hover:bg-[#3d5a85] transition-colors"
+                style={{ fontWeight: 600 }}
+              >
+                Don't show again
+              </button>
+              <button
+                onClick={() => { setShowInfoBar(false); setShowInfoBarDismiss(false); }}
+                className="w-full px-4 py-2.5 border border-[#DDE3EE] text-[#546478] rounded-lg text-[13px] hover:bg-[#F5F7FA] transition-colors"
+                style={{ fontWeight: 500 }}
+              >
+                Just hide for now
+              </button>
+              <button
+                onClick={() => setShowInfoBarDismiss(false)}
+                className="w-full px-4 py-2.5 text-[#9CA3AF] rounded-lg text-[13px] hover:text-[#546478] transition-colors"
+                style={{ fontWeight: 500 }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </ModalBackdrop>
       )}
 
       {/* ── Delete Confirmation ── */}
