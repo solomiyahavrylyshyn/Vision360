@@ -140,8 +140,6 @@ export function Expenses() {
               className="w-[220px] h-9 pl-10 pr-3 border border-[#DDE3EE] rounded-lg text-[13px] focus:outline-none focus:border-[#4A6FA5] bg-white" />
           </div>
           <div className="w-px h-5 bg-[#DDE3EE] mx-1" />
-          <span className="text-[13px] text-[#546478]" style={{ fontWeight: 500 }}>{filtered.length} results</span>
-          <div className="w-px h-5 bg-[#DDE3EE] mx-1" />
           <select value={qfCategory} onChange={e => setQfCategory(e.target.value)} className={qfClass(qfCategory !== "All")}>
             {categoryFilterOptions.map(c => <option key={c} value={c}>{c === "All" ? "All categories" : c}</option>)}
           </select>

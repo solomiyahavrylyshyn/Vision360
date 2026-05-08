@@ -324,8 +324,6 @@ export function Estimates() {
               className="w-[220px] h-9 pl-10 pr-3 border border-[#DDE3EE] rounded-lg text-[13px] focus:outline-none focus:border-[#4A6FA5] bg-white" />
           </div>
           <div className="w-px h-5 bg-[#DDE3EE] mx-1" />
-          <span className="text-[13px] text-[#546478]" style={{ fontWeight: 500 }}>{filtered.length} results</span>
-          <div className="w-px h-5 bg-[#DDE3EE] mx-1" />
           <select value={qfStatus} onChange={e => { setQfStatus(e.target.value as any); setPage(1); }} className={qfClass(qfStatus !== "All")}>
             <option value="All">All statuses</option>
             {primaryStatuses.map(s => <option key={s} value={s}>{s}</option>)}
