@@ -397,7 +397,7 @@ export function ClientDetail() {
             <div className="text-[13px] text-[#1A2332] font-medium leading-[20px]">{client.billingAddress}</div>
             <div className="text-[13px] text-[#1A2332] font-medium leading-[20px]">{client.billingCity}, {client.billingState} {client.billingZip}</div>
           </div>
-          <label className="flex items-center gap-2 cursor-pointer">
+          <label className="flex items-center gap-2 cursor-pointer pb-4 border-b border-[#DDE3EE]">
             <input
               type="checkbox"
               checked={clientData.isBillingSameAsService}
