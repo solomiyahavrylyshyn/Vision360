@@ -1,4 +1,4 @@
-import { useState, useSyncExternalStore } from "react";
+import { useState, useSyncExternalStore, useCallback } from "react";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { useDraggableColumns, DraggableTh } from "../components/ui/draggable-columns";
@@ -26,6 +26,7 @@ import {
 import { KebabMenu as KebabMenuShared, KebabItem } from "../components/ui/kebab-menu";
 import { toast } from "sonner";
 import { tagsStore } from "../stores/tagsStore";
+import { customFieldsStore } from "../stores/customFieldsStore";
 
 const US_STATES = [
   "AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA",
@@ -172,6 +173,10 @@ export function ClientDetail() {
   //   active   → on-hold  when an invoice is past due
   //   on-hold  → active   when past-due balance is settled
   const daysOverdue = 18;
+  const cfClientFields = useSyncExternalStore(
+    customFieldsStore.subscribe,
+    useCallback(() => customFieldsStore.getEntityFields("clients"), [])
+  );
   const availableTags = useSyncExternalStore(
     tagsStore.subscribe,
     tagsStore.getTags
@@ -594,33 +599,56 @@ export function ClientDetail() {
             </button>
           )}
         </div>
-        <div className="p-5 space-y-3 border-t border-[#DDE3EE] mt-1">
-          {/* Custom Field 1 */}
-          <Select
-            value={clientData.customField1 || "none"}
-            onValueChange={(v) => setClientData((prev) => ({ ...prev, customField1: v === "none" ? "" : v }))}
-          >
-            <SelectTrigger className="border-[#DDE3EE] bg-white h-9 text-[13px] text-[#9CA3AF] rounded-lg" style={{ fontWeight: 400 }}>
-              <SelectValue placeholder="Custom Field 1" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">— Select —</SelectItem>
-            </SelectContent>
-          </Select>
-          {/* Custom Field 2 */}
-          <Select
-            value={clientData.customField2 || "none"}
-            onValueChange={(v) => setClientData((prev) => ({ ...prev, customField2: v === "none" ? "" : v }))}
-          >
-            <SelectTrigger className="border-[#DDE3EE] bg-white h-9 text-[13px] text-[#9CA3AF] rounded-lg" style={{ fontWeight: 400 }}>
-              <SelectValue placeholder="Custom Field 2" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">— Select —</SelectItem>
-            </SelectContent>
-          </Select>
+        {/* Custom Fields + Taxable */}
+        <div className="p-5 space-y-3 border-t border-[#DDE3EE]">
+          {cfClientFields.slice(0, 3).map((field, idx) => {
+            const cfKey = `cf_${idx}` as keyof typeof clientData;
+            const cfValue = (clientData as Record<string, string>)[`cf_${idx}`] ?? "";
+            const setCf = (val: string) => setClientData(prev => ({ ...prev, [`cf_${idx}`]: val }));
+            return (
+              <div key={idx}>
+                <div className="text-[11px] uppercase tracking-wider text-[#546478] font-semibold mb-1">{field.label}</div>
+                {field.type === "text" && (
+                  <input value={cfValue} onChange={e => setCf(e.target.value)} placeholder={field.label}
+                    className="w-full h-8 px-3 text-[13px] border border-[#DDE3EE] rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-[#4A6FA5]" />
+                )}
+                {field.type === "number" && (
+                  <input type="number" value={cfValue} onChange={e => setCf(e.target.value)} placeholder="0"
+                    className="w-full h-8 px-3 text-[13px] border border-[#DDE3EE] rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-[#4A6FA5]" />
+                )}
+                {field.type === "date" && (
+                  <input type="date" value={cfValue} onChange={e => setCf(e.target.value)}
+                    className="w-full h-8 px-3 text-[13px] border border-[#DDE3EE] rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-[#4A6FA5]" />
+                )}
+                {field.type === "checkbox" && (
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={cfValue === "true"} onChange={e => setCf(e.target.checked ? "true" : "")}
+                      className="w-4 h-4 accent-[#4A6FA5]" />
+                    <span className="text-[13px] text-[#4B5563]">{field.label}</span>
+                  </label>
+                )}
+                {field.type === "dropdown" && (
+                  <Select value={cfValue || "none"} onValueChange={v => setCf(v === "none" ? "" : v)}>
+                    <SelectTrigger className="border-[#DDE3EE] bg-white h-8 text-[13px] rounded-lg" style={{ fontWeight: 400 }}>
+                      <SelectValue placeholder={`Select ${field.label}`} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">— Select —</SelectItem>
+                      {field.options.map(opt => <SelectItem key={opt} value={opt}>{opt}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+            );
+          })}
+          <p className="text-[11px] text-[#9CA3AF] pt-1">
+            Configure in{" "}
+            <span className="text-[#4A6FA5] cursor-pointer hover:underline" onClick={() => navigate("/settings?section=customFields")}>
+              Settings → Custom Fields
+            </span>
+          </p>
           {/* Taxable checkbox */}
-          <label className="flex items-center gap-2.5 cursor-pointer pt-1">
+          <label className="flex items-center gap-2.5 cursor-pointer pt-1 border-t border-[#DDE3EE]">
             <input
               type="checkbox"
               checked={clientData.isTaxable}

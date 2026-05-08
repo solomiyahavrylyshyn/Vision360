@@ -9,6 +9,7 @@ import { marketingSourcesStore } from "../stores/marketingSourcesStore";
 import { tagsStore } from "../stores/tagsStore";
 import { countiesStore } from "../stores/countiesStore";
 import { jobTypesStore } from "../stores/jobTypesStore";
+import { customFieldsStore, type CfEntity } from "../stores/customFieldsStore";
 import { toast } from "sonner";
 
 type SettingsSection =
@@ -28,14 +29,6 @@ type SettingsSection =
   | "jobTypes"
   | "customFields";
 
-type CfFieldType = "text" | "number" | "date" | "checkbox" | "dropdown";
-type CfEntity = "clients" | "jobs" | "estimates" | "invoices" | "items";
-interface CfField { label: string; type: CfFieldType; options: string[] }
-const defaultCfFields = (): CfField[] => [
-  { label: "Custom Field 1", type: "text", options: [] },
-  { label: "Custom Field 2", type: "text", options: [] },
-  { label: "Custom Field 3", type: "text", options: [] },
-];
 
 export function Settings() {
   const [searchParams] = useSearchParams();
@@ -74,15 +67,9 @@ export function Settings() {
   const [editingJobType, setEditingJobType] = useState<string | null>(null);
   const [editingJobTypeValue, setEditingJobTypeValue] = useState("");
 
-  // Custom Fields state
+  // Custom Fields — via shared store
   const [cfEntity, setCfEntity] = useState<CfEntity>("clients");
-  const [customFields, setCustomFields] = useState<Record<CfEntity, CfField[]>>({
-    clients: defaultCfFields(),
-    jobs: defaultCfFields(),
-    estimates: defaultCfFields(),
-    invoices: defaultCfFields(),
-    items: defaultCfFields(),
-  });
+  const customFields = useSyncExternalStore(customFieldsStore.subscribe, customFieldsStore.getFields);
   const [cfNewOption, setCfNewOption] = useState<Record<string, string>>({});
 
   return (
@@ -1121,9 +1108,7 @@ export function Settings() {
                           <Input
                             value={field.label}
                             onChange={(e) => {
-                              const updated = [...customFields[cfEntity]];
-                              updated[idx] = { ...updated[idx], label: e.target.value };
-                              setCustomFields({ ...customFields, [cfEntity]: updated });
+                              customFieldsStore.updateField(cfEntity, idx, { label: e.target.value });
                             }}
                             onBlur={() => toast.success("Field label updated")}
                             className="border-[#DDE3EE] h-8 text-[13px]"
@@ -1135,9 +1120,7 @@ export function Settings() {
                           <select
                             value={field.type}
                             onChange={(e) => {
-                              const updated = [...customFields[cfEntity]];
-                              updated[idx] = { ...updated[idx], type: e.target.value as CfFieldType };
-                              setCustomFields({ ...customFields, [cfEntity]: updated });
+                              customFieldsStore.updateField(cfEntity, idx, { type: e.target.value as import("../stores/customFieldsStore").CfFieldType, options: [] });
                             }}
                             className="h-8 px-2.5 pr-8 border border-[#DDE3EE] rounded-md text-[13px] text-[#1A2332] bg-white outline-none focus:border-[#4A6FA5] cursor-pointer"
                             style={{
@@ -1171,11 +1154,7 @@ export function Settings() {
                                 {opt}
                                 <button
                                   onClick={() => {
-                                    const updated = [...customFields[cfEntity]];
-                                    const newOpts = [...updated[idx].options];
-                                    newOpts.splice(oi, 1);
-                                    updated[idx] = { ...updated[idx], options: newOpts };
-                                    setCustomFields({ ...customFields, [cfEntity]: updated });
+                                    customFieldsStore.removeOption(cfEntity, idx, opt);
                                   }}
                                   className="text-[#8899AA] hover:text-[#DC2626] transition-colors ml-0.5"
                                 >
@@ -1199,9 +1178,7 @@ export function Settings() {
                                 e.preventDefault();
                                 const val = (cfNewOption[`${cfEntity}-${idx}`] || "").trim();
                                 if (val) {
-                                  const updated = [...customFields[cfEntity]];
-                                  updated[idx] = { ...updated[idx], options: [...updated[idx].options, val] };
-                                  setCustomFields({ ...customFields, [cfEntity]: updated });
+                                  customFieldsStore.addOption(cfEntity, idx, val);
                                   setCfNewOption({ ...cfNewOption, [`${cfEntity}-${idx}`]: "" });
                                 }
                               }
@@ -1211,9 +1188,7 @@ export function Settings() {
                             onClick={() => {
                               const val = (cfNewOption[`${cfEntity}-${idx}`] || "").trim();
                               if (val) {
-                                const updated = [...customFields[cfEntity]];
-                                updated[idx] = { ...updated[idx], options: [...updated[idx].options, val] };
-                                setCustomFields({ ...customFields, [cfEntity]: updated });
+                                customFieldsStore.addOption(cfEntity, idx, val);
                                 setCfNewOption({ ...cfNewOption, [`${cfEntity}-${idx}`]: "" });
                               }
                             }}
