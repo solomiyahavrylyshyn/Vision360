@@ -98,18 +98,15 @@ const priorityColors: Record<string, { bg: string; text: string }> = {
   High: { bg: "#FEF2F2", text: "#DC2626" },
 };
 
-type TabKey = "details" | "appointments" | "documents" | "items" | "labor" | "expenses" | "activity";
+type TabKey = "details" | "documents" | "items" | "expenses";
 type NotesTabKey = "notes" | "private" | "field";
 type DocTabKey = "estimates" | "invoices" | "photos";
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: "details", label: "Job Details" },
-  { key: "appointments", label: "Appointments" },
   { key: "documents", label: "Documents" },
   { key: "items", label: "Items" },
-  { key: "labor", label: "Labor" },
   { key: "expenses", label: "Expenses" },
-  { key: "activity", label: "Activity" },
 ];
 
 export function JobDetail() {
@@ -455,14 +452,6 @@ export function JobDetail() {
     </div>
   );
 
-  const renderAppointmentsTab = () => (
-    <div className="bg-white border border-[#E5E7EB] rounded-lg py-16 text-center">
-      <span className="material-icons text-[#D1D5DB] mb-3 block" style={{ fontSize: "40px" }}>construction</span>
-      <p className="text-[14px] text-[#6B7280]" style={{ fontWeight: 500 }}>Coming soon</p>
-      <p className="text-[13px] text-[#9CA3AF] mt-1">This feature will be available in a future update.</p>
-    </div>
-  );
-
   const renderDocumentsTab = () => (
     <div className="bg-white border border-[#E5E7EB] rounded-lg p-5">
       {/* Sub-tabs */}
@@ -697,14 +686,6 @@ export function JobDetail() {
     </div>
   );
 
-  const renderLaborTab = () => (
-    <div className="bg-white border border-[#E5E7EB] rounded-lg py-16 text-center">
-      <span className="material-icons text-[#D1D5DB] mb-3 block" style={{ fontSize: "40px" }}>construction</span>
-      <p className="text-[14px] text-[#6B7280]" style={{ fontWeight: 500 }}>Coming soon</p>
-      <p className="text-[13px] text-[#9CA3AF] mt-1">This feature will be available in a future update.</p>
-    </div>
-  );
-
   const renderExpensesTab = () => (
     <div className="bg-white border border-[#E5E7EB] rounded-lg p-5">
       <div className="flex items-center justify-between mb-4">
@@ -757,40 +738,12 @@ export function JobDetail() {
     </div>
   );
 
-  const renderActivityTab = () => (
-    <div className="bg-white border border-[#E5E7EB] rounded-lg p-5">
-      <h3 className="text-[14px] text-[#1A2332] mb-5" style={{ fontWeight: 600 }}>Activity Log</h3>
-      <div className="space-y-4">
-        {[
-          { icon: "add_circle", color: "#4A6FA5", text: "Job created", user: "Marek Stroz", time: "Mar 30, 2026 at 9:15 AM" },
-          { icon: "person_add", color: "#4A6FA5", text: "Assigned to Marek Stroz", user: "Marek Stroz", time: "Mar 30, 2026 at 9:15 AM" },
-          { icon: "event", color: "#4A6FA5", text: "Visit scheduled for Mar 30, 2026", user: "Marek Stroz", time: "Mar 30, 2026 at 9:16 AM" },
-          { icon: "receipt", color: "#D97706", text: "Expense added: HD Items — $152.00", user: "Marek Stroz", time: "Mar 31, 2026 at 2:30 PM" },
-        ].map((entry, idx, arr) => (
-          <div key={idx} className="flex gap-3">
-            <div className="flex flex-col items-center">
-              <span className="material-icons" style={{ fontSize: "20px", color: entry.color }}>{entry.icon}</span>
-              {idx < arr.length - 1 && <div className="w-px flex-1 bg-[#E5E7EB] mt-1" />}
-            </div>
-            <div className="pb-2">
-              <div className="text-[13px] text-[#1A2332]">{entry.text}</div>
-              <div className="text-[11px] text-[#9CA3AF] mt-0.5">{entry.user} · {entry.time}</div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-
   const renderContent = () => {
     switch (activeTab) {
       case "details": return renderDetailsTab();
-      case "appointments": return renderAppointmentsTab();
       case "documents": return renderDocumentsTab();
       case "items": return renderItemsTab();
-      case "labor": return renderLaborTab();
       case "expenses": return renderExpensesTab();
-      case "activity": return renderActivityTab();
       default: return null;
     }
   };
