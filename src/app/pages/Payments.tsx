@@ -223,7 +223,7 @@ export function Payments() {
           <SelectionBar
             count={selectedIds.size}
             onDeselect={() => setSelectedIds(new Set())}
-            onDelete={() => {
+            onInactivate={() => {
               if (confirm(`Delete ${selectedIds.size} payment(s)?`)) {
                 setPayments(prev => prev.filter(p => !selectedIds.has(p.id)));
                 setSelectedIds(new Set());

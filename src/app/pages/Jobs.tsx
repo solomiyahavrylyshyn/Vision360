@@ -262,7 +262,7 @@ export function Jobs() {
         <SelectionBar
           count={selectedJobs.size}
           onDeselect={() => setSelectedJobs(new Set())}
-          onDelete={() => {
+          onInactivate={() => {
             if (confirm(`Delete ${selectedJobs.size} job(s)?`)) {
               setJobs(prev => prev.filter(j => !selectedJobs.has(j.id)));
               setSelectedJobs(new Set());

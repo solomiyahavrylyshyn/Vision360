@@ -419,7 +419,7 @@ export function Invoices() {
         <SelectionBar
           count={selectedIds.size}
           onDeselect={() => setSelectedIds(new Set())}
-          onDelete={() => {
+          onInactivate={() => {
             if (confirm(`Delete ${selectedIds.size} invoice(s)?`)) {
               handleBulkDelete();
             }

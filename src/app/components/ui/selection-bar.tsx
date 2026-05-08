@@ -3,10 +3,10 @@ import * as React from "react";
 type SelectionBarProps = {
   count: number;
   onDeselect: () => void;
-  onDelete?: () => void;
+  onInactivate?: () => void;
 };
 
-export function SelectionBar({ count, onDeselect, onDelete }: SelectionBarProps) {
+export function SelectionBar({ count, onDeselect, onInactivate }: SelectionBarProps) {
   if (count === 0) return null;
 
   return (
@@ -22,16 +22,16 @@ export function SelectionBar({ count, onDeselect, onDelete }: SelectionBarProps)
       >
         Deselect
       </button>
-      {onDelete && (
+      {onInactivate && (
         <>
           <div className="w-px h-4 bg-[#C8D5E8] mx-3" />
           <button
-            onClick={onDelete}
+            onClick={onInactivate}
             className="text-[12px] text-[#DC2626] flex items-center gap-1 hover:underline"
             style={{ fontWeight: 500 }}
           >
-            <span className="material-icons" style={{ fontSize: "14px" }}>delete</span>
-            Delete
+            <span className="material-icons" style={{ fontSize: "14px" }}>block</span>
+            Inactivate
           </button>
         </>
       )}
