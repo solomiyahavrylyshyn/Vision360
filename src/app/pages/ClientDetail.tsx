@@ -162,6 +162,11 @@ export function ClientDetail() {
   const [isEditing, setIsEditing] = useState(false);
   const [editingSection, setEditingSection] = useState<null | "name" | "contact" | "finance">(null);
   const [notesExpanded, setNotesExpanded] = useState(false);
+  const [addingNote, setAddingNote] = useState(false);
+  const [newNoteText, setNewNoteText] = useState("");
+  const [editingNoteId, setEditingNoteId] = useState<number | null>(null);
+  const [editingNoteText, setEditingNoteText] = useState("");
+  const [expandedNoteIds, setExpandedNoteIds] = useState<Set<number>>(new Set());
   // Auto-transition rules (server-driven in production):
   //   prospect → active   when first invoice with payment > 0 is recorded
   //   active   → on-hold  when an invoice is past due
@@ -437,35 +442,155 @@ export function ClientDetail() {
             )}
           </span>
           <button
-            onClick={() => toast.info("Add note coming soon")}
+            onClick={() => { setAddingNote(true); setNewNoteText(""); }}
             className="w-7 h-7 flex items-center justify-center hover:bg-[#F5F7FA] rounded-md transition-colors"
             aria-label="Add note"
           >
-            <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "15px" }}>add</span>
+            <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "16px" }}>add</span>
           </button>
         </div>
-        <div className="px-5 pt-4">
-          {/* Notes list — max 4 visible, expandable */}
-          {(notesExpanded ? clientData.notesArray : clientData.notesArray.slice(0, 4)).map((note, index, arr) => (
-            <div
-              key={note.id}
-              className={`py-3 text-[13px] text-[#1A2332] font-medium leading-[20px] ${index < arr.length - 1 ? "border-b border-[#DDE3EE]" : ""}`}
-            >
-              {note.text}
+
+        {/* Add note form */}
+        {addingNote && (
+          <div className="px-5 py-3 border-b border-[#DDE3EE] bg-[#F9FAFB]">
+            <textarea
+              autoFocus
+              value={newNoteText}
+              onChange={e => setNewNoteText(e.target.value)}
+              placeholder="Write a note…"
+              rows={3}
+              className="w-full text-[13px] text-[#1A2332] border border-[#DDE3EE] rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-[#4A6FA5] bg-white placeholder:text-[#9CA3AF]"
+            />
+            <div className="flex gap-2 mt-2">
+              <button
+                onClick={() => {
+                  const trimmed = newNoteText.trim();
+                  if (!trimmed) return;
+                  const today = new Date();
+                  const dateStr = `Added ${today.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
+                  const newId = Math.max(0, ...clientData.notesArray.map(n => n.id)) + 1;
+                  setClientData(prev => ({ ...prev, notesArray: [{ id: newId, text: trimmed, date: dateStr }, ...prev.notesArray] }));
+                  setAddingNote(false);
+                  setNewNoteText("");
+                }}
+                disabled={!newNoteText.trim()}
+                className="h-7 px-3 bg-[#4A6FA5] hover:bg-[#3d5a85] disabled:opacity-40 text-white text-[12px] rounded-md transition-colors"
+                style={{ fontWeight: 500 }}
+              >
+                Save
+              </button>
+              <button
+                onClick={() => { setAddingNote(false); setNewNoteText(""); }}
+                className="h-7 px-3 text-[#546478] hover:bg-[#EDF0F5] text-[12px] rounded-md transition-colors"
+                style={{ fontWeight: 500 }}
+              >
+                Cancel
+              </button>
             </div>
-          ))}
+          </div>
+        )}
+
+        <div className="px-5 pt-2 pb-1">
+          {clientData.notesArray.length === 0 && !addingNote && (
+            <div className="py-6 text-center text-[12px] text-[#9CA3AF]">No notes yet</div>
+          )}
+          {(notesExpanded ? clientData.notesArray : clientData.notesArray.slice(0, 4)).map((note, index, arr) => {
+            const isLong = note.text.length > 120;
+            const isExpanded = expandedNoteIds.has(note.id);
+            const isEditingThis = editingNoteId === note.id;
+            return (
+              <div key={note.id} className={`group py-3 ${index < arr.length - 1 ? "border-b border-[#DDE3EE]" : ""}`}>
+                {isEditingThis ? (
+                  /* ── Edit mode ── */
+                  <div>
+                    <textarea
+                      autoFocus
+                      value={editingNoteText}
+                      onChange={e => setEditingNoteText(e.target.value)}
+                      rows={3}
+                      className="w-full text-[13px] text-[#1A2332] border border-[#4A6FA5] rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-[#4A6FA5] bg-white"
+                    />
+                    <div className="flex gap-2 mt-2">
+                      <button
+                        onClick={() => {
+                          const trimmed = editingNoteText.trim();
+                          if (!trimmed) return;
+                          setClientData(prev => ({ ...prev, notesArray: prev.notesArray.map(n => n.id === note.id ? { ...n, text: trimmed } : n) }));
+                          setEditingNoteId(null);
+                        }}
+                        disabled={!editingNoteText.trim()}
+                        className="h-7 px-3 bg-[#4A6FA5] hover:bg-[#3d5a85] disabled:opacity-40 text-white text-[12px] rounded-md transition-colors"
+                        style={{ fontWeight: 500 }}
+                      >
+                        Save
+                      </button>
+                      <button
+                        onClick={() => setEditingNoteId(null)}
+                        className="h-7 px-3 text-[#546478] hover:bg-[#EDF0F5] text-[12px] rounded-md transition-colors"
+                        style={{ fontWeight: 500 }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  /* ── Read mode ── */
+                  <div>
+                    <div className="flex items-start justify-between gap-2">
+                      <p className={`text-[13px] text-[#1A2332] leading-[20px] flex-1 ${!isExpanded && isLong ? "line-clamp-2" : ""}`}
+                        style={{ fontWeight: 500 }}>
+                        {note.text}
+                      </p>
+                      {/* Actions — visible on hover */}
+                      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-0.5">
+                        <button
+                          onClick={() => { setEditingNoteId(note.id); setEditingNoteText(note.text); }}
+                          className="w-6 h-6 flex items-center justify-center hover:bg-[#EDF0F5] rounded transition-colors"
+                          title="Edit"
+                        >
+                          <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "14px" }}>edit</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            setClientData(prev => ({ ...prev, notesArray: prev.notesArray.filter(n => n.id !== note.id) }));
+                            setExpandedNoteIds(prev => { const s = new Set(prev); s.delete(note.id); return s; });
+                          }}
+                          className="w-6 h-6 flex items-center justify-center hover:bg-[#FEF2F2] rounded transition-colors"
+                          title="Delete"
+                        >
+                          <span className="material-icons text-[#9CA3AF] hover:text-[#DC2626]" style={{ fontSize: "14px" }}>delete</span>
+                        </button>
+                      </div>
+                    </div>
+                    {isLong && (
+                      <button
+                        onClick={() => setExpandedNoteIds(prev => {
+                          const s = new Set(prev);
+                          isExpanded ? s.delete(note.id) : s.add(note.id);
+                          return s;
+                        })}
+                        className="mt-1 text-[11px] text-[#4A6FA5] hover:underline"
+                        style={{ fontWeight: 500 }}
+                      >
+                        {isExpanded ? "Show less" : "Read more"}
+                      </button>
+                    )}
+                    <div className="text-[11px] text-[#9CA3AF] mt-1">{note.date}</div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
           {clientData.notesArray.length > 4 && (
             <button
               onClick={() => setNotesExpanded(v => !v)}
-              className="w-full py-2.5 mt-1 text-[12px] text-[#4A6FA5] hover:text-[#3d5a85] hover:bg-[#F5F7FA] rounded-lg transition-colors flex items-center justify-center gap-1 border-t border-[#DDE3EE]"
+              className="w-full py-2.5 text-[12px] text-[#4A6FA5] hover:text-[#3d5a85] hover:bg-[#F5F7FA] rounded-lg transition-colors flex items-center justify-center gap-1 border-t border-[#DDE3EE] mt-1"
               style={{ fontWeight: 500 }}
             >
               <span className="material-icons" style={{ fontSize: "14px" }}>
                 {notesExpanded ? "expand_less" : "expand_more"}
               </span>
-              {notesExpanded
-                ? "Show less"
-                : `Show ${clientData.notesArray.length - 4} more`}
+              {notesExpanded ? "Show less" : `Show ${clientData.notesArray.length - 4} more`}
             </button>
           )}
         </div>
