@@ -77,7 +77,7 @@ export const router = createBrowserRouter([
     path: "/",
     Component: Layout,
     children: [
-      { index: true, Component: Dashboard },
+      { index: true, Component: Calendar },
       { path: "calendar", Component: Calendar },
       { path: "clients", Component: Clients },
       { path: "clients/new", Component: CreateClient },
