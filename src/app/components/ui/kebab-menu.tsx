@@ -40,7 +40,7 @@ export function KebabMenu({
           )}
         >
           <span className={cn("material-icons", iconClassName)} style={{ fontSize: "18px" }}>
-            more_horiz
+            more_vert
           </span>
         </button>
       </DropdownMenuTrigger>
