@@ -3,10 +3,9 @@ import * as React from "react";
 type SelectionBarProps = {
   count: number;
   onDeselect: () => void;
-  onInactivate?: () => void;
 };
 
-export function SelectionBar({ count, onDeselect, onInactivate }: SelectionBarProps) {
+export function SelectionBar({ count, onDeselect }: SelectionBarProps) {
   if (count === 0) return null;
 
   return (
@@ -22,19 +21,6 @@ export function SelectionBar({ count, onDeselect, onInactivate }: SelectionBarPr
       >
         Deselect
       </button>
-      {onInactivate && (
-        <>
-          <div className="w-px h-4 bg-[#C8D5E8] mx-3" />
-          <button
-            onClick={onInactivate}
-            className="text-[12px] text-[#DC2626] flex items-center gap-1 hover:underline"
-            style={{ fontWeight: 500 }}
-          >
-            <span className="material-icons" style={{ fontSize: "14px" }}>block</span>
-            Inactivate
-          </button>
-        </>
-      )}
       <span className="text-[12px] text-[#8899AA] ml-3">(use ⋮ menu above for more actions)</span>
     </div>
   );

@@ -765,12 +765,6 @@ export function Items() {
           <SelectionBar
             count={selectedItems.size}
             onDeselect={() => setSelectedItems(new Set())}
-            onInactivate={() => {
-              if (confirm(`Delete ${selectedItems.size} item(s)?`)) {
-                setItems(prev => prev.filter(i => !selectedItems.has(i.id)));
-                setSelectedItems(new Set());
-              }
-            }}
           />
 
           {/* Table */}

@@ -262,12 +262,6 @@ export function Jobs() {
         <SelectionBar
           count={selectedJobs.size}
           onDeselect={() => setSelectedJobs(new Set())}
-          onInactivate={() => {
-            if (confirm(`Delete ${selectedJobs.size} job(s)?`)) {
-              setJobs(prev => prev.filter(j => !selectedJobs.has(j.id)));
-              setSelectedJobs(new Set());
-            }
-          }}
         />
         <table className="w-full">
           <thead className="bg-[#F5F7FA]">

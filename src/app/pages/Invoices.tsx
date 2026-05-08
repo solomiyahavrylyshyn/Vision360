@@ -419,11 +419,6 @@ export function Invoices() {
         <SelectionBar
           count={selectedIds.size}
           onDeselect={() => setSelectedIds(new Set())}
-          onInactivate={() => {
-            if (confirm(`Delete ${selectedIds.size} invoice(s)?`)) {
-              handleBulkDelete();
-            }
-          }}
         />
         <div className="overflow-x-auto">
           <table className="w-full">

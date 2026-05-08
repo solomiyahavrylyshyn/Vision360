@@ -345,11 +345,6 @@ export function Estimates() {
         <SelectionBar
           count={selectedIds.size}
           onDeselect={() => setSelectedIds(new Set())}
-          onInactivate={() => {
-            if (confirm(`Delete ${selectedIds.size} estimate(s)?`)) {
-              handleBulkDelete();
-            }
-          }}
         />
         <div className="overflow-x-auto">
           <table className="w-full">

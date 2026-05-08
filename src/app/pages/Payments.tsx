@@ -223,12 +223,6 @@ export function Payments() {
           <SelectionBar
             count={selectedIds.size}
             onDeselect={() => setSelectedIds(new Set())}
-            onInactivate={() => {
-              if (confirm(`Delete ${selectedIds.size} payment(s)?`)) {
-                setPayments(prev => prev.filter(p => !selectedIds.has(p.id)));
-                setSelectedIds(new Set());
-              }
-            }}
           />
           <div className="overflow-x-auto">
             <table className="w-full">

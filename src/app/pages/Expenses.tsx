@@ -169,12 +169,6 @@ export function Expenses() {
         <SelectionBar
           count={selectedIds.size}
           onDeselect={() => setSelectedIds(new Set())}
-          onInactivate={() => {
-            if (confirm(`Delete ${selectedIds.size} expense(s)?`)) {
-              setExpenses(prev => prev.filter(e => !selectedIds.has(e.id)));
-              setSelectedIds(new Set());
-            }
-          }}
         />
         <div className="overflow-x-auto">
           <table className="w-full">
