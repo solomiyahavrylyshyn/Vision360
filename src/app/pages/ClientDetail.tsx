@@ -995,14 +995,14 @@ export function ClientDetail() {
             </div>
 
             {/* Financial Summary — 4 horizontal stat cards */}
-            <div className="flex gap-3 flex-1">
+            <div className="flex gap-3 shrink-0">
               {[
                 { label: "Total Revenue", value: `$${client.totalRevenue.toLocaleString("en-US", { minimumFractionDigits: 0 })}`, color: "#1A2332" },
                 { label: "Balance",       value: `$${client.openBalance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, color: "#1A2332" },
                 { label: "Past Due",      value: `$${client.pastDueBalance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, color: "#DC2626" },
                 { label: "Open Jobs",     value: "3", color: "#1A2332" },
               ].map(({ label, value, color }) => (
-                <div key={label} className="flex-1 bg-white border border-[#DDE3EE] rounded-xl px-4 py-3">
+                <div key={label} className="w-[130px] bg-white border border-[#DDE3EE] rounded-xl px-4 py-3">
                   <div className="text-[12px] text-[#546478] mb-1">{label}</div>
                   <div className="text-[22px] tabular-nums" style={{ fontWeight: 700, color, letterSpacing: "-0.01em" }}>{value}</div>
                 </div>
