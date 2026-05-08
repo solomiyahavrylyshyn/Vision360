@@ -134,6 +134,12 @@ export function Expenses() {
       <div className="bg-white border border-[#DDE3EE] rounded-lg overflow-hidden">
         {/* Filter bar */}
         <div className="flex items-center gap-2 px-4 py-3 bg-white border-b border-[#DDE3EE]">
+          <div className="relative">
+            <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: "18px" }}>search</span>
+            <input type="text" placeholder="Search" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-[220px] h-9 pl-10 pr-3 border border-[#DDE3EE] rounded-lg text-[13px] focus:outline-none focus:border-[#4A6FA5] bg-white" />
+          </div>
+          <div className="w-px h-5 bg-[#DDE3EE] mx-1" />
           <span className="text-[13px] text-[#546478]" style={{ fontWeight: 500 }}>{filtered.length} results</span>
           <div className="w-px h-5 bg-[#DDE3EE] mx-1" />
           <select value={qfCategory} onChange={e => setQfCategory(e.target.value)} className={qfClass(qfCategory !== "All")}>
@@ -161,16 +167,6 @@ export function Expenses() {
             Filter
           </button>
           <div className="flex-1" />
-          <div className="relative">
-            <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: "18px" }}>search</span>
-            <input
-              type="text"
-              placeholder="Search"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-[260px] h-9 pl-10 pr-3 border border-[#DDE3EE] rounded-lg text-[13px] focus:outline-none focus:border-[#4A6FA5] bg-white"
-            />
-          </div>
         </div>
         <SelectionBar
           count={selectedIds.size}
