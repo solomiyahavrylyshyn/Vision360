@@ -165,7 +165,6 @@ export function ClientDetail() {
   //   prospect → active   when first invoice with payment > 0 is recorded
   //   active   → on-hold  when an invoice is past due
   //   on-hold  → active   when past-due balance is settled
-  const [clientStatus, setClientStatus] = useState<"prospect" | "active" | "on-hold" | "archived">("on-hold");
   const daysOverdue = 18;
   const availableTags = useSyncExternalStore(
     tagsStore.subscribe,
@@ -995,49 +994,6 @@ export function ClientDetail() {
                   </a>
                 </div>
 
-                {/* Status badge */}
-                <div className="flex items-center gap-4">
-                  {/* Status badge (only active one, clickable) */}
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <button
-                        className={`inline-flex items-center px-2.5 py-1 rounded text-[11px] transition-colors ${
-                          clientStatus === "active"
-                            ? "bg-[#D1FAE5] text-[#16A34A] hover:bg-[#BBF7D0]"
-                            : clientStatus === "prospect"
-                            ? "bg-[#DBEAFE] text-[#2563EB] hover:bg-[#BFDBFE]"
-                            : clientStatus === "on-hold"
-                            ? "bg-[#FEE2E2] text-[#DC2626] hover:bg-[#FECACA]"
-                            : "bg-[#F3F4F6] text-[#6B7280] hover:bg-[#E5E7EB]"
-                        }`}
-                        style={{ fontWeight: 500 }}
-                      >
-                        {clientStatus === "active" && "Active"}
-                        {clientStatus === "prospect" && "Prospect"}
-                        {clientStatus === "on-hold" && "On Hold"}
-                        {clientStatus === "archived" && "Archived"}
-                      </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" className="w-[140px]">
-                      <DropdownMenuItem onClick={() => setClientStatus("prospect")} className="text-[13px]">
-                        <span className="w-2 h-2 rounded-full bg-[#2563EB] mr-2" />
-                        Prospect
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setClientStatus("active")} className="text-[13px]">
-                        <span className="w-2 h-2 rounded-full bg-[#16A34A] mr-2" />
-                        Active
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setClientStatus("on-hold")} className="text-[13px]">
-                        <span className="w-2 h-2 rounded-full bg-[#DC2626] mr-2" />
-                        On Hold
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setClientStatus("archived")} className="text-[13px]">
-                        <span className="w-2 h-2 rounded-full bg-[#6B7280] mr-2" />
-                        Archived
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
               </div>
             </div>
 

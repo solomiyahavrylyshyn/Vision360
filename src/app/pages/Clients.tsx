@@ -64,7 +64,6 @@ const CLIENTS_COLS = [
   { key: "name",         label: "Name",         sortable: true  },
   { key: "address",      label: "Address",       sortable: false },
   { key: "totalBilled",  label: "Total Billed",  sortable: true  },
-  { key: "status",       label: "Status",        sortable: true  },
   { key: "lastActivity", label: "Last Activity", sortable: true  },
 ];
 
@@ -633,17 +632,6 @@ export function Clients() {
                             <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>
                               ${client.totalBilled.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </div>
-                          </td>
-                        );
-                      case "status":
-                        return (
-                          <td key="status" className="px-4 py-4">
-                            <span className={`px-2.5 py-1 rounded-full text-[12px] inline-flex items-center ${
-                              client.status === "Active" ? "bg-[#DCFCE7] text-[#16A34A]" :
-                              client.status === "Prospect" ? "bg-[#DBEAFE] text-[#2563EB]" :
-                              client.status === "On Hold" ? "bg-[#FEE2E2] text-[#DC2626]" :
-                              "bg-[#F3F4F6] text-[#6B7280]"
-                            }`} style={{ fontWeight: 500 }}>{client.status}</span>
                           </td>
                         );
                       case "lastActivity":
