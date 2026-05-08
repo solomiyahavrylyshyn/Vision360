@@ -604,10 +604,8 @@ export function EstimateDetail() {
           <KebabItem icon="receipt">Copy to Invoice</KebabItem>
           <KebabItem icon="work">Copy to Job</KebabItem>
           <KebabSeparator />
-          <KebabItem icon="archive">Archive</KebabItem>
+          <KebabItem icon="block" destructive>Inactivate</KebabItem>
           <KebabItem icon="print">Print</KebabItem>
-          <KebabSeparator />
-          <KebabItem icon="delete" destructive>Delete</KebabItem>
         </KebabMenu>
       </div>
 

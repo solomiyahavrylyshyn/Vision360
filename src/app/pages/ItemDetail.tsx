@@ -360,7 +360,8 @@ export function ItemDetail() {
             </button>
             <KebabMenu triggerClassName="h-8 w-8 border border-[#DDE3EE] rounded-md hover:bg-[#EDF0F5] flex items-center justify-center">
               <KebabItem icon="content_copy">Duplicate Item</KebabItem>
-              <KebabItem icon="delete" destructive>Delete Item</KebabItem>
+              <KebabSeparator />
+              <KebabItem icon="block" destructive>Inactivate Item</KebabItem>
             </KebabMenu>
           </div>
         </div>
