@@ -998,7 +998,7 @@ export function ClientDetail() {
             </div>
 
             {/* Financial Summary — 4 horizontal stat cards */}
-            <div className="flex gap-3 w-full pr-20">
+            <div className="flex gap-3 w-full pl-20">
               {[
                 { label: "Total Revenue", value: `$${client.totalRevenue.toLocaleString("en-US", { minimumFractionDigits: 0 })}`, color: "#1A2332" },
                 { label: "Balance",       value: `$${client.openBalance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, color: "#1A2332" },
