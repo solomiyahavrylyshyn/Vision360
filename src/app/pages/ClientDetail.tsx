@@ -161,6 +161,7 @@ export function ClientDetail() {
   const [activeTab, setActiveTab] = useState<TabKey>("details");
   const [isEditing, setIsEditing] = useState(false);
   const [editingSection, setEditingSection] = useState<null | "name" | "contact" | "finance">(null);
+  const [notesExpanded, setNotesExpanded] = useState(false);
   // Auto-transition rules (server-driven in production):
   //   prospect → active   when first invoice with payment > 0 is recorded
   //   active   → on-hold  when an invoice is past due
@@ -429,18 +430,23 @@ export function ClientDetail() {
         {/* Card header */}
         <div className="flex items-center gap-2 px-5 py-3.5 border-b border-[#DDE3EE]">
           <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>notes</span>
-          <span className="flex-1 text-[13px] font-semibold text-[#1A2332]">Notes</span>
+          <span className="flex-1 text-[13px] font-semibold text-[#1A2332]">
+            Notes
+            {clientData.notesArray.length > 0 && (
+              <span className="ml-1 text-[#9CA3AF]" style={{ fontWeight: 400 }}>({clientData.notesArray.length})</span>
+            )}
+          </span>
           <button
             onClick={() => toast.info("Add note coming soon")}
             className="w-7 h-7 flex items-center justify-center hover:bg-[#F5F7FA] rounded-md transition-colors"
             aria-label="Add note"
           >
-            <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "15px" }}>edit</span>
+            <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "15px" }}>add</span>
           </button>
         </div>
         <div className="px-5 pt-4">
-          {/* Notes list */}
-          {clientData.notesArray.slice(0, 4).map((note, index, arr) => (
+          {/* Notes list — max 4 visible, expandable */}
+          {(notesExpanded ? clientData.notesArray : clientData.notesArray.slice(0, 4)).map((note, index, arr) => (
             <div
               key={note.id}
               className={`py-3 text-[13px] text-[#1A2332] font-medium leading-[20px] ${index < arr.length - 1 ? "border-b border-[#DDE3EE]" : ""}`}
@@ -448,6 +454,20 @@ export function ClientDetail() {
               {note.text}
             </div>
           ))}
+          {clientData.notesArray.length > 4 && (
+            <button
+              onClick={() => setNotesExpanded(v => !v)}
+              className="w-full py-2.5 mt-1 text-[12px] text-[#4A6FA5] hover:text-[#3d5a85] hover:bg-[#F5F7FA] rounded-lg transition-colors flex items-center justify-center gap-1 border-t border-[#DDE3EE]"
+              style={{ fontWeight: 500 }}
+            >
+              <span className="material-icons" style={{ fontSize: "14px" }}>
+                {notesExpanded ? "expand_less" : "expand_more"}
+              </span>
+              {notesExpanded
+                ? "Show less"
+                : `Show ${clientData.notesArray.length - 4} more`}
+            </button>
+          )}
         </div>
         <div className="p-5 space-y-3 border-t border-[#DDE3EE] mt-1">
           {/* Custom Field 1 */}
