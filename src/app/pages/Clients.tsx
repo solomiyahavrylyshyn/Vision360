@@ -613,15 +613,8 @@ export function Clients() {
                       case "name":
                         return (
                           <td key="name" className="px-4 py-4">
-                            <div className="flex items-center gap-1.5">
-                              {client.tags.includes("Commercial") ? (
-                                <span className="material-icons text-[#4A6FA5] shrink-0" style={{ fontSize: "16px" }} title="Commercial" aria-label="Commercial">business</span>
-                              ) : client.tags.includes("Residential") ? (
-                                <span className="material-icons text-[#10B981] shrink-0" style={{ fontSize: "16px" }} title="Residential" aria-label="Residential">home</span>
-                              ) : null}
-                              <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>{client.name}</div>
-                            </div>
-                            {client.company && <div className="text-[12px] text-[#8899AA] ml-[22px]">{client.company}</div>}
+                            <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>{client.name}</div>
+                            {client.company && <div className="text-[12px] text-[#8899AA]">{client.company}</div>}
                           </td>
                         );
                       case "address":

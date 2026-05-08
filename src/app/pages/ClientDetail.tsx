@@ -1,5 +1,5 @@
-import { useState, useSyncExternalStore, useCallback } from "react";
-import { DndProvider } from "react-dnd";
+import { useState, useSyncExternalStore, useCallback, useRef } from "react";
+import { DndProvider, useDrag, useDrop } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { useDraggableColumns, DraggableTh } from "../components/ui/draggable-columns";
 import { useNavigate, useParams } from "react-router";
@@ -55,13 +55,13 @@ type TabKey =
   | "service-agreements" | "documents" | "notes"
   | "equipment" | "activity" | "marketing";
 
-const TABS: { key: TabKey; label: string; count?: number }[] = [
-  { key: "details",     label: "Details" },
-  { key: "addresses",   label: "Properties", count: 3 },
-  { key: "jobs",        label: "Jobs",       count: 11 },
-  { key: "estimates",   label: "Estimates" },
-  { key: "invoices",    label: "Invoices" },
-  { key: "payments",    label: "Payments" },
+const DEFAULT_TABS: { key: TabKey; label: string; count?: number }[] = [
+  { key: "details",   label: "Details" },
+  { key: "addresses", label: "Properties", count: 3 },
+  { key: "jobs",      label: "Jobs",       count: 11 },
+  { key: "estimates", label: "Estimates" },
+  { key: "invoices",  label: "Invoices" },
+  { key: "payments",  label: "Payments" },
   { key: "documents", label: "Documents" },
 ];
 
@@ -156,10 +156,200 @@ function WorkTable({ items, emptyIcon, emptyLabel }: {
   );
 }
 
+/* ── InvoiceTable ── */
+interface InvoiceRow {
+  id: number; invoiceNo: string; jobNo: string; type: string;
+  status: string; statusColor: string; date: string;
+  total: string; balance: string; dueDate: string;
+}
+const INVOICE_COLS = [
+  { key: "invoiceNo", label: "Invoice #" },
+  { key: "jobNo",     label: "Job #"     },
+  { key: "type",      label: "Type"      },
+  { key: "status",    label: "Status"    },
+  { key: "date",      label: "Date"      },
+  { key: "total",     label: "Total"     },
+  { key: "balance",   label: "Balance"   },
+  { key: "dueDate",   label: "Due Date"  },
+] as const;
+const invoiceRows: InvoiceRow[] = [
+  { id: 1, invoiceNo: "INV-2026-0041", jobNo: "J-1048", type: "Service",      status: "Overdue",  statusColor: "#DC2626", date: "Mar 15, 2026", total: "$1,240.00", balance: "$1,240.00", dueDate: "Apr 14, 2026" },
+  { id: 2, invoiceNo: "INV-2026-0035", jobNo: "J-1039", type: "Service",      status: "Paid",     statusColor: "#16A34A", date: "Feb 20, 2026", total: "$890.00",   balance: "$0.00",     dueDate: "Mar 22, 2026" },
+  { id: 3, invoiceNo: "INV-2025-0198", jobNo: "J-0997", type: "Maintenance",  status: "Paid",     statusColor: "#16A34A", date: "Nov 4, 2025",  total: "$430.00",   balance: "$0.00",     dueDate: "Dec 4, 2025"  },
+  { id: 4, invoiceNo: "INV-2025-0177", jobNo: "J-0981", type: "Installation", status: "Paid",     statusColor: "#16A34A", date: "Sep 8, 2025",  total: "$3,750.00", balance: "$0.00",     dueDate: "Oct 8, 2025"  },
+  { id: 5, invoiceNo: "INV-2026-0048", jobNo: "J-1054", type: "Service",      status: "Draft",    statusColor: "#6B7280", date: "Apr 28, 2026", total: "$560.00",   balance: "$560.00",   dueDate: "May 28, 2026" },
+];
+function InvoiceTable() {
+  const [cols, moveCols] = useDraggableColumns([...INVOICE_COLS]);
+  return (
+    <DndProvider backend={HTML5Backend}>
+      <table className="w-full">
+        <thead>
+          <tr className="border-b border-[#E5E7EB]">
+            {cols.map(col => (
+              <DraggableTh key={col.key} colKey={col.key} onMove={moveCols}
+                className={`pb-3 text-[12px] text-[#6B7280] whitespace-nowrap ${["total","balance"].includes(col.key) ? "text-right" : "text-left"}`}
+                style={{ fontWeight: 500 }}
+              >{col.label}</DraggableTh>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {invoiceRows.map(row => (
+            <tr key={row.id} className="border-b border-[#E5E7EB] last:border-0 hover:bg-[#F9FAFB] cursor-pointer">
+              {cols.map(col => {
+                switch (col.key) {
+                  case "invoiceNo": return <td key="invoiceNo" className="py-3.5 pr-4"><span className="text-[13px] text-[#4A6FA5] font-medium hover:underline">{row.invoiceNo}</span></td>;
+                  case "jobNo":     return <td key="jobNo"     className="py-3.5 pr-4"><span className="text-[13px] text-[#4A6FA5] hover:underline">{row.jobNo}</span></td>;
+                  case "type":      return <td key="type"      className="py-3.5 pr-4"><span className="text-[13px] text-[#374151]">{row.type}</span></td>;
+                  case "status":    return <td key="status"    className="py-3.5 pr-4"><span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] text-white" style={{ backgroundColor: row.statusColor, fontWeight: 500 }}>{row.status}</span></td>;
+                  case "date":      return <td key="date"      className="py-3.5 pr-4"><span className="text-[13px] text-[#6B7280]">{row.date}</span></td>;
+                  case "total":     return <td key="total"     className="py-3.5 pr-4 text-right"><span className="text-[13px] text-[#1A2332] font-medium">{row.total}</span></td>;
+                  case "balance":   return <td key="balance"   className="py-3.5 pr-4 text-right"><span className={`text-[13px] font-medium ${row.balance === "$0.00" ? "text-[#16A34A]" : "text-[#DC2626]"}`}>{row.balance}</span></td>;
+                  case "dueDate":   return <td key="dueDate"   className="py-3.5"><span className="text-[13px] text-[#6B7280]">{row.dueDate}</span></td>;
+                  default: return null;
+                }
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </DndProvider>
+  );
+}
+
+/* ── PaymentTable ── */
+interface PaymentRow {
+  id: number; date: string; invoiceNo: string;
+  amount: string; method: string; status: string; statusColor: string; note: string;
+}
+const PAYMENT_COLS = [
+  { key: "date",      label: "Date"      },
+  { key: "invoiceNo", label: "Invoice #" },
+  { key: "amount",    label: "Amount"    },
+  { key: "method",    label: "Method"    },
+  { key: "status",    label: "Status"    },
+  { key: "note",      label: "Note"      },
+] as const;
+const paymentRows: PaymentRow[] = [
+  { id: 1, date: "Mar 22, 2026", invoiceNo: "INV-2026-0035", amount: "$890.00",   method: "ACH",         status: "Completed", statusColor: "#16A34A", note: "" },
+  { id: 2, date: "Dec 3, 2025",  invoiceNo: "INV-2025-0198", amount: "$430.00",   method: "Credit Card", status: "Completed", statusColor: "#16A34A", note: "" },
+  { id: 3, date: "Oct 7, 2025",  invoiceNo: "INV-2025-0177", amount: "$2,000.00", method: "Check",       status: "Completed", statusColor: "#16A34A", note: "Partial — check #4421" },
+  { id: 4, date: "Oct 20, 2025", invoiceNo: "INV-2025-0177", amount: "$1,750.00", method: "ACH",         status: "Completed", statusColor: "#16A34A", note: "Final balance" },
+];
+function PaymentTable() {
+  const [cols, moveCols] = useDraggableColumns([...PAYMENT_COLS]);
+  return (
+    <DndProvider backend={HTML5Backend}>
+      <table className="w-full">
+        <thead>
+          <tr className="border-b border-[#E5E7EB]">
+            {cols.map(col => (
+              <DraggableTh key={col.key} colKey={col.key} onMove={moveCols}
+                className={`pb-3 text-[12px] text-[#6B7280] whitespace-nowrap ${col.key === "amount" ? "text-right" : "text-left"}`}
+                style={{ fontWeight: 500 }}
+              >{col.label}</DraggableTh>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {paymentRows.map(row => (
+            <tr key={row.id} className="border-b border-[#E5E7EB] last:border-0 hover:bg-[#F9FAFB] cursor-pointer">
+              {cols.map(col => {
+                switch (col.key) {
+                  case "date":      return <td key="date"      className="py-3.5 pr-4"><span className="text-[13px] text-[#6B7280]">{row.date}</span></td>;
+                  case "invoiceNo": return <td key="invoiceNo" className="py-3.5 pr-4"><span className="text-[13px] text-[#4A6FA5] hover:underline cursor-pointer">{row.invoiceNo}</span></td>;
+                  case "amount":    return <td key="amount"    className="py-3.5 pr-4 text-right"><span className="text-[13px] text-[#1A2332] font-medium">{row.amount}</span></td>;
+                  case "method":    return <td key="method"    className="py-3.5 pr-4"><span className="text-[13px] text-[#374151]">{row.method}</span></td>;
+                  case "status":    return <td key="status"    className="py-3.5 pr-4"><span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] text-white" style={{ backgroundColor: row.statusColor, fontWeight: 500 }}>{row.status}</span></td>;
+                  case "note":      return <td key="note"      className="py-3.5"><span className="text-[13px] text-[#6B7280] italic">{row.note || "—"}</span></td>;
+                  default: return null;
+                }
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </DndProvider>
+  );
+}
+
+const TAB_ITEM = "CLIENT_TAB";
+interface DraggableTabProps {
+  tabKey: TabKey; label: string; count?: number;
+  isActive: boolean; onMove: (from: TabKey, to: TabKey) => void;
+  onClick: () => void;
+}
+function DraggableTab({ tabKey, label, count, isActive, onMove, onClick }: DraggableTabProps) {
+  const ref = useRef<HTMLButtonElement>(null);
+  const [{ isDragging }, drag] = useDrag({
+    type: TAB_ITEM,
+    item: { key: tabKey },
+    collect: (m) => ({ isDragging: m.isDragging() }),
+  });
+  const [{ isOver }, drop] = useDrop({
+    accept: TAB_ITEM,
+    drop: (dragged: { key: TabKey }) => { if (dragged.key !== tabKey) onMove(dragged.key, tabKey); },
+    collect: (m) => ({ isOver: m.isOver() }),
+  });
+  drag(drop(ref));
+  return (
+    <button
+      ref={ref}
+      onClick={onClick}
+      className={`relative h-[45px] px-4 shrink-0 text-[13px] transition-colors whitespace-nowrap select-none ${
+        isDragging ? "opacity-40" : ""
+      } ${isOver ? "border-l-2 border-[#4A6FA5]" : ""} ${
+        isActive ? "text-[#4A6FA5]" : "text-[#6B7280] hover:text-[#374151]"
+      }`}
+      style={{ fontWeight: 500, cursor: "grab" }}
+    >
+      {label}
+      {count !== undefined && count > 0 && (
+        <span className="ml-0.5" style={{ fontWeight: 400 }}>({count})</span>
+      )}
+      {isActive && <div className="absolute bottom-[10px] left-0 right-0 h-[2px] bg-[#4A6FA5]" />}
+    </button>
+  );
+}
+
 export function ClientDetail() {
   const navigate = useNavigate();
   useParams<{ id: string }>();
   const [activeTab, setActiveTab] = useState<TabKey>("details");
+  const [tabs, setTabs] = useState(DEFAULT_TABS);
+  const [hiddenTabs, setHiddenTabs] = useState<Set<TabKey>>(new Set());
+  const [showTabSettings, setShowTabSettings] = useState(false);
+  const tabSettingsRef = useRef<HTMLDivElement>(null);
+
+  const moveTab = useCallback((from: TabKey, to: TabKey) => {
+    setTabs(prev => {
+      const arr = [...prev];
+      const fi = arr.findIndex(t => t.key === from);
+      const ti = arr.findIndex(t => t.key === to);
+      const [item] = arr.splice(fi, 1);
+      arr.splice(ti, 0, item);
+      return arr;
+    });
+  }, []);
+
+  const toggleTabVisibility = (key: TabKey) => {
+    setHiddenTabs(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) { next.delete(key); }
+      else {
+        next.add(key);
+        // if we're hiding the active tab, switch to first visible
+        if (activeTab === key) {
+          const firstVisible = tabs.find(t => t.key !== key && !next.has(t.key));
+          if (firstVisible) setActiveTab(firstVisible.key);
+        }
+      }
+      return next;
+    });
+  };
+
+  const visibleTabs = tabs.filter(t => !hiddenTabs.has(t.key));
   const [isEditing, setIsEditing] = useState(false);
   const [editingSection, setEditingSection] = useState<null | "name" | "contact" | "finance">(null);
   const [notesExpanded, setNotesExpanded] = useState(false);
@@ -168,6 +358,58 @@ export function ClientDetail() {
   const [editingNoteId, setEditingNoteId] = useState<number | null>(null);
   const [editingNoteText, setEditingNoteText] = useState("");
   const [expandedNoteIds, setExpandedNoteIds] = useState<Set<number>>(new Set());
+
+  interface ServiceAddress {
+    id: string; street: string; unit: string; city: string; state: string;
+    zip: string; county: string; notes: string; isPrimary: boolean;
+  }
+  const [serviceAddresses, setServiceAddresses] = useState<ServiceAddress[]>([
+    { id: "1", street: "2105 West Hills Avenue", unit: "Suite 201", city: "Tampa",       state: "FL", zip: "33606", county: "Hillsborough", notes: "Gate code: 2486",         isPrimary: true  },
+    { id: "2", street: "4820 Cypress Creek Blvd", unit: "",          city: "Tampa",       state: "FL", zip: "33613", county: "Hillsborough", notes: "Side entrance only",      isPrimary: false },
+    { id: "3", street: "910 Harbour Island Blvd", unit: "Apt 305",   city: "Tampa",       state: "FL", zip: "33602", county: "Hillsborough", notes: "",                        isPrimary: false },
+  ]);
+  const [showAddAddress, setShowAddAddress] = useState(false);
+  const [newAddr, setNewAddr] = useState({ street: "", unit: "", city: "", state: "", zip: "", county: "", notes: "" });
+
+  interface DocFile { id: string; name: string; size: string; date: string; icon: string; iconColor: string; }
+  const [documents, setDocuments] = useState<DocFile[]>([
+    { id: "1", name: "Service Agreement - 2026.pdf", size: "245 KB",  date: "Mar 28, 2026", icon: "picture_as_pdf", iconColor: "#DC2626" },
+    { id: "2", name: "HVAC System Photo.jpg",        size: "1.2 MB",  date: "Mar 15, 2026", icon: "image",          iconColor: "#F59E0B" },
+    { id: "3", name: "Property Blueprint.pdf",       size: "3.8 MB",  date: "Feb 10, 2026", icon: "picture_as_pdf", iconColor: "#DC2626" },
+    { id: "4", name: "Before Service.jpg",           size: "980 KB",  date: "Jan 20, 2026", icon: "image",          iconColor: "#F59E0B" },
+  ]);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const getFileIcon = (name: string): { icon: string; iconColor: string } => {
+    const ext = name.split(".").pop()?.toLowerCase() ?? "";
+    if (["pdf"].includes(ext))                    return { icon: "picture_as_pdf", iconColor: "#DC2626" };
+    if (["jpg","jpeg","png","gif","webp"].includes(ext)) return { icon: "image",          iconColor: "#F59E0B" };
+    if (["doc","docx"].includes(ext))             return { icon: "description",    iconColor: "#2563EB" };
+    if (["xls","xlsx","csv"].includes(ext))       return { icon: "table_chart",    iconColor: "#16A34A" };
+    if (["zip","rar","7z"].includes(ext))         return { icon: "folder_zip",     iconColor: "#7C3AED" };
+    return { icon: "insert_drive_file", iconColor: "#6B7280" };
+  };
+
+  const formatSize = (bytes: number): string => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const handleFilesAdded = (files: FileList | null) => {
+    if (!files) return;
+    const today = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    const newDocs: DocFile[] = Array.from(files).map((f) => ({
+      id: Math.random().toString(36).slice(2),
+      name: f.name,
+      size: formatSize(f.size),
+      date: today,
+      ...getFileIcon(f.name),
+    }));
+    setDocuments((prev) => [...newDocs, ...prev]);
+    toast.success(`${newDocs.length} file${newDocs.length > 1 ? "s" : ""} uploaded`);
+  };
   // Auto-transition rules (server-driven in production):
   //   prospect → active   when first invoice with payment > 0 is recorded
   //   active   → on-hold  when an invoice is past due
@@ -235,6 +477,9 @@ export function ClientDetail() {
       { id: 4, text: "Requested annual maintenance plan.", date: "Added Nov 3, 2023" },
       { id: 5, text: "Prefers email communication over phone.", date: "Added Oct 20, 2023" },
       { id: 6, text: "Has two dogs, please close gates.", date: "Added Jul 15, 2021" },
+    ],
+    additionalContacts: [
+      { id: "1", firstName: "Sandra", lastName: "Delgado", phone: "(813) 555-0011", email: "sandra@delgadoprop.com", relationship: "Spouse" },
     ],
     tags: ["New Homeowner", "Self-Generated Lead", "VIP Customer"],
     membership: "Silver",
@@ -372,18 +617,52 @@ export function ClientDetail() {
             <div className="text-[11px] uppercase tracking-wider text-[#546478] font-semibold mb-0.5">Primary Phone</div>
             <div className="text-[13px] text-[#1A2332] font-medium">{client.mobilePhone}</div>
           </div>
+          {client.workPhone && (
+            <div>
+              <div className="text-[11px] uppercase tracking-wider text-[#546478] font-semibold mb-0.5">Secondary Phone</div>
+              <div className="text-[13px] text-[#1A2332] font-medium">{client.workPhone}{client.workPhoneExt ? ` ext. ${client.workPhoneExt}` : ""}</div>
+            </div>
+          )}
           <div>
             <div className="text-[11px] uppercase tracking-wider text-[#546478] font-semibold mb-0.5">Email</div>
             <div className="text-[13px] text-[#1A2332] font-medium">{client.email}</div>
           </div>
+          {client.website && (
+            <div>
+              <div className="text-[11px] uppercase tracking-wider text-[#546478] font-semibold mb-0.5">Website</div>
+              <a href={client.website} target="_blank" rel="noopener noreferrer" className="text-[13px] text-[#4A6FA5] hover:underline font-medium">{client.website}</a>
+            </div>
+          )}
           <div>
             <div className="text-[11px] uppercase tracking-wider text-[#546478] font-semibold mb-0.5">Company Name</div>
             <div className="text-[13px] text-[#1A2332] font-medium">{client.company}</div>
           </div>
+          {client.role && (
+            <div>
+              <div className="text-[11px] uppercase tracking-wider text-[#546478] font-semibold mb-0.5">Role</div>
+              <div className="text-[13px] text-[#1A2332] font-medium">{client.role}</div>
+            </div>
+          )}
           <div>
             <div className="text-[11px] uppercase tracking-wider text-[#546478] font-semibold mb-0.5">Customer Since</div>
             <div className="text-[13px] text-[#1A2332] font-medium">{client.customerSince}</div>
           </div>
+          {client.additionalContacts && client.additionalContacts.length > 0 && (
+            <div className="pt-3 border-t border-[#DDE3EE]">
+              <div className="text-[11px] uppercase tracking-wider text-[#546478] font-semibold mb-2">Additional Contacts</div>
+              <div className="space-y-3">
+                {client.additionalContacts.map((c) => (
+                  <div key={c.id} className="space-y-0.5">
+                    <div className="text-[13px] text-[#1A2332] font-medium">{c.firstName} {c.lastName}
+                      {c.relationship && <span className="text-[12px] text-[#6B7280] font-normal ml-1.5">· {c.relationship}</span>}
+                    </div>
+                    {c.phone && <div className="text-[12px] text-[#546478]">{c.phone}</div>}
+                    {c.email && <div className="text-[12px] text-[#546478]">{c.email}</div>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -955,93 +1234,215 @@ export function ClientDetail() {
 
       case "invoices":
         return (
-          <div className="bg-white border border-[#E5E7EB] rounded-lg">
+          <div className="bg-white border border-[#E5E7EB] rounded-lg overflow-hidden">
             <div className="border-b border-[#E5E7EB] px-6 py-4 flex items-center justify-between">
-              <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Invoices</h3>
+              <div className="flex items-center gap-3">
+                <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Invoices</h3>
+                <span className="text-[12px] text-[#6B7280]">{invoiceRows.length} invoices</span>
+              </div>
               <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-[#F5F7FA]" onClick={() => navigate("/invoices/new")}>
                 <span className="material-icons text-[#546478]" style={{ fontSize: "20px" }}>add</span>
               </Button>
             </div>
-            <div className="p-6">
-              <WorkTable items={[]} emptyIcon="receipt" emptyLabel="No invoices yet for this client." />
+            <div className="px-6 py-5 overflow-x-auto">
+              <InvoiceTable />
             </div>
           </div>
         );
 
       case "payments":
-        return <EmptyState icon="credit_card" message="No payments recorded for this client." />;
+        return (
+          <div className="bg-white border border-[#E5E7EB] rounded-lg overflow-hidden">
+            <div className="border-b border-[#E5E7EB] px-6 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Payments</h3>
+                <span className="text-[12px] text-[#6B7280]">{paymentRows.length} payments</span>
+              </div>
+              <Button className="h-8 px-3 gap-1.5 text-[13px] bg-[#4A6FA5] hover:bg-[#3d5a85] text-white" onClick={() => toast.info("Collect payment coming soon")}>
+                <span className="material-icons" style={{ fontSize: "16px" }}>add</span>
+                Collect payment
+              </Button>
+            </div>
+            <div className="px-6 py-5 overflow-x-auto">
+              <PaymentTable />
+            </div>
+          </div>
+        );
 
       case "addresses":
         return (
-          <div className="space-y-6">
-            {/* Service Address */}
+          <div className="space-y-4">
+            {/* Header card */}
             <div className="bg-white border border-[#E5E7EB] rounded-lg overflow-hidden">
-              <div className="border-b border-[#E5E7EB] px-6 py-4 flex items-center justify-between">
+              <div className="px-6 py-4 flex items-center justify-between">
                 <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Service Address</h3>
-                <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-[#F5F7FA]" onClick={() => toast.info("Add address coming soon")}>
-                  <span className="material-icons text-[#546478]" style={{ fontSize: "20px" }}>add</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 px-3 gap-1.5 text-[13px] text-[#4A6FA5] hover:bg-[#EEF2F8]"
+                  onClick={() => { setShowAddAddress(true); setNewAddr({ street: "", unit: "", city: "", state: "", zip: "", county: "", notes: "" }); }}
+                >
+                  <span className="material-icons" style={{ fontSize: "16px" }}>add</span>
+                  Add address
                 </Button>
               </div>
-              <div className="p-6 space-y-3">
-                <div className="border border-[#E5E7EB] rounded-lg p-4 flex items-start gap-3 hover:bg-[#F9FAFB] cursor-pointer transition-colors">
-                  <span className="material-icons text-[#4A6FA5] mt-0.5" style={{ fontSize: "20px" }}>location_on</span>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
+            </div>
+
+            {/* Address cards */}
+            <div className="space-y-3">
+              {serviceAddresses.map((addr) => (
+                <div key={addr.id} className="bg-white border border-[#E5E7EB] rounded-lg p-5 flex items-start gap-3 hover:bg-[#F9FAFB] transition-colors group">
+                  <span className="material-icons text-[#4A6FA5] mt-0.5 shrink-0" style={{ fontSize: "20px" }}>location_on</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>
-                        {client.address}{client.unit ? `, ${client.unit}` : ""}
+                        {addr.street}{addr.unit ? `, ${addr.unit}` : ""}
                       </div>
-                      <span className="inline-flex items-center px-2 py-0.5 rounded bg-[#D1FAE5] text-[#16A34A] text-[11px]" style={{ fontWeight: 500 }}>Primary</span>
+                      {addr.isPrimary && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded bg-[#D1FAE5] text-[#16A34A] text-[11px]" style={{ fontWeight: 500 }}>Primary</span>
+                      )}
                     </div>
-                    <div className="text-[13px] text-[#6B7280]">
-                      {client.city}, {client.state} {client.zip}
-                    </div>
-                    <div className="text-[12px] text-[#9CA3AF] mt-0.5">
-                      {client.county} County
-                    </div>
+                    <div className="text-[13px] text-[#6B7280]">{addr.city}, {addr.state} {addr.zip}</div>
+                    {addr.county && <div className="text-[12px] text-[#9CA3AF] mt-0.5">{addr.county} County</div>}
+                    {addr.notes && <div className="text-[12px] text-[#6B7280] mt-1 italic">{addr.notes}</div>}
+                  </div>
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                    {!addr.isPrimary && (
+                      <button
+                        className="text-[11px] text-[#4A6FA5] hover:underline px-2 py-1 rounded hover:bg-[#EEF2F8]"
+                        style={{ fontWeight: 500 }}
+                        onClick={() => setServiceAddresses(prev => prev.map(a => ({ ...a, isPrimary: a.id === addr.id })))}
+                      >
+                        Set primary
+                      </button>
+                    )}
+                    <button
+                      className="w-7 h-7 flex items-center justify-center rounded hover:bg-[#FEF2F2] text-[#9CA3AF] hover:text-[#DC2626] transition-colors"
+                      onClick={() => setServiceAddresses(prev => prev.filter(a => a.id !== addr.id))}
+                    >
+                      <span className="material-icons" style={{ fontSize: "16px" }}>delete_outline</span>
+                    </button>
                   </div>
                 </div>
-              </div>
+              ))}
             </div>
+
+            {/* Add address form */}
+            {showAddAddress && (
+              <div className="bg-white border border-[#4A6FA5] rounded-lg p-6 space-y-4">
+                <div className="flex items-center justify-between mb-1">
+                  <h4 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>New Service Address</h4>
+                  <button onClick={() => setShowAddAddress(false)} className="text-[#9CA3AF] hover:text-[#374151]">
+                    <span className="material-icons" style={{ fontSize: "18px" }}>close</span>
+                  </button>
+                </div>
+                <div className="flex gap-3">
+                  <Input placeholder="Street address" value={newAddr.street} onChange={(e) => setNewAddr(p => ({ ...p, street: e.target.value }))} className="border-[#D1D5DB] bg-white h-10 text-[14px] flex-1" />
+                  <Input placeholder="Unit" value={newAddr.unit} onChange={(e) => setNewAddr(p => ({ ...p, unit: e.target.value }))} className="border-[#D1D5DB] bg-white h-10 text-[14px] w-[100px]" />
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <Input placeholder="City" value={newAddr.city} onChange={(e) => setNewAddr(p => ({ ...p, city: e.target.value }))} className="border-[#D1D5DB] bg-white h-10 text-[14px]" />
+                  <Input placeholder="State" value={newAddr.state} onChange={(e) => setNewAddr(p => ({ ...p, state: e.target.value }))} className="border-[#D1D5DB] bg-white h-10 text-[14px]" />
+                  <Input placeholder="ZIP" value={newAddr.zip} onChange={(e) => setNewAddr(p => ({ ...p, zip: e.target.value }))} className="border-[#D1D5DB] bg-white h-10 text-[14px]" />
+                </div>
+                <Input placeholder="County" value={newAddr.county} onChange={(e) => setNewAddr(p => ({ ...p, county: e.target.value }))} className="border-[#D1D5DB] bg-white h-10 text-[14px]" />
+                <Input placeholder="Notes (gate code, access instructions…)" value={newAddr.notes} onChange={(e) => setNewAddr(p => ({ ...p, notes: e.target.value }))} className="border-[#D1D5DB] bg-white h-10 text-[14px]" />
+                <div className="flex justify-end gap-2 pt-1">
+                  <Button variant="outline" size="sm" className="border-[#DDE3EE] text-[#546478]" onClick={() => setShowAddAddress(false)}>Cancel</Button>
+                  <Button
+                    size="sm"
+                    className="bg-[#4A6FA5] hover:bg-[#3d5a85] text-white"
+                    onClick={() => {
+                      if (!newAddr.street.trim()) return;
+                      setServiceAddresses(prev => [...prev, {
+                        id: Math.random().toString(36).slice(2),
+                        ...newAddr,
+                        isPrimary: prev.length === 0,
+                      }]);
+                      setShowAddAddress(false);
+                    }}
+                  >
+                    Save Address
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         );
 
       case "documents":
         return (
-          <div className="bg-white border border-[#E5E7EB] rounded-lg overflow-hidden">
-            <div className="border-b border-[#E5E7EB] px-6 py-4 flex items-center justify-between">
-              <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Documents</h3>
-              <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-[#F5F7FA]" onClick={() => toast.info("Upload attachment coming soon")}>
-                <span className="material-icons text-[#546478]" style={{ fontSize: "20px" }}>add</span>
-              </Button>
+          <div className="space-y-4">
+            {/* Header */}
+            <div className="bg-white border border-[#E5E7EB] rounded-lg overflow-hidden">
+              <div className="px-6 py-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Documents</h3>
+                  <span className="text-[12px] text-[#6B7280]">{documents.length} files</span>
+                </div>
+                <Button
+                  size="sm"
+                  className="h-8 px-3 gap-1.5 text-[13px] bg-[#4A6FA5] hover:bg-[#3d5a85] text-white"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <span className="material-icons" style={{ fontSize: "16px" }}>upload</span>
+                  Upload
+                </Button>
+              </div>
             </div>
-            <div className="p-6">
-              <div className="grid grid-cols-2 gap-4">
-                {[
-                  { name: "Service Agreement - 2026.pdf", date: "Mar 28, 2026", size: "245 KB", icon: "picture_as_pdf", color: "#DC2626" },
-                  { name: "HVAC System Photo.jpg", date: "Mar 15, 2026", size: "1.2 MB", icon: "image", color: "#F59E0B" },
-                  { name: "Property Blueprint.pdf", date: "Feb 10, 2026", size: "3.8 MB", icon: "picture_as_pdf", color: "#DC2626" },
-                  { name: "Before Service.jpg", date: "Jan 20, 2026", size: "980 KB", icon: "image", color: "#F59E0B" },
-                ].map((file, i) => (
-                  <div key={i} className="border border-[#E5E7EB] rounded-lg p-3 hover:bg-[#F9FAFB] cursor-pointer transition-colors">
+
+            {/* Drop zone */}
+            <div
+              className={`border-2 border-dashed rounded-lg px-6 py-8 text-center transition-colors cursor-pointer ${
+                isDragOver ? "border-[#4A6FA5] bg-[#EEF2F8]" : "border-[#D1D5DB] bg-white hover:border-[#4A6FA5] hover:bg-[#F9FAFB]"
+              }`}
+              onClick={() => fileInputRef.current?.click()}
+              onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
+              onDragLeave={() => setIsDragOver(false)}
+              onDrop={(e) => { e.preventDefault(); setIsDragOver(false); handleFilesAdded(e.dataTransfer.files); }}
+            >
+              <span className="material-icons text-[#9CA3AF] mb-2 block" style={{ fontSize: "32px" }}>cloud_upload</span>
+              <p className="text-[14px] text-[#374151]" style={{ fontWeight: 500 }}>Drop files here or <span className="text-[#4A6FA5]">browse</span></p>
+              <p className="text-[12px] text-[#9CA3AF] mt-1">PDF, images, Word, Excel — any format</p>
+            </div>
+
+            {/* Hidden file input */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              className="hidden"
+              onChange={(e) => handleFilesAdded(e.target.files)}
+            />
+
+            {/* Files grid */}
+            {documents.length > 0 && (
+              <div className="grid grid-cols-2 gap-3">
+                {documents.map((file) => (
+                  <div key={file.id} className="bg-white border border-[#E5E7EB] rounded-lg p-3 hover:bg-[#F9FAFB] transition-colors group">
                     <div className="flex items-start gap-3">
                       <div className="w-10 h-10 rounded bg-[#F3F4F6] flex items-center justify-center shrink-0">
-                        <span className="material-icons" style={{ fontSize: "20px", color: file.color }}>{file.icon}</span>
+                        <span className="material-icons" style={{ fontSize: "20px", color: file.iconColor }}>{file.icon}</span>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="text-[13px] text-[#1A2332] truncate" style={{ fontWeight: 500 }}>
-                          {file.name}
-                        </div>
+                        <div className="text-[13px] text-[#1A2332] truncate" style={{ fontWeight: 500 }}>{file.name}</div>
                         <div className="flex items-center gap-2 mt-1">
                           <span className="text-[11px] text-[#9CA3AF]">{file.size}</span>
-                          <span className="text-[#D1D5DB]">•</span>
+                          <span className="text-[#D1D5DB]">·</span>
                           <span className="text-[11px] text-[#9CA3AF]">{file.date}</span>
                         </div>
                       </div>
+                      <button
+                        className="opacity-0 group-hover:opacity-100 w-6 h-6 flex items-center justify-center rounded hover:bg-[#FEF2F2] text-[#9CA3AF] hover:text-[#DC2626] transition-all shrink-0"
+                        onClick={() => setDocuments((prev) => prev.filter((d) => d.id !== file.id))}
+                      >
+                        <span className="material-icons" style={{ fontSize: "14px" }}>close</span>
+                      </button>
                     </div>
                   </div>
                 ))}
               </div>
-            </div>
+            )}
           </div>
         );
 
@@ -1187,42 +1588,54 @@ export function ClientDetail() {
 
       {/* ── HORIZONTAL TABS ── */}
       <div className="bg-white sticky top-0 z-30">
-        <div className="flex items-center overflow-x-auto scrollbar-hide border-b border-[#E5E7EB]">
-          <div className="flex items-center px-6">
-            {TABS.map(({ key, label, count }) => (
+        <DndProvider backend={HTML5Backend}>
+          <div className="flex items-center border-b border-[#E5E7EB]">
+            {/* Scrollable tabs */}
+            <div className="flex items-center px-6 overflow-x-auto scrollbar-hide flex-1">
+              {visibleTabs.map(({ key, label, count }) => (
+                <DraggableTab
+                  key={key}
+                  tabKey={key}
+                  label={label}
+                  count={count}
+                  isActive={activeTab === key}
+                  onMove={moveTab}
+                  onClick={() => { setActiveTab(key); if (isEditing) setIsEditing(false); }}
+                />
+              ))}
+            </div>
+            {/* Settings button + dropdown — outside overflow container so dropdown isn't clipped */}
+            <div className="relative shrink-0" ref={tabSettingsRef}>
               <button
-                key={key}
-                onClick={() => {
-                  setActiveTab(key);
-                  if (isEditing) setIsEditing(false);
-                }}
-                className={`relative h-[45px] px-4 shrink-0 text-[13px] transition-colors whitespace-nowrap ${
-                  activeTab === key
-                    ? "text-[#4A6FA5]"
-                    : "text-[#6B7280] hover:text-[#374151]"
-                }`}
-                style={{ fontWeight: 500 }}
+                className={`h-[45px] w-[50px] flex items-center justify-center hover:bg-[#F3F4F6] transition-colors ${showTabSettings ? "bg-[#F3F4F6]" : ""}`}
+                onClick={() => setShowTabSettings(v => !v)}
               >
-                {label}
-                {count !== undefined && count > 0 && (
-                  <span className="ml-0.5" style={{ fontWeight: 400 }}>({count})</span>
-                )}
-                {/* Active tab indicator */}
-                {activeTab === key && (
-                  <div className="absolute bottom-[10px] left-0 right-0 h-[2px] bg-[#4A6FA5]" />
-                )}
+                <span className="material-icons text-[#6B7280]" style={{ fontSize: "18px" }}>settings</span>
               </button>
-            ))}
+              {showTabSettings && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowTabSettings(false)} />
+                  <div className="absolute right-0 top-full mt-1 z-50 bg-white border border-[#E5E7EB] rounded-lg shadow-lg w-[200px] py-2">
+                    <div className="px-3 pb-2 pt-1">
+                      <p className="text-[11px] text-[#9CA3AF] uppercase tracking-wider" style={{ fontWeight: 600 }}>Show / hide tabs</p>
+                    </div>
+                    {tabs.map(({ key, label }) => (
+                      <label key={key} className="flex items-center gap-2.5 px-3 py-2 hover:bg-[#F9FAFB] cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={!hiddenTabs.has(key)}
+                          onChange={() => toggleTabVisibility(key)}
+                          className="w-4 h-4 accent-[#4A6FA5]"
+                        />
+                        <span className="text-[13px] text-[#374151]" style={{ fontWeight: 500 }}>{label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
-
-          {/* Settings button */}
-          <button
-            className="ml-auto h-[45px] w-[50px] flex items-center justify-center shrink-0 hover:bg-[#F3F4F6] transition-colors"
-            onClick={() => toast.info("Settings coming soon")}
-          >
-            <span className="material-icons text-[#6B7280]" style={{ fontSize: "18px" }}>settings</span>
-          </button>
-        </div>
+        </DndProvider>
       </div>
 
       {/* ── CONTENT AREA ── */}
