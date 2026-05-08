@@ -160,247 +160,83 @@ export function JobDetail() {
 
   const renderDetailsTab = () => (
     <div className="flex gap-4 items-start">
-      {/* ── Main content ── */}
-      <div className="flex-1 min-w-0 flex flex-col gap-4">
-        {/* Row 1: Service Address (col 1) | Assigned To (col 2–3) */}
-        <div className="grid grid-cols-3 gap-4">
-          <div className="bg-white border border-[#E5E7EB] rounded-lg p-5 flex flex-col">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Service Address</h3>
-              <button onClick={() => openEdit("address")} className="text-[#9CA3AF] hover:text-[#6B7280]" aria-label="Edit address" title="Edit address">
-                <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
-              </button>
-            </div>
-            <div className="flex items-start gap-2">
-              <span className="material-icons text-[#6B7280] mt-0.5" style={{ fontSize: "16px" }}>location_on</span>
+
+      {/* ── Job Overview ── */}
+      <div className="flex-1 min-w-0 bg-white border border-[#E5E7EB] rounded-lg p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Job Overview</h3>
+          <button onClick={() => openEdit("overview")} className="text-[#9CA3AF] hover:text-[#6B7280]">
+            <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
+          </button>
+        </div>
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1">
+            <div className="text-[11px] text-[#9CA3AF]">Job Title</div>
+            <div className="text-[13px] text-[#374151]" style={{ fontWeight: 500 }}>{job.title}</div>
+          </div>
+          <div className="flex flex-col gap-1">
+            <div className="text-[11px] text-[#9CA3AF]">Service Address</div>
+            <div className="flex items-start gap-1.5">
+              <span className="material-icons text-[#6B7280] mt-0.5" style={{ fontSize: "15px" }}>location_on</span>
               <div className="text-[13px] text-[#374151] leading-[20px]">
-                {job.address}<br />
-                {job.city}, {job.state}, {job.zip}
+                {job.address}<br />{job.city}, {job.state} {job.zip}
               </div>
             </div>
           </div>
-
-          <div className="col-span-2 bg-white border border-[#E5E7EB] rounded-lg p-5 flex flex-col">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Assigned To</h3>
-              <button onClick={() => openEdit("assigned")} className="text-[#9CA3AF] hover:text-[#6B7280]" aria-label="Edit assigned" title="Edit assigned">
-                <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
-              </button>
-            </div>
-            <div className="flex items-center gap-8 flex-wrap flex-1">
-              <div className="flex items-center gap-2.5">
-                <div className="w-10 h-10 rounded-full bg-[#4A6FA5] flex items-center justify-center text-white text-[13px]" style={{ fontWeight: 600 }}>
-                  {job.assignedInitials}
-                </div>
-                <div>
-                  <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>{job.assignedTo}</div>
-                  <div className="text-[12px] text-[#9CA3AF]">Technician</div>
-                </div>
-              </div>
-              <div className="h-10 w-px bg-[#E5E7EB]" />
-              <div className="flex flex-col gap-1">
-                <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Role</div>
-                <div className="text-[13px] text-[#374151] leading-[20px]">Lead Technician</div>
-              </div>
-              <div className="flex flex-col gap-1">
-                <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Phone</div>
-                <div className="text-[13px] text-[#374151] leading-[20px]">(813) 555-0192</div>
-              </div>
-              <div className="flex flex-col gap-1">
-                <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Email</div>
-                <a href="mailto:marek@vision360.com" className="text-[13px] text-[#4A6FA5] leading-[20px] hover:underline">
-                  marek@vision360.com
-                </a>
-              </div>
-              <button className="ml-auto text-[12px] text-[#4A6FA5] hover:underline flex items-center gap-1" style={{ fontWeight: 500 }}>
-                <span className="material-icons" style={{ fontSize: "16px" }}>person_add</span>
-                Reassign
-              </button>
-            </div>
+          <div className="flex flex-col gap-1">
+            <div className="text-[11px] text-[#9CA3AF]">Job Type</div>
+            <div className="text-[13px] text-[#374151]">{job.jobType}</div>
           </div>
-        </div>
-
-        {/* Row 2: Job Date & Time | Job Overview (with Priority) | Linked Documents */}
-        <div className="grid grid-cols-3 gap-4">
-          <div className="bg-white border border-[#E5E7EB] rounded-lg p-5 flex flex-col">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Job Date & Time</h3>
-              <button onClick={() => openEdit("schedule")} className="text-[#9CA3AF] hover:text-[#6B7280]" aria-label="Edit schedule" title="Edit schedule">
-                <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
-              </button>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex flex-col gap-1">
-                <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Start Date</div>
-                <div className="text-[13px] text-[#374151] leading-[20px]" style={{ fontWeight: 500 }}>{job.startedOn}</div>
+          <div className="h-px bg-[#F3F4F6]" />
+          <div className="flex flex-col gap-1">
+            <div className="text-[11px] text-[#9CA3AF]">Assigned To</div>
+            <div className="flex items-center gap-2 mt-0.5">
+              <div className="w-7 h-7 rounded-full bg-[#4A6FA5] flex items-center justify-center text-white text-[11px]" style={{ fontWeight: 600 }}>
+                {job.assignedInitials}
               </div>
-              <div className="flex flex-col gap-1">
-                <div className="text-[11px] text-[#9CA3AF] leading-[16px]">End Date</div>
-                <div className="text-[13px] text-[#374151] leading-[20px]" style={{ fontWeight: 500 }}>{job.endsOn}</div>
-              </div>
-              <div className="flex flex-col gap-1">
-                <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Start Time</div>
-                <div className="text-[13px] text-[#374151] leading-[20px]" style={{ fontWeight: 500 }}>{job.startTime}</div>
-              </div>
-              <div className="flex flex-col gap-1">
-                <div className="text-[11px] text-[#9CA3AF] leading-[16px]">End Time</div>
-                <div className="text-[13px] text-[#374151] leading-[20px]" style={{ fontWeight: 500 }}>{job.endTime}</div>
+              <div>
+                <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{job.assignedTo}</div>
+                <div className="text-[11px] text-[#9CA3AF]">Technician</div>
               </div>
             </div>
           </div>
-
-          <div className="bg-white border border-[#E5E7EB] rounded-lg p-5 flex flex-col">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Job Overview</h3>
-              <button onClick={() => openEdit("overview")} className="text-[#9CA3AF] hover:text-[#6B7280]" aria-label="Edit overview" title="Edit overview">
-                <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
-              </button>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex flex-col gap-1">
-                <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Job Title</div>
-                <div className="text-[13px] text-[#374151] leading-[20px]" style={{ fontWeight: 500 }}>{job.title}</div>
-              </div>
-              <div className="flex flex-col gap-1">
-                <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Job #</div>
-                <div className="text-[13px] text-[#374151] leading-[20px]">{job.jobNumber}</div>
-              </div>
-              <div className="flex flex-col gap-1">
-                <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Job Type</div>
-                <div className="text-[13px] text-[#374151] leading-[20px]">{job.jobType}</div>
-              </div>
-              <div className="flex flex-col gap-1">
-                <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Priority</div>
-                <div>
-                  <span
-                    className="inline-flex items-center px-2 py-0.5 rounded text-[11px]"
-                    style={{
-                      fontWeight: 600,
-                      backgroundColor: priorityColors[job.priority]?.bg ?? "#F3F4F6",
-                      color: priorityColors[job.priority]?.text ?? "#6B7280",
-                    }}
-                  >
-                    {job.priority}
-                  </span>
-                </div>
-              </div>
-              <div className="flex flex-col gap-1">
-                <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Customer</div>
-                <button
-                  onClick={() => navigate("/clients/1")}
-                  className="text-[13px] text-[#4A6FA5] leading-[20px] hover:underline text-left"
-                  style={{ fontWeight: 500 }}
-                >
-                  {job.client}
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white border border-[#E5E7EB] rounded-lg p-5">
-            <h3 className="text-[14px] text-[#1A2332] mb-4" style={{ fontWeight: 600 }}>Linked Documents</h3>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="material-icons text-[#6B7280]" style={{ fontSize: "18px" }}>request_quote</span>
-                  <span className="text-[13px] text-[#374151]">Estimate</span>
-                </div>
-                {job.linkedEstimate ? (
-                  <button
-                    onClick={() => navigate(`/estimates/${job.linkedEstimate.id}`)}
-                    className="text-[13px] text-[#4A6FA5] hover:underline flex items-center gap-2"
-                    style={{ fontWeight: 500 }}
-                  >
-                    {job.linkedEstimate.title}
-                    <span className="px-1.5 py-0.5 rounded text-[11px] bg-[#F3F4F6] text-[#6B7280]" style={{ fontWeight: 500 }}>{job.linkedEstimate.status}</span>
-                  </button>
-                ) : (
-                  <button onClick={() => navigate("/estimates/create")} className="text-[12px] text-[#4A6FA5] hover:underline" style={{ fontWeight: 500 }}>
-                    Create
-                  </button>
-                )}
-              </div>
-              <div className="h-px bg-[#F3F4F6]" />
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="material-icons text-[#6B7280]" style={{ fontSize: "18px" }}>receipt</span>
-                  <span className="text-[13px] text-[#374151]">Invoice</span>
-                </div>
-                {job.linkedInvoice ? (
-                  <button
-                    onClick={() => navigate(`/invoices/${job.linkedInvoice.id}`)}
-                    className="text-[13px] text-[#4A6FA5] hover:underline flex items-center gap-2"
-                    style={{ fontWeight: 500 }}
-                  >
-                    {job.linkedInvoice.title}
-                    <span className="px-1.5 py-0.5 rounded text-[11px] bg-[#F3F4F6] text-[#6B7280]" style={{ fontWeight: 500 }}>{job.linkedInvoice.status}</span>
-                  </button>
-                ) : (
-                  <button onClick={() => navigate("/invoices/create")} className="text-[12px] text-[#4A6FA5] hover:underline" style={{ fontWeight: 500 }}>
-                    Create
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Profitability Bar */}
-        <div className="bg-white border border-[#E5E7EB] rounded-lg px-5 py-4">
-          <div className="flex items-center gap-1.5 mb-3">
-            <h3 className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>Profitability</h3>
-          </div>
-          <div className="flex items-center gap-2 flex-wrap text-[13px]">
-            <div className="flex items-center gap-1.5">
-              <span className="text-[11px] text-[#9CA3AF]">Total price</span>
-              <span className="text-[#16A34A]" style={{ fontWeight: 600 }}>
-                ${job.profitability.totalPrice.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </span>
-            </div>
-            <span className="text-[#D1D5DB]">—</span>
-            <div className="flex items-center gap-1.5">
-              <span className="text-[11px] text-[#9CA3AF]">Line Item Cost</span>
-              <span className="text-[#374151]" style={{ fontWeight: 500 }}>
-                ${job.profitability.lineItemCost.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </span>
-            </div>
-            <span className="text-[#D1D5DB]">—</span>
-            <div className="flex items-center gap-1.5">
-              <span className="text-[11px] text-[#9CA3AF]">Labor</span>
-              <span className="text-[#374151]" style={{ fontWeight: 500 }}>
-                ${job.profitability.labor.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </span>
-            </div>
-            <span className="text-[#D1D5DB]">—</span>
-            <div className="flex items-center gap-1.5">
-              <span className="text-[11px] text-[#9CA3AF]">Expenses</span>
-              <span className="text-[#374151]" style={{ fontWeight: 500 }}>
-                ${job.profitability.expenses.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </span>
-            </div>
-            <span className="text-[#D1D5DB] mx-1">=</span>
-            <div className="flex items-center gap-1.5">
-              <span className="text-[11px] text-[#9CA3AF]">Profit</span>
-              <span style={{ fontWeight: 700, color: job.profitability.profit < 0 ? "#DC2626" : "#16A34A" }}>
-                {job.profitability.profit < 0 ? "-" : ""}${Math.abs(job.profitability.profit).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </span>
-            </div>
-            <div className="ml-auto flex items-center gap-1.5">
-              <span className="text-[11px] text-[#9CA3AF]">Profit margin</span>
-              <span
-                className="text-[15px]"
-                style={{ fontWeight: 700, color: job.profitability.margin < 0 ? "#DC2626" : "#16A34A" }}
-              >
-                {job.profitability.margin.toFixed(1)}%
-              </span>
-            </div>
+          <div className="flex flex-col gap-1">
+            <div className="text-[11px] text-[#9CA3AF]">Job #</div>
+            <div className="text-[13px] text-[#374151]">{job.jobNumber}</div>
           </div>
         </div>
       </div>
 
-      {/* ── Notes Panel (right side) ── */}
+      {/* ── Job Date & Time ── */}
+      <div className="flex-1 min-w-0 bg-white border border-[#E5E7EB] rounded-lg p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Job Date & Time</h3>
+          <button onClick={() => openEdit("schedule")} className="text-[#9CA3AF] hover:text-[#6B7280]">
+            <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
+          </button>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="flex flex-col gap-1">
+            <div className="text-[11px] text-[#9CA3AF]">Start Date</div>
+            <div className="text-[13px] text-[#374151]" style={{ fontWeight: 500 }}>{job.startedOn}</div>
+          </div>
+          <div className="flex flex-col gap-1">
+            <div className="text-[11px] text-[#9CA3AF]">End Date</div>
+            <div className="text-[13px] text-[#374151]" style={{ fontWeight: 500 }}>{job.endsOn}</div>
+          </div>
+          <div className="flex flex-col gap-1">
+            <div className="text-[11px] text-[#9CA3AF]">Start Time</div>
+            <div className="text-[13px] text-[#374151]" style={{ fontWeight: 500 }}>{job.startTime}</div>
+          </div>
+          <div className="flex flex-col gap-1">
+            <div className="text-[11px] text-[#9CA3AF]">End Time</div>
+            <div className="text-[13px] text-[#374151]" style={{ fontWeight: 500 }}>{job.endTime}</div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Notes Panel ── */}
       <div className="w-[272px] shrink-0 bg-white border border-[#E5E7EB] rounded-lg flex flex-col overflow-hidden">
-        {/* Notes sub-tabs */}
         <div className="flex border-b border-[#E5E7EB]">
           {(["notes", "private", "field"] as NotesTabKey[]).map((t) => {
             const label = t === "notes" ? "Notes" : t === "private" ? "Private Notes" : "Field Notes";
@@ -418,8 +254,6 @@ export function JobDetail() {
             );
           })}
         </div>
-
-        {/* Notes content */}
         <div className="flex-1 p-3 flex flex-col gap-2">
           {notesTab === "notes" && (
             <>
