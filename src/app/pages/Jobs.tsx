@@ -213,10 +213,15 @@ export function Jobs() {
       {/* ── Table ── */}
       <div className="bg-white border border-[#DDE3EE] rounded-lg overflow-hidden">
         {/* Filter Bar */}
-        <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-[#DDE3EE]">
+        <div className="flex items-center gap-2 px-4 py-3 bg-white border-b border-[#DDE3EE]">
+          <div className="relative">
+            <span className="material-icons absolute left-2.5 top-1/2 -translate-y-1/2 text-[#9AA3AF]" style={{ fontSize: "16px" }}>search</span>
+            <input type="text" placeholder="Search" value={searchQuery}
+              onChange={e => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+              className="h-8 pl-8 pr-3 w-[220px] border border-[#DDE3EE] rounded-lg text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5]" />
+          </div>
+          <div className="w-px h-5 bg-[#DDE3EE] mx-1" />
           <div className="flex items-center gap-2">
-            <span className="text-[13px] text-[#546478]" style={{ fontWeight: 500 }}>{filtered.length} results</span>
-            <div className="w-px h-5 bg-[#DDE3EE] mx-1" />
             <select value={qfStatus} onChange={e => { setQfStatus(e.target.value); setCurrentPage(1); }} className={qfClass(qfStatus !== "All")}>
               <option value="All">Status: All</option>
               <option value="Scheduled">Scheduled</option>
@@ -252,16 +257,6 @@ export function Jobs() {
                 </span>
               )}
             </button>
-          </div>
-          <div className="relative">
-            <span className="material-icons absolute left-2.5 top-1/2 -translate-y-1/2 text-[#9AA3AF]" style={{ fontSize: "16px" }}>search</span>
-            <input
-              type="text"
-              placeholder="Search"
-              value={searchQuery}
-              onChange={e => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-              className="h-8 pl-8 pr-3 w-[220px] border border-[#DDE3EE] rounded-lg text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5]"
-            />
           </div>
         </div>
         <SelectionBar

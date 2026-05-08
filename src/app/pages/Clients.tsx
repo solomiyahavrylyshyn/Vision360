@@ -505,10 +505,15 @@ export function Clients() {
         {/* ── Table ── */}
         <div className="bg-white border border-[#DDE3EE] rounded-lg overflow-hidden">
           {/* Filter Bar */}
-          <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-[#DDE3EE]">
+          <div className="flex items-center gap-2 px-4 py-3 bg-white border-b border-[#DDE3EE]">
+            <div className="relative">
+              <span className="material-icons absolute left-2.5 top-1/2 -translate-y-1/2 text-[#9AA3AF]" style={{ fontSize: "16px" }}>search</span>
+              <Input type="text" placeholder="Search" value={searchQuery}
+                onChange={e => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+                className="pl-8 pr-3 h-8 w-[220px] border-[#DDE3EE] text-[13px] bg-white focus:bg-white" />
+            </div>
+            <div className="w-px h-5 bg-[#DDE3EE] mx-1" />
             <div className="flex items-center gap-2">
-              <span className="text-[13px] text-[#546478]" style={{ fontWeight: 500 }}>{filteredClients.length} results</span>
-              <div className="w-px h-5 bg-[#DDE3EE] mx-1" />
               <select
                 value={qfStatus}
                 onChange={e => { setQfStatus(e.target.value); setCurrentPage(1); }}
@@ -557,16 +562,6 @@ export function Clients() {
                   </span>
                 )}
               </button>
-            </div>
-            <div className="relative">
-              <span className="material-icons absolute left-2.5 top-1/2 -translate-y-1/2 text-[#9AA3AF]" style={{ fontSize: "16px" }}>search</span>
-              <Input
-                type="text"
-                placeholder="Search"
-                value={searchQuery}
-                onChange={e => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-                className="pl-8 pr-3 h-8 w-[220px] border-[#DDE3EE] text-[13px] bg-white focus:bg-white"
-              />
             </div>
           </div>
           <SelectionBar
