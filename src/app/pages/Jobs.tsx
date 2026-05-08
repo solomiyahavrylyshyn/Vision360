@@ -177,7 +177,10 @@ export function Jobs() {
               {selectedJobs.size > 0 && (
                 <>
                   <KebabSeparator />
-                  <KebabItem icon="block" onSelect={() => { setSelectedJobs(new Set()); }}>Inactivate Selected</KebabItem>
+                  <KebabItem icon="block" destructive onSelect={() => {
+                    setJobs(prev => prev.filter(j => !selectedJobs.has(j.id)));
+                    setSelectedJobs(new Set());
+                  }}>Inactivate Selected</KebabItem>
                   <KebabItem icon="deselect" onSelect={() => setSelectedJobs(new Set())}>Deselect All</KebabItem>
                 </>
               )}

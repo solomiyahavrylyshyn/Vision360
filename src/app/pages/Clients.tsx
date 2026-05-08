@@ -248,7 +248,7 @@ export function Clients() {
                 {selectedClients.size > 0 && (
                   <>
                     <KebabSeparator />
-                    <KebabItem icon="block" onSelect={() => {
+                    <KebabItem icon="block" destructive onSelect={() => {
                       setClients(clients.map(c => selectedClients.has(c.id) ? { ...c, status: "Archived" as const } : c));
                       setSelectedClients(new Set());
                     }}>Inactivate Selected</KebabItem>
