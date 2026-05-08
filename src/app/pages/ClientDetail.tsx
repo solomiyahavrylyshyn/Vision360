@@ -587,7 +587,7 @@ export function ClientDetail() {
           </DropdownMenuItem>
         </DropdownMenuSubContent>
       </DropdownMenuSub>
-      <KebabItem icon="payments" onClick={() => toast.info("Collect Payment coming soon")}>Collect Payment</KebabItem>
+      <KebabItem icon="payments" onClick={() => { setActiveTab("payments"); setHiddenTabs(prev => { const next = new Set(prev); next.delete("payments"); return next; }); }}>Collect Payment</KebabItem>
     </KebabMenuShared>
   );
 
