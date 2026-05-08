@@ -120,6 +120,13 @@ export function JobDetail() {
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
   const [currentStatus, setCurrentStatus] = useState<string>(job.status);
   const [notesTab, setNotesTab] = useState<NotesTabKey>("notes");
+  const [jobNotes, setJobNotes] = useState<NoteEntry[]>(job.notes);
+  const [notesExpanded, setNotesExpanded] = useState(false);
+  const [addingJobNote, setAddingJobNote] = useState(false);
+  const [newJobNoteText, setNewJobNoteText] = useState("");
+  const [editingJobNoteId, setEditingJobNoteId] = useState<number | null>(null);
+  const [editingJobNoteText, setEditingJobNoteText] = useState("");
+  const [expandedJobNoteIds, setExpandedJobNoteIds] = useState<Set<number>>(new Set());
   const [docTab, setDocTab] = useState<DocTabKey>("estimates");
   const [photoTab, setPhotoTab] = useState<"before" | "after">("before");
   const [editingSection, setEditingSection] = useState<null | "address" | "assigned" | "schedule" | "overview">(null);
@@ -236,16 +243,34 @@ export function JobDetail() {
       </div>
 
       {/* ── Notes Panel ── */}
-      <div className="w-[272px] shrink-0 bg-white border border-[#E5E7EB] rounded-lg flex flex-col overflow-hidden">
-        <div className="flex border-b border-[#E5E7EB]">
+      <div className="w-[300px] shrink-0 bg-white border border-[#DDE3EE] rounded-xl overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center gap-2 px-5 py-3.5 border-b border-[#DDE3EE]">
+          <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>notes</span>
+          <span className="flex-1 text-[13px] font-semibold text-[#1A2332]">
+            Notes
+            {jobNotes.length > 0 && (
+              <span className="ml-1 text-[#9CA3AF]" style={{ fontWeight: 400 }}>({jobNotes.length})</span>
+            )}
+          </span>
+          <button
+            onClick={() => { setAddingJobNote(true); setNewJobNoteText(""); }}
+            className="w-7 h-7 flex items-center justify-center hover:bg-[#F5F7FA] rounded-md transition-colors"
+          >
+            <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "16px" }}>add</span>
+          </button>
+        </div>
+
+        {/* Note type tabs */}
+        <div className="flex border-b border-[#DDE3EE] px-5">
           {(["notes", "private", "field"] as NotesTabKey[]).map((t) => {
             const label = t === "notes" ? "Notes" : t === "private" ? "Private Notes" : "Field Notes";
             return (
               <button
                 key={t}
-                onClick={() => setNotesTab(t)}
-                className={`flex-1 py-2.5 text-[11px] transition-colors ${
-                  notesTab === t ? "text-[#4A6FA5] border-b-2 border-[#4A6FA5]" : "text-[#6B7280] hover:text-[#374151]"
+                onClick={() => { setNotesTab(t); setAddingJobNote(false); }}
+                className={`py-2.5 mr-4 text-[12px] border-b-2 transition-colors ${
+                  notesTab === t ? "border-[#4A6FA5] text-[#4A6FA5]" : "border-transparent text-[#6B7280] hover:text-[#374151]"
                 }`}
                 style={{ fontWeight: notesTab === t ? 600 : 500 }}
               >
@@ -254,33 +279,144 @@ export function JobDetail() {
             );
           })}
         </div>
-        <div className="flex-1 p-3 flex flex-col gap-2">
-          {notesTab === "notes" && (
-            <>
-              {job.notes.length > 0 ? (
-                <div className="flex flex-col gap-2">
-                  {job.notes.map((note: NoteEntry) => (
-                    <div key={note.id} className="p-2.5 bg-[#F9FAFB] rounded-md">
-                      <div className="text-[12px] text-[#1A2332] leading-[18px]">{note.text}</div>
-                      <div className="text-[11px] text-[#9CA3AF] mt-1">{note.date}</div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-[12px] text-[#9CA3AF] text-center py-6">No notes yet</div>
-              )}
-            </>
-          )}
+
+        {/* Add note form */}
+        {addingJobNote && notesTab === "notes" && (
+          <div className="px-5 py-3 border-b border-[#DDE3EE] bg-[#F9FAFB]">
+            <textarea
+              autoFocus
+              value={newJobNoteText}
+              onChange={e => setNewJobNoteText(e.target.value)}
+              placeholder="Write a note…"
+              rows={3}
+              className="w-full text-[13px] text-[#1A2332] border border-[#DDE3EE] rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-[#4A6FA5] bg-white placeholder:text-[#9CA3AF]"
+            />
+            <div className="flex gap-2 mt-2">
+              <button
+                onClick={() => {
+                  const trimmed = newJobNoteText.trim();
+                  if (!trimmed) return;
+                  const today = new Date();
+                  const dateStr = `Added ${today.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
+                  const newId = Math.max(0, ...jobNotes.map(n => n.id)) + 1;
+                  setJobNotes(prev => [{ id: newId, text: trimmed, date: dateStr }, ...prev]);
+                  setAddingJobNote(false);
+                  setNewJobNoteText("");
+                }}
+                disabled={!newJobNoteText.trim()}
+                className="h-7 px-3 bg-[#4A6FA5] hover:bg-[#3d5a85] disabled:opacity-40 text-white text-[12px] rounded-md transition-colors"
+                style={{ fontWeight: 500 }}
+              >Save</button>
+              <button
+                onClick={() => { setAddingJobNote(false); setNewJobNoteText(""); }}
+                className="h-7 px-3 text-[#546478] hover:bg-[#EDF0F5] text-[12px] rounded-md transition-colors"
+                style={{ fontWeight: 500 }}
+              >Cancel</button>
+            </div>
+          </div>
+        )}
+
+        {/* Notes list */}
+        <div className="px-5 pt-2 pb-1">
           {notesTab === "private" && (
-            <div className="text-[12px] text-[#9CA3AF] text-center py-6">No private notes yet</div>
+            <div className="py-6 text-center text-[12px] text-[#9CA3AF]">No private notes yet</div>
           )}
           {notesTab === "field" && (
-            <div className="text-[12px] text-[#9CA3AF] text-center py-6">No field notes yet</div>
+            <div className="py-6 text-center text-[12px] text-[#9CA3AF]">No field notes yet</div>
           )}
-          <button className="mt-auto flex items-center gap-1 text-[12px] text-[#4A6FA5] hover:underline" style={{ fontWeight: 500 }}>
-            <span className="material-icons" style={{ fontSize: "14px" }}>add</span>
-            Add note
-          </button>
+          {notesTab === "notes" && jobNotes.length === 0 && !addingJobNote && (
+            <div className="py-6 text-center text-[12px] text-[#9CA3AF]">No notes yet</div>
+          )}
+          {notesTab === "notes" && <>{(notesExpanded ? jobNotes : jobNotes.slice(0, 4)).map((note, index, arr) => {
+            const isLong = note.text.length > 120;
+            const isExpanded = expandedJobNoteIds.has(note.id);
+            const isEditingThis = editingJobNoteId === note.id;
+            return (
+              <div key={note.id} className={`group py-3 ${index < arr.length - 1 ? "border-b border-[#DDE3EE]" : ""}`}>
+                {isEditingThis ? (
+                  <div>
+                    <textarea
+                      autoFocus
+                      value={editingJobNoteText}
+                      onChange={e => setEditingJobNoteText(e.target.value)}
+                      rows={3}
+                      className="w-full text-[13px] text-[#1A2332] border border-[#4A6FA5] rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-[#4A6FA5] bg-white"
+                    />
+                    <div className="flex gap-2 mt-2">
+                      <button
+                        onClick={() => {
+                          const trimmed = editingJobNoteText.trim();
+                          if (!trimmed) return;
+                          setJobNotes(prev => prev.map(n => n.id === note.id ? { ...n, text: trimmed } : n));
+                          setEditingJobNoteId(null);
+                        }}
+                        disabled={!editingJobNoteText.trim()}
+                        className="h-7 px-3 bg-[#4A6FA5] hover:bg-[#3d5a85] disabled:opacity-40 text-white text-[12px] rounded-md transition-colors"
+                        style={{ fontWeight: 500 }}
+                      >Save</button>
+                      <button
+                        onClick={() => setEditingJobNoteId(null)}
+                        className="h-7 px-3 text-[#546478] hover:bg-[#EDF0F5] text-[12px] rounded-md transition-colors"
+                        style={{ fontWeight: 500 }}
+                      >Cancel</button>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <div className="flex items-start justify-between gap-2">
+                      <p className={`text-[13px] text-[#1A2332] leading-[20px] flex-1 ${!isExpanded && isLong ? "line-clamp-2" : ""}`}
+                        style={{ fontWeight: 500 }}>
+                        {note.text}
+                      </p>
+                      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-0.5">
+                        <button
+                          onClick={() => { setEditingJobNoteId(note.id); setEditingJobNoteText(note.text); }}
+                          className="w-6 h-6 flex items-center justify-center hover:bg-[#EDF0F5] rounded transition-colors"
+                        >
+                          <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "14px" }}>edit</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            setJobNotes(prev => prev.filter(n => n.id !== note.id));
+                            setExpandedJobNoteIds(prev => { const s = new Set(prev); s.delete(note.id); return s; });
+                          }}
+                          className="w-6 h-6 flex items-center justify-center hover:bg-[#FEF2F2] rounded transition-colors"
+                        >
+                          <span className="material-icons text-[#9CA3AF] hover:text-[#DC2626]" style={{ fontSize: "14px" }}>delete</span>
+                        </button>
+                      </div>
+                    </div>
+                    {isLong && (
+                      <button
+                        onClick={() => setExpandedJobNoteIds(prev => {
+                          const s = new Set(prev);
+                          isExpanded ? s.delete(note.id) : s.add(note.id);
+                          return s;
+                        })}
+                        className="mt-1 text-[11px] text-[#4A6FA5] hover:underline"
+                        style={{ fontWeight: 500 }}
+                      >
+                        {isExpanded ? "Show less" : "Read more"}
+                      </button>
+                    )}
+                    <div className="text-[11px] text-[#9CA3AF] mt-1">{note.date}</div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+          {jobNotes.length > 4 && (
+            <button
+              onClick={() => setNotesExpanded(v => !v)}
+              className="w-full py-2.5 text-[12px] text-[#4A6FA5] hover:text-[#3d5a85] hover:bg-[#F5F7FA] rounded-lg transition-colors flex items-center justify-center gap-1 border-t border-[#DDE3EE] mt-1"
+              style={{ fontWeight: 500 }}
+            >
+              <span className="material-icons" style={{ fontSize: "14px" }}>
+                {notesExpanded ? "expand_less" : "expand_more"}
+              </span>
+              {notesExpanded ? "Show less" : `Show ${jobNotes.length - 4} more`}
+            </button>
+          )}</>}
         </div>
       </div>
     </div>
