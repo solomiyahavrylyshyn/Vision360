@@ -152,8 +152,6 @@ export function Payments() {
               <KebabItem icon="view_column">Edit Columns</KebabItem>
               <KebabItem icon="swap_horiz">Change Status</KebabItem>
               <KebabItem icon="content_copy">Manage Duplicates</KebabItem>
-              <KebabItem icon="payments">Batch Payments</KebabItem>
-              <KebabItem icon="person_add">Assign to Invoices</KebabItem>
               <KebabSeparator />
               {selectedIds.size > 0 && <>
                 <KebabItem icon="deselect" onClick={() => setSelectedIds(new Set())}>Deselect All</KebabItem>

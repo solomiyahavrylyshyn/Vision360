@@ -353,7 +353,7 @@ export function Invoices() {
               <KebabSeparator />
               {selectedIds.size > 0 && <>
                 <KebabItem icon="deselect" onClick={() => setSelectedIds(new Set())}>Deselect All</KebabItem>
-                <KebabItem icon="archive" destructive onClick={() => setDeleteConfirm(true)}>Archive Selected</KebabItem>
+                <KebabItem icon="block" destructive onClick={() => setDeleteConfirm(true)}>Inactivate Selected</KebabItem>
                 <KebabSeparator />
               </>}
               <KebabItem icon="file_upload">Import</KebabItem>

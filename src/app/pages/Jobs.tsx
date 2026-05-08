@@ -177,7 +177,7 @@ export function Jobs() {
               {selectedJobs.size > 0 && (
                 <>
                   <KebabSeparator />
-                  <KebabItem icon="archive" onSelect={() => { setSelectedJobs(new Set()); }}>Archive Selected</KebabItem>
+                  <KebabItem icon="block" onSelect={() => { setSelectedJobs(new Set()); }}>Inactivate Selected</KebabItem>
                   <KebabItem icon="deselect" onSelect={() => setSelectedJobs(new Set())}>Deselect All</KebabItem>
                 </>
               )}
@@ -332,8 +332,10 @@ export function Jobs() {
                 })}
                 <td className="px-4 py-4" onClick={e => e.stopPropagation()}>
                   <KebabMenu>
-                    <KebabItem icon="visibility" onSelect={() => navigate(`/jobs/${job.id}`)}>View Job</KebabItem>
-                    <KebabItem icon="archive">Archive</KebabItem>
+                    <KebabItem icon="edit" onSelect={() => navigate(`/jobs/${job.id}`)}>Edit</KebabItem>
+                    <KebabItem icon="content_copy">Duplicate</KebabItem>
+                    <KebabSeparator />
+                    <KebabItem icon="block" destructive>Inactivate</KebabItem>
                     <KebabSeparator />
                     <KebabItem icon="open_in_new" onSelect={() => window.open(`/jobs/${job.id}`, "_blank")}>Open in New Tab</KebabItem>
                   </KebabMenu>

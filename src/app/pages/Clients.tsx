@@ -248,10 +248,10 @@ export function Clients() {
                 {selectedClients.size > 0 && (
                   <>
                     <KebabSeparator />
-                    <KebabItem icon="archive" onSelect={() => {
+                    <KebabItem icon="block" onSelect={() => {
                       setClients(clients.map(c => selectedClients.has(c.id) ? { ...c, status: "Archived" as const } : c));
                       setSelectedClients(new Set());
-                    }}>Archive Selected</KebabItem>
+                    }}>Inactivate Selected</KebabItem>
                     <KebabItem icon="deselect" onSelect={() => setSelectedClients(new Set())}>Deselect All</KebabItem>
                   </>
                 )}
@@ -630,10 +630,13 @@ export function Clients() {
                   })}
                   <td className="px-4 py-4">
                     <KebabMenu>
+                      <KebabItem icon="edit" onSelect={e => { e.preventDefault(); navigate(`/clients/${client.id}`); }}>Edit</KebabItem>
+                      <KebabItem icon="content_copy" onSelect={e => { e.preventDefault(); }}>Duplicate</KebabItem>
+                      <KebabSeparator />
                       {client.status === "Active" ? (
-                        <KebabItem icon="archive" onSelect={e => { e.preventDefault(); handleArchiveClient(client); }}>Archive</KebabItem>
+                        <KebabItem icon="block" onSelect={e => { e.preventDefault(); handleArchiveClient(client); }}>Inactivate</KebabItem>
                       ) : (
-                        <KebabItem icon="unarchive" onSelect={e => { e.preventDefault(); handleUnarchiveClient(client); }}>Unarchive</KebabItem>
+                        <KebabItem icon="check_circle" onSelect={e => { e.preventDefault(); handleUnarchiveClient(client); }}>Activate</KebabItem>
                       )}
                       <KebabSeparator />
                       <KebabItem icon="open_in_new" onSelect={e => { e.preventDefault(); window.open(`/clients/${client.id}`, "_blank"); }}>Open in New Tab</KebabItem>

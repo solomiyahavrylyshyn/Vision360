@@ -280,11 +280,10 @@ export function Estimates() {
               <KebabItem icon="view_column">Edit Columns</KebabItem>
               <KebabItem icon="swap_horiz">Change Status</KebabItem>
               <KebabItem icon="content_copy">Manage Duplicates</KebabItem>
-              <KebabItem icon="send">Resend Estimate</KebabItem>
               <KebabSeparator />
               {selectedIds.size > 0 && <>
                 <KebabItem icon="deselect" onClick={() => setSelectedIds(new Set())}>Deselect All</KebabItem>
-                <KebabItem icon="archive" destructive onClick={() => setDeleteConfirm({ ids: Array.from(selectedIds) })}>Archive Selected</KebabItem>
+                <KebabItem icon="block" destructive onClick={() => setDeleteConfirm({ ids: Array.from(selectedIds) })}>Inactivate Selected</KebabItem>
                 <KebabSeparator />
               </>}
               <KebabItem icon="file_upload">Import</KebabItem>
@@ -449,11 +448,11 @@ export function Estimates() {
                   </td>
                   <td className="px-4 py-4" onClick={(e) => e.stopPropagation()}>
                     <KebabMenu triggerClassName="w-7 h-7 rounded hover:bg-[#F3F4F6] flex items-center justify-center">
-                      <KebabItem icon="open_in_new" onClick={() => navigate(`/estimates/${est.id}`)}>Open</KebabItem>
+                      <KebabItem icon="edit" onClick={() => navigate(`/estimates/${est.id}`)}>Edit</KebabItem>
                       <KebabItem icon="content_copy">Duplicate</KebabItem>
                       <KebabItem icon="send">Send to Client</KebabItem>
                       <KebabSeparator />
-                      <KebabItem icon="archive" destructive>Archive</KebabItem>
+                      <KebabItem icon="block" destructive>Inactivate</KebabItem>
                     </KebabMenu>
                   </td>
                 </tr>
