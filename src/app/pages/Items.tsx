@@ -369,13 +369,13 @@ const PRICEBOOK_COLS = [
   { key: "cost",        label: "Cost",        w: "w-[85px]",      sortable: true  },
   { key: "margin",      label: "Margin",      w: "w-[90px]",      sortable: false },
   { key: "taxable",     label: "Taxable",     w: "w-[80px]",      sortable: false },
-  { key: "active",      label: "Active",      w: "w-[70px]",      sortable: false },
 ] as const;
 
 // ─── Main Component ──────────────────────────────────────────────────────────
 export function Items() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabKey>("all");
+  const [showInfoBar, setShowInfoBar] = useState(true);
 
   // Items state
   const [items, setItems] = useState<Item[]>(initialItems);
@@ -501,7 +501,7 @@ export function Items() {
 
   const tabs: { key: TabKey; label: string }[] = [
     { key: "all", label: "All Items" },
-    { key: "pricebook", label: "Pricebook" },
+    { key: "pricebook", label: "Price Book" },
     { key: "services", label: "Services" },
     { key: "materials", label: "Materials" },
     { key: "equipment", label: "Equipment" },
@@ -638,7 +638,7 @@ export function Items() {
               </thead>
               <tbody>
                 {paginatedPbItems.length === 0 ? (
-                  <tr><td colSpan={9} className="px-4 py-16 text-center">
+                  <tr><td colSpan={8} className="px-4 py-16 text-center">
                     <span className="material-icons text-[#C8D5E8] mb-2 block" style={{ fontSize: "48px" }}>menu_book</span>
                     <div className="text-[14px] text-[#546478]" style={{ fontWeight: 500 }}>No pricebook items found</div>
                   </td></tr>
@@ -674,12 +674,6 @@ export function Items() {
                               {item.taxable
                                 ? <span className="material-icons text-[#16A34A]" style={{ fontSize: "18px" }}>check</span>
                                 : <span className="text-[#C8D5E8]">—</span>}
-                            </td>
-                          );
-                        case "active":
-                          return (
-                            <td key="active" className="px-4 py-2" onClick={e => e.stopPropagation()}>
-                              <Toggle checked={item.active} onChange={v => setPbItems(prev => prev.map(i => i.id === item.id ? { ...i, active: v } : i))} />
                             </td>
                           );
                         default:
@@ -802,7 +796,6 @@ export function Items() {
                     { key: "rate", label: "Price", w: "w-[90px]", sortable: true },
                     { key: "cost", label: "Cost", w: "w-[85px]", sortable: true },
                     { key: "taxable", label: "Taxable", w: "w-[80px]", sortable: false },
-                    { key: "active", label: "Active", w: "w-[70px]", sortable: false },
                   ].map(col => (
                     <th
                       key={col.key}
@@ -822,7 +815,7 @@ export function Items() {
               <tbody>
                 {paginatedItems.length === 0 ? (
                   <tr>
-                    <td colSpan={10} className="px-4 py-16 text-center">
+                    <td colSpan={9} className="px-4 py-16 text-center">
                       <span className="material-icons text-[#C8D5E8] mb-2 block" style={{ fontSize: "48px" }}>inventory_2</span>
                       <div className="text-[14px] text-[#546478]" style={{ fontWeight: 500 }}>No items found</div>
                       <div className="text-[12px] text-[#8899AA] mt-1">Try adjusting your search or filters</div>
@@ -868,12 +861,6 @@ export function Items() {
                           ? <span className="material-icons text-[#16A34A]" style={{ fontSize: "18px" }}>check</span>
                           : <span className="text-[#C8D5E8]">—</span>}
                       </td>
-                      <td className="px-4 py-2" onClick={(e) => e.stopPropagation()}>
-                        <Toggle
-                          checked={item.active}
-                          onChange={(v) => setItems(prev => prev.map(i => i.id === item.id ? { ...i, active: v } : i))}
-                        />
-                      </td>
                       <td className="px-4 py-2 text-right" onClick={(e) => e.stopPropagation()}>
                         <KebabMenu triggerClassName="w-8 h-8 border border-[#DDE3EE] rounded-lg bg-white">
                           <KebabItem icon="edit" onClick={() => { setEditingItem(item); setItemModalOpen(true); }}>Edit</KebabItem>
@@ -900,13 +887,21 @@ export function Items() {
       )}
 
       {/* ═══════════════ BOTTOM INFO PANEL (conditional) ═══════════════ */}
-      {activeTab === "pricebook" ? (
-        <div className="mt-3 bg-white border border-[#DDE3EE] rounded-xl px-5 py-4 flex gap-6">
+      {showInfoBar && (activeTab === "pricebook" ? (
+        <div className="mt-3 bg-white border border-[#DDE3EE] rounded-xl px-5 py-4 flex gap-6 relative">
+          {/* Close button */}
+          <button
+            onClick={() => setShowInfoBar(false)}
+            className="absolute top-3 right-3 w-6 h-6 flex items-center justify-center rounded hover:bg-[#F3F4F6] text-[#9CA3AF] hover:text-[#546478] transition-colors"
+            title="Close"
+          >
+            <span className="material-icons" style={{ fontSize: "16px" }}>close</span>
+          </button>
           {/* Left: About Pricebook Items */}
           <div className="w-[220px] flex-shrink-0">
             <div className="flex items-center gap-1.5 mb-1.5">
               <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "17px" }}>info</span>
-              <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 700 }}>About Pricebook Items</span>
+              <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 700 }}>About Price Book Items</span>
             </div>
             <p className="text-[12px] text-[#546478] leading-snug">
               Pricebook items are the flat-rate services, repairs, installations and fees that you sell to your customers. These items are used in estimates, invoices and jobs.
@@ -947,9 +942,24 @@ export function Items() {
               ))}
             </div>
           </div>
+          {/* Don't show again */}
+          <div className="absolute bottom-3 right-10">
+            <label className="flex items-center gap-1.5 cursor-pointer">
+              <input type="checkbox" className="w-3.5 h-3.5 accent-[#4A6FA5]" onChange={() => setShowInfoBar(false)} />
+              <span className="text-[11px] text-[#9CA3AF]">Don't show again</span>
+            </label>
+          </div>
         </div>
       ) : (
-        <div className="mt-3 bg-white border border-[#DDE3EE] rounded-xl px-5 py-4 flex gap-6">
+        <div className="mt-3 bg-white border border-[#DDE3EE] rounded-xl px-5 py-4 flex gap-6 relative">
+          {/* Close button */}
+          <button
+            onClick={() => setShowInfoBar(false)}
+            className="absolute top-3 right-3 w-6 h-6 flex items-center justify-center rounded hover:bg-[#F3F4F6] text-[#9CA3AF] hover:text-[#546478] transition-colors"
+            title="Close"
+          >
+            <span className="material-icons" style={{ fontSize: "16px" }}>close</span>
+          </button>
           {/* Left: About */}
           <div className="w-[200px] flex-shrink-0">
             <div className="flex items-center gap-1.5 mb-1.5">
@@ -991,8 +1001,15 @@ export function Items() {
               ))}
             </div>
           </div>
+          {/* Don't show again */}
+          <div className="absolute bottom-3 right-10">
+            <label className="flex items-center gap-1.5 cursor-pointer">
+              <input type="checkbox" className="w-3.5 h-3.5 accent-[#4A6FA5]" onChange={() => setShowInfoBar(false)} />
+              <span className="text-[11px] text-[#9CA3AF]">Don't show again</span>
+            </label>
+          </div>
         </div>
-      )}
+      ))}
 
       {/* ═══════════════ ITEM GROUPS (modal-only) ═══════════════ */}
       {false && (
