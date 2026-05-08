@@ -1571,7 +1571,7 @@ export function ClientDetail() {
             {/* Financial Summary — 4 horizontal stat cards */}
             <div className="flex gap-3 shrink-0 ml-auto">
               {[
-                { label: "Total Revenue", value: `$${client.totalRevenue.toLocaleString("en-US", { minimumFractionDigits: 0 })}`, color: "#1A2332" },
+                { label: "Total Revenue", value: `$${client.totalRevenue.toLocaleString("en-US", { minimumFractionDigits: 0 })}`, color: "#16A34A" },
                 { label: "Balance",       value: `$${client.openBalance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, color: "#1A2332" },
                 { label: "Past Due",      value: `$${client.pastDueBalance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, color: "#DC2626" },
                 { label: "Open Jobs",     value: "3", color: "#1A2332" },
