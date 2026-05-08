@@ -105,6 +105,10 @@ export function Expenses() {
               <KebabItem icon="content_copy">Manage Duplicates</KebabItem>
               <KebabSeparator />
               {selectedIds.size > 0 && <>
+                <KebabItem icon="block" destructive onClick={() => {
+                  setExpenses(prev => prev.filter(e => !selectedIds.has(e.id)));
+                  setSelectedIds(new Set());
+                }}>Inactivate Selected</KebabItem>
                 <KebabItem icon="deselect" onClick={() => setSelectedIds(new Set())}>Deselect All</KebabItem>
                 <KebabSeparator />
               </>}

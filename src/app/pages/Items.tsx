@@ -547,11 +547,19 @@ export function Items() {
               {activeTab === "pricebook" ? "Create Pricebook Item" : "Create Item"}
             </button>
             <KebabMenu triggerClassName="w-9 h-9 border border-[#DDE3EE] rounded-lg bg-white">
-              <KebabItem icon="file_upload" onClick={() => alert("Import functionality — CSV/Google Sheets import will be available with backend integration.")}>Import</KebabItem>
-              <KebabItem icon="file_download" onClick={() => handleExport()}>Export</KebabItem>
-              <KebabSeparator />
               <KebabItem icon="view_column">Edit Columns</KebabItem>
               <KebabItem icon="content_copy">Manage Duplicates</KebabItem>
+              <KebabSeparator />
+              {selectedItems.size > 0 && <>
+                <KebabItem icon="block" destructive onClick={() => {
+                  setItems(prev => prev.filter(i => !selectedItems.has(i.id)));
+                  setSelectedItems(new Set());
+                }}>Inactivate Selected</KebabItem>
+                <KebabItem icon="deselect" onClick={() => setSelectedItems(new Set())}>Deselect All</KebabItem>
+                <KebabSeparator />
+              </>}
+              <KebabItem icon="file_upload" onClick={() => alert("Import functionality — CSV/Google Sheets import will be available with backend integration.")}>Import</KebabItem>
+              <KebabItem icon="file_download" onClick={() => handleExport()}>Export</KebabItem>
             </KebabMenu>
           </>
         }
