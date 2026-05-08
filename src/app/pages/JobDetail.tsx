@@ -166,10 +166,10 @@ export function JobDetail() {
   ────────────────────────────────────────── */
 
   const renderDetailsTab = () => (
-    <div className="flex gap-4 items-start">
+    <div className="flex gap-4 items-stretch">
 
       {/* ── Job Overview ── */}
-      <div className="flex-1 min-w-0 bg-white border border-[#E5E7EB] rounded-lg p-5">
+      <div className="flex-1 min-w-0 bg-white border border-[#E5E7EB] rounded-lg p-5 flex flex-col">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Job Overview</h3>
           <button onClick={() => openEdit("overview")} className="text-[#9CA3AF] hover:text-[#6B7280]">
@@ -215,7 +215,7 @@ export function JobDetail() {
       </div>
 
       {/* ── Job Date & Time ── */}
-      <div className="flex-1 min-w-0 bg-white border border-[#E5E7EB] rounded-lg p-5">
+      <div className="flex-1 min-w-0 bg-white border border-[#E5E7EB] rounded-lg p-5 flex flex-col">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Job Date & Time</h3>
           <button onClick={() => openEdit("schedule")} className="text-[#9CA3AF] hover:text-[#6B7280]">
