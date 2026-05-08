@@ -1,0 +1,735 @@
+diff --git a/src/app/pages/Calendar.tsx b/src/app/pages/Calendar.tsx
+index f3b76c27..408956b9 100644
+--- a/src/app/pages/Calendar.tsx
++++ b/src/app/pages/Calendar.tsx
+@@ -1,5 +1,6 @@
+ import { useState, useMemo } from "react";
+ import { useNavigate } from "react-router";
++import { PageHeader } from "../components/ui/page-header";
+ import {
+   format,
+   startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek, endOfWeek,
+@@ -19,6 +20,7 @@ interface CalendarEvent {
+   tech: string;
+   techInitials: string;
+   property: string;
++  amount: number;
+ }
+ 
+ const COLORS = {
+@@ -32,16 +34,16 @@ const COLORS = {
+ const colorKeys = Object.keys(COLORS) as (keyof typeof COLORS)[];
+ 
+ const mockEvents: CalendarEvent[] = [
+-  { id: 1, title: "AC Installation", client: "Travis Jones", date: new Date(2026, 3, 6), startHour: 9, duration: 2, color: "blue", status: "Scheduled", tech: "Marek Stroz", techInitials: "MS", property: "4405 N Clark Ave" },
+-  { id: 2, title: "Plumbing Repair", client: "Sarah Johnson", date: new Date(2026, 3, 6), startHour: 13, duration: 1.5, color: "amber", status: "In Progress", tech: "John Smith", techInitials: "JS", property: "1220 Elm St" },
+-  { id: 3, title: "HVAC Maintenance", client: "Mike Davis", date: new Date(2026, 3, 6), startHour: 15, duration: 1, color: "green", status: "Completed", tech: "Sarah Johnson", techInitials: "SJ", property: "890 Oak Dr" },
+-  { id: 4, title: "Electrical Inspection", client: "Lisa Brown", date: new Date(2026, 3, 7), startHour: 10, duration: 2, color: "purple", status: "Scheduled", tech: "Marek Stroz", techInitials: "MS", property: "567 Pine Rd" },
+-  { id: 5, title: "Tree Removal", client: "James Wilson", date: new Date(2026, 3, 8), startHour: 8, duration: 4, color: "red", status: "Overdue", tech: "Mike Davis", techInitials: "MD", property: "234 Maple Ln" },
+-  { id: 6, title: "Gutter Cleaning", client: "Anna Lee", date: new Date(2026, 3, 9), startHour: 11, duration: 1.5, color: "blue", status: "Scheduled", tech: "John Smith", techInitials: "JS", property: "56 Birch Ct" },
+-  { id: 7, title: "Fence Repair", client: "Tom Richards", date: new Date(2026, 3, 10), startHour: 9, duration: 3, color: "amber", status: "Scheduled", tech: "Marek Stroz", techInitials: "MS", property: "12 Cedar Way" },
+-  { id: 8, title: "Lawn Service", client: "Emily Clark", date: new Date(2026, 3, 13), startHour: 8, duration: 2, color: "green", status: "Scheduled", tech: "Sarah Johnson", techInitials: "SJ", property: "88 Willow Dr" },
+-  { id: 9, title: "Roof Inspection", client: "David Park", date: new Date(2026, 3, 15), startHour: 10, duration: 2.5, color: "blue", status: "Scheduled", tech: "Marek Stroz", techInitials: "MS", property: "321 Aspen Blvd" },
+-  { id: 10, title: "Window Install", client: "Karen White", date: new Date(2026, 3, 20), startHour: 9, duration: 5, color: "purple", status: "Scheduled", tech: "John Smith", techInitials: "JS", property: "45 Spruce Rd" },
++  { id: 1, title: "AC Installation", client: "Travis Jones", date: new Date(2026, 3, 6), startHour: 9, duration: 2, color: "blue", status: "Scheduled", tech: "Marek Stroz", techInitials: "MS", property: "4405 N Clark Ave", amount: 2850 },
++  { id: 2, title: "Plumbing Repair", client: "Sarah Johnson", date: new Date(2026, 3, 6), startHour: 13, duration: 1.5, color: "amber", status: "In Progress", tech: "John Smith", techInitials: "JS", property: "1220 Elm St", amount: 425 },
++  { id: 3, title: "HVAC Maintenance", client: "Mike Davis", date: new Date(2026, 3, 6), startHour: 15, duration: 1, color: "green", status: "Completed", tech: "Sarah Johnson", techInitials: "SJ", property: "890 Oak Dr", amount: 129 },
++  { id: 4, title: "Electrical Inspection", client: "Lisa Brown", date: new Date(2026, 3, 7), startHour: 10, duration: 2, color: "purple", status: "Scheduled", tech: "Marek Stroz", techInitials: "MS", property: "567 Pine Rd", amount: 175 },
++  { id: 5, title: "Tree Removal", client: "James Wilson", date: new Date(2026, 3, 8), startHour: 8, duration: 4, color: "red", status: "Overdue", tech: "Mike Davis", techInitials: "MD", property: "234 Maple Ln", amount: 850 },
++  { id: 6, title: "Gutter Cleaning", client: "Anna Lee", date: new Date(2026, 3, 9), startHour: 11, duration: 1.5, color: "blue", status: "Scheduled", tech: "John Smith", techInitials: "JS", property: "56 Birch Ct", amount: 180 },
++  { id: 7, title: "Fence Repair", client: "Tom Richards", date: new Date(2026, 3, 10), startHour: 9, duration: 3, color: "amber", status: "Scheduled", tech: "Marek Stroz", techInitials: "MS", property: "12 Cedar Way", amount: 625 },
++  { id: 8, title: "Lawn Service", client: "Emily Clark", date: new Date(2026, 3, 13), startHour: 8, duration: 2, color: "green", status: "Scheduled", tech: "Sarah Johnson", techInitials: "SJ", property: "88 Willow Dr", amount: 95 },
++  { id: 9, title: "Roof Inspection", client: "David Park", date: new Date(2026, 3, 15), startHour: 10, duration: 2.5, color: "blue", status: "Scheduled", tech: "Marek Stroz", techInitials: "MS", property: "321 Aspen Blvd", amount: 250 },
++  { id: 10, title: "Window Install", client: "Karen White", date: new Date(2026, 3, 20), startHour: 9, duration: 5, color: "purple", status: "Scheduled", tech: "John Smith", techInitials: "JS", property: "45 Spruce Rd", amount: 1450 },
+ ];
+ 
+ // ─── Dispatch Board Data ──────────────────────────────────────────────────────
+@@ -146,50 +148,51 @@ export function Calendar() {
+     const c = getC(event.color);
+     return (
+       <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={onClose}>
+-        <div className="absolute inset-0 bg-black/20 backdrop-blur-[2px]" />
+-        <div className="relative bg-white rounded-2xl shadow-2xl w-[420px] overflow-hidden" onClick={e => e.stopPropagation()}>
+-          <div className="h-1.5" style={{ backgroundColor: c.border }} />
+-          <div className="p-6">
++        <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
++        <div className="relative bg-white rounded-xl shadow-2xl w-[400px] overflow-hidden border border-[#DDE3EE]" onClick={e => e.stopPropagation()}>
++          <div className="h-1" style={{ backgroundColor: c.border }} />
++          <div className="p-5">
+             <div className="flex items-start justify-between mb-4">
+               <div>
+-                <div className="text-[11px] uppercase tracking-wider text-[#8899AA] mb-1" style={{ fontWeight: 600 }}>{event.status}</div>
+-                <h3 className="text-[20px] text-[#1A2332]" style={{ fontWeight: 700 }}>{event.title}</h3>
++                <div className="text-[10px] uppercase tracking-wider text-[#9CA3AF] mb-1" style={{ fontWeight: 600 }}>{event.status}</div>
++                <h3 className="text-[18px] text-[#1A2332]" style={{ fontWeight: 700 }}>{event.title}</h3>
+               </div>
+-              <button onClick={onClose} className="w-8 h-8 rounded-lg hover:bg-[#F5F7FA] flex items-center justify-center">
+-                <span className="material-icons text-[#8899AA]" style={{ fontSize: "20px" }}>close</span>
++              <button onClick={onClose} className="w-7 h-7 rounded-lg hover:bg-[#F5F7FA] flex items-center justify-center transition-colors">
++                <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "18px" }}>close</span>
+               </button>
+             </div>
+-            <div className="space-y-3">
+-              <div className="flex items-center gap-3 text-sm">
+-                <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "18px" }}>person</span>
++            <div className="space-y-2.5">
++              <div className="flex items-center gap-2.5 text-sm">
++                <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "17px" }}>person</span>
+                 <span className="text-[#1A2332]" style={{ fontWeight: 500 }}>{event.client}</span>
+               </div>
+-              <div className="flex items-center gap-3 text-sm">
+-                <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "18px" }}>schedule</span>
+-                <span className="text-[#546478]">{format(event.date, "EEE, MMM d")} · {event.startHour > 12 ? event.startHour - 12 : event.startHour}:00 {event.startHour >= 12 ? "PM" : "AM"} – {(() => { const end = event.startHour + event.duration; return `${end > 12 ? end - 12 : end}:${event.duration % 1 === 0.5 ? "30" : "00"} ${end >= 12 ? "PM" : "AM"}`; })()}</span>
++              <div className="flex items-center gap-2.5 text-sm">
++                <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "17px" }}>schedule</span>
++                <span className="text-[#546478] text-[12px]">{format(event.date, "EEE, MMM d")} · {event.startHour > 12 ? event.startHour - 12 : event.startHour}:00 {event.startHour >= 12 ? "PM" : "AM"} – {(() => { const end = event.startHour + event.duration; return `${end > 12 ? end - 12 : end}:${event.duration % 1 === 0.5 ? "30" : "00"} ${end >= 12 ? "PM" : "AM"}`; })()}</span>
+               </div>
+-              <div className="flex items-center gap-3 text-sm">
+-                <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "18px" }}>location_on</span>
+-                <span className="text-[#546478]">{event.property}</span>
++              <div className="flex items-center gap-2.5 text-sm">
++                <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "17px" }}>location_on</span>
++                <span className="text-[#546478] text-[12px]">{event.property}</span>
+               </div>
+-              <div className="flex items-center gap-3 text-sm">
+-                <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "18px" }}>engineering</span>
++              <div className="flex items-center gap-2.5 text-sm">
++                <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "17px" }}>engineering</span>
+                 <div className="flex items-center gap-2">
+                   <div className="w-6 h-6 rounded-full bg-[#4A6FA5] flex items-center justify-center text-white text-[10px]" style={{ fontWeight: 600 }}>{event.techInitials}</div>
+-                  <span className="text-[#1A2332]">{event.tech}</span>
++                  <span className="text-[#1A2332] text-[12px]" style={{ fontWeight: 500 }}>{event.tech}</span>
+                 </div>
+               </div>
++              <div className="flex items-center gap-2.5 text-sm">
++                <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "17px" }}>attach_money</span>
++                <span className="text-[#1A2332] text-[13px] tabular-nums" style={{ fontWeight: 700 }}>${event.amount.toLocaleString()}</span>
++              </div>
+             </div>
+-            <div className="flex items-center gap-2 mt-6">
+-              <button className="flex-1 px-4 py-2.5 bg-[#4A6FA5] text-white rounded-lg text-sm hover:bg-[#3d5a85]" style={{ fontWeight: 600 }}>
++            <div className="flex items-center gap-2 mt-5">
++              <button className="flex-1 px-4 py-2.5 bg-[#4A6FA5] text-white rounded-lg text-[13px] hover:bg-[#3d5a85] transition-colors" style={{ fontWeight: 600 }}>
+                 View Job
+               </button>
+-              <button className="px-4 py-2.5 border border-[#DDE3EE] text-[#546478] rounded-lg text-sm hover:bg-[#F5F7FA]" style={{ fontWeight: 500 }}>
++              <button className="px-3 py-2.5 border border-[#DDE3EE] text-[#546478] rounded-lg text-[13px] hover:bg-[#F5F7FA] transition-colors" style={{ fontWeight: 500 }}>
+                 Edit
+               </button>
+-              <button className="px-4 py-2.5 border border-[#DDE3EE] text-[#546478] rounded-lg text-sm hover:bg-[#F5F7FA]" style={{ fontWeight: 500 }}>
+-                Reschedule
+-              </button>
+             </div>
+           </div>
+         </div>
+@@ -198,86 +201,88 @@ export function Calendar() {
+   };
+ 
+   return (
+-    <div className="flex flex-col h-full bg-white">
+-      {/* Toolbar */}
+-      <div className="flex items-center justify-between px-6 py-4 border-b border-[#DDE3EE]">
+-        <div className="flex items-center gap-4">
+-          <h1 className="text-[26px] text-[#1A2332]" style={{ fontWeight: 700 }}>Calendar</h1>
+-          <div className="h-6 w-px bg-[#DDE3EE]" />
+-          <div className="flex items-center gap-1">
+-            <button onClick={goBack} className="w-8 h-8 rounded-lg hover:bg-[#F5F7FA] flex items-center justify-center">
+-              <span className="material-icons text-[#546478]" style={{ fontSize: "20px" }}>chevron_left</span>
+-            </button>
+-            <button onClick={goToday} className="px-3 py-1.5 text-sm text-[#4A6FA5] hover:bg-[#EBF0F8] rounded-lg" style={{ fontWeight: 600 }}>
+-              Today
+-            </button>
+-            <button onClick={goForward} className="w-8 h-8 rounded-lg hover:bg-[#F5F7FA] flex items-center justify-center">
+-              <span className="material-icons text-[#546478]" style={{ fontSize: "20px" }}>chevron_right</span>
+-            </button>
+-          </div>
+-          <span className="text-[16px] text-[#1A2332]" style={{ fontWeight: 600 }}>{headerLabel}</span>
+-        </div>
+-        <div className="flex items-center gap-3">
+-          {/* View mode toggle */}
+-          <div className="flex bg-[#F0F2F5] rounded-lg overflow-hidden p-0.5">
+-            {(["day", "week", "month"] as ViewMode[]).map((mode) => (
+-              <button
+-                key={mode}
+-                onClick={() => setViewMode(mode)}
+-                className={`px-4 py-1.5 text-xs rounded-md capitalize transition-all ${
+-                  viewMode === mode
+-                    ? "bg-white text-[#1A2332] shadow-sm"
+-                    : "text-[#546478] hover:text-[#1A2332]"
+-                }`}
+-                style={{ fontWeight: 600 }}
+-              >
+-                {mode}
++    <div className="px-7 py-5 bg-[#F5F7FA] min-h-full flex flex-col">
++      {/* Page Header */}
++      <PageHeader
++        title="Calendar"
++        subtitle={
++          <div className="flex items-center gap-3 ml-4">
++            <div className="flex items-center gap-1">
++              <button onClick={goBack} className="w-8 h-8 rounded-lg hover:bg-[#F5F7FA] flex items-center justify-center">
++                <span className="material-icons text-[#546478]" style={{ fontSize: "20px" }}>chevron_left</span>
++              </button>
++              <button onClick={goToday} className="px-3 py-1.5 text-[13px] text-[#4A6FA5] hover:bg-[#EBF0F8] rounded-lg" style={{ fontWeight: 600 }}>
++                Today
+               </button>
+-            ))}
++              <button onClick={goForward} className="w-8 h-8 rounded-lg hover:bg-[#F5F7FA] flex items-center justify-center">
++                <span className="material-icons text-[#546478]" style={{ fontSize: "20px" }}>chevron_right</span>
++              </button>
++            </div>
++            <span className="text-[15px] text-[#1A2332]" style={{ fontWeight: 600 }}>{headerLabel}</span>
+           </div>
+-          <button
+-            onClick={() => navigate("/jobs/new")}
+-            className="px-4 py-2 bg-[#4A6FA5] text-white rounded-lg text-sm hover:bg-[#3d5a85] flex items-center gap-2"
+-            style={{ fontWeight: 600 }}
+-          >
+-            <span className="material-icons" style={{ fontSize: "18px" }}>add</span>
+-            Create Job
+-          </button>
+-        </div>
+-      </div>
++        }
++        className="mb-4"
++        actions={
++          <>
++            <div className="flex bg-[#F0F2F5] rounded-lg overflow-hidden p-0.5">
++              {(["day", "week", "month"] as ViewMode[]).map((mode) => (
++                <button
++                  key={mode}
++                  onClick={() => setViewMode(mode)}
++                  className={`px-4 py-1.5 text-xs rounded-md capitalize transition-all ${
++                    viewMode === mode
++                      ? "bg-white text-[#1A2332] shadow-sm"
++                      : "text-[#546478] hover:text-[#1A2332]"
++                  }`}
++                  style={{ fontWeight: 600 }}
++                >
++                  {mode}
++                </button>
++              ))}
++            </div>
++            <button
++              onClick={() => navigate("/jobs/new")}
++              className="h-9 px-4 bg-[#4A6FA5] text-white rounded-lg text-[13px] hover:bg-[#3d5a85] flex items-center gap-1.5"
++              style={{ fontWeight: 600 }}
++            >
++              <span className="material-icons" style={{ fontSize: "18px" }}>add</span>
++              Create Job
++            </button>
++          </>
++        }
++      />
+ 
+-      {/* Stat tiles */}
+-      <div className="flex items-center gap-3 px-6 py-4 border-b border-[#DDE3EE] bg-[#F5F7FA] overflow-x-auto">
++      {/* Stat cards */}
++      <div className="flex items-center gap-3 mb-4 overflow-x-auto pb-2">
+         {[
+-          { value: "38", label: "Total Jobs",    icon: "schedule",            iconBg: "#EEF2F8", iconColor: "#4A6FA5" },
+-          { value: "32", label: "Scheduled",     icon: "check_circle",        iconBg: "#DCFCE7", iconColor: "#16A34A" },
+-          { value: "3",  label: "Unscheduled",   icon: "warning",             iconBg: "#FEF3C7", iconColor: "#D97706" },
+-          { value: "2",  label: "In Progress",   icon: "play_circle_filled",  iconBg: "#EDE9FE", iconColor: "#7C3AED" },
+-          { value: "1",  label: "On Hold",       icon: "pause_circle_filled", iconBg: "#F3F4F6", iconColor: "#6B7280" },
+-          { value: "0",  label: "Canceled",      icon: "cancel",              iconBg: "#FEE2E2", iconColor: "#DC2626" },
+-          { value: "92%",label: "Utilization",   icon: "speed",               iconBg: "#DCFCE7", iconColor: "#16A34A" },
++          { value: "38", label: "Total", icon: "schedule", color: "#4A6FA5" },
++          { value: "32", label: "Scheduled", icon: "check_circle", color: "#16A34A" },
++          { value: "3", label: "Unscheduled", icon: "warning", color: "#D97706" },
++          { value: "2", label: "In Progress", icon: "play_circle_filled", color: "#7C3AED" },
++          { value: "1", label: "On Hold", icon: "pause_circle_filled", color: "#6B7280" },
++          { value: "92%", label: "Utilization", icon: "speed", color: "#16A34A" },
+         ].map(s => (
+-          <div key={s.label} className="flex items-center gap-3 bg-white border border-[#DDE3EE] rounded-2xl px-5 py-4 shrink-0">
+-            <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: s.iconBg }}>
+-              <span className="material-icons" style={{ fontSize: "22px", color: s.iconColor }}>{s.icon}</span>
++          <div key={s.label} className="flex items-center gap-3 bg-white border border-[#DDE3EE] rounded-xl px-4 py-3 shrink-0">
++            <div className="flex items-center justify-center shrink-0">
++              <span className="material-icons" style={{ fontSize: "20px", color: s.color }}>{s.icon}</span>
+             </div>
+             <div>
+-              <div className="text-[22px] text-[#1A2332] leading-none" style={{ fontWeight: 700 }}>{s.value}</div>
+-              <div className="text-[12px] text-[#546478] mt-0.5 whitespace-nowrap">{s.label}</div>
++              <div className="text-[18px] text-[#1A2332] leading-none" style={{ fontWeight: 700 }}>{s.value}</div>
++              <div className="text-[11px] text-[#546478] mt-0.5 whitespace-nowrap">{s.label}</div>
+             </div>
+           </div>
+         ))}
+       </div>
+ 
+       {/* Calendar Content */}
+-      <div className="flex-1 overflow-auto">
++      <div className="flex-1 bg-white border border-[#DDE3EE] rounded-xl overflow-hidden flex flex-col">
+         {/* ====== MONTH VIEW ====== */}
+         {viewMode === "month" && (
+-          <div className="h-full flex flex-col">
++          <div className="flex-1 flex flex-col overflow-hidden">
+             {/* Day headers */}
+-            <div className="grid grid-cols-7 border-b border-[#DDE3EE]">
++            <div className="grid grid-cols-7 border-b border-[#E5E7EB] bg-[#FAFBFC]">
+               {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
+-                <div key={d} className="py-3 text-center text-[11px] text-[#8899AA] uppercase tracking-wider" style={{ fontWeight: 600 }}>
++                <div key={d} className="py-2.5 text-center text-[11px] text-[#8899AA] uppercase tracking-wide" style={{ fontWeight: 600 }}>
+                   {d}
+                 </div>
+               ))}
+@@ -296,38 +301,38 @@ export function Calendar() {
+                 return (
+                   <div
+                     key={idx}
+-                    className={`min-h-[100px] border-b border-r border-[#EDF0F5] p-1.5 transition-colors cursor-pointer ${
+-                      !isCurrentMo ? "bg-[#FAFBFC]" : isHovered ? "bg-[#F5F7FA]" : "bg-white"
++                    className={`min-h-[110px] border-b border-r border-[#E5E7EB] p-2 transition-colors cursor-pointer ${
++                      !isCurrentMo ? "bg-[#FAFBFC]" : isHovered ? "bg-[#F9FAFB]" : "bg-white"
+                     }`}
+                     onMouseEnter={() => setHoveredDay(day)}
+                     onMouseLeave={() => setHoveredDay(null)}
+                     onClick={() => { setCurrentDate(day); setViewMode("day"); }}
+                   >
+-                    <div className={`flex items-center justify-center w-7 h-7 rounded-full mb-1 text-[13px] ${
++                    <div className={`flex items-center justify-center w-6 h-6 rounded-full mb-1.5 text-[12px] ${
+                       isTodayD
+                         ? "bg-[#4A6FA5] text-white"
+                         : !isCurrentMo
+-                        ? "text-[#C8D5E8]"
++                        ? "text-[#D1D5DB]"
+                         : "text-[#1A2332]"
+                     }`} style={{ fontWeight: isTodayD ? 700 : 500 }}>
+                       {format(day, "d")}
+                     </div>
+-                    <div className="space-y-0.5">
++                    <div className="space-y-1">
+                       {events.slice(0, 3).map((ev) => {
+                         const c = getC(ev.color);
+                         return (
+                           <div
+                             key={ev.id}
+                             onClick={(e) => { e.stopPropagation(); setSelectedEvent(ev); }}
+-                            className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] truncate cursor-pointer hover:opacity-80 transition-opacity"
+-                            style={{ backgroundColor: c.bg, color: c.text, borderLeft: `2px solid ${c.border}` }}
++                            className="flex items-center gap-1 px-1.5 py-1 rounded text-[10px] truncate cursor-pointer hover:shadow-sm transition-shadow"
++                            style={{ backgroundColor: c.bg, color: c.text, borderLeft: `3px solid ${c.border}` }}
+                           >
+-                            <span className="truncate" style={{ fontWeight: 500 }}>{ev.title}</span>
++                            <span className="truncate" style={{ fontWeight: 600 }}>{ev.title}</span>
+                           </div>
+                         );
+                       })}
+                       {events.length > 3 && (
+-                        <div className="text-[10px] text-[#8899AA] pl-1.5" style={{ fontWeight: 500 }}>+{events.length - 3} more</div>
++                        <div className="text-[10px] text-[#9CA3AF] pl-1.5" style={{ fontWeight: 500 }}>+{events.length - 3} more</div>
+                       )}
+                     </div>
+                   </div>
+@@ -339,47 +344,38 @@ export function Calendar() {
+ 
+         {/* ====== WEEK VIEW — DISPATCH BOARD ====== */}
+         {viewMode === "week" && (
+-          <div className="flex flex-col h-full overflow-hidden">
++          <div className="flex-1 flex flex-col overflow-hidden">
+ 
+             {/* Main: Left + Grid + Right */}
+             <div className="flex flex-1 overflow-hidden">
+ 
+               {/* Left: Unscheduled Jobs */}
+-              <div className="w-[210px] shrink-0 border-r border-[#DDE3EE] flex flex-col bg-[#FAFBFC] overflow-hidden">
+-                <div className="flex items-center justify-between px-3 py-2.5 border-b border-[#DDE3EE] shrink-0">
++              <div className="w-[210px] shrink-0 border-r border-[#DDE3EE] flex flex-col bg-white overflow-hidden">
++                <div className="flex items-center justify-between px-3 py-3 border-b border-[#DDE3EE] shrink-0">
+                   <div className="flex items-center gap-2">
+-                    <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>Unscheduled Jobs</span>
+-                    <span className="w-5 h-5 rounded-full bg-[#D97706] text-white text-[10px] flex items-center justify-center" style={{ fontWeight: 700 }}>3</span>
++                    <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>Unscheduled</span>
++                    <span className="px-1.5 py-0.5 rounded-full bg-[#FEF3C7] text-[#D97706] text-[10px] flex items-center justify-center" style={{ fontWeight: 700 }}>3</span>
+                   </div>
+-                  <button className="w-7 h-7 flex items-center justify-center rounded hover:bg-[#EDF0F5]">
+-                    <span className="material-icons text-[#6B7280]" style={{ fontSize: "18px" }}>more_horiz</span>
+-                  </button>
+                 </div>
+-                <div className="flex-1 overflow-y-auto p-2 space-y-2">
++                <div className="flex-1 overflow-y-auto p-3 space-y-2">
+                   {unscheduledJobs.map(job => (
+-                    <div key={job.id} className="bg-white border border-[#DDE3EE] rounded-xl p-3 cursor-pointer hover:shadow-sm transition-shadow">
++                    <div key={job.id} className="bg-[#FAFBFC] border border-[#E5E7EB] rounded-lg p-2.5 cursor-pointer hover:border-[#4A6FA5] hover:bg-white transition-all">
+                       {job.highPriority && (
+-                        <div className="text-[10px] text-[#DC2626] mb-1.5 flex items-center gap-1" style={{ fontWeight: 600 }}>
+-                          <span className="material-icons" style={{ fontSize: "12px" }}>priority_high</span>
++                        <div className="text-[10px] text-[#DC2626] mb-1 flex items-center gap-1" style={{ fontWeight: 600 }}>
++                          <span className="material-icons" style={{ fontSize: "11px" }}>priority_high</span>
+                           High Priority
+                         </div>
+                       )}
+-                      <div className="text-[13px] text-[#1A2332] mb-0.5" style={{ fontWeight: 600 }}>{job.client}</div>
+-                      <div className="text-[12px] text-[#546478] mb-1.5">{job.service}</div>
+-                      <div className="text-[11px] text-[#8899AA] mb-2 flex items-start gap-1">
+-                        <span className="material-icons mt-0.5 shrink-0" style={{ fontSize: "12px", color: "#DC2626" }}>location_on</span>
+-                        <span className="leading-snug">{job.address}</span>
++                      <div className="text-[12px] text-[#1A2332] mb-0.5" style={{ fontWeight: 600 }}>{job.client}</div>
++                      <div className="text-[11px] text-[#546478] mb-1.5 line-clamp-1">{job.service}</div>
++                      <div className="text-[10px] text-[#8899AA] mb-2 line-clamp-2">{job.address}</div>
++                      <div className="flex items-center justify-between mb-1">
++                        <span className="px-1.5 py-0.5 rounded text-[10px]" style={{ fontWeight: 600, backgroundColor: job.typeBg, color: job.typeColor }}>{job.typeLabel}</span>
++                        <span className="text-[11px] text-[#1A2332]" style={{ fontWeight: 600 }}>{job.amount}</span>
+                       </div>
+-                      <div className="flex items-center justify-between">
+-                        <span className="px-2 py-0.5 rounded text-[11px]" style={{ fontWeight: 600, backgroundColor: job.typeBg, color: job.typeColor }}>{job.typeLabel}</span>
+-                        <span className="text-[12px] text-[#1A2332]" style={{ fontWeight: 600 }}>{job.amount}</span>
+-                      </div>
+-                      <div className="flex items-center justify-between mt-1.5">
+-                        <div className="flex items-center gap-1 text-[11px] text-[#8899AA]">
+-                          <span className="material-icons" style={{ fontSize: "12px" }}>near_me</span>
+-                          {job.distance}
+-                        </div>
+-                        <span className="text-[11px] text-[#8899AA]">{job.date}</span>
++                      <div className="flex items-center justify-between text-[10px] text-[#8899AA]">
++                        <span>{job.distance}</span>
++                        <span>{job.date}</span>
+                       </div>
+                     </div>
+                   ))}
+@@ -390,7 +386,7 @@ export function Calendar() {
+               <div className="flex-1 overflow-hidden flex flex-col min-w-0">
+                 {/* Day headers */}
+                 <div
+-                  className="grid shrink-0 border-b border-[#DDE3EE] bg-white"
++                  className="grid shrink-0 border-b border-[#E5E7EB] bg-[#FAFBFC]"
+                   style={{ gridTemplateColumns: "52px repeat(7, 1fr)" }}
+                 >
+                   <div />
+@@ -398,13 +394,13 @@ export function Calendar() {
+                     const isTodayD = isSameDay(d, new Date(2026, 3, 6));
+                     const dayTotal = dispatchJobs.filter(j => j.dayIdx === i).reduce((sum, j) => sum + j.amount, 0);
+                     return (
+-                      <div key={i} className="py-2 text-center border-l border-[#EDF0F5]">
+-                        <div className="text-[11px] text-[#8899AA] uppercase tracking-wider" style={{ fontWeight: 600 }}>{format(d, "EEE")}</div>
+-                        <div className={`text-[18px] mt-0.5 ${isTodayD ? "text-[#4A6FA5]" : "text-[#1A2332]"}`} style={{ fontWeight: isTodayD ? 700 : 500 }}>
++                      <div key={i} className="py-2.5 text-center border-l border-[#E5E7EB]">
++                        <div className="text-[10px] text-[#9CA3AF] uppercase tracking-wide" style={{ fontWeight: 600 }}>{format(d, "EEE")}</div>
++                        <div className={`text-[16px] mt-0.5 ${isTodayD ? "text-[#4A6FA5]" : "text-[#1A2332]"}`} style={{ fontWeight: isTodayD ? 700 : 600 }}>
+                           {format(d, "d")}
+                         </div>
+                         {dayTotal > 0 && (
+-                          <div className="text-[11px] mt-0.5" style={{ fontWeight: 600, color: "#16A34A" }}>
++                          <div className="text-[10px] mt-0.5" style={{ fontWeight: 600, color: "#16A34A" }}>
+                             ${dayTotal.toLocaleString()}
+                           </div>
+                         )}
+@@ -423,11 +419,11 @@ export function Calendar() {
+                         className="absolute w-full flex"
+                         style={{ top: `${(h - 7) * 64}px`, height: "64px" }}
+                       >
+-                        <div className="w-[52px] shrink-0 flex items-start justify-end pr-2 -mt-2 text-[11px] text-[#8899AA]" style={{ fontWeight: 500 }}>
++                        <div className="w-[52px] shrink-0 flex items-start justify-end pr-2 -mt-2 text-[10px] text-[#9CA3AF]" style={{ fontWeight: 500 }}>
+                           {h > 12 ? h - 12 : h}{h >= 12 ? "PM" : "AM"}
+                         </div>
+                         {weekDays.map((_, ti) => (
+-                          <div key={ti} className="flex-1 border-l border-b border-[#EDF0F5]" />
++                          <div key={ti} className="flex-1 border-l border-b border-[#E5E7EB]" />
+                         ))}
+                       </div>
+                     ))}
+@@ -440,7 +436,7 @@ export function Calendar() {
+                       return (
+                         <div
+                           key={job.id}
+-                          className="absolute rounded-lg overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
++                          className="absolute rounded-lg overflow-hidden cursor-pointer transition-all border border-transparent hover:border-[#4A6FA5] hover:shadow-sm"
+                           style={{
+                             top,
+                             height,
+@@ -448,22 +444,21 @@ export function Calendar() {
+                             width: `calc((100% - 52px) / 7 - 4px)`,
+                             backgroundColor: job.bg,
+                             borderLeft: `3px solid ${job.border}`,
+-                            outline: isSelected ? `2px solid ${job.border}` : "none",
+-                            outlineOffset: "1px",
++                            boxShadow: isSelected ? `0 0 0 2px ${job.border}` : "none",
+                           }}
+                           onClick={() => setSelectedDispatchJob(job)}
+                         >
+                           <div className="px-2 py-1.5 h-full flex flex-col">
+-                            <div className="text-[10px] text-[#8899AA] tabular-nums mb-0.5">
++                            <div className="text-[9px] text-[#9CA3AF] tabular-nums mb-0.5">
+                               {fmtHour(job.start)} – {fmtHour(job.end)}
+                             </div>
+-                            <div className="text-[12px] leading-tight truncate" style={{ fontWeight: 600, color: "#1A2332" }}>{job.client}</div>
+-                            <div className="text-[11px] text-[#546478] truncate">{job.service}</div>
+-                            {height > 62 && <div className="text-[11px] text-[#8899AA] truncate">{job.address}</div>}
+-                            <div className="flex items-center justify-between mt-auto pt-0.5">
+-                              <span className="text-[11px] tabular-nums" style={{ fontWeight: 600, color: job.border }}>${job.amount.toLocaleString()}</span>
++                            <div className="text-[11px] leading-tight truncate" style={{ fontWeight: 700, color: "#1A2332" }}>{job.client}</div>
++                            <div className="text-[10px] text-[#546478] truncate">{job.service}</div>
++                            {height > 62 && <div className="text-[10px] text-[#9CA3AF] truncate mt-0.5">{job.address}</div>}
++                            <div className="flex items-center justify-between mt-auto pt-1">
++                              <span className="text-[10px] tabular-nums" style={{ fontWeight: 700, color: job.border }}>${job.amount.toLocaleString()}</span>
+                               {job.statusIcon && (
+-                                <span className="material-icons" style={{ fontSize: "14px", color: job.statusIconColor }}>{job.statusIcon}</span>
++                                <span className="material-icons" style={{ fontSize: "13px", color: job.statusIconColor }}>{job.statusIcon}</span>
+                               )}
+                             </div>
+                           </div>
+@@ -478,7 +473,7 @@ export function Calendar() {
+                       return (
+                         <div
+                           key={`open-${bi}`}
+-                          className="absolute rounded-lg border border-dashed border-[#D1D5DB] bg-[#F9FAFB] flex items-center justify-center"
++                          className="absolute rounded-lg border border-dashed border-[#DDE3EE] bg-[#FAFBFC] flex items-center justify-center"
+                           style={{
+                             top,
+                             height,
+@@ -487,8 +482,7 @@ export function Calendar() {
+                           }}
+                         >
+                           <div className="text-center">
+-                            <div className="text-[11px] text-[#8899AA]" style={{ fontWeight: 500 }}>Open Time</div>
+-                            <div className="text-[10px] text-[#B0BCC8]">Available</div>
++                            <div className="text-[10px] text-[#9CA3AF]" style={{ fontWeight: 500 }}>Open</div>
+                           </div>
+                         </div>
+                       );
+@@ -499,8 +493,8 @@ export function Calendar() {
+                       className="absolute z-10 pointer-events-none"
+                       style={{ top: `${(10.5 - 7) * 64}px`, left: "52px", right: 0, height: "2px", backgroundColor: "#DC2626" }}
+                     >
+-                      <div className="w-2.5 h-2.5 bg-[#DC2626] rounded-full absolute -left-1 -top-1" />
+-                      <div className="absolute -top-4 left-2 text-[10px] text-[#DC2626] bg-white px-1 rounded" style={{ fontWeight: 600 }}>10:30 AM</div>
++                      <div className="w-2 h-2 bg-[#DC2626] rounded-full absolute -left-1 -top-0.5" />
++                      <div className="absolute -top-3.5 left-2 text-[9px] text-[#DC2626] bg-white px-1.5 py-0.5 rounded border border-[#DC2626]" style={{ fontWeight: 600 }}>10:30 AM</div>
+                     </div>
+                   </div>
+                 </div>
+@@ -508,104 +502,74 @@ export function Calendar() {
+ 
+               {/* Right: Job Detail Panel */}
+               {selectedDispatchJob && (
+-                <div className="w-[308px] shrink-0 flex flex-col overflow-hidden p-3 bg-[#F0F2F5]">
+-                <div className="flex flex-col flex-1 bg-white rounded-2xl shadow-lg border border-[#DDE3EE] overflow-hidden">
++                <div className="w-[320px] shrink-0 flex flex-col overflow-hidden border-l border-[#DDE3EE] bg-white">
+                   {/* Header */}
+-                  <div className="flex items-center justify-between px-4 py-3 border-b border-[#DDE3EE] shrink-0">
++                  <div className="flex items-center justify-between px-4 py-3.5 border-b border-[#DDE3EE] shrink-0">
+                     <div className="flex items-center gap-2">
+                       <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 700 }}>Job #{selectedDispatchJob.num}</span>
+-                      <span className="px-2 py-0.5 rounded-full text-[11px]" style={{ fontWeight: 600, backgroundColor: "#D1FAE5", color: "#16A34A" }}>Scheduled</span>
++                      <span className="px-2 py-0.5 rounded-full text-[10px]" style={{ fontWeight: 600, backgroundColor: "#D1FAE5", color: "#16A34A" }}>Scheduled</span>
+                     </div>
+-                    <button onClick={() => setSelectedDispatchJob(null)} className="w-7 h-7 flex items-center justify-center rounded hover:bg-[#F5F7FA]">
++                    <button onClick={() => setSelectedDispatchJob(null)} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-[#F5F7FA]">
+                       <span className="material-icons text-[#8899AA]" style={{ fontSize: "18px" }}>close</span>
+                     </button>
+                   </div>
+                   {/* Tabs */}
+-                  <div className="flex border-b border-[#DDE3EE] shrink-0">
+-                    {["Details", "Customer", "Job Info", "History"].map((tab, i) => (
+-                      <button key={tab} className={`flex-1 py-2 text-[12px] transition-colors ${i === 0 ? "text-[#4A6FA5] border-b-2 border-[#4A6FA5]" : "text-[#546478] hover:text-[#1A2332]"}`} style={{ fontWeight: 500 }}>
++                  <div className="flex border-b border-[#E5E7EB] shrink-0">
++                    {["Details", "Notes", "History"].map((tab, i) => (
++                      <button key={tab} className={`flex-1 py-2.5 text-[12px] transition-colors relative ${i === 0 ? "text-[#4A6FA5]" : "text-[#546478] hover:text-[#1A2332]"}`} style={{ fontWeight: 500 }}>
+                         {tab}
++                        {i === 0 && <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#4A6FA5]" />}
+                       </button>
+                     ))}
+                   </div>
+                   {/* Scrollable content */}
+-                  <div className="flex-1 overflow-y-auto">
+-                    <div className="p-4">
++                  <div className="flex-1 overflow-y-auto bg-[#FAFBFC]">
++                    <div className="p-4 bg-white mx-3 mt-3 rounded-xl border border-[#DDE3EE]">
+                       {/* Client info */}
+-                      <div className="flex items-start justify-between mb-4">
++                      <div className="flex items-start justify-between mb-3">
+                         <div>
+-                          <div className="text-[15px] text-[#1A2332]" style={{ fontWeight: 700 }}>{selectedDispatchJob.client}</div>
++                          <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 700 }}>{selectedDispatchJob.client}</div>
+                           <div className="text-[12px] text-[#546478] mt-0.5">{selectedDispatchJob.service}</div>
+-                          <div className="text-[12px] text-[#8899AA] mt-0.5">{selectedDispatchJob.address}</div>
+-                          <div className="text-[12px] text-[#8899AA]">Tampa, FL 33602</div>
++                          <div className="text-[11px] text-[#8899AA] mt-1">{selectedDispatchJob.address}</div>
++                          <div className="text-[11px] text-[#8899AA]">Tampa, FL 33602</div>
+                         </div>
+-                        <div className="flex gap-1 shrink-0">
+-                          <button className="w-8 h-8 rounded-lg border border-[#DDE3EE] flex items-center justify-center hover:bg-[#F5F7FA]">
+-                            <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "18px" }}>phone</span>
++                        <div className="flex gap-1.5 shrink-0">
++                          <button className="w-8 h-8 rounded-lg border border-[#DDE3EE] flex items-center justify-center hover:bg-[#F5F7FA] transition-colors">
++                            <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "17px" }}>phone</span>
+                           </button>
+-                          <button className="w-8 h-8 rounded-lg border border-[#DDE3EE] flex items-center justify-center hover:bg-[#F5F7FA]">
+-                            <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "18px" }}>chat</span>
++                          <button className="w-8 h-8 rounded-lg border border-[#DDE3EE] flex items-center justify-center hover:bg-[#F5F7FA] transition-colors">
++                            <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "17px" }}>chat</span>
+                           </button>
+                         </div>
+                       </div>
+                       {/* Fields */}
+-                      {[
+-                        { icon: "event", label: "Appointment", value: `${fmtHour(selectedDispatchJob.start)} – ${fmtHour(selectedDispatchJob.end)} (Today)` },
+-                        { icon: "engineering", label: "Technician", value: selectedDispatchJob.techName },
+-                        { icon: "schedule", label: "Duration", value: `${Math.floor(selectedDispatchJob.end - selectedDispatchJob.start)}h ${String(Math.round(((selectedDispatchJob.end - selectedDispatchJob.start) % 1) * 60)).padStart(2, "0")}m` },
+-                        { icon: "stars", label: "Priority", value: selectedDispatchJob.priority },
+-                        { icon: "attach_money", label: "Amount", value: `$${selectedDispatchJob.amount.toFixed(2)}` },
+-                        { icon: "build", label: "Job Type", value: selectedDispatchJob.jobType },
+-                        { icon: "web", label: "Source", value: selectedDispatchJob.source },
+-                      ].map(f => (
+-                        <div key={f.label} className="flex items-center gap-3 py-2.5 border-b border-[#F5F7FA]">
+-                          <span className="material-icons text-[#4A6FA5] shrink-0" style={{ fontSize: "16px" }}>{f.icon}</span>
+-                          <span className="text-[12px] text-[#8899AA] w-[88px] shrink-0">{f.label}</span>
+-                          <span className="text-[12px] text-[#1A2332] flex-1" style={{ fontWeight: 500 }}>
+-                            {f.label === "Priority" ? (
+-                              <span className="flex items-center gap-1.5">
+-                                <span className="w-2 h-2 rounded-full bg-[#4A6FA5] inline-block shrink-0" />
+-                                {f.value}
+-                              </span>
+-                            ) : f.value}
+-                          </span>
+-                        </div>
+-                      ))}
++                      <div className="border-t border-[#E5E7EB] pt-3 mt-3">
++                        {[
++                          { icon: "event", label: "Time", value: `${fmtHour(selectedDispatchJob.start)} – ${fmtHour(selectedDispatchJob.end)}` },
++                          { icon: "engineering", label: "Tech", value: selectedDispatchJob.techName },
++                          { icon: "attach_money", label: "Amount", value: `$${selectedDispatchJob.amount.toFixed(2)}` },
++                          { icon: "build", label: "Type", value: selectedDispatchJob.jobType },
++                        ].map(f => (
++                          <div key={f.label} className="flex items-center gap-2.5 py-2 border-b border-[#F5F7FA] last:border-0">
++                            <span className="material-icons text-[#9CA3AF] shrink-0" style={{ fontSize: "16px" }}>{f.icon}</span>
++                            <span className="text-[11px] text-[#8899AA] w-[60px] shrink-0">{f.label}</span>
++                            <span className="text-[12px] text-[#1A2332] flex-1" style={{ fontWeight: 500 }}>{f.value}</span>
++                          </div>
++                        ))}
++                      </div>
+                     </div>
+                   </div>
+                   {/* Action buttons */}
+-                  <div className="p-4 space-y-2 border-t border-[#DDE3EE] shrink-0">
+-                    <button className="w-full py-2.5 bg-[#4A6FA5] text-white rounded-xl text-[13px] hover:bg-[#3d5a85] transition-colors" style={{ fontWeight: 600 }}>
++                  <div className="p-4 mt-auto border-t border-[#DDE3EE] shrink-0 bg-white">
++                    <button className="w-full py-2.5 bg-[#4A6FA5] text-white rounded-lg text-[13px] hover:bg-[#3d5a85] transition-colors mb-2" style={{ fontWeight: 600 }}>
+                       Start Job
+                     </button>
+                     <div className="flex gap-2">
+-                      <button className="flex-1 py-2.5 border border-[#DDE3EE] text-[#546478] rounded-xl text-[13px] hover:bg-[#F5F7FA] transition-colors" style={{ fontWeight: 500 }}>Reschedule</button>
+-                      <button className="flex-1 py-2.5 border border-[#DDE3EE] text-[#546478] rounded-xl text-[13px] hover:bg-[#F5F7FA] transition-colors" style={{ fontWeight: 500 }}>Edit</button>
+-                    </div>
+-                    <button className="w-full py-2.5 border border-[#FCA5A5] text-[#DC2626] rounded-xl text-[13px] hover:bg-[#FEF2F2] transition-colors" style={{ fontWeight: 500 }}>
+-                      Cancel Job
+-                    </button>
+-                    {/* Map placeholder */}
+-                    <div className="pt-2">
+-                      <div className="text-[12px] text-[#1A2332] mb-2" style={{ fontWeight: 600 }}>Location</div>
+-                      <div className="h-24 bg-[#EEF2F8] rounded-xl relative flex items-center justify-center border border-[#DDE3EE] overflow-hidden">
+-                        <div className="absolute inset-0 opacity-20" style={{ backgroundImage: "repeating-linear-gradient(0deg,#4A6FA530 0,#4A6FA530 1px,transparent 1px,transparent 32px),repeating-linear-gradient(90deg,#4A6FA530 0,#4A6FA530 1px,transparent 1px,transparent 48px)" }} />
+-                        <span className="material-icons text-[#DC2626] relative z-10" style={{ fontSize: "32px" }}>location_on</span>
+-                      </div>
+-                      <div className="flex items-center justify-between mt-2">
+-                        <div className="flex items-center gap-1 text-[11px] text-[#546478]">
+-                          <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "13px" }}>near_me</span>
+-                          2.4 mi away
+-                        </div>
+-                        <button className="text-[11px] text-[#4A6FA5]" style={{ fontWeight: 500 }}>Get Directions</button>
+-                      </div>
+-                      <button className="w-full mt-2 py-2 border border-[#DDE3EE] text-[#546478] rounded-xl text-[12px] hover:bg-[#F5F7FA] transition-colors" style={{ fontWeight: 500 }}>
+-                        View on Map
+-                      </button>
++                      <button className="flex-1 py-2 border border-[#DDE3EE] text-[#546478] rounded-lg text-[12px] hover:bg-[#F5F7FA] transition-colors" style={{ fontWeight: 500 }}>Edit</button>
++                      <button className="flex-1 py-2 border border-[#DDE3EE] text-[#546478] rounded-lg text-[12px] hover:bg-[#F5F7FA] transition-colors" style={{ fontWeight: 500 }}>Reschedule</button>
+                     </div>
+                   </div>
+                 </div>
+-                </div>
+               )}
+             </div>
+           </div>
+@@ -613,15 +577,15 @@ export function Calendar() {
+ 
+         {/* ====== DAY VIEW ====== */}
+         {viewMode === "day" && (
+-          <div className="flex flex-col h-full">
++          <div className="flex-1 flex flex-col overflow-hidden">
+             <div className="flex-1 overflow-auto">
+               <div className="grid grid-cols-[64px_1fr] relative">
+                 {hours.map((h) => (
+                   <div key={h} className="contents">
+-                    <div className="h-20 flex items-start justify-end pr-3 text-[11px] text-[#8899AA] -mt-2" style={{ fontWeight: 500 }}>
++                    <div className="h-20 flex items-start justify-end pr-3 text-[10px] text-[#9CA3AF] -mt-2" style={{ fontWeight: 500 }}>
+                       {h > 12 ? h - 12 : h} {h >= 12 ? "PM" : "AM"}
+                     </div>
+-                    <div className="h-20 border-b border-[#EDF0F5] relative" />
++                    <div className="h-20 border-b border-[#E5E7EB] relative" />
+                   </div>
+                 ))}
+                 {/* Render events for day */}
+@@ -632,45 +596,54 @@ export function Calendar() {
+                   return (
+                     <div
+                       key={ev.id}
+-                      className="absolute rounded-xl px-4 py-3 cursor-pointer hover:shadow-lg transition-shadow"
++                      className="absolute rounded-lg px-3 py-2.5 cursor-pointer hover:shadow-md transition-all border border-transparent hover:border-[#4A6FA5]"
+                       style={{
+                         top: `${top}px`,
+                         left: "72px",
+                         right: "16px",
+                         height: `${height}px`,
+                         backgroundColor: c.bg,
+-                        borderLeft: `4px solid ${c.border}`,
++                        borderLeft: `3px solid ${c.border}`,
+                       }}
+                       onClick={() => setSelectedEvent(ev)}
+                     >
+-                      <div className="flex items-start justify-between">
+-                        <div>
+-                          <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>{ev.title}</div>
+-                          <div className="text-[13px] text-[#546478] mt-0.5">{ev.client} · {ev.property}</div>
++                      <div className="flex items-start justify-between mb-1">
++                        <div className="flex-1 min-w-0">
++                          <div className="text-[13px] text-[#1A2332] truncate" style={{ fontWeight: 700 }}>{ev.title}</div>
++                          <div className="text-[12px] text-[#546478] mt-0.5 truncate">{ev.client}</div>
+                         </div>
+-                        <div className="flex items-center gap-2">
+-                          <div className="w-7 h-7 rounded-full bg-[#4A6FA5] flex items-center justify-center text-white text-[11px]" style={{ fontWeight: 600 }}>{ev.techInitials}</div>
+-                          <div className={`px-2 py-0.5 rounded-full text-[11px]`} style={{ backgroundColor: `${c.border}20`, color: c.border, fontWeight: 600 }}>
++                        <div className="flex items-center gap-1.5 ml-2 shrink-0">
++                          <div className="w-6 h-6 rounded-full bg-[#4A6FA5] flex items-center justify-center text-white text-[10px]" style={{ fontWeight: 600 }}>{ev.techInitials}</div>
++                          <div className={`px-1.5 py-0.5 rounded text-[10px]`} style={{ backgroundColor: `${c.border}20`, color: c.border, fontWeight: 600 }}>
+                             {ev.status}
+                           </div>
+                         </div>
+                       </div>
+-                      <div className="text-[12px] text-[#8899AA] mt-1.5 flex items-center gap-1">
+-                        <span className="material-icons" style={{ fontSize: "14px" }}>schedule</span>
+-                        {ev.startHour > 12 ? ev.startHour - 12 : ev.startHour}:00 {ev.startHour >= 12 ? "PM" : "AM"} – {(() => { const end = ev.startHour + ev.duration; return `${end > 12 ? end - 12 : end}:${ev.duration % 1 === 0.5 ? "30" : "00"} ${end >= 12 ? "PM" : "AM"}`; })()}
+-                        <span className="mx-1">·</span>
+-                        <span className="material-icons" style={{ fontSize: "14px" }}>location_on</span>
+-                        {ev.property}
+-                      </div>
++                      {height > 60 && (
++                        <div className="flex items-center justify-between mt-2">
++                          <div className="text-[11px] text-[#8899AA] flex items-center gap-1">
++                            <span className="material-icons" style={{ fontSize: "13px" }}>schedule</span>
++                            {ev.startHour > 12 ? ev.startHour - 12 : ev.startHour}:00 – {(() => { const end = ev.startHour + ev.duration; return `${end > 12 ? end - 12 : end}:${ev.duration % 1 === 0.5 ? "30" : "00"}`; })()}
++                          </div>
++                          <div className="text-[11px] tabular-nums" style={{ fontWeight: 700, color: c.border }}>
++                            ${ev.amount.toLocaleString()}
++                          </div>
++                        </div>
++                      )}
++                      {height <= 60 && (
++                        <div className="text-[11px] tabular-nums mt-1" style={{ fontWeight: 700, color: c.border }}>
++                          ${ev.amount.toLocaleString()}
++                        </div>
++                      )}
+                     </div>
+                   );
+                 })}
+                 {/* Current time indicator */}
+                 <div
+-                  className="absolute left-16 right-0 h-0.5 bg-[#DC2626] z-10"
++                  className="absolute left-16 right-0 h-[2px] bg-[#DC2626] z-10"
+                   style={{ top: `${(9 - 7) * 80 + 30}px` }}
+                 >
+-                  <div className="w-2.5 h-2.5 bg-[#DC2626] rounded-full absolute -left-1 -top-1" />
++                  <div className="w-2 h-2 bg-[#DC2626] rounded-full absolute -left-1 -top-0.5" />
+                 </div>
+               </div>
+             </div>
