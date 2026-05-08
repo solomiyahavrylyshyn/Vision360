@@ -601,7 +601,7 @@ export function ClientDetail() {
         </div>
         {/* Custom Fields + Taxable */}
         <div className="p-5 space-y-3 border-t border-[#DDE3EE]">
-          {cfClientFields.slice(0, 3).map((field, idx) => {
+          {cfClientFields.slice(0, 2).map((field, idx) => {
             const cfKey = `cf_${idx}` as keyof typeof clientData;
             const cfValue = (clientData as Record<string, string>)[`cf_${idx}`] ?? "";
             const setCf = (val: string) => setClientData(prev => ({ ...prev, [`cf_${idx}`]: val }));
