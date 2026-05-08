@@ -7,7 +7,6 @@ import { Dialer } from "./Dialer";
 import { HelpCenter } from "./HelpCenter";
 
 const navItems = [
-  { to: "/", icon: "visibility", label: "Dashboard" },
   { to: "/calendar", icon: "calendar_today", label: "Calendar" },
   { to: "/clients", icon: "people", label: "Clients" },
   { to: "/jobs", icon: "work", label: "Jobs" },
@@ -16,8 +15,6 @@ const navItems = [
   { to: "/payments", icon: "credit_card", label: "Payments" },
   { to: "/expenses", icon: "attach_money", label: "Expenses" },
   { to: "/items", icon: "inventory_2", label: "Items" },
-  { to: "/accounting", icon: "account_balance", label: "Accounting" },
-  { to: "/marketing", icon: "campaign", label: "Marketing" },
   { to: "/reports", icon: "bar_chart", label: "Reports" },
 ];
 
