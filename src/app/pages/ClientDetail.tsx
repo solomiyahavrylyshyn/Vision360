@@ -963,10 +963,8 @@ export function ClientDetail() {
         {/* Summary content */}
         <div className="px-8 pt-5 pb-[14px]">
           <div className="flex items-start gap-8">
-            {/* Main info section */}
-            <div className="flex-1 flex gap-8">
-              {/* Left: Name + Address */}
-              <div className="flex flex-col gap-3 min-w-[260px]">
+            {/* Left: Name + Address */}
+            <div className="shrink-0 flex flex-col gap-3 min-w-[260px]">
                 <div className="flex items-center gap-2">
                   <h1 className="text-[22px] text-[#1A2332] leading-[32px]" style={{ fontWeight: 600, letterSpacing: "-0.01em" }}>
                     {client.name}
@@ -994,11 +992,10 @@ export function ClientDetail() {
                   </a>
                 </div>
 
-              </div>
             </div>
 
             {/* Financial Summary — 4 horizontal stat cards */}
-            <div className="flex gap-3 w-full pl-20">
+            <div className="flex gap-3 flex-1">
               {[
                 { label: "Total Revenue", value: `$${client.totalRevenue.toLocaleString("en-US", { minimumFractionDigits: 0 })}`, color: "#1A2332" },
                 { label: "Balance",       value: `$${client.openBalance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, color: "#1A2332" },
