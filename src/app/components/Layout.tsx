@@ -185,42 +185,92 @@ export function Layout() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-[#F5F7FA]">
-      {/* Split Header: sidebar-brand | main-topbar */}
-      <div className="flex h-[68px] flex-shrink-0">
+    <div className="flex h-screen bg-[#F5F7FA]">
+      {/* ── Full-height Sidebar ── */}
+      <aside
+        className={`bg-[#1C2B3A] flex flex-col flex-shrink-0 transition-all duration-[240ms] ease-[cubic-bezier(0.4,0,0.2,1)] ${
+          sidebarCollapsed ? "w-[56px]" : "w-[240px]"
+        }`}
+        style={{ overflowX: "hidden" }}
+      >
+        {/* Logo area */}
+        <div className={`flex items-center h-[68px] flex-shrink-0 ${sidebarCollapsed ? "justify-center px-2" : "px-4"}`}>
+          <img
+            src={logoImg}
+            alt="Vision360 Logo"
+            className="object-contain"
+            style={{
+              height: sidebarCollapsed ? "32px" : "40px",
+              maxWidth: sidebarCollapsed ? "32px" : "200px",
+              filter: "brightness(0) invert(1)",
+              objectPosition: "left center",
+            }}
+          />
+        </div>
 
-        {/* ── Sidebar brand section ── */}
-        <div
-          className={`bg-[#1C2B3A] flex items-center justify-between flex-shrink-0 border-r border-[rgba(255,255,255,0.06)] transition-all duration-[240ms] ease-[cubic-bezier(0.4,0,0.2,1)] overflow-hidden ${
-            sidebarCollapsed ? "w-[56px] px-2" : "w-[240px] px-4"
+        {/* Navigation */}
+        <nav
+          className={`flex-1 flex flex-col gap-2 pt-2 overflow-y-auto ${
+            sidebarCollapsed ? "items-center px-2" : "px-4"
           }`}
         >
-          {!sidebarCollapsed && (
-            <img
-              src={logoImg}
-              alt="Vision360 Logo"
-              className="object-contain object-left flex-1 min-w-0"
-              style={{ height: "24px", maxWidth: "120px", filter: "brightness(0) invert(1)" }}
-            />
-          )}
+          {navItems.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.to === "/"}
+              className={({ isActive }) =>
+                `rounded-[6px] flex relative whitespace-nowrap transition-all duration-150 ${
+                  sidebarCollapsed
+                    ? "w-8 h-8 items-center justify-center"
+                    : "h-8 flex-row items-center w-full px-3 py-1 gap-2"
+                } ${
+                  isActive
+                    ? "text-[#81B4F3] bg-[rgba(74,111,165,0.3)]"
+                    : "text-white hover:bg-[rgba(255,255,255,0.08)] hover:text-white"
+                }`
+              }
+            >
+              <span className="material-icons flex-shrink-0" style={{ fontSize: "16px" }}>{item.icon}</span>
+              {!sidebarCollapsed && (
+                <span className="text-[14px]" style={{ fontWeight: 500, lineHeight: "20px" }}>
+                  {item.label}
+                </span>
+              )}
+            </NavLink>
+          ))}
+        </nav>
+
+        {/* Collapse button at bottom */}
+        <div className={`flex-shrink-0 pb-4 ${sidebarCollapsed ? "px-2" : "px-4"}`}>
           <button
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
             title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-            className={`flex items-center justify-center w-8 h-8 rounded-lg text-[rgba(255,255,255,0.45)] hover:text-[rgba(255,255,255,0.85)] hover:bg-[rgba(255,255,255,0.08)] transition-colors flex-shrink-0 ${
-              sidebarCollapsed ? "mx-auto" : "ml-auto"
+            className={`rounded-[6px] flex transition-all duration-150 text-white hover:bg-[rgba(255,255,255,0.08)] ${
+              sidebarCollapsed
+                ? "w-8 h-8 items-center justify-center mx-auto"
+                : "h-8 flex-row items-center w-full px-3 py-1 gap-2"
             }`}
           >
             <span
-              className="material-icons transition-transform duration-[240ms] ease-[cubic-bezier(0.4,0,0.2,1)]"
-              style={{ fontSize: "20px", transform: sidebarCollapsed ? "rotate(180deg)" : "rotate(0deg)" }}
+              className="material-icons flex-shrink-0 transition-transform duration-[240ms] ease-[cubic-bezier(0.4,0,0.2,1)]"
+              style={{ fontSize: "16px", transform: sidebarCollapsed ? "rotate(180deg)" : "rotate(0deg)" }}
             >
               first_page
             </span>
+            {!sidebarCollapsed && (
+              <span className="text-[14px]" style={{ fontWeight: 500, lineHeight: "20px" }}>
+                Collapse
+              </span>
+            )}
           </button>
         </div>
+      </aside>
 
-        {/* ── Main top bar ── */}
-        <div className="flex-1 bg-white border-b border-[#E5E7EB] flex items-center gap-6 px-4">
+      {/* Main area: header + content */}
+      <main className="flex-1 flex flex-col overflow-hidden">
+        {/* Header */}
+        <header className="h-[68px] bg-white border-b border-[#E5E7EB] flex items-center gap-6 px-4 flex-shrink-0">
 
         {/* Global Search - Center (Flex-1 for expansion) */}
         <div className="flex-1 flex items-center justify-center">
@@ -514,71 +564,13 @@ export function Layout() {
             <span className="material-icons text-[#1A2332]" style={{ fontSize: "16px" }}>keyboard_arrow_down</span>
           </button>
         </div>
-        </div>{/* end main top bar */}
-      </div>{/* end split header */}
+        </header>
 
-      {/* Sidebar + Content Row */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Expandable Sidebar */}
-        <aside
-          className={`bg-[#1C2B3A] border-r border-[rgba(255,255,255,0.06)] flex flex-col transition-all duration-[240ms] ease-[cubic-bezier(0.4,0,0.2,1)] ${
-            sidebarCollapsed ? "w-[56px]" : "w-[240px]"
-          }`}
-          style={{ flexShrink: 0, overflowX: "hidden", overflowY: "visible" }}
-        >
-        {/* Navigation */}
-        <nav
-          className={`flex-1 flex flex-col gap-2 pt-4 ${
-            sidebarCollapsed ? "items-center px-2" : "px-4"
-          }`}
-        >
-          {navItems.map((item, i) => {
-            // Separator before "Items" (last item) to match Figma bottom section
-            const isLast = i === navItems.length - 1;
-            return (
-              <React.Fragment key={item.to}>
-                {isLast && !sidebarCollapsed && (
-                  <div className="border-t border-[rgba(255,255,255,0.1)] mt-1 pt-1" />
-                )}
-                {isLast && sidebarCollapsed && (
-                  <div className="w-8 border-t border-[rgba(255,255,255,0.1)] mt-1 pt-1" />
-                )}
-                <NavLink
-                  to={item.to}
-                  end={item.to === "/"}
-                  className={({ isActive }) =>
-                    `rounded-[6px] flex relative whitespace-nowrap transition-all duration-150 ${
-                      sidebarCollapsed
-                        ? "w-8 h-8 items-center justify-center"
-                        : "h-8 flex-row items-center w-full px-3 py-1 gap-2"
-                    } ${
-                      isActive
-                        ? "text-[#81B4F3] bg-[rgba(74,111,165,0.3)]"
-                        : "text-white hover:bg-[rgba(255,255,255,0.08)] hover:text-white"
-                    }`
-                  }
-                >
-                  <span className="material-icons flex-shrink-0" style={{ fontSize: "16px" }}>{item.icon}</span>
-                  {!sidebarCollapsed && (
-                    <span className="text-[14px]" style={{ fontWeight: 500, lineHeight: "20px" }}>
-                      {item.label}
-                    </span>
-                  )}
-                </NavLink>
-              </React.Fragment>
-            );
-          })}
-        </nav>
-        </aside>
-
-        {/* Main Content Area */}
-        <main className="flex-1 flex flex-col overflow-hidden">
-          {/* Content Area */}
-          <div className="flex-1 overflow-auto">
-            <Outlet />
-          </div>
-        </main>
-      </div>
+        {/* Content Area */}
+        <div className="flex-1 overflow-auto">
+          <Outlet />
+        </div>
+      </main>
 
       {/* Create Dropdown */}
       <div
