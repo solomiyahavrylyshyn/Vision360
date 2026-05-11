@@ -189,21 +189,21 @@ export function Layout() {
       {/* ── Full-height Sidebar ── */}
       <aside
         className={`bg-[#1C2B3A] flex flex-col flex-shrink-0 transition-all duration-[240ms] ease-[cubic-bezier(0.4,0,0.2,1)] ${
-          sidebarCollapsed ? "w-[56px]" : "w-[240px]"
+          sidebarCollapsed ? "w-[96px]" : "w-[240px]"
         }`}
         style={{ overflowX: "hidden" }}
       >
         {/* Logo area */}
-        <div className={`flex items-center h-[68px] flex-shrink-0 ${sidebarCollapsed ? "justify-center px-2" : "px-4"}`}>
+        <div className={`flex items-center flex-shrink-0 ${sidebarCollapsed ? "justify-center h-[80px] px-2" : "h-[88px] px-4"}`}>
           <img
             src={logoImg}
             alt="Vision360 Logo"
             className="object-contain"
             style={{
-              height: sidebarCollapsed ? "32px" : "40px",
-              maxWidth: sidebarCollapsed ? "32px" : "200px",
+              height: sidebarCollapsed ? "44px" : "56px",
+              maxWidth: sidebarCollapsed ? "64px" : "208px",
               filter: "brightness(0) invert(1)",
-              objectPosition: "left center",
+              objectPosition: sidebarCollapsed ? "center" : "left center",
             }}
           />
         </div>
@@ -211,7 +211,7 @@ export function Layout() {
         {/* Navigation */}
         <nav
           className={`flex-1 flex flex-col gap-2 pt-2 overflow-y-auto ${
-            sidebarCollapsed ? "items-center px-2" : "px-4"
+            sidebarCollapsed ? "px-2" : "px-4"
           }`}
         >
           {navItems.map((item) => (
@@ -220,10 +220,10 @@ export function Layout() {
               to={item.to}
               end={item.to === "/"}
               className={({ isActive }) =>
-                `rounded-[6px] flex relative whitespace-nowrap transition-all duration-150 ${
+                `rounded-[6px] flex relative transition-all duration-150 ${
                   sidebarCollapsed
-                    ? "w-8 h-8 items-center justify-center"
-                    : "h-8 flex-row items-center w-full px-3 py-1 gap-2"
+                    ? "flex-col items-center justify-center w-full py-2 gap-1"
+                    : "h-8 flex-row items-center w-full px-3 py-1 gap-2 whitespace-nowrap"
                 } ${
                   isActive
                     ? "text-[#81B4F3] bg-[rgba(74,111,165,0.3)]"
@@ -231,8 +231,20 @@ export function Layout() {
                 }`
               }
             >
-              <span className="material-icons flex-shrink-0" style={{ fontSize: "16px" }}>{item.icon}</span>
-              {!sidebarCollapsed && (
+              <span
+                className="material-icons flex-shrink-0"
+                style={{ fontSize: sidebarCollapsed ? "22px" : "16px" }}
+              >
+                {item.icon}
+              </span>
+              {sidebarCollapsed ? (
+                <span
+                  className="text-[11px] text-center"
+                  style={{ fontWeight: 500, lineHeight: "14px" }}
+                >
+                  {item.label}
+                </span>
+              ) : (
                 <span className="text-[14px]" style={{ fontWeight: 500, lineHeight: "20px" }}>
                   {item.label}
                 </span>
@@ -248,17 +260,24 @@ export function Layout() {
             title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
             className={`rounded-[6px] flex transition-all duration-150 text-white hover:bg-[rgba(255,255,255,0.08)] ${
               sidebarCollapsed
-                ? "w-8 h-8 items-center justify-center mx-auto"
+                ? "flex-col items-center justify-center w-full py-2 gap-1"
                 : "h-8 flex-row items-center w-full px-3 py-1 gap-2"
             }`}
           >
             <span
               className="material-icons flex-shrink-0 transition-transform duration-[240ms] ease-[cubic-bezier(0.4,0,0.2,1)]"
-              style={{ fontSize: "16px", transform: sidebarCollapsed ? "rotate(180deg)" : "rotate(0deg)" }}
+              style={{
+                fontSize: sidebarCollapsed ? "22px" : "16px",
+                transform: sidebarCollapsed ? "rotate(180deg)" : "rotate(0deg)",
+              }}
             >
               first_page
             </span>
-            {!sidebarCollapsed && (
+            {sidebarCollapsed ? (
+              <span className="text-[11px] text-center" style={{ fontWeight: 500, lineHeight: "14px" }}>
+                Collapse
+              </span>
+            ) : (
               <span className="text-[14px]" style={{ fontWeight: 500, lineHeight: "20px" }}>
                 Collapse
               </span>
