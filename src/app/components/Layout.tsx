@@ -194,14 +194,14 @@ export function Layout() {
         style={{ overflowX: "hidden" }}
       >
         {/* Logo area */}
-        <div className={`flex items-center flex-shrink-0 ${sidebarCollapsed ? "justify-center h-[80px] px-2" : "h-[88px] px-4"}`}>
+        <div className={`flex items-center flex-shrink-0 ${sidebarCollapsed ? "justify-center h-[88px] px-2" : "h-[104px] px-4"}`}>
           <img
             src={logoImg}
             alt="Vision360 Logo"
             className="object-contain"
             style={{
-              height: sidebarCollapsed ? "44px" : "56px",
-              maxWidth: sidebarCollapsed ? "64px" : "208px",
+              height: sidebarCollapsed ? "56px" : "72px",
+              maxWidth: sidebarCollapsed ? "76px" : "208px",
               filter: "brightness(0) invert(1)",
               objectPosition: sidebarCollapsed ? "center" : "left center",
             }}
@@ -210,8 +210,8 @@ export function Layout() {
 
         {/* Navigation */}
         <nav
-          className={`flex-1 flex flex-col gap-2 pt-2 overflow-y-auto ${
-            sidebarCollapsed ? "px-2" : "px-4"
+          className={`flex-1 flex flex-col pt-2 overflow-y-auto ${
+            sidebarCollapsed ? "gap-0.5 px-2" : "gap-2 px-4"
           }`}
         >
           {navItems.map((item) => (
@@ -222,7 +222,7 @@ export function Layout() {
               className={({ isActive }) =>
                 `rounded-[6px] flex relative transition-all duration-150 ${
                   sidebarCollapsed
-                    ? "flex-col items-center justify-center w-full py-2 gap-1"
+                    ? "flex-col items-center justify-center w-full py-1.5 gap-0.5"
                     : "h-8 flex-row items-center w-full px-3 py-1 gap-2 whitespace-nowrap"
                 } ${
                   isActive
@@ -260,7 +260,7 @@ export function Layout() {
             title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
             className={`rounded-[6px] flex transition-all duration-150 text-white hover:bg-[rgba(255,255,255,0.08)] ${
               sidebarCollapsed
-                ? "flex-col items-center justify-center w-full py-2 gap-1"
+                ? "flex-col items-center justify-center w-full py-1.5 gap-0.5"
                 : "h-8 flex-row items-center w-full px-3 py-1 gap-2"
             }`}
           >
