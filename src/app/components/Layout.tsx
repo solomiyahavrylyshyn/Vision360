@@ -194,14 +194,14 @@ export function Layout() {
         style={{ overflowX: "hidden" }}
       >
         {/* Logo area */}
-        <div className={`flex items-center flex-shrink-0 ${sidebarCollapsed ? "justify-center h-[88px] px-2" : "h-[104px] px-4"}`}>
+        <div className={`flex items-center flex-shrink-0 ${sidebarCollapsed ? "justify-center h-[120px] px-2" : "h-[140px] px-4"}`}>
           <img
             src={logoImg}
             alt="Vision360 Logo"
             className="object-contain"
             style={{
-              height: sidebarCollapsed ? "56px" : "72px",
-              maxWidth: sidebarCollapsed ? "76px" : "208px",
+              height: sidebarCollapsed ? "84px" : "108px",
+              maxWidth: sidebarCollapsed ? "92px" : "208px",
               filter: "brightness(0) invert(1)",
               objectPosition: sidebarCollapsed ? "center" : "left center",
             }}
