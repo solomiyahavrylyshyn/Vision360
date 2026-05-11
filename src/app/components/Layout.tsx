@@ -8,7 +8,7 @@ import { HelpCenter } from "./HelpCenter";
 
 const navItems = [
   { to: "/", icon: "home", label: "Home" },
-  { to: "/calendar", icon: "calendar_today", label: "Calendar" },
+  { to: "/calendar", icon: "calendar_today", label: "Schedule" },
   { to: "/clients", icon: "people", label: "Clients" },
   { to: "/jobs", icon: "work", label: "Jobs" },
   { to: "/estimates", icon: "description", label: "Estimates" },

@@ -78,7 +78,7 @@ const mockEvents: CalendarEvent[] = [
   { id: 10, title: "Window Install",        client: "Karen White",   date: new Date(2026, 3, 20), startHour: 9,  duration: 5,   color: "purple", status: "Scheduled",   tech: "John Smith",    techInitials: "JS", property: "45 Spruce Rd",     amount: 1450 },
 ];
 
-// ── Dispatch Board Data ───────────────────────────────────────────────────
+// ── Dispatch Board Data (Week view) ──────────────────────────────────────────
 function fmtHour(h: number): string {
   const hr = Math.floor(h);
   const min = Math.round((h - hr) * 60);
@@ -88,9 +88,9 @@ function fmtHour(h: number): string {
 }
 
 const unscheduledJobs: UnscheduledJob[] = [
-  { id: 101, client: "Johnson Residence", service: "AC Not Cooling",   address: "1250 Oak Dr, Tampa, FL 33602",       highPriority: true, typeBg: "#EBF0F8", typeColor: "#4A6FA5", typeLabel: "Estimate",     amount: "$350 – $450", distance: "2.5 mi", date: "Today"    },
-  { id: 102, client: "Williams Home",     service: "Install New System", address: "5332 Pine Ridge Rd, Tampa, FL",                         typeBg: "#D1FAE5", typeColor: "#16A34A", typeLabel: "Installation", amount: "$6 800",      distance: "8.7 mi", date: "Tomorrow" },
-  { id: 103, client: "Anderson Office",   service: "Duct Cleaning",     address: "777 Business Park Dr, Tampa, FL",                        typeBg: "#FEF3C7", typeColor: "#D97706", typeLabel: "Service",      amount: "$600",        distance: "5.3 mi", date: "Tomorrow" },
+  { id: 101, client: "Johnson Residence", service: "AC Not Cooling",   address: "1250 Oak Dr, Tampa, FL 33602",    highPriority: true, typeBg: "#EBF0F8", typeColor: "#4A6FA5", typeLabel: "Estimate",     amount: "$350 – $450", distance: "2.5 mi", date: "Today"    },
+  { id: 102, client: "Williams Home",     service: "Install New System", address: "5332 Pine Ridge Rd, Tampa, FL",                      typeBg: "#D1FAE5", typeColor: "#16A34A", typeLabel: "Installation", amount: "$6 800",      distance: "8.7 mi", date: "Tomorrow" },
+  { id: 103, client: "Anderson Office",   service: "Duct Cleaning",     address: "777 Business Park Dr, Tampa, FL",                     typeBg: "#FEF3C7", typeColor: "#D97706", typeLabel: "Service",      amount: "$600",        distance: "5.3 mi", date: "Tomorrow" },
 ];
 
 const dispatchJobs: DispatchJob[] = [
@@ -106,12 +106,66 @@ const dispatchJobs: DispatchJob[] = [
   { id: 10, num: "2410", client: "Lewis Resi...",  service: "Wiring Inspec.",  address: "952 Ridge Dr",    dayIdx: 5, start: 13,   end: 15,   amount: 180,  bg: "#FEF3C7", border: "#D97706", statusIcon: "warning",         statusIconColor: "#D97706", techName: "Mike Davis",    priority: "Normal", jobType: "Inspection",   source: "Phone" },
 ];
 
+// ── Day / Gantt Data ──────────────────────────────────────────────────────────
+const TECHNICIANS = [
+  { id: 1, name: "Peter",  initials: "PE", color: "#4A6FA5", revenue: "$7,898", route: 1, calls: 3, success: 47 },
+  { id: 2, name: "Travis", initials: "TR", color: "#7C3AED", revenue: "$6,420", route: 2, calls: 4, success: 52 },
+  { id: 3, name: "Igor",   initials: "IG", color: "#16A34A", revenue: "$4,185", route: 3, calls: 3, success: 41 },
+];
+
+interface GanttJob {
+  id: number;
+  techId: number;
+  start: number;
+  end: number;
+  client: string;
+  service: string;
+  address: string;
+  amount: number;
+  bg: string;
+  border: string;
+  statusIcon: string;
+  statusColor: string;
+}
+
+const DAY_JOBS: GanttJob[] = [
+  // Peter
+  { id: 1,  techId: 1, start: 8,    end: 10,   client: "Miller Residence", service: "AC Repair",         address: "862 Pine St",          amount: 420,  bg: "#FEF3C7", border: "#D97706", statusIcon: "calendar_today", statusColor: "#D97706" },
+  { id: 2,  techId: 1, start: 10,   end: 12,   client: "Brown Home",       service: "AC Repair",         address: "456 Elm St",           amount: 385,  bg: "#FEE2E2", border: "#DC2626", statusIcon: "cancel",         statusColor: "#DC2626" },
+  { id: 3,  techId: 1, start: 13,   end: 15,   client: "Clark Residence",  service: "Receiver Upgrade",  address: "951 Hillside Dr",      amount: 2400, bg: "#EBF0F8", border: "#4A6FA5", statusIcon: "near_me",        statusColor: "#4A6FA5" },
+  { id: 4,  techId: 1, start: 15.5, end: 17.5, client: "Hall Home",        service: "Water Heater",      address: "753 Summit St",        amount: 750,  bg: "#D1FAE5", border: "#16A34A", statusIcon: "play_circle",    statusColor: "#16A34A" },
+  // Travis
+  { id: 5,  techId: 2, start: 8,    end: 11,   client: "Taylor Home",      service: "Water Heater",      address: "852 Bay St",           amount: 1150, bg: "#EDE9FE", border: "#7C3AED", statusIcon: "calendar_today", statusColor: "#D97706" },
+  { id: 6,  techId: 2, start: 11.5, end: 13.5, client: "Jackson Residence",service: "Leak Repair",       address: "951 Lake Dr",          amount: 2005, bg: "#FEE2E2", border: "#DC2626", statusIcon: "check_circle",   statusColor: "#16A34A" },
+  { id: 7,  techId: 2, start: 14,   end: 16,   client: "Cooper Office",    service: "Maintenance",       address: "600 Main St",          amount: 450,  bg: "#D1FAE5", border: "#16A34A", statusIcon: "check_circle",   statusColor: "#16A34A" },
+  { id: 8,  techId: 2, start: 16.5, end: 18,   client: "Smith Residence",  service: "Estimate",          address: "123 Oak St",           amount: 0,    bg: "#F3F4F6", border: "#6B7280", statusIcon: "pause_circle",   statusColor: "#6B7280" },
+  // Igor
+  { id: 9,  techId: 3, start: 8,    end: 10,   client: "Williams Home",    service: "Install New System",address: "5332 Pine Ridge Rd",   amount: 1800, bg: "#D1FAE5", border: "#16A34A", statusIcon: "check_circle",   statusColor: "#16A34A" },
+  { id: 10, techId: 3, start: 10.5, end: 12,   client: "Lewis Residence",  service: "Wiring Inspect.",   address: "952 Ridge Dr",         amount: 180,  bg: "#FEF3C7", border: "#D97706", statusIcon: "check_circle",   statusColor: "#16A34A" },
+  { id: 11, techId: 3, start: 13,   end: 14.5, client: "Anderson Office",  service: "Duct Cleaning",     address: "777 Business Park Dr", amount: 600,  bg: "#FEE2E2", border: "#DC2626", statusIcon: "cancel",         statusColor: "#DC2626" },
+  { id: 12, techId: 3, start: 15,   end: 17,   client: "Johnson Residence",service: "AC Not Cooling",    address: "1250 Oak Dr",          amount: 750,  bg: "#D1FAE5", border: "#16A34A", statusIcon: "play_circle",    statusColor: "#16A34A" },
+];
+
+const DAY_UNSCHEDULED = [
+  { id: 201, client: "Baker Residence",  service: "AC Not Cooling",     address: "321 Cedar Dr",     date: "Today",    amount: "$750",   highPriority: true  },
+  { id: 202, client: "Green Residence",  service: "Install Thermostat", address: "789 Maple St",     date: "Today",    amount: "$450",   highPriority: false },
+  { id: 203, client: "Evans Home",       service: "Maintenance",        address: "159 Pine St",      date: "Tomorrow", amount: "$320",   highPriority: false },
+  { id: 204, client: "Wilson Residence", service: "AC Repair",          address: "357 Lake View Dr", date: "Tomorrow", amount: "$2,730", highPriority: false },
+];
+
+// Gantt constants
+const GANTT_START_HOUR = 7;   // 7 AM
+const GANTT_END_HOUR   = 18;  // 6 PM (exclusive label at 18)
+const HOUR_WIDTH       = 90;  // px per hour
+const ROW_HEIGHT       = 110; // px per technician row
+const CURRENT_TIME     = 10.5; // 10:30 AM
+
 type ViewMode = "month" | "week" | "day";
 
 export function Calendar() {
   const navigate = useNavigate();
   const [currentDate, setCurrentDate] = useState(new Date(2026, 3, 12));
-  const [viewMode, setViewMode] = useState<ViewMode>("week");
+  const [viewMode, setViewMode] = useState<ViewMode>("day");
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [selectedDispatchJob, setSelectedDispatchJob] = useState<DispatchJob | null>(null);
   const [hoveredDay, setHoveredDay] = useState<Date | null>(null);
@@ -150,6 +204,10 @@ export function Calendar() {
     : viewMode === "week"
     ? `${format(weekDays[0], "MMM d")} – ${format(weekDays[6], "MMM d, yyyy")}`
     : format(currentDate, "EEEE, MMMM d, yyyy");
+
+  // Gantt grid total width
+  const ganttHours = Array.from({ length: GANTT_END_HOUR - GANTT_START_HOUR + 1 }, (_, i) => GANTT_START_HOUR + i);
+  const ganttTotalWidth = (GANTT_END_HOUR - GANTT_START_HOUR) * HOUR_WIDTH;
 
   const EventPopover = ({ event, onClose }: { event: CalendarEvent; onClose: () => void }) => {
     const c = getC(event.color);
@@ -210,7 +268,7 @@ export function Calendar() {
   return (
     <div className="px-7 py-5 bg-[#F5F7FA] min-h-full flex flex-col">
       <PageHeader
-        title="Calendar"
+        title="Schedule"
         subtitle={
           <div className="flex items-center gap-3 ml-4">
             <div className="flex items-center gap-1">
@@ -230,6 +288,10 @@ export function Calendar() {
         className="mb-4"
         actions={
           <>
+            <button className="flex items-center gap-1.5 px-3 py-1.5 border border-[#DDE3EE] rounded-lg bg-white text-[13px] text-[#374151] hover:bg-[#F5F7FA]">
+              All Technicians (3)
+              <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "16px" }}>keyboard_arrow_down</span>
+            </button>
             <div className="flex bg-[#F0F2F5] rounded-lg overflow-hidden p-0.5">
               {(["day", "week", "month"] as ViewMode[]).map((mode) => (
                 <button
@@ -259,17 +321,21 @@ export function Calendar() {
       {/* Stat cards */}
       <div className="flex items-center gap-3 mb-4 overflow-x-auto pb-1">
         {[
-          { value: "38",  label: "Total",       icon: "schedule",            color: "#4A6FA5" },
-          { value: "32",  label: "Scheduled",   icon: "check_circle",        color: "#16A34A" },
-          { value: "3",   label: "Unscheduled", icon: "warning",             color: "#D97706" },
-          { value: "2",   label: "In Progress", icon: "play_circle_filled",  color: "#7C3AED" },
-          { value: "1",   label: "On Hold",     icon: "pause_circle_filled", color: "#6B7280" },
-          { value: "92%", label: "Utilization", icon: "speed",               color: "#16A34A" },
+          { value: "28",     label: "Total Jobs",   icon: "work",                color: "#4A6FA5" },
+          { value: "22",     label: "Scheduled",    icon: "check_circle",        color: "#16A34A" },
+          { value: "4",      label: "Unscheduled",  icon: "warning",             color: "#D97706" },
+          { value: "3",      label: "In Progress",  icon: "play_circle_filled",  color: "#7C3AED" },
+          { value: "1",      label: "Cancelled",    icon: "cancel",              color: "#DC2626" },
+          { value: "$18,503",label: "Revenue",      icon: "attach_money",        color: "#16A34A", sub: "+12%" },
+          { value: "92%",    label: "Success",      icon: "speed",               color: "#16A34A" },
         ].map(s => (
           <div key={s.label} className="flex items-center gap-3 bg-white border border-[#DDE3EE] rounded-xl px-4 py-3 shrink-0">
             <span className="material-icons shrink-0" style={{ fontSize: "20px", color: s.color }}>{s.icon}</span>
             <div>
               <div className="text-[18px] text-[#1A2332] leading-none" style={{ fontWeight: 700 }}>{s.value}</div>
+              {"sub" in s && s.sub && (
+                <div className="text-[10px] mt-0.5" style={{ color: "#16A34A", fontWeight: 600 }}>{s.sub} ↑</div>
+              )}
               <div className="text-[11px] text-[#546478] mt-0.5 whitespace-nowrap">{s.label}</div>
             </div>
           </div>
@@ -537,64 +603,253 @@ export function Calendar() {
           </div>
         )}
 
-        {/* ── DAY VIEW ── */}
+        {/* ── DAY VIEW — Horizontal Gantt Dispatch Board ── */}
         {viewMode === "day" && (
-          <div className="flex-1 flex flex-col overflow-hidden" style={{ minHeight: 0 }}>
-            <div className="flex-1 overflow-auto">
-              <div className="grid grid-cols-[64px_1fr] relative" style={{ height: `${GRID_H}px` }}>
-                {hours.map((h) => (
-                  <div key={h} className="contents">
-                    <div className="h-20 flex items-start justify-end pr-3 text-[10px] text-[#9CA3AF] -mt-2" style={{ fontWeight: 500 }}>
-                      {h > 12 ? h - 12 : h} {h >= 12 ? "PM" : "AM"}
+          <div className="flex-1 flex overflow-hidden" style={{ minHeight: 0 }}>
+
+            {/* Left: Technician column (240px fixed) */}
+            <div className="shrink-0 flex flex-col border-r border-[#DDE3EE] bg-[#FAFBFC]" style={{ width: 240 }}>
+              {/* Header spacer matching time header */}
+              <div className="border-b border-[#E5E7EB] bg-[#FAFBFC] shrink-0" style={{ height: 40 }}>
+                <div className="flex items-center h-full px-4">
+                  <span className="text-[11px] text-[#8899AA] uppercase tracking-wide" style={{ fontWeight: 600 }}>Technician</span>
+                </div>
+              </div>
+              {/* Tech rows */}
+              {TECHNICIANS.map((tech) => (
+                <div
+                  key={tech.id}
+                  className="flex flex-col justify-center px-4 border-b border-[#E5E7EB] bg-white shrink-0"
+                  style={{ height: ROW_HEIGHT }}
+                >
+                  <div className="flex items-center gap-3 mb-2">
+                    <div
+                      className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[12px] shrink-0"
+                      style={{ backgroundColor: tech.color, fontWeight: 700 }}
+                    >
+                      {tech.initials}
                     </div>
-                    <div className="h-20 border-b border-[#E5E7EB]" />
+                    <div>
+                      <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 700 }}>{tech.name}</div>
+                      <div className="text-[11px] text-[#8899AA]">Route #{tech.route} · {tech.calls} calls</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 pl-11">
+                    <span className="text-[11px] tabular-nums" style={{ fontWeight: 700, color: "#16A34A" }}>{tech.revenue}</span>
+                    <span className="text-[10px] text-[#9CA3AF]">{tech.success}% success</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Center: Scrollable time grid */}
+            <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+              <div className="flex-1 overflow-x-auto overflow-y-auto">
+                <div style={{ width: `${ganttTotalWidth}px`, minWidth: "100%" }}>
+
+                  {/* Time header row */}
+                  <div
+                    className="flex border-b border-[#E5E7EB] bg-[#FAFBFC] sticky top-0 z-10 shrink-0"
+                    style={{ height: 40 }}
+                  >
+                    {ganttHours.map((h) => {
+                      const isCurrentHour = h === Math.floor(CURRENT_TIME);
+                      const label = h === 12 ? "12 PM" : h > 12 ? `${h - 12} PM` : `${h} AM`;
+                      const isLastHour = h === GANTT_END_HOUR;
+                      return (
+                        <div
+                          key={h}
+                          className="flex items-center justify-center shrink-0 border-r border-[#E5E7EB] relative"
+                          style={{ width: isLastHour ? 0 : HOUR_WIDTH, overflow: "visible" }}
+                        >
+                          {!isLastHour && (
+                            isCurrentHour ? (
+                              <span
+                                className="px-2 py-0.5 rounded-full text-white text-[10px]"
+                                style={{ backgroundColor: "#DC2626", fontWeight: 700 }}
+                              >
+                                10:30 AM
+                              </span>
+                            ) : (
+                              <span className="text-[11px] text-[#8899AA]" style={{ fontWeight: 500 }}>{label}</span>
+                            )
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Tech rows with job blocks */}
+                  {TECHNICIANS.map((tech) => {
+                    const techJobs = DAY_JOBS.filter(j => j.techId === tech.id);
+                    return (
+                      <div
+                        key={tech.id}
+                        className="relative border-b border-[#E5E7EB]"
+                        style={{ height: ROW_HEIGHT }}
+                      >
+                        {/* Hour grid lines */}
+                        {ganttHours.slice(0, -1).map((h) => (
+                          <div
+                            key={h}
+                            className="absolute top-0 bottom-0 border-r border-[#F0F2F5]"
+                            style={{ left: (h - GANTT_START_HOUR) * HOUR_WIDTH }}
+                          />
+                        ))}
+
+                        {/* Current time indicator line */}
+                        <div
+                          className="absolute top-0 bottom-0 z-10 pointer-events-none"
+                          style={{
+                            left: (CURRENT_TIME - GANTT_START_HOUR) * HOUR_WIDTH,
+                            width: 2,
+                            backgroundColor: "#DC2626",
+                          }}
+                        />
+
+                        {/* Job blocks */}
+                        {techJobs.map((job) => {
+                          const left = (job.start - GANTT_START_HOUR) * HOUR_WIDTH + 3;
+                          const width = (job.end - job.start) * HOUR_WIDTH - 6;
+                          const timeLabel = `${fmtHour(job.start)} – ${fmtHour(job.end)}`;
+                          return (
+                            <div
+                              key={job.id}
+                              className="absolute rounded-lg overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
+                              style={{
+                                left,
+                                width: Math.max(width, 60),
+                                top: 8,
+                                height: ROW_HEIGHT - 16,
+                                backgroundColor: job.bg,
+                                borderLeft: `3px solid ${job.border}`,
+                              }}
+                            >
+                              <div className="flex flex-col h-full px-2 py-1.5">
+                                <div className="text-[9px] text-[#9CA3AF] tabular-nums mb-0.5 shrink-0">{timeLabel}</div>
+                                <div className="text-[11px] leading-tight truncate shrink-0" style={{ fontWeight: 700, color: "#1A2332" }}>{job.client}</div>
+                                <div className="text-[10px] text-[#546478] truncate shrink-0">{job.service}</div>
+                                <div className="text-[10px] text-[#9CA3AF] truncate mt-0.5 flex-1 min-h-0">{job.address}</div>
+                                <div className="flex items-center justify-between mt-1 shrink-0">
+                                  {job.amount > 0 ? (
+                                    <span className="text-[10px] tabular-nums" style={{ fontWeight: 700, color: job.border }}>${job.amount.toLocaleString()}</span>
+                                  ) : (
+                                    <span className="text-[10px] text-[#9CA3AF]">—</span>
+                                  )}
+                                  <span className="material-icons" style={{ fontSize: "13px", color: job.statusColor }}>{job.statusIcon}</span>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* Right: Unscheduled panel (220px fixed) */}
+            <div className="shrink-0 flex flex-col border-l border-[#DDE3EE] bg-white overflow-hidden" style={{ width: 220 }}>
+              {/* Header */}
+              <div className="flex items-center justify-between px-3 py-2.5 border-b border-[#DDE3EE] shrink-0" style={{ height: 40 }}>
+                <div className="flex items-center gap-2">
+                  <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>Unscheduled</span>
+                  <span
+                    className="px-1.5 py-0.5 rounded-full text-[10px]"
+                    style={{ fontWeight: 700, backgroundColor: "#FEF3C7", color: "#D97706" }}
+                  >
+                    4
+                  </span>
+                </div>
+                <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "16px" }}>grid_view</span>
+              </div>
+
+              {/* Job cards */}
+              <div className="flex-1 overflow-y-auto p-2.5 space-y-2">
+                {DAY_UNSCHEDULED.map((job) => (
+                  <div
+                    key={job.id}
+                    className="bg-[#FAFBFC] border border-[#E5E7EB] rounded-lg p-2.5 cursor-pointer hover:border-[#4A6FA5] hover:bg-white transition-all"
+                  >
+                    {job.highPriority && (
+                      <div className="text-[10px] text-[#DC2626] mb-1 flex items-center gap-1" style={{ fontWeight: 600 }}>
+                        <span className="material-icons" style={{ fontSize: "11px" }}>priority_high</span>
+                        High Priority
+                      </div>
+                    )}
+                    <div className="text-[12px] text-[#1A2332] mb-0.5 truncate" style={{ fontWeight: 600 }}>{job.client}</div>
+                    <div className="text-[11px] text-[#546478] mb-1 truncate">{job.service}</div>
+                    <div className="text-[10px] text-[#9CA3AF] mb-2 truncate">{job.address}</div>
+                    <div className="flex items-center justify-between">
+                      <span
+                        className="text-[10px] px-1.5 py-0.5 rounded"
+                        style={{
+                          backgroundColor: job.date === "Today" ? "#FEF3C7" : "#F3F4F6",
+                          color: job.date === "Today" ? "#D97706" : "#6B7280",
+                          fontWeight: 600,
+                        }}
+                      >
+                        {job.date}
+                      </span>
+                      <span className="text-[11px] tabular-nums" style={{ fontWeight: 700, color: "#1A2332" }}>{job.amount}</span>
+                    </div>
                   </div>
                 ))}
-                {getEventsForDay(currentDate).map((ev) => {
-                  const c = getC(ev.color);
-                  const top = (ev.startHour - 7) * 80;
-                  const height = ev.duration * 80 - 4;
-                  return (
-                    <div
-                      key={ev.id}
-                      className="absolute rounded-lg px-3 py-2.5 cursor-pointer hover:shadow-md transition-all border border-transparent hover:border-[#4A6FA5]"
-                      style={{
-                        top: `${top}px`, left: "72px", right: "16px", height: `${height}px`,
-                        backgroundColor: c.bg, borderLeft: `3px solid ${c.border}`,
-                      }}
-                      onClick={() => setSelectedEvent(ev)}
-                    >
-                      <div className="flex items-start justify-between mb-1">
-                        <div className="flex-1 min-w-0">
-                          <div className="text-[13px] text-[#1A2332] truncate" style={{ fontWeight: 700 }}>{ev.title}</div>
-                          <div className="text-[12px] text-[#546478] mt-0.5 truncate">{ev.client}</div>
-                        </div>
-                        <div className="flex items-center gap-1.5 ml-2 shrink-0">
-                          <div className="w-6 h-6 rounded-full bg-[#4A6FA5] flex items-center justify-center text-white text-[10px]" style={{ fontWeight: 600 }}>{ev.techInitials}</div>
-                          <div className="px-1.5 py-0.5 rounded text-[10px]" style={{ backgroundColor: `${c.border}20`, color: c.border, fontWeight: 600 }}>{ev.status}</div>
-                        </div>
-                      </div>
-                      {height > 60 ? (
-                        <div className="flex items-center justify-between mt-2">
-                          <div className="text-[11px] text-[#8899AA] flex items-center gap-1">
-                            <span className="material-icons" style={{ fontSize: "13px" }}>schedule</span>
-                            {ev.startHour > 12 ? ev.startHour - 12 : ev.startHour}:00 – {(() => { const end = ev.startHour + ev.duration; return `${end > 12 ? end - 12 : end}:${ev.duration % 1 === 0.5 ? "30" : "00"}`; })()}
-                          </div>
-                          <div className="text-[11px] tabular-nums" style={{ fontWeight: 700, color: c.border }}>${ev.amount.toLocaleString()}</div>
-                        </div>
-                      ) : (
-                        <div className="text-[11px] tabular-nums mt-1" style={{ fontWeight: 700, color: c.border }}>${ev.amount.toLocaleString()}</div>
-                      )}
-                    </div>
-                  );
-                })}
-                <div className="absolute left-16 right-0 h-[2px] bg-[#DC2626] z-10" style={{ top: `${(9 - 7) * 80 + 30}px` }}>
-                  <div className="w-2 h-2 bg-[#DC2626] rounded-full absolute -left-1 -top-0.5" />
-                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="px-3 py-2.5 border-t border-[#DDE3EE] shrink-0">
+                <button className="w-full text-[12px] text-[#4A6FA5] hover:text-[#3d5a85] transition-colors text-left" style={{ fontWeight: 600 }}>
+                  + View all unscheduled
+                </button>
               </div>
             </div>
           </div>
         )}
+      </div>
+
+      {/* Map placeholder — below main card, only in Day view */}
+      {viewMode === "day" && (
+        <div
+          className="mt-4 rounded-xl flex flex-col items-center justify-center gap-2 shrink-0"
+          style={{ backgroundColor: "#E5E7EB", height: 220 }}
+        >
+          <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "32px" }}>map</span>
+          <span className="text-[13px] text-[#9CA3AF]" style={{ fontWeight: 500 }}>Map view coming soon</span>
+        </div>
+      )}
+
+      {/* Legend bar — bottom, outside main card */}
+      <div className="mt-4 bg-white border border-[#DDE3EE] rounded-xl px-5 py-3 flex flex-wrap items-center gap-x-5 gap-y-2 shrink-0">
+        <span className="text-[11px] text-[#8899AA] uppercase tracking-wide mr-1" style={{ fontWeight: 600 }}>Legend:</span>
+        {[
+          { label: "Service",     color: "#D97706" },
+          { label: "Maintenance", color: "#16A34A" },
+          { label: "Installation",color: "#4A6FA5" },
+          { label: "Estimate",    color: "#6B7280" },
+          { label: "Emergency",   color: "#DC2626" },
+        ].map(item => (
+          <div key={item.label} className="flex items-center gap-1.5">
+            <div className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ backgroundColor: item.color }} />
+            <span className="text-[11px] text-[#546478]" style={{ fontWeight: 500 }}>{item.label}</span>
+          </div>
+        ))}
+        <div className="w-px h-4 bg-[#DDE3EE] mx-1" />
+        {[
+          { label: "Scheduled",   color: "#D97706" },
+          { label: "Dispatched",  color: "#4A6FA5" },
+          { label: "Enroute",     color: "#4A6FA5" },
+          { label: "In Progress", color: "#7C3AED" },
+          { label: "Paused",      color: "#6B7280" },
+          { label: "Cancelled",   color: "#DC2626" },
+          { label: "Completed",   color: "#16A34A" },
+        ].map(item => (
+          <div key={item.label} className="flex items-center gap-1.5">
+            <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
+            <span className="text-[11px] text-[#546478]" style={{ fontWeight: 500 }}>{item.label}</span>
+          </div>
+        ))}
       </div>
 
       {selectedEvent && <EventPopover event={selectedEvent} onClose={() => setSelectedEvent(null)} />}
