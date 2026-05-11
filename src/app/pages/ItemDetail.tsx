@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router";
-import { KebabMenu, KebabItem } from "../components/ui/kebab-menu";
+import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
 
 // ─── Shared type/data (mirrors Items.tsx) ────────────────────────────────────
 type ItemType =
