@@ -187,7 +187,7 @@ export function Layout() {
   return (
     <div className="flex flex-col h-screen bg-[#F5F7FA]">
       {/* Split Header: sidebar-brand | main-topbar */}
-      <div className="flex h-16 flex-shrink-0">
+      <div className="flex h-[68px] flex-shrink-0">
 
         {/* ── Sidebar brand section ── */}
         <div
@@ -220,7 +220,7 @@ export function Layout() {
         </div>
 
         {/* ── Main top bar ── */}
-        <div className="flex-1 bg-white border-b border-[#E5E7EB] flex items-center gap-6 px-6">
+        <div className="flex-1 bg-white border-b border-[#E5E7EB] flex items-center gap-6 px-4">
 
         {/* Global Search - Center (Flex-1 for expansion) */}
         <div className="flex-1 flex items-center justify-center">
@@ -468,17 +468,17 @@ export function Layout() {
 
           {/* Icon action buttons (white bg, 36×36, radius 8) */}
           <div className="flex items-center gap-1">
-            <button title="Phone / Dialer" onClick={() => setDialerOpen(true)}
+            <button title="Notifications" onClick={() => setUserMenuOpen(!userMenuOpen)}
               className="w-9 h-9 bg-white rounded-lg flex items-center justify-center text-[#1A2332] hover:bg-[#F5F7FA] transition-colors">
-              <span className="material-icons" style={{ fontSize: "16px" }}>phone</span>
-            </button>
-            <button title="Messages" onClick={() => setMessagingOpen(true)}
-              className="w-9 h-9 bg-white rounded-lg flex items-center justify-center text-[#1A2332] hover:bg-[#F5F7FA] transition-colors">
-              <span className="material-icons" style={{ fontSize: "16px" }}>chat</span>
+              <span className="material-icons" style={{ fontSize: "16px" }}>notifications</span>
             </button>
             <button title="Help Center" onClick={() => setHelpCenterOpen(true)}
               className="w-9 h-9 bg-white rounded-lg flex items-center justify-center text-[#1A2332] hover:bg-[#F5F7FA] transition-colors">
               <span className="material-icons" style={{ fontSize: "16px" }}>help_outline</span>
+            </button>
+            <button title="Settings" onClick={() => navigate("/settings")}
+              className="w-9 h-9 bg-white rounded-lg flex items-center justify-center text-[#1A2332] hover:bg-[#F5F7FA] transition-colors">
+              <span className="material-icons" style={{ fontSize: "16px" }}>settings</span>
             </button>
           </div>
 
@@ -528,7 +528,7 @@ export function Layout() {
         >
         {/* Navigation */}
         <nav
-          className={`flex-1 flex flex-col gap-1 pt-4 ${
+          className={`flex-1 flex flex-col gap-2 pt-4 ${
             sidebarCollapsed ? "items-center px-2" : "px-4"
           }`}
         >
