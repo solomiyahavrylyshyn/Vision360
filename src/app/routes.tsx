@@ -9,6 +9,7 @@ import { ResetPasswordVerify } from "./pages/ResetPasswordVerify";
 import { Welcome } from "./pages/Welcome";
 import { CompanySetup } from "./pages/CompanySetup";
 import { Dashboard } from "./pages/Dashboard";
+import { Home } from "./pages/Home";
 import { Clients } from "./pages/Clients";
 import { ClientDetail } from "./pages/ClientDetail";
 import { CreateClient } from "./pages/CreateClient";
@@ -77,7 +78,7 @@ export const router = createBrowserRouter([
     path: "/",
     Component: Layout,
     children: [
-      { index: true, Component: Calendar },
+      { index: true, Component: Home },
       { path: "calendar", Component: Calendar },
       { path: "clients", Component: Clients },
       { path: "clients/new", Component: CreateClient },

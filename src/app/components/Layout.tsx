@@ -7,6 +7,7 @@ import { Dialer } from "./Dialer";
 import { HelpCenter } from "./HelpCenter";
 
 const navItems = [
+  { to: "/", icon: "home", label: "Home" },
   { to: "/calendar", icon: "calendar_today", label: "Calendar" },
   { to: "/clients", icon: "people", label: "Clients" },
   { to: "/jobs", icon: "work", label: "Jobs" },
@@ -15,7 +16,6 @@ const navItems = [
   { to: "/payments", icon: "credit_card", label: "Payments" },
   { to: "/expenses", icon: "attach_money", label: "Expenses" },
   { to: "/items", icon: "inventory_2", label: "Items" },
-  { to: "/reports", icon: "bar_chart", label: "Reports" },
 ];
 
 export function Layout() {
@@ -440,6 +440,15 @@ export function Layout() {
 
         {/* Right side icons */}
         <div className="flex items-center gap-0.5 flex-shrink-0">
+          {/* Create button */}
+          <button
+            ref={createBtnRef}
+            title="Create"
+            onClick={() => setCreateMenuOpen(!createMenuOpen)}
+            className="w-9 h-9 rounded-lg flex items-center justify-center text-[#6B7280] hover:bg-[#F3F4F6] hover:text-[#111827] transition-colors"
+          >
+            <span className="material-icons" style={{ fontSize: "22px" }}>add</span>
+          </button>
           <button
             title="AI Assistant"
             onClick={() => setAiAssistantOpen(true)}
@@ -498,27 +507,6 @@ export function Layout() {
         {/* Navigation */}
         <div className="pt-2"></div>
         <nav className={`flex-1 flex flex-col gap-0 ${sidebarCollapsed ? "px-0 items-center" : "px-2"}`}>
-          {/* Create Button */}
-          <button
-            ref={createBtnRef}
-            onClick={() => setCreateMenuOpen(!createMenuOpen)}
-            className={`rounded-[7px] flex relative whitespace-nowrap transition-all duration-150 mb-0.5 ${
-              sidebarCollapsed
-                ? "w-[60px] h-[44px] flex-col items-center justify-center px-1 py-1 gap-0.5"
-                : "h-[38px] flex-row items-center w-full justify-start px-2.5 gap-2.5"
-            } text-[rgba(255,255,255,0.82)] hover:bg-[rgba(255,255,255,0.08)] hover:text-[rgba(255,255,255,0.95)]`}
-            style={{ fontWeight: 500 }}
-          >
-            <span className="material-icons flex-shrink-0 text-[rgba(255,255,255,0.55)]" style={{ fontSize: "20px" }}>add_circle_outline</span>
-            <span
-              className={`transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] ${
-                sidebarCollapsed ? "text-[9px] leading-tight text-center max-w-[58px]" : "text-[13px] max-w-[130px]"
-              }`}
-            >
-              Create
-            </span>
-          </button>
-
           {navItems.map((item) => (
             <NavLink
               key={item.to}
@@ -601,9 +589,9 @@ export function Layout() {
           createMenuOpen ? "opacity-100 scale-100 pointer-events-auto" : "opacity-0 scale-95 pointer-events-none"
         }`}
         style={{
-          left: sidebarCollapsed ? "72px" : "216px",
-          top: "80px",
-          transformOrigin: "top left"
+          right: "16px",
+          top: "52px",
+          transformOrigin: "top right"
         }}
       >
         <div className="py-2">
