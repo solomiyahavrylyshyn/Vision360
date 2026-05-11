@@ -28,15 +28,11 @@ export function CreateJob() {
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const [visitInstructions, setVisitInstructions] = useState("");
-  const [assignedTo, setAssignedTo] = useState("Marek Stroz");
-  const [assignedDropdown, setAssignedDropdown] = useState(false);
   const [remindInvoice, setRemindInvoice] = useState(true);
   const [lineItems, setLineItems] = useState<SelectedLineItem[]>([]);
   const [notes, setNotes] = useState("");
   const [itemPickerOpen, setItemPickerOpen] = useState(false);
   const [taxRate, setTaxRate] = useState(7.5);
-
-  const teamMembers = ["Marek Stroz", "John Smith", "Sarah Johnson"];
 
   const addLineItem = () => {
     setLineItems([...lineItems, { id: Date.now(), name: "", description: "", quantity: 1, unitCost: 0, unitPrice: 0 }]);
@@ -168,7 +164,7 @@ export function CreateJob() {
           <div>
             <h3 className="text-[16px] text-[#1A2332] mb-3" style={{ fontWeight: 700 }}>Schedule</h3>
 
-            <div className="grid grid-cols-4 gap-3 mb-4">
+            <div className="grid grid-cols-3 gap-3 mb-4">
               <div>
                 <label className="text-xs text-[#546478] mb-1 block">Start date</label>
                 <input
@@ -195,45 +191,6 @@ export function CreateJob() {
                   onChange={(e) => setEndTime(e.target.value)}
                   className="w-full px-3 py-2 border border-[#DDE3EE] rounded-md text-sm focus:outline-none focus:border-[#4A6FA5]"
                 />
-              </div>
-              <div>
-                <label className="text-xs text-[#546478] mb-1 block">Assigned</label>
-                <div className="relative">
-                  <button
-                    onClick={() => setAssignedDropdown(!assignedDropdown)}
-                    className="w-full flex items-center gap-1 px-3 py-2 border border-[#DDE3EE] rounded-md hover:bg-[#F5F7FA]"
-                  >
-                    {assignedTo && (
-                      <>
-                        <div className="w-5 h-5 rounded-full bg-[#4A6FA5] flex items-center justify-center text-white text-[10px]">MS</div>
-                        <span className="text-sm truncate flex-1 text-left">{assignedTo}</span>
-                      </>
-                    )}
-                    {!assignedTo && <span className="text-sm text-[#8899AA]">Select team member</span>}
-                    <span className="material-icons ml-auto" style={{ fontSize: "16px" }}>arrow_drop_down</span>
-                  </button>
-                  {assignedDropdown && (
-                    <div className="absolute right-0 top-full mt-1 bg-white border border-[#DDE3EE] rounded-lg shadow-lg z-50 w-full py-1">
-                      {teamMembers.map((m) => (
-                        <button
-                          key={m}
-                          onClick={() => { setAssignedTo(m); setAssignedDropdown(false); }}
-                          className="w-full text-left px-4 py-2 text-sm hover:bg-[#F5F7FA]"
-                        >
-                          {m}
-                        </button>
-                      ))}
-                      {assignedTo && (
-                        <button
-                          onClick={() => { setAssignedTo(""); setAssignedDropdown(false); }}
-                          className="w-full text-left px-4 py-2 text-sm hover:bg-[#FEE2E2] text-[#DC2626] border-t border-[#DDE3EE]"
-                        >
-                          Clear assignment
-                        </button>
-                      )}
-                    </div>
-                  )}
-                </div>
               </div>
             </div>
 

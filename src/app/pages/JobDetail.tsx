@@ -15,7 +15,6 @@ interface Visit {
   dateTime: string;
   title: string;
   status: "Scheduled" | "In Progress" | "Completed";
-  assigned: string;
 }
 
 interface NoteEntry {
@@ -32,7 +31,6 @@ const mockJobData: Record<string, any> = {
     jobNumber: "29899-J01", jobType: "Estimate",
     startedOn: "Mar 30, 2026", endsOn: "Mar 30, 2026",
     startTime: "9:00 AM", endTime: "11:00 AM",
-    assignedTo: "Marek Stroz", assignedInitials: "MS",
     status: "Scheduled" as const,
     priority: "Low" as const,
     customerSince: "Jul - 2021",
@@ -52,7 +50,7 @@ const mockJobData: Record<string, any> = {
     totalCost: 0, totalPrice: 0,
     expenses: [{ id: 1, item: "HD Items", description: "Plywood", date: "Mar 31, 2026", amount: 152.00 }] as Expense[],
     expenseTotal: 152.00,
-    visits: [{ id: 1, dateTime: "Mar 30, 2026 — Anytime", title: "Travis Jones - AC Estimate", status: "Scheduled", assigned: "Marek Stroz" }] as Visit[],
+    visits: [{ id: 1, dateTime: "Mar 30, 2026 — Anytime", title: "Travis Jones - AC Estimate", status: "Scheduled" }] as Visit[],
     profitability: { totalPrice: 0, lineItemCost: 0, labor: 0, expenses: 152.00, profit: -152.00, margin: 0 },
     linkedEstimate: { id: 1, title: "Estimate #1", status: "Draft" },
     linkedInvoice: null,
@@ -65,7 +63,6 @@ const mockJobData: Record<string, any> = {
     jobNumber: "29900-J01", jobType: "Install",
     startedOn: "Apr 10, 2026", endsOn: "Apr 10, 2026",
     startTime: "9:00 AM", endTime: "1:00 PM",
-    assignedTo: "Marek Stroz", assignedInitials: "MS",
     status: "In Progress" as const,
     priority: "High" as const,
     customerSince: "Mar - 2023",
@@ -78,7 +75,7 @@ const mockJobData: Record<string, any> = {
     lineItems: [{ name: "Tree Removal", description: "Full tree removal service", quantity: 1, unitCost: 200, unitPrice: 450, total: 450 }],
     totalCost: 200, totalPrice: 450,
     expenses: [] as Expense[], expenseTotal: 0,
-    visits: [{ id: 1, dateTime: "Apr 10, 2026 — 9:00 AM", title: "Sarah Johnson - Tree Removal", status: "In Progress", assigned: "Marek Stroz" }] as Visit[],
+    visits: [{ id: 1, dateTime: "Apr 10, 2026 — 9:00 AM", title: "Sarah Johnson - Tree Removal", status: "In Progress" }] as Visit[],
     profitability: { totalPrice: 450, lineItemCost: 200, labor: 0, expenses: 0, profit: 250, margin: 55.6 },
     linkedEstimate: null,
     linkedInvoice: { id: 1, title: "Invoice #1", status: "Draft" },
@@ -129,9 +126,9 @@ export function JobDetail() {
   const [expandedJobNoteIds, setExpandedJobNoteIds] = useState<Set<number>>(new Set());
   const [docTab, setDocTab] = useState<DocTabKey>("estimates");
   const [photoTab, setPhotoTab] = useState<"before" | "after">("before");
-  const [editingSection, setEditingSection] = useState<null | "address" | "assigned" | "schedule" | "overview">(null);
+  const [editingSection, setEditingSection] = useState<null | "address" | "schedule" | "overview">(null);
   const [editJob, setEditJob] = useState<any>(job);
-  const openEdit = (section: "address" | "assigned" | "schedule" | "overview") => {
+  const openEdit = (section: "address" | "schedule" | "overview") => {
     setEditJob(job);
     setEditingSection(section);
   };
@@ -193,19 +190,6 @@ export function JobDetail() {
           <div className="flex flex-col gap-1">
             <div className="text-[11px] text-[#9CA3AF]">Job Type</div>
             <div className="text-[13px] text-[#374151]">{job.jobType}</div>
-          </div>
-          <div className="h-px bg-[#F3F4F6]" />
-          <div className="flex flex-col gap-1">
-            <div className="text-[11px] text-[#9CA3AF]">Assigned To</div>
-            <div className="flex items-center gap-2 mt-0.5">
-              <div className="w-7 h-7 rounded-full bg-[#4A6FA5] flex items-center justify-center text-white text-[11px]" style={{ fontWeight: 600 }}>
-                {job.assignedInitials}
-              </div>
-              <div>
-                <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{job.assignedTo}</div>
-                <div className="text-[11px] text-[#9CA3AF]">Technician</div>
-              </div>
-            </div>
           </div>
           <div className="flex flex-col gap-1">
             <div className="text-[11px] text-[#9CA3AF]">Job #</div>
@@ -1004,7 +988,6 @@ export function JobDetail() {
             <div className="flex items-center justify-between px-6 py-4 border-b border-[#E5E7EB]">
               <h2 className="text-[16px] text-[#111827]" style={{ fontWeight: 600 }}>
                 {editingSection === "address" && "Edit service address"}
-                {editingSection === "assigned" && "Edit assigned technician"}
                 {editingSection === "schedule" && "Edit job date & time"}
                 {editingSection === "overview" && "Edit job overview"}
               </h2>
@@ -1054,35 +1037,6 @@ export function JobDetail() {
                         className="w-full h-10 px-3 border border-[#D1D5DB] rounded-md text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
                       />
                     </div>
-                  </div>
-                </>
-              )}
-
-              {editingSection === "assigned" && (
-                <>
-                  <div>
-                    <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>Technician</label>
-                    <select
-                      value={editJob.assignedTo || ""}
-                      onChange={(e) => setEditField("assignedTo", e.target.value)}
-                      className="w-full h-10 px-3 border border-[#D1D5DB] rounded-md text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
-                    >
-                      <option value="Marek Stroz">Marek Stroz</option>
-                      <option value="Travis Jones">Travis Jones</option>
-                      <option value="Sarah Miller">Sarah Miller</option>
-                      <option value="Anne Blue">Anne Blue</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>Role</label>
-                    <select
-                      defaultValue="Lead Technician"
-                      className="w-full h-10 px-3 border border-[#D1D5DB] rounded-md text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
-                    >
-                      <option>Lead Technician</option>
-                      <option>Helper</option>
-                      <option>Apprentice</option>
-                    </select>
                   </div>
                 </>
               )}

@@ -16,7 +16,6 @@ export function CreateEvent() {
   const [eventType, setEventType] = useState("Initial Consultation");
   const [customTitle, setCustomTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [assignee, setAssignee] = useState("Marek Stroz (Me)");
   const [notify, setNotify] = useState(true);
   const [reminder, setReminder] = useState(true);
   const [notificationMessage, setNotificationMessage] = useState(
@@ -161,28 +160,6 @@ export function CreateEvent() {
               </div>
             </Card>
 
-            {/* Assignment */}
-            <Card className="p-6">
-              <h3 className="text-lg mb-4" style={{ fontWeight: 600, color: "#1A2332" }}>
-                Assignment
-              </h3>
-              <div className="space-y-1.5">
-                <Label className="text-sm" style={{ fontWeight: 500 }}>
-                  Assign to
-                </Label>
-                <select
-                  value={assignee}
-                  onChange={(e) => setAssignee(e.target.value)}
-                  className="w-full px-3 py-2 border border-[#DDE3EE] rounded-md"
-                >
-                  <option>Marek Stroz (Me)</option>
-                </select>
-                <p className="text-xs text-[#546478]">
-                  Unlock Employee Management to assign to team members
-                </p>
-              </div>
-            </Card>
-
             {/* Client Notification */}
             <Card className="p-6">
               <h3 className="text-lg mb-4" style={{ fontWeight: 600, color: "#1A2332" }}>
@@ -262,10 +239,6 @@ export function CreateEvent() {
                     <div style={{ fontWeight: 600, color: "#1A2332" }}>{customTitle}</div>
                   </div>
                 )}
-                <div>
-                  <div className="text-sm text-[#546478] mb-1">Assigned To</div>
-                  <div style={{ fontWeight: 600, color: "#1A2332" }}>{assignee}</div>
-                </div>
               </div>
             </Card>
           </div>

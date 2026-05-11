@@ -17,8 +17,6 @@ interface CalendarEvent {
   duration: number;
   color: string;
   status: "Scheduled" | "In Progress" | "Completed" | "Overdue";
-  tech: string;
-  techInitials: string;
   property: string;
   amount: number;
 }
@@ -37,7 +35,6 @@ interface DispatchJob {
   border: string;
   statusIcon?: string;
   statusIconColor?: string;
-  techName: string;
   priority: string;
   jobType: string;
   source: string;
@@ -66,16 +63,16 @@ const COLORS = {
 };
 
 const mockEvents: CalendarEvent[] = [
-  { id: 1,  title: "AC Installation",      client: "Travis Jones",  date: new Date(2026, 3, 6),  startHour: 9,  duration: 2,   color: "blue",   status: "Scheduled",   tech: "Marek Stroz",   techInitials: "MS", property: "4405 N Clark Ave", amount: 2850 },
-  { id: 2,  title: "Plumbing Repair",       client: "Sarah Johnson", date: new Date(2026, 3, 6),  startHour: 13, duration: 1.5, color: "amber",  status: "In Progress", tech: "John Smith",    techInitials: "JS", property: "1220 Elm St",      amount: 425  },
-  { id: 3,  title: "HVAC Maintenance",      client: "Mike Davis",    date: new Date(2026, 3, 6),  startHour: 15, duration: 1,   color: "green",  status: "Completed",   tech: "Sarah Johnson", techInitials: "SJ", property: "890 Oak Dr",       amount: 129  },
-  { id: 4,  title: "Electrical Inspection", client: "Lisa Brown",    date: new Date(2026, 3, 7),  startHour: 10, duration: 2,   color: "purple", status: "Scheduled",   tech: "Marek Stroz",   techInitials: "MS", property: "567 Pine Rd",      amount: 175  },
-  { id: 5,  title: "Tree Removal",          client: "James Wilson",  date: new Date(2026, 3, 8),  startHour: 8,  duration: 4,   color: "red",    status: "Overdue",     tech: "Mike Davis",    techInitials: "MD", property: "234 Maple Ln",     amount: 850  },
-  { id: 6,  title: "Gutter Cleaning",       client: "Anna Lee",      date: new Date(2026, 3, 9),  startHour: 11, duration: 1.5, color: "blue",   status: "Scheduled",   tech: "John Smith",    techInitials: "JS", property: "56 Birch Ct",      amount: 180  },
-  { id: 7,  title: "Fence Repair",          client: "Tom Richards",  date: new Date(2026, 3, 10), startHour: 9,  duration: 3,   color: "amber",  status: "Scheduled",   tech: "Marek Stroz",   techInitials: "MS", property: "12 Cedar Way",     amount: 625  },
-  { id: 8,  title: "Lawn Service",          client: "Emily Clark",   date: new Date(2026, 3, 13), startHour: 8,  duration: 2,   color: "green",  status: "Scheduled",   tech: "Sarah Johnson", techInitials: "SJ", property: "88 Willow Dr",     amount: 95   },
-  { id: 9,  title: "Roof Inspection",       client: "David Park",    date: new Date(2026, 3, 15), startHour: 10, duration: 2.5, color: "blue",   status: "Scheduled",   tech: "Marek Stroz",   techInitials: "MS", property: "321 Aspen Blvd",  amount: 250  },
-  { id: 10, title: "Window Install",        client: "Karen White",   date: new Date(2026, 3, 20), startHour: 9,  duration: 5,   color: "purple", status: "Scheduled",   tech: "John Smith",    techInitials: "JS", property: "45 Spruce Rd",     amount: 1450 },
+  { id: 1,  title: "AC Installation",      client: "Travis Jones",  date: new Date(2026, 3, 6),  startHour: 9,  duration: 2,   color: "blue",   status: "Scheduled",   property: "4405 N Clark Ave", amount: 2850 },
+  { id: 2,  title: "Plumbing Repair",       client: "Sarah Johnson", date: new Date(2026, 3, 6),  startHour: 13, duration: 1.5, color: "amber",  status: "In Progress", property: "1220 Elm St",      amount: 425  },
+  { id: 3,  title: "HVAC Maintenance",      client: "Mike Davis",    date: new Date(2026, 3, 6),  startHour: 15, duration: 1,   color: "green",  status: "Completed",   property: "890 Oak Dr",       amount: 129  },
+  { id: 4,  title: "Electrical Inspection", client: "Lisa Brown",    date: new Date(2026, 3, 7),  startHour: 10, duration: 2,   color: "purple", status: "Scheduled",   property: "567 Pine Rd",      amount: 175  },
+  { id: 5,  title: "Tree Removal",          client: "James Wilson",  date: new Date(2026, 3, 8),  startHour: 8,  duration: 4,   color: "red",    status: "Overdue",     property: "234 Maple Ln",     amount: 850  },
+  { id: 6,  title: "Gutter Cleaning",       client: "Anna Lee",      date: new Date(2026, 3, 9),  startHour: 11, duration: 1.5, color: "blue",   status: "Scheduled",   property: "56 Birch Ct",      amount: 180  },
+  { id: 7,  title: "Fence Repair",          client: "Tom Richards",  date: new Date(2026, 3, 10), startHour: 9,  duration: 3,   color: "amber",  status: "Scheduled",   property: "12 Cedar Way",     amount: 625  },
+  { id: 8,  title: "Lawn Service",          client: "Emily Clark",   date: new Date(2026, 3, 13), startHour: 8,  duration: 2,   color: "green",  status: "Scheduled",   property: "88 Willow Dr",     amount: 95   },
+  { id: 9,  title: "Roof Inspection",       client: "David Park",    date: new Date(2026, 3, 15), startHour: 10, duration: 2.5, color: "blue",   status: "Scheduled",   property: "321 Aspen Blvd",  amount: 250  },
+  { id: 10, title: "Window Install",        client: "Karen White",   date: new Date(2026, 3, 20), startHour: 9,  duration: 5,   color: "purple", status: "Scheduled",   property: "45 Spruce Rd",     amount: 1450 },
 ];
 
 // ── Dispatch Board Data (Week view) ──────────────────────────────────────────
@@ -94,28 +91,21 @@ const unscheduledJobs: UnscheduledJob[] = [
 ];
 
 const dispatchJobs: DispatchJob[] = [
-  { id: 1,  num: "2401", client: "Smith Resi...",  service: "AC Repair",       address: "123 Main St",     dayIdx: 1, start: 8,    end: 10,   amount: 89,   bg: "#EBF0F8", border: "#4A6FA5", statusIcon: "check_circle",    statusIconColor: "#16A34A", techName: "Marek Stroz",   priority: "Normal", jobType: "Repair",       source: "Phone" },
-  { id: 2,  num: "2402", client: "Miller Resi...", service: "AC Repair",       address: "862 Pine St",     dayIdx: 1, start: 8,    end: 10,   amount: 210,  bg: "#EBF0F8", border: "#4A6FA5", statusIcon: "check_circle",    statusIconColor: "#16A34A", techName: "John Smith",    priority: "Normal", jobType: "Repair",       source: "Web"   },
-  { id: 3,  num: "2403", client: "Brown Ho...",    service: "AC Repair",       address: "456 Elm St",      dayIdx: 1, start: 10,   end: 12,   amount: 385,  bg: "#FEF3C7", border: "#D97706", statusIcon: "play_circle",     statusIconColor: "#D97706", techName: "Marek Stroz",   priority: "High",   jobType: "Repair",       source: "Phone" },
-  { id: 4,  num: "2404", client: "Wilson Ho...",   service: "AC Tune-Up",      address: "135 Cedar Dr",    dayIdx: 2, start: 8,    end: 10,   amount: 2005, bg: "#EBF0F8", border: "#4A6FA5", statusIcon: "check_circle",    statusIconColor: "#16A34A", techName: "Sarah Johnson", priority: "Normal", jobType: "Maintenance",  source: "App"   },
-  { id: 5,  num: "2405", client: "Taylor Home",    service: "Water Heater",    address: "852 Bay St",      dayIdx: 2, start: 8,    end: 11,   amount: 2005, bg: "#EDE9FE", border: "#7C3AED", statusIcon: "check_circle",    statusIconColor: "#16A34A", techName: "Mike Davis",    priority: "Normal", jobType: "Repair",       source: "Phone" },
-  { id: 6,  num: "2406", client: "Jackson R...",   service: "Leak Repair",     address: "951 Lake Dr",     dayIdx: 2, start: 11.5, end: 13.5, amount: 320,  bg: "#FEE2E2", border: "#DC2626", statusIcon: "warning",         statusIconColor: "#DC2626", techName: "John Smith",    priority: "High",   jobType: "Repair",       source: "Phone" },
-  { id: 7,  num: "2407", client: "Moore Resi...",  service: "AC Repair",       address: "753 Spruce St",   dayIdx: 2, start: 12.5, end: 14.5, amount: 129,  bg: "#EBF0F8", border: "#4A6FA5", statusIcon: "hourglass_empty", statusIconColor: "#8899AA", techName: "Marek Stroz",   priority: "Normal", jobType: "Repair",       source: "Web"   },
-  { id: 8,  num: "2408", client: "Clark Resi...",  service: "Receiver Upgr.",  address: "951 Hillside Dr", dayIdx: 4, start: 8,    end: 10,   amount: 2400, bg: "#D1FAE5", border: "#16A34A", statusIcon: "check_circle",    statusIconColor: "#16A34A", techName: "Sarah Johnson", priority: "Normal", jobType: "Installation", source: "App"   },
-  { id: 9,  num: "2409", client: "Hall Home",      service: "Receiver Upgr.",  address: "753 Summit St",   dayIdx: 4, start: 10.5, end: 12,   amount: 750,  bg: "#EDE9FE", border: "#7C3AED", statusIcon: "check_circle",    statusIconColor: "#16A34A", techName: "John Smith",    priority: "Normal", jobType: "Installation", source: "Web"   },
-  { id: 10, num: "2410", client: "Lewis Resi...",  service: "Wiring Inspec.",  address: "952 Ridge Dr",    dayIdx: 5, start: 13,   end: 15,   amount: 180,  bg: "#FEF3C7", border: "#D97706", statusIcon: "warning",         statusIconColor: "#D97706", techName: "Mike Davis",    priority: "Normal", jobType: "Inspection",   source: "Phone" },
+  { id: 1,  num: "2401", client: "Smith Resi...",  service: "AC Repair",       address: "123 Main St",     dayIdx: 1, start: 8,    end: 10,   amount: 89,   bg: "#EBF0F8", border: "#4A6FA5", statusIcon: "check_circle",    statusIconColor: "#16A34A", priority: "Normal", jobType: "Repair",       source: "Phone" },
+  { id: 2,  num: "2402", client: "Miller Resi...", service: "AC Repair",       address: "862 Pine St",     dayIdx: 1, start: 8,    end: 10,   amount: 210,  bg: "#EBF0F8", border: "#4A6FA5", statusIcon: "check_circle",    statusIconColor: "#16A34A", priority: "Normal", jobType: "Repair",       source: "Web"   },
+  { id: 3,  num: "2403", client: "Brown Ho...",    service: "AC Repair",       address: "456 Elm St",      dayIdx: 1, start: 10,   end: 12,   amount: 385,  bg: "#FEF3C7", border: "#D97706", statusIcon: "play_circle",     statusIconColor: "#D97706", priority: "High",   jobType: "Repair",       source: "Phone" },
+  { id: 4,  num: "2404", client: "Wilson Ho...",   service: "AC Tune-Up",      address: "135 Cedar Dr",    dayIdx: 2, start: 8,    end: 10,   amount: 2005, bg: "#EBF0F8", border: "#4A6FA5", statusIcon: "check_circle",    statusIconColor: "#16A34A", priority: "Normal", jobType: "Maintenance",  source: "App"   },
+  { id: 5,  num: "2405", client: "Taylor Home",    service: "Water Heater",    address: "852 Bay St",      dayIdx: 2, start: 8,    end: 11,   amount: 2005, bg: "#EDE9FE", border: "#7C3AED", statusIcon: "check_circle",    statusIconColor: "#16A34A", priority: "Normal", jobType: "Repair",       source: "Phone" },
+  { id: 6,  num: "2406", client: "Jackson R...",   service: "Leak Repair",     address: "951 Lake Dr",     dayIdx: 2, start: 11.5, end: 13.5, amount: 320,  bg: "#FEE2E2", border: "#DC2626", statusIcon: "warning",         statusIconColor: "#DC2626", priority: "High",   jobType: "Repair",       source: "Phone" },
+  { id: 7,  num: "2407", client: "Moore Resi...",  service: "AC Repair",       address: "753 Spruce St",   dayIdx: 2, start: 12.5, end: 14.5, amount: 129,  bg: "#EBF0F8", border: "#4A6FA5", statusIcon: "hourglass_empty", statusIconColor: "#8899AA", priority: "Normal", jobType: "Repair",       source: "Web"   },
+  { id: 8,  num: "2408", client: "Clark Resi...",  service: "Receiver Upgr.",  address: "951 Hillside Dr", dayIdx: 4, start: 8,    end: 10,   amount: 2400, bg: "#D1FAE5", border: "#16A34A", statusIcon: "check_circle",    statusIconColor: "#16A34A", priority: "Normal", jobType: "Installation", source: "App"   },
+  { id: 9,  num: "2409", client: "Hall Home",      service: "Receiver Upgr.",  address: "753 Summit St",   dayIdx: 4, start: 10.5, end: 12,   amount: 750,  bg: "#EDE9FE", border: "#7C3AED", statusIcon: "check_circle",    statusIconColor: "#16A34A", priority: "Normal", jobType: "Installation", source: "Web"   },
+  { id: 10, num: "2410", client: "Lewis Resi...",  service: "Wiring Inspec.",  address: "952 Ridge Dr",    dayIdx: 5, start: 13,   end: 15,   amount: 180,  bg: "#FEF3C7", border: "#D97706", statusIcon: "warning",         statusIconColor: "#D97706", priority: "Normal", jobType: "Inspection",   source: "Phone" },
 ];
 
-// ── Day / Gantt Data ──────────────────────────────────────────────────────────
-const TECHNICIANS = [
-  { id: 1, name: "Peter",  initials: "PE", color: "#4A6FA5", revenue: "$7,898", route: 1, calls: 3, success: 47 },
-  { id: 2, name: "Travis", initials: "TR", color: "#7C3AED", revenue: "$6,420", route: 2, calls: 4, success: 52 },
-  { id: 3, name: "Igor",   initials: "IG", color: "#16A34A", revenue: "$4,185", route: 3, calls: 3, success: 41 },
-];
-
-interface GanttJob {
+// ── Day View Data ──────────────────────────────────────────────────────────────
+interface DayJob {
   id: number;
-  techId: number;
   start: number;
   end: number;
   client: string;
@@ -128,22 +118,19 @@ interface GanttJob {
   statusColor: string;
 }
 
-const DAY_JOBS: GanttJob[] = [
-  // Peter
-  { id: 1,  techId: 1, start: 8,    end: 10,   client: "Miller Residence", service: "AC Repair",         address: "862 Pine St",          amount: 420,  bg: "#FEF3C7", border: "#D97706", statusIcon: "calendar_today", statusColor: "#D97706" },
-  { id: 2,  techId: 1, start: 10,   end: 12,   client: "Brown Home",       service: "AC Repair",         address: "456 Elm St",           amount: 385,  bg: "#FEE2E2", border: "#DC2626", statusIcon: "cancel",         statusColor: "#DC2626" },
-  { id: 3,  techId: 1, start: 13,   end: 15,   client: "Clark Residence",  service: "Receiver Upgrade",  address: "951 Hillside Dr",      amount: 2400, bg: "#EBF0F8", border: "#4A6FA5", statusIcon: "near_me",        statusColor: "#4A6FA5" },
-  { id: 4,  techId: 1, start: 15.5, end: 17.5, client: "Hall Home",        service: "Water Heater",      address: "753 Summit St",        amount: 750,  bg: "#D1FAE5", border: "#16A34A", statusIcon: "play_circle",    statusColor: "#16A34A" },
-  // Travis
-  { id: 5,  techId: 2, start: 8,    end: 11,   client: "Taylor Home",      service: "Water Heater",      address: "852 Bay St",           amount: 1150, bg: "#EDE9FE", border: "#7C3AED", statusIcon: "calendar_today", statusColor: "#D97706" },
-  { id: 6,  techId: 2, start: 11.5, end: 13.5, client: "Jackson Residence",service: "Leak Repair",       address: "951 Lake Dr",          amount: 2005, bg: "#FEE2E2", border: "#DC2626", statusIcon: "check_circle",   statusColor: "#16A34A" },
-  { id: 7,  techId: 2, start: 14,   end: 16,   client: "Cooper Office",    service: "Maintenance",       address: "600 Main St",          amount: 450,  bg: "#D1FAE5", border: "#16A34A", statusIcon: "check_circle",   statusColor: "#16A34A" },
-  { id: 8,  techId: 2, start: 16.5, end: 18,   client: "Smith Residence",  service: "Estimate",          address: "123 Oak St",           amount: 0,    bg: "#F3F4F6", border: "#6B7280", statusIcon: "pause_circle",   statusColor: "#6B7280" },
-  // Igor
-  { id: 9,  techId: 3, start: 8,    end: 10,   client: "Williams Home",    service: "Install New System",address: "5332 Pine Ridge Rd",   amount: 1800, bg: "#D1FAE5", border: "#16A34A", statusIcon: "check_circle",   statusColor: "#16A34A" },
-  { id: 10, techId: 3, start: 10.5, end: 12,   client: "Lewis Residence",  service: "Wiring Inspect.",   address: "952 Ridge Dr",         amount: 180,  bg: "#FEF3C7", border: "#D97706", statusIcon: "check_circle",   statusColor: "#16A34A" },
-  { id: 11, techId: 3, start: 13,   end: 14.5, client: "Anderson Office",  service: "Duct Cleaning",     address: "777 Business Park Dr", amount: 600,  bg: "#FEE2E2", border: "#DC2626", statusIcon: "cancel",         statusColor: "#DC2626" },
-  { id: 12, techId: 3, start: 15,   end: 17,   client: "Johnson Residence",service: "AC Not Cooling",    address: "1250 Oak Dr",          amount: 750,  bg: "#D1FAE5", border: "#16A34A", statusIcon: "play_circle",    statusColor: "#16A34A" },
+const DAY_JOBS: DayJob[] = [
+  { id: 1,  start: 8,    end: 10,   client: "Miller Residence",  service: "AC Repair",          address: "862 Pine St",          amount: 420,  bg: "#FEF3C7", border: "#D97706", statusIcon: "calendar_today", statusColor: "#D97706" },
+  { id: 2,  start: 8,    end: 11,   client: "Taylor Home",       service: "Water Heater",       address: "852 Bay St",           amount: 1150, bg: "#EDE9FE", border: "#7C3AED", statusIcon: "calendar_today", statusColor: "#D97706" },
+  { id: 3,  start: 8,    end: 10,   client: "Williams Home",     service: "Install New System", address: "5332 Pine Ridge Rd",   amount: 1800, bg: "#D1FAE5", border: "#16A34A", statusIcon: "check_circle",   statusColor: "#16A34A" },
+  { id: 4,  start: 10,   end: 12,   client: "Brown Home",        service: "AC Repair",          address: "456 Elm St",           amount: 385,  bg: "#FEE2E2", border: "#DC2626", statusIcon: "cancel",         statusColor: "#DC2626" },
+  { id: 5,  start: 10.5, end: 12,   client: "Lewis Residence",   service: "Wiring Inspect.",    address: "952 Ridge Dr",         amount: 180,  bg: "#FEF3C7", border: "#D97706", statusIcon: "check_circle",   statusColor: "#16A34A" },
+  { id: 6,  start: 11.5, end: 13.5, client: "Jackson Residence", service: "Leak Repair",        address: "951 Lake Dr",          amount: 2005, bg: "#FEE2E2", border: "#DC2626", statusIcon: "check_circle",   statusColor: "#16A34A" },
+  { id: 7,  start: 13,   end: 15,   client: "Clark Residence",   service: "Receiver Upgrade",   address: "951 Hillside Dr",      amount: 2400, bg: "#EBF0F8", border: "#4A6FA5", statusIcon: "near_me",        statusColor: "#4A6FA5" },
+  { id: 8,  start: 13,   end: 14.5, client: "Anderson Office",   service: "Duct Cleaning",      address: "777 Business Park Dr", amount: 600,  bg: "#FEE2E2", border: "#DC2626", statusIcon: "cancel",         statusColor: "#DC2626" },
+  { id: 9,  start: 14,   end: 16,   client: "Cooper Office",     service: "Maintenance",        address: "600 Main St",          amount: 450,  bg: "#D1FAE5", border: "#16A34A", statusIcon: "check_circle",   statusColor: "#16A34A" },
+  { id: 10, start: 15,   end: 17,   client: "Johnson Residence", service: "AC Not Cooling",     address: "1250 Oak Dr",          amount: 750,  bg: "#D1FAE5", border: "#16A34A", statusIcon: "play_circle",    statusColor: "#16A34A" },
+  { id: 11, start: 15.5, end: 17.5, client: "Hall Home",         service: "Water Heater",       address: "753 Summit St",        amount: 750,  bg: "#D1FAE5", border: "#16A34A", statusIcon: "play_circle",    statusColor: "#16A34A" },
+  { id: 12, start: 16.5, end: 18,   client: "Smith Residence",   service: "Estimate",           address: "123 Oak St",           amount: 0,    bg: "#F3F4F6", border: "#6B7280", statusIcon: "pause_circle",   statusColor: "#6B7280" },
 ];
 
 const DAY_UNSCHEDULED = [
@@ -153,11 +140,10 @@ const DAY_UNSCHEDULED = [
   { id: 204, client: "Wilson Residence", service: "AC Repair",          address: "357 Lake View Dr", date: "Tomorrow", amount: "$2,730", highPriority: false },
 ];
 
-// Gantt constants
+// Day view constants
 const GANTT_START_HOUR = 7;   // 7 AM
 const GANTT_END_HOUR   = 18;  // 6 PM (exclusive label at 18)
 const HOUR_WIDTH       = 90;  // px per hour
-const ROW_HEIGHT       = 110; // px per technician row
 const CURRENT_TIME     = 10.5; // 10:30 AM
 
 type ViewMode = "month" | "week" | "day";
@@ -240,13 +226,6 @@ export function Calendar() {
                 <span className="text-[#546478] text-[12px]">{event.property}</span>
               </div>
               <div className="flex items-center gap-2.5">
-                <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "17px" }}>engineering</span>
-                <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-full bg-[#4A6FA5] flex items-center justify-center text-white text-[10px]" style={{ fontWeight: 600 }}>{event.techInitials}</div>
-                  <span className="text-[#1A2332] text-[12px]" style={{ fontWeight: 500 }}>{event.tech}</span>
-                </div>
-              </div>
-              <div className="flex items-center gap-2.5">
                 <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "17px" }}>attach_money</span>
                 <span className="text-[#1A2332] text-[13px] tabular-nums" style={{ fontWeight: 700 }}>${event.amount.toLocaleString()}</span>
               </div>
@@ -288,10 +267,6 @@ export function Calendar() {
         className="mb-4"
         actions={
           <>
-            <button className="flex items-center gap-1.5 px-3 py-1.5 border border-[#DDE3EE] rounded-lg bg-white text-[13px] text-[#374151] hover:bg-[#F5F7FA]">
-              All Technicians (3)
-              <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "16px" }}>keyboard_arrow_down</span>
-            </button>
             <div className="flex bg-[#F0F2F5] rounded-lg overflow-hidden p-0.5">
               {(["day", "week", "month"] as ViewMode[]).map((mode) => (
                 <button
@@ -576,7 +551,6 @@ export function Calendar() {
                     <div className="border-t border-[#E5E7EB] pt-3 mt-3">
                       {[
                         { icon: "event",        label: "Time",   value: `${fmtHour(selectedDispatchJob.start)} – ${fmtHour(selectedDispatchJob.end)}` },
-                        { icon: "engineering",  label: "Tech",   value: selectedDispatchJob.techName },
                         { icon: "attach_money", label: "Amount", value: `$${selectedDispatchJob.amount.toFixed(2)}` },
                         { icon: "build",        label: "Type",   value: selectedDispatchJob.jobType },
                       ].map(f => (
@@ -603,46 +577,11 @@ export function Calendar() {
           </div>
         )}
 
-        {/* ── DAY VIEW — Horizontal Gantt Dispatch Board ── */}
+        {/* ── DAY VIEW — Horizontal Timeline ── */}
         {viewMode === "day" && (
           <div className="flex-1 flex overflow-hidden" style={{ minHeight: 0 }}>
 
-            {/* Left: Technician column (240px fixed) */}
-            <div className="shrink-0 flex flex-col border-r border-[#DDE3EE] bg-[#FAFBFC]" style={{ width: 240 }}>
-              {/* Header spacer matching time header */}
-              <div className="border-b border-[#E5E7EB] bg-[#FAFBFC] shrink-0" style={{ height: 40 }}>
-                <div className="flex items-center h-full px-4">
-                  <span className="text-[11px] text-[#8899AA] uppercase tracking-wide" style={{ fontWeight: 600 }}>Technician</span>
-                </div>
-              </div>
-              {/* Tech rows */}
-              {TECHNICIANS.map((tech) => (
-                <div
-                  key={tech.id}
-                  className="flex flex-col justify-center px-4 border-b border-[#E5E7EB] bg-white shrink-0"
-                  style={{ height: ROW_HEIGHT }}
-                >
-                  <div className="flex items-center gap-3 mb-2">
-                    <div
-                      className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[12px] shrink-0"
-                      style={{ backgroundColor: tech.color, fontWeight: 700 }}
-                    >
-                      {tech.initials}
-                    </div>
-                    <div>
-                      <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 700 }}>{tech.name}</div>
-                      <div className="text-[11px] text-[#8899AA]">Route #{tech.route} · {tech.calls} calls</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3 pl-11">
-                    <span className="text-[11px] tabular-nums" style={{ fontWeight: 700, color: "#16A34A" }}>{tech.revenue}</span>
-                    <span className="text-[10px] text-[#9CA3AF]">{tech.success}% success</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Center: Scrollable time grid */}
+            {/* Center: Scrollable horizontal time grid */}
             <div className="flex-1 flex flex-col overflow-hidden min-w-0">
               <div className="flex-1 overflow-x-auto overflow-y-auto">
                 <div style={{ width: `${ganttTotalWidth}px`, minWidth: "100%" }}>
@@ -679,72 +618,79 @@ export function Calendar() {
                     })}
                   </div>
 
-                  {/* Tech rows with job blocks */}
-                  {TECHNICIANS.map((tech) => {
-                    const techJobs = DAY_JOBS.filter(j => j.techId === tech.id);
-                    return (
+                  {/* Single jobs row */}
+                  <div
+                    className="relative border-b border-[#E5E7EB]"
+                    style={{ height: 160 }}
+                  >
+                    {/* Hour grid lines */}
+                    {ganttHours.slice(0, -1).map((h) => (
                       <div
-                        key={tech.id}
-                        className="relative border-b border-[#E5E7EB]"
-                        style={{ height: ROW_HEIGHT }}
-                      >
-                        {/* Hour grid lines */}
-                        {ganttHours.slice(0, -1).map((h) => (
+                        key={h}
+                        className="absolute top-0 bottom-0 border-r border-[#F0F2F5]"
+                        style={{ left: (h - GANTT_START_HOUR) * HOUR_WIDTH }}
+                      />
+                    ))}
+
+                    {/* Current time indicator line */}
+                    <div
+                      className="absolute top-0 bottom-0 z-10 pointer-events-none"
+                      style={{
+                        left: (CURRENT_TIME - GANTT_START_HOUR) * HOUR_WIDTH,
+                        width: 2,
+                        backgroundColor: "#DC2626",
+                      }}
+                    />
+
+                    {/* Job blocks — stacked in rows to avoid overlap */}
+                    {(() => {
+                      const sorted = [...DAY_JOBS].sort((a, b) => a.start - b.start);
+                      // Simple overlap resolution: assign each job to a "lane"
+                      const lanes: { end: number }[] = [];
+                      const jobLanes: number[] = [];
+                      sorted.forEach(job => {
+                        let laneIdx = lanes.findIndex(l => l.end <= job.start);
+                        if (laneIdx === -1) { laneIdx = lanes.length; lanes.push({ end: job.end }); }
+                        else { lanes[laneIdx].end = job.end; }
+                        jobLanes.push(laneIdx);
+                      });
+                      const laneCount = Math.max(1, lanes.length);
+                      const laneHeight = Math.max(44, Math.floor(144 / laneCount));
+                      return sorted.map((job, idx) => {
+                        const lane = jobLanes[idx];
+                        const left = (job.start - GANTT_START_HOUR) * HOUR_WIDTH + 3;
+                        const width = (job.end - job.start) * HOUR_WIDTH - 6;
+                        return (
                           <div
-                            key={h}
-                            className="absolute top-0 bottom-0 border-r border-[#F0F2F5]"
-                            style={{ left: (h - GANTT_START_HOUR) * HOUR_WIDTH }}
-                          />
-                        ))}
-
-                        {/* Current time indicator line */}
-                        <div
-                          className="absolute top-0 bottom-0 z-10 pointer-events-none"
-                          style={{
-                            left: (CURRENT_TIME - GANTT_START_HOUR) * HOUR_WIDTH,
-                            width: 2,
-                            backgroundColor: "#DC2626",
-                          }}
-                        />
-
-                        {/* Job blocks */}
-                        {techJobs.map((job) => {
-                          const left = (job.start - GANTT_START_HOUR) * HOUR_WIDTH + 3;
-                          const width = (job.end - job.start) * HOUR_WIDTH - 6;
-                          const timeLabel = `${fmtHour(job.start)} – ${fmtHour(job.end)}`;
-                          return (
-                            <div
-                              key={job.id}
-                              className="absolute rounded-lg overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
-                              style={{
-                                left,
-                                width: Math.max(width, 60),
-                                top: 8,
-                                height: ROW_HEIGHT - 16,
-                                backgroundColor: job.bg,
-                                borderLeft: `3px solid ${job.border}`,
-                              }}
-                            >
-                              <div className="flex flex-col h-full px-2 py-1.5">
-                                <div className="text-[9px] text-[#9CA3AF] tabular-nums mb-0.5 shrink-0">{timeLabel}</div>
-                                <div className="text-[11px] leading-tight truncate shrink-0" style={{ fontWeight: 700, color: "#1A2332" }}>{job.client}</div>
-                                <div className="text-[10px] text-[#546478] truncate shrink-0">{job.service}</div>
-                                <div className="text-[10px] text-[#9CA3AF] truncate mt-0.5 flex-1 min-h-0">{job.address}</div>
-                                <div className="flex items-center justify-between mt-1 shrink-0">
-                                  {job.amount > 0 ? (
-                                    <span className="text-[10px] tabular-nums" style={{ fontWeight: 700, color: job.border }}>${job.amount.toLocaleString()}</span>
-                                  ) : (
-                                    <span className="text-[10px] text-[#9CA3AF]">—</span>
-                                  )}
-                                  <span className="material-icons" style={{ fontSize: "13px", color: job.statusColor }}>{job.statusIcon}</span>
-                                </div>
+                            key={job.id}
+                            className="absolute rounded-lg overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
+                            style={{
+                              left,
+                              width: Math.max(width, 60),
+                              top: 8 + lane * (laneHeight + 2),
+                              height: laneHeight - 2,
+                              backgroundColor: job.bg,
+                              borderLeft: `3px solid ${job.border}`,
+                            }}
+                          >
+                            <div className="flex flex-col h-full px-2 py-1">
+                              <div className="text-[9px] text-[#9CA3AF] tabular-nums shrink-0">{fmtHour(job.start)} – {fmtHour(job.end)}</div>
+                              <div className="text-[11px] leading-tight truncate shrink-0" style={{ fontWeight: 700, color: "#1A2332" }}>{job.client}</div>
+                              <div className="text-[10px] text-[#546478] truncate shrink-0">{job.service}</div>
+                              <div className="flex items-center justify-between mt-auto shrink-0">
+                                {job.amount > 0 ? (
+                                  <span className="text-[10px] tabular-nums" style={{ fontWeight: 700, color: job.border }}>${job.amount.toLocaleString()}</span>
+                                ) : (
+                                  <span className="text-[10px] text-[#9CA3AF]">—</span>
+                                )}
+                                <span className="material-icons" style={{ fontSize: "13px", color: job.statusColor }}>{job.statusIcon}</span>
                               </div>
                             </div>
-                          );
-                        })}
-                      </div>
-                    );
-                  })}
+                          </div>
+                        );
+                      });
+                    })()}
+                  </div>
                 </div>
               </div>
             </div>
