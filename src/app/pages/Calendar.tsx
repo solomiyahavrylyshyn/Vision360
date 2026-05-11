@@ -439,34 +439,50 @@ export function Calendar() {
                   const ROW_H = Math.max(72, numLanes * 42 + 12);
                   const laneH = Math.floor((ROW_H - 12) / numLanes);
 
+                  // Row background: today = light blue, weekends = very light gray, others = white / off-white alternating
+                  const isWeekend = dayI === 0 || dayI === 6;
+                  const rowBg = isToday ? "#EEF3FB" : isWeekend ? "#F7F8FA" : dayI % 2 === 0 ? "#FFFFFF" : "#FAFBFC";
+                  const labelBg = isToday ? "#E8EFF9" : isWeekend ? "#F2F3F6" : dayI % 2 === 0 ? "#FFFFFF" : "#F5F6F9";
+
                   return (
-                    <div key={dayI} className="flex border-b border-[#E5E7EB]" style={{ height: ROW_H }}>
+                    <div key={dayI} className="flex" style={{ height: ROW_H, borderBottom: isToday ? "2px solid #C5D4ED" : "1px solid #E2E6EE" }}>
 
                       {/* Day label — sticky left */}
                       <div
-                        className="shrink-0 sticky left-0 z-10 bg-white border-r border-[#DDE3EE] flex flex-col justify-center px-4"
-                        style={{ width: 172, minWidth: 172, height: ROW_H }}
+                        className="shrink-0 sticky left-0 z-10 flex flex-col justify-center px-4"
+                        style={{
+                          width: 172, minWidth: 172, height: ROW_H,
+                          backgroundColor: labelBg,
+                          borderRight: isToday ? "3px solid #4A6FA5" : "1px solid #DDE3EE",
+                        }}
                       >
-                        <div className={`text-[13px] ${isToday ? "text-[#4A6FA5]" : "text-[#1A2332]"}`} style={{ fontWeight: 700 }}>
+                        <div
+                          className={`text-[13px] ${isToday ? "text-[#4A6FA5]" : isWeekend ? "text-[#8899AA]" : "text-[#1A2332]"}`}
+                          style={{ fontWeight: isToday ? 700 : 600 }}
+                        >
                           {format(d, "EEEE")}
                         </div>
-                        <div className="text-[11px] text-[#8899AA]">{format(d, "MMM d")}</div>
+                        <div className={`text-[12px] mt-0.5 ${isToday ? "text-[#4A6FA5]" : "text-[#9CA3AF]"}`} style={{ fontWeight: isToday ? 600 : 400 }}>
+                          {format(d, "MMM d")}
+                        </div>
                         {dayTotal > 0 && (
-                          <div className="text-[11px] mt-0.5" style={{ fontWeight: 600, color: "#16A34A" }}>${dayTotal.toLocaleString()}</div>
+                          <div className="text-[11px] mt-1" style={{ fontWeight: 600, color: "#16A34A" }}>
+                            ${dayTotal.toLocaleString("en-US")}
+                          </div>
                         )}
                       </div>
 
                       {/* Job blocks area */}
                       <div
                         className="relative"
-                        style={{ minWidth: ganttTotalWidth, height: ROW_H }}
+                        style={{ minWidth: ganttTotalWidth, height: ROW_H, backgroundColor: rowBg }}
                       >
                         {/* Hour grid lines */}
                         {ganttHours.slice(0, -1).map((h) => (
                           <div
                             key={h}
-                            className="absolute top-0 bottom-0 border-r border-[#F0F2F5]"
-                            style={{ left: (h - GANTT_START_HOUR) * HOUR_WIDTH }}
+                            className="absolute top-0 bottom-0"
+                            style={{ left: (h - GANTT_START_HOUR) * HOUR_WIDTH, width: 1, backgroundColor: isToday ? "#D4DFEF" : "#ECEEF2" }}
                           />
                         ))}
 
@@ -480,9 +496,9 @@ export function Calendar() {
 
                         {/* Empty day placeholder */}
                         {dayJobs.length === 0 && (
-                          <div className="absolute rounded-lg border border-dashed border-[#DDE3EE] bg-[#FAFBFC] flex items-center justify-center"
-                            style={{ top: 6, bottom: 6, left: 4, right: 4 }}>
-                            <div className="text-[10px] text-[#C4C9D4]" style={{ fontWeight: 500 }}>Open</div>
+                          <div className="absolute flex items-center justify-center"
+                            style={{ top: 8, bottom: 8, left: 8, right: 8, borderRadius: 8, border: "1px dashed #D4D9E3" }}>
+                            <div className="text-[10px] text-[#C4C9D4]" style={{ fontWeight: 500 }}>No jobs</div>
                           </div>
                         )}
 
