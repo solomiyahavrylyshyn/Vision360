@@ -194,7 +194,7 @@ export function Layout() {
         style={{ overflowX: "hidden" }}
       >
         {/* Logo area */}
-        <div className={`flex items-center flex-shrink-0 pt-2 pb-1 ${sidebarCollapsed ? "justify-center px-2" : "px-4"}`}>
+        <div className={`flex items-center flex-shrink-0 ${sidebarCollapsed ? "justify-center px-2" : "px-4"}`}>
           <img
             src={logoImg}
             alt="Vision360 Logo"
@@ -210,7 +210,7 @@ export function Layout() {
 
         {/* Navigation */}
         <nav
-          className={`flex-1 flex flex-col pt-1 overflow-y-auto ${
+          className={`flex-1 flex flex-col overflow-y-auto ${
             sidebarCollapsed ? "gap-0.5 px-2" : "gap-2 px-4"
           }`}
         >
