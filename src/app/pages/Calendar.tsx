@@ -376,143 +376,166 @@ export function Calendar() {
           </div>
         )}
 
-        {/* ── WEEK / DISPATCH BOARD ── */}
+        {/* ── WEEK VIEW — Horizontal Day×Time Gantt ── */}
         {viewMode === "week" && (
           <div className="flex-1 flex overflow-hidden" style={{ minHeight: 0 }}>
 
-            {/* Left: Unscheduled */}
-            <div className="w-[210px] shrink-0 border-r border-[#DDE3EE] flex flex-col bg-white overflow-hidden">
-              <div className="flex items-center gap-2 px-3 py-3 border-b border-[#DDE3EE] shrink-0">
-                <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>Unscheduled</span>
-                <span className="px-1.5 py-0.5 rounded-full bg-[#FEF3C7] text-[#D97706] text-[10px]" style={{ fontWeight: 700 }}>3</span>
-              </div>
-              <div className="flex-1 overflow-y-auto p-3 space-y-2">
-                {unscheduledJobs.map(job => (
-                  <div key={job.id} className="bg-[#FAFBFC] border border-[#E5E7EB] rounded-lg p-2.5 cursor-pointer hover:border-[#4A6FA5] hover:bg-white transition-all">
-                    {job.highPriority && (
-                      <div className="text-[10px] text-[#DC2626] mb-1 flex items-center gap-1" style={{ fontWeight: 600 }}>
-                        <span className="material-icons" style={{ fontSize: "11px" }}>priority_high</span>
-                        High Priority
-                      </div>
-                    )}
-                    <div className="text-[12px] text-[#1A2332] mb-0.5" style={{ fontWeight: 600 }}>{job.client}</div>
-                    <div className="text-[11px] text-[#546478] mb-1.5 truncate">{job.service}</div>
-                    <div className="text-[10px] text-[#8899AA] mb-2" style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{job.address}</div>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="px-1.5 py-0.5 rounded text-[10px]" style={{ fontWeight: 600, backgroundColor: job.typeBg, color: job.typeColor }}>{job.typeLabel}</span>
-                      <span className="text-[11px] text-[#1A2332]" style={{ fontWeight: 600 }}>{job.amount}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-[10px] text-[#8899AA]">
-                      <span>{job.distance}</span>
-                      <span>{job.date}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            {/* Main: sticky-col + sticky-header scrollable grid */}
+            <div className="flex-1 overflow-auto" style={{ minWidth: 0 }}>
+              <div style={{ width: ganttTotalWidth + 172, minWidth: "100%" }}>
 
-            {/* Center: Grid */}
-            <div className="flex-1 flex flex-col overflow-hidden min-w-0">
-              {/* Day headers */}
-              <div className="grid shrink-0 border-b border-[#E5E7EB] bg-[#FAFBFC]" style={{ gridTemplateColumns: "52px repeat(7, 1fr)" }}>
-                <div />
-                {weekDays.map((d, i) => {
-                  const isTodayD = isSameDay(d, new Date(2026, 3, 14));
-                  const dayTotal = dispatchJobs.filter(j => j.dayIdx === i).reduce((sum, j) => sum + j.amount, 0);
-                  return (
-                    <div key={i} className="py-2.5 text-center border-l border-[#E5E7EB]">
-                      <div className="text-[10px] text-[#9CA3AF] uppercase tracking-wide" style={{ fontWeight: 600 }}>{format(d, "EEE")}</div>
-                      <div className={`text-[16px] mt-0.5 ${isTodayD ? "text-[#4A6FA5]" : "text-[#1A2332]"}`} style={{ fontWeight: isTodayD ? 700 : 600 }}>
-                        {format(d, "d")}
+                {/* Sticky header: [Day-col spacer] [Hours] */}
+                <div
+                  className="flex sticky top-0 z-20 border-b border-[#E5E7EB] bg-[#FAFBFC]"
+                  style={{ height: 40 }}
+                >
+                  {/* Corner spacer — sticky left */}
+                  <div
+                    className="shrink-0 sticky left-0 z-30 bg-[#FAFBFC] border-r border-[#DDE3EE]"
+                    style={{ width: 172, minWidth: 172 }}
+                  />
+                  {/* Hour labels */}
+                  {ganttHours.map((h) => {
+                    const isCurrentHour = h === Math.floor(CURRENT_TIME);
+                    const label = h === 12 ? "12 PM" : h > 12 ? `${h - 12} PM` : `${h} AM`;
+                    const isLastHour = h === GANTT_END_HOUR;
+                    return (
+                      <div
+                        key={h}
+                        className="flex items-center justify-center shrink-0 border-r border-[#E5E7EB]"
+                        style={{ width: isLastHour ? 0 : HOUR_WIDTH, minWidth: isLastHour ? 0 : HOUR_WIDTH, overflow: "visible" }}
+                      >
+                        {!isLastHour && (
+                          isCurrentHour ? (
+                            <span className="px-2 py-0.5 rounded-full text-white text-[10px]" style={{ backgroundColor: "#DC2626", fontWeight: 700 }}>
+                              10:30 AM
+                            </span>
+                          ) : (
+                            <span className="text-[11px] text-[#8899AA]" style={{ fontWeight: 500 }}>{label}</span>
+                          )
+                        )}
                       </div>
-                      {dayTotal > 0 && (
-                        <div className="text-[10px] mt-0.5" style={{ fontWeight: 600, color: "#16A34A" }}>${dayTotal.toLocaleString()}</div>
-                      )}
+                    );
+                  })}
+                </div>
+
+                {/* Day rows */}
+                {weekDays.map((d, dayI) => {
+                  const isToday = isSameDay(d, new Date(2026, 3, 14));
+                  const dayJobs = dispatchJobs.filter(j => j.dayIdx === dayI);
+                  const dayTotal = dayJobs.reduce((sum, j) => sum + j.amount, 0);
+
+                  // Lane algorithm for this day
+                  const sorted = [...dayJobs].sort((a, b) => a.start - b.start);
+                  const lanes: { end: number }[] = [];
+                  const jobLanes: number[] = [];
+                  sorted.forEach(job => {
+                    let li = lanes.findIndex(l => l.end <= job.start);
+                    if (li === -1) { li = lanes.length; lanes.push({ end: job.end }); }
+                    else { lanes[li].end = job.end; }
+                    jobLanes.push(li);
+                  });
+                  const numLanes = Math.max(1, lanes.length);
+                  const ROW_H = Math.max(72, numLanes * 42 + 12);
+                  const laneH = Math.floor((ROW_H - 12) / numLanes);
+
+                  return (
+                    <div key={dayI} className="flex border-b border-[#E5E7EB]" style={{ height: ROW_H }}>
+
+                      {/* Day label — sticky left */}
+                      <div
+                        className="shrink-0 sticky left-0 z-10 bg-white border-r border-[#DDE3EE] flex flex-col justify-center px-4"
+                        style={{ width: 172, minWidth: 172, height: ROW_H }}
+                      >
+                        <div className={`text-[13px] ${isToday ? "text-[#4A6FA5]" : "text-[#1A2332]"}`} style={{ fontWeight: 700 }}>
+                          {format(d, "EEEE")}
+                        </div>
+                        <div className="text-[11px] text-[#8899AA]">{format(d, "MMM d")}</div>
+                        {dayTotal > 0 && (
+                          <div className="text-[11px] mt-0.5" style={{ fontWeight: 600, color: "#16A34A" }}>${dayTotal.toLocaleString()}</div>
+                        )}
+                      </div>
+
+                      {/* Job blocks area */}
+                      <div
+                        className="relative"
+                        style={{ minWidth: ganttTotalWidth, height: ROW_H }}
+                      >
+                        {/* Hour grid lines */}
+                        {ganttHours.slice(0, -1).map((h) => (
+                          <div
+                            key={h}
+                            className="absolute top-0 bottom-0 border-r border-[#F0F2F5]"
+                            style={{ left: (h - GANTT_START_HOUR) * HOUR_WIDTH }}
+                          />
+                        ))}
+
+                        {/* Current time indicator (only on today's row) */}
+                        {isToday && (
+                          <div
+                            className="absolute top-0 bottom-0 z-10 pointer-events-none"
+                            style={{ left: (CURRENT_TIME - GANTT_START_HOUR) * HOUR_WIDTH, width: 2, backgroundColor: "#DC2626" }}
+                          />
+                        )}
+
+                        {/* Empty day placeholder */}
+                        {dayJobs.length === 0 && (
+                          <div className="absolute rounded-lg border border-dashed border-[#DDE3EE] bg-[#FAFBFC] flex items-center justify-center"
+                            style={{ top: 6, bottom: 6, left: 4, right: 4 }}>
+                            <div className="text-[10px] text-[#C4C9D4]" style={{ fontWeight: 500 }}>Open</div>
+                          </div>
+                        )}
+
+                        {/* Job blocks */}
+                        {sorted.map((job, idx) => {
+                          const lane = jobLanes[idx];
+                          const left = (job.start - GANTT_START_HOUR) * HOUR_WIDTH + 3;
+                          const width = (job.end - job.start) * HOUR_WIDTH - 6;
+                          const isSelected = selectedDispatchJob?.id === job.id;
+                          return (
+                            <div
+                              key={job.id}
+                              className="absolute rounded-lg overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
+                              style={{
+                                left,
+                                width: Math.max(width, 50),
+                                top: 6 + lane * (laneH + 2),
+                                height: laneH - 2,
+                                backgroundColor: job.bg,
+                                borderLeft: `3px solid ${job.border}`,
+                                boxShadow: isSelected ? `0 0 0 2px ${job.border}` : "none",
+                              }}
+                              onClick={() => setSelectedDispatchJob(isSelected ? null : job)}
+                            >
+                              <div className="flex flex-col h-full px-2 py-1">
+                                <div className="text-[9px] text-[#9CA3AF] tabular-nums shrink-0">
+                                  {fmtHour(job.start)} – {fmtHour(job.end)}
+                                </div>
+                                <div className="text-[11px] leading-tight truncate" style={{ fontWeight: 700, color: "#1A2332" }}>
+                                  {job.client}
+                                </div>
+                                <div className="flex items-center justify-between mt-auto shrink-0">
+                                  <span className="text-[10px] text-[#546478] truncate flex-1">{job.service}</span>
+                                  {job.statusIcon && (
+                                    <span className="material-icons ml-1 shrink-0" style={{ fontSize: "12px", color: job.statusIconColor }}>
+                                      {job.statusIcon}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
                   );
                 })}
               </div>
-
-              {/* Time grid */}
-              <div className="flex-1 overflow-auto relative">
-                <div className="relative" style={{ height: `${GRID_H}px` }}>
-                  {/* Hour rows */}
-                  {hours.map((h) => (
-                    <div key={h} className="absolute w-full flex" style={{ top: `${(h - 7) * 64}px`, height: "64px" }}>
-                      <div className="w-[52px] shrink-0 flex items-start justify-end pr-2 -mt-2 text-[10px] text-[#9CA3AF]" style={{ fontWeight: 500 }}>
-                        {h > 12 ? h - 12 : h}{h >= 12 ? "PM" : "AM"}
-                      </div>
-                      {weekDays.map((_, ti) => (
-                        <div key={ti} className="flex-1 border-l border-b border-[#E5E7EB]" />
-                      ))}
-                    </div>
-                  ))}
-
-                  {/* Open time slots */}
-                  {[0, 3, 6].map((dayIdx) => (
-                    <div
-                      key={`open-${dayIdx}`}
-                      className="absolute rounded-lg border border-dashed border-[#DDE3EE] bg-[#FAFBFC] flex items-center justify-center"
-                      style={{
-                        top: `${(8 - 7) * 64}px`,
-                        height: `${10 * 64 - 2}px`,
-                        left: `calc(52px + ${dayIdx} * ((100% - 52px) / 7) + 2px)`,
-                        width: `calc((100% - 52px) / 7 - 4px)`,
-                      }}
-                    >
-                      <div className="text-[10px] text-[#9CA3AF]" style={{ fontWeight: 500 }}>Open</div>
-                    </div>
-                  ))}
-
-                  {/* Dispatch jobs */}
-                  {dispatchJobs.map((job) => {
-                    const top = (job.start - 7) * 64;
-                    const heightNum = (job.end - job.start) * 64 - 2;
-                    const isSelected = selectedDispatchJob?.id === job.id;
-                    return (
-                      <div
-                        key={job.id}
-                        className="absolute rounded-lg overflow-hidden cursor-pointer transition-all border border-transparent hover:border-[#4A6FA5] hover:shadow-sm"
-                        style={{
-                          top: `${top}px`,
-                          height: `${Math.max(heightNum, 24)}px`,
-                          left: `calc(52px + ${job.dayIdx} * ((100% - 52px) / 7) + 2px)`,
-                          width: `calc((100% - 52px) / 7 - 4px)`,
-                          backgroundColor: job.bg,
-                          borderLeft: `3px solid ${job.border}`,
-                          boxShadow: isSelected ? `0 0 0 2px ${job.border}` : "none",
-                        }}
-                        onClick={() => setSelectedDispatchJob(isSelected ? null : job)}
-                      >
-                        <div className="px-2 py-1.5 h-full flex flex-col">
-                          <div className="text-[9px] text-[#9CA3AF] tabular-nums mb-0.5">{fmtHour(job.start)} – {fmtHour(job.end)}</div>
-                          <div className="text-[11px] leading-tight truncate" style={{ fontWeight: 700, color: "#1A2332" }}>{job.client}</div>
-                          <div className="text-[10px] text-[#546478] truncate">{job.service}</div>
-                          {heightNum > 62 && <div className="text-[10px] text-[#9CA3AF] truncate mt-0.5">{job.address}</div>}
-                          <div className="flex items-center justify-between mt-auto pt-1">
-                            <span className="text-[10px] tabular-nums" style={{ fontWeight: 700, color: job.border }}>${job.amount.toLocaleString()}</span>
-                            {job.statusIcon && <span className="material-icons" style={{ fontSize: "13px", color: job.statusIconColor }}>{job.statusIcon}</span>}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-
-                  {/* Current time indicator */}
-                  <div
-                    className="absolute z-10 pointer-events-none"
-                    style={{ top: `${(10.5 - 7) * 64}px`, left: "52px", right: 0, height: "2px", backgroundColor: "#DC2626" }}
-                  >
-                    <div className="w-2 h-2 bg-[#DC2626] rounded-full absolute -left-1 -top-0.5" />
-                    <div className="absolute -top-3.5 left-2 text-[9px] text-[#DC2626] bg-white px-1.5 py-0.5 rounded border border-[#DC2626]" style={{ fontWeight: 600 }}>10:30 AM</div>
-                  </div>
-                </div>
-              </div>
             </div>
 
-            {/* Right: Job detail panel */}
-            {selectedDispatchJob && (
-              <div className="w-[320px] shrink-0 flex flex-col overflow-hidden border-l border-[#DDE3EE] bg-white">
+            {/* Right: Unscheduled panel or Job detail panel */}
+            {selectedDispatchJob ? (
+              <div className="w-[300px] shrink-0 flex flex-col overflow-hidden border-l border-[#DDE3EE] bg-white">
                 <div className="flex items-center justify-between px-4 py-3.5 border-b border-[#DDE3EE] shrink-0">
                   <div className="flex items-center gap-2">
                     <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 700 }}>Job #{selectedDispatchJob.num}</span>
@@ -537,7 +560,6 @@ export function Calendar() {
                         <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 700 }}>{selectedDispatchJob.client}</div>
                         <div className="text-[12px] text-[#546478] mt-0.5">{selectedDispatchJob.service}</div>
                         <div className="text-[11px] text-[#8899AA] mt-1">{selectedDispatchJob.address}</div>
-                        <div className="text-[11px] text-[#8899AA]">Tampa, FL 33602</div>
                       </div>
                       <div className="flex gap-1.5 shrink-0">
                         <button className="w-8 h-8 rounded-lg border border-[#DDE3EE] flex items-center justify-center hover:bg-[#F5F7FA] transition-colors">
@@ -571,6 +593,35 @@ export function Calendar() {
                     <button className="flex-1 py-2 border border-[#DDE3EE] text-[#546478] rounded-lg text-[12px] hover:bg-[#F5F7FA] transition-colors" style={{ fontWeight: 500 }}>Edit</button>
                     <button className="flex-1 py-2 border border-[#DDE3EE] text-[#546478] rounded-lg text-[12px] hover:bg-[#F5F7FA] transition-colors" style={{ fontWeight: 500 }}>Reschedule</button>
                   </div>
+                </div>
+              </div>
+            ) : (
+              <div className="w-[210px] shrink-0 border-l border-[#DDE3EE] flex flex-col bg-white overflow-hidden">
+                <div className="flex items-center gap-2 px-3 py-3 border-b border-[#DDE3EE] shrink-0">
+                  <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>Unscheduled</span>
+                  <span className="px-1.5 py-0.5 rounded-full bg-[#FEF3C7] text-[#D97706] text-[10px]" style={{ fontWeight: 700 }}>3</span>
+                </div>
+                <div className="flex-1 overflow-y-auto p-3 space-y-2">
+                  {unscheduledJobs.map(job => (
+                    <div key={job.id} className="bg-[#FAFBFC] border border-[#E5E7EB] rounded-lg p-2.5 cursor-pointer hover:border-[#4A6FA5] hover:bg-white transition-all">
+                      {job.highPriority && (
+                        <div className="text-[10px] text-[#DC2626] mb-1 flex items-center gap-1" style={{ fontWeight: 600 }}>
+                          <span className="material-icons" style={{ fontSize: "11px" }}>priority_high</span>
+                          High Priority
+                        </div>
+                      )}
+                      <div className="text-[12px] text-[#1A2332] mb-0.5" style={{ fontWeight: 600 }}>{job.client}</div>
+                      <div className="text-[11px] text-[#546478] mb-1.5 truncate">{job.service}</div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="px-1.5 py-0.5 rounded text-[10px]" style={{ fontWeight: 600, backgroundColor: job.typeBg, color: job.typeColor }}>{job.typeLabel}</span>
+                        <span className="text-[11px] text-[#1A2332]" style={{ fontWeight: 600 }}>{job.amount}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-[10px] text-[#8899AA]">
+                        <span>{job.distance}</span>
+                        <span>{job.date}</span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
