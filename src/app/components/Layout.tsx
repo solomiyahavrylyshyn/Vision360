@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Outlet, NavLink, useNavigate } from "react-router";
 import logoImg from "figma:asset/58956be46c544ae8676a6fc4c67137e1d450e75f.png";
 import { MessagingCenter } from "./MessagingCenter";
@@ -192,15 +192,15 @@ export function Layout() {
         {/* ── Sidebar brand section ── */}
         <div
           className={`bg-[#1C2B3A] flex items-center justify-between flex-shrink-0 border-r border-[rgba(255,255,255,0.06)] transition-all duration-[240ms] ease-[cubic-bezier(0.4,0,0.2,1)] overflow-hidden ${
-            sidebarCollapsed ? "w-[72px] px-3" : "w-[200px] px-4"
+            sidebarCollapsed ? "w-[56px] px-2" : "w-[240px] px-4"
           }`}
         >
           {!sidebarCollapsed && (
             <img
               src={logoImg}
               alt="Vision360 Logo"
-              className="h-10 object-contain object-left flex-1 min-w-0"
-              style={{ maxWidth: "140px" }}
+              className="object-contain object-left flex-1 min-w-0"
+              style={{ height: "24px", maxWidth: "120px" }}
             />
           )}
           <button
@@ -525,49 +525,53 @@ export function Layout() {
       <div className="flex flex-1 overflow-hidden">
         {/* Expandable Sidebar */}
         <aside
-          className={`bg-[#1C2B3A] border-r border-[rgba(255,255,255,0.06)] flex flex-col pb-2 transition-all duration-[240ms] ease-[cubic-bezier(0.4,0,0.2,1)] ${
-            sidebarCollapsed ? "w-[72px]" : "w-[200px]"
+          className={`bg-[#1C2B3A] border-r border-[rgba(255,255,255,0.06)] flex flex-col transition-all duration-[240ms] ease-[cubic-bezier(0.4,0,0.2,1)] ${
+            sidebarCollapsed ? "w-[56px]" : "w-[240px]"
           }`}
           style={{ flexShrink: 0, overflowX: "hidden", overflowY: "visible" }}
         >
         {/* Navigation */}
-        <div className="pt-2" />
-        <nav className={`flex-1 flex flex-col gap-0 ${sidebarCollapsed ? "px-0 items-center" : "px-2"}`}>
-          {navItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.to === "/"}
-              className={({ isActive }) =>
-                `rounded-[7px] flex relative whitespace-nowrap transition-all duration-150 ${
-                  sidebarCollapsed
-                    ? "w-[60px] h-[44px] flex-col items-center justify-center px-1 py-1 gap-0.5"
-                    : "h-[38px] flex-row items-center w-full justify-start px-2.5 gap-2.5"
-                } ${
-                  isActive
-                    ? "text-[#82B4F4] bg-[rgba(74,111,165,0.22)]"
-                    : "text-[rgba(255,255,255,0.72)] hover:bg-[rgba(255,255,255,0.08)] hover:text-[rgba(255,255,255,0.9)]"
-                }`
-              }
-            >
-              {({ isActive }) => (
-                <>
-                  {isActive && !sidebarCollapsed && (
-                    <div className="absolute left-0 top-1.5 bottom-1.5 w-[3px] bg-[#4A6FA5] rounded-r"></div>
+        <nav
+          className={`flex-1 flex flex-col gap-1 pt-4 ${
+            sidebarCollapsed ? "items-center px-2" : "px-4"
+          }`}
+        >
+          {navItems.map((item, i) => {
+            // Separator before "Items" (last item) to match Figma bottom section
+            const isLast = i === navItems.length - 1;
+            return (
+              <React.Fragment key={item.to}>
+                {isLast && !sidebarCollapsed && (
+                  <div className="border-t border-[rgba(255,255,255,0.1)] mt-1 pt-1" />
+                )}
+                {isLast && sidebarCollapsed && (
+                  <div className="w-8 border-t border-[rgba(255,255,255,0.1)] mt-1 pt-1" />
+                )}
+                <NavLink
+                  to={item.to}
+                  end={item.to === "/"}
+                  className={({ isActive }) =>
+                    `rounded-[6px] flex relative whitespace-nowrap transition-all duration-150 ${
+                      sidebarCollapsed
+                        ? "w-8 h-8 items-center justify-center"
+                        : "h-8 flex-row items-center w-full px-3 py-1 gap-2"
+                    } ${
+                      isActive
+                        ? "text-[#81B4F3] bg-[rgba(74,111,165,0.3)]"
+                        : "text-white hover:bg-[rgba(255,255,255,0.08)] hover:text-white"
+                    }`
+                  }
+                >
+                  <span className="material-icons flex-shrink-0" style={{ fontSize: "16px" }}>{item.icon}</span>
+                  {!sidebarCollapsed && (
+                    <span className="text-[14px]" style={{ fontWeight: 500, lineHeight: "20px" }}>
+                      {item.label}
+                    </span>
                   )}
-                  <span className="material-icons flex-shrink-0" style={{ fontSize: "20px" }}>{item.icon}</span>
-                  <span
-                    className={`transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] ${
-                      sidebarCollapsed ? "text-[9px] leading-tight text-center max-w-[58px]" : "text-[13px] max-w-[130px]"
-                    }`}
-                    style={{ fontWeight: 500 }}
-                  >
-                    {item.label}
-                  </span>
-                </>
-              )}
-            </NavLink>
-          ))}
+                </NavLink>
+              </React.Fragment>
+            );
+          })}
         </nav>
         </aside>
 
