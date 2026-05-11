@@ -200,7 +200,7 @@ export function Layout() {
               src={logoImg}
               alt="Vision360 Logo"
               className="object-contain object-left flex-1 min-w-0"
-              style={{ height: "24px", maxWidth: "120px" }}
+              style={{ height: "24px", maxWidth: "120px", filter: "brightness(0) invert(1)" }}
             />
           )}
           <button
@@ -232,7 +232,7 @@ export function Layout() {
                 setGlobalSearchOpen(true);
                 setTimeout(() => searchInputRef.current?.focus(), 50);
               }}
-              className="w-full h-9 flex items-center gap-2.5 px-3.5 border border-[#E5E7EB] rounded-lg bg-white hover:border-[#B0BEC5] transition-all cursor-text"
+              className="w-full h-9 flex items-center gap-2 px-3 border border-[#E5E7EB] rounded-lg bg-white hover:border-[#B0BEC5] transition-all cursor-text shadow-[0px_1px_2px_rgba(0,0,0,0.05)]"
             >
               <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "18px" }}>search</span>
               <span className="text-[13px] text-[#9CA3AF] flex-1 text-left">Search customers, jobs, invoices...</span>
@@ -463,59 +463,55 @@ export function Layout() {
           </div>
         </div>
 
-        {/* Right side icons */}
-        <div className="flex items-center gap-0.5 flex-shrink-0">
-          {/* Create button */}
+        {/* Right side — actions + user */}
+        <div className="flex items-center gap-3 flex-shrink-0">
+
+          {/* Icon action buttons (white bg, 36×36, radius 8) */}
+          <div className="flex items-center gap-1">
+            <button title="Phone / Dialer" onClick={() => setDialerOpen(true)}
+              className="w-9 h-9 bg-white rounded-lg flex items-center justify-center text-[#1A2332] hover:bg-[#F5F7FA] transition-colors">
+              <span className="material-icons" style={{ fontSize: "16px" }}>phone</span>
+            </button>
+            <button title="Messages" onClick={() => setMessagingOpen(true)}
+              className="w-9 h-9 bg-white rounded-lg flex items-center justify-center text-[#1A2332] hover:bg-[#F5F7FA] transition-colors">
+              <span className="material-icons" style={{ fontSize: "16px" }}>chat</span>
+            </button>
+            <button title="Help Center" onClick={() => setHelpCenterOpen(true)}
+              className="w-9 h-9 bg-white rounded-lg flex items-center justify-center text-[#1A2332] hover:bg-[#F5F7FA] transition-colors">
+              <span className="material-icons" style={{ fontSize: "16px" }}>help_outline</span>
+            </button>
+          </div>
+
+          {/* Separator */}
+          <div className="w-px h-6 bg-[#E5E7EB] flex-shrink-0" />
+
+          {/* Create button — blue */}
           <button
             ref={createBtnRef}
             title="Create"
             onClick={() => setCreateMenuOpen(!createMenuOpen)}
-            className="w-9 h-9 rounded-lg flex items-center justify-center text-[#6B7280] hover:bg-[#F3F4F6] hover:text-[#111827] transition-colors"
+            className="w-9 h-9 bg-[#4A6FA5] rounded-lg flex items-center justify-center text-white hover:bg-[#3d5a85] transition-colors"
           >
-            <span className="material-icons" style={{ fontSize: "22px" }}>add</span>
+            <span className="material-icons" style={{ fontSize: "16px" }}>add</span>
           </button>
-          <button
-            title="AI Assistant"
-            onClick={() => setAiAssistantOpen(true)}
-            className="w-9 h-9 rounded-lg flex items-center justify-center text-[#6B7280] hover:bg-[#F3F4F6] hover:text-[#111827] transition-colors"
-          >
-            <span className="material-icons" style={{ fontSize: "19px" }}>auto_awesome</span>
-          </button>
-          <button
-            title="Phone / Dialer"
-            onClick={() => setDialerOpen(true)}
-            className="w-9 h-9 rounded-lg flex items-center justify-center text-[#6B7280] hover:bg-[#F3F4F6] hover:text-[#111827] transition-colors"
-          >
-            <span className="material-icons" style={{ fontSize: "19px" }}>phone</span>
-          </button>
-          <button
-            title="Messages"
-            onClick={() => setMessagingOpen(true)}
-            className="w-9 h-9 rounded-lg flex items-center justify-center text-[#6B7280] hover:bg-[#F3F4F6] hover:text-[#111827] transition-colors"
-          >
-            <span className="material-icons" style={{ fontSize: "19px" }}>chat</span>
-          </button>
-          <button
-            title="Help Center"
-            onClick={() => setHelpCenterOpen(true)}
-            className="w-9 h-9 rounded-lg flex items-center justify-center text-[#6B7280] hover:bg-[#F3F4F6] hover:text-[#111827] transition-colors"
-          >
-            <span className="material-icons" style={{ fontSize: "19px" }}>help_outline</span>
-          </button>
-          <button
-            title="Settings"
-            onClick={() => navigate("/settings")}
-            className="w-9 h-9 rounded-lg flex items-center justify-center text-[#6B7280] hover:bg-[#F3F4F6] hover:text-[#111827] transition-colors"
-          >
-            <span className="material-icons" style={{ fontSize: "19px" }}>settings</span>
-          </button>
+
+          {/* Separator */}
+          <div className="w-px h-6 bg-[#E5E7EB] flex-shrink-0" />
+
+          {/* User section: avatar + name/email + chevron */}
           <button
             ref={userAvatarRef}
             onClick={() => setUserMenuOpen(!userMenuOpen)}
-            title="Marek Stroz"
-            className="w-8 h-8 bg-[#4A6FA5] rounded-full flex items-center justify-center text-white text-[12px] font-semibold ml-2 hover:shadow-[0_0_0_2px_rgba(74,111,165,0.2)] transition-shadow cursor-pointer"
+            className="flex items-center gap-2 hover:bg-[#F5F7FA] rounded-lg px-2 py-1 transition-colors"
           >
-            M
+            <div className="w-8 h-8 bg-[#4A6FA5] rounded-full flex items-center justify-center text-white text-[12px] flex-shrink-0" style={{ fontWeight: 600 }}>
+              JD
+            </div>
+            <div className="text-left leading-none">
+              <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600, lineHeight: "20px" }}>John Doe</div>
+              <div className="text-[12px] text-[#6B7280]" style={{ lineHeight: "16px" }}>doe.j@example.com</div>
+            </div>
+            <span className="material-icons text-[#1A2332]" style={{ fontSize: "16px" }}>keyboard_arrow_down</span>
           </button>
         </div>
         </div>{/* end main top bar */}
@@ -634,83 +630,71 @@ export function Layout() {
       {/* User Menu Dropdown */}
       <div
         ref={userMenuRef}
-        className={`fixed w-[252px] bg-white border border-[#E5E7EB] rounded-xl shadow-[0_8px_24px_rgba(26,35,50,0.13),0_2px_6px_rgba(26,35,50,0.07)] z-[1100] transition-all duration-150 ease-out overflow-hidden ${
+        className={`fixed w-[240px] bg-white border border-[#E5E7EB] rounded-lg shadow-[0_4px_6px_-1px_rgba(0,0,0,0.1),0_2px_4px_-2px_rgba(0,0,0,0.1)] z-[1100] transition-all duration-150 ease-out overflow-hidden ${
           userMenuOpen ? "opacity-100 scale-100 pointer-events-auto" : "opacity-0 scale-[0.98] pointer-events-none"
         }`}
-        style={{
-          right: "16px",
-          top: "60px",
-          transformOrigin: "top right",
-          transform: userMenuOpen ? "translateY(0)" : "translateY(-6px)"
-        }}
+        style={{ right: "16px", top: "68px", transformOrigin: "top right" }}
       >
-        {/* Profile header */}
-        <div className="flex items-center gap-2.5 px-4 py-3.5">
-          <div className="w-[38px] h-[38px] bg-[#4A6FA5] rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
-            M
-          </div>
-          <div style={{ minWidth: 0 }}>
-            <div className="text-[13px] font-semibold text-[#1A2332]" style={{ lineHeight: 1.3 }}>Marek Stroz</div>
-            <div className="text-[11.5px] text-[#546478] whitespace-nowrap overflow-hidden text-ellipsis" style={{ lineHeight: 1.3 }}>marek@abcplumbing.com</div>
-          </div>
-        </div>
+        <div className="p-0.5">
 
-        <div className="h-px bg-[#E5E7EB] my-[3px]"></div>
-
-        {/* Notifications toggle */}
-        <button
-          onClick={() => setNotificationsEnabled(!notificationsEnabled)}
-          className="w-full flex items-center gap-2.5 px-4 py-2 hover:bg-[#F5F7FA] transition-colors"
-        >
-          <span className="material-icons text-[#546478] flex-shrink-0" style={{ fontSize: "18px" }}>notifications</span>
-          <span className="flex-1 text-[13px] text-[#1A2332] text-left">On-screen notifications</span>
-          <div className={`w-8 h-[18px] rounded-full flex items-center transition-colors ${notificationsEnabled ? "bg-[#4A6FA5]" : "bg-[#E5E7EB]"}`}>
-            <div className={`w-3.5 h-3.5 bg-white rounded-full shadow-[0_1px_3px_rgba(0,0,0,0.2)] transition-transform ${notificationsEnabled ? "translate-x-[14px]" : "translate-x-0.5"}`}></div>
-          </div>
-        </button>
-
-        <div className="h-px bg-[#E5E7EB] my-[3px]"></div>
-
-        <button onClick={() => { setUserMenuOpen(false); navigate("/settings"); }} className="w-full flex items-center gap-2.5 px-4 py-2 hover:bg-[#F5F7FA] transition-colors text-left">
-          <span className="material-icons text-[#546478] flex-shrink-0" style={{ fontSize: "18px" }}>manage_accounts</span>
-          <span className="flex-1 text-[13px] text-[#1A2332]">Account</span>
-        </button>
-        <button onClick={() => setUserMenuOpen(false)} className="w-full flex items-center gap-2.5 px-4 py-2 hover:bg-[#F5F7FA] transition-colors text-left">
-          <span className="material-icons text-[#546478] flex-shrink-0" style={{ fontSize: "18px" }}>group</span>
-          <span className="flex-1 text-[13px] text-[#1A2332]">Manage team</span>
-        </button>
-        <button onClick={() => { setUserMenuOpen(false); navigate("/settings"); }} className="w-full flex items-center gap-2.5 px-4 py-2 hover:bg-[#F5F7FA] transition-colors text-left">
-          <span className="material-icons text-[#546478] flex-shrink-0" style={{ fontSize: "18px" }}>credit_card</span>
-          <span className="flex-1 text-[13px] text-[#1A2332]">Billing</span>
-          <span className="text-[10.5px] font-semibold text-white bg-[#4A6FA5] px-[7px] py-0.5 rounded-[10px] whitespace-nowrap">PRO</span>
-        </button>
-
-        <div className="h-px bg-[#E5E7EB] my-[3px]"></div>
-
-        <button onClick={() => setUserMenuOpen(false)} className="w-full flex items-center gap-2.5 px-4 py-2 hover:bg-[#F5F7FA] transition-colors text-left">
-          <span className="material-icons text-[#546478] flex-shrink-0" style={{ fontSize: "18px" }}>new_releases</span>
-          <span className="flex-1 text-[13px] text-[#1A2332]">What's New?</span>
-          <span className="text-[10.5px] font-bold text-white bg-[#DC2626] px-1.5 py-[1px] rounded-[10px] min-w-[18px] text-center">3</span>
-        </button>
-
-        <div className="h-px bg-[#E5E7EB] my-[3px]"></div>
-
-        <button onClick={() => { setUserMenuOpen(false); navigate("/settings"); }} className="w-full flex items-center gap-2.5 px-4 py-2 hover:bg-[#F5F7FA] transition-colors text-left">
-          <span className="material-icons text-[#546478] flex-shrink-0" style={{ fontSize: "18px" }}>settings</span>
-          <span className="flex-1 text-[13px] text-[#1A2332]">Settings</span>
-        </button>
-        <button onClick={() => setUserMenuOpen(false)} className="w-full flex items-center gap-2.5 px-4 py-2 hover:bg-[#F5F7FA] transition-colors text-left">
-          <span className="material-icons text-[#546478] flex-shrink-0" style={{ fontSize: "18px" }}>lock</span>
-          <span className="flex-1 text-[13px] text-[#1A2332]">Change password</span>
-        </button>
-
-        <div className="h-px bg-[#E5E7EB] my-[3px]"></div>
-
-        <div className="pb-1.5">
-          <button onClick={() => { setUserMenuOpen(false); navigate("/login"); }} className="w-full flex items-center gap-2.5 px-4 py-2 hover:bg-[#FEF2F2] transition-colors text-left text-[#DC2626]">
-            <span className="material-icons flex-shrink-0" style={{ fontSize: "18px", color: "#DC2626" }}>logout</span>
-            <span className="flex-1 text-[13px]">Log out</span>
+          {/* Notifications toggle */}
+          <button
+            onClick={() => setNotificationsEnabled(!notificationsEnabled)}
+            className="w-full flex items-center gap-2 px-2 py-[5.5px] rounded-[6px] hover:bg-[#F5F7FA] transition-colors"
+          >
+            <span className="material-icons text-[#6B7280] flex-shrink-0 w-5 h-5 flex items-center justify-center" style={{ fontSize: "16px" }}>notifications</span>
+            <span className="flex-1 text-[14px] text-[#1A2332] text-left">Notifications</span>
+            <div className={`w-[33px] h-[18px] rounded-full flex items-center flex-shrink-0 transition-colors ${notificationsEnabled ? "bg-[#4A6FA5]" : "bg-[#E5E7EB]"}`}>
+              <div className={`w-3.5 h-3.5 bg-white rounded-full shadow-[0_1px_2px_rgba(0,0,0,0.2)] transition-transform mx-[2px] ${notificationsEnabled ? "translate-x-[15px]" : "translate-x-0"}`} />
+            </div>
           </button>
+
+          {/* Separator */}
+          <div className="flex items-center px-2 py-1"><div className="h-px w-full bg-[#E5E7EB]" /></div>
+
+          {/* Profile / Account / Help */}
+          <button onClick={() => { setUserMenuOpen(false); }} className="w-full flex items-center gap-2 px-2 py-[5.5px] rounded-[6px] hover:bg-[#F5F7FA] transition-colors">
+            <span className="material-icons text-[#6B7280] flex-shrink-0 w-5 h-5 flex items-center justify-center" style={{ fontSize: "16px" }}>person</span>
+            <span className="flex-1 text-[14px] text-[#1A2332] text-left">Profile</span>
+          </button>
+          <button onClick={() => { setUserMenuOpen(false); }} className="w-full flex items-center gap-2 px-2 py-[5.5px] rounded-[6px] hover:bg-[#F5F7FA] transition-colors">
+            <span className="material-icons text-[#6B7280] flex-shrink-0 w-5 h-5 flex items-center justify-center" style={{ fontSize: "16px" }}>manage_accounts</span>
+            <span className="flex-1 text-[14px] text-[#1A2332] text-left">Account</span>
+          </button>
+          <button onClick={() => { setUserMenuOpen(false); setHelpCenterOpen(true); }} className="w-full flex items-center gap-2 px-2 py-[5.5px] rounded-[6px] hover:bg-[#F5F7FA] transition-colors">
+            <span className="material-icons text-[#6B7280] flex-shrink-0 w-5 h-5 flex items-center justify-center" style={{ fontSize: "16px" }}>help_outline</span>
+            <span className="flex-1 text-[14px] text-[#1A2332] text-left">Help</span>
+            <span className="flex items-center justify-center px-2 py-0.5 rounded-lg text-[12px] text-[#81B4F3]" style={{ fontWeight: 500, background: "rgba(129,180,243,0.2)" }}>New</span>
+          </button>
+
+          {/* Separator */}
+          <div className="flex items-center px-2 py-1"><div className="h-px w-full bg-[#E5E7EB]" /></div>
+
+          {/* Notifications inbox */}
+          <button onClick={() => setUserMenuOpen(false)} className="w-full flex items-center gap-2 px-2 py-[5.5px] rounded-[6px] hover:bg-[#F5F7FA] transition-colors">
+            <span className="material-icons text-[#6B7280] flex-shrink-0 w-5 h-5 flex items-center justify-center" style={{ fontSize: "16px" }}>inbox</span>
+            <span className="flex-1 text-[14px] text-[#1A2332] text-left">Notifications</span>
+            <span className="flex items-center justify-center min-w-[18px] h-5 px-1.5 rounded-lg text-[12px] text-white bg-[#DC2626]" style={{ fontWeight: 500 }}>1</span>
+          </button>
+
+          {/* Separator */}
+          <div className="flex items-center px-2 py-1"><div className="h-px w-full bg-[#E5E7EB]" /></div>
+
+          {/* Settings */}
+          <button onClick={() => { setUserMenuOpen(false); navigate("/settings"); }} className="w-full flex items-center gap-2 px-2 py-[5.5px] rounded-[6px] hover:bg-[#F5F7FA] transition-colors">
+            <span className="material-icons text-[#6B7280] flex-shrink-0 w-5 h-5 flex items-center justify-center" style={{ fontSize: "16px" }}>settings</span>
+            <span className="flex-1 text-[14px] text-[#1A2332] text-left">Settings</span>
+          </button>
+
+          {/* Separator */}
+          <div className="flex items-center px-2 py-1"><div className="h-px w-full bg-[#E5E7EB]" /></div>
+
+          {/* Log out */}
+          <button onClick={() => { setUserMenuOpen(false); navigate("/login"); }} className="w-full flex items-center gap-2 px-2 py-[5.5px] rounded-[6px] hover:bg-[#FEF2F2] transition-colors">
+            <span className="material-icons flex-shrink-0 w-5 h-5 flex items-center justify-center" style={{ fontSize: "16px", color: "#DC2626" }}>logout</span>
+            <span className="flex-1 text-[14px] text-[#DC2626] text-left">Log out</span>
+          </button>
+
         </div>
       </div>
 
