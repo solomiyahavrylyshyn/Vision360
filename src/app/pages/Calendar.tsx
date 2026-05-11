@@ -439,13 +439,26 @@ export function Calendar() {
                   const ROW_H = Math.max(72, numLanes * 42 + 12);
                   const laneH = Math.floor((ROW_H - 12) / numLanes);
 
-                  // Row background: today = light blue, weekends = very light gray, others = white / off-white alternating
                   const isWeekend = dayI === 0 || dayI === 6;
-                  const rowBg = isToday ? "#EEF3FB" : isWeekend ? "#F7F8FA" : dayI % 2 === 0 ? "#FFFFFF" : "#FAFBFC";
-                  const labelBg = isToday ? "#E8EFF9" : isWeekend ? "#F2F3F6" : dayI % 2 === 0 ? "#FFFFFF" : "#F5F6F9";
+                  const rowBg   = isToday ? "#EBF0F8" : isWeekend ? "#F4F5F8" : "#FFFFFF";
+                  const labelBg = isToday ? "#DDE8F5" : isWeekend ? "#ECEEF3" : "#F8F9FB";
 
                   return (
-                    <div key={dayI} className="flex" style={{ height: ROW_H, borderBottom: isToday ? "2px solid #C5D4ED" : "1px solid #E2E6EE" }}>
+                    <div key={dayI}>
+                      {/* ── Day separator ── */}
+                      <div
+                        style={{
+                          height: 3,
+                          minWidth: ganttTotalWidth + 172,
+                          background: isToday
+                            ? "linear-gradient(90deg,#4A6FA5 172px,#B8CADF 172px)"
+                            : isWeekend
+                            ? "#D4D8E2"
+                            : "#DDE1E9",
+                        }}
+                      />
+
+                      <div className="flex" style={{ height: ROW_H }}>
 
                       {/* Day label — sticky left */}
                       <div
@@ -453,7 +466,7 @@ export function Calendar() {
                         style={{
                           width: 172, minWidth: 172, height: ROW_H,
                           backgroundColor: labelBg,
-                          borderRight: isToday ? "3px solid #4A6FA5" : "1px solid #DDE3EE",
+                          borderRight: "1px solid #D8DCE6",
                         }}
                       >
                         <div
@@ -482,7 +495,7 @@ export function Calendar() {
                           <div
                             key={h}
                             className="absolute top-0 bottom-0"
-                            style={{ left: (h - GANTT_START_HOUR) * HOUR_WIDTH, width: 1, backgroundColor: isToday ? "#D4DFEF" : "#ECEEF2" }}
+                            style={{ left: (h - GANTT_START_HOUR) * HOUR_WIDTH, width: 1, backgroundColor: isToday ? "#CCDAEC" : "#E8EBF0" }}
                           />
                         ))}
 
@@ -497,8 +510,8 @@ export function Calendar() {
                         {/* Empty day placeholder */}
                         {dayJobs.length === 0 && (
                           <div className="absolute flex items-center justify-center"
-                            style={{ top: 8, bottom: 8, left: 8, right: 8, borderRadius: 8, border: "1px dashed #D4D9E3" }}>
-                            <div className="text-[10px] text-[#C4C9D4]" style={{ fontWeight: 500 }}>No jobs</div>
+                            style={{ top: 8, bottom: 8, left: 8, right: 8, borderRadius: 8, border: "1px dashed #CDD1DA" }}>
+                            <div className="text-[10px] text-[#B8BEC9]" style={{ fontWeight: 500 }}>No jobs</div>
                           </div>
                         )}
 
@@ -543,6 +556,7 @@ export function Calendar() {
                           );
                         })}
                       </div>
+                    </div>
                     </div>
                   );
                 })}
