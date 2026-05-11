@@ -227,9 +227,9 @@ export function JobDetail() {
       </div>
 
       {/* ── Notes Panel ── */}
-      <div className="w-[300px] shrink-0 bg-white border border-[#DDE3EE] rounded-xl overflow-hidden">
+      <div className="w-[300px] shrink-0 bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
         {/* Header */}
-        <div className="flex items-center gap-2 px-5 py-3.5 border-b border-[#DDE3EE]">
+        <div className="flex items-center gap-2 px-5 py-3.5 border-b border-[#E5E7EB]">
           <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>notes</span>
           <span className="flex-1 text-[13px] font-semibold text-[#1A2332]">
             Notes
@@ -246,7 +246,7 @@ export function JobDetail() {
         </div>
 
         {/* Note type tabs */}
-        <div className="flex border-b border-[#DDE3EE] px-5">
+        <div className="flex border-b border-[#E5E7EB] px-5">
           {(["notes", "private", "field"] as NotesTabKey[]).map((t) => {
             const label = t === "notes" ? "Notes" : t === "private" ? "Private Notes" : "Field Notes";
             return (
@@ -266,14 +266,14 @@ export function JobDetail() {
 
         {/* Add note form */}
         {addingJobNote && notesTab === "notes" && (
-          <div className="px-5 py-3 border-b border-[#DDE3EE] bg-[#F9FAFB]">
+          <div className="px-5 py-3 border-b border-[#E5E7EB] bg-[#F9FAFB]">
             <textarea
               autoFocus
               value={newJobNoteText}
               onChange={e => setNewJobNoteText(e.target.value)}
               placeholder="Write a note…"
               rows={3}
-              className="w-full text-[13px] text-[#1A2332] border border-[#DDE3EE] rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-[#4A6FA5] bg-white placeholder:text-[#9CA3AF]"
+              className="w-full text-[13px] text-[#1A2332] border border-[#E5E7EB] rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-[#4A6FA5] bg-white placeholder:text-[#9CA3AF]"
             />
             <div className="flex gap-2 mt-2">
               <button
@@ -316,7 +316,7 @@ export function JobDetail() {
             const isExpanded = expandedJobNoteIds.has(note.id);
             const isEditingThis = editingJobNoteId === note.id;
             return (
-              <div key={note.id} className={`group py-3 ${index < arr.length - 1 ? "border-b border-[#DDE3EE]" : ""}`}>
+              <div key={note.id} className={`group py-3 ${index < arr.length - 1 ? "border-b border-[#E5E7EB]" : ""}`}>
                 {isEditingThis ? (
                   <div>
                     <textarea
@@ -392,7 +392,7 @@ export function JobDetail() {
           {jobNotes.length > 4 && (
             <button
               onClick={() => setNotesExpanded(v => !v)}
-              className="w-full py-2.5 text-[12px] text-[#4A6FA5] hover:text-[#3d5a85] hover:bg-[#F5F7FA] rounded-lg transition-colors flex items-center justify-center gap-1 border-t border-[#DDE3EE] mt-1"
+              className="w-full py-2.5 text-[12px] text-[#4A6FA5] hover:text-[#3d5a85] hover:bg-[#F5F7FA] rounded-lg transition-colors flex items-center justify-center gap-1 border-t border-[#E5E7EB] mt-1"
               style={{ fontWeight: 500 }}
             >
               <span className="material-icons" style={{ fontSize: "14px" }}>
@@ -724,11 +724,11 @@ export function JobDetail() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => navigate(`/jobs/${id}/edit`)}
-              className="border border-[#DDE3EE] text-[#546478] hover:bg-[#EDF0F5] h-8 px-2.5 rounded-md flex items-center justify-center"
+              className="border border-[#E5E7EB] text-[#546478] hover:bg-[#EDF0F5] h-8 px-2.5 rounded-md flex items-center justify-center"
             >
               <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
             </button>
-            <KebabMenu triggerClassName="h-8 w-8 border border-[#DDE3EE] rounded-md hover:bg-[#EDF0F5] flex items-center justify-center">
+            <KebabMenu triggerClassName="h-8 w-8 border border-[#E5E7EB] rounded-md hover:bg-[#EDF0F5] flex items-center justify-center">
               <KebabItem icon="tab_unselected" onClick={() => setShowTabSettings(true)}>Edit Tabs</KebabItem>
               <KebabItem icon="edit" onClick={() => navigate(`/jobs/${id}/edit`)}>Edit Job</KebabItem>
               <KebabItem icon="content_copy">Duplicate Job</KebabItem>
@@ -1009,7 +1009,7 @@ export function JobDetail() {
                     <input
                       value={editJob.address || ""}
                       onChange={(e) => setEditField("address", e.target.value)}
-                      className="w-full h-10 px-3 border border-[#D1D5DB] rounded-md text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
+                      className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
                     />
                   </div>
                   <div className="grid grid-cols-[1fr_120px_120px] gap-3">
@@ -1018,7 +1018,7 @@ export function JobDetail() {
                       <input
                         value={editJob.city || ""}
                         onChange={(e) => setEditField("city", e.target.value)}
-                        className="w-full h-10 px-3 border border-[#D1D5DB] rounded-md text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
+                        className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
                       />
                     </div>
                     <div>
@@ -1026,7 +1026,7 @@ export function JobDetail() {
                       <input
                         value={editJob.state || ""}
                         onChange={(e) => setEditField("state", e.target.value)}
-                        className="w-full h-10 px-3 border border-[#D1D5DB] rounded-md text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
+                        className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
                       />
                     </div>
                     <div>
@@ -1034,7 +1034,7 @@ export function JobDetail() {
                       <input
                         value={editJob.zip || ""}
                         onChange={(e) => setEditField("zip", e.target.value)}
-                        className="w-full h-10 px-3 border border-[#D1D5DB] rounded-md text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
+                        className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
                       />
                     </div>
                   </div>
@@ -1048,7 +1048,7 @@ export function JobDetail() {
                     <input
                       value={editJob.startedOn || ""}
                       onChange={(e) => setEditField("startedOn", e.target.value)}
-                      className="w-full h-10 px-3 border border-[#D1D5DB] rounded-md text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
+                      className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
                     />
                   </div>
                   <div>
@@ -1056,7 +1056,7 @@ export function JobDetail() {
                     <input
                       value={editJob.endsOn || ""}
                       onChange={(e) => setEditField("endsOn", e.target.value)}
-                      className="w-full h-10 px-3 border border-[#D1D5DB] rounded-md text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
+                      className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
                     />
                   </div>
                   <div>
@@ -1064,7 +1064,7 @@ export function JobDetail() {
                     <input
                       value={editJob.startTime || ""}
                       onChange={(e) => setEditField("startTime", e.target.value)}
-                      className="w-full h-10 px-3 border border-[#D1D5DB] rounded-md text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
+                      className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
                     />
                   </div>
                   <div>
@@ -1072,7 +1072,7 @@ export function JobDetail() {
                     <input
                       value={editJob.endTime || ""}
                       onChange={(e) => setEditField("endTime", e.target.value)}
-                      className="w-full h-10 px-3 border border-[#D1D5DB] rounded-md text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
+                      className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
                     />
                   </div>
                 </div>
@@ -1085,7 +1085,7 @@ export function JobDetail() {
                     <input
                       value={editJob.title || ""}
                       onChange={(e) => setEditField("title", e.target.value)}
-                      className="w-full h-10 px-3 border border-[#D1D5DB] rounded-md text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
+                      className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
@@ -1102,7 +1102,7 @@ export function JobDetail() {
                       <select
                         value={editJob.jobType || ""}
                         onChange={(e) => setEditField("jobType", e.target.value)}
-                        className="w-full h-10 px-3 border border-[#D1D5DB] rounded-md text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
+                        className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
                       >
                         <option value="Estimate">Estimate</option>
                         <option value="Install">Install</option>
@@ -1114,7 +1114,7 @@ export function JobDetail() {
                       <select
                         value={editJob.priority || "Low"}
                         onChange={(e) => setEditField("priority", e.target.value)}
-                        className="w-full h-10 px-3 border border-[#D1D5DB] rounded-md text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
+                        className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
                       >
                         <option value="Low">Low</option>
                         <option value="Medium">Medium</option>
@@ -1138,7 +1138,7 @@ export function JobDetail() {
             <div className="px-6 py-4 border-t border-[#E5E7EB] flex items-center justify-end gap-3">
               <button
                 onClick={() => setEditingSection(null)}
-                className="h-9 px-4 border border-[#DDE3EE] rounded-md text-[13px] text-[#546478] hover:bg-[#EDF0F5] transition-colors"
+                className="h-9 px-4 border border-[#E5E7EB] rounded-md text-[13px] text-[#546478] hover:bg-[#EDF0F5] transition-colors"
                 style={{ fontWeight: 500 }}
               >
                 Cancel

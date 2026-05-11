@@ -56,7 +56,7 @@ function qfClass(active: boolean) {
   return `h-8 pl-3 pr-6 border rounded-lg text-[13px] bg-white cursor-pointer focus:outline-none transition-colors ${
     active
       ? "border-[#4A6FA5] text-[#4A6FA5] bg-[#EEF3FA]"
-      : "border-[#DDE3EE] text-[#546478] hover:border-[#C5CEDD]"
+      : "border-[#E5E7EB] text-[#546478] hover:border-[#C5CEDD]"
   }`;
 }
 
@@ -241,7 +241,7 @@ export function Clients() {
                 <span className="material-icons mr-1.5" style={{ fontSize: "18px" }}>add</span>
                 Create Client
               </Button>
-              <KebabMenu triggerClassName="w-9 h-9 border border-[#DDE3EE] rounded-lg bg-white">
+              <KebabMenu triggerClassName="w-9 h-9 border border-[#E5E7EB] rounded-lg bg-white">
                 <KebabItem icon="view_column" onSelect={e => { e.preventDefault(); setPendingColumns(new Set(visibleColumns)); setEditColumnsOpen(true); }}>Edit Columns</KebabItem>
                 <KebabItem icon="swap_horiz" onSelect={e => { e.preventDefault(); setChangeStatusOpen(true); }}>Change Status</KebabItem>
                 <KebabItem icon="content_copy" onSelect={() => navigate("/clients/duplicates")}>Manage Duplicates</KebabItem>
@@ -265,7 +265,7 @@ export function Clients() {
 
         {/* ── Stats Cards ── */}
         <div className="grid grid-cols-4 gap-5 mb-8">
-          <Card className="px-4 py-3 border border-[#DDE3EE] bg-white hover:shadow-sm transition-shadow h-[110.5px]">
+          <Card className="p-5 border border-[#E5E7EB] bg-white hover:shadow-sm transition-shadow">
             <div className="flex items-start justify-between">
               <div>
                 <div className="text-[24px] mb-0.5 leading-none" style={{ fontWeight: 700, color: "#1A2332" }}>4</div>
@@ -281,7 +281,7 @@ export function Clients() {
               <Sparkline data={[2, 3, 2, 4, 3, 5, 4]} color="#4A6FA5" />
             </div>
           </Card>
-          <Card className="px-4 py-3 border border-[#DDE3EE] bg-white hover:shadow-sm transition-shadow h-[110.5px]">
+          <Card className="p-5 border border-[#E5E7EB] bg-white hover:shadow-sm transition-shadow">
             <div className="flex items-start justify-between">
               <div>
                 <div className="text-[24px] mb-0.5 leading-none" style={{ fontWeight: 700, color: "#1A2332" }}>1</div>
@@ -297,7 +297,7 @@ export function Clients() {
               <Sparkline data={[0, 1, 0, 1, 1, 0, 1]} color="#4A6FA5" />
             </div>
           </Card>
-          <Card className="px-4 py-3 border border-[#DDE3EE] bg-white hover:shadow-sm transition-shadow h-[110.5px]">
+          <Card className="p-5 border border-[#E5E7EB] bg-white hover:shadow-sm transition-shadow">
             <div className="flex items-start justify-between">
               <div>
                 <div className="text-[24px] mb-0.5 leading-none" style={{ fontWeight: 700, color: "#1A2332" }}>6</div>
@@ -313,7 +313,7 @@ export function Clients() {
               <Sparkline data={[3, 4, 4, 5, 5, 6, 6]} color="#4A6FA5" />
             </div>
           </Card>
-          <Card className="px-4 py-3 border border-[#DDE3EE] bg-gradient-to-br from-[#1A2332] to-[#2a3a50] hover:shadow-sm transition-shadow cursor-pointer group overflow-hidden h-[110.5px]">
+          <Card className="p-5 border border-[#E5E7EB] bg-gradient-to-br from-[#1A2332] to-[#2a3a50] hover:shadow-sm transition-shadow cursor-pointer group overflow-hidden">
             <div className="flex flex-col h-full justify-center items-start text-left gap-0.5">
               <div className="flex items-center gap-1">
                 <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "12px" }}>auto_awesome</span>
@@ -346,7 +346,7 @@ export function Clients() {
                 <div>
                   <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>Customer type</label>
                   <select value={pendingFilters.customerType} onChange={e => setPendingFilters(p => ({ ...p, customerType: e.target.value }))}
-                    className="w-full h-10 px-3 border border-[#D1D5DB] rounded-md text-[13px] text-[#374151] bg-white focus:outline-none focus:border-[#4A6FA5]">
+                    className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] text-[#374151] bg-white focus:outline-none focus:border-[#4A6FA5]">
                     <option value="">All</option>
                     <option value="residential">Residential</option>
                     <option value="commercial">Commercial</option>
@@ -356,7 +356,7 @@ export function Clients() {
                 {/* Tags (checkboxes — multi-select) */}
                 <div>
                   <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>Tags</label>
-                  <div className="border border-[#D1D5DB] rounded-md p-2 max-h-[180px] overflow-y-auto bg-white">
+                  <div className="border border-[#E5E7EB] rounded-md p-2 max-h-[180px] overflow-y-auto bg-white">
                     {availableTags.length === 0 ? (
                       <div className="text-[13px] text-[#9CA3AF] text-center py-2">No tags</div>
                     ) : availableTags.map(tag => (
@@ -374,7 +374,7 @@ export function Clients() {
                 <div>
                   <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>Lead source</label>
                   <select value={pendingFilters.leadSource} onChange={e => setPendingFilters(p => ({ ...p, leadSource: e.target.value }))}
-                    className="w-full h-10 px-3 border border-[#D1D5DB] rounded-md text-[13px] text-[#374151] bg-white focus:outline-none focus:border-[#4A6FA5]">
+                    className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] text-[#374151] bg-white focus:outline-none focus:border-[#4A6FA5]">
                     <option value="">All</option>
                     {marketingSources.map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
@@ -384,7 +384,7 @@ export function Clients() {
                 <div>
                   <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>Payment terms</label>
                   <select value={pendingFilters.paymentTerms} onChange={e => setPendingFilters(p => ({ ...p, paymentTerms: e.target.value }))}
-                    className="w-full h-10 px-3 border border-[#D1D5DB] rounded-md text-[13px] text-[#374151] bg-white focus:outline-none focus:border-[#4A6FA5]">
+                    className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] text-[#374151] bg-white focus:outline-none focus:border-[#4A6FA5]">
                     <option value="">All</option>
                     {["Due on receipt", "Net 15", "Net 30", "Net 60", "Net 90"].map(t => <option key={t} value={t}>{t}</option>)}
                   </select>
@@ -394,7 +394,7 @@ export function Clients() {
                 <div>
                   <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>Payment method</label>
                   <select value={pendingFilters.paymentMethod} onChange={e => setPendingFilters(p => ({ ...p, paymentMethod: e.target.value }))}
-                    className="w-full h-10 px-3 border border-[#D1D5DB] rounded-md text-[13px] text-[#374151] bg-white focus:outline-none focus:border-[#4A6FA5]">
+                    className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] text-[#374151] bg-white focus:outline-none focus:border-[#4A6FA5]">
                     <option value="">All</option>
                     {["Cash", "Check", "Credit Card", "ACH", "Wire Transfer"].map(m => <option key={m} value={m}>{m}</option>)}
                   </select>
@@ -404,7 +404,7 @@ export function Clients() {
                 <div>
                   <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>Membership</label>
                   <select value={pendingFilters.membership} onChange={e => setPendingFilters(p => ({ ...p, membership: e.target.value }))}
-                    className="w-full h-10 px-3 border border-[#D1D5DB] rounded-md text-[13px] text-[#374151] bg-white focus:outline-none focus:border-[#4A6FA5]">
+                    className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] text-[#374151] bg-white focus:outline-none focus:border-[#4A6FA5]">
                     <option value="">All</option>
                     <option value="has-membership">Has Membership</option>
                     <option value="no-membership">No Membership</option>
@@ -416,7 +416,7 @@ export function Clients() {
                 <div>
                   <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>Taxable</label>
                   <select value={pendingFilters.taxable} onChange={e => setPendingFilters(p => ({ ...p, taxable: e.target.value }))}
-                    className="w-full h-10 px-3 border border-[#D1D5DB] rounded-md text-[13px] text-[#374151] bg-white focus:outline-none focus:border-[#4A6FA5]">
+                    className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] text-[#374151] bg-white focus:outline-none focus:border-[#4A6FA5]">
                     <option value="">All</option>
                     <option value="yes">Yes</option>
                     <option value="no">No</option>
@@ -427,7 +427,7 @@ export function Clients() {
                 <div>
                   <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>Has company</label>
                   <select value={pendingFilters.hasCompany} onChange={e => setPendingFilters(p => ({ ...p, hasCompany: e.target.value }))}
-                    className="w-full h-10 px-3 border border-[#D1D5DB] rounded-md text-[13px] text-[#374151] bg-white focus:outline-none focus:border-[#4A6FA5]">
+                    className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] text-[#374151] bg-white focus:outline-none focus:border-[#4A6FA5]">
                     <option value="">All</option>
                     <option value="yes">Yes</option>
                     <option value="no">No</option>
@@ -443,9 +443,9 @@ export function Clients() {
                   <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>Date acquired</label>
                   <div className="flex gap-2">
                     <input type="date" value={pendingFilters.dateAcquiredFrom} onChange={e => setPendingFilters(p => ({ ...p, dateAcquiredFrom: e.target.value }))}
-                      className="flex-1 h-10 px-3 border border-[#D1D5DB] rounded-md text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5]" />
+                      className="flex-1 h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5]" />
                     <input type="date" value={pendingFilters.dateAcquiredTo} onChange={e => setPendingFilters(p => ({ ...p, dateAcquiredTo: e.target.value }))}
-                      className="flex-1 h-10 px-3 border border-[#D1D5DB] rounded-md text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5]" />
+                      className="flex-1 h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5]" />
                   </div>
                 </div>
 
@@ -454,9 +454,9 @@ export function Clients() {
                   <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>Last service date</label>
                   <div className="flex gap-2">
                     <input type="date" value={pendingFilters.lastServiceFrom} onChange={e => setPendingFilters(p => ({ ...p, lastServiceFrom: e.target.value }))}
-                      className="flex-1 h-10 px-3 border border-[#D1D5DB] rounded-md text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5]" />
+                      className="flex-1 h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5]" />
                     <input type="date" value={pendingFilters.lastServiceTo} onChange={e => setPendingFilters(p => ({ ...p, lastServiceTo: e.target.value }))}
-                      className="flex-1 h-10 px-3 border border-[#D1D5DB] rounded-md text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5]" />
+                      className="flex-1 h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5]" />
                   </div>
                 </div>
 
@@ -469,10 +469,10 @@ export function Clients() {
                   <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>Lifetime value</label>
                   <div className="flex items-center gap-2">
                     <input type="number" placeholder="Min" value={pendingFilters.lifetimeMin} onChange={e => setPendingFilters(p => ({ ...p, lifetimeMin: e.target.value }))}
-                      className="flex-1 h-10 px-3 border border-[#D1D5DB] rounded-md text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5]" />
+                      className="flex-1 h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5]" />
                     <span className="text-[#546478] text-[13px]">—</span>
                     <input type="number" placeholder="Max" value={pendingFilters.lifetimeMax} onChange={e => setPendingFilters(p => ({ ...p, lifetimeMax: e.target.value }))}
-                      className="flex-1 h-10 px-3 border border-[#D1D5DB] rounded-md text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5]" />
+                      className="flex-1 h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5]" />
                   </div>
                 </div>
 
@@ -480,14 +480,14 @@ export function Clients() {
                 <div>
                   <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>City</label>
                   <input type="text" placeholder="e.g. Tampa, Orlando" value={pendingFilters.city} onChange={e => setPendingFilters(p => ({ ...p, city: e.target.value }))}
-                    className="w-full h-10 px-3 border border-[#D1D5DB] rounded-md text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5]" />
+                    className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5]" />
                 </div>
 
                 {/* County (dropdown from store) */}
                 <div>
                   <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>County</label>
                   <select value={pendingFilters.county} onChange={e => setPendingFilters(p => ({ ...p, county: e.target.value }))}
-                    className="w-full h-10 px-3 border border-[#D1D5DB] rounded-md text-[13px] text-[#374151] bg-white focus:outline-none focus:border-[#4A6FA5]">
+                    className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] text-[#374151] bg-white focus:outline-none focus:border-[#4A6FA5]">
                     <option value="">All counties</option>
                     {availableCounties.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
@@ -495,7 +495,7 @@ export function Clients() {
               </div>
 
               <div className="px-6 py-4 border-t border-[#E5E7EB] flex items-center gap-3">
-                <button onClick={handleClearFilters} className="flex-1 h-10 border border-[#DDE3EE] rounded-lg text-[13px] text-[#546478] hover:bg-[#EDF0F5] transition-colors" style={{ fontWeight: 500 }}>Clear all</button>
+                <button onClick={handleClearFilters} className="flex-1 h-10 border border-[#E5E7EB] rounded-lg text-[13px] text-[#546478] hover:bg-[#EDF0F5] transition-colors" style={{ fontWeight: 500 }}>Clear all</button>
                 <button onClick={handleApplyFilters} className="flex-1 h-10 bg-[#4A6FA5] hover:bg-[#3d5a85] rounded-lg text-[13px] text-white transition-colors" style={{ fontWeight: 500 }}>Apply</button>
               </div>
             </div>
@@ -503,16 +503,16 @@ export function Clients() {
         )}
 
         {/* ── Table ── */}
-        <div className="bg-white border border-[#DDE3EE] rounded-lg overflow-hidden">
+        <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
           {/* Filter Bar */}
-          <div className="flex items-center gap-2 px-4 py-3 bg-white border-b border-[#DDE3EE]">
+          <div className="flex items-center gap-2 px-4 py-3 bg-white border-b border-[#E5E7EB]">
             <div className="relative">
               <span className="material-icons absolute left-2.5 top-1/2 -translate-y-1/2 text-[#9AA3AF]" style={{ fontSize: "16px" }}>search</span>
               <Input type="text" placeholder="Search clients..." value={searchQuery}
                 onChange={e => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-                className="pl-8 pr-3 h-8 w-[220px] border-[#DDE3EE] text-[13px] bg-white focus:bg-white" />
+                className="pl-8 pr-3 h-8 w-[220px] border-[#E5E7EB] text-[13px] bg-white focus:bg-white" />
             </div>
-            <div className="w-px h-5 bg-[#DDE3EE] mx-1" />
+            <div className="w-px h-5 bg-[#E5E7EB] mx-1" />
             <div className="flex items-center gap-2">
               <select
                 value={qfStatus}
@@ -544,13 +544,13 @@ export function Clients() {
                 <option value="all">Balance: All</option>
                 <option value="with_balance">With balance</option>
               </select>
-              <div className="w-px h-5 bg-[#DDE3EE] mx-1" />
+              <div className="w-px h-5 bg-[#E5E7EB] mx-1" />
               <button
                 onClick={() => { setPendingFilters({ ...filterState }); setFilterPanelOpen(true); }}
                 className={`h-8 px-3 rounded-lg border text-[13px] flex items-center gap-1.5 transition-colors ${
                   activeFilterCount > 0
                     ? "border-[#4A6FA5] text-[#4A6FA5] bg-[#EEF3FA]"
-                    : "border-[#DDE3EE] text-[#546478] hover:bg-[#F5F7FA] hover:border-[#C5CEDD]"
+                    : "border-[#E5E7EB] text-[#546478] hover:bg-[#F5F7FA] hover:border-[#C5CEDD]"
                 }`}
                 style={{ fontWeight: 500 }}
               >
@@ -572,7 +572,7 @@ export function Clients() {
             <thead className="bg-[#F5F7FA]">
               <tr>
                 <th className="px-4 py-3 text-left w-10">
-                  <input type="checkbox" checked={allSelected} onChange={e => handleSelectAll(e.target.checked)} className="cursor-pointer w-4 h-4 rounded border-[#DDE3EE]" />
+                  <input type="checkbox" checked={allSelected} onChange={e => handleSelectAll(e.target.checked)} className="cursor-pointer w-4 h-4 rounded border-[#E5E7EB]" />
                 </th>
                 {clientCols.map(col => (
                   <DraggableTh
@@ -595,13 +595,13 @@ export function Clients() {
             <tbody>
               {paginatedClients.map(client => (
                 <tr key={client.id}
-                  className={`border-t border-[#DDE3EE] hover:bg-[#F5F7FA] cursor-pointer ${selectedClients.has(client.id) ? "bg-[#EDF5FF]" : ""}`}
+                  className={`border-t border-[#E5E7EB] hover:bg-[#F5F7FA] cursor-pointer ${selectedClients.has(client.id) ? "bg-[#EDF5FF]" : ""}`}
                   onClick={() => navigate(`/clients/${client.id}`)}>
                   <td className="px-4 py-4">
                     <input type="checkbox" checked={selectedClients.has(client.id)}
                       onChange={e => handleSelectClient(client.id, e.target.checked)}
                       onClick={e => e.stopPropagation()}
-                      className="cursor-pointer w-4 h-4 rounded border-[#DDE3EE]" />
+                      className="cursor-pointer w-4 h-4 rounded border-[#E5E7EB]" />
                   </td>
                   {clientCols.map(col => {
                     switch (col.key) {
@@ -653,7 +653,7 @@ export function Clients() {
           <div className="flex items-center gap-2">
             <span className="text-[13px] text-[#546478]">Rows per page:</span>
             <Select value={String(rowsPerPage)} onValueChange={v => { setRowsPerPage(Number(v)); setCurrentPage(1); }}>
-              <SelectTrigger className="h-8 w-[70px] border-[#DDE3EE] text-[13px]" style={{ fontWeight: 500 }}>
+              <SelectTrigger className="h-8 w-[70px] border-[#E5E7EB] text-[13px]" style={{ fontWeight: 500 }}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -724,7 +724,7 @@ export function Clients() {
               </div>
               <div className="px-7 py-6 space-y-3">
                 {(["Active", "Prospect", "On Hold", "Archived"] as const).map(s => (
-                  <label key={s} className="flex items-center gap-3 cursor-pointer p-3 rounded-lg border border-transparent hover:border-[#DDE3EE] hover:bg-[#F9FAFB] transition-colors">
+                  <label key={s} className="flex items-center gap-3 cursor-pointer p-3 rounded-lg border border-transparent hover:border-[#E5E7EB] hover:bg-[#F9FAFB] transition-colors">
                     <input type="radio" name="bulkStatus" value={s} checked={newBulkStatus === s} onChange={() => setNewBulkStatus(s)} className="w-4 h-4 accent-[#4A6FA5] cursor-pointer" />
                     <span className="text-[14px] text-[#1A2332]">{s}</span>
                     <span className={`ml-auto px-2.5 py-0.5 rounded-full text-[11px] ${s === "Active" ? "bg-[#DCFCE7] text-[#16A34A]" : s === "Prospect" ? "bg-[#DBEAFE] text-[#2563EB]" : s === "On Hold" ? "bg-[#FEE2E2] text-[#DC2626]" : "bg-[#F3F4F6] text-[#6B7280]"}`} style={{ fontWeight: 500 }}>{s}</span>
@@ -732,7 +732,7 @@ export function Clients() {
                 ))}
               </div>
               <div className="px-7 pb-7 flex items-center gap-3">
-                <button onClick={() => setChangeStatusOpen(false)} className="flex-1 h-10 border border-[#DDE3EE] rounded-lg text-[13px] text-[#546478] hover:bg-[#EDF0F5] transition-colors" style={{ fontWeight: 500 }}>Cancel</button>
+                <button onClick={() => setChangeStatusOpen(false)} className="flex-1 h-10 border border-[#E5E7EB] rounded-lg text-[13px] text-[#546478] hover:bg-[#EDF0F5] transition-colors" style={{ fontWeight: 500 }}>Cancel</button>
                 <button onClick={handleApplyChangeStatus} disabled={selectedClients.size === 0} className="flex-1 h-10 bg-[#4A6FA5] hover:bg-[#3d5a85] disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-[13px] text-white transition-colors" style={{ fontWeight: 500 }}>Apply</button>
               </div>
             </div>

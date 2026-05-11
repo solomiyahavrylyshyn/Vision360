@@ -68,7 +68,7 @@ export function JobForm({ open, onOpenChange, job, onSave }: JobFormProps) {
               placeholder="e.g., John Smith"
               value={formData.client}
               onChange={(e) => handleChange("client", e.target.value)}
-              className="border-[#DDE3EE]"
+              className="border-[#E5E7EB]"
               required
             />
           </div>
@@ -83,7 +83,7 @@ export function JobForm({ open, onOpenChange, job, onSave }: JobFormProps) {
               placeholder="e.g., Kitchen Renovation"
               value={formData.title}
               onChange={(e) => handleChange("title", e.target.value)}
-              className="border-[#DDE3EE]"
+              className="border-[#E5E7EB]"
               required
             />
           </div>
@@ -98,7 +98,7 @@ export function JobForm({ open, onOpenChange, job, onSave }: JobFormProps) {
                 type="date"
                 value={formData.date}
                 onChange={(e) => handleChange("date", e.target.value)}
-                className="border-[#DDE3EE]"
+                className="border-[#E5E7EB]"
                 required
               />
             </div>
@@ -112,7 +112,7 @@ export function JobForm({ open, onOpenChange, job, onSave }: JobFormProps) {
                 placeholder="e.g., Mike Johnson"
                 value={formData.assignedTo}
                 onChange={(e) => handleChange("assignedTo", e.target.value)}
-                className="border-[#DDE3EE]"
+                className="border-[#E5E7EB]"
               />
             </div>
           </div>
@@ -124,7 +124,7 @@ export function JobForm({ open, onOpenChange, job, onSave }: JobFormProps) {
                 Priority <span className="text-[#DC2626]">*</span>
               </Label>
               <Select value={formData.priority} onValueChange={(value) => handleChange("priority", value)}>
-                <SelectTrigger className="border-[#DDE3EE]">
+                <SelectTrigger className="border-[#E5E7EB]">
                   <SelectValue placeholder="Select priority" />
                 </SelectTrigger>
                 <SelectContent>
@@ -140,7 +140,7 @@ export function JobForm({ open, onOpenChange, job, onSave }: JobFormProps) {
                 Status <span className="text-[#DC2626]">*</span>
               </Label>
               <Select value={formData.status} onValueChange={(value) => handleChange("status", value)}>
-                <SelectTrigger className="border-[#DDE3EE]">
+                <SelectTrigger className="border-[#E5E7EB]">
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -165,7 +165,7 @@ export function JobForm({ open, onOpenChange, job, onSave }: JobFormProps) {
               placeholder="0"
               value={formData.estimatedHours}
               onChange={(e) => handleChange("estimatedHours", parseFloat(e.target.value) || 0)}
-              className="border-[#DDE3EE]"
+              className="border-[#E5E7EB]"
             />
           </div>
 
@@ -178,7 +178,7 @@ export function JobForm({ open, onOpenChange, job, onSave }: JobFormProps) {
               placeholder="Enter job details and requirements..."
               value={formData.description}
               onChange={(e) => handleChange("description", e.target.value)}
-              className="border-[#DDE3EE] min-h-[100px]"
+              className="border-[#E5E7EB] min-h-[100px]"
             />
             <p className="text-xs text-[#546478]">
               Provide details about the work to be performed
@@ -190,7 +190,7 @@ export function JobForm({ open, onOpenChange, job, onSave }: JobFormProps) {
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
-              className="border-[#DDE3EE] text-[#546478] hover:bg-[#F5F7FA]"
+              className="border-[#E5E7EB] text-[#546478] hover:bg-[#F5F7FA]"
             >
               Cancel
             </Button>

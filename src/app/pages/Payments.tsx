@@ -59,7 +59,7 @@ const mockPayments: Payment[] = [
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function qfClass(active: boolean) {
   return `h-8 pl-3 pr-6 border rounded-lg text-[13px] bg-white cursor-pointer focus:outline-none transition-colors ${
-    active ? "border-[#4A6FA5] text-[#4A6FA5] bg-[#EEF3FA]" : "border-[#DDE3EE] text-[#546478] hover:border-[#C5CEDD]"
+    active ? "border-[#4A6FA5] text-[#4A6FA5] bg-[#EEF3FA]" : "border-[#E5E7EB] text-[#546478] hover:border-[#C5CEDD]"
   }`;
 }
 
@@ -148,7 +148,7 @@ export function Payments() {
               <span className="material-icons" style={{ fontSize: "18px" }}>add</span>
               Record Payment
             </button>
-            <KebabMenu triggerClassName="w-9 h-9 border border-[#DDE3EE] rounded-lg bg-white">
+            <KebabMenu triggerClassName="w-9 h-9 border border-[#E5E7EB] rounded-lg bg-white">
               <KebabItem icon="view_column">Edit Columns</KebabItem>
               <KebabItem icon="swap_horiz">Change Status</KebabItem>
               <KebabItem icon="content_copy">Manage Duplicates</KebabItem>
@@ -174,34 +174,30 @@ export function Payments() {
           <Card
             key={c.label}
             onClick={() => { setQfStatus(qfStatus === c.filterVal ? "All" : c.filterVal); setPage(1); }}
-            className={`px-4 py-3 border bg-white hover:shadow-sm transition-shadow h-[110.5px] cursor-pointer ${qfStatus === c.filterVal ? "border-[#4A6FA5] ring-1 ring-[#4A6FA5]/20" : "border-[#DDE3EE]"}`}
+            className={`p-5 border bg-white hover:shadow-sm transition-shadow cursor-pointer ${qfStatus === c.filterVal ? "border-[#4A6FA5] ring-1 ring-[#4A6FA5]/20" : "border-[#E5E7EB]"}`}
           >
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-[24px] mb-0.5 leading-none" style={{ fontWeight: 700, color: "#1A2332", fontVariantNumeric: "tabular-nums" }}>{c.value}</div>
-                <div className="flex items-center gap-1.5 mb-0.5">
-                  <span className="inline-block w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: c.color }} />
-                  <div className="text-[12px]" style={{ fontWeight: 500, color: "#546478" }}>{c.label}</div>
-                </div>
-                <div className="text-[11px] text-[#546478]">{c.sub}</div>
-              </div>
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: c.color }} />
+              <div className="text-[12px]" style={{ fontWeight: 600, color: "#546478" }}>{c.label}</div>
             </div>
+            <div className="text-[24px] mb-1 leading-none" style={{ fontWeight: 700, color: "#1A2332", fontVariantNumeric: "tabular-nums" }}>{c.value}</div>
+            <div className="text-[11px] text-[#9CA3AF]">{c.sub}</div>
           </Card>
         ))}
       </div>
 
       <div className={`flex gap-6`}>
         {/* Table */}
-        <div className={`bg-white border border-[#DDE3EE] rounded-lg overflow-hidden ${selectedPayment ? "flex-1" : "w-full"}`}>
+        <div className={`bg-white border border-[#E5E7EB] rounded-xl overflow-hidden ${selectedPayment ? "flex-1" : "w-full"}`}>
           {/* Filter bar */}
-          <div className="flex items-center gap-2 px-4 py-3 bg-white border-b border-[#DDE3EE]">
+          <div className="flex items-center gap-2 px-4 py-3 bg-white border-b border-[#E5E7EB]">
             <div className="relative">
               <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: "18px" }}>search</span>
               <input type="text" placeholder="Search payments..." value={search}
                 onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-                className="w-[220px] h-9 pl-10 pr-3 border border-[#DDE3EE] rounded-lg text-[13px] focus:outline-none focus:border-[#4A6FA5] bg-white" />
+                className="w-[220px] h-9 pl-10 pr-3 border border-[#E5E7EB] rounded-lg text-[13px] focus:outline-none focus:border-[#4A6FA5] bg-white" />
             </div>
-            <div className="w-px h-5 bg-[#DDE3EE] mx-1" />
+            <div className="w-px h-5 bg-[#E5E7EB] mx-1" />
             <select value={qfStatus} onChange={e => { setQfStatus(e.target.value); setPage(1); }} className={qfClass(qfStatus !== "All")}>
               <option value="All">All statuses</option>
               {(["Completed", "Pending", "Refunded"] as PaymentStatus[]).map(s => (
@@ -217,8 +213,8 @@ export function Payments() {
                 <option key={m} value={m}>{m}</option>
               ))}
             </select>
-            <div className="w-px h-5 bg-[#DDE3EE] mx-1" />
-            <button className="h-8 px-3 border border-[#DDE3EE] rounded-lg text-[13px] text-[#546478] hover:bg-[#F5F7FA] flex items-center gap-1.5 bg-white" style={{ fontWeight: 500 }}>
+            <div className="w-px h-5 bg-[#E5E7EB] mx-1" />
+            <button className="h-8 px-3 border border-[#E5E7EB] rounded-lg text-[13px] text-[#546478] hover:bg-[#F5F7FA] flex items-center gap-1.5 bg-white" style={{ fontWeight: 500 }}>
               <span className="material-icons" style={{ fontSize: "16px" }}>tune</span>
               Filter
             </button>
@@ -231,14 +227,14 @@ export function Payments() {
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="bg-[#F5F7FA] border-b border-[#DDE3EE]">
+                <tr className="bg-[#F5F7FA] border-b border-[#E5E7EB]">
                   <th className="px-3 py-3 w-10">
                     <input type="checkbox" checked={allSelected}
                       onChange={(e) => {
                         if (e.target.checked) setSelectedIds(new Set(paginated.map(p => p.id)));
                         else setSelectedIds(new Set());
                       }}
-                      className="w-4 h-4 rounded border-[#DDE3EE] cursor-pointer accent-[#4A6FA5]" />
+                      className="w-4 h-4 rounded border-[#E5E7EB] cursor-pointer accent-[#4A6FA5]" />
                   </th>
                   {["Date", "Client", "Invoice", "Amount", "Method", "Status", "Note"].map(h => (
                     <th key={h} className="px-4 py-3 text-left text-[11px] uppercase tracking-wider text-[#546478]" style={{ fontWeight: 600 }}>{h}</th>
@@ -270,7 +266,7 @@ export function Payments() {
                             e.target.checked ? s.add(p.id) : s.delete(p.id);
                             setSelectedIds(s);
                           }}
-                          className="w-4 h-4 rounded border-[#DDE3EE] cursor-pointer accent-[#4A6FA5]" />
+                          className="w-4 h-4 rounded border-[#E5E7EB] cursor-pointer accent-[#4A6FA5]" />
                       </td>
                       <td className="px-4 py-3 text-[13px] text-[#546478]">{fmtDate(p.date)}</td>
                       <td className="px-4 py-3">
@@ -311,7 +307,7 @@ export function Payments() {
           </div>
 
           {/* Pagination */}
-          <div className="flex items-center justify-between px-4 py-3 border-t border-[#DDE3EE] bg-[#FAFBFC]">
+          <div className="flex items-center justify-between px-4 py-3 border-t border-[#E5E7EB] bg-[#FAFBFC]">
             <span className="text-[13px] text-[#546478]">
               Showing {filtered.length === 0 ? 0 : (page - 1) * perPage + 1} to {Math.min(page * perPage, filtered.length)} of {filtered.length}
             </span>
@@ -331,8 +327,8 @@ export function Payments() {
 
         {/* Detail Side Panel */}
         {selectedPayment && (
-          <div className="w-[360px] bg-white border border-[#DDE3EE] rounded-lg overflow-hidden flex-shrink-0 flex flex-col">
-            <div className="px-5 py-4 border-b border-[#DDE3EE] flex items-center justify-between">
+          <div className="w-[360px] bg-white border border-[#E5E7EB] rounded-xl overflow-hidden flex-shrink-0 flex flex-col">
+            <div className="px-5 py-4 border-b border-[#E5E7EB] flex items-center justify-between">
               <h3 className="text-[15px] text-[#1A2332]" style={{ fontWeight: 700 }}>Payment Details</h3>
               <button onClick={() => setSelectedPayment(null)} className="w-7 h-7 rounded-lg hover:bg-[#F5F7FA] flex items-center justify-center">
                 <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>close</span>
@@ -377,7 +373,7 @@ export function Payments() {
                   <div className="text-[11px] uppercase tracking-wider text-[#546478] mb-1" style={{ fontWeight: 600 }}>Invoice</div>
                   <button
                     onClick={() => navigate(`/invoices/${selectedPayment.invoiceId}`)}
-                    className="flex items-center gap-2 px-3 py-2 bg-[#F5F7FA] border border-[#DDE3EE] rounded-lg hover:bg-[#EBF0F8] transition-colors w-full text-left"
+                    className="flex items-center gap-2 px-3 py-2 bg-[#F5F7FA] border border-[#E5E7EB] rounded-lg hover:bg-[#EBF0F8] transition-colors w-full text-left"
                   >
                     <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "16px" }}>receipt</span>
                     <span className="text-[13px] text-[#4A6FA5]" style={{ fontWeight: 500 }}>{selectedPayment.invoiceNumber}</span>
@@ -390,7 +386,7 @@ export function Payments() {
                     <div className="text-[11px] uppercase tracking-wider text-[#546478] mb-1" style={{ fontWeight: 600 }}>Job</div>
                     <button
                       onClick={() => navigate(`/jobs/${selectedPayment.jobId?.replace("JOB-", "")}`)}
-                      className="flex items-center gap-2 px-3 py-2 bg-[#F5F7FA] border border-[#DDE3EE] rounded-lg hover:bg-[#EBF0F8] transition-colors w-full text-left"
+                      className="flex items-center gap-2 px-3 py-2 bg-[#F5F7FA] border border-[#E5E7EB] rounded-lg hover:bg-[#EBF0F8] transition-colors w-full text-left"
                     >
                       <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "16px" }}>work</span>
                       <span className="text-[13px] text-[#4A6FA5]" style={{ fontWeight: 500 }}>{selectedPayment.jobId}</span>
@@ -448,7 +444,7 @@ export function Payments() {
               </div>
             </div>
 
-            <div className="px-5 py-3 border-t border-[#DDE3EE] bg-[#FAFBFC] flex items-center gap-2">
+            <div className="px-5 py-3 border-t border-[#E5E7EB] bg-[#FAFBFC] flex items-center gap-2">
               <button
                 onClick={() => navigate(`/invoices/${selectedPayment.invoiceId}`)}
                 className="flex-1 py-2 bg-[#4A6FA5] text-white rounded-lg text-[13px] hover:bg-[#3d5a85] flex items-center justify-center gap-1.5"

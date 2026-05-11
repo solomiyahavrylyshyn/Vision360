@@ -564,7 +564,7 @@ export function ClientDetail() {
      KEBAB MENU
   ────────────────────────────────────────── */
   const KebabMenu = () => (
-    <KebabMenuShared triggerClassName="w-9 h-9 border border-[#DDE3EE] rounded-md bg-white" contentClassName="min-w-[220px]">
+    <KebabMenuShared triggerClassName="w-9 h-9 border border-[#E5E7EB] rounded-md bg-white" contentClassName="min-w-[220px]">
       <KebabItem icon="tab_unselected" onClick={() => setShowTabSettings(true)}>Edit Tabs</KebabItem>
       <KebabItem icon="print" onClick={() => toast.info("Print functionality coming soon")}>Print</KebabItem>
       <DropdownMenuSub>
@@ -599,9 +599,9 @@ export function ClientDetail() {
     <div className="grid grid-cols-3 gap-4 items-stretch">
 
       {/* Card 1: Contact Information */}
-      <div className="bg-white border border-[#DDE3EE] rounded-xl overflow-hidden">
+      <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
         {/* Card header */}
-        <div className="flex items-center gap-2 px-5 py-3.5 border-b border-[#DDE3EE]">
+        <div className="flex items-center gap-2 px-5 py-3.5 border-b border-[#E5E7EB]">
           <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>person</span>
           <span className="flex-1 text-[13px] font-semibold text-[#1A2332]">Contact Information</span>
           <button
@@ -648,7 +648,7 @@ export function ClientDetail() {
             <div className="text-[13px] text-[#1A2332] font-medium">{client.customerSince}</div>
           </div>
           {client.additionalContacts && client.additionalContacts.length > 0 && (
-            <div className="pt-3 border-t border-[#DDE3EE]">
+            <div className="pt-3 border-t border-[#E5E7EB]">
               <div className="text-[11px] uppercase tracking-wider text-[#546478] font-semibold mb-2">Additional Contacts</div>
               <div className="space-y-3">
                 {client.additionalContacts.map((c) => (
@@ -667,9 +667,9 @@ export function ClientDetail() {
       </div>
 
       {/* Card 2: Addresses */}
-      <div className="bg-white border border-[#DDE3EE] rounded-xl overflow-hidden">
+      <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
         {/* Card header */}
-        <div className="flex items-center gap-2 px-5 py-3.5 border-b border-[#DDE3EE]">
+        <div className="flex items-center gap-2 px-5 py-3.5 border-b border-[#E5E7EB]">
           <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>location_on</span>
           <span className="flex-1 text-[13px] font-semibold text-[#1A2332]">Addresses</span>
           <button
@@ -687,7 +687,7 @@ export function ClientDetail() {
             <div className="text-[13px] text-[#1A2332] font-medium leading-[20px]">{client.billingAddress}</div>
             <div className="text-[13px] text-[#1A2332] font-medium leading-[20px]">{client.billingCity}, {client.billingState} {client.billingZip}</div>
           </div>
-          <label className="flex items-center gap-2 cursor-pointer pb-4 border-b border-[#DDE3EE]">
+          <label className="flex items-center gap-2 cursor-pointer pb-4 border-b border-[#E5E7EB]">
             <input
               type="checkbox"
               checked={clientData.isBillingSameAsService}
@@ -708,16 +708,16 @@ export function ClientDetail() {
               defaultValue={client.gateCode ? `Gate code: ${client.gateCode}` : ""}
               placeholder="Gate code, access notes…"
               rows={2}
-              className="w-full text-[12px] text-[#374151] border border-[#DDE3EE] rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-[#4A6FA5] bg-[#F9FAFB] placeholder:text-[#9CA3AF]"
+              className="w-full text-[12px] text-[#374151] border border-[#E5E7EB] rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-[#4A6FA5] bg-[#F9FAFB] placeholder:text-[#9CA3AF]"
             />
           </div>
         </div>
       </div>
 
       {/* Card 3: Notes */}
-      <div className="bg-white border border-[#DDE3EE] rounded-xl overflow-hidden">
+      <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
         {/* Card header */}
-        <div className="flex items-center gap-2 px-5 py-3.5 border-b border-[#DDE3EE]">
+        <div className="flex items-center gap-2 px-5 py-3.5 border-b border-[#E5E7EB]">
           <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>notes</span>
           <span className="flex-1 text-[13px] font-semibold text-[#1A2332]">
             Notes
@@ -736,14 +736,14 @@ export function ClientDetail() {
 
         {/* Add note form */}
         {addingNote && (
-          <div className="px-5 py-3 border-b border-[#DDE3EE] bg-[#F9FAFB]">
+          <div className="px-5 py-3 border-b border-[#E5E7EB] bg-[#F9FAFB]">
             <textarea
               autoFocus
               value={newNoteText}
               onChange={e => setNewNoteText(e.target.value)}
               placeholder="Write a note…"
               rows={3}
-              className="w-full text-[13px] text-[#1A2332] border border-[#DDE3EE] rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-[#4A6FA5] bg-white placeholder:text-[#9CA3AF]"
+              className="w-full text-[13px] text-[#1A2332] border border-[#E5E7EB] rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-[#4A6FA5] bg-white placeholder:text-[#9CA3AF]"
             />
             <div className="flex gap-2 mt-2">
               <button
@@ -783,7 +783,7 @@ export function ClientDetail() {
             const isExpanded = expandedNoteIds.has(note.id);
             const isEditingThis = editingNoteId === note.id;
             return (
-              <div key={note.id} className={`group py-3 ${index < arr.length - 1 ? "border-b border-[#DDE3EE]" : ""}`}>
+              <div key={note.id} className={`group py-3 ${index < arr.length - 1 ? "border-b border-[#E5E7EB]" : ""}`}>
                 {isEditingThis ? (
                   /* ── Edit mode ── */
                   <div>
@@ -868,7 +868,7 @@ export function ClientDetail() {
           {clientData.notesArray.length > 4 && (
             <button
               onClick={() => setNotesExpanded(v => !v)}
-              className="w-full py-2.5 text-[12px] text-[#4A6FA5] hover:text-[#3d5a85] hover:bg-[#F5F7FA] rounded-lg transition-colors flex items-center justify-center gap-1 border-t border-[#DDE3EE] mt-1"
+              className="w-full py-2.5 text-[12px] text-[#4A6FA5] hover:text-[#3d5a85] hover:bg-[#F5F7FA] rounded-lg transition-colors flex items-center justify-center gap-1 border-t border-[#E5E7EB] mt-1"
               style={{ fontWeight: 500 }}
             >
               <span className="material-icons" style={{ fontSize: "14px" }}>
@@ -879,7 +879,7 @@ export function ClientDetail() {
           )}</>
         </div>
         {/* Custom Fields + Taxable */}
-        <div className="p-5 space-y-3 border-t border-[#DDE3EE]">
+        <div className="p-5 space-y-3 border-t border-[#E5E7EB]">
           {cfClientFields.slice(0, 2).map((field, idx) => {
             const cfKey = `cf_${idx}` as keyof typeof clientData;
             const cfValue = (clientData as Record<string, string>)[`cf_${idx}`] ?? "";
@@ -889,15 +889,15 @@ export function ClientDetail() {
                 <div className="text-[11px] uppercase tracking-wider text-[#546478] font-semibold mb-1">{field.label}</div>
                 {field.type === "text" && (
                   <input value={cfValue} onChange={e => setCf(e.target.value)} placeholder={field.label}
-                    className="w-full h-8 px-3 text-[13px] border border-[#DDE3EE] rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-[#4A6FA5]" />
+                    className="w-full h-8 px-3 text-[13px] border border-[#E5E7EB] rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-[#4A6FA5]" />
                 )}
                 {field.type === "number" && (
                   <input type="number" value={cfValue} onChange={e => setCf(e.target.value)} placeholder="0"
-                    className="w-full h-8 px-3 text-[13px] border border-[#DDE3EE] rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-[#4A6FA5]" />
+                    className="w-full h-8 px-3 text-[13px] border border-[#E5E7EB] rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-[#4A6FA5]" />
                 )}
                 {field.type === "date" && (
                   <input type="date" value={cfValue} onChange={e => setCf(e.target.value)}
-                    className="w-full h-8 px-3 text-[13px] border border-[#DDE3EE] rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-[#4A6FA5]" />
+                    className="w-full h-8 px-3 text-[13px] border border-[#E5E7EB] rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-[#4A6FA5]" />
                 )}
                 {field.type === "checkbox" && (
                   <label className="flex items-center gap-2 cursor-pointer">
@@ -908,7 +908,7 @@ export function ClientDetail() {
                 )}
                 {field.type === "dropdown" && (
                   <Select value={cfValue || "none"} onValueChange={v => setCf(v === "none" ? "" : v)}>
-                    <SelectTrigger className="border-[#DDE3EE] bg-white h-8 text-[13px] rounded-lg" style={{ fontWeight: 400 }}>
+                    <SelectTrigger className="border-[#E5E7EB] bg-white h-8 text-[13px] rounded-lg" style={{ fontWeight: 400 }}>
                       <SelectValue placeholder={`Select ${field.label}`} />
                     </SelectTrigger>
                     <SelectContent>
@@ -927,7 +927,7 @@ export function ClientDetail() {
             </span>
           </p>
           {/* Taxable checkbox */}
-          <label className="flex items-center gap-2.5 cursor-pointer pt-1 border-t border-[#DDE3EE]">
+          <label className="flex items-center gap-2.5 cursor-pointer pt-1 border-t border-[#E5E7EB]">
             <input
               type="checkbox"
               checked={clientData.isTaxable}
@@ -956,7 +956,7 @@ export function ClientDetail() {
   const EditForm = () => (
     <div className="space-y-6">
       {/* 1. Details */}
-      <div className="bg-white border border-[#E5E7EB] rounded-lg overflow-hidden">
+      <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
         <div className="px-6 py-4 border-b border-[#E5E7EB]">
           <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Details</h3>
         </div>
@@ -964,45 +964,45 @@ export function ClientDetail() {
           {/* Customer number */}
           <div>
             <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Customer number</Label>
-            <Input placeholder="e.g. C-10245" value={editedClient.customerId} onChange={(e) => handleFieldChange("customerId", e.target.value)} className="border-[#D1D5DB] bg-white h-10 text-[14px]" />
+            <Input placeholder="e.g. C-10245" value={editedClient.customerId} onChange={(e) => handleFieldChange("customerId", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
           </div>
           {/* Name row */}
           <div>
             <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Name</Label>
             <div className="grid grid-cols-[100px_1fr_60px_1fr] gap-3">
               <Select value={editedClient.title || "none"} onValueChange={(v) => handleFieldChange("title", v === "none" ? "" : v)}>
-                <SelectTrigger className="border-[#D1D5DB] bg-white h-10 text-[14px]"><SelectValue placeholder="Title" /></SelectTrigger>
+                <SelectTrigger className="border-[#E5E7EB] bg-white h-10 text-[14px]"><SelectValue placeholder="Title" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">Title</SelectItem>
                   {["Mr.", "Mrs.", "Ms.", "Dr.", "Prof."].map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
                 </SelectContent>
               </Select>
-              <Input placeholder="First name" value={editedClient.firstName} onChange={(e) => handleFieldChange("firstName", e.target.value)} className="border-[#D1D5DB] bg-white h-10 text-[14px]" />
-              <Input placeholder="M.I." value={editedClient.middleInitial} onChange={(e) => handleFieldChange("middleInitial", e.target.value.slice(0,1).toUpperCase())} className="border-[#D1D5DB] bg-white h-10 text-[14px]" maxLength={1} />
-              <Input placeholder="Last name" value={editedClient.lastName} onChange={(e) => handleFieldChange("lastName", e.target.value)} className="border-[#D1D5DB] bg-white h-10 text-[14px]" />
+              <Input placeholder="First name" value={editedClient.firstName} onChange={(e) => handleFieldChange("firstName", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
+              <Input placeholder="M.I." value={editedClient.middleInitial} onChange={(e) => handleFieldChange("middleInitial", e.target.value.slice(0,1).toUpperCase())} className="border-[#E5E7EB] bg-white h-10 text-[14px]" maxLength={1} />
+              <Input placeholder="Last name" value={editedClient.lastName} onChange={(e) => handleFieldChange("lastName", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
             </div>
           </div>
           {/* Preferred name */}
           <div>
             <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Preferred name (Goes by)</Label>
-            <Input placeholder="e.g. Mia, Bobby, TJ" value={editedClient.preferredName} onChange={(e) => handleFieldChange("preferredName", e.target.value)} className="border-[#D1D5DB] bg-white h-10 text-[14px]" />
+            <Input placeholder="e.g. Mia, Bobby, TJ" value={editedClient.preferredName} onChange={(e) => handleFieldChange("preferredName", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
           </div>
           {/* Company + Role */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Company name</Label>
-              <Input placeholder="Company name" value={editedClient.company} onChange={(e) => handleFieldChange("company", e.target.value)} className="border-[#D1D5DB] bg-white h-10 text-[14px]" />
+              <Input placeholder="Company name" value={editedClient.company} onChange={(e) => handleFieldChange("company", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
             </div>
             <div>
               <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Role</Label>
-              <Input placeholder="e.g. Owner, Manager" value={editedClient.role} onChange={(e) => handleFieldChange("role", e.target.value)} className="border-[#D1D5DB] bg-white h-10 text-[14px]" />
+              <Input placeholder="e.g. Owner, Manager" value={editedClient.role} onChange={(e) => handleFieldChange("role", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
             </div>
           </div>
         </div>
       </div>
 
       {/* 2. Billing vs Service Address */}
-      <div className="bg-white border border-[#E5E7EB] rounded-lg overflow-hidden">
+      <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
         <div className="px-6 py-5">
           <label className="flex items-center gap-2.5 cursor-pointer">
             <input
@@ -1017,7 +1017,7 @@ export function ClientDetail() {
       </div>
 
       {/* 3. Tags */}
-      <div className="bg-white border border-[#E5E7EB] rounded-lg overflow-hidden">
+      <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
         <div className="px-6 py-4 border-b border-[#E5E7EB]">
           <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Tags</h3>
         </div>
@@ -1070,7 +1070,7 @@ export function ClientDetail() {
       </div>
 
       {/* 4. Taxable */}
-      <div className="bg-white border border-[#E5E7EB] rounded-lg overflow-hidden">
+      <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
         <div className="px-6 py-5">
           <label className="flex items-center gap-2.5 cursor-pointer">
             <input
@@ -1085,7 +1085,7 @@ export function ClientDetail() {
       </div>
 
       {/* 5. Additional Contact Information */}
-      <div className="bg-white border border-[#E5E7EB] rounded-lg overflow-hidden">
+      <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
         <div className="px-6 py-4 border-b border-[#E5E7EB]">
           <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Additional Contact Information</h3>
         </div>
@@ -1094,33 +1094,33 @@ export function ClientDetail() {
           <div>
             <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Primary phone number</Label>
             <div className="flex gap-[19px]">
-              <Input type="tel" placeholder="(555) 123-4567" value={editedClient.mobilePhone} onChange={(e) => handleFieldChange("mobilePhone", e.target.value)} className="border-[#D1D5DB] bg-white h-10 text-[14px] flex-1" />
-              <Input type="text" placeholder="EXT" value={editedClient.mobilePhoneExt} onChange={(e) => handleFieldChange("mobilePhoneExt", e.target.value)} className="border-[#D1D5DB] bg-white h-10 text-[14px] w-[80px]" />
+              <Input type="tel" placeholder="(555) 123-4567" value={editedClient.mobilePhone} onChange={(e) => handleFieldChange("mobilePhone", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px] flex-1" />
+              <Input type="text" placeholder="EXT" value={editedClient.mobilePhoneExt} onChange={(e) => handleFieldChange("mobilePhoneExt", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px] w-[80px]" />
             </div>
           </div>
           {/* Secondary phone */}
           <div>
             <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Secondary phone number</Label>
             <div className="flex gap-[19px]">
-              <Input type="tel" placeholder="(555) 456-7890" value={editedClient.workPhone} onChange={(e) => handleFieldChange("workPhone", e.target.value)} className="border-[#D1D5DB] bg-white h-10 text-[14px] flex-1" />
-              <Input type="text" placeholder="EXT" value={editedClient.workPhoneExt} onChange={(e) => handleFieldChange("workPhoneExt", e.target.value)} className="border-[#D1D5DB] bg-white h-10 text-[14px] w-[80px]" />
+              <Input type="tel" placeholder="(555) 456-7890" value={editedClient.workPhone} onChange={(e) => handleFieldChange("workPhone", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px] flex-1" />
+              <Input type="text" placeholder="EXT" value={editedClient.workPhoneExt} onChange={(e) => handleFieldChange("workPhoneExt", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px] w-[80px]" />
             </div>
           </div>
           {/* Email */}
           <div>
             <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Email</Label>
-            <Input type="email" placeholder="john@example.com" value={editedClient.email} onChange={(e) => handleFieldChange("email", e.target.value)} className="border-[#D1D5DB] bg-white h-10 text-[14px]" />
+            <Input type="email" placeholder="john@example.com" value={editedClient.email} onChange={(e) => handleFieldChange("email", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
           </div>
           {/* Website */}
           <div>
             <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Website</Label>
-            <Input type="url" placeholder="https://example.com" value={editedClient.website} onChange={(e) => handleFieldChange("website", e.target.value)} className="border-[#D1D5DB] bg-white h-10 text-[14px]" />
+            <Input type="url" placeholder="https://example.com" value={editedClient.website} onChange={(e) => handleFieldChange("website", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
           </div>
         </div>
       </div>
 
       {/* 6. Payment Details */}
-      <div className="bg-white border border-[#E5E7EB] rounded-lg overflow-hidden">
+      <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
         <div className="px-6 py-4 border-b border-[#E5E7EB]">
           <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Payment Details</h3>
         </div>
@@ -1129,7 +1129,7 @@ export function ClientDetail() {
             <div>
               <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Payment terms</Label>
               <Select value={editedClient.paymentTerms || "none"} onValueChange={(v) => handleFieldChange("paymentTerms", v === "none" ? "" : v)}>
-                <SelectTrigger className="border-[#D1D5DB] bg-white h-10 text-[14px]"><SelectValue placeholder="Select terms" /></SelectTrigger>
+                <SelectTrigger className="border-[#E5E7EB] bg-white h-10 text-[14px]"><SelectValue placeholder="Select terms" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">— Select —</SelectItem>
                   <SelectItem value="Due on receipt">Due on receipt</SelectItem>
@@ -1143,7 +1143,7 @@ export function ClientDetail() {
             <div>
               <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Payment method</Label>
               <Select value={editedClient.paymentMethod || "none"} onValueChange={(v) => handleFieldChange("paymentMethod", v === "none" ? "" : v)}>
-                <SelectTrigger className="border-[#D1D5DB] bg-white h-10 text-[14px]"><SelectValue placeholder="Select method" /></SelectTrigger>
+                <SelectTrigger className="border-[#E5E7EB] bg-white h-10 text-[14px]"><SelectValue placeholder="Select method" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">— Select —</SelectItem>
                   <SelectItem value="Cash">Cash</SelectItem>
@@ -1157,7 +1157,7 @@ export function ClientDetail() {
           </div>
           <div>
             <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Credit limit</Label>
-            <Input type="number" placeholder="0" value={editedClient.creditLimit} onChange={(e) => handleFieldChange("creditLimit", parseFloat(e.target.value) || 0)} className="border-[#D1D5DB] bg-white h-10 text-[14px]" />
+            <Input type="number" placeholder="0" value={editedClient.creditLimit} onChange={(e) => handleFieldChange("creditLimit", parseFloat(e.target.value) || 0)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
           </div>
         </div>
       </div>
@@ -1234,7 +1234,7 @@ export function ClientDetail() {
 
       case "invoices":
         return (
-          <div className="bg-white border border-[#E5E7EB] rounded-lg overflow-hidden">
+          <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
             <div className="border-b border-[#E5E7EB] px-6 py-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Invoices</h3>
@@ -1252,7 +1252,7 @@ export function ClientDetail() {
 
       case "payments":
         return (
-          <div className="bg-white border border-[#E5E7EB] rounded-lg overflow-hidden">
+          <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
             <div className="border-b border-[#E5E7EB] px-6 py-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Payments</h3>
@@ -1273,7 +1273,7 @@ export function ClientDetail() {
         return (
           <div className="space-y-4">
             {/* Header card */}
-            <div className="bg-white border border-[#E5E7EB] rounded-lg overflow-hidden">
+            <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
               <div className="px-6 py-4 flex items-center justify-between">
                 <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Service Address</h3>
                 <Button
@@ -1337,18 +1337,18 @@ export function ClientDetail() {
                   </button>
                 </div>
                 <div className="flex gap-3">
-                  <Input placeholder="Street address" value={newAddr.street} onChange={(e) => setNewAddr(p => ({ ...p, street: e.target.value }))} className="border-[#D1D5DB] bg-white h-10 text-[14px] flex-1" />
-                  <Input placeholder="Unit" value={newAddr.unit} onChange={(e) => setNewAddr(p => ({ ...p, unit: e.target.value }))} className="border-[#D1D5DB] bg-white h-10 text-[14px] w-[100px]" />
+                  <Input placeholder="Street address" value={newAddr.street} onChange={(e) => setNewAddr(p => ({ ...p, street: e.target.value }))} className="border-[#E5E7EB] bg-white h-10 text-[14px] flex-1" />
+                  <Input placeholder="Unit" value={newAddr.unit} onChange={(e) => setNewAddr(p => ({ ...p, unit: e.target.value }))} className="border-[#E5E7EB] bg-white h-10 text-[14px] w-[100px]" />
                 </div>
                 <div className="grid grid-cols-3 gap-3">
-                  <Input placeholder="City" value={newAddr.city} onChange={(e) => setNewAddr(p => ({ ...p, city: e.target.value }))} className="border-[#D1D5DB] bg-white h-10 text-[14px]" />
-                  <Input placeholder="State" value={newAddr.state} onChange={(e) => setNewAddr(p => ({ ...p, state: e.target.value }))} className="border-[#D1D5DB] bg-white h-10 text-[14px]" />
-                  <Input placeholder="ZIP" value={newAddr.zip} onChange={(e) => setNewAddr(p => ({ ...p, zip: e.target.value }))} className="border-[#D1D5DB] bg-white h-10 text-[14px]" />
+                  <Input placeholder="City" value={newAddr.city} onChange={(e) => setNewAddr(p => ({ ...p, city: e.target.value }))} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
+                  <Input placeholder="State" value={newAddr.state} onChange={(e) => setNewAddr(p => ({ ...p, state: e.target.value }))} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
+                  <Input placeholder="ZIP" value={newAddr.zip} onChange={(e) => setNewAddr(p => ({ ...p, zip: e.target.value }))} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
                 </div>
-                <Input placeholder="County" value={newAddr.county} onChange={(e) => setNewAddr(p => ({ ...p, county: e.target.value }))} className="border-[#D1D5DB] bg-white h-10 text-[14px]" />
-                <Input placeholder="Notes (gate code, access instructions…)" value={newAddr.notes} onChange={(e) => setNewAddr(p => ({ ...p, notes: e.target.value }))} className="border-[#D1D5DB] bg-white h-10 text-[14px]" />
+                <Input placeholder="County" value={newAddr.county} onChange={(e) => setNewAddr(p => ({ ...p, county: e.target.value }))} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
+                <Input placeholder="Notes (gate code, access instructions…)" value={newAddr.notes} onChange={(e) => setNewAddr(p => ({ ...p, notes: e.target.value }))} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
                 <div className="flex justify-end gap-2 pt-1">
-                  <Button variant="outline" size="sm" className="border-[#DDE3EE] text-[#546478]" onClick={() => setShowAddAddress(false)}>Cancel</Button>
+                  <Button variant="outline" size="sm" className="border-[#E5E7EB] text-[#546478]" onClick={() => setShowAddAddress(false)}>Cancel</Button>
                   <Button
                     size="sm"
                     className="bg-[#4A6FA5] hover:bg-[#3d5a85] text-white"
@@ -1374,7 +1374,7 @@ export function ClientDetail() {
         return (
           <div className="space-y-4">
             {/* Header */}
-            <div className="bg-white border border-[#E5E7EB] rounded-lg overflow-hidden">
+            <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
               <div className="px-6 py-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Documents</h3>
@@ -1394,7 +1394,7 @@ export function ClientDetail() {
             {/* Drop zone */}
             <div
               className={`border-2 border-dashed rounded-lg px-6 py-8 text-center transition-colors cursor-pointer ${
-                isDragOver ? "border-[#4A6FA5] bg-[#EEF2F8]" : "border-[#D1D5DB] bg-white hover:border-[#4A6FA5] hover:bg-[#F9FAFB]"
+                isDragOver ? "border-[#4A6FA5] bg-[#EEF2F8]" : "border-[#E5E7EB] bg-white hover:border-[#4A6FA5] hover:bg-[#F9FAFB]"
               }`}
               onClick={() => fileInputRef.current?.click()}
               onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
@@ -1448,7 +1448,7 @@ export function ClientDetail() {
 
       case "notes":
         return (
-          <div className="bg-white border border-[#E5E7EB] rounded-lg overflow-hidden">
+          <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
             <div className="border-b border-[#E5E7EB] px-6 py-4 flex items-center justify-between">
               <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Notes</h3>
               <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-[#F5F7FA]" onClick={() => toast.info("Add note coming soon")}>
@@ -1518,7 +1518,7 @@ export function ClientDetail() {
                 <Button
                   variant="outline"
                   onClick={handleCancelClick}
-                  className="border-[#DDE3EE] text-[#546478] hover:bg-[#EDF0F5] h-8 px-3 text-[13px]"
+                  className="border-[#E5E7EB] text-[#546478] hover:bg-[#EDF0F5] h-8 px-3 text-[13px]"
                 >
                   Cancel
                 </Button>
@@ -1576,7 +1576,7 @@ export function ClientDetail() {
                 { label: "Past Due",      value: `$${client.pastDueBalance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, color: "#DC2626" },
                 { label: "Open Jobs",     value: "3", color: "#1A2332" },
               ].map(({ label, value, color }) => (
-                <div key={label} className="w-[180px] bg-white border border-[#DDE3EE] rounded-xl px-4 py-3">
+                <div key={label} className="w-[180px] bg-white border border-[#E5E7EB] rounded-xl px-4 py-3">
                   <div className="text-[12px] text-[#546478] mb-1">{label}</div>
                   <div className="text-[22px] tabular-nums" style={{ fontWeight: 700, color, letterSpacing: "-0.01em" }}>{value}</div>
                 </div>
@@ -1645,24 +1645,24 @@ export function ClientDetail() {
                     <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Name</Label>
                     <div className="grid grid-cols-[100px_1fr_60px_1fr] gap-3">
                       <Select value={editedClient.title || "none"} onValueChange={(v) => handleFieldChange("title", v === "none" ? "" : v)}>
-                        <SelectTrigger className="border-[#D1D5DB] bg-white h-10 text-[14px]"><SelectValue placeholder="Title" /></SelectTrigger>
+                        <SelectTrigger className="border-[#E5E7EB] bg-white h-10 text-[14px]"><SelectValue placeholder="Title" /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="none">Title</SelectItem>
                           {["Mr.", "Mrs.", "Ms.", "Dr.", "Prof."].map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
                         </SelectContent>
                       </Select>
-                      <Input placeholder="First name" value={editedClient.firstName} onChange={(e) => handleFieldChange("firstName", e.target.value)} className="border-[#D1D5DB] bg-white h-10 text-[14px]" />
-                      <Input placeholder="M.I." value={editedClient.middleInitial} onChange={(e) => handleFieldChange("middleInitial", e.target.value.slice(0, 1).toUpperCase())} className="border-[#D1D5DB] bg-white h-10 text-[14px]" maxLength={1} />
-                      <Input placeholder="Last name" value={editedClient.lastName} onChange={(e) => handleFieldChange("lastName", e.target.value)} className="border-[#D1D5DB] bg-white h-10 text-[14px]" />
+                      <Input placeholder="First name" value={editedClient.firstName} onChange={(e) => handleFieldChange("firstName", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
+                      <Input placeholder="M.I." value={editedClient.middleInitial} onChange={(e) => handleFieldChange("middleInitial", e.target.value.slice(0, 1).toUpperCase())} className="border-[#E5E7EB] bg-white h-10 text-[14px]" maxLength={1} />
+                      <Input placeholder="Last name" value={editedClient.lastName} onChange={(e) => handleFieldChange("lastName", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
                     </div>
                   </div>
                   <div>
                     <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Preferred name</Label>
-                    <Input placeholder="e.g. Mike" value={editedClient.preferredName} onChange={(e) => handleFieldChange("preferredName", e.target.value)} className="border-[#D1D5DB] bg-white h-10 text-[14px]" />
+                    <Input placeholder="e.g. Mike" value={editedClient.preferredName} onChange={(e) => handleFieldChange("preferredName", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
                   </div>
                   <div>
                     <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Role</Label>
-                    <Input placeholder="e.g. Property Owner" value={editedClient.role} onChange={(e) => handleFieldChange("role", e.target.value)} className="border-[#D1D5DB] bg-white h-10 text-[14px]" />
+                    <Input placeholder="e.g. Property Owner" value={editedClient.role} onChange={(e) => handleFieldChange("role", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
                   </div>
                 </>
               )}
@@ -1671,54 +1671,54 @@ export function ClientDetail() {
                 <>
                   <div>
                     <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Billing Address</Label>
-                    <Input placeholder="Street address" value={editedClient.address} onChange={(e) => handleFieldChange("address", e.target.value)} className="border-[#D1D5DB] bg-white h-10 text-[14px] mb-2" />
-                    <Input placeholder="Unit / Suite" value={editedClient.unit} onChange={(e) => handleFieldChange("unit", e.target.value)} className="border-[#D1D5DB] bg-white h-10 text-[14px]" />
+                    <Input placeholder="Street address" value={editedClient.address} onChange={(e) => handleFieldChange("address", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px] mb-2" />
+                    <Input placeholder="Unit / Suite" value={editedClient.unit} onChange={(e) => handleFieldChange("unit", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
                   </div>
                   <div className="grid grid-cols-[1fr_120px_120px] gap-3">
                     <div>
                       <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>City</Label>
-                      <Input value={editedClient.city} onChange={(e) => handleFieldChange("city", e.target.value)} className="border-[#D1D5DB] bg-white h-10 text-[14px]" />
+                      <Input value={editedClient.city} onChange={(e) => handleFieldChange("city", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
                     </div>
                     <div>
                       <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>State</Label>
-                      <Input value={editedClient.state} onChange={(e) => handleFieldChange("state", e.target.value)} className="border-[#D1D5DB] bg-white h-10 text-[14px]" />
+                      <Input value={editedClient.state} onChange={(e) => handleFieldChange("state", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
                     </div>
                     <div>
                       <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>ZIP</Label>
-                      <Input value={editedClient.zip} onChange={(e) => handleFieldChange("zip", e.target.value)} className="border-[#D1D5DB] bg-white h-10 text-[14px]" />
+                      <Input value={editedClient.zip} onChange={(e) => handleFieldChange("zip", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
                     </div>
                   </div>
                   <div className="grid grid-cols-[1fr_100px] gap-3">
                     <div>
                       <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Primary phone</Label>
-                      <Input value={editedClient.mobilePhone} onChange={(e) => handleFieldChange("mobilePhone", e.target.value)} className="border-[#D1D5DB] bg-white h-10 text-[14px]" />
+                      <Input value={editedClient.mobilePhone} onChange={(e) => handleFieldChange("mobilePhone", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
                     </div>
                     <div>
                       <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Ext.</Label>
-                      <Input value={editedClient.mobilePhoneExt} onChange={(e) => handleFieldChange("mobilePhoneExt", e.target.value)} className="border-[#D1D5DB] bg-white h-10 text-[14px]" />
+                      <Input value={editedClient.mobilePhoneExt} onChange={(e) => handleFieldChange("mobilePhoneExt", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
                     </div>
                   </div>
                   <div className="grid grid-cols-[1fr_100px] gap-3">
                     <div>
                       <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Secondary phone</Label>
-                      <Input value={editedClient.workPhone} onChange={(e) => handleFieldChange("workPhone", e.target.value)} className="border-[#D1D5DB] bg-white h-10 text-[14px]" />
+                      <Input value={editedClient.workPhone} onChange={(e) => handleFieldChange("workPhone", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
                     </div>
                     <div>
                       <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Ext.</Label>
-                      <Input value={editedClient.workPhoneExt} onChange={(e) => handleFieldChange("workPhoneExt", e.target.value)} className="border-[#D1D5DB] bg-white h-10 text-[14px]" />
+                      <Input value={editedClient.workPhoneExt} onChange={(e) => handleFieldChange("workPhoneExt", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
                     </div>
                   </div>
                   <div>
                     <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Email</Label>
-                    <Input type="email" value={editedClient.email} onChange={(e) => handleFieldChange("email", e.target.value)} className="border-[#D1D5DB] bg-white h-10 text-[14px]" />
+                    <Input type="email" value={editedClient.email} onChange={(e) => handleFieldChange("email", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
                   </div>
                   <div>
                     <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Website</Label>
-                    <Input value={editedClient.website} onChange={(e) => handleFieldChange("website", e.target.value)} className="border-[#D1D5DB] bg-white h-10 text-[14px]" />
+                    <Input value={editedClient.website} onChange={(e) => handleFieldChange("website", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
                   </div>
                   <div>
                     <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Company name</Label>
-                    <Input value={editedClient.company} onChange={(e) => handleFieldChange("company", e.target.value)} className="border-[#D1D5DB] bg-white h-10 text-[14px]" />
+                    <Input value={editedClient.company} onChange={(e) => handleFieldChange("company", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
                   </div>
                 </>
               )}
@@ -1728,7 +1728,7 @@ export function ClientDetail() {
                   <div>
                     <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Payment terms</Label>
                     <Select value={editedClient.paymentTerms || "none"} onValueChange={(v) => handleFieldChange("paymentTerms", v === "none" ? "" : v)}>
-                      <SelectTrigger className="border-[#D1D5DB] bg-white h-10 text-[14px]"><SelectValue placeholder="Select terms" /></SelectTrigger>
+                      <SelectTrigger className="border-[#E5E7EB] bg-white h-10 text-[14px]"><SelectValue placeholder="Select terms" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="none">— Select —</SelectItem>
                         <SelectItem value="Due on receipt">Due on receipt</SelectItem>
@@ -1741,12 +1741,12 @@ export function ClientDetail() {
                   </div>
                   <div>
                     <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Credit limit</Label>
-                    <Input type="number" placeholder="0" value={editedClient.creditLimit} onChange={(e) => handleFieldChange("creditLimit", parseFloat(e.target.value) || 0)} className="border-[#D1D5DB] bg-white h-10 text-[14px]" />
+                    <Input type="number" placeholder="0" value={editedClient.creditLimit} onChange={(e) => handleFieldChange("creditLimit", parseFloat(e.target.value) || 0)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
                   </div>
                   <div>
                     <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Payment method</Label>
                     <Select value={editedClient.paymentMethod || "none"} onValueChange={(v) => handleFieldChange("paymentMethod", v === "none" ? "" : v)}>
-                      <SelectTrigger className="border-[#D1D5DB] bg-white h-10 text-[14px]"><SelectValue placeholder="Select method" /></SelectTrigger>
+                      <SelectTrigger className="border-[#E5E7EB] bg-white h-10 text-[14px]"><SelectValue placeholder="Select method" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="none">— Select —</SelectItem>
                         <SelectItem value="Cash">Cash</SelectItem>
@@ -1759,7 +1759,7 @@ export function ClientDetail() {
                   </div>
                   <div>
                     <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Department</Label>
-                    <Input value={editedClient.department} onChange={(e) => handleFieldChange("department", e.target.value)} className="border-[#D1D5DB] bg-white h-10 text-[14px]" />
+                    <Input value={editedClient.department} onChange={(e) => handleFieldChange("department", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
                   </div>
                   <label className="flex items-center gap-2.5 cursor-pointer pt-1">
                     <input
@@ -1779,7 +1779,7 @@ export function ClientDetail() {
               <Button
                 variant="outline"
                 onClick={() => setEditingSection(null)}
-                className="border-[#DDE3EE] text-[#546478] hover:bg-[#EDF0F5] h-9 px-4 text-[13px]"
+                className="border-[#E5E7EB] text-[#546478] hover:bg-[#EDF0F5] h-9 px-4 text-[13px]"
               >
                 Cancel
               </Button>

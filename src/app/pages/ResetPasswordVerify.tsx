@@ -129,7 +129,7 @@ export function ResetPasswordVerify() {
                     value={digit}
                     onChange={(e) => handleInputChange(i, e.target.value)}
                     onKeyDown={(e) => handleKeyDown(i, e)}
-                    className="w-full h-14 text-center text-2xl font-bold border-2 border-[#DDE3EE] rounded-xl bg-[#F5F7FA] focus:bg-white focus:border-[#4A6FA5] focus:outline-none transition-all"
+                    className="w-full h-14 text-center text-2xl font-bold border-2 border-[#E5E7EB] rounded-xl bg-[#F5F7FA] focus:bg-white focus:border-[#4A6FA5] focus:outline-none transition-all"
                     autoFocus={i === 0}
                   />
                 ))}

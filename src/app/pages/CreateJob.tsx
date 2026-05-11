@@ -89,7 +89,7 @@ export function CreateJob() {
             placeholder="Job Title"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="w-full px-4 py-3 border border-[#DDE3EE] rounded-md text-sm focus:outline-none focus:border-[#4A6FA5]"
+            className="w-full px-4 py-3 border border-[#E5E7EB] rounded-md text-sm focus:outline-none focus:border-[#4A6FA5]"
           />
           <div className="grid grid-cols-[1fr_auto] gap-4">
             <input
@@ -97,7 +97,7 @@ export function CreateJob() {
               placeholder="Select a client"
               value={client}
               onChange={(e) => setClient(e.target.value)}
-              className="px-4 py-3 border border-[#DDE3EE] rounded-md text-sm focus:outline-none focus:border-[#4A6FA5]"
+              className="px-4 py-3 border border-[#E5E7EB] rounded-md text-sm focus:outline-none focus:border-[#4A6FA5]"
             />
             <div className="flex items-center gap-2">
               <span className="text-sm text-[#546478]">Job #</span>
@@ -105,7 +105,7 @@ export function CreateJob() {
                 type="text"
                 value={jobNumber}
                 onChange={(e) => setJobNumber(e.target.value)}
-                className="w-24 px-3 py-3 border border-[#DDE3EE] rounded-md text-sm focus:outline-none focus:border-[#4A6FA5]"
+                className="w-24 px-3 py-3 border border-[#E5E7EB] rounded-md text-sm focus:outline-none focus:border-[#4A6FA5]"
               />
             </div>
           </div>
@@ -113,7 +113,7 @@ export function CreateJob() {
         </div>
 
         {/* Job Type & Schedule */}
-        <div className="border border-[#DDE3EE] rounded-lg p-6 mb-6">
+        <div className="border border-[#E5E7EB] rounded-lg p-6 mb-6">
           <h3 className="text-[16px] text-[#1A2332] mb-5" style={{ fontWeight: 700 }}>Job Details</h3>
           <div className="grid grid-cols-2 gap-4 mb-6">
             {/* Schedule type: One-off / Recurring */}
@@ -123,7 +123,7 @@ export function CreateJob() {
                 <button
                   onClick={() => setJobType("one-off")}
                   className={`px-4 py-1.5 rounded-md text-sm border ${
-                    jobType === "one-off" ? "border-[#1A2332] bg-white text-[#1A2332]" : "border-[#DDE3EE] text-[#546478]"
+                    jobType === "one-off" ? "border-[#1A2332] bg-white text-[#1A2332]" : "border-[#E5E7EB] text-[#546478]"
                   }`}
                   style={{ fontWeight: jobType === "one-off" ? 600 : 400 }}
                 >
@@ -132,7 +132,7 @@ export function CreateJob() {
                 <button
                   onClick={() => setJobType("recurring")}
                   className={`px-4 py-1.5 rounded-md text-sm border ${
-                    jobType === "recurring" ? "border-[#1A2332] bg-white text-[#1A2332]" : "border-[#DDE3EE] text-[#546478]"
+                    jobType === "recurring" ? "border-[#1A2332] bg-white text-[#1A2332]" : "border-[#E5E7EB] text-[#546478]"
                   }`}
                   style={{ fontWeight: jobType === "recurring" ? 600 : 400 }}
                 >
@@ -147,7 +147,7 @@ export function CreateJob() {
               <select
                 value={jobCategory}
                 onChange={e => setJobCategory(e.target.value)}
-                className="w-full h-[34px] px-3 border border-[#DDE3EE] rounded-md text-[13px] text-[#1A2332] bg-white focus:outline-none focus:border-[#4A6FA5]"
+                className="w-full h-[34px] px-3 border border-[#E5E7EB] rounded-md text-[13px] text-[#1A2332] bg-white focus:outline-none focus:border-[#4A6FA5]"
               >
                 <option value="">Select job type</option>
                 {availableJobTypes.map(t => (
@@ -171,7 +171,7 @@ export function CreateJob() {
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className="w-full px-3 py-2 border border-[#DDE3EE] rounded-md text-sm focus:outline-none focus:border-[#4A6FA5]"
+                  className="w-full px-3 py-2 border border-[#E5E7EB] rounded-md text-sm focus:outline-none focus:border-[#4A6FA5]"
                 />
               </div>
               <div>
@@ -180,7 +180,7 @@ export function CreateJob() {
                   type="time"
                   value={startTime}
                   onChange={(e) => setStartTime(e.target.value)}
-                  className="w-full px-3 py-2 border border-[#DDE3EE] rounded-md text-sm focus:outline-none focus:border-[#4A6FA5]"
+                  className="w-full px-3 py-2 border border-[#E5E7EB] rounded-md text-sm focus:outline-none focus:border-[#4A6FA5]"
                 />
               </div>
               <div>
@@ -189,7 +189,7 @@ export function CreateJob() {
                   type="time"
                   value={endTime}
                   onChange={(e) => setEndTime(e.target.value)}
-                  className="w-full px-3 py-2 border border-[#DDE3EE] rounded-md text-sm focus:outline-none focus:border-[#4A6FA5]"
+                  className="w-full px-3 py-2 border border-[#E5E7EB] rounded-md text-sm focus:outline-none focus:border-[#4A6FA5]"
                 />
               </div>
             </div>
@@ -198,13 +198,13 @@ export function CreateJob() {
               placeholder="Visit instructions"
               value={visitInstructions}
               onChange={(e) => setVisitInstructions(e.target.value)}
-              className="w-full px-3 py-2 border border-[#DDE3EE] rounded-md text-sm focus:outline-none focus:border-[#4A6FA5] min-h-[80px] resize-y"
+              className="w-full px-3 py-2 border border-[#E5E7EB] rounded-md text-sm focus:outline-none focus:border-[#4A6FA5] min-h-[80px] resize-y"
             />
           </div>
         </div>
 
         {/* Billing */}
-        <div className="border border-[#DDE3EE] rounded-lg p-6 mb-6">
+        <div className="border border-[#E5E7EB] rounded-lg p-6 mb-6">
           <h3 className="text-[16px] text-[#1A2332] mb-4" style={{ fontWeight: 700 }}>Billing</h3>
           <label className="flex items-center gap-2 text-sm text-[#546478] cursor-pointer">
             <input
@@ -218,8 +218,8 @@ export function CreateJob() {
         </div>
 
         {/* Line Items */}
-        <div className="border border-[#DDE3EE] rounded-lg mb-6">
-          <div className="px-5 py-4 border-b border-[#DDE3EE] flex items-center justify-between">
+        <div className="border border-[#E5E7EB] rounded-lg mb-6">
+          <div className="px-5 py-4 border-b border-[#E5E7EB] flex items-center justify-between">
             <h3 className="text-[16px] text-[#1A2332]" style={{ fontWeight: 700 }}>Line Items</h3>
             <button
               onClick={() => setItemPickerOpen(true)}
@@ -244,7 +244,7 @@ export function CreateJob() {
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="border-b border-[#DDE3EE] bg-[#FAFBFC]">
+                    <tr className="border-b border-[#E5E7EB] bg-[#FAFBFC]">
                       {["Item", "Qty", "Unit Price", "Unit Cost", "Total", ""].map(h => (
                         <th key={h} className={`px-4 py-3 text-left text-[11px] uppercase tracking-wider text-[#546478] ${h === "" ? "w-[50px]" : ""}`} style={{ fontWeight: 600 }}>{h}</th>
                       ))}
@@ -267,7 +267,7 @@ export function CreateJob() {
                             step="1"
                             value={item.quantity}
                             onChange={(e) => updateLineItem(item.id, "quantity", Number(e.target.value) || 0)}
-                            className="w-20 px-2 py-1 border border-[#DDE3EE] rounded text-[13px] text-center focus:outline-none focus:border-[#4A6FA5]"
+                            className="w-20 px-2 py-1 border border-[#E5E7EB] rounded text-[13px] text-center focus:outline-none focus:border-[#4A6FA5]"
                           />
                         </td>
                         <td className="px-4 py-3 text-[13px] text-[#1A2332]" style={{ fontVariantNumeric: "tabular-nums" }}>${fmt(item.unitPrice)}</td>
@@ -285,7 +285,7 @@ export function CreateJob() {
               </div>
 
               {/* Totals */}
-              <div className="border-t border-[#DDE3EE] px-5 py-4 bg-[#FAFBFC]">
+              <div className="border-t border-[#E5E7EB] px-5 py-4 bg-[#FAFBFC]">
                 <div className="flex justify-end">
                   <div className="space-y-2 min-w-[300px]">
                     <div className="flex items-center justify-between text-[13px]">
@@ -300,7 +300,7 @@ export function CreateJob() {
                       <span className="text-[#546478]">Tax ({taxRate}%):</span>
                       <span className="text-[#1A2332]" style={{ fontVariantNumeric: "tabular-nums" }}>${fmt(taxAmount)}</span>
                     </div>
-                    <div className="flex items-center justify-between pt-2 border-t border-[#DDE3EE]">
+                    <div className="flex items-center justify-between pt-2 border-t border-[#E5E7EB]">
                       <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Total:</span>
                       <span className="text-[18px] text-[#1A2332]" style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>${fmt(total)}</span>
                     </div>
@@ -314,7 +314,7 @@ export function CreateJob() {
         {/* Notes */}
         <div className="mb-8">
           <h3 className="text-[16px] text-[#1A2332] mb-3" style={{ fontWeight: 700 }}>Notes</h3>
-          <div className="border border-[#DDE3EE] rounded-lg p-6">
+          <div className="border border-[#E5E7EB] rounded-lg p-6">
             {!notes && (
               <div className="flex flex-col items-center justify-center mb-4">
                 <span className="material-icons text-[#C8D5E8] mb-2" style={{ fontSize: "28px" }}>edit_note</span>
@@ -324,7 +324,7 @@ export function CreateJob() {
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className="w-full px-3 py-2 border border-[#DDE3EE] rounded-md text-sm focus:outline-none focus:border-[#4A6FA5] min-h-[80px] resize-y"
+              className="w-full px-3 py-2 border border-[#E5E7EB] rounded-md text-sm focus:outline-none focus:border-[#4A6FA5] min-h-[80px] resize-y"
               placeholder="Type a note..."
             />
           </div>

@@ -101,7 +101,7 @@ const initialEstimates: Estimate[] = [
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function qfClass(active: boolean) {
   return `h-8 pl-3 pr-6 border rounded-lg text-[13px] bg-white cursor-pointer focus:outline-none transition-colors ${
-    active ? "border-[#4A6FA5] text-[#4A6FA5] bg-[#EEF3FA]" : "border-[#DDE3EE] text-[#546478] hover:border-[#C5CEDD]"
+    active ? "border-[#4A6FA5] text-[#4A6FA5] bg-[#EEF3FA]" : "border-[#E5E7EB] text-[#546478] hover:border-[#C5CEDD]"
   }`;
 }
 
@@ -150,7 +150,7 @@ function InlineStatusSelect({ status, onChange }: { status: EstimateStatus; onCh
         <span className="material-icons" style={{ fontSize: "13px" }}>expand_more</span>
       </button>
       {open && (
-        <div className="absolute left-0 top-[calc(100%+4px)] w-[190px] bg-white border border-[#DDE3EE] rounded-lg shadow-lg z-40 py-1">
+        <div className="absolute left-0 top-[calc(100%+4px)] w-[190px] bg-white border border-[#E5E7EB] rounded-lg shadow-lg z-40 py-1">
           {primaryStatuses.map(renderOption)}
           <div className="px-3.5 pt-2 pb-1">
             <span className="text-[10px] uppercase tracking-wider text-[#9CA3AF]" style={{ fontWeight: 600 }}>other options</span>
@@ -276,7 +276,7 @@ export function Estimates() {
               <span className="material-icons" style={{ fontSize: "18px" }}>add</span>
               Create Estimate
             </button>
-            <KebabMenu triggerClassName="w-9 h-9 border border-[#DDE3EE] rounded-lg bg-white">
+            <KebabMenu triggerClassName="w-9 h-9 border border-[#E5E7EB] rounded-lg bg-white">
               <KebabItem icon="view_column">Edit Columns</KebabItem>
               <KebabItem icon="swap_horiz">Change Status</KebabItem>
               <KebabItem icon="content_copy">Manage Duplicates</KebabItem>
@@ -299,13 +299,13 @@ export function Estimates() {
           <Card
             key={status}
             onClick={() => { setQfStatus(qfStatus === status ? "All" : status); setPage(1); }}
-            className={`px-4 py-4 border bg-white hover:shadow-sm transition-shadow cursor-pointer ${
-              qfStatus === status ? "border-[#4A6FA5] ring-1 ring-[#4A6FA5]/20" : "border-[#DDE3EE]"
+            className={`p-5 border bg-white hover:shadow-sm transition-shadow cursor-pointer ${
+              qfStatus === status ? "border-[#4A6FA5] ring-1 ring-[#4A6FA5]/20" : "border-[#E5E7EB]"
             }`}
           >
-            <div className="flex items-center gap-1.5 mb-2">
-              <span className="inline-block w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: statusColors[status] }} />
-              <div className="text-[12px]" style={{ fontWeight: 500, color: "#546478" }}>{status}</div>
+            <div className="flex items-center gap-1.5 mb-2.5">
+              <span className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: statusColors[status] }} />
+              <div className="text-[12px]" style={{ fontWeight: 600, color: "#546478" }}>{status}</div>
             </div>
             <div className="text-[26px] leading-none mb-1.5" style={{ fontWeight: 700, color: "#1A2332" }}>{count}</div>
             <div className="text-[13px]" style={{ fontWeight: 500, fontVariantNumeric: "tabular-nums", color: worth > 0 ? "#374151" : "#9CA3AF" }}>${fmt(worth)}</div>
@@ -314,15 +314,15 @@ export function Estimates() {
       </div>
 
       {/* Table */}
-      <div className="bg-white border border-[#DDE3EE] rounded-lg overflow-hidden">
+      <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
         {/* Filter bar */}
-        <div className="flex items-center gap-2 px-4 py-3 bg-white border-b border-[#DDE3EE]">
+        <div className="flex items-center gap-2 px-4 py-3 bg-white border-b border-[#E5E7EB]">
           <div className="relative">
             <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: "18px" }}>search</span>
             <input type="text" placeholder="Search estimates..." value={search} onChange={e => { setSearch(e.target.value); setPage(1); }}
-              className="w-[220px] h-9 pl-10 pr-3 border border-[#DDE3EE] rounded-lg text-[13px] focus:outline-none focus:border-[#4A6FA5] bg-white" />
+              className="w-[220px] h-9 pl-10 pr-3 border border-[#E5E7EB] rounded-lg text-[13px] focus:outline-none focus:border-[#4A6FA5] bg-white" />
           </div>
-          <div className="w-px h-5 bg-[#DDE3EE] mx-1" />
+          <div className="w-px h-5 bg-[#E5E7EB] mx-1" />
           <select value={qfStatus} onChange={e => { setQfStatus(e.target.value as any); setPage(1); }} className={qfClass(qfStatus !== "All")}>
             <option value="All">All statuses</option>
             {primaryStatuses.map(s => <option key={s} value={s}>{s}</option>)}
@@ -335,8 +335,8 @@ export function Estimates() {
           <select value={qfSource} onChange={e => { setQfSource(e.target.value); setPage(1); }} className={qfClass(qfSource !== "All")}>
             {uniqueSources.map(s => <option key={s} value={s}>{s === "All" ? "All sources" : s}</option>)}
           </select>
-          <div className="w-px h-5 bg-[#DDE3EE] mx-1" />
-          <button className="h-8 px-3 border border-[#DDE3EE] rounded-lg text-[13px] text-[#546478] hover:bg-[#F5F7FA] flex items-center gap-1.5 bg-white" style={{ fontWeight: 500 }}>
+          <div className="w-px h-5 bg-[#E5E7EB] mx-1" />
+          <button className="h-8 px-3 border border-[#E5E7EB] rounded-lg text-[13px] text-[#546478] hover:bg-[#F5F7FA] flex items-center gap-1.5 bg-white" style={{ fontWeight: 500 }}>
             <span className="material-icons" style={{ fontSize: "16px" }}>tune</span>
             Filter
           </button>
@@ -349,14 +349,14 @@ export function Estimates() {
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="bg-[#F5F7FA] border-b border-[#DDE3EE]">
+              <tr className="bg-[#F5F7FA] border-b border-[#E5E7EB]">
                 <th className="px-4 py-3 w-10">
                   <input type="checkbox" checked={allSelected}
                     onChange={(e) => {
                       if (e.target.checked) setSelectedIds(new Set(paginated.map(e => e.id)));
                       else setSelectedIds(new Set());
                     }}
-                    className="w-4 h-4 rounded border-[#DDE3EE] cursor-pointer accent-[#4A6FA5]"
+                    className="w-4 h-4 rounded border-[#E5E7EB] cursor-pointer accent-[#4A6FA5]"
                   />
                 </th>
                 <th className="px-4 py-3 text-left text-[11px] uppercase tracking-wide text-[#546478] cursor-pointer select-none whitespace-nowrap" style={{ fontWeight: 600 }} onClick={() => toggleSort("estimateNumber")}>
@@ -393,7 +393,7 @@ export function Estimates() {
               ) : paginated.map((est) => (
                 <tr
                   key={est.id}
-                  className={`group border-b border-[#DDE3EE] hover:bg-[#F9FAFB] transition-colors cursor-pointer ${
+                  className={`group border-b border-[#E5E7EB] hover:bg-[#F9FAFB] transition-colors cursor-pointer ${
                     selectedIds.has(est.id) ? "bg-[#EBF0F8]" : "bg-white"
                   }`}
                 >
@@ -404,7 +404,7 @@ export function Estimates() {
                         e.target.checked ? s.add(est.id) : s.delete(est.id);
                         setSelectedIds(s);
                       }}
-                      className="w-4 h-4 rounded border-[#DDE3EE] cursor-pointer accent-[#4A6FA5]"
+                      className="w-4 h-4 rounded border-[#E5E7EB] cursor-pointer accent-[#4A6FA5]"
                     />
                   </td>
                   <td className="px-4 py-4" onClick={() => navigate(`/estimates/${est.id}`)}>
@@ -457,7 +457,7 @@ export function Estimates() {
         </div>
 
         {/* Pagination */}
-        <div className="flex items-center justify-between px-4 py-3 border-t border-[#DDE3EE] bg-[#FAFBFC]">
+        <div className="flex items-center justify-between px-4 py-3 border-t border-[#E5E7EB] bg-[#FAFBFC]">
           <span className="text-[13px] text-[#546478]">
             Showing {filtered.length === 0 ? 0 : (page - 1) * perPage + 1} to {Math.min(page * perPage, filtered.length)} of {filtered.length} results
           </span>
@@ -497,14 +497,14 @@ export function Estimates() {
                   placeholder="Name, email or phone"
                   value={clientSearch}
                   onChange={(e) => setClientSearch(e.target.value)}
-                  className="w-full h-11 px-4 pr-10 border border-[#DDE3EE] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]"
+                  className="w-full h-11 px-4 pr-10 border border-[#E5E7EB] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]"
                   autoFocus
                 />
                 <span className="material-icons absolute right-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: "20px" }}>search</span>
               </div>
 
               {clientSearch && (
-                <div className="border border-[#DDE3EE] rounded-lg max-h-[200px] overflow-y-auto mb-4">
+                <div className="border border-[#E5E7EB] rounded-lg max-h-[200px] overflow-y-auto mb-4">
                   {filteredClients.length === 0 ? (
                     <div className="px-4 py-6 text-[13px] text-[#546478]">No clients found</div>
                   ) : filteredClients.map(c => (
@@ -558,7 +558,7 @@ export function Estimates() {
               Archive {deleteConfirm.ids.length} estimate(s)? They can be restored later.
             </p>
             <div className="flex items-center justify-end gap-3">
-              <button onClick={() => setDeleteConfirm(null)} className="px-4 py-2.5 border border-[#DDE3EE] text-[#546478] rounded-lg text-[13px] hover:bg-[#F5F7FA]" style={{ fontWeight: 500 }}>Cancel</button>
+              <button onClick={() => setDeleteConfirm(null)} className="px-4 py-2.5 border border-[#E5E7EB] text-[#546478] rounded-lg text-[13px] hover:bg-[#F5F7FA]" style={{ fontWeight: 500 }}>Cancel</button>
               <button onClick={handleBulkDelete} className="px-4 py-2.5 bg-[#DC2626] text-white rounded-lg text-[13px] hover:bg-[#B91C1C]" style={{ fontWeight: 600 }}>Archive</button>
             </div>
           </div>

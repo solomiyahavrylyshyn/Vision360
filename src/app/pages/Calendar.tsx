@@ -200,7 +200,7 @@ export function Calendar() {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={onClose}>
         <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
-        <div className="relative bg-white rounded-xl shadow-2xl w-[400px] overflow-hidden border border-[#DDE3EE]" onClick={e => e.stopPropagation()}>
+        <div className="relative bg-white rounded-xl shadow-2xl w-[400px] overflow-hidden border border-[#E5E7EB]" onClick={e => e.stopPropagation()}>
           <div className="h-1" style={{ backgroundColor: c.border }} />
           <div className="p-5">
             <div className="flex items-start justify-between mb-4">
@@ -234,7 +234,7 @@ export function Calendar() {
               <button className="flex-1 px-4 py-2.5 bg-[#4A6FA5] text-white rounded-lg text-[13px] hover:bg-[#3d5a85] transition-colors" style={{ fontWeight: 600 }}>
                 View Job
               </button>
-              <button className="px-3 py-2.5 border border-[#DDE3EE] text-[#546478] rounded-lg text-[13px] hover:bg-[#F5F7FA] transition-colors" style={{ fontWeight: 500 }}>
+              <button className="px-3 py-2.5 border border-[#E5E7EB] text-[#546478] rounded-lg text-[13px] hover:bg-[#F5F7FA] transition-colors" style={{ fontWeight: 500 }}>
                 Edit
               </button>
             </div>
@@ -304,7 +304,7 @@ export function Calendar() {
           { value: "$18,503",label: "Revenue",      icon: "attach_money",        color: "#16A34A", sub: "+12%" },
           { value: "92%",    label: "Success",      icon: "speed",               color: "#16A34A" },
         ].map(s => (
-          <div key={s.label} className="flex items-center gap-3 bg-white border border-[#DDE3EE] rounded-xl px-4 py-3 shrink-0">
+          <div key={s.label} className="flex items-center gap-3 bg-white border border-[#E5E7EB] rounded-xl px-4 py-3 shrink-0">
             <span className="material-icons shrink-0" style={{ fontSize: "20px", color: s.color }}>{s.icon}</span>
             <div>
               <div className="text-[18px] text-[#1A2332] leading-none" style={{ fontWeight: 700 }}>{s.value}</div>
@@ -318,7 +318,7 @@ export function Calendar() {
       </div>
 
       {/* Calendar content */}
-      <div className="flex-1 bg-white border border-[#DDE3EE] rounded-xl overflow-hidden flex flex-col" style={{ minHeight: 0 }}>
+      <div className="flex-1 bg-white border border-[#E5E7EB] rounded-xl overflow-hidden flex flex-col" style={{ minHeight: 0 }}>
 
         {/* ── MONTH VIEW ── */}
         {viewMode === "month" && (
@@ -391,7 +391,7 @@ export function Calendar() {
                 >
                   {/* Corner spacer — sticky left */}
                   <div
-                    className="shrink-0 sticky left-0 z-30 bg-[#FAFBFC] border-r border-[#DDE3EE]"
+                    className="shrink-0 sticky left-0 z-30 bg-[#FAFBFC] border-r border-[#E5E7EB]"
                     style={{ width: 172, minWidth: 172 }}
                   />
                   {/* Hour labels */}
@@ -565,8 +565,8 @@ export function Calendar() {
 
             {/* Right: Unscheduled panel or Job detail panel */}
             {selectedDispatchJob ? (
-              <div className="w-[300px] shrink-0 flex flex-col overflow-hidden border-l border-[#DDE3EE] bg-white">
-                <div className="flex items-center justify-between px-4 py-3.5 border-b border-[#DDE3EE] shrink-0">
+              <div className="w-[300px] shrink-0 flex flex-col overflow-hidden border-l border-[#E5E7EB] bg-white">
+                <div className="flex items-center justify-between px-4 py-3.5 border-b border-[#E5E7EB] shrink-0">
                   <div className="flex items-center gap-2">
                     <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 700 }}>Job #{selectedDispatchJob.num}</span>
                     <span className="px-2 py-0.5 rounded-full text-[10px]" style={{ fontWeight: 600, backgroundColor: "#D1FAE5", color: "#16A34A" }}>Scheduled</span>
@@ -584,7 +584,7 @@ export function Calendar() {
                   ))}
                 </div>
                 <div className="flex-1 overflow-y-auto bg-[#FAFBFC]">
-                  <div className="p-4 bg-white mx-3 mt-3 rounded-xl border border-[#DDE3EE]">
+                  <div className="p-4 bg-white mx-3 mt-3 rounded-xl border border-[#E5E7EB]">
                     <div className="flex items-start justify-between mb-3">
                       <div>
                         <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 700 }}>{selectedDispatchJob.client}</div>
@@ -592,10 +592,10 @@ export function Calendar() {
                         <div className="text-[11px] text-[#8899AA] mt-1">{selectedDispatchJob.address}</div>
                       </div>
                       <div className="flex gap-1.5 shrink-0">
-                        <button className="w-8 h-8 rounded-lg border border-[#DDE3EE] flex items-center justify-center hover:bg-[#F5F7FA] transition-colors">
+                        <button className="w-8 h-8 rounded-lg border border-[#E5E7EB] flex items-center justify-center hover:bg-[#F5F7FA] transition-colors">
                           <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "17px" }}>phone</span>
                         </button>
-                        <button className="w-8 h-8 rounded-lg border border-[#DDE3EE] flex items-center justify-center hover:bg-[#F5F7FA] transition-colors">
+                        <button className="w-8 h-8 rounded-lg border border-[#E5E7EB] flex items-center justify-center hover:bg-[#F5F7FA] transition-colors">
                           <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "17px" }}>chat</span>
                         </button>
                       </div>
@@ -615,19 +615,19 @@ export function Calendar() {
                     </div>
                   </div>
                 </div>
-                <div className="p-4 border-t border-[#DDE3EE] shrink-0 bg-white">
+                <div className="p-4 border-t border-[#E5E7EB] shrink-0 bg-white">
                   <button className="w-full py-2.5 bg-[#4A6FA5] text-white rounded-lg text-[13px] hover:bg-[#3d5a85] transition-colors mb-2" style={{ fontWeight: 600 }}>
                     Start Job
                   </button>
                   <div className="flex gap-2">
-                    <button className="flex-1 py-2 border border-[#DDE3EE] text-[#546478] rounded-lg text-[12px] hover:bg-[#F5F7FA] transition-colors" style={{ fontWeight: 500 }}>Edit</button>
-                    <button className="flex-1 py-2 border border-[#DDE3EE] text-[#546478] rounded-lg text-[12px] hover:bg-[#F5F7FA] transition-colors" style={{ fontWeight: 500 }}>Reschedule</button>
+                    <button className="flex-1 py-2 border border-[#E5E7EB] text-[#546478] rounded-lg text-[12px] hover:bg-[#F5F7FA] transition-colors" style={{ fontWeight: 500 }}>Edit</button>
+                    <button className="flex-1 py-2 border border-[#E5E7EB] text-[#546478] rounded-lg text-[12px] hover:bg-[#F5F7FA] transition-colors" style={{ fontWeight: 500 }}>Reschedule</button>
                   </div>
                 </div>
               </div>
             ) : (
-              <div className="w-[210px] shrink-0 border-l border-[#DDE3EE] flex flex-col bg-white overflow-hidden">
-                <div className="flex items-center gap-2 px-3 py-3 border-b border-[#DDE3EE] shrink-0">
+              <div className="w-[210px] shrink-0 border-l border-[#E5E7EB] flex flex-col bg-white overflow-hidden">
+                <div className="flex items-center gap-2 px-3 py-3 border-b border-[#E5E7EB] shrink-0">
                   <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>Unscheduled</span>
                   <span className="px-1.5 py-0.5 rounded-full bg-[#FEF3C7] text-[#D97706] text-[10px]" style={{ fontWeight: 700 }}>3</span>
                 </div>
@@ -777,9 +777,9 @@ export function Calendar() {
             </div>
 
             {/* Right: Unscheduled panel (220px fixed) */}
-            <div className="shrink-0 flex flex-col border-l border-[#DDE3EE] bg-white overflow-hidden" style={{ width: 220 }}>
+            <div className="shrink-0 flex flex-col border-l border-[#E5E7EB] bg-white overflow-hidden" style={{ width: 220 }}>
               {/* Header */}
-              <div className="flex items-center justify-between px-3 py-2.5 border-b border-[#DDE3EE] shrink-0" style={{ height: 40 }}>
+              <div className="flex items-center justify-between px-3 py-2.5 border-b border-[#E5E7EB] shrink-0" style={{ height: 40 }}>
                 <div className="flex items-center gap-2">
                   <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>Unscheduled</span>
                   <span
@@ -826,7 +826,7 @@ export function Calendar() {
               </div>
 
               {/* Footer */}
-              <div className="px-3 py-2.5 border-t border-[#DDE3EE] shrink-0">
+              <div className="px-3 py-2.5 border-t border-[#E5E7EB] shrink-0">
                 <button className="w-full text-[12px] text-[#4A6FA5] hover:text-[#3d5a85] transition-colors text-left" style={{ fontWeight: 600 }}>
                   + View all unscheduled
                 </button>
@@ -848,7 +848,7 @@ export function Calendar() {
       )}
 
       {/* Legend bar — bottom, outside main card */}
-      <div className="mt-4 bg-white border border-[#DDE3EE] rounded-xl px-5 py-3 flex flex-wrap items-center gap-x-5 gap-y-2 shrink-0">
+      <div className="mt-4 bg-white border border-[#E5E7EB] rounded-xl px-5 py-3 flex flex-wrap items-center gap-x-5 gap-y-2 shrink-0">
         <span className="text-[11px] text-[#8899AA] uppercase tracking-wide mr-1" style={{ fontWeight: 600 }}>Legend:</span>
         {[
           { label: "Service",     color: "#D97706" },
@@ -862,7 +862,7 @@ export function Calendar() {
             <span className="text-[11px] text-[#546478]" style={{ fontWeight: 500 }}>{item.label}</span>
           </div>
         ))}
-        <div className="w-px h-4 bg-[#DDE3EE] mx-1" />
+        <div className="w-px h-4 bg-[#E5E7EB] mx-1" />
         {[
           { label: "Scheduled",   color: "#D97706" },
           { label: "Dispatched",  color: "#4A6FA5" },

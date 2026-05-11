@@ -99,7 +99,7 @@ export function ResetPasswordForm() {
                   placeholder="At least 8 characters"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="h-11 pr-11 border-[#DDE3EE] focus-visible:ring-[#4A6FA5] bg-[#F5F7FA] focus:bg-white transition-colors"
+                  className="h-11 pr-11 border-[#E5E7EB] focus-visible:ring-[#4A6FA5] bg-[#F5F7FA] focus:bg-white transition-colors"
                 />
                 <button
                   type="button"
@@ -161,7 +161,7 @@ export function ResetPasswordForm() {
                   placeholder="Re-enter your password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className={`h-11 pr-11 border-[#DDE3EE] focus-visible:ring-[#4A6FA5] bg-[#F5F7FA] focus:bg-white transition-colors ${
+                  className={`h-11 pr-11 border-[#E5E7EB] focus-visible:ring-[#4A6FA5] bg-[#F5F7FA] focus:bg-white transition-colors ${
                     confirmPassword && !passwordsMatch ? "border-[#DC2626] focus-visible:ring-[#DC2626]" : ""
                   }`}
                 />

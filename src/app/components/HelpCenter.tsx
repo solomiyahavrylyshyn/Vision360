@@ -115,9 +115,9 @@ export function HelpCenter({ isOpen, onClose }: HelpCenterProps) {
   return (
     <>
       <div className="fixed inset-0 bg-black/20 z-[3000]" onClick={onClose} />
-      <div className="fixed right-6 top-16 bottom-6 w-[420px] bg-white border border-[#DDE3EE] rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.15)] z-[3002] flex flex-col overflow-hidden">
+      <div className="fixed right-6 top-16 bottom-6 w-[420px] bg-white border border-[#E5E7EB] rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.15)] z-[3002] flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="px-5 py-4 border-b border-[#DDE3EE] flex items-center gap-3 flex-shrink-0">
+        <div className="px-5 py-4 border-b border-[#E5E7EB] flex items-center gap-3 flex-shrink-0">
           {view !== "home" && (
             <button onClick={goHome} className="w-8 h-8 rounded-lg hover:bg-[#F5F7FA] flex items-center justify-center flex-shrink-0">
               <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>arrow_back</span>
@@ -143,7 +143,7 @@ export function HelpCenter({ isOpen, onClose }: HelpCenterProps) {
                 <input
                   type="text" placeholder="Search help articles..." value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full h-10 pl-10 pr-4 border border-[#DDE3EE] rounded-lg text-[13px] focus:outline-none focus:border-[#4A6FA5] bg-white"
+                  className="w-full h-10 pl-10 pr-4 border border-[#E5E7EB] rounded-lg text-[13px] focus:outline-none focus:border-[#4A6FA5] bg-white"
                 />
               </div>
             </div>
@@ -155,7 +155,7 @@ export function HelpCenter({ isOpen, onClose }: HelpCenterProps) {
                   <h3 className="text-[12px] uppercase tracking-wider text-[#546478] mb-3" style={{ fontWeight: 600 }}>Browse by Topic</h3>
                   <div className="grid grid-cols-2 gap-2">
                     {categories.map(cat => (
-                      <button key={cat.label} className="flex items-center gap-2.5 px-3 py-2.5 border border-[#EDF0F5] rounded-lg hover:bg-[#F9FAFB] hover:border-[#DDE3EE] transition-all text-left">
+                      <button key={cat.label} className="flex items-center gap-2.5 px-3 py-2.5 border border-[#EDF0F5] rounded-lg hover:bg-[#F9FAFB] hover:border-[#E5E7EB] transition-all text-left">
                         <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: cat.color + "15" }}>
                           <span className="material-icons" style={{ fontSize: "16px", color: cat.color }}>{cat.icon}</span>
                         </div>
@@ -222,10 +222,10 @@ export function HelpCenter({ isOpen, onClose }: HelpCenterProps) {
               <div className="mt-8 pt-5 border-t border-[#EDF0F5]">
                 <div className="text-[13px] text-[#546478] mb-3" style={{ fontWeight: 500 }}>Was this article helpful?</div>
                 <div className="flex items-center gap-2">
-                  <button className="flex items-center gap-1.5 px-4 py-2 border border-[#DDE3EE] rounded-lg text-[13px] text-[#546478] hover:bg-[#DCFCE7] hover:border-[#86EFAC] hover:text-[#16A34A] transition-all">
+                  <button className="flex items-center gap-1.5 px-4 py-2 border border-[#E5E7EB] rounded-lg text-[13px] text-[#546478] hover:bg-[#DCFCE7] hover:border-[#86EFAC] hover:text-[#16A34A] transition-all">
                     <span className="material-icons" style={{ fontSize: "16px" }}>thumb_up</span>Yes
                   </button>
-                  <button className="flex items-center gap-1.5 px-4 py-2 border border-[#DDE3EE] rounded-lg text-[13px] text-[#546478] hover:bg-[#FEE2E2] hover:border-[#FCA5A5] hover:text-[#DC2626] transition-all">
+                  <button className="flex items-center gap-1.5 px-4 py-2 border border-[#E5E7EB] rounded-lg text-[13px] text-[#546478] hover:bg-[#FEE2E2] hover:border-[#FCA5A5] hover:text-[#DC2626] transition-all">
                     <span className="material-icons" style={{ fontSize: "16px" }}>thumb_down</span>No
                   </button>
                 </div>
@@ -263,25 +263,25 @@ export function HelpCenter({ isOpen, onClose }: HelpCenterProps) {
                     <div>
                       <label className="block text-[12px] uppercase tracking-wider text-[#546478] mb-1.5" style={{ fontWeight: 600 }}>Name</label>
                       <input type="text" value={contactForm.name} onChange={e => setContactForm({ ...contactForm, name: e.target.value })}
-                        className="w-full h-10 px-3 border border-[#DDE3EE] rounded-lg text-[13px] focus:outline-none focus:border-[#4A6FA5]" />
+                        className="w-full h-10 px-3 border border-[#E5E7EB] rounded-lg text-[13px] focus:outline-none focus:border-[#4A6FA5]" />
                     </div>
                     <div>
                       <label className="block text-[12px] uppercase tracking-wider text-[#546478] mb-1.5" style={{ fontWeight: 600 }}>Email</label>
                       <input type="email" value={contactForm.email} onChange={e => setContactForm({ ...contactForm, email: e.target.value })}
-                        className="w-full h-10 px-3 border border-[#DDE3EE] rounded-lg text-[13px] focus:outline-none focus:border-[#4A6FA5]" />
+                        className="w-full h-10 px-3 border border-[#E5E7EB] rounded-lg text-[13px] focus:outline-none focus:border-[#4A6FA5]" />
                     </div>
                   </div>
                   <div>
                     <label className="block text-[12px] uppercase tracking-wider text-[#546478] mb-1.5" style={{ fontWeight: 600 }}>Subject</label>
                     <input type="text" value={contactForm.subject} onChange={e => setContactForm({ ...contactForm, subject: e.target.value })}
                       placeholder="Brief description of your issue"
-                      className="w-full h-10 px-3 border border-[#DDE3EE] rounded-lg text-[13px] focus:outline-none focus:border-[#4A6FA5]" />
+                      className="w-full h-10 px-3 border border-[#E5E7EB] rounded-lg text-[13px] focus:outline-none focus:border-[#4A6FA5]" />
                   </div>
                   <div>
                     <label className="block text-[12px] uppercase tracking-wider text-[#546478] mb-1.5" style={{ fontWeight: 600 }}>Message</label>
                     <textarea value={contactForm.message} onChange={e => setContactForm({ ...contactForm, message: e.target.value })}
                       placeholder="Describe your issue in detail..."
-                      className="w-full px-3 py-2.5 border border-[#DDE3EE] rounded-lg text-[13px] focus:outline-none focus:border-[#4A6FA5] min-h-[120px] resize-y" />
+                      className="w-full px-3 py-2.5 border border-[#E5E7EB] rounded-lg text-[13px] focus:outline-none focus:border-[#4A6FA5] min-h-[120px] resize-y" />
                   </div>
                   <button
                     onClick={() => setSubmitted(true)}
@@ -325,7 +325,7 @@ export function HelpCenter({ isOpen, onClose }: HelpCenterProps) {
         )}
 
         {/* Footer */}
-        <div className="px-5 py-3 border-t border-[#DDE3EE] bg-[#FAFBFC] flex items-center justify-between flex-shrink-0">
+        <div className="px-5 py-3 border-t border-[#E5E7EB] bg-[#FAFBFC] flex items-center justify-between flex-shrink-0">
           <button
             onClick={goHome}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] transition-colors ${view === "home" ? "bg-[#EBF0F8] text-[#4A6FA5]" : "text-[#546478] hover:bg-[#F5F7FA]"}`}

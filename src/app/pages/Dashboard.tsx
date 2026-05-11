@@ -92,7 +92,7 @@ export function Dashboard() {
 
       {/* Quick Stat Cards */}
       <div className="grid grid-cols-3 gap-5 mb-8">
-        <Card className="px-4 py-3 border border-[#DDE3EE] bg-white hover:shadow-sm transition-shadow h-[110.5px]">
+        <Card className="px-4 py-3 border border-[#E5E7EB] bg-white hover:shadow-sm transition-shadow h-[110.5px]">
           <div className="flex items-center justify-between">
             <div>
               <div className="text-[24px] mb-0.5 leading-none" style={{ fontWeight: 700, color: "#1A2332" }}>{jobCount}</div>
@@ -104,7 +104,7 @@ export function Dashboard() {
           </div>
         </Card>
 
-        <Card className="px-4 py-3 border border-[#DDE3EE] bg-white hover:shadow-sm transition-shadow h-[110.5px]">
+        <Card className="px-4 py-3 border border-[#E5E7EB] bg-white hover:shadow-sm transition-shadow h-[110.5px]">
           <div className="flex items-center justify-between">
             <div>
               <div className="text-[24px] mb-0.5 leading-none" style={{ fontWeight: 700, color: "#1A2332", fontVariantNumeric: "tabular-nums" }}>$3,480</div>
@@ -114,7 +114,7 @@ export function Dashboard() {
           </div>
         </Card>
 
-        <Card className="px-4 py-3 border border-[#DDE3EE] bg-white hover:shadow-sm transition-shadow h-[110.5px]">
+        <Card className="px-4 py-3 border border-[#E5E7EB] bg-white hover:shadow-sm transition-shadow h-[110.5px]">
           <div className="flex items-center justify-between">
             <div>
               <div className="text-[24px] mb-0.5 leading-none" style={{ fontWeight: 700, color: "#1A2332", fontVariantNumeric: "tabular-nums" }}>$6,240</div>
@@ -152,7 +152,7 @@ export function Dashboard() {
             <button
               key={job.id}
               onClick={() => navigate(`/jobs/${job.id}`)}
-              className="bg-white border border-[#DDE3EE] rounded-lg p-5 text-left hover:border-[#4A6FA5]/40 hover:shadow-[0_2px_8px_rgba(74,111,165,0.08)] transition-all group w-full"
+              className="bg-white border border-[#E5E7EB] rounded-lg p-5 text-left hover:border-[#4A6FA5]/40 hover:shadow-[0_2px_8px_rgba(74,111,165,0.08)] transition-all group w-full"
             >
               <div className="flex items-start gap-5">
                 {/* Time block */}
@@ -162,7 +162,7 @@ export function Dashboard() {
                 </div>
 
                 {/* Divider */}
-                <div className="w-px h-[72px] bg-[#DDE3EE] flex-shrink-0 self-center"></div>
+                <div className="w-px h-[72px] bg-[#E5E7EB] flex-shrink-0 self-center"></div>
 
                 {/* Content */}
                 <div className="flex-1 min-w-0">

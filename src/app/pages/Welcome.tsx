@@ -84,7 +84,7 @@ export function Welcome() {
           <div className="space-y-3 mb-8">
             <button
               onClick={() => navigate("/clients")}
-              className="w-full flex items-center gap-4 p-4 rounded-xl border-2 border-[#DDE3EE] hover:border-[#4A6FA5] hover:bg-[#F5F7FA] transition-all group text-left"
+              className="w-full flex items-center gap-4 p-4 rounded-xl border-2 border-[#E5E7EB] hover:border-[#4A6FA5] hover:bg-[#F5F7FA] transition-all group text-left"
             >
               <div className="w-10 h-10 rounded-lg bg-[#4A6FA5]/10 flex items-center justify-center shrink-0 group-hover:bg-[#4A6FA5]/15 transition-colors">
                 <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "20px" }}>person_add</span>
@@ -93,14 +93,14 @@ export function Welcome() {
                 <p className="font-semibold text-[#1A2332] text-sm">Add your first customer</p>
                 <p className="text-xs text-[#546478] mt-0.5">Recommended — needed for jobs & estimates</p>
               </div>
-              <span className="material-icons text-[#DDE3EE] group-hover:text-[#4A6FA5] ml-auto transition-colors" style={{ fontSize: "18px" }}>
+              <span className="material-icons text-[#E5E7EB] group-hover:text-[#4A6FA5] ml-auto transition-colors" style={{ fontSize: "18px" }}>
                 arrow_forward
               </span>
             </button>
 
             <button
               onClick={() => navigate("/jobs")}
-              className="w-full flex items-center gap-4 p-4 rounded-xl border-2 border-[#DDE3EE] hover:border-[#4A6FA5] hover:bg-[#F5F7FA] transition-all group text-left"
+              className="w-full flex items-center gap-4 p-4 rounded-xl border-2 border-[#E5E7EB] hover:border-[#4A6FA5] hover:bg-[#F5F7FA] transition-all group text-left"
             >
               <div className="w-10 h-10 rounded-lg bg-[#4A6FA5]/10 flex items-center justify-center shrink-0 group-hover:bg-[#4A6FA5]/15 transition-colors">
                 <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "20px" }}>work</span>
@@ -109,14 +109,14 @@ export function Welcome() {
                 <p className="font-semibold text-[#1A2332] text-sm">Create your first job</p>
                 <p className="text-xs text-[#546478] mt-0.5">Schedule and assign field work</p>
               </div>
-              <span className="material-icons text-[#DDE3EE] group-hover:text-[#4A6FA5] ml-auto transition-colors" style={{ fontSize: "18px" }}>
+              <span className="material-icons text-[#E5E7EB] group-hover:text-[#4A6FA5] ml-auto transition-colors" style={{ fontSize: "18px" }}>
                 arrow_forward
               </span>
             </button>
 
             <button
               onClick={() => navigate("/estimates/new")}
-              className="w-full flex items-center gap-4 p-4 rounded-xl border-2 border-[#DDE3EE] hover:border-[#4A6FA5] hover:bg-[#F5F7FA] transition-all group text-left"
+              className="w-full flex items-center gap-4 p-4 rounded-xl border-2 border-[#E5E7EB] hover:border-[#4A6FA5] hover:bg-[#F5F7FA] transition-all group text-left"
             >
               <div className="w-10 h-10 rounded-lg bg-[#4A6FA5]/10 flex items-center justify-center shrink-0 group-hover:bg-[#4A6FA5]/15 transition-colors">
                 <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "20px" }}>description</span>
@@ -125,7 +125,7 @@ export function Welcome() {
                 <p className="font-semibold text-[#1A2332] text-sm">Create an estimate</p>
                 <p className="text-xs text-[#546478] mt-0.5">Send quotes to your customers</p>
               </div>
-              <span className="material-icons text-[#DDE3EE] group-hover:text-[#4A6FA5] ml-auto transition-colors" style={{ fontSize: "18px" }}>
+              <span className="material-icons text-[#E5E7EB] group-hover:text-[#4A6FA5] ml-auto transition-colors" style={{ fontSize: "18px" }}>
                 arrow_forward
               </span>
             </button>

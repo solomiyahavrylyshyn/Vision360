@@ -182,13 +182,13 @@ export function CreateExpense() {
   return (
     <div className="min-h-full bg-[#F5F7FA]">
       {/* ── Page Header ── */}
-      <div className="bg-white border-b border-[#DDE3EE]">
+      <div className="bg-white border-b border-[#E5E7EB]">
         <div className="max-w-[1120px] mx-auto px-6 py-5">
           <div className="flex items-start justify-between">
             <div className="flex items-start gap-3.5">
               <button
                 onClick={() => navigate("/expenses")}
-                className="mt-0.5 w-9 h-9 flex items-center justify-center rounded-lg border border-[#DDE3EE] bg-white hover:bg-[#F5F7FA] transition-colors flex-shrink-0"
+                className="mt-0.5 w-9 h-9 flex items-center justify-center rounded-lg border border-[#E5E7EB] bg-white hover:bg-[#F5F7FA] transition-colors flex-shrink-0"
               >
                 <span
                   className="material-icons text-[#546478]"
@@ -208,7 +208,7 @@ export function CreateExpense() {
             <div className="flex items-center gap-2.5 flex-shrink-0">
               <button
                 onClick={() => navigate("/expenses")}
-                className="h-10 px-5 rounded-lg border border-[#DDE3EE] bg-white text-[13px] text-[#546478] hover:bg-[#F5F7FA] transition-colors"
+                className="h-10 px-5 rounded-lg border border-[#E5E7EB] bg-white text-[13px] text-[#546478] hover:bg-[#F5F7FA] transition-colors"
                 style={{ fontWeight: 500 }}
               >
                 Cancel
@@ -254,7 +254,7 @@ export function CreateExpense() {
              ════════════════════════════════════════════════════════════════ */}
           <div className="flex-1 min-w-0 w-full">
             {/* ── Basic Info ── */}
-            <div className="bg-white border border-[#DDE3EE] rounded-xl p-6 mb-5">
+            <div className="bg-white border border-[#E5E7EB] rounded-xl p-6 mb-5">
               <div className="flex items-center gap-2 mb-5">
                 <span
                   className="material-icons text-[#4A6FA5]"
@@ -283,7 +283,7 @@ export function CreateExpense() {
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="e.g. Supplies for commercial HVAC project"
-                  className="w-full h-10 px-3.5 border border-[#DDE3EE] rounded-lg text-[13px] bg-white text-[#1A2332] placeholder:text-[#B0BEC5] outline-none focus:border-[#4A6FA5] focus:ring-2 focus:ring-[#4A6FA5]/10 transition-all"
+                  className="w-full h-10 px-3.5 border border-[#E5E7EB] rounded-lg text-[13px] bg-white text-[#1A2332] placeholder:text-[#B0BEC5] outline-none focus:border-[#4A6FA5] focus:ring-2 focus:ring-[#4A6FA5]/10 transition-all"
                 />
               </div>
 
@@ -301,7 +301,7 @@ export function CreateExpense() {
                     value={merchant}
                     onChange={(e) => setMerchant(e.target.value)}
                     placeholder="e.g. Home Depot"
-                    className="w-full h-10 px-3.5 border border-[#DDE3EE] rounded-lg text-[13px] bg-white text-[#1A2332] placeholder:text-[#B0BEC5] outline-none focus:border-[#4A6FA5] focus:ring-2 focus:ring-[#4A6FA5]/10 transition-all"
+                    className="w-full h-10 px-3.5 border border-[#E5E7EB] rounded-lg text-[13px] bg-white text-[#1A2332] placeholder:text-[#B0BEC5] outline-none focus:border-[#4A6FA5] focus:ring-2 focus:ring-[#4A6FA5]/10 transition-all"
                   />
                 </div>
                 <div>
@@ -315,7 +315,7 @@ export function CreateExpense() {
                     <select
                       value={category}
                       onChange={(e) => setCategory(e.target.value)}
-                      className={`w-full h-10 px-3.5 pr-9 border border-[#DDE3EE] rounded-lg text-[13px] bg-white outline-none cursor-pointer focus:border-[#4A6FA5] focus:ring-2 focus:ring-[#4A6FA5]/10 transition-all appearance-none ${category ? "text-[#1A2332]" : "text-[#B0BEC5]"}`}
+                      className={`w-full h-10 px-3.5 pr-9 border border-[#E5E7EB] rounded-lg text-[13px] bg-white outline-none cursor-pointer focus:border-[#4A6FA5] focus:ring-2 focus:ring-[#4A6FA5]/10 transition-all appearance-none ${category ? "text-[#1A2332]" : "text-[#B0BEC5]"}`}
                     >
                       <option value="">Select category</option>
                       {categories.map((c) => (
@@ -347,7 +347,7 @@ export function CreateExpense() {
                     type="date"
                     value={expenseDate}
                     onChange={(e) => setExpenseDate(e.target.value)}
-                    className="w-full h-10 px-3.5 border border-[#DDE3EE] rounded-lg text-[13px] bg-white text-[#1A2332] outline-none focus:border-[#4A6FA5] focus:ring-2 focus:ring-[#4A6FA5]/10 transition-all"
+                    className="w-full h-10 px-3.5 border border-[#E5E7EB] rounded-lg text-[13px] bg-white text-[#1A2332] outline-none focus:border-[#4A6FA5] focus:ring-2 focus:ring-[#4A6FA5]/10 transition-all"
                   />
                 </div>
                 <div>
@@ -368,7 +368,7 @@ export function CreateExpense() {
                       value={total}
                       onChange={(e) => setTotal(e.target.value)}
                       placeholder="0.00"
-                      className="w-full h-10 pl-8 pr-3.5 border border-[#DDE3EE] rounded-lg text-[13px] bg-white text-[#1A2332] placeholder:text-[#B0BEC5] outline-none focus:border-[#4A6FA5] focus:ring-2 focus:ring-[#4A6FA5]/10 transition-all"
+                      className="w-full h-10 pl-8 pr-3.5 border border-[#E5E7EB] rounded-lg text-[13px] bg-white text-[#1A2332] placeholder:text-[#B0BEC5] outline-none focus:border-[#4A6FA5] focus:ring-2 focus:ring-[#4A6FA5]/10 transition-all"
                       style={{ fontVariantNumeric: "tabular-nums" }}
                     />
                   </div>
@@ -377,7 +377,7 @@ export function CreateExpense() {
             </div>
 
             {/* ── Link to Job / Invoice ── */}
-            <div className="bg-white border border-[#DDE3EE] rounded-xl p-6 mb-5">
+            <div className="bg-white border border-[#E5E7EB] rounded-xl p-6 mb-5">
               <div className="flex items-center gap-2 mb-5">
                 <span
                   className="material-icons text-[#4A6FA5]"
@@ -409,7 +409,7 @@ export function CreateExpense() {
                         setJobDropdownOpen(!jobDropdownOpen);
                         setInvoiceDropdownOpen(false);
                       }}
-                      className="w-full h-10 px-3.5 pr-9 border border-[#DDE3EE] rounded-lg text-[13px] bg-white outline-none cursor-pointer focus:border-[#4A6FA5] focus:ring-2 focus:ring-[#4A6FA5]/10 transition-all text-left flex items-center"
+                      className="w-full h-10 px-3.5 pr-9 border border-[#E5E7EB] rounded-lg text-[13px] bg-white outline-none cursor-pointer focus:border-[#4A6FA5] focus:ring-2 focus:ring-[#4A6FA5]/10 transition-all text-left flex items-center"
                     >
                       {selectedJob ? (
                         <span className="text-[#1A2332] truncate">
@@ -431,7 +431,7 @@ export function CreateExpense() {
                   </div>
 
                   {jobDropdownOpen && (
-                    <div className="absolute top-full left-0 mt-1 w-full bg-white border border-[#DDE3EE] rounded-lg shadow-lg z-20 overflow-hidden">
+                    <div className="absolute top-full left-0 mt-1 w-full bg-white border border-[#E5E7EB] rounded-lg shadow-lg z-20 overflow-hidden">
                       <div className="p-2 border-b border-[#EDF0F5]">
                         <div className="relative">
                           <span
@@ -446,7 +446,7 @@ export function CreateExpense() {
                             onChange={(e) => setJobSearch(e.target.value)}
                             placeholder="Search jobs..."
                             autoFocus
-                            className="w-full h-8 pl-8 pr-3 border border-[#DDE3EE] rounded-md text-[12px] bg-[#F9FAFB] text-[#1A2332] placeholder:text-[#9CA3AF] outline-none focus:border-[#4A6FA5]"
+                            className="w-full h-8 pl-8 pr-3 border border-[#E5E7EB] rounded-md text-[12px] bg-[#F9FAFB] text-[#1A2332] placeholder:text-[#9CA3AF] outline-none focus:border-[#4A6FA5]"
                           />
                         </div>
                       </div>
@@ -508,7 +508,7 @@ export function CreateExpense() {
                         setInvoiceDropdownOpen(!invoiceDropdownOpen);
                         setJobDropdownOpen(false);
                       }}
-                      className="w-full h-10 px-3.5 pr-9 border border-[#DDE3EE] rounded-lg text-[13px] bg-white outline-none cursor-pointer focus:border-[#4A6FA5] focus:ring-2 focus:ring-[#4A6FA5]/10 transition-all text-left flex items-center"
+                      className="w-full h-10 px-3.5 pr-9 border border-[#E5E7EB] rounded-lg text-[13px] bg-white outline-none cursor-pointer focus:border-[#4A6FA5] focus:ring-2 focus:ring-[#4A6FA5]/10 transition-all text-left flex items-center"
                     >
                       {selectedInvoice ? (
                         <span className="text-[#1A2332] truncate">
@@ -530,7 +530,7 @@ export function CreateExpense() {
                   </div>
 
                   {invoiceDropdownOpen && (
-                    <div className="absolute top-full left-0 mt-1 w-full bg-white border border-[#DDE3EE] rounded-lg shadow-lg z-20 overflow-hidden">
+                    <div className="absolute top-full left-0 mt-1 w-full bg-white border border-[#E5E7EB] rounded-lg shadow-lg z-20 overflow-hidden">
                       <div className="p-2 border-b border-[#EDF0F5]">
                         <div className="relative">
                           <span
@@ -545,7 +545,7 @@ export function CreateExpense() {
                             onChange={(e) => setInvoiceSearch(e.target.value)}
                             placeholder="Search invoices..."
                             autoFocus
-                            className="w-full h-8 pl-8 pr-3 border border-[#DDE3EE] rounded-md text-[12px] bg-[#F9FAFB] text-[#1A2332] placeholder:text-[#9CA3AF] outline-none focus:border-[#4A6FA5]"
+                            className="w-full h-8 pl-8 pr-3 border border-[#E5E7EB] rounded-md text-[12px] bg-[#F9FAFB] text-[#1A2332] placeholder:text-[#9CA3AF] outline-none focus:border-[#4A6FA5]"
                           />
                         </div>
                       </div>
@@ -609,7 +609,7 @@ export function CreateExpense() {
             </div>
 
             {/* ── Line Items ── */}
-            <div className="bg-white border border-[#DDE3EE] rounded-xl p-6 mb-5">
+            <div className="bg-white border border-[#E5E7EB] rounded-xl p-6 mb-5">
               <div className="flex items-center justify-between mb-5">
                 <div className="flex items-center gap-2">
                   <span
@@ -642,7 +642,7 @@ export function CreateExpense() {
               </div>
 
               {lineItems.length === 0 ? (
-                <div className="border-2 border-dashed border-[#DDE3EE] rounded-lg py-8 text-center">
+                <div className="border-2 border-dashed border-[#E5E7EB] rounded-lg py-8 text-center">
                   <span className="material-icons text-[#D1D5DB] mb-2" style={{ fontSize: "32px" }}>inventory_2</span>
                   <p className="text-[13px] text-[#8899AA]">No items added yet</p>
                   <button
@@ -661,7 +661,7 @@ export function CreateExpense() {
               ) : (
                 <div className="space-y-3">
                   {lineItems.map((li) => (
-                    <div key={li.id} className="border border-[#DDE3EE] rounded-lg p-3">
+                    <div key={li.id} className="border border-[#E5E7EB] rounded-lg p-3">
                       <div className="flex items-start gap-3">
                         <div className="flex-1">
                           <div className="text-[13px] text-[#1A2332] mb-1" style={{ fontWeight: 500 }}>{li.name}</div>
@@ -676,7 +676,7 @@ export function CreateExpense() {
                                 min="1"
                                 value={li.quantity}
                                 onChange={(e) => updateLineItem(li.id, "quantity", Number(e.target.value))}
-                                className="w-full h-8 px-2 border border-[#DDE3EE] rounded text-[12px] outline-none focus:border-[#4A6FA5]"
+                                className="w-full h-8 px-2 border border-[#E5E7EB] rounded text-[12px] outline-none focus:border-[#4A6FA5]"
                               />
                             </div>
                             <div>
@@ -687,12 +687,12 @@ export function CreateExpense() {
                                 min="0"
                                 value={li.unitPrice}
                                 onChange={(e) => updateLineItem(li.id, "unitPrice", Number(e.target.value))}
-                                className="w-full h-8 px-2 border border-[#DDE3EE] rounded text-[12px] outline-none focus:border-[#4A6FA5]"
+                                className="w-full h-8 px-2 border border-[#E5E7EB] rounded text-[12px] outline-none focus:border-[#4A6FA5]"
                               />
                             </div>
                             <div>
                               <label className="text-[11px] text-[#8899AA] mb-1 block">Total</label>
-                              <div className="h-8 px-2 bg-[#F5F7FA] border border-[#DDE3EE] rounded text-[12px] flex items-center" style={{ fontWeight: 500 }}>
+                              <div className="h-8 px-2 bg-[#F5F7FA] border border-[#E5E7EB] rounded text-[12px] flex items-center" style={{ fontWeight: 500 }}>
                                 ${li.total.toFixed(2)}
                               </div>
                             </div>
@@ -711,7 +711,7 @@ export function CreateExpense() {
               )}
 
               {lineItems.length > 0 && (
-                <div className="mt-4 pt-4 border-t border-[#DDE3EE]">
+                <div className="mt-4 pt-4 border-t border-[#E5E7EB]">
                   <div className="space-y-2">
                     <div className="flex justify-between text-[13px]">
                       <span className="text-[#8899AA]">Subtotal</span>
@@ -721,7 +721,7 @@ export function CreateExpense() {
                       <span className="text-[#8899AA]">Tax ({taxRate}%)</span>
                       <span className="text-[#1A2332]" style={{ fontWeight: 500 }}>${taxAmount.toFixed(2)}</span>
                     </div>
-                    <div className="flex justify-between text-[15px] pt-2 border-t border-[#DDE3EE]">
+                    <div className="flex justify-between text-[15px] pt-2 border-t border-[#E5E7EB]">
                       <span className="text-[#1A2332]" style={{ fontWeight: 600 }}>Total</span>
                       <span className="text-[#1A2332]" style={{ fontWeight: 700 }}>${calculatedTotal.toFixed(2)}</span>
                     </div>
@@ -731,7 +731,7 @@ export function CreateExpense() {
             </div>
 
             {/* ── Notes ── */}
-            <div className="bg-white border border-[#DDE3EE] rounded-xl p-6">
+            <div className="bg-white border border-[#E5E7EB] rounded-xl p-6">
               <div className="flex items-center gap-2 mb-4">
                 <span
                   className="material-icons text-[#4A6FA5]"
@@ -752,7 +752,7 @@ export function CreateExpense() {
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Add any internal notes about this expense..."
                 rows={4}
-                className="w-full px-3.5 py-3 border border-[#DDE3EE] rounded-lg text-[13px] bg-white text-[#1A2332] placeholder:text-[#B0BEC5] outline-none resize-none focus:border-[#4A6FA5] focus:ring-2 focus:ring-[#4A6FA5]/10 transition-all leading-relaxed"
+                className="w-full px-3.5 py-3 border border-[#E5E7EB] rounded-lg text-[13px] bg-white text-[#1A2332] placeholder:text-[#B0BEC5] outline-none resize-none focus:border-[#4A6FA5] focus:ring-2 focus:ring-[#4A6FA5]/10 transition-all leading-relaxed"
               />
             </div>
           </div>
@@ -761,9 +761,9 @@ export function CreateExpense() {
               RIGHT COLUMN — Receipt Panel
              ════════════════════════════════════════════════════════════════ */}
           <div className="w-full lg:w-[360px] lg:flex-shrink-0">
-            <div className="bg-white border border-[#DDE3EE] rounded-xl overflow-hidden lg:sticky lg:top-6">
+            <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden lg:sticky lg:top-6">
               {/* Panel header */}
-              <div className="flex items-center gap-2 px-6 py-4 border-b border-[#DDE3EE]">
+              <div className="flex items-center gap-2 px-6 py-4 border-b border-[#E5E7EB]">
                 <span
                   className="material-icons text-[#4A6FA5]"
                   style={{ fontSize: "20px" }}
@@ -818,7 +818,7 @@ export function CreateExpense() {
                   className={`relative rounded-xl border-2 border-dashed transition-all cursor-pointer group ${
                     dragOver
                       ? "border-[#4A6FA5] bg-[#4A6FA5]/5"
-                      : "border-[#DDE3EE] hover:border-[#4A6FA5]/40 hover:bg-[#F9FAFB]"
+                      : "border-[#E5E7EB] hover:border-[#4A6FA5]/40 hover:bg-[#F9FAFB]"
                   } ${receipts.length === 0 ? "py-10" : "py-6"}`}
                 >
                   <div className="flex flex-col items-center text-center px-4">
@@ -858,7 +858,7 @@ export function CreateExpense() {
                 <div className="flex gap-2 mt-3">
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="flex-1 flex items-center justify-center gap-2 h-10 border border-[#DDE3EE] rounded-lg text-[13px] text-[#1A2332] hover:bg-[#F5F7FA] transition-colors"
+                    className="flex-1 flex items-center justify-center gap-2 h-10 border border-[#E5E7EB] rounded-lg text-[13px] text-[#1A2332] hover:bg-[#F5F7FA] transition-colors"
                     style={{ fontWeight: 500 }}
                   >
                     <span
@@ -871,7 +871,7 @@ export function CreateExpense() {
                   </button>
                   <button
                     onClick={() => cameraInputRef.current?.click()}
-                    className="flex-1 flex items-center justify-center gap-2 h-10 border border-[#DDE3EE] rounded-lg text-[13px] text-[#1A2332] hover:bg-[#F5F7FA] transition-colors"
+                    className="flex-1 flex items-center justify-center gap-2 h-10 border border-[#E5E7EB] rounded-lg text-[13px] text-[#1A2332] hover:bg-[#F5F7FA] transition-colors"
                     style={{ fontWeight: 500 }}
                   >
                     <span
@@ -919,11 +919,11 @@ export function CreateExpense() {
                     {receipts.map((r, idx) => (
                       <div
                         key={idx}
-                        className="group flex items-center gap-3 p-2.5 bg-[#F9FAFB] rounded-lg border border-[#EDF0F5] hover:border-[#DDE3EE] transition-colors"
+                        className="group flex items-center gap-3 p-2.5 bg-[#F9FAFB] rounded-lg border border-[#EDF0F5] hover:border-[#E5E7EB] transition-colors"
                       >
                         {/* Thumbnail / icon */}
                         {r.preview ? (
-                          <div className="w-11 h-11 rounded-lg overflow-hidden flex-shrink-0 border border-[#DDE3EE]">
+                          <div className="w-11 h-11 rounded-lg overflow-hidden flex-shrink-0 border border-[#E5E7EB]">
                             <img
                               src={r.preview}
                               alt={r.name}
@@ -969,7 +969,7 @@ export function CreateExpense() {
 
             {/* Quick summary card - only on desktop */}
             {(merchant || category || total || lineItems.length > 0) && (
-              <div className="hidden lg:block bg-white border border-[#DDE3EE] rounded-xl mt-5 p-5">
+              <div className="hidden lg:block bg-white border border-[#E5E7EB] rounded-xl mt-5 p-5">
                 <h3
                   className="text-[12px] text-[#8899AA] uppercase tracking-wider mb-3"
                   style={{ fontWeight: 600 }}
@@ -1073,10 +1073,10 @@ export function CreateExpense() {
       </div>
 
       {/* ── Mobile sticky save bar ── */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-[#DDE3EE] px-4 py-3 z-30 flex gap-3">
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-[#E5E7EB] px-4 py-3 z-30 flex gap-3">
         <button
           onClick={() => navigate("/expenses")}
-          className="flex-1 h-11 rounded-lg border border-[#DDE3EE] text-[14px] text-[#546478] hover:bg-[#F5F7FA] transition-colors"
+          className="flex-1 h-11 rounded-lg border border-[#E5E7EB] text-[14px] text-[#546478] hover:bg-[#F5F7FA] transition-colors"
           style={{ fontWeight: 500 }}
         >
           Cancel

@@ -355,10 +355,10 @@ export function ItemDetail() {
             Back to Items
           </button>
           <div className="flex items-center gap-2">
-            <button className="border border-[#DDE3EE] text-[#546478] hover:bg-[#EDF0F5] h-8 px-2.5 rounded-md flex items-center justify-center">
+            <button className="border border-[#E5E7EB] text-[#546478] hover:bg-[#EDF0F5] h-8 px-2.5 rounded-md flex items-center justify-center">
               <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
             </button>
-            <KebabMenu triggerClassName="h-8 w-8 border border-[#DDE3EE] rounded-md hover:bg-[#EDF0F5] flex items-center justify-center">
+            <KebabMenu triggerClassName="h-8 w-8 border border-[#E5E7EB] rounded-md hover:bg-[#EDF0F5] flex items-center justify-center">
               <KebabItem icon="content_copy">Duplicate Item</KebabItem>
               <KebabSeparator />
               <KebabItem icon="block" destructive>Inactivate Item</KebabItem>

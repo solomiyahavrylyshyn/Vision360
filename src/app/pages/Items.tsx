@@ -324,7 +324,7 @@ function Pagination({ total, perPage, page, onPageChange, onPerPageChange }: {
   const to = Math.min(page * perPage, total);
 
   return (
-    <div className="flex items-center justify-between px-4 py-2 border-t border-[#DDE3EE] bg-[#FAFBFC]">
+    <div className="flex items-center justify-between px-4 py-2 border-t border-[#E5E7EB] bg-[#FAFBFC]">
       <span className="text-[13px] text-[#546478]">
         Showing {from} to {to} of {total} results
       </span>
@@ -332,7 +332,7 @@ function Pagination({ total, perPage, page, onPageChange, onPerPageChange }: {
         <select
           value={perPage}
           onChange={(e) => { onPerPageChange(Number(e.target.value)); onPageChange(1); }}
-          className="px-2 py-1 border border-[#DDE3EE] rounded text-[13px] bg-white"
+          className="px-2 py-1 border border-[#E5E7EB] rounded text-[13px] bg-white"
         >
           {[10, 25, 50].map(n => <option key={n} value={n}>{n}</option>)}
         </select>
@@ -546,7 +546,7 @@ export function Items() {
               <span className="material-icons" style={{ fontSize: "18px" }}>add</span>
               {activeTab === "pricebook" ? "Create Pricebook Item" : "Create Item"}
             </button>
-            <KebabMenu triggerClassName="w-9 h-9 border border-[#DDE3EE] rounded-lg bg-white">
+            <KebabMenu triggerClassName="w-9 h-9 border border-[#E5E7EB] rounded-lg bg-white">
               <KebabItem icon="view_column">Edit Columns</KebabItem>
               <KebabItem icon="content_copy">Manage Duplicates</KebabItem>
               <KebabSeparator />
@@ -590,29 +590,29 @@ export function Items() {
 
       {/* ═══════════════ TABLE (conditional on activeTab) ═══════════════ */}
       {activeTab === "pricebook" ? (
-        <div className="bg-white border border-[#DDE3EE] rounded-xl">
+        <div className="bg-white border border-[#E5E7EB] rounded-xl">
           {/* Filter bar */}
-          <div className="flex items-center gap-2 px-4 py-2 border-b border-[#DDE3EE]">
+          <div className="flex items-center gap-2 px-4 py-2 border-b border-[#E5E7EB]">
             <div className="relative flex-1 max-w-[240px]">
               <span className="material-icons absolute left-2.5 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: "16px" }}>search</span>
               <input type="text" placeholder="Search pricebook items..."
                 value={pbSearch} onChange={(e) => { setPbSearch(e.target.value); setPbPage(1); }}
-                className="w-full h-8 pl-8 pr-3 border border-[#DDE3EE] rounded-lg text-[13px] focus:outline-none focus:border-[#4A6FA5] bg-white" />
+                className="w-full h-8 pl-8 pr-3 border border-[#E5E7EB] rounded-lg text-[13px] focus:outline-none focus:border-[#4A6FA5] bg-white" />
             </div>
             <select value={pbCategoryFilter} onChange={(e) => { setPbCategoryFilter(e.target.value); setPbPage(1); }}
-              className="h-8 px-3 pr-8 border border-[#DDE3EE] rounded-lg text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5] min-w-[145px]"
+              className="h-8 px-3 pr-8 border border-[#E5E7EB] rounded-lg text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5] min-w-[145px]"
               style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23546478' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`, backgroundRepeat: "no-repeat", backgroundPosition: "right 10px center", appearance: "none" }}>
               <option value="All">All Categories</option>
               {pbCategories.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
             <select value={pbStatusFilter} onChange={(e) => { setPbStatusFilter(e.target.value); setPbPage(1); }}
-              className="h-8 px-3 pr-8 border border-[#DDE3EE] rounded-lg text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5] min-w-[125px]"
+              className="h-8 px-3 pr-8 border border-[#E5E7EB] rounded-lg text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5] min-w-[125px]"
               style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23546478' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`, backgroundRepeat: "no-repeat", backgroundPosition: "right 10px center", appearance: "none" }}>
               <option value="All">All Statuses</option>
               <option value="Active">Active</option>
               <option value="Inactive">Inactive</option>
             </select>
-            <button className="h-8 px-3 border border-[#DDE3EE] rounded-lg text-[13px] text-[#546478] bg-white hover:bg-[#F5F7FA] flex items-center gap-1.5 transition-colors">
+            <button className="h-8 px-3 border border-[#E5E7EB] rounded-lg text-[13px] text-[#546478] bg-white hover:bg-[#F5F7FA] flex items-center gap-1.5 transition-colors">
               <span className="material-icons" style={{ fontSize: "16px" }}>tune</span>
               Filters
             </button>
@@ -622,7 +622,7 @@ export function Items() {
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="bg-[#F5F7FA] border-b border-[#DDE3EE]">
+                <tr className="bg-[#F5F7FA] border-b border-[#E5E7EB]">
                   {pbCols.map(col => (
                     <DraggableTh
                       key={col.key}
@@ -654,7 +654,7 @@ export function Items() {
                 ) : paginatedPbItems.map(item => (
                   <tr key={item.id}
                     onClick={() => navigate(`/items/pb-${item.id}`)}
-                    className="group border-b border-[#DDE3EE] hover:bg-[#F9FAFB] transition-colors cursor-pointer bg-white">
+                    className="group border-b border-[#E5E7EB] hover:bg-[#F9FAFB] transition-colors cursor-pointer bg-white">
                     {pbCols.map(col => {
                       switch (col.key) {
                         case "name":
@@ -690,7 +690,7 @@ export function Items() {
                       }
                     })}
                     <td className="px-4 py-2 text-right" onClick={e => e.stopPropagation()}>
-                      <KebabMenu triggerClassName="w-8 h-8 border border-[#DDE3EE] rounded-lg bg-white">
+                      <KebabMenu triggerClassName="w-8 h-8 border border-[#E5E7EB] rounded-lg bg-white">
                         <KebabItem icon="edit">Edit</KebabItem>
                         <KebabItem icon="content_copy">Duplicate</KebabItem>
                         <KebabSeparator />
@@ -704,13 +704,13 @@ export function Items() {
           </div>
 
           {/* Pagination */}
-          <div className="flex items-center justify-between px-4 py-2 border-t border-[#DDE3EE] bg-[#FAFBFC]">
+          <div className="flex items-center justify-between px-4 py-2 border-t border-[#E5E7EB] bg-[#FAFBFC]">
             <span className="text-[13px] text-[#546478]">
               Showing {filteredPbItems.length === 0 ? 0 : (pbPage - 1) * pbPerPage + 1} to {Math.min(pbPage * pbPerPage, filteredPbItems.length)} of {filteredPbItems.length} pricebook items
             </span>
             <div className="flex items-center gap-4">
               <select value={pbPerPage} onChange={e => { setPbPerPage(Number(e.target.value)); setPbPage(1); }}
-                className="px-2 py-1 border border-[#DDE3EE] rounded text-[13px] bg-white">
+                className="px-2 py-1 border border-[#E5E7EB] rounded text-[13px] bg-white">
                 {[10, 25, 50].map(n => <option key={n} value={n}>{n}</option>)}
               </select>
               <div className="flex items-center gap-1">
@@ -731,9 +731,9 @@ export function Items() {
         </div>
       ) : (
         /* existing All Items / Services / etc table */
-        <div className="bg-white border border-[#DDE3EE] rounded-xl">
+        <div className="bg-white border border-[#E5E7EB] rounded-xl">
           {/* Filter bar */}
-          <div className="flex items-center gap-2 px-4 py-2 border-b border-[#DDE3EE]">
+          <div className="flex items-center gap-2 px-4 py-2 border-b border-[#E5E7EB]">
             <div className="relative flex-1 max-w-[240px]">
               <span className="material-icons absolute left-2.5 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: "16px" }}>search</span>
               <input
@@ -741,13 +741,13 @@ export function Items() {
                 placeholder="Search items..."
                 value={itemSearch}
                 onChange={(e) => { setItemSearch(e.target.value); setItemPage(1); }}
-                className="w-full h-8 pl-8 pr-3 border border-[#DDE3EE] rounded-lg text-[13px] focus:outline-none focus:border-[#4A6FA5] bg-white"
+                className="w-full h-8 pl-8 pr-3 border border-[#E5E7EB] rounded-lg text-[13px] focus:outline-none focus:border-[#4A6FA5] bg-white"
               />
             </div>
             <select
               value={itemFilter}
               onChange={(e) => { setItemFilter(e.target.value); setItemPage(1); }}
-              className="h-8 px-3 pr-8 border border-[#DDE3EE] rounded-lg text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5] min-w-[145px]"
+              className="h-8 px-3 pr-8 border border-[#E5E7EB] rounded-lg text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5] min-w-[145px]"
               style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23546478' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`, backgroundRepeat: "no-repeat", backgroundPosition: "right 10px center", appearance: "none" }}
             >
               <option value="All">All Categories</option>
@@ -756,14 +756,14 @@ export function Items() {
             <select
               value={itemStatusFilter}
               onChange={(e) => { setItemStatusFilter(e.target.value); setItemPage(1); }}
-              className="h-8 px-3 pr-8 border border-[#DDE3EE] rounded-lg text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5] min-w-[125px]"
+              className="h-8 px-3 pr-8 border border-[#E5E7EB] rounded-lg text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5] min-w-[125px]"
               style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23546478' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`, backgroundRepeat: "no-repeat", backgroundPosition: "right 10px center", appearance: "none" }}
             >
               <option value="All">All Statuses</option>
               <option value="Active">Active</option>
               <option value="Inactive">Inactive</option>
             </select>
-            <button className="h-8 px-3 border border-[#DDE3EE] rounded-lg text-[13px] text-[#546478] bg-white hover:bg-[#F5F7FA] flex items-center gap-1.5 transition-colors">
+            <button className="h-8 px-3 border border-[#E5E7EB] rounded-lg text-[13px] text-[#546478] bg-white hover:bg-[#F5F7FA] flex items-center gap-1.5 transition-colors">
               <span className="material-icons" style={{ fontSize: "16px" }}>tune</span>
               Filters
             </button>
@@ -779,7 +779,7 @@ export function Items() {
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="bg-[#F5F7FA] border-b border-[#DDE3EE]">
+                <tr className="bg-[#F5F7FA] border-b border-[#E5E7EB]">
                   <th className="px-4 py-2 w-10">
                     <input
                       type="checkbox"
@@ -788,7 +788,7 @@ export function Items() {
                         if (e.target.checked) setSelectedItems(new Set(paginatedItems.map(i => i.id)));
                         else setSelectedItems(new Set());
                       }}
-                      className="w-4 h-4 rounded border-[#DDE3EE] cursor-pointer accent-[#4A6FA5]"
+                      className="w-4 h-4 rounded border-[#E5E7EB] cursor-pointer accent-[#4A6FA5]"
                     />
                   </th>
                   {[
@@ -830,7 +830,7 @@ export function Items() {
                     <tr
                       key={item.id}
                       onClick={() => navigate(`/items/${item.id}`)}
-                      className={`group border-b border-[#DDE3EE] hover:bg-[#F9FAFB] transition-colors cursor-pointer ${selectedItems.has(item.id) ? "bg-[#EBF0F8]" : "bg-white"}`}
+                      className={`group border-b border-[#E5E7EB] hover:bg-[#F9FAFB] transition-colors cursor-pointer ${selectedItems.has(item.id) ? "bg-[#EBF0F8]" : "bg-white"}`}
                     >
                       <td className="px-4 py-2" onClick={(e) => e.stopPropagation()}>
                         <input
@@ -841,7 +841,7 @@ export function Items() {
                             e.target.checked ? s.add(item.id) : s.delete(item.id);
                             setSelectedItems(s);
                           }}
-                          className="w-4 h-4 rounded border-[#DDE3EE] cursor-pointer accent-[#4A6FA5]"
+                          className="w-4 h-4 rounded border-[#E5E7EB] cursor-pointer accent-[#4A6FA5]"
                         />
                       </td>
                       <td className="px-4 py-2">
@@ -865,7 +865,7 @@ export function Items() {
                           : <span className="text-[#C8D5E8]">—</span>}
                       </td>
                       <td className="px-4 py-2 text-right" onClick={(e) => e.stopPropagation()}>
-                        <KebabMenu triggerClassName="w-8 h-8 border border-[#DDE3EE] rounded-lg bg-white">
+                        <KebabMenu triggerClassName="w-8 h-8 border border-[#E5E7EB] rounded-lg bg-white">
                           <KebabItem icon="edit" onClick={() => { setEditingItem(item); setItemModalOpen(true); }}>Edit</KebabItem>
                           <KebabItem icon="content_copy">Duplicate</KebabItem>
                           <KebabSeparator />
@@ -891,7 +891,7 @@ export function Items() {
 
       {/* ═══════════════ BOTTOM INFO PANEL (conditional) ═══════════════ */}
       {showInfoBar && (activeTab === "pricebook" ? (
-        <div className="mt-3 bg-white border border-[#DDE3EE] rounded-xl px-5 py-4 flex gap-6 relative">
+        <div className="mt-3 bg-white border border-[#E5E7EB] rounded-xl px-5 py-4 flex gap-6 relative">
           {/* Close button */}
           <button
             onClick={() => setShowInfoBarDismiss(true)}
@@ -910,7 +910,7 @@ export function Items() {
               Pricebook items are the flat-rate services, repairs, installations and fees that you sell to your customers. These items are used in estimates, invoices and jobs.
             </p>
           </div>
-          <div className="w-px bg-[#DDE3EE] self-stretch flex-shrink-0" />
+          <div className="w-px bg-[#E5E7EB] self-stretch flex-shrink-0" />
           {/* Middle: How it works */}
           <div className="w-[240px] flex-shrink-0">
             <div className="text-[12.5px] text-[#1A2332] mb-2" style={{ fontWeight: 700 }}>How it works</div>
@@ -921,7 +921,7 @@ export function Items() {
               </div>
             ))}
           </div>
-          <div className="w-px bg-[#DDE3EE] self-stretch flex-shrink-0" />
+          <div className="w-px bg-[#E5E7EB] self-stretch flex-shrink-0" />
           {/* Right: Popular Categories */}
           <div className="flex-1">
             <div className="text-[12.5px] text-[#1A2332] mb-2.5" style={{ fontWeight: 700 }}>Popular Categories</div>
@@ -947,7 +947,7 @@ export function Items() {
           </div>
         </div>
       ) : (
-        <div className="mt-3 bg-white border border-[#DDE3EE] rounded-xl px-5 py-4 flex gap-6 relative">
+        <div className="mt-3 bg-white border border-[#E5E7EB] rounded-xl px-5 py-4 flex gap-6 relative">
           {/* Close button */}
           <button
             onClick={() => setShowInfoBarDismiss(true)}
@@ -971,7 +971,7 @@ export function Items() {
           </div>
 
           {/* Divider */}
-          <div className="w-px bg-[#DDE3EE] self-stretch flex-shrink-0" />
+          <div className="w-px bg-[#E5E7EB] self-stretch flex-shrink-0" />
 
           {/* Right: Item Types */}
           <div className="flex-1">
@@ -1003,17 +1003,17 @@ export function Items() {
       {/* ═══════════════ ITEM GROUPS (modal-only) ═══════════════ */}
       {false && (
         <div>
-          <div className="bg-white border border-[#DDE3EE] rounded-lg">
-            <div className="flex items-center justify-between p-3 border-b border-[#DDE3EE]">
+          <div className="bg-white border border-[#E5E7EB] rounded-lg">
+            <div className="flex items-center justify-between p-3 border-b border-[#E5E7EB]">
               <div className="relative w-[260px]">
                 <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: "18px" }}>search</span>
                 <input type="text" placeholder="Search groups..." value={groupSearch} onChange={(e) => setGroupSearch(e.target.value)}
-                  className="w-full h-9 pl-10 pr-3 border border-[#DDE3EE] rounded-lg text-[13px] focus:outline-none focus:border-[#4A6FA5]" />
+                  className="w-full h-9 pl-10 pr-3 border border-[#E5E7EB] rounded-lg text-[13px] focus:outline-none focus:border-[#4A6FA5]" />
               </div>
             </div>
             <table className="w-full">
               <thead>
-                <tr className="bg-[#F5F7FA] border-b border-[#DDE3EE]">
+                <tr className="bg-[#F5F7FA] border-b border-[#E5E7EB]">
                   <th className="px-4 py-3 text-left text-[11px] uppercase tracking-wider text-[#546478]" style={{ fontWeight: 600 }}>Name</th>
                   <th className="px-4 py-3 text-left text-[11px] uppercase tracking-wider text-[#546478]" style={{ fontWeight: 600 }}>Description</th>
                   <th className="px-4 py-3 text-left text-[11px] uppercase tracking-wider text-[#546478]" style={{ fontWeight: 600 }}>Items</th>
@@ -1051,17 +1051,17 @@ export function Items() {
       {/* categories (modal-only) */}
       {false && (
         <div>
-          <div className="bg-white border border-[#DDE3EE] rounded-lg">
-            <div className="flex items-center justify-between p-3 border-b border-[#DDE3EE]">
+          <div className="bg-white border border-[#E5E7EB] rounded-lg">
+            <div className="flex items-center justify-between p-3 border-b border-[#E5E7EB]">
               <div className="relative w-[260px]">
                 <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: "18px" }}>search</span>
                 <input type="text" placeholder="Search categories..." value={catSearch} onChange={(e) => setCatSearch(e.target.value)}
-                  className="w-full h-9 pl-10 pr-3 border border-[#DDE3EE] rounded-lg text-[13px] focus:outline-none focus:border-[#4A6FA5]" />
+                  className="w-full h-9 pl-10 pr-3 border border-[#E5E7EB] rounded-lg text-[13px] focus:outline-none focus:border-[#4A6FA5]" />
               </div>
             </div>
             <table className="w-full">
               <thead>
-                <tr className="bg-[#F5F7FA] border-b border-[#DDE3EE]">
+                <tr className="bg-[#F5F7FA] border-b border-[#E5E7EB]">
                   <th className="px-4 py-3 text-left text-[11px] uppercase tracking-wider text-[#546478]" style={{ fontWeight: 600 }}>Name</th>
                   <th className="px-4 py-3 text-left text-[11px] uppercase tracking-wider text-[#546478]" style={{ fontWeight: 600 }}>Description</th>
                   <th className="px-4 py-3 text-left text-[11px] uppercase tracking-wider text-[#546478]" style={{ fontWeight: 600 }}>Parent Category</th>
@@ -1106,17 +1106,17 @@ export function Items() {
             </button>
           </div>
 
-          <div className="bg-white border border-[#DDE3EE] rounded-lg">
-            <div className="flex items-center justify-between p-3 border-b border-[#DDE3EE]">
+          <div className="bg-white border border-[#E5E7EB] rounded-lg">
+            <div className="flex items-center justify-between p-3 border-b border-[#E5E7EB]">
               <div className="relative w-[260px]">
                 <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: "18px" }}>search</span>
                 <input type="text" placeholder="Search brands..." value={brandSearch} onChange={(e) => setBrandSearch(e.target.value)}
-                  className="w-full h-9 pl-10 pr-3 border border-[#DDE3EE] rounded-lg text-[13px] focus:outline-none focus:border-[#4A6FA5]" />
+                  className="w-full h-9 pl-10 pr-3 border border-[#E5E7EB] rounded-lg text-[13px] focus:outline-none focus:border-[#4A6FA5]" />
               </div>
             </div>
             <table className="w-full">
               <thead>
-                <tr className="bg-[#F5F7FA] border-b border-[#DDE3EE]">
+                <tr className="bg-[#F5F7FA] border-b border-[#E5E7EB]">
                   <th className="px-4 py-3 text-left text-[11px] uppercase tracking-wider text-[#546478]" style={{ fontWeight: 600 }}>Name</th>
                   <th className="px-4 py-3 text-left text-[11px] uppercase tracking-wider text-[#546478]" style={{ fontWeight: 600 }}>Description</th>
                   <th className="px-4 py-3 w-[100px] text-center text-[11px] uppercase tracking-wider text-[#546478]" style={{ fontWeight: 600 }}>Actions</th>
@@ -1157,17 +1157,17 @@ export function Items() {
             </button>
           </div>
 
-          <div className="bg-white border border-[#DDE3EE] rounded-lg">
-            <div className="flex items-center justify-between p-3 border-b border-[#DDE3EE]">
+          <div className="bg-white border border-[#E5E7EB] rounded-lg">
+            <div className="flex items-center justify-between p-3 border-b border-[#E5E7EB]">
               <div className="relative w-[260px]">
                 <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: "18px" }}>search</span>
                 <input type="text" placeholder="Search catalogs..." value={catalogSearch} onChange={(e) => setCatalogSearch(e.target.value)}
-                  className="w-full h-9 pl-10 pr-3 border border-[#DDE3EE] rounded-lg text-[13px] focus:outline-none focus:border-[#4A6FA5]" />
+                  className="w-full h-9 pl-10 pr-3 border border-[#E5E7EB] rounded-lg text-[13px] focus:outline-none focus:border-[#4A6FA5]" />
               </div>
             </div>
             <table className="w-full">
               <thead>
-                <tr className="bg-[#F5F7FA] border-b border-[#DDE3EE]">
+                <tr className="bg-[#F5F7FA] border-b border-[#E5E7EB]">
                   <th className="px-4 py-3 text-left text-[11px] uppercase tracking-wider text-[#546478]" style={{ fontWeight: 600 }}>Name</th>
                   <th className="px-4 py-3 text-left text-[11px] uppercase tracking-wider text-[#546478]" style={{ fontWeight: 600 }}>Description</th>
                   <th className="px-4 py-3 text-center text-[11px] uppercase tracking-wider text-[#546478]" style={{ fontWeight: 600 }}>Items</th>
@@ -1313,7 +1313,7 @@ export function Items() {
               </button>
               <button
                 onClick={() => { setShowInfoBar(false); setShowInfoBarDismiss(false); }}
-                className="w-full px-4 py-2.5 border border-[#DDE3EE] text-[#546478] rounded-lg text-[13px] hover:bg-[#F5F7FA] transition-colors"
+                className="w-full px-4 py-2.5 border border-[#E5E7EB] text-[#546478] rounded-lg text-[13px] hover:bg-[#F5F7FA] transition-colors"
                 style={{ fontWeight: 500 }}
               >
                 Just hide for now
@@ -1346,7 +1346,7 @@ export function Items() {
                 : <>Are you sure you want to delete <strong>"{deleteConfirm.name}"</strong>? This action cannot be undone.</>}
             </p>
             <div className="flex items-center justify-end gap-3">
-              <button onClick={() => setDeleteConfirm(null)} className="px-4 py-2.5 border border-[#DDE3EE] text-[#546478] rounded-lg text-[13px] hover:bg-[#F5F7FA]" style={{ fontWeight: 500 }}>Cancel</button>
+              <button onClick={() => setDeleteConfirm(null)} className="px-4 py-2.5 border border-[#E5E7EB] text-[#546478] rounded-lg text-[13px] hover:bg-[#F5F7FA]" style={{ fontWeight: 500 }}>Cancel</button>
               <button
                 onClick={() => {
                   const { type, id } = deleteConfirm;
@@ -1440,7 +1440,7 @@ function ItemModal({ item, categories, brands, groups, onClose, onSave }: {
     <ModalBackdrop onClose={onClose}>
       <div className="bg-white rounded-2xl shadow-2xl w-[780px] max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-5 border-b border-[#DDE3EE]">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-[#E5E7EB]">
           <h2 className="text-[20px] text-[#1A2332]" style={{ fontWeight: 700 }}>{item ? "Edit Item" : "Add New Item"}</h2>
           <div className="flex items-center gap-3">
             <button onClick={onClose} className="w-8 h-8 rounded-lg hover:bg-[#F5F7FA] flex items-center justify-center">
@@ -1462,14 +1462,14 @@ function ItemModal({ item, categories, brands, groups, onClose, onSave }: {
                   type="text"
                   value={form.id || "Auto"}
                   readOnly
-                  className="w-full h-10 px-3 border border-[#DDE3EE] rounded-lg text-[14px] bg-[#F5F7FA] text-[#8899AA] cursor-default focus:outline-none"
+                  className="w-full h-10 px-3 border border-[#E5E7EB] rounded-lg text-[14px] bg-[#F5F7FA] text-[#8899AA] cursor-default focus:outline-none"
                 />
               </FieldGroup>
               <FieldGroup label="Status">
                 <select
                   value={form.active ? "active" : "inactive"}
                   onChange={(e) => update("active", e.target.value === "active")}
-                  className="w-full h-10 px-3 border border-[#DDE3EE] rounded-lg text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
+                  className="w-full h-10 px-3 border border-[#E5E7EB] rounded-lg text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
                 >
                   <option value="active">Active</option>
                   <option value="inactive">Inactive</option>
@@ -1481,7 +1481,7 @@ function ItemModal({ item, categories, brands, groups, onClose, onSave }: {
               <input
                 type="text" value={form.name} onChange={(e) => update("name", e.target.value)}
                 placeholder="Item name"
-                className="w-full h-10 px-3 border border-[#DDE3EE] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]"
+                className="w-full h-10 px-3 border border-[#E5E7EB] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]"
                 spellCheck
               />
             </FieldGroup>
@@ -1490,7 +1490,7 @@ function ItemModal({ item, categories, brands, groups, onClose, onSave }: {
               <textarea
                 value={form.description} onChange={(e) => update("description", e.target.value)}
                 placeholder="Internal description (not shown to customers)"
-                className="w-full min-h-[72px] px-3 py-2 border border-[#DDE3EE] rounded-lg text-[14px] resize-y focus:outline-none focus:border-[#4A6FA5]"
+                className="w-full min-h-[72px] px-3 py-2 border border-[#E5E7EB] rounded-lg text-[14px] resize-y focus:outline-none focus:border-[#4A6FA5]"
                 spellCheck
               />
             </FieldGroup>
@@ -1499,7 +1499,7 @@ function ItemModal({ item, categories, brands, groups, onClose, onSave }: {
               <textarea
                 value={form.salesDescription} onChange={(e) => update("salesDescription", e.target.value)}
                 placeholder="Customer-facing description"
-                className="w-full min-h-[72px] px-3 py-2 border border-[#DDE3EE] rounded-lg text-[14px] resize-y focus:outline-none focus:border-[#4A6FA5]"
+                className="w-full min-h-[72px] px-3 py-2 border border-[#E5E7EB] rounded-lg text-[14px] resize-y focus:outline-none focus:border-[#4A6FA5]"
                 spellCheck
               />
             </FieldGroup>
@@ -1508,7 +1508,7 @@ function ItemModal({ item, categories, brands, groups, onClose, onSave }: {
               <textarea
                 value={form.additionalInfo} onChange={(e) => update("additionalInfo", e.target.value)}
                 placeholder="Additional details (optional)"
-                className="w-full min-h-[72px] px-3 py-2 border border-[#DDE3EE] rounded-lg text-[14px] resize-y focus:outline-none focus:border-[#4A6FA5]"
+                className="w-full min-h-[72px] px-3 py-2 border border-[#E5E7EB] rounded-lg text-[14px] resize-y focus:outline-none focus:border-[#4A6FA5]"
                 spellCheck
               />
             </FieldGroup>
@@ -1526,7 +1526,7 @@ function ItemModal({ item, categories, brands, groups, onClose, onSave }: {
                   onClick={() => handleChipSelect(key)}
                   className="flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition-all text-left"
                   style={{
-                    borderColor: isSelected ? color : "#DDE3EE",
+                    borderColor: isSelected ? color : "#E5E7EB",
                     backgroundColor: isSelected ? `${color}12` : "#FFFFFF",
                   }}
                 >
@@ -1553,7 +1553,7 @@ function ItemModal({ item, categories, brands, groups, onClose, onSave }: {
             <FieldGroup label="Category">
               <select
                 value={form.category} onChange={(e) => update("category", e.target.value)}
-                className="w-full h-10 px-3 border border-[#DDE3EE] rounded-lg text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
+                className="w-full h-10 px-3 border border-[#E5E7EB] rounded-lg text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
               >
                 <option value="">Choose category (optional)</option>
                 {categories.map(c => <option key={c} value={c}>{c}</option>)}
@@ -1563,7 +1563,7 @@ function ItemModal({ item, categories, brands, groups, onClose, onSave }: {
             <FieldGroup label="Manufacturer">
               <select
                 value={form.brand} onChange={(e) => update("brand", e.target.value)}
-                className="w-full h-10 px-3 border border-[#DDE3EE] rounded-lg text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
+                className="w-full h-10 px-3 border border-[#E5E7EB] rounded-lg text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
               >
                 <option value="">Select manufacturer (optional)</option>
                 {brands.map(b => <option key={b.id} value={b.name}>{b.name}</option>)}
@@ -1581,7 +1581,7 @@ function ItemModal({ item, categories, brands, groups, onClose, onSave }: {
                   <input
                     type="number" min="0" step="0.01" value={form.rate || ""}
                     onChange={(e) => update("rate", parseFloat(e.target.value) || 0)}
-                    className="w-full h-10 pl-7 pr-3 border border-[#DDE3EE] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]"
+                    className="w-full h-10 pl-7 pr-3 border border-[#E5E7EB] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]"
                     style={{ fontVariantNumeric: "tabular-nums" }}
                   />
                 </div>
@@ -1592,7 +1592,7 @@ function ItemModal({ item, categories, brands, groups, onClose, onSave }: {
                   <input
                     type="number" min="0" step="0.01" value={form.cost || ""}
                     onChange={(e) => update("cost", parseFloat(e.target.value) || 0)}
-                    className="w-full h-10 pl-7 pr-3 border border-[#DDE3EE] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]"
+                    className="w-full h-10 pl-7 pr-3 border border-[#E5E7EB] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]"
                     style={{ fontVariantNumeric: "tabular-nums" }}
                   />
                 </div>
@@ -1601,7 +1601,7 @@ function ItemModal({ item, categories, brands, groups, onClose, onSave }: {
                 <input
                   type="number" min="0" step="1" value={form.defaultQty || ""}
                   onChange={(e) => update("defaultQty", parseInt(e.target.value) || 1)}
-                  className="w-full h-10 px-3 border border-[#DDE3EE] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]"
+                  className="w-full h-10 px-3 border border-[#E5E7EB] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]"
                   style={{ fontVariantNumeric: "tabular-nums" }}
                 />
               </FieldGroup>
@@ -1613,7 +1613,7 @@ function ItemModal({ item, categories, brands, groups, onClose, onSave }: {
                   <select
                     value={taxProfile}
                     onChange={(e) => setTaxProfile(e.target.value)}
-                    className="w-full h-10 px-3 border border-[#DDE3EE] rounded-lg text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
+                    className="w-full h-10 px-3 border border-[#E5E7EB] rounded-lg text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
                   >
                     <option value="">Select tax profile…</option>
                     <option value="no_tax">No Tax</option>
@@ -1636,7 +1636,7 @@ function ItemModal({ item, categories, brands, groups, onClose, onSave }: {
           <FieldGroup label="Vendor">
             <select
               value={form.vendor} onChange={(e) => update("vendor", e.target.value === "—" ? "" : e.target.value)}
-              className="w-full h-10 px-3 border border-[#DDE3EE] rounded-lg text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
+              className="w-full h-10 px-3 border border-[#E5E7EB] rounded-lg text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
             >
               {mockVendors.map(v => <option key={v} value={v}>{v}</option>)}
             </select>
@@ -1647,7 +1647,7 @@ function ItemModal({ item, categories, brands, groups, onClose, onSave }: {
           <div className="flex items-start gap-4">
             <div className="flex-1 space-y-3">
               {/* Dashed upload area */}
-              <div className="flex flex-col items-center justify-center gap-1 border-2 border-dashed border-[#DDE3EE] rounded-xl py-5 px-4 bg-[#FAFBFC] cursor-pointer hover:border-[#4A6FA5] transition-colors">
+              <div className="flex flex-col items-center justify-center gap-1 border-2 border-dashed border-[#E5E7EB] rounded-xl py-5 px-4 bg-[#FAFBFC] cursor-pointer hover:border-[#4A6FA5] transition-colors">
                 <span className="material-icons text-[#8899AA]" style={{ fontSize: "32px" }}>upload_file</span>
                 <span className="text-[13px] text-[#546478]" style={{ fontWeight: 500 }}>Upload image or paste URL</span>
               </div>
@@ -1655,7 +1655,7 @@ function ItemModal({ item, categories, brands, groups, onClose, onSave }: {
               <input
                 type="text" value={form.picture} onChange={(e) => update("picture", e.target.value)}
                 placeholder="Paste image URL (optional)"
-                className="w-full h-10 px-3 border border-[#DDE3EE] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]"
+                className="w-full h-10 px-3 border border-[#E5E7EB] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]"
               />
             </div>
             {/* Preview */}
@@ -1664,7 +1664,7 @@ function ItemModal({ item, categories, brands, groups, onClose, onSave }: {
                 <img
                   src={form.picture}
                   alt="Item preview"
-                  className="h-[60px] w-auto rounded-lg border border-[#DDE3EE] object-contain bg-[#F5F7FA]"
+                  className="h-[60px] w-auto rounded-lg border border-[#E5E7EB] object-contain bg-[#F5F7FA]"
                 />
               </div>
             )}
@@ -1678,14 +1678,14 @@ function ItemModal({ item, categories, brands, groups, onClose, onSave }: {
               <input
                 type="text" value={form.customField1} onChange={(e) => update("customField1", e.target.value)}
                 placeholder="Custom field 1"
-                className="w-full h-10 px-3 border border-[#DDE3EE] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]"
+                className="w-full h-10 px-3 border border-[#E5E7EB] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]"
               />
             </FieldGroup>
             <FieldGroup label="Custom Field 2">
               <input
                 type="text" value={form.customField2} onChange={(e) => update("customField2", e.target.value)}
                 placeholder="Custom field 2"
-                className="w-full h-10 px-3 border border-[#DDE3EE] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]"
+                className="w-full h-10 px-3 border border-[#E5E7EB] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]"
               />
             </FieldGroup>
           </div>
@@ -1695,12 +1695,12 @@ function ItemModal({ item, categories, brands, groups, onClose, onSave }: {
           <textarea
             value={form.notes} onChange={(e) => update("notes", e.target.value)}
             placeholder="Internal notes (optional)"
-            className="w-full min-h-[80px] px-3 py-2 border border-[#DDE3EE] rounded-lg text-[14px] resize-y focus:outline-none focus:border-[#4A6FA5]"
+            className="w-full min-h-[80px] px-3 py-2 border border-[#E5E7EB] rounded-lg text-[14px] resize-y focus:outline-none focus:border-[#4A6FA5]"
             spellCheck
           />
 
           {/* ── 9. Enterprise Fields (greyed out placeholder) ── */}
-          <div className="bg-[#F9FAFB] border border-dashed border-[#DDE3EE] rounded-xl p-5 opacity-60 pointer-events-none select-none">
+          <div className="bg-[#F9FAFB] border border-dashed border-[#E5E7EB] rounded-xl p-5 opacity-60 pointer-events-none select-none">
             <div className="flex items-center gap-2 mb-4">
               <span className="text-[16px]">🔒</span>
               <span className="text-[15px] text-[#546478]" style={{ fontWeight: 700 }}>Enterprise Fields</span>
@@ -1723,7 +1723,7 @@ function ItemModal({ item, categories, brands, groups, onClose, onSave }: {
                     type="text"
                     readOnly
                     placeholder={placeholder}
-                    className="w-full h-9 px-3 border border-[#DDE3EE] rounded-lg text-[13px] bg-white text-[#8899AA] cursor-default focus:outline-none"
+                    className="w-full h-9 px-3 border border-[#E5E7EB] rounded-lg text-[13px] bg-white text-[#8899AA] cursor-default focus:outline-none"
                   />
                 </div>
               ))}
@@ -1734,8 +1734,8 @@ function ItemModal({ item, categories, brands, groups, onClose, onSave }: {
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[#DDE3EE] bg-[#FAFBFC]">
-          <button onClick={onClose} className="px-5 py-2.5 border border-[#DDE3EE] text-[#546478] rounded-lg text-[14px] hover:bg-[#F5F7FA]" style={{ fontWeight: 500 }}>Cancel</button>
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[#E5E7EB] bg-[#FAFBFC]">
+          <button onClick={onClose} className="px-5 py-2.5 border border-[#E5E7EB] text-[#546478] rounded-lg text-[14px] hover:bg-[#F5F7FA]" style={{ fontWeight: 500 }}>Cancel</button>
           <button
             onClick={() => { if (!form.name) return; onSave(form); }}
             className="px-5 py-2.5 bg-[#4A6FA5] text-white rounded-lg text-[14px] hover:bg-[#3d5a85]"
@@ -1764,7 +1764,7 @@ function GroupModal({ group, items, categories, onClose, onSave }: {
   return (
     <ModalBackdrop onClose={onClose}>
       <div className="bg-white rounded-2xl shadow-2xl w-[700px] max-h-[90vh] overflow-hidden flex flex-col">
-        <div className="flex items-center justify-between px-6 py-5 border-b border-[#DDE3EE]">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-[#E5E7EB]">
           <h2 className="text-[20px] text-[#1A2332]" style={{ fontWeight: 700 }}>{group ? "Edit Item Group" : "Create Item Group"}</h2>
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
@@ -1781,18 +1781,18 @@ function GroupModal({ group, items, categories, onClose, onSave }: {
           <div className="grid grid-cols-2 gap-5">
             <FieldGroup label="Item Group Name">
               <input type="text" value={form.name} onChange={(e) => setForm(prev => ({ ...prev, name: e.target.value }))} placeholder="Item group name"
-                className="w-full h-10 px-3 border border-[#DDE3EE] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]" />
+                className="w-full h-10 px-3 border border-[#E5E7EB] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]" />
             </FieldGroup>
             <FieldGroup label="Item Group Description">
               <textarea value={form.description} onChange={(e) => setForm(prev => ({ ...prev, description: e.target.value }))} placeholder="Item group description"
-                className="w-full min-h-[80px] px-3 py-2 border border-[#DDE3EE] rounded-lg text-[14px] resize-y focus:outline-none focus:border-[#4A6FA5]" />
+                className="w-full min-h-[80px] px-3 py-2 border border-[#E5E7EB] rounded-lg text-[14px] resize-y focus:outline-none focus:border-[#4A6FA5]" />
             </FieldGroup>
           </div>
 
           <div className="grid grid-cols-2 gap-5">
             <FieldGroup label="Group Type">
               <select value={form.groupType} onChange={(e) => setForm(prev => ({ ...prev, groupType: e.target.value as any }))}
-                className="w-full h-10 px-3 border border-[#DDE3EE] rounded-lg text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
+                className="w-full h-10 px-3 border border-[#E5E7EB] rounded-lg text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
               >
                 <option value="Individual items">Individual items</option>
                 <option value="Bundle">Bundle</option>
@@ -1800,7 +1800,7 @@ function GroupModal({ group, items, categories, onClose, onSave }: {
             </FieldGroup>
             <FieldGroup label="Category">
               <select value={form.category} onChange={(e) => setForm(prev => ({ ...prev, category: e.target.value }))}
-                className="w-full h-10 px-3 border border-[#DDE3EE] rounded-lg text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
+                className="w-full h-10 px-3 border border-[#E5E7EB] rounded-lg text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
               >
                 <option value="">Choose category (optional)</option>
                 {categories.map(c => <option key={c} value={c}>{c}</option>)}
@@ -1815,7 +1815,7 @@ function GroupModal({ group, items, categories, onClose, onSave }: {
                 if (id && !form.items.includes(id)) setForm(prev => ({ ...prev, items: [...prev.items, id] }));
                 e.target.value = "";
               }}
-              className="w-full h-10 px-3 border border-[#DDE3EE] rounded-lg text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
+              className="w-full h-10 px-3 border border-[#E5E7EB] rounded-lg text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
             >
               <option value="">Add items</option>
               {items.filter(i => !form.items.includes(i.id)).map(i => <option key={i.id} value={i.id}>{i.name} — ${i.rate.toFixed(2)}</option>)}
@@ -1823,10 +1823,10 @@ function GroupModal({ group, items, categories, onClose, onSave }: {
           </FieldGroup>
 
           {/* Items table */}
-          <div className="border border-[#DDE3EE] rounded-lg overflow-hidden">
+          <div className="border border-[#E5E7EB] rounded-lg overflow-hidden">
             <table className="w-full">
               <thead>
-                <tr className="bg-[#F5F7FA] border-b border-[#DDE3EE]">
+                <tr className="bg-[#F5F7FA] border-b border-[#E5E7EB]">
                   {["Item Name", "Price", "Cost", "Qty", "Amount", ""].map(h => (
                     <th key={h} className="px-3 py-2.5 text-left text-[11px] uppercase tracking-wider text-[#546478]" style={{ fontWeight: 600 }}>{h}</th>
                   ))}
@@ -1854,10 +1854,10 @@ function GroupModal({ group, items, categories, onClose, onSave }: {
           </div>
         </div>
 
-        <div className="flex items-center justify-between px-6 py-4 border-t border-[#DDE3EE] bg-[#FAFBFC]">
+        <div className="flex items-center justify-between px-6 py-4 border-t border-[#E5E7EB] bg-[#FAFBFC]">
           <div className="text-[14px] text-[#1A2332]">Total: <strong style={{ fontVariantNumeric: "tabular-nums" }}>${total.toFixed(2)}</strong></div>
           <div className="flex items-center gap-3">
-            <button onClick={onClose} className="px-5 py-2.5 border border-[#DDE3EE] text-[#546478] rounded-lg text-[14px] hover:bg-[#F5F7FA]" style={{ fontWeight: 500 }}>Cancel</button>
+            <button onClick={onClose} className="px-5 py-2.5 border border-[#E5E7EB] text-[#546478] rounded-lg text-[14px] hover:bg-[#F5F7FA]" style={{ fontWeight: 500 }}>Cancel</button>
             <button onClick={() => onSave({ ...form, total })} className="px-5 py-2.5 bg-[#4A6FA5] text-white rounded-lg text-[14px] hover:bg-[#3d5a85]" style={{ fontWeight: 600 }}>Save</button>
           </div>
         </div>
@@ -1878,7 +1878,7 @@ function CategoryModal({ category, categories, onClose, onSave }: {
   return (
     <ModalBackdrop onClose={onClose}>
       <div className="bg-white rounded-2xl shadow-2xl w-[520px]">
-        <div className="flex items-center justify-between px-6 py-5 border-b border-[#DDE3EE]">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-[#E5E7EB]">
           <h2 className="text-[20px] text-[#1A2332]" style={{ fontWeight: 700 }}>{category ? "Edit Category" : "Create New Category"}</h2>
           <button onClick={onClose} className="w-8 h-8 rounded-lg hover:bg-[#F5F7FA] flex items-center justify-center">
             <span className="material-icons text-[#546478]" style={{ fontSize: "22px" }}>close</span>
@@ -1887,12 +1887,12 @@ function CategoryModal({ category, categories, onClose, onSave }: {
         <div className="p-6 space-y-5">
           <FieldGroup label="Category Name" required>
             <input type="text" value={form.name} onChange={(e) => setForm(prev => ({ ...prev, name: e.target.value }))} placeholder="Category name"
-              className="w-full h-10 px-3 border border-[#DDE3EE] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]" />
+              className="w-full h-10 px-3 border border-[#E5E7EB] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]" />
           </FieldGroup>
 
           <FieldGroup label="Parent Category">
             <select value={form.parentCategory} onChange={(e) => setForm(prev => ({ ...prev, parentCategory: e.target.value }))}
-              className="w-full h-10 px-3 border border-[#DDE3EE] rounded-lg text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
+              className="w-full h-10 px-3 border border-[#E5E7EB] rounded-lg text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
             >
               <option value="">Choose parent category (optional)</option>
               {categories.filter(c => c.id !== form.id).map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
@@ -1901,7 +1901,7 @@ function CategoryModal({ category, categories, onClose, onSave }: {
 
           <FieldGroup label="Category Description">
             <textarea value={form.description} onChange={(e) => setForm(prev => ({ ...prev, description: e.target.value }))} placeholder="Category description (optional)"
-              className="w-full min-h-[100px] px-3 py-2 border border-[#DDE3EE] rounded-lg text-[14px] resize-y focus:outline-none focus:border-[#4A6FA5]" />
+              className="w-full min-h-[100px] px-3 py-2 border border-[#E5E7EB] rounded-lg text-[14px] resize-y focus:outline-none focus:border-[#4A6FA5]" />
           </FieldGroup>
 
           <div className="flex items-center justify-between py-1">
@@ -1912,8 +1912,8 @@ function CategoryModal({ category, categories, onClose, onSave }: {
             <Toggle checked={form.active} onChange={(v) => setForm(prev => ({ ...prev, active: v }))} />
           </div>
         </div>
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[#DDE3EE] bg-[#FAFBFC]">
-          <button onClick={onClose} className="px-5 py-2.5 border border-[#DDE3EE] text-[#546478] rounded-lg text-[14px] hover:bg-[#F5F7FA]" style={{ fontWeight: 500 }}>Cancel</button>
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[#E5E7EB] bg-[#FAFBFC]">
+          <button onClick={onClose} className="px-5 py-2.5 border border-[#E5E7EB] text-[#546478] rounded-lg text-[14px] hover:bg-[#F5F7FA]" style={{ fontWeight: 500 }}>Cancel</button>
           <button onClick={() => { if (!form.name) return; onSave(form); }} className="px-5 py-2.5 bg-[#4A6FA5] text-white rounded-lg text-[14px] hover:bg-[#3d5a85]" style={{ fontWeight: 600 }}>Save</button>
         </div>
       </div>
@@ -1930,7 +1930,7 @@ function BrandModal({ brand, onClose, onSave }: {
   return (
     <ModalBackdrop onClose={onClose}>
       <div className="bg-white rounded-2xl shadow-2xl w-[480px]">
-        <div className="flex items-center justify-between px-6 py-5 border-b border-[#DDE3EE]">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-[#E5E7EB]">
           <h2 className="text-[20px] text-[#1A2332]" style={{ fontWeight: 700 }}>{brand ? "Edit Brand" : "Create New Brand"}</h2>
           <button onClick={onClose} className="w-8 h-8 rounded-lg hover:bg-[#F5F7FA] flex items-center justify-center">
             <span className="material-icons text-[#546478]" style={{ fontSize: "22px" }}>close</span>
@@ -1939,15 +1939,15 @@ function BrandModal({ brand, onClose, onSave }: {
         <div className="p-6 space-y-5">
           <FieldGroup label="Brand Name" required>
             <input type="text" value={form.name} onChange={(e) => setForm(prev => ({ ...prev, name: e.target.value }))} placeholder="Brand name"
-              className="w-full h-10 px-3 border border-[#DDE3EE] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]" />
+              className="w-full h-10 px-3 border border-[#E5E7EB] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]" />
           </FieldGroup>
           <FieldGroup label="Description">
             <textarea value={form.description} onChange={(e) => setForm(prev => ({ ...prev, description: e.target.value }))} placeholder="Description"
-              className="w-full min-h-[100px] px-3 py-2 border border-[#DDE3EE] rounded-lg text-[14px] resize-y focus:outline-none focus:border-[#4A6FA5]" />
+              className="w-full min-h-[100px] px-3 py-2 border border-[#E5E7EB] rounded-lg text-[14px] resize-y focus:outline-none focus:border-[#4A6FA5]" />
           </FieldGroup>
         </div>
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[#DDE3EE] bg-[#FAFBFC]">
-          <button onClick={onClose} className="px-5 py-2.5 border border-[#DDE3EE] text-[#546478] rounded-lg text-[14px] hover:bg-[#F5F7FA]" style={{ fontWeight: 500 }}>Cancel</button>
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[#E5E7EB] bg-[#FAFBFC]">
+          <button onClick={onClose} className="px-5 py-2.5 border border-[#E5E7EB] text-[#546478] rounded-lg text-[14px] hover:bg-[#F5F7FA]" style={{ fontWeight: 500 }}>Cancel</button>
           <button onClick={() => { if (!form.name) return; onSave(form); }} className="px-5 py-2.5 bg-[#4A6FA5] text-white rounded-lg text-[14px] hover:bg-[#3d5a85]" style={{ fontWeight: 600 }}>Save</button>
         </div>
       </div>
@@ -1964,7 +1964,7 @@ function CatalogModal({ catalog, onClose, onSave }: {
   return (
     <ModalBackdrop onClose={onClose}>
       <div className="bg-white rounded-2xl shadow-2xl w-[480px]">
-        <div className="flex items-center justify-between px-6 py-5 border-b border-[#DDE3EE]">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-[#E5E7EB]">
           <h2 className="text-[20px] text-[#1A2332]" style={{ fontWeight: 700 }}>{catalog ? "Edit Catalog" : "Create Catalog"}</h2>
           <button onClick={onClose} className="w-8 h-8 rounded-lg hover:bg-[#F5F7FA] flex items-center justify-center">
             <span className="material-icons text-[#546478]" style={{ fontSize: "22px" }}>close</span>
@@ -1973,19 +1973,19 @@ function CatalogModal({ catalog, onClose, onSave }: {
         <div className="p-6 space-y-5">
           <FieldGroup label="Catalog Name" required>
             <input type="text" value={form.name} onChange={(e) => setForm(prev => ({ ...prev, name: e.target.value }))} placeholder="Catalog name"
-              className="w-full h-10 px-3 border border-[#DDE3EE] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]" />
+              className="w-full h-10 px-3 border border-[#E5E7EB] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]" />
           </FieldGroup>
           <FieldGroup label="Description">
             <textarea value={form.description} onChange={(e) => setForm(prev => ({ ...prev, description: e.target.value }))} placeholder="Description"
-              className="w-full min-h-[100px] px-3 py-2 border border-[#DDE3EE] rounded-lg text-[14px] resize-y focus:outline-none focus:border-[#4A6FA5]" />
+              className="w-full min-h-[100px] px-3 py-2 border border-[#E5E7EB] rounded-lg text-[14px] resize-y focus:outline-none focus:border-[#4A6FA5]" />
           </FieldGroup>
           <div className="flex items-center justify-between py-1">
             <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Active</div>
             <Toggle checked={form.active} onChange={(v) => setForm(prev => ({ ...prev, active: v }))} />
           </div>
         </div>
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[#DDE3EE] bg-[#FAFBFC]">
-          <button onClick={onClose} className="px-5 py-2.5 border border-[#DDE3EE] text-[#546478] rounded-lg text-[14px] hover:bg-[#F5F7FA]" style={{ fontWeight: 500 }}>Cancel</button>
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[#E5E7EB] bg-[#FAFBFC]">
+          <button onClick={onClose} className="px-5 py-2.5 border border-[#E5E7EB] text-[#546478] rounded-lg text-[14px] hover:bg-[#F5F7FA]" style={{ fontWeight: 500 }}>Cancel</button>
           <button onClick={() => { if (!form.name) return; onSave(form); }} className="px-5 py-2.5 bg-[#4A6FA5] text-white rounded-lg text-[14px] hover:bg-[#3d5a85]" style={{ fontWeight: 600 }}>Save</button>
         </div>
       </div>
@@ -2011,7 +2011,7 @@ function SectionHeader({ label }: { label: string }) {
   return (
     <div className="flex items-center gap-3 pt-2">
       <span className="text-[12px] uppercase tracking-wider text-[#546478] shrink-0" style={{ fontWeight: 700 }}>{label}</span>
-      <div className="flex-1 h-px bg-[#DDE3EE]" />
+      <div className="flex-1 h-px bg-[#E5E7EB]" />
     </div>
   );
 }

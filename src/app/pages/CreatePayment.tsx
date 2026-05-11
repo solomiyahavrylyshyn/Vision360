@@ -23,7 +23,7 @@ export function CreatePayment() {
               type="button"
               variant="outline"
               onClick={() => navigate(-1)}
-              className="border-[#DDE3EE] text-[#546478] hover:bg-[#EDF0F5] h-10 px-6"
+              className="border-[#E5E7EB] text-[#546478] hover:bg-[#EDF0F5] h-10 px-6"
             >
               Cancel
             </Button>

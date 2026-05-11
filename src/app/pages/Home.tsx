@@ -116,7 +116,7 @@ export function Home() {
           <div className="relative">
             <button
               onClick={() => setDateOpen(v => !v)}
-              className="flex items-center gap-2 px-3 py-2 bg-white border border-[#DDE3EE] rounded-lg text-[13px] text-[#374151] hover:bg-[#F5F7FA] transition-colors"
+              className="flex items-center gap-2 px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-[13px] text-[#374151] hover:bg-[#F5F7FA] transition-colors"
               style={{ fontWeight: 500 }}
             >
               <span className="material-icons text-[#6B7280]" style={{ fontSize: "16px" }}>calendar_today</span>
@@ -124,7 +124,7 @@ export function Home() {
               <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "16px" }}>keyboard_arrow_down</span>
             </button>
             {dateOpen && (
-              <div className="absolute right-0 top-full mt-1 w-[180px] bg-white border border-[#DDE3EE] rounded-lg shadow-lg z-50 py-1">
+              <div className="absolute right-0 top-full mt-1 w-[180px] bg-white border border-[#E5E7EB] rounded-lg shadow-lg z-50 py-1">
                 {DATE_OPTIONS.map(opt => (
                   <button
                     key={opt}
@@ -200,7 +200,7 @@ export function Home() {
                 <select
                   value={chartPeriod}
                   onChange={e => setChartPeriod(e.target.value as any)}
-                  className="appearance-none pl-3 pr-8 py-1.5 border border-[#DDE3EE] rounded-lg text-[12px] text-[#374151] bg-white cursor-pointer focus:outline-none"
+                  className="appearance-none pl-3 pr-8 py-1.5 border border-[#E5E7EB] rounded-lg text-[12px] text-[#374151] bg-white cursor-pointer focus:outline-none"
                   style={{ fontWeight: 500 }}
                 >
                   <option>Monthly</option>

@@ -187,7 +187,7 @@ export function Layout() {
   return (
     <div className="flex flex-col h-screen bg-[#F5F7FA]">
       {/* Full Width Header */}
-      <div className="h-16 bg-white border-b border-[#DDE3EE] flex items-center gap-6 px-6 flex-shrink-0">
+      <div className="h-16 bg-white border-b border-[#E5E7EB] flex items-center gap-6 px-6 flex-shrink-0">
         {/* Logo - Left Side */}
         <div className="flex items-center gap-2.5 flex-shrink-0 -ml-10">
           <img
@@ -217,7 +217,7 @@ export function Layout() {
 
           {/* Opened Search Dropdown */}
           {globalSearchOpen && (
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[680px] bg-white border border-[#DDE3EE] rounded-xl shadow-[0_20px_60px_-12px_rgba(0,0,0,0.2)] z-[2000] overflow-hidden">
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[680px] bg-white border border-[#E5E7EB] rounded-xl shadow-[0_20px_60px_-12px_rgba(0,0,0,0.2)] z-[2000] overflow-hidden">
               {/* Search Input Row */}
               <div className="flex items-center gap-2.5 px-4 py-3 border-b border-[#E5E7EB]">
                 <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "20px" }}>search</span>
@@ -585,7 +585,7 @@ export function Layout() {
       {/* Create Dropdown */}
       <div
         ref={createMenuRef}
-        className={`fixed w-[240px] bg-white border border-[#DDE3EE] rounded-[12px] shadow-[0_8px_24px_rgba(0,0,0,0.12)] z-[1100] transition-all duration-[140ms] ease-out ${
+        className={`fixed w-[240px] bg-white border border-[#E5E7EB] rounded-[12px] shadow-[0_8px_24px_rgba(0,0,0,0.12)] z-[1100] transition-all duration-[140ms] ease-out ${
           createMenuOpen ? "opacity-100 scale-100 pointer-events-auto" : "opacity-0 scale-95 pointer-events-none"
         }`}
         style={{
@@ -632,7 +632,7 @@ export function Layout() {
       {/* User Menu Dropdown */}
       <div
         ref={userMenuRef}
-        className={`fixed w-[252px] bg-white border border-[#DDE3EE] rounded-xl shadow-[0_8px_24px_rgba(26,35,50,0.13),0_2px_6px_rgba(26,35,50,0.07)] z-[1100] transition-all duration-150 ease-out overflow-hidden ${
+        className={`fixed w-[252px] bg-white border border-[#E5E7EB] rounded-xl shadow-[0_8px_24px_rgba(26,35,50,0.13),0_2px_6px_rgba(26,35,50,0.07)] z-[1100] transition-all duration-150 ease-out overflow-hidden ${
           userMenuOpen ? "opacity-100 scale-100 pointer-events-auto" : "opacity-0 scale-[0.98] pointer-events-none"
         }`}
         style={{
@@ -653,7 +653,7 @@ export function Layout() {
           </div>
         </div>
 
-        <div className="h-px bg-[#DDE3EE] my-[3px]"></div>
+        <div className="h-px bg-[#E5E7EB] my-[3px]"></div>
 
         {/* Notifications toggle */}
         <button
@@ -662,12 +662,12 @@ export function Layout() {
         >
           <span className="material-icons text-[#546478] flex-shrink-0" style={{ fontSize: "18px" }}>notifications</span>
           <span className="flex-1 text-[13px] text-[#1A2332] text-left">On-screen notifications</span>
-          <div className={`w-8 h-[18px] rounded-full flex items-center transition-colors ${notificationsEnabled ? "bg-[#4A6FA5]" : "bg-[#DDE3EE]"}`}>
+          <div className={`w-8 h-[18px] rounded-full flex items-center transition-colors ${notificationsEnabled ? "bg-[#4A6FA5]" : "bg-[#E5E7EB]"}`}>
             <div className={`w-3.5 h-3.5 bg-white rounded-full shadow-[0_1px_3px_rgba(0,0,0,0.2)] transition-transform ${notificationsEnabled ? "translate-x-[14px]" : "translate-x-0.5"}`}></div>
           </div>
         </button>
 
-        <div className="h-px bg-[#DDE3EE] my-[3px]"></div>
+        <div className="h-px bg-[#E5E7EB] my-[3px]"></div>
 
         <button onClick={() => { setUserMenuOpen(false); navigate("/settings"); }} className="w-full flex items-center gap-2.5 px-4 py-2 hover:bg-[#F5F7FA] transition-colors text-left">
           <span className="material-icons text-[#546478] flex-shrink-0" style={{ fontSize: "18px" }}>manage_accounts</span>
@@ -683,7 +683,7 @@ export function Layout() {
           <span className="text-[10.5px] font-semibold text-white bg-[#4A6FA5] px-[7px] py-0.5 rounded-[10px] whitespace-nowrap">PRO</span>
         </button>
 
-        <div className="h-px bg-[#DDE3EE] my-[3px]"></div>
+        <div className="h-px bg-[#E5E7EB] my-[3px]"></div>
 
         <button onClick={() => setUserMenuOpen(false)} className="w-full flex items-center gap-2.5 px-4 py-2 hover:bg-[#F5F7FA] transition-colors text-left">
           <span className="material-icons text-[#546478] flex-shrink-0" style={{ fontSize: "18px" }}>new_releases</span>
@@ -691,7 +691,7 @@ export function Layout() {
           <span className="text-[10.5px] font-bold text-white bg-[#DC2626] px-1.5 py-[1px] rounded-[10px] min-w-[18px] text-center">3</span>
         </button>
 
-        <div className="h-px bg-[#DDE3EE] my-[3px]"></div>
+        <div className="h-px bg-[#E5E7EB] my-[3px]"></div>
 
         <button onClick={() => { setUserMenuOpen(false); navigate("/settings"); }} className="w-full flex items-center gap-2.5 px-4 py-2 hover:bg-[#F5F7FA] transition-colors text-left">
           <span className="material-icons text-[#546478] flex-shrink-0" style={{ fontSize: "18px" }}>settings</span>
@@ -702,7 +702,7 @@ export function Layout() {
           <span className="flex-1 text-[13px] text-[#1A2332]">Change password</span>
         </button>
 
-        <div className="h-px bg-[#DDE3EE] my-[3px]"></div>
+        <div className="h-px bg-[#E5E7EB] my-[3px]"></div>
 
         <div className="pb-1.5">
           <button onClick={() => { setUserMenuOpen(false); navigate("/login"); }} className="w-full flex items-center gap-2.5 px-4 py-2 hover:bg-[#FEF2F2] transition-colors text-left text-[#DC2626]">

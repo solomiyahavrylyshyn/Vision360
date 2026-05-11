@@ -75,16 +75,16 @@ export function Settings() {
   return (
     <div className="flex h-full bg-[#F2F4F7]" style={{ height: "calc(100vh - 64px)" }}>
       {/* Settings Sidebar */}
-      <aside className="w-64 bg-white border-r border-[#DDE3EE] flex flex-col flex-shrink-0">
+      <aside className="w-64 bg-white border-r border-[#E5E7EB] flex flex-col flex-shrink-0">
         {/* Sidebar Top */}
-        <div className="px-3.5 py-3.5 border-b border-[#DDE3EE]">
+        <div className="px-3.5 py-3.5 border-b border-[#E5E7EB]">
           <div className="text-[13px] font-bold uppercase tracking-wider text-[#546478] mb-2.5">Settings</div>
           <input
             type="text"
             placeholder="Search settings..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full px-2.5 py-1.5 pl-8 border border-[#DDE3EE] rounded-md text-xs bg-[#F5F7FA] text-[#1A2332] outline-none transition-all focus:border-[#4A6FA5] focus:shadow-[0_0_0_3px_#EBF0F8] focus:bg-white"
+            className="w-full px-2.5 py-1.5 pl-8 border border-[#E5E7EB] rounded-md text-xs bg-[#F5F7FA] text-[#1A2332] outline-none transition-all focus:border-[#4A6FA5] focus:shadow-[0_0_0_3px_#EBF0F8] focus:bg-white"
             style={{
               backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='13' height='13' viewBox='0 0 24 24' fill='none' stroke='%23546478' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E")`,
               backgroundRepeat: "no-repeat",
@@ -107,7 +107,7 @@ export function Settings() {
             <span>Home</span>
           </button>
 
-          <div className="h-px bg-[#DDE3EE] mx-3.5 my-1.5"></div>
+          <div className="h-px bg-[#E5E7EB] mx-3.5 my-1.5"></div>
 
           {/* Account Group */}
           <div>
@@ -150,7 +150,7 @@ export function Settings() {
             </div>
           </div>
 
-          <div className="h-px bg-[#DDE3EE] mx-3.5 my-1.5"></div>
+          <div className="h-px bg-[#E5E7EB] mx-3.5 my-1.5"></div>
 
           {/* Business Group */}
           <div>
@@ -243,7 +243,7 @@ export function Settings() {
             </div>
           </div>
 
-          <div className="h-px bg-[#DDE3EE] mx-3.5 my-1.5"></div>
+          <div className="h-px bg-[#E5E7EB] mx-3.5 my-1.5"></div>
 
           {/* System Group */}
           <div>
@@ -309,7 +309,7 @@ export function Settings() {
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <Card className="p-5 border border-[#DDE3EE] hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveSection("profile")}>
+                <Card className="p-5 border border-[#E5E7EB] hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveSection("profile")}>
                   <div className="flex items-start gap-3">
                     <div className="w-10 h-10 rounded-lg bg-[#EBF0F8] flex items-center justify-center flex-shrink-0">
                       <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "24px" }}>person</span>
@@ -321,7 +321,7 @@ export function Settings() {
                   </div>
                 </Card>
 
-                <Card className="p-5 border border-[#DDE3EE] hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveSection("business")}>
+                <Card className="p-5 border border-[#E5E7EB] hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveSection("business")}>
                   <div className="flex items-start gap-3">
                     <div className="w-10 h-10 rounded-lg bg-[#EBF0F8] flex items-center justify-center flex-shrink-0">
                       <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "24px" }}>business</span>
@@ -333,7 +333,7 @@ export function Settings() {
                   </div>
                 </Card>
 
-                <Card className="p-5 border border-[#DDE3EE] hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveSection("team")}>
+                <Card className="p-5 border border-[#E5E7EB] hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveSection("team")}>
                   <div className="flex items-start gap-3">
                     <div className="w-10 h-10 rounded-lg bg-[#EBF0F8] flex items-center justify-center flex-shrink-0">
                       <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "24px" }}>group</span>
@@ -345,7 +345,7 @@ export function Settings() {
                   </div>
                 </Card>
 
-                <Card className="p-5 border border-[#DDE3EE] hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveSection("billing")}>
+                <Card className="p-5 border border-[#E5E7EB] hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveSection("billing")}>
                   <div className="flex items-start gap-3">
                     <div className="w-10 h-10 rounded-lg bg-[#EBF0F8] flex items-center justify-center flex-shrink-0">
                       <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "24px" }}>credit_card</span>
@@ -367,25 +367,25 @@ export function Settings() {
                 Update your personal information and contact details.
               </p>
 
-              <Card className="p-6 border border-[#DDE3EE]">
+              <Card className="p-6 border border-[#E5E7EB]">
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label className="text-sm mb-1.5 block" style={{ fontWeight: 500 }}>First Name</Label>
-                      <Input defaultValue="Marek" className="border-[#DDE3EE]" />
+                      <Input defaultValue="Marek" className="border-[#E5E7EB]" />
                     </div>
                     <div>
                       <Label className="text-sm mb-1.5 block" style={{ fontWeight: 500 }}>Last Name</Label>
-                      <Input defaultValue="Stroz" className="border-[#DDE3EE]" />
+                      <Input defaultValue="Stroz" className="border-[#E5E7EB]" />
                     </div>
                   </div>
                   <div>
                     <Label className="text-sm mb-1.5 block" style={{ fontWeight: 500 }}>Email</Label>
-                    <Input type="email" defaultValue="marek@abcplumbing.com" className="border-[#DDE3EE]" />
+                    <Input type="email" defaultValue="marek@abcplumbing.com" className="border-[#E5E7EB]" />
                   </div>
                   <div>
                     <Label className="text-sm mb-1.5 block" style={{ fontWeight: 500 }}>Phone</Label>
-                    <Input defaultValue="(555) 123-4567" className="border-[#DDE3EE]" />
+                    <Input defaultValue="(555) 123-4567" className="border-[#E5E7EB]" />
                   </div>
                   <Button className="bg-[#4A6FA5] hover:bg-[#3d5a85]">Save Changes</Button>
                 </div>
@@ -400,32 +400,32 @@ export function Settings() {
                 Manage your company details, address, and business settings.
               </p>
 
-              <Card className="p-6 border border-[#DDE3EE]">
+              <Card className="p-6 border border-[#E5E7EB]">
                 <div className="space-y-4">
                   <div>
                     <Label className="text-sm mb-1.5 block" style={{ fontWeight: 500 }}>Business Name</Label>
-                    <Input defaultValue="ABC Plumbing Services" className="border-[#DDE3EE]" />
+                    <Input defaultValue="ABC Plumbing Services" className="border-[#E5E7EB]" />
                   </div>
                   <div>
                     <Label className="text-sm mb-1.5 block" style={{ fontWeight: 500 }}>Tax ID / EIN</Label>
-                    <Input defaultValue="12-3456789" className="border-[#DDE3EE]" />
+                    <Input defaultValue="12-3456789" className="border-[#E5E7EB]" />
                   </div>
                   <div>
                     <Label className="text-sm mb-1.5 block" style={{ fontWeight: 500 }}>Business Address</Label>
-                    <Input defaultValue="123 Main Street, Suite 100" className="border-[#DDE3EE]" />
+                    <Input defaultValue="123 Main Street, Suite 100" className="border-[#E5E7EB]" />
                   </div>
                   <div className="grid grid-cols-3 gap-4">
                     <div>
                       <Label className="text-sm mb-1.5 block" style={{ fontWeight: 500 }}>City</Label>
-                      <Input defaultValue="San Francisco" className="border-[#DDE3EE]" />
+                      <Input defaultValue="San Francisco" className="border-[#E5E7EB]" />
                     </div>
                     <div>
                       <Label className="text-sm mb-1.5 block" style={{ fontWeight: 500 }}>State</Label>
-                      <Input defaultValue="CA" className="border-[#DDE3EE]" />
+                      <Input defaultValue="CA" className="border-[#E5E7EB]" />
                     </div>
                     <div>
                       <Label className="text-sm mb-1.5 block" style={{ fontWeight: 500 }}>ZIP</Label>
-                      <Input defaultValue="94105" className="border-[#DDE3EE]" />
+                      <Input defaultValue="94105" className="border-[#E5E7EB]" />
                     </div>
                   </div>
                   <Button className="bg-[#4A6FA5] hover:bg-[#3d5a85]">Save Changes</Button>
@@ -441,7 +441,7 @@ export function Settings() {
                 Configure how and when you receive notifications.
               </p>
 
-              <Card className="p-6 border border-[#DDE3EE]">
+              <Card className="p-6 border border-[#E5E7EB]">
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div>
@@ -483,19 +483,19 @@ export function Settings() {
                 Manage your password and security preferences.
               </p>
 
-              <Card className="p-6 border border-[#DDE3EE]">
+              <Card className="p-6 border border-[#E5E7EB]">
                 <div className="space-y-4">
                   <div>
                     <Label className="text-sm mb-1.5 block" style={{ fontWeight: 500 }}>Current Password</Label>
-                    <Input type="password" placeholder="••••••••" className="border-[#DDE3EE]" />
+                    <Input type="password" placeholder="••••••••" className="border-[#E5E7EB]" />
                   </div>
                   <div>
                     <Label className="text-sm mb-1.5 block" style={{ fontWeight: 500 }}>New Password</Label>
-                    <Input type="password" placeholder="••••••••" className="border-[#DDE3EE]" />
+                    <Input type="password" placeholder="••••••••" className="border-[#E5E7EB]" />
                   </div>
                   <div>
                     <Label className="text-sm mb-1.5 block" style={{ fontWeight: 500 }}>Confirm New Password</Label>
-                    <Input type="password" placeholder="••••••••" className="border-[#DDE3EE]" />
+                    <Input type="password" placeholder="••••••••" className="border-[#E5E7EB]" />
                   </div>
                   <Button className="bg-[#4A6FA5] hover:bg-[#3d5a85]">Update Password</Button>
                 </div>
@@ -514,7 +514,7 @@ export function Settings() {
                 <input
                   type="text"
                   placeholder="Search team members..."
-                  className="max-w-[380px] px-3 py-2 pl-9 border border-[#DDE3EE] rounded-md text-[13px] bg-white transition-all focus:border-[#4A6FA5] focus:shadow-[0_0_0_3px_#EBF0F8] outline-none"
+                  className="max-w-[380px] px-3 py-2 pl-9 border border-[#E5E7EB] rounded-md text-[13px] bg-white transition-all focus:border-[#4A6FA5] focus:shadow-[0_0_0_3px_#EBF0F8] outline-none"
                   style={{
                     backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23546478' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E")`,
                     backgroundRepeat: "no-repeat",
@@ -524,7 +524,7 @@ export function Settings() {
                 <Button className="bg-[#4A6FA5] hover:bg-[#3d5a85]">+ Invite Member</Button>
               </div>
 
-              <table className="w-full bg-white border border-[#DDE3EE] rounded-lg overflow-hidden">
+              <table className="w-full bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
                 <thead className="bg-[#F0F2F5]">
                   <tr>
                     <th className="px-3.5 py-2.5 text-left text-[11px] font-bold uppercase tracking-wider text-[#546478]">Name</th>
@@ -535,7 +535,7 @@ export function Settings() {
                   </tr>
                 </thead>
                 <tbody>
-                  <tr className="border-t border-[#DDE3EE] hover:bg-[#F5F7FA]">
+                  <tr className="border-t border-[#E5E7EB] hover:bg-[#F5F7FA]">
                     <td className="px-3.5 py-3 text-[13px] font-semibold">Marek Stroz</td>
                     <td className="px-3.5 py-3 text-[13px]">marek@abcplumbing.com</td>
                     <td className="px-3.5 py-3 text-[13px]">Owner</td>
@@ -563,7 +563,7 @@ export function Settings() {
                 Manage your subscription plan and payment methods.
               </p>
 
-              <Card className="p-6 border border-[#DDE3EE] mb-4">
+              <Card className="p-6 border border-[#E5E7EB] mb-4">
                 <div className="flex justify-between items-start mb-4">
                   <div>
                     <h3 className="text-lg font-semibold mb-1">Pro Plan</h3>
@@ -577,9 +577,9 @@ export function Settings() {
                 <Button className="bg-[#4A6FA5] hover:bg-[#3d5a85]">Upgrade Plan</Button>
               </Card>
 
-              <Card className="p-6 border border-[#DDE3EE]">
+              <Card className="p-6 border border-[#E5E7EB]">
                 <h3 className="text-lg font-semibold mb-4">Payment Methods</h3>
-                <div className="flex items-center justify-between p-4 border border-[#DDE3EE] rounded-lg mb-3">
+                <div className="flex items-center justify-between p-4 border border-[#E5E7EB] rounded-lg mb-3">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-[#EBF0F8] rounded flex items-center justify-center">
                       <span className="material-icons text-[#4A6FA5]">credit_card</span>
@@ -606,7 +606,7 @@ export function Settings() {
               <p className="text-[13px] text-[#546478] mb-4.5 leading-relaxed max-w-[680px]">
                 This section is coming soon.
               </p>
-              <Card className="p-8 border border-[#DDE3EE] text-center">
+              <Card className="p-8 border border-[#E5E7EB] text-center">
                 <div className="w-14 h-14 rounded-xl bg-[#EBF0F8] flex items-center justify-center mx-auto mb-4">
                   <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "28px" }}>construction</span>
                 </div>
@@ -623,13 +623,13 @@ export function Settings() {
                 Manage the list of lead sources available when creating or editing clients.
               </p>
 
-              <Card className="p-6 border border-[#DDE3EE] mb-4">
+              <Card className="p-6 border border-[#E5E7EB] mb-4">
                 <div className="flex gap-3 mb-5">
                   <Input
                     placeholder="New source name..."
                     value={newSourceName}
                     onChange={(e) => setNewSourceName(e.target.value)}
-                    className="border-[#DDE3EE] max-w-[360px]"
+                    className="border-[#E5E7EB] max-w-[360px]"
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
                         e.preventDefault();
@@ -655,7 +655,7 @@ export function Settings() {
                   </Button>
                 </div>
 
-                <table className="w-full bg-white border border-[#DDE3EE] rounded-lg overflow-hidden">
+                <table className="w-full bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
                   <thead className="bg-[#F0F2F5]">
                     <tr>
                       <th className="px-3.5 py-2.5 text-left text-[11px] font-bold uppercase tracking-wider text-[#546478]">Source Name</th>
@@ -664,13 +664,13 @@ export function Settings() {
                   </thead>
                   <tbody>
                     {marketingSources.map((source) => (
-                      <tr key={source} className="border-t border-[#DDE3EE] hover:bg-[#F5F7FA]">
+                      <tr key={source} className="border-t border-[#E5E7EB] hover:bg-[#F5F7FA]">
                         <td className="px-3.5 py-2.5 text-[13px]">
                           {editingSource === source ? (
                             <Input
                               value={editingValue}
                               onChange={(e) => setEditingValue(e.target.value)}
-                              className="border-[#DDE3EE] h-8 text-[13px] max-w-[300px]"
+                              className="border-[#E5E7EB] h-8 text-[13px] max-w-[300px]"
                               autoFocus
                               onKeyDown={(e) => {
                                 if (e.key === "Enter") {
@@ -701,7 +701,7 @@ export function Settings() {
                                 </button>
                                 <button
                                   onClick={() => setEditingSource(null)}
-                                  className="px-2.5 py-1 bg-[#EBF0F8] text-[#546478] border border-[#C8D5E8] rounded text-xs font-medium hover:bg-[#DDE3EE] transition-colors"
+                                  className="px-2.5 py-1 bg-[#EBF0F8] text-[#546478] border border-[#C8D5E8] rounded text-xs font-medium hover:bg-[#E5E7EB] transition-colors"
                                 >
                                   Cancel
                                 </button>
@@ -739,13 +739,13 @@ export function Settings() {
                 Manage the list of tags available for organizing and categorizing clients.
               </p>
 
-              <Card className="p-6 border border-[#DDE3EE] mb-4">
+              <Card className="p-6 border border-[#E5E7EB] mb-4">
                 <div className="flex gap-3 mb-5">
                   <Input
                     placeholder="New tag name..."
                     value={newTagName}
                     onChange={(e) => setNewTagName(e.target.value)}
-                    className="border-[#DDE3EE] max-w-[360px]"
+                    className="border-[#E5E7EB] max-w-[360px]"
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
                         e.preventDefault();
@@ -771,7 +771,7 @@ export function Settings() {
                   </Button>
                 </div>
 
-                <table className="w-full bg-white border border-[#DDE3EE] rounded-lg overflow-hidden">
+                <table className="w-full bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
                   <thead className="bg-[#F0F2F5]">
                     <tr>
                       <th className="px-3.5 py-2.5 text-left text-[11px] font-bold uppercase tracking-wider text-[#546478]">Tag Name</th>
@@ -780,13 +780,13 @@ export function Settings() {
                   </thead>
                   <tbody>
                     {customerTags.map((tag) => (
-                      <tr key={tag} className="border-t border-[#DDE3EE] hover:bg-[#F5F7FA]">
+                      <tr key={tag} className="border-t border-[#E5E7EB] hover:bg-[#F5F7FA]">
                         <td className="px-3.5 py-2.5 text-[13px]">
                           {editingTag === tag ? (
                             <Input
                               value={editingTagValue}
                               onChange={(e) => setEditingTagValue(e.target.value)}
-                              className="border-[#DDE3EE] h-8 text-[13px] max-w-[300px]"
+                              className="border-[#E5E7EB] h-8 text-[13px] max-w-[300px]"
                               autoFocus
                               onKeyDown={(e) => {
                                 if (e.key === "Enter") {
@@ -821,7 +821,7 @@ export function Settings() {
                                 </button>
                                 <button
                                   onClick={() => setEditingTag(null)}
-                                  className="px-2.5 py-1 bg-[#EBF0F8] text-[#546478] border border-[#C8D5E8] rounded text-xs font-medium hover:bg-[#DDE3EE] transition-colors"
+                                  className="px-2.5 py-1 bg-[#EBF0F8] text-[#546478] border border-[#C8D5E8] rounded text-xs font-medium hover:bg-[#E5E7EB] transition-colors"
                                 >
                                   Cancel
                                 </button>
@@ -859,13 +859,13 @@ export function Settings() {
                 Manage the list of job types available when creating or editing jobs.
               </p>
 
-              <Card className="p-6 border border-[#DDE3EE] mb-4">
+              <Card className="p-6 border border-[#E5E7EB] mb-4">
                 <div className="flex gap-3 mb-5">
                   <Input
                     placeholder="New job type name..."
                     value={newJobTypeName}
                     onChange={(e) => setNewJobTypeName(e.target.value)}
-                    className="border-[#DDE3EE] max-w-[360px]"
+                    className="border-[#E5E7EB] max-w-[360px]"
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
                         e.preventDefault();
@@ -891,7 +891,7 @@ export function Settings() {
                   </Button>
                 </div>
 
-                <table className="w-full bg-white border border-[#DDE3EE] rounded-lg overflow-hidden">
+                <table className="w-full bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
                   <thead className="bg-[#F0F2F5]">
                     <tr>
                       <th className="px-3.5 py-2.5 text-left text-[11px] font-bold uppercase tracking-wider text-[#546478]">Job Type</th>
@@ -900,13 +900,13 @@ export function Settings() {
                   </thead>
                   <tbody>
                     {jobTypes.map((jt) => (
-                      <tr key={jt} className="border-t border-[#DDE3EE] hover:bg-[#F5F7FA]">
+                      <tr key={jt} className="border-t border-[#E5E7EB] hover:bg-[#F5F7FA]">
                         <td className="px-3.5 py-2.5 text-[13px]">
                           {editingJobType === jt ? (
                             <Input
                               value={editingJobTypeValue}
                               onChange={(e) => setEditingJobTypeValue(e.target.value)}
-                              className="border-[#DDE3EE] h-8 text-[13px] max-w-[300px]"
+                              className="border-[#E5E7EB] h-8 text-[13px] max-w-[300px]"
                               autoFocus
                               onKeyDown={(e) => {
                                 if (e.key === "Enter") {
@@ -929,7 +929,7 @@ export function Settings() {
                                 >Save</button>
                                 <button
                                   onClick={() => setEditingJobType(null)}
-                                  className="px-2.5 py-1 bg-[#EBF0F8] text-[#546478] border border-[#C8D5E8] rounded text-xs font-medium hover:bg-[#DDE3EE] transition-colors"
+                                  className="px-2.5 py-1 bg-[#EBF0F8] text-[#546478] border border-[#C8D5E8] rounded text-xs font-medium hover:bg-[#E5E7EB] transition-colors"
                                 >Cancel</button>
                               </>
                             ) : (
@@ -961,13 +961,13 @@ export function Settings() {
                 Manage the list of counties available when creating or editing client addresses.
               </p>
 
-              <Card className="p-6 border border-[#DDE3EE] mb-4">
+              <Card className="p-6 border border-[#E5E7EB] mb-4">
                 <div className="flex gap-3 mb-5">
                   <Input
                     placeholder="New county name..."
                     value={newCountyName}
                     onChange={(e) => setNewCountyName(e.target.value)}
-                    className="border-[#DDE3EE] max-w-[360px]"
+                    className="border-[#E5E7EB] max-w-[360px]"
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
                         e.preventDefault();
@@ -993,7 +993,7 @@ export function Settings() {
                   </Button>
                 </div>
 
-                <table className="w-full bg-white border border-[#DDE3EE] rounded-lg overflow-hidden">
+                <table className="w-full bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
                   <thead className="bg-[#F0F2F5]">
                     <tr>
                       <th className="px-3.5 py-2.5 text-left text-[11px] font-bold uppercase tracking-wider text-[#546478]">County Name</th>
@@ -1002,13 +1002,13 @@ export function Settings() {
                   </thead>
                   <tbody>
                     {counties.map((county) => (
-                      <tr key={county} className="border-t border-[#DDE3EE] hover:bg-[#F5F7FA]">
+                      <tr key={county} className="border-t border-[#E5E7EB] hover:bg-[#F5F7FA]">
                         <td className="px-3.5 py-2.5 text-[13px]">
                           {editingCounty === county ? (
                             <Input
                               value={editingCountyValue}
                               onChange={(e) => setEditingCountyValue(e.target.value)}
-                              className="border-[#DDE3EE] h-8 text-[13px] max-w-[300px]"
+                              className="border-[#E5E7EB] h-8 text-[13px] max-w-[300px]"
                               autoFocus
                               onKeyDown={(e) => {
                                 if (e.key === "Enter") {
@@ -1039,7 +1039,7 @@ export function Settings() {
                                 </button>
                                 <button
                                   onClick={() => setEditingCounty(null)}
-                                  className="px-2.5 py-1 bg-[#EBF0F8] text-[#546478] border border-[#C8D5E8] rounded text-xs font-medium hover:bg-[#DDE3EE] transition-colors"
+                                  className="px-2.5 py-1 bg-[#EBF0F8] text-[#546478] border border-[#C8D5E8] rounded text-xs font-medium hover:bg-[#E5E7EB] transition-colors"
                                 >
                                   Cancel
                                 </button>
@@ -1078,7 +1078,7 @@ export function Settings() {
               </p>
 
               {/* Entity tabs */}
-              <div className="flex border-b border-[#DDE3EE] mb-5">
+              <div className="flex border-b border-[#E5E7EB] mb-5">
                 {(["clients", "jobs", "estimates", "invoices", "items"] as CfEntity[]).map((entity) => (
                   <button
                     key={entity}
@@ -1094,9 +1094,9 @@ export function Settings() {
                 ))}
               </div>
 
-              <Card className="border border-[#DDE3EE] overflow-hidden mb-4">
+              <Card className="border border-[#E5E7EB] overflow-hidden mb-4">
                 {customFields[cfEntity].map((field, idx) => (
-                  <div key={idx} className={idx > 0 ? "border-t border-[#DDE3EE]" : ""}>
+                  <div key={idx} className={idx > 0 ? "border-t border-[#E5E7EB]" : ""}>
                     {/* Field header row */}
                     <div className="px-6 py-4 flex items-start gap-4">
                       <div className="w-6 h-6 rounded-full bg-[#EBF0F8] flex items-center justify-center flex-shrink-0 mt-1">
@@ -1111,7 +1111,7 @@ export function Settings() {
                               customFieldsStore.updateField(cfEntity, idx, { label: e.target.value });
                             }}
                             onBlur={() => toast.success("Field label updated")}
-                            className="border-[#DDE3EE] h-8 text-[13px]"
+                            className="border-[#E5E7EB] h-8 text-[13px]"
                             placeholder="Field label..."
                           />
                         </div>
@@ -1122,7 +1122,7 @@ export function Settings() {
                             onChange={(e) => {
                               customFieldsStore.updateField(cfEntity, idx, { type: e.target.value as import("../stores/customFieldsStore").CfFieldType, options: [] });
                             }}
-                            className="h-8 px-2.5 pr-8 border border-[#DDE3EE] rounded-md text-[13px] text-[#1A2332] bg-white outline-none focus:border-[#4A6FA5] cursor-pointer"
+                            className="h-8 px-2.5 pr-8 border border-[#E5E7EB] rounded-md text-[13px] text-[#1A2332] bg-white outline-none focus:border-[#4A6FA5] cursor-pointer"
                             style={{
                               backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23546478' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`,
                               backgroundRepeat: "no-repeat",
@@ -1149,7 +1149,7 @@ export function Settings() {
                             {field.options.map((opt, oi) => (
                               <span
                                 key={oi}
-                                className="inline-flex items-center gap-1 px-2.5 py-1 bg-white border border-[#DDE3EE] rounded-md text-[12.5px] text-[#1A2332]"
+                                className="inline-flex items-center gap-1 px-2.5 py-1 bg-white border border-[#E5E7EB] rounded-md text-[12.5px] text-[#1A2332]"
                               >
                                 {opt}
                                 <button
@@ -1172,7 +1172,7 @@ export function Settings() {
                             value={cfNewOption[`${cfEntity}-${idx}`] || ""}
                             onChange={(e) => setCfNewOption({ ...cfNewOption, [`${cfEntity}-${idx}`]: e.target.value })}
                             placeholder="New option..."
-                            className="border-[#DDE3EE] h-8 text-[13px] max-w-[260px]"
+                            className="border-[#E5E7EB] h-8 text-[13px] max-w-[260px]"
                             onKeyDown={(e) => {
                               if (e.key === "Enter") {
                                 e.preventDefault();

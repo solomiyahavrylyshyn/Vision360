@@ -712,10 +712,10 @@ export function InvoiceDetail() {
             Back to Invoices
           </button>
           <div className="flex items-center gap-2">
-            <button className="border border-[#DDE3EE] text-[#546478] hover:bg-[#EDF0F5] h-8 px-2.5 rounded-md flex items-center justify-center" title="Edit">
+            <button className="border border-[#E5E7EB] text-[#546478] hover:bg-[#EDF0F5] h-8 px-2.5 rounded-md flex items-center justify-center" title="Edit">
               <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
             </button>
-            <KebabMenu triggerClassName="h-8 w-8 border border-[#DDE3EE] rounded-md hover:bg-[#EDF0F5] flex items-center justify-center">
+            <KebabMenu triggerClassName="h-8 w-8 border border-[#E5E7EB] rounded-md hover:bg-[#EDF0F5] flex items-center justify-center">
               <KebabItem icon="picture_as_pdf">Download PDF</KebabItem>
               <KebabItem icon="send">Send to Customer</KebabItem>
               {!isPaid && status !== "Void" && (

@@ -64,9 +64,9 @@ export function Dialer({ isOpen, onClose }: DialerProps) {
   return (
     <>
       <div className="fixed inset-0 bg-black/20 z-[3000]" onClick={onClose} />
-      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] bg-white border border-[#DDE3EE] rounded-[14px] shadow-[0_12px_40px_rgba(0,0,0,0.18)] z-[3002] flex flex-col overflow-hidden">
+      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] bg-white border border-[#E5E7EB] rounded-[14px] shadow-[0_12px_40px_rgba(0,0,0,0.18)] z-[3002] flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-[#DDE3EE]">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-[#E5E7EB]">
           <span className="text-[15px] text-[#1A2332]" style={{ fontWeight: 600 }}>Dialer</span>
           <button onClick={onClose} className="w-7 h-7 rounded-md hover:bg-[#F5F7FA] flex items-center justify-center">
             <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>close</span>
@@ -74,7 +74,7 @@ export function Dialer({ isOpen, onClose }: DialerProps) {
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-[#DDE3EE]">
+        <div className="flex border-b border-[#E5E7EB]">
           {(["Recents", "Contacts", "Keypad"] as Tab[]).map(t => (
             <button
               key={t}
@@ -158,13 +158,13 @@ export function Dialer({ isOpen, onClose }: DialerProps) {
 
         {tab === "Contacts" && (
           <div className="flex flex-col">
-            <div className="p-3 border-b border-[#DDE3EE]">
+            <div className="p-3 border-b border-[#E5E7EB]">
               <div className="relative">
                 <span className="material-icons absolute left-2.5 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: "16px" }}>search</span>
                 <input
                   type="text" placeholder="Search contacts..." value={contactSearch}
                   onChange={(e) => setContactSearch(e.target.value)}
-                  className="w-full h-8 pl-8 pr-3 border border-[#DDE3EE] rounded-lg text-[13px] focus:outline-none focus:border-[#4A6FA5]"
+                  className="w-full h-8 pl-8 pr-3 border border-[#E5E7EB] rounded-lg text-[13px] focus:outline-none focus:border-[#4A6FA5]"
                 />
               </div>
             </div>

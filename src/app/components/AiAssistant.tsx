@@ -60,9 +60,9 @@ export function AiAssistant({ isOpen, onClose }: AiAssistantProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed right-6 top-20 w-[420px] h-[calc(100vh-112px)] bg-white border border-[#DDE3EE] rounded-xl shadow-[0_8px_24px_rgba(0,0,0,0.12)] z-[4000] flex flex-col">
+    <div className="fixed right-6 top-20 w-[420px] h-[calc(100vh-112px)] bg-white border border-[#E5E7EB] rounded-xl shadow-[0_8px_24px_rgba(0,0,0,0.12)] z-[4000] flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-4 border-b border-[#DDE3EE] flex-shrink-0">
+      <div className="flex items-center justify-between px-5 py-4 border-b border-[#E5E7EB] flex-shrink-0">
         <div className="flex items-center gap-2.5">
           <h2 className="text-[20px] text-[#1A2332]" style={{ fontWeight: 700 }}>
             Vision360 AI
@@ -86,7 +86,7 @@ export function AiAssistant({ isOpen, onClose }: AiAssistantProps) {
 
       {/* Welcome Message */}
       {messages.length === 0 && (
-        <div className="px-5 py-6 border-b border-[#DDE3EE] flex-shrink-0">
+        <div className="px-5 py-6 border-b border-[#E5E7EB] flex-shrink-0">
           <div className="flex items-start gap-3 mb-4">
             <div className="w-8 h-8 rounded-full bg-[#4A6FA5] flex items-center justify-center flex-shrink-0">
               <span className="material-icons text-white" style={{ fontSize: "18px" }}>
@@ -173,7 +173,7 @@ export function AiAssistant({ isOpen, onClose }: AiAssistantProps) {
       </div>
 
       {/* Input Area */}
-      <div className="px-5 py-4 border-t border-[#DDE3EE] flex-shrink-0">
+      <div className="px-5 py-4 border-t border-[#E5E7EB] flex-shrink-0">
         <div className="flex items-end gap-2">
           <div className="flex-1 relative">
             <textarea
@@ -182,7 +182,7 @@ export function AiAssistant({ isOpen, onClose }: AiAssistantProps) {
               onKeyPress={handleKeyPress}
               placeholder="Ask a question..."
               rows={1}
-              className="w-full px-4 py-3 pr-10 border border-[#DDE3EE] rounded-lg text-[14px] text-[#1A2332] placeholder:text-[#9CA3AF] outline-none resize-none transition-all focus:border-[#4A6FA5] focus:ring-1 focus:ring-[#4A6FA5]/20"
+              className="w-full px-4 py-3 pr-10 border border-[#E5E7EB] rounded-lg text-[14px] text-[#1A2332] placeholder:text-[#9CA3AF] outline-none resize-none transition-all focus:border-[#4A6FA5] focus:ring-1 focus:ring-[#4A6FA5]/20"
               style={{ minHeight: "44px", maxHeight: "120px" }}
             />
             <button className="absolute right-3 bottom-3 text-[#8899AA] hover:text-[#4A6FA5] transition-colors">

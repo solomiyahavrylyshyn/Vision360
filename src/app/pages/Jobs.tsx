@@ -44,12 +44,18 @@ const statusBg: Record<string, string> = {
   Completed: "#DCFCE7",
 };
 
+const statusIcons: Record<string, string> = {
+  Scheduled: "event_note",
+  "In Progress": "autorenew",
+  Completed: "check_circle",
+};
+
 type SortField = "id" | "address" | "schedule" | "status" | "total" | "client";
 type SortDir = "asc" | "desc";
 
 function qfClass(active: boolean) {
   return `h-8 pl-3 pr-6 border rounded-lg text-[13px] bg-white cursor-pointer focus:outline-none transition-colors ${
-    active ? "border-[#4A6FA5] text-[#4A6FA5] bg-[#EEF3FA]" : "border-[#DDE3EE] text-[#546478] hover:border-[#C5CEDD]"
+    active ? "border-[#4A6FA5] text-[#4A6FA5] bg-[#EEF3FA]" : "border-[#E5E7EB] text-[#546478] hover:border-[#C5CEDD]"
   }`;
 }
 
@@ -170,7 +176,7 @@ export function Jobs() {
               <span className="material-icons" style={{ fontSize: "18px" }}>add</span>
               Create Job
             </button>
-            <KebabMenu triggerClassName="w-9 h-9 border border-[#DDE3EE] rounded-lg bg-white">
+            <KebabMenu triggerClassName="w-9 h-9 border border-[#E5E7EB] rounded-lg bg-white">
               <KebabItem icon="view_column">Edit Columns</KebabItem>
               <KebabItem icon="swap_horiz">Change Status</KebabItem>
               <KebabItem icon="content_copy">Manage Duplicates</KebabItem>
@@ -198,32 +204,30 @@ export function Jobs() {
           <Card
             key={s}
             onClick={() => setQfStatus(qfStatus === s ? "All" : s)}
-            className={`px-4 py-3 border bg-white hover:shadow-sm transition-shadow h-[110.5px] cursor-pointer ${qfStatus === s ? "border-[#4A6FA5] ring-1 ring-[#4A6FA5]/20" : "border-[#DDE3EE]"}`}
+            className={`p-5 border bg-white hover:shadow-sm transition-shadow cursor-pointer ${qfStatus === s ? "border-[#4A6FA5] ring-1 ring-[#4A6FA5]/20" : "border-[#E5E7EB]"}`}
           >
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-[24px] mb-0.5 leading-none" style={{ fontWeight: 700, color: "#1A2332" }}>{statusCounts[s]}</div>
-                <div className="flex items-center gap-1.5 mb-0.5">
-                  <span className="inline-block w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: statusColors[s] }} />
-                  <div className="text-[12px]" style={{ fontWeight: 500, color: "#546478" }}>{s}</div>
-                </div>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ background: statusBg[s] }}>
+                <span className="material-icons" style={{ fontSize: "18px", color: statusColors[s] }}>{statusIcons[s]}</span>
               </div>
             </div>
+            <div className="text-[26px] text-[#1A2332] leading-none mb-1" style={{ fontWeight: 700 }}>{statusCounts[s]}</div>
+            <div className="text-[13px] text-[#6B7280]">{s}</div>
           </Card>
         ))}
       </div>
 
       {/* ── Table ── */}
-      <div className="bg-white border border-[#DDE3EE] rounded-lg overflow-hidden">
+      <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
         {/* Filter Bar */}
-        <div className="flex items-center gap-2 px-4 py-3 bg-white border-b border-[#DDE3EE]">
+        <div className="flex items-center gap-2 px-4 py-3 bg-white border-b border-[#E5E7EB]">
           <div className="relative">
             <span className="material-icons absolute left-2.5 top-1/2 -translate-y-1/2 text-[#9AA3AF]" style={{ fontSize: "16px" }}>search</span>
             <input type="text" placeholder="Search jobs..." value={searchQuery}
               onChange={e => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-              className="h-8 pl-8 pr-3 w-[220px] border border-[#DDE3EE] rounded-lg text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5]" />
+              className="h-8 pl-8 pr-3 w-[220px] border border-[#E5E7EB] rounded-lg text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5]" />
           </div>
-          <div className="w-px h-5 bg-[#DDE3EE] mx-1" />
+          <div className="w-px h-5 bg-[#E5E7EB] mx-1" />
           <div className="flex items-center gap-2">
             <select value={qfStatus} onChange={e => { setQfStatus(e.target.value); setCurrentPage(1); }} className={qfClass(qfStatus !== "All")}>
               <option value="All">Status: All</option>
@@ -242,13 +246,13 @@ export function Jobs() {
               <option value="this_week">This week</option>
               <option value="this_month">This month</option>
             </select>
-            <div className="w-px h-5 bg-[#DDE3EE] mx-1" />
+            <div className="w-px h-5 bg-[#E5E7EB] mx-1" />
             <button
               onClick={() => { setPendingFilters({ ...filterState }); setFilterPanelOpen(true); }}
               className={`h-8 px-3 rounded-lg border text-[13px] flex items-center gap-1.5 transition-colors ${
                 activeFilterCount > 0
                   ? "border-[#4A6FA5] text-[#4A6FA5] bg-[#EEF3FA]"
-                  : "border-[#DDE3EE] text-[#546478] hover:bg-[#F5F7FA] hover:border-[#C5CEDD]"
+                  : "border-[#E5E7EB] text-[#546478] hover:bg-[#F5F7FA] hover:border-[#C5CEDD]"
               }`}
               style={{ fontWeight: 500 }}
             >
@@ -268,9 +272,9 @@ export function Jobs() {
         />
         <table className="w-full">
           <thead className="bg-[#F5F7FA]">
-            <tr className="border-b border-[#DDE3EE]">
+            <tr className="border-b border-[#E5E7EB]">
               <th className="px-4 py-3 w-10">
-                <input type="checkbox" checked={allSelected} onChange={e => handleSelectAll(e.target.checked)} className="w-4 h-4 rounded border-[#DDE3EE] cursor-pointer accent-[#4A6FA5]" />
+                <input type="checkbox" checked={allSelected} onChange={e => handleSelectAll(e.target.checked)} className="w-4 h-4 rounded border-[#E5E7EB] cursor-pointer accent-[#4A6FA5]" />
               </th>
               {jobCols.map(col => (
                 <DraggableTh
@@ -295,10 +299,10 @@ export function Jobs() {
               <tr><td colSpan={8} className="px-4 py-12 text-center text-[14px] text-[#8899AA]">No jobs found</td></tr>
             ) : paginated.map(job => (
               <tr key={job.id}
-                className={`border-b border-[#DDE3EE] hover:bg-[#F9FAFB] cursor-pointer ${selectedJobs.has(job.id) ? "bg-[#EDF5FF]" : ""}`}
+                className={`border-b border-[#E5E7EB] hover:bg-[#F9FAFB] cursor-pointer ${selectedJobs.has(job.id) ? "bg-[#EDF5FF]" : ""}`}
                 onClick={() => navigate(`/jobs/${job.id}`)}>
                 <td className="px-4 py-4" onClick={e => e.stopPropagation()}>
-                  <input type="checkbox" checked={selectedJobs.has(job.id)} onChange={e => handleSelect(job.id, e.target.checked)} className="w-4 h-4 rounded border-[#DDE3EE] cursor-pointer accent-[#4A6FA5]" />
+                  <input type="checkbox" checked={selectedJobs.has(job.id)} onChange={e => handleSelect(job.id, e.target.checked)} className="w-4 h-4 rounded border-[#E5E7EB] cursor-pointer accent-[#4A6FA5]" />
                 </td>
                 {jobCols.map(col => {
                   switch (col.key) {
@@ -348,7 +352,7 @@ export function Jobs() {
         <div className="flex items-center gap-2">
           <span className="text-[13px] text-[#546478]">Rows per page:</span>
           <Select value={String(rowsPerPage)} onValueChange={v => { setRowsPerPage(Number(v)); setCurrentPage(1); }}>
-            <SelectTrigger className="h-8 w-[70px] border-[#DDE3EE] text-[13px]" style={{ fontWeight: 500 }}>
+            <SelectTrigger className="h-8 w-[70px] border-[#E5E7EB] text-[13px]" style={{ fontWeight: 500 }}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -387,7 +391,7 @@ export function Jobs() {
             <div>
               <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>Job type</label>
               <select value={pendingFilters.jobType} onChange={e => setPendingFilters(p => ({ ...p, jobType: e.target.value }))}
-                className="w-full h-10 px-3 border border-[#D1D5DB] rounded-md text-[13px] text-[#374151] bg-white focus:outline-none focus:border-[#4A6FA5]">
+                className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] text-[#374151] bg-white focus:outline-none focus:border-[#4A6FA5]">
                 <option value="">All</option>
                 <option value="One-off">One-off</option>
                 <option value="Recurring">Recurring</option>
@@ -399,7 +403,7 @@ export function Jobs() {
               <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>Client</label>
               <input type="text" placeholder="e.g. John Smith" value={pendingFilters.client}
                 onChange={e => setPendingFilters(p => ({ ...p, client: e.target.value }))}
-                className="w-full h-10 px-3 border border-[#D1D5DB] rounded-md text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5]" />
+                className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5]" />
             </div>
 
             {/* City */}
@@ -407,7 +411,7 @@ export function Jobs() {
               <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>City</label>
               <input type="text" placeholder="e.g. Tampa, Orlando" value={pendingFilters.city}
                 onChange={e => setPendingFilters(p => ({ ...p, city: e.target.value }))}
-                className="w-full h-10 px-3 border border-[#D1D5DB] rounded-md text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5]" />
+                className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5]" />
             </div>
 
             <div className="border-t border-[#E5E7EB] pt-5">
@@ -420,10 +424,10 @@ export function Jobs() {
               <div className="flex gap-2">
                 <input type="date" value={pendingFilters.scheduleFrom}
                   onChange={e => setPendingFilters(p => ({ ...p, scheduleFrom: e.target.value }))}
-                  className="flex-1 h-10 px-3 border border-[#D1D5DB] rounded-md text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5]" />
+                  className="flex-1 h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5]" />
                 <input type="date" value={pendingFilters.scheduleTo}
                   onChange={e => setPendingFilters(p => ({ ...p, scheduleTo: e.target.value }))}
-                  className="flex-1 h-10 px-3 border border-[#D1D5DB] rounded-md text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5]" />
+                  className="flex-1 h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5]" />
               </div>
             </div>
 
@@ -437,17 +441,17 @@ export function Jobs() {
               <div className="flex items-center gap-2">
                 <input type="number" placeholder="Min" value={pendingFilters.totalMin}
                   onChange={e => setPendingFilters(p => ({ ...p, totalMin: e.target.value }))}
-                  className="flex-1 h-10 px-3 border border-[#D1D5DB] rounded-md text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5]" />
+                  className="flex-1 h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5]" />
                 <span className="text-[#546478] text-[13px]">—</span>
                 <input type="number" placeholder="Max" value={pendingFilters.totalMax}
                   onChange={e => setPendingFilters(p => ({ ...p, totalMax: e.target.value }))}
-                  className="flex-1 h-10 px-3 border border-[#D1D5DB] rounded-md text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5]" />
+                  className="flex-1 h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5]" />
               </div>
             </div>
 
           </div>
           <div className="px-6 py-4 border-t border-[#E5E7EB] flex items-center gap-3">
-            <button onClick={handleClearFilters} className="flex-1 h-10 border border-[#DDE3EE] rounded-lg text-[13px] text-[#546478] hover:bg-[#EDF0F5] transition-colors" style={{ fontWeight: 500 }}>Clear all</button>
+            <button onClick={handleClearFilters} className="flex-1 h-10 border border-[#E5E7EB] rounded-lg text-[13px] text-[#546478] hover:bg-[#EDF0F5] transition-colors" style={{ fontWeight: 500 }}>Clear all</button>
             <button onClick={handleApplyFilters} className="flex-1 h-10 bg-[#4A6FA5] hover:bg-[#3d5a85] rounded-lg text-[13px] text-white transition-colors" style={{ fontWeight: 500 }}>Apply</button>
           </div>
         </div>

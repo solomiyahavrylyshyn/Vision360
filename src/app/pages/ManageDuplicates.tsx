@@ -132,7 +132,7 @@ export function ManageDuplicates() {
               <select
                 value={matchOn}
                 onChange={e => setMatchOn(e.target.value)}
-                className="h-9 pl-3 pr-8 border border-[#D1D5DB] rounded-md text-[13px] text-[#1A2332] bg-white focus:outline-none focus:border-[#4A6FA5] appearance-none cursor-pointer"
+                className="h-9 pl-3 pr-8 border border-[#E5E7EB] rounded-md text-[13px] text-[#1A2332] bg-white focus:outline-none focus:border-[#4A6FA5] appearance-none cursor-pointer"
                 style={{ fontWeight: 500 }}
               >
                 {matchOptions.map(o => (
@@ -159,9 +159,9 @@ export function ManageDuplicates() {
       </div>
 
       {/* Table */}
-      <div className="bg-white border border-[#DDE3EE] rounded-lg overflow-hidden">
+      <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
         {/* Column headers */}
-        <div className="grid grid-cols-[40px_180px_200px_220px_200px_180px] bg-[#F5F7FA] border-b border-[#DDE3EE]">
+        <div className="grid grid-cols-[40px_180px_200px_220px_200px_180px] bg-[#F5F7FA] border-b border-[#E5E7EB]">
           <div className="px-4 py-3" />
           <div className="px-4 py-3 text-[11px] uppercase tracking-wide text-[#546478]" style={{ fontWeight: 600 }}>Customer</div>
           <div className="px-4 py-3 text-[11px] uppercase tracking-wide text-[#546478]" style={{ fontWeight: 600 }}>Company</div>
@@ -171,7 +171,7 @@ export function ManageDuplicates() {
         </div>
 
         {groups.map(group => (
-          <div key={group.id} className="border-b border-[#DDE3EE] last:border-0">
+          <div key={group.id} className="border-b border-[#E5E7EB] last:border-0">
             {/* Group header row */}
             <div
               className="grid grid-cols-[40px_180px_200px_220px_200px_180px] items-center hover:bg-[#F9FAFB] cursor-pointer"
@@ -208,7 +208,7 @@ export function ManageDuplicates() {
                     checked={selectedClients.has(client.id)}
                     onChange={e => { e.stopPropagation(); toggleClient(client.id); }}
                     onClick={e => e.stopPropagation()}
-                    className="w-4 h-4 rounded border-[#D1D5DB] accent-[#4A6FA5] cursor-pointer"
+                    className="w-4 h-4 rounded border-[#E5E7EB] accent-[#4A6FA5] cursor-pointer"
                   />
                 </div>
                 <div className="px-4 py-3.5 text-[14px] text-[#1A2332]">{client.name}</div>
@@ -223,7 +223,7 @@ export function ManageDuplicates() {
 
         {groups.length === 0 && (
           <div className="py-16 text-center">
-            <span className="material-icons text-[#DDE3EE] mb-3 block" style={{ fontSize: "48px" }}>check_circle</span>
+            <span className="material-icons text-[#E5E7EB] mb-3 block" style={{ fontSize: "48px" }}>check_circle</span>
             <p className="text-[15px] text-[#546478]" style={{ fontWeight: 500 }}>No duplicates found</p>
             <p className="text-[13px] text-[#9AA3AF] mt-1">All client profiles appear to be unique.</p>
           </div>
@@ -237,7 +237,7 @@ export function ManageDuplicates() {
           <select
             value={rowsPerPage}
             onChange={e => setRowsPerPage(Number(e.target.value))}
-            className="h-8 px-2 border border-[#DDE3EE] rounded text-[13px] text-[#374151] bg-white focus:outline-none"
+            className="h-8 px-2 border border-[#E5E7EB] rounded text-[13px] text-[#374151] bg-white focus:outline-none"
           >
             <option value={10}>10</option>
             <option value={25}>25</option>

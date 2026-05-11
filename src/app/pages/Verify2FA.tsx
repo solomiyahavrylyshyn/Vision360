@@ -104,14 +104,14 @@ export function Verify2FA() {
                 </div>
                 <span className="text-xs font-semibold text-[#4A6FA5]">Account</span>
               </div>
-              <div className="w-8 h-px bg-[#DDE3EE]" />
+              <div className="w-8 h-px bg-[#E5E7EB]" />
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-full bg-[#4A6FA5] flex items-center justify-center text-white text-xs font-bold">
                   2
                 </div>
                 <span className="text-xs font-semibold text-[#1A2332]">Verify</span>
               </div>
-              <div className="w-8 h-px bg-[#DDE3EE]" />
+              <div className="w-8 h-px bg-[#E5E7EB]" />
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-full bg-[#EDF0F5] flex items-center justify-center text-[#546478] text-xs font-bold">
                   3
@@ -137,7 +137,7 @@ export function Verify2FA() {
                   value={digit}
                   onChange={(e) => handleInputChange(i, e.target.value)}
                   onKeyDown={(e) => handleKeyDown(i, e)}
-                  className="w-full h-14 text-center text-2xl font-bold border-2 border-[#DDE3EE] rounded-xl bg-[#F5F7FA] focus:bg-white focus:border-[#4A6FA5] focus:outline-none transition-all"
+                  className="w-full h-14 text-center text-2xl font-bold border-2 border-[#E5E7EB] rounded-xl bg-[#F5F7FA] focus:bg-white focus:border-[#4A6FA5] focus:outline-none transition-all"
                   autoFocus={i === 0}
                 />
               ))}

@@ -72,7 +72,7 @@ export function ItemPicker({ catalogItems, onSelect, onClose, placeholder = "Sea
       <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" />
       <div className="relative bg-white rounded-2xl shadow-2xl w-[680px] max-h-[80vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-5 border-b border-[#DDE3EE]">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-[#E5E7EB]">
           <h2 className="text-[20px] text-[#1A2332]" style={{ fontWeight: 700 }}>Select Item from Catalog</h2>
           <button onClick={onClose} className="w-8 h-8 rounded-lg hover:bg-[#F5F7FA] flex items-center justify-center">
             <span className="material-icons text-[#546478]" style={{ fontSize: "22px" }}>close</span>
@@ -80,7 +80,7 @@ export function ItemPicker({ catalogItems, onSelect, onClose, placeholder = "Sea
         </div>
 
         {/* Search */}
-        <div className="p-5 border-b border-[#DDE3EE]">
+        <div className="p-5 border-b border-[#E5E7EB]">
           <div className="relative">
             <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: "20px" }}>search</span>
             <input
@@ -89,7 +89,7 @@ export function ItemPicker({ catalogItems, onSelect, onClose, placeholder = "Sea
               placeholder={placeholder}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full h-11 pl-11 pr-4 border border-[#DDE3EE] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]"
+              className="w-full h-11 pl-11 pr-4 border border-[#E5E7EB] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]"
             />
           </div>
           {search.length > 0 && search.length < 2 && (
@@ -111,7 +111,7 @@ export function ItemPicker({ catalogItems, onSelect, onClose, placeholder = "Sea
                 <button
                   key={item.id}
                   onClick={() => onSelect(item)}
-                  className="w-full flex items-start justify-between px-4 py-3 hover:bg-[#F5F7FA] rounded-lg border border-transparent hover:border-[#DDE3EE] transition-all text-left"
+                  className="w-full flex items-start justify-between px-4 py-3 hover:bg-[#F5F7FA] rounded-lg border border-transparent hover:border-[#E5E7EB] transition-all text-left"
                 >
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
@@ -148,7 +148,7 @@ export function ItemPicker({ catalogItems, onSelect, onClose, placeholder = "Sea
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-[#DDE3EE] bg-[#FAFBFC] flex items-center justify-between">
+        <div className="px-6 py-4 border-t border-[#E5E7EB] bg-[#FAFBFC] flex items-center justify-between">
           <div className="text-[13px] text-[#546478]">
             {filtered.length === catalogItems.length ? (
               <span>{catalogItems.length} items available</span>
@@ -193,7 +193,7 @@ export function LineItemRow({ item, onUpdateQuantity, onRemove, allowPriceOverri
           step="1"
           value={item.quantity}
           onChange={(e) => onUpdateQuantity(item.id, Number(e.target.value) || 0)}
-          className="w-20 px-2 py-1 border border-[#DDE3EE] rounded text-[13px] text-center focus:outline-none focus:border-[#4A6FA5]"
+          className="w-20 px-2 py-1 border border-[#E5E7EB] rounded text-[13px] text-center focus:outline-none focus:border-[#4A6FA5]"
         />
       </td>
       <td className="px-4 py-3">
@@ -204,7 +204,7 @@ export function LineItemRow({ item, onUpdateQuantity, onRemove, allowPriceOverri
             step="0.01"
             value={item.unitPrice}
             onChange={(e) => onUpdatePrice(item.id, Number(e.target.value) || 0)}
-            className="w-28 px-2 py-1 border border-[#DDE3EE] rounded text-[13px] text-right focus:outline-none focus:border-[#4A6FA5]"
+            className="w-28 px-2 py-1 border border-[#E5E7EB] rounded text-[13px] text-right focus:outline-none focus:border-[#4A6FA5]"
             style={{ fontVariantNumeric: "tabular-nums" }}
           />
         ) : (

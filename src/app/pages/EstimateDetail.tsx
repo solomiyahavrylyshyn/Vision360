@@ -345,7 +345,7 @@ export function EstimateDetail() {
   const renderItemsTab = () => (
     <div className="flex flex-col gap-4">
       {/* Line Items */}
-      <div className="bg-white border border-[#E5E7EB] rounded-lg overflow-hidden">
+      <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
         <div className="flex items-center justify-between px-5 py-4 border-b border-[#E5E7EB]">
           <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Line Items</h3>
           <button
@@ -381,7 +381,7 @@ export function EstimateDetail() {
                 </thead>
                 <tbody>
                   {estimate.items.map((item) => (
-                    <tr key={item.id} className="border-b border-[#DDE3EE] hover:bg-[#F9FAFB]">
+                    <tr key={item.id} className="border-b border-[#E5E7EB] hover:bg-[#F9FAFB]">
                       <td className="px-4 py-3">
                         <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{item.name}</div>
                         {item.description && <div className="text-[12px] text-[#8899AA]">{item.description}</div>}
@@ -403,7 +403,7 @@ export function EstimateDetail() {
             </div>
 
             {/* Totals */}
-            <div className="border-t border-[#DDE3EE] px-5 py-4 bg-[#FAFBFC]">
+            <div className="border-t border-[#E5E7EB] px-5 py-4 bg-[#FAFBFC]">
               <div className="flex justify-end">
                 <div className="space-y-2 min-w-[280px]">
                   <div className="flex items-center justify-between text-[13px]">
@@ -418,7 +418,7 @@ export function EstimateDetail() {
                     <span className="text-[#546478]">Tax ({estimate.taxRate}%):</span>
                     <span className="text-[#1A2332]" style={{ fontVariantNumeric: "tabular-nums" }}>${fmt(taxAmount)}</span>
                   </div>
-                  <div className="flex items-center justify-between pt-2 border-t border-[#DDE3EE]">
+                  <div className="flex items-center justify-between pt-2 border-t border-[#E5E7EB]">
                     <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Total:</span>
                     <span className="text-[18px] text-[#1A2332]" style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>${fmt(total)}</span>
                   </div>
@@ -476,7 +476,7 @@ export function EstimateDetail() {
           <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>account_balance_wallet</span>
           <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Deposits</h3>
         </div>
-        <button className="px-3 py-1.5 border border-[#DDE3EE] text-[13px] text-[#1A2332] rounded-lg hover:bg-[#F5F7FA]" style={{ fontWeight: 500 }}>
+        <button className="px-3 py-1.5 border border-[#E5E7EB] text-[13px] text-[#1A2332] rounded-lg hover:bg-[#F5F7FA]" style={{ fontWeight: 500 }}>
           Add payment
         </button>
       </div>
@@ -499,7 +499,7 @@ export function EstimateDetail() {
   );
 
   const renderActivityTab = () => (
-    <div className="bg-white border border-[#E5E7EB] rounded-lg overflow-hidden">
+    <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
       <div className="px-5 py-4 border-b border-[#E5E7EB]">
         <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Activity</h3>
       </div>
@@ -534,7 +534,7 @@ export function EstimateDetail() {
             <span className="material-icons" style={{ fontSize: "18px" }}>arrow_back</span>
             Estimates
           </button>
-          <span className="text-[#DDE3EE]">/</span>
+          <span className="text-[#E5E7EB]">/</span>
           <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>
             #{estimate.estimateNumber}{estimate.estimateName ? ` · ${estimate.estimateName}` : ""}
           </span>
@@ -555,7 +555,7 @@ export function EstimateDetail() {
               <span className="material-icons" style={{ fontSize: "14px" }}>expand_more</span>
             </button>
             {statusOpen && (
-              <div className="absolute left-0 top-[calc(100%+4px)] w-[190px] bg-white border border-[#DDE3EE] rounded-xl shadow-lg z-40 py-1.5">
+              <div className="absolute left-0 top-[calc(100%+4px)] w-[190px] bg-white border border-[#E5E7EB] rounded-xl shadow-lg z-40 py-1.5">
                 {primaryStatuses.map(s => (
                   <button key={s} onClick={() => { setEstimate(prev => ({ ...prev, status: s })); setStatusOpen(false); }}
                     className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-[13px] transition-colors ${s === estimate.status ? "bg-[#EEF3FA]" : "hover:bg-[#F5F7FA]"}`}
@@ -582,11 +582,11 @@ export function EstimateDetail() {
             )}
           </div>
 
-          <span className="text-[#DDE3EE]">·</span>
+          <span className="text-[#E5E7EB]">·</span>
           <span className="text-[13px] text-[#546478]">{estimate.clientName}</span>
           {estimate.job && (
             <>
-              <span className="text-[#DDE3EE]">·</span>
+              <span className="text-[#E5E7EB]">·</span>
               <button onClick={() => estimate.jobId && navigate(`/jobs/${estimate.jobId}`)} className="text-[13px] text-[#4A6FA5] hover:underline" style={{ fontWeight: 500 }}>
                 {estimate.job}
               </button>
@@ -595,7 +595,7 @@ export function EstimateDetail() {
         </div>
 
         {/* Actions kebab */}
-        <KebabMenu triggerClassName="w-9 h-9 border border-[#DDE3EE] rounded-lg bg-white flex items-center justify-center hover:bg-[#F5F7FA]">
+        <KebabMenu triggerClassName="w-9 h-9 border border-[#E5E7EB] rounded-lg bg-white flex items-center justify-center hover:bg-[#F5F7FA]">
           <KebabItem icon="send">Send</KebabItem>
           <KebabItem icon="visibility">Preview</KebabItem>
           <KebabItem icon="download">Download PDF</KebabItem>
@@ -647,7 +647,7 @@ export function EstimateDetail() {
         <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={() => setAddItemOpen(false)}>
           <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" />
           <div className="relative bg-white rounded-2xl shadow-2xl w-[520px] max-h-[80vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-6 py-5 border-b border-[#DDE3EE]">
+            <div className="flex items-center justify-between px-6 py-5 border-b border-[#E5E7EB]">
               <h2 className="text-[18px] text-[#1A2332]" style={{ fontWeight: 700 }}>Add Item</h2>
               <button onClick={() => setAddItemOpen(false)} className="w-8 h-8 rounded-lg hover:bg-[#F5F7FA] flex items-center justify-center">
                 <span className="material-icons text-[#546478]" style={{ fontSize: "20px" }}>close</span>

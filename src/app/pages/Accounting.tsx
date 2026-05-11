@@ -5,7 +5,7 @@ export function Accounting() {
     <div className="p-8">
       <PageHeader title="Accounting" />
 
-      <div className="bg-white rounded-lg border border-[#DDE3EE] p-12 text-center">
+      <div className="bg-white rounded-lg border border-[#E5E7EB] p-12 text-center">
         <div className="w-14 h-14 rounded-xl bg-[#EBF0F8] flex items-center justify-center mx-auto mb-4">
           <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "28px" }}>account_balance</span>
         </div>

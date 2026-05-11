@@ -29,7 +29,7 @@ export function CreateEvent() {
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Top Bar */}
-      <div className="bg-white border-b border-[#DDE3EE] px-6 py-4 flex items-center justify-between">
+      <div className="bg-white border-b border-[#E5E7EB] px-6 py-4 flex items-center justify-between">
         <Button variant="ghost" onClick={() => navigate(-1)}>
           ← Back to Job
         </Button>
@@ -67,7 +67,7 @@ export function CreateEvent() {
                     type="date"
                     value={date}
                     onChange={(e) => setDate(e.target.value)}
-                    className="border-[#DDE3EE]"
+                    className="border-[#E5E7EB]"
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -78,7 +78,7 @@ export function CreateEvent() {
                     type="time"
                     value={startTime}
                     onChange={(e) => setStartTime(e.target.value)}
-                    className="border-[#DDE3EE]"
+                    className="border-[#E5E7EB]"
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -88,7 +88,7 @@ export function CreateEvent() {
                   <select
                     value={duration}
                     onChange={(e) => setDuration(e.target.value)}
-                    className="w-full px-3 py-2 border border-[#DDE3EE] rounded-md"
+                    className="w-full px-3 py-2 border border-[#E5E7EB] rounded-md"
                   >
                     <option>1 hour</option>
                     <option>2 hours</option>
@@ -104,7 +104,7 @@ export function CreateEvent() {
                     type="time"
                     value={endTime}
                     onChange={(e) => setEndTime(e.target.value)}
-                    className="border-[#DDE3EE]"
+                    className="border-[#E5E7EB]"
                     readOnly
                   />
                 </div>
@@ -124,7 +124,7 @@ export function CreateEvent() {
                   <select
                     value={eventType}
                     onChange={(e) => setEventType(e.target.value)}
-                    className="w-full px-3 py-2 border border-[#DDE3EE] rounded-md"
+                    className="w-full px-3 py-2 border border-[#E5E7EB] rounded-md"
                   >
                     <option>Initial Consultation</option>
                     <option>Service Call</option>
@@ -142,7 +142,7 @@ export function CreateEvent() {
                     placeholder="e.g., Install new water heater"
                     value={customTitle}
                     onChange={(e) => setCustomTitle(e.target.value)}
-                    className="border-[#DDE3EE]"
+                    className="border-[#E5E7EB]"
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -154,7 +154,7 @@ export function CreateEvent() {
                     placeholder="Add notes about this visit..."
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    className="border-[#DDE3EE]"
+                    className="border-[#E5E7EB]"
                   />
                 </div>
               </div>
@@ -191,7 +191,7 @@ export function CreateEvent() {
                       rows={3}
                       value={notificationMessage}
                       onChange={(e) => setNotificationMessage(e.target.value)}
-                      className="border-[#DDE3EE]"
+                      className="border-[#E5E7EB]"
                     />
                   </div>
                   <div className="flex items-center gap-2">

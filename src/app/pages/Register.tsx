@@ -104,14 +104,14 @@ export function Register() {
                 </div>
                 <span className="text-xs font-semibold text-[#1A2332]">Account</span>
               </div>
-              <div className="w-8 h-px bg-[#DDE3EE]" />
+              <div className="w-8 h-px bg-[#E5E7EB]" />
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-full bg-[#EDF0F5] flex items-center justify-center text-[#546478] text-xs font-bold">
                   2
                 </div>
                 <span className="text-xs font-semibold text-[#546478]">Verify</span>
               </div>
-              <div className="w-8 h-px bg-[#DDE3EE]" />
+              <div className="w-8 h-px bg-[#E5E7EB]" />
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-full bg-[#EDF0F5] flex items-center justify-center text-[#546478] text-xs font-bold">
                   3
@@ -134,7 +134,7 @@ export function Register() {
                 placeholder="name@company.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="h-11 border-[#DDE3EE] focus-visible:ring-[#4A6FA5] bg-[#F5F7FA] focus:bg-white transition-colors"
+                className="h-11 border-[#E5E7EB] focus-visible:ring-[#4A6FA5] bg-[#F5F7FA] focus:bg-white transition-colors"
                 required
               />
             </div>
@@ -148,7 +148,7 @@ export function Register() {
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="h-11 border-[#DDE3EE] focus-visible:ring-[#4A6FA5] bg-[#F5F7FA] focus:bg-white transition-colors"
+                className="h-11 border-[#E5E7EB] focus-visible:ring-[#4A6FA5] bg-[#F5F7FA] focus:bg-white transition-colors"
                 required
               />
               {password && (
@@ -192,7 +192,7 @@ export function Register() {
                 placeholder="••••••••"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="h-11 border-[#DDE3EE] focus-visible:ring-[#4A6FA5] bg-[#F5F7FA] focus:bg-white transition-colors"
+                className="h-11 border-[#E5E7EB] focus-visible:ring-[#4A6FA5] bg-[#F5F7FA] focus:bg-white transition-colors"
                 required
               />
             </div>

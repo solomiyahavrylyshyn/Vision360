@@ -27,7 +27,7 @@ export function Reports() {
 
       {/* KPIs */}
       <div className="grid grid-cols-4 gap-5 mb-8">
-        <Card className="px-4 py-3 border border-[#DDE3EE] bg-white hover:shadow-sm transition-shadow h-[110.5px]">
+        <Card className="px-4 py-3 border border-[#E5E7EB] bg-white hover:shadow-sm transition-shadow h-[110.5px]">
           <div className="flex items-center justify-between">
             <div>
               <div className="text-[24px] mb-0.5 leading-none" style={{ fontWeight: 700, color: "#1A2332", fontVariantNumeric: "tabular-nums" }}>$109,800</div>
@@ -41,7 +41,7 @@ export function Reports() {
             </div>
           </div>
         </Card>
-        <Card className="px-4 py-3 border border-[#DDE3EE] bg-white hover:shadow-sm transition-shadow h-[110.5px]">
+        <Card className="px-4 py-3 border border-[#E5E7EB] bg-white hover:shadow-sm transition-shadow h-[110.5px]">
           <div className="flex items-center justify-between">
             <div>
               <div className="text-[24px] mb-0.5 leading-none" style={{ fontWeight: 700, color: "#1A2332", fontVariantNumeric: "tabular-nums" }}>$61,300</div>
@@ -55,7 +55,7 @@ export function Reports() {
             </div>
           </div>
         </Card>
-        <Card className="px-4 py-3 border border-[#DDE3EE] bg-white hover:shadow-sm transition-shadow h-[110.5px]">
+        <Card className="px-4 py-3 border border-[#E5E7EB] bg-white hover:shadow-sm transition-shadow h-[110.5px]">
           <div className="flex items-center justify-between">
             <div>
               <div className="text-[24px] mb-0.5 leading-none" style={{ fontWeight: 700, color: "#1A2332", fontVariantNumeric: "tabular-nums" }}>$48,500</div>
@@ -69,7 +69,7 @@ export function Reports() {
             </div>
           </div>
         </Card>
-        <Card className="px-4 py-3 border border-[#DDE3EE] bg-white hover:shadow-sm transition-shadow h-[110.5px]">
+        <Card className="px-4 py-3 border border-[#E5E7EB] bg-white hover:shadow-sm transition-shadow h-[110.5px]">
           <div className="flex items-center justify-between">
             <div>
               <div className="text-[24px] mb-0.5 leading-none" style={{ fontWeight: 700, color: "#1A2332" }}>44.2%</div>
@@ -87,11 +87,11 @@ export function Reports() {
 
       {/* Charts */}
       <div className="grid grid-cols-2 gap-6 mb-6">
-        <Card className="p-6 border border-[#DDE3EE] bg-white">
+        <Card className="p-6 border border-[#E5E7EB] bg-white">
           <h3 className="text-[16px] text-[#1A2332] mb-5" style={{ fontWeight: 600 }}>Revenue vs Expenses</h3>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={revenueData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#DDE3EE" />
+              <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
               <XAxis dataKey="month" tick={{ fontSize: 12 }} />
               <YAxis tick={{ fontSize: 12 }} />
               <Tooltip />
@@ -102,7 +102,7 @@ export function Reports() {
           </ResponsiveContainer>
         </Card>
 
-        <Card className="p-6 border border-[#DDE3EE] bg-white">
+        <Card className="p-6 border border-[#E5E7EB] bg-white">
           <h3 className="text-[16px] text-[#1A2332] mb-5" style={{ fontWeight: 600 }}>Revenue by Client</h3>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>

@@ -79,14 +79,14 @@ export function CompanySetup() {
               </div>
               <span className="text-xs font-semibold text-[#4A6FA5]">Account</span>
             </div>
-            <div className="w-8 h-px bg-[#DDE3EE]" />
+            <div className="w-8 h-px bg-[#E5E7EB]" />
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-full bg-[#4A6FA5] flex items-center justify-center">
                 <span className="material-icons text-white" style={{ fontSize: "16px" }}>check</span>
               </div>
               <span className="text-xs font-semibold text-[#4A6FA5]">Verify</span>
             </div>
-            <div className="w-8 h-px bg-[#DDE3EE]" />
+            <div className="w-8 h-px bg-[#E5E7EB]" />
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-full bg-[#4A6FA5] flex items-center justify-center text-white text-xs font-bold">
                 3
@@ -110,7 +110,7 @@ export function CompanySetup() {
                 placeholder="e.g., Smith Plumbing Services"
                 value={companyName}
                 onChange={(e) => setCompanyName(e.target.value)}
-                className="h-11 border-[#DDE3EE] focus-visible:ring-[#4A6FA5] bg-[#F5F7FA] focus:bg-white transition-colors"
+                className="h-11 border-[#E5E7EB] focus-visible:ring-[#4A6FA5] bg-[#F5F7FA] focus:bg-white transition-colors"
                 required
               />
               <p className="text-xs text-[#546478]">This appears on estimates and invoices</p>
@@ -126,7 +126,7 @@ export function CompanySetup() {
                   placeholder="John"
                   value={firstName}
                   onChange={(e) => setFirstName(e.target.value)}
-                  className="h-11 border-[#DDE3EE] focus-visible:ring-[#4A6FA5] bg-[#F5F7FA] focus:bg-white transition-colors"
+                  className="h-11 border-[#E5E7EB] focus-visible:ring-[#4A6FA5] bg-[#F5F7FA] focus:bg-white transition-colors"
                   required
                 />
               </div>
@@ -139,7 +139,7 @@ export function CompanySetup() {
                   placeholder="Smith"
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
-                  className="h-11 border-[#DDE3EE] focus-visible:ring-[#4A6FA5] bg-[#F5F7FA] focus:bg-white transition-colors"
+                  className="h-11 border-[#E5E7EB] focus-visible:ring-[#4A6FA5] bg-[#F5F7FA] focus:bg-white transition-colors"
                   required
                 />
               </div>
@@ -154,7 +154,7 @@ export function CompanySetup() {
                 placeholder="(555) 123-4567"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                className="h-11 border-[#DDE3EE] focus-visible:ring-[#4A6FA5] bg-[#F5F7FA] focus:bg-white transition-colors"
+                className="h-11 border-[#E5E7EB] focus-visible:ring-[#4A6FA5] bg-[#F5F7FA] focus:bg-white transition-colors"
                 required
               />
             </div>
@@ -164,7 +164,7 @@ export function CompanySetup() {
               <select
                 value={industry}
                 onChange={(e) => setIndustry(e.target.value)}
-                className="w-full h-11 px-3 border border-[#DDE3EE] rounded-md bg-[#F5F7FA] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#4A6FA5] transition-colors text-sm"
+                className="w-full h-11 px-3 border border-[#E5E7EB] rounded-md bg-[#F5F7FA] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#4A6FA5] transition-colors text-sm"
               >
                 <option value="">Select your industry</option>
                 <option value="hvac">HVAC</option>
@@ -182,7 +182,7 @@ export function CompanySetup() {
               <select
                 value={teamSize}
                 onChange={(e) => setTeamSize(e.target.value)}
-                className="w-full h-11 px-3 border border-[#DDE3EE] rounded-md bg-[#F5F7FA] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#4A6FA5] transition-colors text-sm"
+                className="w-full h-11 px-3 border border-[#E5E7EB] rounded-md bg-[#F5F7FA] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#4A6FA5] transition-colors text-sm"
               >
                 <option value="">Select team size</option>
                 <option value="1">Just me</option>

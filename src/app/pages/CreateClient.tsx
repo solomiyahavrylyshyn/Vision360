@@ -301,7 +301,7 @@ export function CreateClient() {
                           )
                         }
                       >
-                        <SelectTrigger className="border-[#D1D5DB] bg-white h-10 text-[14px]">
+                        <SelectTrigger className="border-[#E5E7EB] bg-white h-10 text-[14px]">
                           <SelectValue placeholder="Title" />
                         </SelectTrigger>
                         <SelectContent>
@@ -335,7 +335,7 @@ export function CreateClient() {
                             e.target.value,
                           )
                         }
-                        className="border-[#D1D5DB] bg-white h-10 text-[14px]"
+                        className="border-[#E5E7EB] bg-white h-10 text-[14px]"
                       />
                       <Input
                         type="text"
@@ -349,7 +349,7 @@ export function CreateClient() {
                               .toUpperCase(),
                           )
                         }
-                        className="border-[#D1D5DB] bg-white h-10 text-[14px]"
+                        className="border-[#E5E7EB] bg-white h-10 text-[14px]"
                         maxLength={1}
                       />
                       <Input
@@ -362,7 +362,7 @@ export function CreateClient() {
                             e.target.value,
                           )
                         }
-                        className="border-[#D1D5DB] bg-white h-10 text-[14px]"
+                        className="border-[#E5E7EB] bg-white h-10 text-[14px]"
                       />
                     </div>
                   </div>
@@ -385,7 +385,7 @@ export function CreateClient() {
                           e.target.value,
                         )
                       }
-                      className="border-[#D1D5DB] bg-white h-10 text-[14px]"
+                      className="border-[#E5E7EB] bg-white h-10 text-[14px]"
                     />
                   </div>
 
@@ -408,7 +408,7 @@ export function CreateClient() {
                             e.target.value,
                           )
                         }
-                        className="border-[#D1D5DB] bg-white h-10 text-[14px]"
+                        className="border-[#E5E7EB] bg-white h-10 text-[14px]"
                       />
                     </div>
                     <div>
@@ -425,7 +425,7 @@ export function CreateClient() {
                         onChange={(e) =>
                           handleChange("role", e.target.value)
                         }
-                        className="border-[#D1D5DB] bg-white h-10 text-[14px]"
+                        className="border-[#E5E7EB] bg-white h-10 text-[14px]"
                       />
                     </div>
                   </div>
@@ -466,7 +466,7 @@ export function CreateClient() {
                             e.target.value,
                           )
                         }
-                        className="border-[#D1D5DB] bg-white h-10 text-[14px] flex-1"
+                        className="border-[#E5E7EB] bg-white h-10 text-[14px] flex-1"
                       />
                       <Input
                         type="text"
@@ -478,7 +478,7 @@ export function CreateClient() {
                             e.target.value,
                           )
                         }
-                        className="border-[#D1D5DB] bg-white h-10 text-[14px] w-[80px]"
+                        className="border-[#E5E7EB] bg-white h-10 text-[14px] w-[80px]"
                       />
                     </div>
                   </div>
@@ -500,7 +500,7 @@ export function CreateClient() {
                             e.target.value,
                           )
                         }
-                        className="border-[#D1D5DB] bg-white h-10 text-[14px] flex-1"
+                        className="border-[#E5E7EB] bg-white h-10 text-[14px] flex-1"
                       />
                       <Input
                         type="text"
@@ -512,7 +512,7 @@ export function CreateClient() {
                             e.target.value,
                           )
                         }
-                        className="border-[#D1D5DB] bg-white h-10 text-[14px] w-[80px]"
+                        className="border-[#E5E7EB] bg-white h-10 text-[14px] w-[80px]"
                       />
                     </div>
                   </div>
@@ -530,7 +530,7 @@ export function CreateClient() {
                       onChange={(e) =>
                         handleChange("email", e.target.value)
                       }
-                      className="border-[#D1D5DB] bg-white h-10 text-[14px]"
+                      className="border-[#E5E7EB] bg-white h-10 text-[14px]"
                     />
                   </div>
                   <div>
@@ -547,7 +547,7 @@ export function CreateClient() {
                       onChange={(e) =>
                         handleChange("website", e.target.value)
                       }
-                      className="border-[#D1D5DB] bg-white h-10 text-[14px]"
+                      className="border-[#E5E7EB] bg-white h-10 text-[14px]"
                     />
                   </div>
                 </div>
@@ -573,7 +573,7 @@ export function CreateClient() {
                     onChange={(e) =>
                       handleChange("notes", e.target.value)
                     }
-                    className="border-[#D1D5DB] bg-white text-[14px] min-h-[100px]"
+                    className="border-[#E5E7EB] bg-white text-[14px] min-h-[100px]"
                     rows={4}
                   />
                 </div>
@@ -600,7 +600,7 @@ export function CreateClient() {
                       onChange={(e) =>
                         handleChange("address", e.target.value)
                       }
-                      className="border-[#D1D5DB] bg-white h-10 text-[14px] flex-1"
+                      className="border-[#E5E7EB] bg-white h-10 text-[14px] flex-1"
                     />
                     <Input
                       type="text"
@@ -609,7 +609,7 @@ export function CreateClient() {
                       onChange={(e) =>
                         handleChange("unit", e.target.value)
                       }
-                      className="border-[#D1D5DB] bg-white h-10 text-[14px] w-[100px]"
+                      className="border-[#E5E7EB] bg-white h-10 text-[14px] w-[100px]"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
@@ -620,7 +620,7 @@ export function CreateClient() {
                       onChange={(e) =>
                         handleChange("city", e.target.value)
                       }
-                      className="border-[#D1D5DB] bg-white h-10 text-[14px]"
+                      className="border-[#E5E7EB] bg-white h-10 text-[14px]"
                     />
                     <Select
                       value={formData.state || undefined}
@@ -631,7 +631,7 @@ export function CreateClient() {
                         )
                       }
                     >
-                      <SelectTrigger className="border-[#D1D5DB] bg-white h-10 text-[14px]">
+                      <SelectTrigger className="border-[#E5E7EB] bg-white h-10 text-[14px]">
                         <SelectValue placeholder="State" />
                       </SelectTrigger>
                       <SelectContent>
@@ -652,7 +652,7 @@ export function CreateClient() {
                       onChange={(e) =>
                         handleChange("zip", e.target.value)
                       }
-                      className="border-[#D1D5DB] bg-white h-10 text-[14px]"
+                      className="border-[#E5E7EB] bg-white h-10 text-[14px]"
                     />
                     <Select
                       value={formData.county}
@@ -660,7 +660,7 @@ export function CreateClient() {
                         handleChange("county", value)
                       }
                     >
-                      <SelectTrigger className="border-[#D1D5DB] bg-white h-10 text-[14px]">
+                      <SelectTrigger className="border-[#E5E7EB] bg-white h-10 text-[14px]">
                         <SelectValue placeholder="Select county" />
                       </SelectTrigger>
                       <SelectContent>
@@ -678,7 +678,7 @@ export function CreateClient() {
                       handleChange("country", value)
                     }
                   >
-                    <SelectTrigger className="border-[#D1D5DB] bg-white h-10">
+                    <SelectTrigger className="border-[#E5E7EB] bg-white h-10">
                       <SelectValue placeholder="Select a country" />
                     </SelectTrigger>
                     <SelectContent>
@@ -749,7 +749,7 @@ export function CreateClient() {
                                 e.target.value,
                               )
                             }
-                            className="border-[#D1D5DB] bg-white h-10 text-[14px]"
+                            className="border-[#E5E7EB] bg-white h-10 text-[14px]"
                           />
                           <Input
                             type="text"
@@ -762,7 +762,7 @@ export function CreateClient() {
                                 e.target.value,
                               )
                             }
-                            className="border-[#D1D5DB] bg-white h-10 text-[14px]"
+                            className="border-[#E5E7EB] bg-white h-10 text-[14px]"
                           />
                         </div>
                         <div className="grid grid-cols-2 gap-3">
@@ -777,7 +777,7 @@ export function CreateClient() {
                                 e.target.value,
                               )
                             }
-                            className="border-[#D1D5DB] bg-white h-10 text-[14px]"
+                            className="border-[#E5E7EB] bg-white h-10 text-[14px]"
                           />
                           <Input
                             type="email"
@@ -790,7 +790,7 @@ export function CreateClient() {
                                 e.target.value,
                               )
                             }
-                            className="border-[#D1D5DB] bg-white h-10 text-[14px]"
+                            className="border-[#E5E7EB] bg-white h-10 text-[14px]"
                           />
                         </div>
                         <Input
@@ -804,7 +804,7 @@ export function CreateClient() {
                               e.target.value,
                             )
                           }
-                          className="border-[#D1D5DB] bg-white h-10 text-[14px]"
+                          className="border-[#E5E7EB] bg-white h-10 text-[14px]"
                         />
                       </div>
                     ),
@@ -834,7 +834,7 @@ export function CreateClient() {
               type="button"
               variant="outline"
               onClick={handleCancel}
-              className="border-[#DDE3EE] text-[#546478] hover:bg-[#EDF0F5] h-10 px-6"
+              className="border-[#E5E7EB] text-[#546478] hover:bg-[#EDF0F5] h-10 px-6"
             >
               Cancel
             </Button>
@@ -843,7 +843,7 @@ export function CreateClient() {
                 type="button"
                 variant="outline"
                 onClick={handleSaveAndCreateAnother}
-                className="border-[#DDE3EE] text-[#546478] hover:bg-[#EDF0F5] h-10 px-6"
+                className="border-[#E5E7EB] text-[#546478] hover:bg-[#EDF0F5] h-10 px-6"
               >
                 Save and Create Another
               </Button>

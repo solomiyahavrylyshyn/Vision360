@@ -65,7 +65,7 @@ export function CreateEstimate() {
   const total = subtotal + taxAmount;
   const fmt = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-  const fieldClass = "w-full px-4 py-3 border border-[#DDE3EE] rounded-md text-[14px] text-[#1A2332] focus:outline-none focus:border-[#4A6FA5] bg-white";
+  const fieldClass = "w-full px-4 py-3 border border-[#E5E7EB] rounded-md text-[14px] text-[#1A2332] focus:outline-none focus:border-[#4A6FA5] bg-white";
   const labelClass = "block text-[12px] uppercase tracking-wider text-[#546478] mb-1.5";
 
   return (
@@ -141,8 +141,8 @@ export function CreateEstimate() {
         </div>
 
         {/* Line Items */}
-        <div className="border border-[#DDE3EE] rounded-lg mb-6">
-          <div className="px-5 py-4 border-b border-[#DDE3EE] flex items-center justify-between">
+        <div className="border border-[#E5E7EB] rounded-lg mb-6">
+          <div className="px-5 py-4 border-b border-[#E5E7EB] flex items-center justify-between">
             <h3 className="text-[16px] text-[#1A2332]" style={{ fontWeight: 700 }}>Line Items</h3>
             <button
               onClick={() => setItemPickerOpen(true)}
@@ -167,7 +167,7 @@ export function CreateEstimate() {
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="border-b border-[#DDE3EE] bg-[#FAFBFC]">
+                    <tr className="border-b border-[#E5E7EB] bg-[#FAFBFC]">
                       {["Item", "Qty", "Unit Price", "Unit Cost", "Total", ""].map(h => (
                         <th key={h} className={`px-4 py-3 text-left text-[11px] uppercase tracking-wider text-[#546478] ${h === "" ? "w-[50px]" : ""}`} style={{ fontWeight: 600 }}>{h}</th>
                       ))}
@@ -175,7 +175,7 @@ export function CreateEstimate() {
                   </thead>
                   <tbody>
                     {lineItems.map((item) => (
-                      <tr key={item.id} className="border-b border-[#DDE3EE] hover:bg-[#FAFBFC]">
+                      <tr key={item.id} className="border-b border-[#E5E7EB] hover:bg-[#FAFBFC]">
                         <td className="px-4 py-3">
                           <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{item.name}</div>
                           {item.description && <div className="text-[12px] text-[#8899AA]">{item.description}</div>}
@@ -186,7 +186,7 @@ export function CreateEstimate() {
                         <td className="px-4 py-3">
                           <input type="number" min="0" step="1" value={item.quantity}
                             onChange={(e) => updateLineItem(item.id, "quantity", Number(e.target.value) || 0)}
-                            className="w-20 px-2 py-1 border border-[#DDE3EE] rounded text-[13px] text-center focus:outline-none focus:border-[#4A6FA5]" />
+                            className="w-20 px-2 py-1 border border-[#E5E7EB] rounded text-[13px] text-center focus:outline-none focus:border-[#4A6FA5]" />
                         </td>
                         <td className="px-4 py-3 text-[13px] text-[#1A2332]" style={{ fontVariantNumeric: "tabular-nums" }}>${fmt(item.unitPrice)}</td>
                         <td className="px-4 py-3 text-[13px] text-[#546478]" style={{ fontVariantNumeric: "tabular-nums" }}>${fmt(item.unitCost)}</td>
@@ -203,7 +203,7 @@ export function CreateEstimate() {
               </div>
 
               {/* Totals */}
-              <div className="border-t border-[#DDE3EE] px-5 py-4 bg-[#FAFBFC]">
+              <div className="border-t border-[#E5E7EB] px-5 py-4 bg-[#FAFBFC]">
                 <div className="flex justify-end">
                   <div className="space-y-2 min-w-[300px]">
                     <div className="flex items-center justify-between text-[13px]">
@@ -218,7 +218,7 @@ export function CreateEstimate() {
                       <span className="text-[#546478]">Tax ({taxRate}%):</span>
                       <span className="text-[#1A2332]" style={{ fontVariantNumeric: "tabular-nums" }}>${fmt(taxAmount)}</span>
                     </div>
-                    <div className="flex items-center justify-between pt-2 border-t border-[#DDE3EE]">
+                    <div className="flex items-center justify-between pt-2 border-t border-[#E5E7EB]">
                       <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Total:</span>
                       <span className="text-[18px] text-[#1A2332]" style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>${fmt(total)}</span>
                     </div>
@@ -238,7 +238,7 @@ export function CreateEstimate() {
               <textarea
                 value={noteToClient}
                 onChange={(e) => setNoteToClient(e.target.value)}
-                className="w-full px-3 py-2.5 border border-[#DDE3EE] rounded-md text-[13px] text-[#1A2332] focus:outline-none focus:border-[#4A6FA5] min-h-[90px] resize-y"
+                className="w-full px-3 py-2.5 border border-[#E5E7EB] rounded-md text-[13px] text-[#1A2332] focus:outline-none focus:border-[#4A6FA5] min-h-[90px] resize-y"
                 placeholder="Visible to client on the estimate..."
               />
             </div>
@@ -247,7 +247,7 @@ export function CreateEstimate() {
               <textarea
                 value={internalNote}
                 onChange={(e) => setInternalNote(e.target.value)}
-                className="w-full px-3 py-2.5 border border-[#DDE3EE] rounded-md text-[13px] text-[#1A2332] focus:outline-none focus:border-[#4A6FA5] min-h-[90px] resize-y"
+                className="w-full px-3 py-2.5 border border-[#E5E7EB] rounded-md text-[13px] text-[#1A2332] focus:outline-none focus:border-[#4A6FA5] min-h-[90px] resize-y"
                 placeholder="Visible only to your team..."
               />
             </div>
@@ -257,7 +257,7 @@ export function CreateEstimate() {
             <textarea
               value={terms}
               onChange={(e) => setTerms(e.target.value)}
-              className="w-full px-3 py-2.5 border border-[#DDE3EE] rounded-md text-[13px] text-[#1A2332] focus:outline-none focus:border-[#4A6FA5] min-h-[70px] resize-y"
+              className="w-full px-3 py-2.5 border border-[#E5E7EB] rounded-md text-[13px] text-[#1A2332] focus:outline-none focus:border-[#4A6FA5] min-h-[70px] resize-y"
               placeholder="Terms and conditions..."
             />
           </div>
@@ -270,7 +270,7 @@ export function CreateEstimate() {
           </button>
           <button
             onClick={() => navigate("/estimates")}
-            className="px-6 py-2.5 border border-[#DDE3EE] rounded-md text-[13px] text-[#1A2332] hover:bg-[#F5F7FA]"
+            className="px-6 py-2.5 border border-[#E5E7EB] rounded-md text-[13px] text-[#1A2332] hover:bg-[#F5F7FA]"
             style={{ fontWeight: 500 }}
           >
             Save as Draft
