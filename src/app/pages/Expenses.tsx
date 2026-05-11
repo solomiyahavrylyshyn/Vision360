@@ -122,16 +122,21 @@ export function Expenses() {
       {/* Summary Card */}
       <div className="grid grid-cols-4 gap-5 mb-8">
         <Card className="p-5 border border-[#E5E7EB] bg-white hover:shadow-sm transition-shadow">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ background: "#FEF2F2" }}>
-              <span className="material-icons" style={{ fontSize: "18px", color: "#DC2626" }}>receipt_long</span>
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full shrink-0" style={{ background: "#DC2626" }} />
+                <span className="text-[12px] text-[#546478]" style={{ fontWeight: 600 }}>Total Expenses</span>
+              </div>
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: "#FEF2F2" }}>
+                <span className="material-icons" style={{ fontSize: "16px", color: "#DC2626" }}>receipt_long</span>
+              </div>
             </div>
+            <div className="text-[26px] leading-none mb-1" style={{ fontWeight: 700, color: "#1A2332", fontVariantNumeric: "tabular-nums" }}>
+              ${totalAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+            </div>
+            <div className="text-[12px] text-[#9CA3AF]">{filtered.length} records</div>
           </div>
-          <div className="text-[26px] leading-none mb-1" style={{ fontWeight: 700, color: "#1A2332", fontVariantNumeric: "tabular-nums" }}>
-            ${totalAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-          </div>
-          <div className="text-[13px] text-[#6B7280]">Total Expenses</div>
-          <div className="text-[11px] text-[#9CA3AF] mt-1">{filtered.length} records</div>
         </Card>
       </div>
 

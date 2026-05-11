@@ -206,13 +206,19 @@ export function Jobs() {
             onClick={() => setQfStatus(qfStatus === s ? "All" : s)}
             className={`p-5 border bg-white hover:shadow-sm transition-shadow cursor-pointer ${qfStatus === s ? "border-[#4A6FA5] ring-1 ring-[#4A6FA5]/20" : "border-[#E5E7EB]"}`}
           >
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ background: statusBg[s] }}>
-                <span className="material-icons" style={{ fontSize: "18px", color: statusColors[s] }}>{statusIcons[s]}</span>
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full shrink-0" style={{ background: statusColors[s] }} />
+                  <span className="text-[12px] text-[#546478]" style={{ fontWeight: 600 }}>{s}</span>
+                </div>
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: statusBg[s] }}>
+                  <span className="material-icons" style={{ fontSize: "16px", color: statusColors[s] }}>{statusIcons[s]}</span>
+                </div>
               </div>
+              <div className="text-[26px] text-[#1A2332] leading-none mb-1" style={{ fontWeight: 700 }}>{statusCounts[s]}</div>
+              <div className="text-[12px] text-[#9CA3AF]">jobs</div>
             </div>
-            <div className="text-[26px] text-[#1A2332] leading-none mb-1" style={{ fontWeight: 700 }}>{statusCounts[s]}</div>
-            <div className="text-[13px] text-[#6B7280]">{s}</div>
           </Card>
         ))}
       </div>

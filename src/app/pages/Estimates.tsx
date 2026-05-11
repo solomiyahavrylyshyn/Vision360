@@ -303,12 +303,14 @@ export function Estimates() {
               qfStatus === status ? "border-[#4A6FA5] ring-1 ring-[#4A6FA5]/20" : "border-[#E5E7EB]"
             }`}
           >
-            <div className="flex items-center gap-1.5 mb-2.5">
-              <span className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: statusColors[status] }} />
-              <div className="text-[12px]" style={{ fontWeight: 600, color: "#546478" }}>{status}</div>
+            <div>
+              <div className="flex items-center gap-1.5 mb-3">
+                <span className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: statusColors[status] }} />
+                <div className="text-[12px]" style={{ fontWeight: 600, color: "#546478" }}>{status}</div>
+              </div>
+              <div className="text-[26px] leading-none mb-1" style={{ fontWeight: 700, color: "#1A2332" }}>{count}</div>
+              <div className="text-[12px]" style={{ fontVariantNumeric: "tabular-nums", color: worth > 0 ? "#374151" : "#9CA3AF" }}>${fmt(worth)}</div>
             </div>
-            <div className="text-[26px] leading-none mb-1.5" style={{ fontWeight: 700, color: "#1A2332" }}>{count}</div>
-            <div className="text-[13px]" style={{ fontWeight: 500, fontVariantNumeric: "tabular-nums", color: worth > 0 ? "#374151" : "#9CA3AF" }}>${fmt(worth)}</div>
           </Card>
         ))}
       </div>

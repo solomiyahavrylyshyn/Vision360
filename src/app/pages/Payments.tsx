@@ -176,12 +176,14 @@ export function Payments() {
             onClick={() => { setQfStatus(qfStatus === c.filterVal ? "All" : c.filterVal); setPage(1); }}
             className={`p-5 border bg-white hover:shadow-sm transition-shadow cursor-pointer ${qfStatus === c.filterVal ? "border-[#4A6FA5] ring-1 ring-[#4A6FA5]/20" : "border-[#E5E7EB]"}`}
           >
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: c.color }} />
-              <div className="text-[12px]" style={{ fontWeight: 600, color: "#546478" }}>{c.label}</div>
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: c.color }} />
+                <div className="text-[12px]" style={{ fontWeight: 600, color: "#546478" }}>{c.label}</div>
+              </div>
+              <div className="text-[24px] mb-1 leading-none" style={{ fontWeight: 700, color: "#1A2332", fontVariantNumeric: "tabular-nums" }}>{c.value}</div>
+              <div className="text-[11px] text-[#9CA3AF]">{c.sub}</div>
             </div>
-            <div className="text-[24px] mb-1 leading-none" style={{ fontWeight: 700, color: "#1A2332", fontVariantNumeric: "tabular-nums" }}>{c.value}</div>
-            <div className="text-[11px] text-[#9CA3AF]">{c.sub}</div>
           </Card>
         ))}
       </div>
