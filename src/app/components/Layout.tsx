@@ -186,16 +186,41 @@ export function Layout() {
 
   return (
     <div className="flex flex-col h-screen bg-[#F5F7FA]">
-      {/* Full Width Header */}
-      <div className="h-16 bg-white border-b border-[#E5E7EB] flex items-center gap-6 px-6 flex-shrink-0">
-        {/* Logo - Left Side */}
-        <div className="flex items-center gap-2.5 flex-shrink-0 -ml-10">
-          <img
-            src={logoImg}
-            alt="Vision360 Logo"
-            className="h-40 w-[234px] object-contain"
-          />
+      {/* Split Header: sidebar-brand | main-topbar */}
+      <div className="flex h-16 flex-shrink-0">
+
+        {/* ── Sidebar brand section ── */}
+        <div
+          className={`bg-[#1C2B3A] flex items-center justify-between flex-shrink-0 border-r border-[rgba(255,255,255,0.06)] transition-all duration-[240ms] ease-[cubic-bezier(0.4,0,0.2,1)] overflow-hidden ${
+            sidebarCollapsed ? "w-[72px] px-3" : "w-[200px] px-4"
+          }`}
+        >
+          {!sidebarCollapsed && (
+            <img
+              src={logoImg}
+              alt="Vision360 Logo"
+              className="h-10 object-contain object-left flex-1 min-w-0"
+              style={{ maxWidth: "140px" }}
+            />
+          )}
+          <button
+            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            className={`flex items-center justify-center w-8 h-8 rounded-lg text-[rgba(255,255,255,0.45)] hover:text-[rgba(255,255,255,0.85)] hover:bg-[rgba(255,255,255,0.08)] transition-colors flex-shrink-0 ${
+              sidebarCollapsed ? "mx-auto" : "ml-auto"
+            }`}
+          >
+            <span
+              className="material-icons transition-transform duration-[240ms] ease-[cubic-bezier(0.4,0,0.2,1)]"
+              style={{ fontSize: "20px", transform: sidebarCollapsed ? "rotate(180deg)" : "rotate(0deg)" }}
+            >
+              first_page
+            </span>
+          </button>
         </div>
+
+        {/* ── Main top bar ── */}
+        <div className="flex-1 bg-white border-b border-[#E5E7EB] flex items-center gap-6 px-6">
 
         {/* Global Search - Center (Flex-1 for expansion) */}
         <div className="flex-1 flex items-center justify-center">
@@ -493,7 +518,8 @@ export function Layout() {
             M
           </button>
         </div>
-      </div>
+        </div>{/* end main top bar */}
+      </div>{/* end split header */}
 
       {/* Sidebar + Content Row */}
       <div className="flex flex-1 overflow-hidden">
@@ -505,7 +531,7 @@ export function Layout() {
           style={{ flexShrink: 0, overflowX: "hidden", overflowY: "visible" }}
         >
         {/* Navigation */}
-        <div className="pt-2"></div>
+        <div className="pt-2" />
         <nav className={`flex-1 flex flex-col gap-0 ${sidebarCollapsed ? "px-0 items-center" : "px-2"}`}>
           {navItems.map((item) => (
             <NavLink
@@ -543,34 +569,6 @@ export function Layout() {
             </NavLink>
           ))}
         </nav>
-
-        {/* Collapse/Expand Button */}
-        <button
-          onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-          className={`rounded-[7px] flex border-t border-[rgba(255,255,255,0.07)] pt-1.5 mt-auto flex-shrink-0 whitespace-nowrap transition-all duration-[240ms] ease-[cubic-bezier(0.4,0,0.2,1)] text-[rgba(255,255,255,0.55)] hover:bg-[rgba(255,255,255,0.08)] hover:text-[rgba(255,255,255,0.85)] ${
-            sidebarCollapsed
-              ? "w-[60px] h-[44px] flex-col items-center justify-center px-1 py-1 gap-0.5 mx-auto my-1"
-              : "h-9 flex-row items-center w-[calc(100%-16px)] justify-start px-2.5 gap-2.5 mx-2 my-1.5"
-          }`}
-        >
-          <span
-            className="material-icons flex-shrink-0 transition-transform duration-[240ms] ease-[cubic-bezier(0.4,0,0.2,1)]"
-            style={{
-              fontSize: "18px",
-              transform: sidebarCollapsed ? "rotate(180deg)" : "rotate(0deg)"
-            }}
-          >
-            chevron_left
-          </span>
-          <span
-            className={`transition-all duration-100 ${
-              sidebarCollapsed ? "text-[9px] leading-tight text-center max-w-[58px]" : "text-xs max-w-[130px]"
-            }`}
-            style={{ fontWeight: 500 }}
-          >
-            Collapse
-          </span>
-        </button>
         </aside>
 
         {/* Main Content Area */}
