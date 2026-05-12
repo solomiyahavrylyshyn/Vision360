@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Outlet, NavLink, useNavigate } from "react-router";
-import logoImg from "figma:asset/58956be46c544ae8676a6fc4c67137e1d450e75f.png";
+import logoImg from "../../assets/vision360-logo.svg";
 import { MessagingCenter } from "./MessagingCenter";
 import { AiAssistant } from "./AiAssistant";
 import { Dialer } from "./Dialer";
@@ -202,7 +202,6 @@ export function Layout() {
             style={{
               height: sidebarCollapsed ? "84px" : "108px",
               maxWidth: sidebarCollapsed ? "92px" : "208px",
-              filter: "brightness(0) invert(1)",
               objectPosition: sidebarCollapsed ? "center" : "left center",
             }}
           />
