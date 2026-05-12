@@ -542,19 +542,19 @@ export function Layout() {
           {/* Separator */}
           <div className="w-px h-6 bg-[#E5E7EB] flex-shrink-0" />
 
-          {/* Icon action buttons (transparent, 36×36, radius 8) */}
+          {/* Icon action buttons (transparent, 36×36 with 8px padding, radius 8) */}
           <div className="flex items-center gap-1">
             <button title="Notifications" onClick={() => setUserMenuOpen(!userMenuOpen)}
-              className="w-9 h-9 rounded-lg flex items-center justify-center text-[#1A2332] hover:bg-[#F5F7FA] transition-colors">
-              <span className="material-icons" style={{ fontSize: "16px" }}>notifications</span>
+              className="w-9 h-9 p-2 rounded-lg flex items-center justify-center text-[#1A2332] hover:bg-[#F5F7FA] transition-colors">
+              <span className="material-icons-outlined" style={{ fontSize: "20px" }}>notifications</span>
             </button>
             <button title="Help Center" onClick={() => setHelpCenterOpen(true)}
-              className="w-9 h-9 rounded-lg flex items-center justify-center text-[#1A2332] hover:bg-[#F5F7FA] transition-colors">
-              <span className="material-icons" style={{ fontSize: "16px" }}>help_outline</span>
+              className="w-9 h-9 p-2 rounded-lg flex items-center justify-center text-[#1A2332] hover:bg-[#F5F7FA] transition-colors">
+              <span className="material-icons-outlined" style={{ fontSize: "20px" }}>help_outline</span>
             </button>
             <button title="Settings" onClick={() => navigate("/settings")}
-              className="w-9 h-9 rounded-lg flex items-center justify-center text-[#1A2332] hover:bg-[#F5F7FA] transition-colors">
-              <span className="material-icons" style={{ fontSize: "16px" }}>settings</span>
+              className="w-9 h-9 p-2 rounded-lg flex items-center justify-center text-[#1A2332] hover:bg-[#F5F7FA] transition-colors">
+              <span className="material-icons-outlined" style={{ fontSize: "20px" }}>settings</span>
             </button>
           </div>
 
