@@ -618,36 +618,7 @@ export function Calendar() {
                   </div>
                 </div>
               </div>
-            ) : (
-              <div className="w-[210px] shrink-0 border-l border-[#E5E7EB] flex flex-col bg-white overflow-hidden">
-                <div className="flex items-center gap-2 px-3 py-3 border-b border-[#E5E7EB] shrink-0">
-                  <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>Unscheduled</span>
-                  <span className="px-1.5 py-0.5 rounded-full bg-[#FEF3C7] text-[#D97706] text-[10px]" style={{ fontWeight: 700 }}>3</span>
-                </div>
-                <div className="flex-1 overflow-y-auto p-3 space-y-2">
-                  {unscheduledJobs.map(job => (
-                    <div key={job.id} className="bg-[#FAFBFC] border border-[#E5E7EB] rounded-lg p-2.5 cursor-pointer hover:border-[#4A6FA5] hover:bg-white transition-all">
-                      {job.highPriority && (
-                        <div className="text-[10px] text-[#DC2626] mb-1 flex items-center gap-1" style={{ fontWeight: 600 }}>
-                          <span className="material-icons" style={{ fontSize: "11px" }}>priority_high</span>
-                          High Priority
-                        </div>
-                      )}
-                      <div className="text-[12px] text-[#1A2332] mb-0.5" style={{ fontWeight: 600 }}>{job.client}</div>
-                      <div className="text-[11px] text-[#546478] mb-1.5 truncate">{job.service}</div>
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="px-1.5 py-0.5 rounded text-[10px]" style={{ fontWeight: 600, backgroundColor: job.typeBg, color: job.typeColor }}>{job.typeLabel}</span>
-                        <span className="text-[11px] text-[#1A2332]" style={{ fontWeight: 600 }}>{job.amount}</span>
-                      </div>
-                      <div className="flex items-center justify-between text-[10px] text-[#8899AA]">
-                        <span>{job.distance}</span>
-                        <span>{job.date}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+            ) : null}
           </div>
         )}
 
@@ -768,62 +739,6 @@ export function Calendar() {
               </div>
             </div>
 
-            {/* Right: Unscheduled panel (220px fixed) */}
-            <div className="shrink-0 flex flex-col border-l border-[#E5E7EB] bg-white overflow-hidden" style={{ width: 220 }}>
-              {/* Header */}
-              <div className="flex items-center justify-between px-3 py-2.5 border-b border-[#E5E7EB] shrink-0" style={{ height: 40 }}>
-                <div className="flex items-center gap-2">
-                  <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>Unscheduled</span>
-                  <span
-                    className="px-1.5 py-0.5 rounded-full text-[10px]"
-                    style={{ fontWeight: 700, backgroundColor: "#FEF3C7", color: "#D97706" }}
-                  >
-                    4
-                  </span>
-                </div>
-                <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "16px" }}>grid_view</span>
-              </div>
-
-              {/* Job cards */}
-              <div className="flex-1 overflow-y-auto p-2.5 space-y-2">
-                {DAY_UNSCHEDULED.map((job) => (
-                  <div
-                    key={job.id}
-                    className="bg-[#FAFBFC] border border-[#E5E7EB] rounded-lg p-2.5 cursor-pointer hover:border-[#4A6FA5] hover:bg-white transition-all"
-                  >
-                    {job.highPriority && (
-                      <div className="text-[10px] text-[#DC2626] mb-1 flex items-center gap-1" style={{ fontWeight: 600 }}>
-                        <span className="material-icons" style={{ fontSize: "11px" }}>priority_high</span>
-                        High Priority
-                      </div>
-                    )}
-                    <div className="text-[12px] text-[#1A2332] mb-0.5 truncate" style={{ fontWeight: 600 }}>{job.client}</div>
-                    <div className="text-[11px] text-[#546478] mb-1 truncate">{job.service}</div>
-                    <div className="text-[10px] text-[#9CA3AF] mb-2 truncate">{job.address}</div>
-                    <div className="flex items-center justify-between">
-                      <span
-                        className="text-[10px] px-1.5 py-0.5 rounded"
-                        style={{
-                          backgroundColor: job.date === "Today" ? "#FEF3C7" : "#F3F4F6",
-                          color: job.date === "Today" ? "#D97706" : "#6B7280",
-                          fontWeight: 600,
-                        }}
-                      >
-                        {job.date}
-                      </span>
-                      <span className="text-[11px] tabular-nums" style={{ fontWeight: 700, color: "#1A2332" }}>{job.amount}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Footer */}
-              <div className="px-3 py-2.5 border-t border-[#E5E7EB] shrink-0">
-                <button className="w-full text-[12px] text-[#4A6FA5] hover:text-[#3d5a85] transition-colors text-left" style={{ fontWeight: 600 }}>
-                  + View all unscheduled
-                </button>
-              </div>
-            </div>
           </div>
         )}
       </div>
