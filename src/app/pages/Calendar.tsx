@@ -301,7 +301,6 @@ export function Calendar() {
           { value: "3",      label: "In Progress",  icon: "play_circle_filled",  color: "#7C3AED" },
           { value: "5",      label: "Completed",    icon: "task_alt",            color: "#16A34A" },
           { value: "$18,503",label: "Revenue",      icon: "attach_money",        color: "#16A34A", sub: "+12%" },
-          { value: "92%",    label: "Success",      icon: "speed",               color: "#16A34A" },
         ].map(s => (
           <div key={s.label} className="flex items-center gap-3 bg-white border border-[#E5E7EB] rounded-xl px-4 py-3 shrink-0">
             <span className="material-icons shrink-0" style={{ fontSize: "20px", color: s.color }}>{s.icon}</span>
@@ -542,13 +541,8 @@ export function Calendar() {
                                 <div className="text-[11px] leading-tight truncate" style={{ fontWeight: 700, color: "#1A2332" }}>
                                   {job.client}
                                 </div>
-                                <div className="flex items-center justify-between mt-auto shrink-0">
+                                <div className="flex items-center mt-auto shrink-0">
                                   <span className="text-[10px] text-[#546478] truncate flex-1">{job.service}</span>
-                                  {job.statusIcon && (
-                                    <span className="material-icons ml-1 shrink-0" style={{ fontSize: "12px", color: job.statusIconColor }}>
-                                      {job.statusIcon}
-                                    </span>
-                                  )}
                                 </div>
                               </div>
                             </div>
@@ -763,7 +757,6 @@ export function Calendar() {
                                 ) : (
                                   <span className="text-[10px] text-[#9CA3AF]">—</span>
                                 )}
-                                <span className="material-icons" style={{ fontSize: "13px", color: job.statusColor }}>{job.statusIcon}</span>
                               </div>
                             </div>
                           </div>
