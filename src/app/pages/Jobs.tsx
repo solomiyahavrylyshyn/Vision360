@@ -180,16 +180,6 @@ export function Jobs() {
               <KebabItem icon="view_column">Edit Columns</KebabItem>
               <KebabItem icon="swap_horiz">Change Status</KebabItem>
               <KebabItem icon="content_copy">Manage Duplicates</KebabItem>
-              {selectedJobs.size > 0 && (
-                <>
-                  <KebabSeparator />
-                  <KebabItem icon="block" destructive onSelect={() => {
-                    setJobs(prev => prev.filter(j => !selectedJobs.has(j.id)));
-                    setSelectedJobs(new Set());
-                  }}>Inactivate Selected</KebabItem>
-                  <KebabItem icon="deselect" onSelect={() => setSelectedJobs(new Set())}>Deselect All</KebabItem>
-                </>
-              )}
               <KebabSeparator />
               <KebabItem icon="file_upload">Import</KebabItem>
               <KebabItem icon="file_download">Export</KebabItem>
@@ -275,6 +265,19 @@ export function Jobs() {
         <SelectionBar
           count={selectedJobs.size}
           onDeselect={() => setSelectedJobs(new Set())}
+          actions={[
+            {
+              label: "Inactivate selected",
+              icon: "block",
+              destructive: true,
+              onClick: () => {
+                setJobs(prev => prev.filter(j => !selectedJobs.has(j.id)));
+                setSelectedJobs(new Set());
+              },
+            },
+            { label: "Change status", icon: "swap_horiz", onClick: () => {} },
+            { label: "Export", icon: "file_download", onClick: () => {} },
+          ]}
         />
         <table className="w-full">
           <thead className="bg-[#F5F7FA]">

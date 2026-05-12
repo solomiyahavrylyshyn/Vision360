@@ -153,14 +153,6 @@ export function Payments() {
               <KebabItem icon="swap_horiz">Change Status</KebabItem>
               <KebabItem icon="content_copy">Manage Duplicates</KebabItem>
               <KebabSeparator />
-              {selectedIds.size > 0 && <>
-                <KebabItem icon="block" destructive onClick={() => {
-                  setPayments(prev => prev.filter(p => !selectedIds.has(p.id)));
-                  setSelectedIds(new Set());
-                }}>Inactivate Selected</KebabItem>
-                <KebabItem icon="deselect" onClick={() => setSelectedIds(new Set())}>Deselect All</KebabItem>
-                <KebabSeparator />
-              </>}
               <KebabItem icon="file_upload">Import</KebabItem>
               <KebabItem icon="file_download">Export</KebabItem>
             </KebabMenu>
@@ -225,6 +217,18 @@ export function Payments() {
           <SelectionBar
             count={selectedIds.size}
             onDeselect={() => setSelectedIds(new Set())}
+            actions={[
+              {
+                label: "Inactivate selected",
+                icon: "block",
+                destructive: true,
+                onClick: () => {
+                  setPayments(prev => prev.filter(p => !selectedIds.has(p.id)));
+                  setSelectedIds(new Set());
+                },
+              },
+              { label: "Export", icon: "file_download", onClick: () => {} },
+            ]}
           />
           <div className="overflow-x-auto">
             <table className="w-full">

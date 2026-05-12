@@ -30,7 +30,7 @@ interface Client {
   phone: string;
   address: string;
   tags: string[];
-  status: "Active" | "Archived" | "Prospect" | "On Hold";
+  status: "Active" | "Inactive" | "Prospect" | "On Hold";
   lastActivity: string;
   totalJobs: number;
   totalBilled: number;
@@ -48,7 +48,7 @@ const initialClients: Client[] = [
   { id: "3", initials: "MD", avatarColor: "#8B5CF6", name: "Mike Davis", company: "Davis Construction", email: "mike@davis.com", phone: "(555) 345-6789", address: "789 Pine Rd, Houston, TX 77001", tags: ["Residential", "Repeat"], status: "On Hold", lastActivity: "Invoice overdue · 18 days", totalJobs: 3, totalBilled: 8750.50, pastDue: 1250.00, daysOverdue: 18 },
   { id: "4", initials: "RL", avatarColor: "#D97706", name: "Robert Lee", company: "Lee & Associates", email: "robert.l@email.com", phone: "(555) 456-7890", address: "321 Elm St, San Antonio, TX 78201", tags: ["Commercial", "New"], status: "Prospect", lastActivity: "Contacted · 3 days ago", totalJobs: 0, totalBilled: 0 },
   { id: "5", initials: "EP", avatarColor: "#10B981", name: "Emily Parker", company: null, email: "e.parker@email.com", phone: "(555) 567-8901", address: "654 Maple Dr, Fort Worth, TX 76101", tags: ["Residential"], status: "Active", lastActivity: "Payment received · 4 days ago", totalJobs: 2, totalBilled: 5320.00 },
-  { id: "6", initials: "TC", avatarColor: "#DC2626", name: "Tom Carter", company: null, email: "tom.c@email.com", phone: "(555) 678-9012", address: "987 Cedar Ln, Plano, TX 75023", tags: ["Commercial", "Priority"], status: "Archived", lastActivity: "Quote requested · today", totalJobs: 0, totalBilled: 0 },
+  { id: "6", initials: "TC", avatarColor: "#DC2626", name: "Tom Carter", company: null, email: "tom.c@email.com", phone: "(555) 678-9012", address: "987 Cedar Ln, Plano, TX 75023", tags: ["Commercial", "Priority"], status: "Inactive", lastActivity: "Quote requested · today", totalJobs: 0, totalBilled: 0 },
 ];
 
 // Elegant quick-filter select class helper
@@ -93,7 +93,7 @@ export function Clients() {
   const [editColumnsOpen, setEditColumnsOpen] = useState(false);
   const [pendingColumns, setPendingColumns] = useState<Set<ColKey>>(new Set<ColKey>(["address", "totalBilled", "status", "lastActivity"]));
   const [changeStatusOpen, setChangeStatusOpen] = useState(false);
-  const [newBulkStatus, setNewBulkStatus] = useState<"Active" | "Prospect" | "On Hold" | "Archived">("Active");
+  const [newBulkStatus, setNewBulkStatus] = useState<"Active" | "Prospect" | "On Hold" | "Inactive">("Active");
 
   const handleApplyChangeStatus = () => {
     if (selectedClients.size === 0) { setChangeStatusOpen(false); return; }
@@ -159,7 +159,7 @@ export function Clients() {
     if (qfStatus === "active") matchesQfStatus = client.status === "Active";
     else if (qfStatus === "prospect") matchesQfStatus = client.status === "Prospect";
     else if (qfStatus === "on-hold") matchesQfStatus = client.status === "On Hold";
-    else if (qfStatus === "archived") matchesQfStatus = client.status === "Archived";
+    else if (qfStatus === "inactive") matchesQfStatus = client.status === "Inactive";
 
     const matchesQfBalance = qfBalance === "with_balance" ? client.totalBilled > 0 : true;
 
@@ -205,8 +205,13 @@ export function Clients() {
     setSelectedClients(s);
   };
 
-  const handleArchiveClient = (client: Client) => setClients(clients.map(c => c.id === client.id ? { ...c, status: "Archived" as const } : c));
-  const handleUnarchiveClient = (client: Client) => setClients(clients.map(c => c.id === client.id ? { ...c, status: "Active" as const } : c));
+  const handleInactivateClient = (client: Client) => setClients(clients.map(c => c.id === client.id ? { ...c, status: "Inactive" as const } : c));
+  const handleActivateClient = (client: Client) => setClients(clients.map(c => c.id === client.id ? { ...c, status: "Active" as const } : c));
+  const handleBulkInactivate = () => {
+    if (selectedClients.size === 0) return;
+    setClients(clients.map(c => selectedClients.has(c.id) ? { ...c, status: "Inactive" as const } : c));
+    setSelectedClients(new Set());
+  };
 
   const SortIcon = ({ field }: { field: SortField }) => (
     <span className="material-icons text-[#9AA3AF] ml-0.5" style={{ fontSize: "14px" }}>
@@ -245,16 +250,6 @@ export function Clients() {
                 <KebabItem icon="view_column" onSelect={e => { e.preventDefault(); setPendingColumns(new Set(visibleColumns)); setEditColumnsOpen(true); }}>Edit Columns</KebabItem>
                 <KebabItem icon="swap_horiz" onSelect={e => { e.preventDefault(); setChangeStatusOpen(true); }}>Change Status</KebabItem>
                 <KebabItem icon="content_copy" onSelect={() => navigate("/clients/duplicates")}>Manage Duplicates</KebabItem>
-                {selectedClients.size > 0 && (
-                  <>
-                    <KebabSeparator />
-                    <KebabItem icon="block" destructive onSelect={() => {
-                      setClients(clients.map(c => selectedClients.has(c.id) ? { ...c, status: "Archived" as const } : c));
-                      setSelectedClients(new Set());
-                    }}>Inactivate Selected</KebabItem>
-                    <KebabItem icon="deselect" onSelect={() => setSelectedClients(new Set())}>Deselect All</KebabItem>
-                  </>
-                )}
                 <KebabSeparator />
                 <KebabItem icon="file_upload">Import</KebabItem>
                 <KebabItem icon="file_download">Export</KebabItem>
@@ -523,7 +518,7 @@ export function Clients() {
                 <option value="active">Active</option>
                 <option value="prospect">Prospect</option>
                 <option value="on-hold">On Hold</option>
-                <option value="archived">Archived</option>
+                <option value="inactive">Inactive</option>
               </select>
               <select
                 value={qfDate}
@@ -567,6 +562,11 @@ export function Clients() {
           <SelectionBar
             count={selectedClients.size}
             onDeselect={() => setSelectedClients(new Set())}
+            actions={[
+              { label: "Inactivate selected", icon: "block", destructive: true, onClick: handleBulkInactivate },
+              { label: "Change status", icon: "swap_horiz", onClick: () => setChangeStatusOpen(true) },
+              { label: "Export", icon: "file_download", onClick: () => {} },
+            ]}
           />
           <table className="w-full">
             <thead className="bg-[#F5F7FA]">
@@ -634,9 +634,9 @@ export function Clients() {
                       <KebabItem icon="content_copy" onSelect={e => { e.preventDefault(); }}>Duplicate</KebabItem>
                       <KebabSeparator />
                       {client.status === "Active" ? (
-                        <KebabItem icon="block" onSelect={e => { e.preventDefault(); handleArchiveClient(client); }}>Inactivate</KebabItem>
+                        <KebabItem icon="block" onSelect={e => { e.preventDefault(); handleInactivateClient(client); }}>Inactivate</KebabItem>
                       ) : (
-                        <KebabItem icon="check_circle" onSelect={e => { e.preventDefault(); handleUnarchiveClient(client); }}>Activate</KebabItem>
+                        <KebabItem icon="check_circle" onSelect={e => { e.preventDefault(); handleActivateClient(client); }}>Activate</KebabItem>
                       )}
                       <KebabSeparator />
                       <KebabItem icon="open_in_new" onSelect={e => { e.preventDefault(); window.open(`/clients/${client.id}`, "_blank"); }}>Open in New Tab</KebabItem>
@@ -723,7 +723,7 @@ export function Clients() {
                 </p>
               </div>
               <div className="px-7 py-6 space-y-3">
-                {(["Active", "Prospect", "On Hold", "Archived"] as const).map(s => (
+                {(["Active", "Prospect", "On Hold", "Inactive"] as const).map(s => (
                   <label key={s} className="flex items-center gap-3 cursor-pointer p-3 rounded-lg border border-transparent hover:border-[#E5E7EB] hover:bg-[#F9FAFB] transition-colors">
                     <input type="radio" name="bulkStatus" value={s} checked={newBulkStatus === s} onChange={() => setNewBulkStatus(s)} className="w-4 h-4 accent-[#4A6FA5] cursor-pointer" />
                     <span className="text-[14px] text-[#1A2332]">{s}</span>
