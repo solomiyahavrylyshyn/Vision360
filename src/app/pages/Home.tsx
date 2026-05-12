@@ -534,7 +534,7 @@ export function Home() {
       </div>
 
       {/* ── Tabs bar ── */}
-      <div className="flex items-center gap-0 border-b border-[#E5E7EB] mb-6">
+      <div className="flex items-center gap-0 border-b border-[#E5E7EB] mb-6 -mt-[19px]">
         {shownTabs.map(tab => (
           <button
             key={tab}
