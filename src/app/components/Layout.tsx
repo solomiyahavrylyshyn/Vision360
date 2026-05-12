@@ -200,8 +200,8 @@ export function Layout() {
             alt="Vision360 Logo"
             className="object-contain"
             style={{
-              height: sidebarCollapsed ? "84px" : "108px",
-              maxWidth: sidebarCollapsed ? "92px" : "208px",
+              height: sidebarCollapsed ? "100px" : "132px",
+              maxWidth: sidebarCollapsed ? "100px" : "208px",
               objectPosition: sidebarCollapsed ? "center" : "left center",
             }}
           />
