@@ -8,10 +8,8 @@ type LogoProps = {
 };
 
 /**
- * Vision360 logo (light version for dark backgrounds).
- *
- * All original black elements (wordmark, subtitle, eye fill) are rendered white;
- * the cyan glow / iris colour of the brand is preserved.
+ * Vision360 logo — simplified white-text version for the dark sidebar.
+ * Eye keeps the brand's cyan/teal accent; wordmark and subtitle render in white.
  */
 export function Logo({
   height = 56,
@@ -19,11 +17,11 @@ export function Logo({
   iconOnly = false,
   className,
 }: LogoProps) {
-  const ACCENT = "#5EEAD4";
-  const ACCENT_GLOW = "#2DD4BF";
+  const CYAN = "#5EEAD4";
+  const DARK = "#1C2B3A";
 
   const viewBox = iconOnly
-    ? "0 0 56 56"
+    ? "0 0 60 60"
     : withSubtitle
       ? "0 0 320 76"
       : "0 0 320 60";
@@ -38,70 +36,47 @@ export function Logo({
       role="img"
       aria-label="Vision360 Field Service Platform"
     >
-      <defs>
-        <filter id="v360-glow" x="-30%" y="-50%" width="160%" height="200%">
-          <feGaussianBlur stdDeviation="2.2" result="blur" />
-          <feMerge>
-            <feMergeNode in="blur" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
-        <radialGradient id="v360-iris" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stopColor="#A7F3D0" />
-          <stop offset="60%" stopColor={ACCENT} />
-          <stop offset="100%" stopColor={ACCENT_GLOW} />
-        </radialGradient>
-      </defs>
-
       {/* ── Eye icon ── */}
-      <g transform={iconOnly ? "translate(2, 2)" : "translate(2, 6)"} filter="url(#v360-glow)">
-        {/* outer almond shape — body is white (was black in source) */}
+      <g transform={iconOnly ? "translate(4, 12)" : "translate(0, 10)"}>
+        {/* Outer cyan almond */}
         <path
-          d="M2 26 C 12 8, 36 8, 50 26 C 36 44, 12 44, 2 26 Z"
-          fill="#FFFFFF"
-          stroke={ACCENT}
-          strokeWidth="2.5"
-          strokeLinejoin="round"
+          d="M2 26 C 12 8, 40 8, 50 26 C 40 44, 12 44, 2 26 Z"
+          fill={CYAN}
         />
-        {/* iris ring (cyan accent kept) */}
-        <circle cx="26" cy="26" r="11" fill="url(#v360-iris)" stroke={ACCENT} strokeWidth="1.5" />
-        {/* inner highlight */}
-        <circle cx="26" cy="26" r="5" fill="#FFFFFF" opacity="0.95" />
-        <circle cx="26" cy="26" r="2.5" fill={ACCENT} />
-        {/* specular highlight */}
-        <circle cx="23.5" cy="23.5" r="1.4" fill="#FFFFFF" />
+        {/* Inner pupil — darker almond echoing the outer shape */}
+        <ellipse cx="26" cy="26" rx="7" ry="13" fill={DARK} />
       </g>
 
-      {/* ── Wordmark ── */}
-      {!iconOnly && <>
-      <text
-        x="66"
-        y="36"
-        fill="#FFFFFF"
-        fontFamily="Geist, -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif"
-        fontSize="26"
-        fontWeight="900"
-        letterSpacing="1.5"
-      >
-        VISION360
-      </text>
-
-      {/* ── Subtitle ── */}
-      {withSubtitle && (
-        <text
-          x="66"
-          y="56"
-          fill="#FFFFFF"
-          opacity="0.78"
-          fontFamily="Geist, -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif"
-          fontSize="10"
-          fontWeight="600"
-          letterSpacing="2.4"
-        >
-          FIELD SERVICE PLATFORM
-        </text>
+      {/* ── Wordmark + subtitle (skip when icon-only) ── */}
+      {!iconOnly && (
+        <>
+          <text
+            x="64"
+            y="36"
+            fill="#FFFFFF"
+            fontFamily="Geist, -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif"
+            fontSize="26"
+            fontWeight="900"
+            letterSpacing="1.5"
+          >
+            VISION360
+          </text>
+          {withSubtitle && (
+            <text
+              x="64"
+              y="56"
+              fill="#FFFFFF"
+              opacity="0.78"
+              fontFamily="Geist, -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif"
+              fontSize="10"
+              fontWeight="600"
+              letterSpacing="2.4"
+            >
+              FIELD SERVICE PLATFORM
+            </text>
+          )}
+        </>
       )}
-      </>}
     </svg>
   );
 }
