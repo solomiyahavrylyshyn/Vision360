@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Outlet, NavLink, useNavigate } from "react-router";
-import logoImg from "figma:asset/58956be46c544ae8676a6fc4c67137e1d450e75f.png";
+import { Logo } from "./Logo";
 import { MessagingCenter } from "./MessagingCenter";
 import { AiAssistant } from "./AiAssistant";
 import { Dialer } from "./Dialer";
@@ -195,16 +195,10 @@ export function Layout() {
       >
         {/* Logo area */}
         <div className={`flex items-center flex-shrink-0 ${sidebarCollapsed ? "justify-center px-2" : "px-4"}`}>
-          <img
-            src={logoImg}
-            alt="Vision360 Logo"
-            className="object-contain"
-            style={{
-              height: sidebarCollapsed ? "84px" : "108px",
-              maxWidth: sidebarCollapsed ? "92px" : "208px",
-              filter: "brightness(0) invert(1)",
-              objectPosition: sidebarCollapsed ? "center" : "left center",
-            }}
+          <Logo
+            height={sidebarCollapsed ? 60 : 76}
+            withSubtitle={!sidebarCollapsed}
+            iconOnly={sidebarCollapsed}
           />
         </div>
 
