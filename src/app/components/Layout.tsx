@@ -526,34 +526,15 @@ export function Layout() {
           </div>
         </div>
 
-        {/* Right side — actions + user */}
+        {/* Right side — create + actions + user */}
         <div className="flex items-center gap-3 flex-shrink-0">
 
-          {/* Icon action buttons (white bg, 36×36, radius 8) */}
-          <div className="flex items-center gap-1">
-            <button title="Notifications" onClick={() => setUserMenuOpen(!userMenuOpen)}
-              className="w-9 h-9 bg-white rounded-lg flex items-center justify-center text-[#1A2332] hover:bg-[#F5F7FA] transition-colors">
-              <span className="material-icons" style={{ fontSize: "16px" }}>notifications</span>
-            </button>
-            <button title="Help Center" onClick={() => setHelpCenterOpen(true)}
-              className="w-9 h-9 bg-white rounded-lg flex items-center justify-center text-[#1A2332] hover:bg-[#F5F7FA] transition-colors">
-              <span className="material-icons" style={{ fontSize: "16px" }}>help_outline</span>
-            </button>
-            <button title="Settings" onClick={() => navigate("/settings")}
-              className="w-9 h-9 bg-white rounded-lg flex items-center justify-center text-[#1A2332] hover:bg-[#F5F7FA] transition-colors">
-              <span className="material-icons" style={{ fontSize: "16px" }}>settings</span>
-            </button>
-          </div>
-
-          {/* Separator */}
-          <div className="w-px h-6 bg-[#E5E7EB] flex-shrink-0" />
-
-          {/* Create button — blue */}
+          {/* Create button — blue (now first) */}
           <button
             ref={createBtnRef}
             title="Create"
             onClick={() => setCreateMenuOpen(!createMenuOpen)}
-            className="w-9 h-9 bg-[#4A6FA5] rounded-lg flex items-center justify-center text-white hover:bg-[#3d5a85] transition-colors"
+            className="w-9 h-9 bg-[#4A6FA5] rounded-lg flex items-center justify-center text-white hover:bg-[#3d5a85] transition-colors flex-shrink-0"
           >
             <span className="material-icons" style={{ fontSize: "16px" }}>add</span>
           </button>
@@ -561,18 +542,33 @@ export function Layout() {
           {/* Separator */}
           <div className="w-px h-6 bg-[#E5E7EB] flex-shrink-0" />
 
-          {/* User section: avatar + name/email + chevron */}
+          {/* Icon action buttons (transparent, 36×36, radius 8) */}
+          <div className="flex items-center gap-1">
+            <button title="Notifications" onClick={() => setUserMenuOpen(!userMenuOpen)}
+              className="w-9 h-9 rounded-lg flex items-center justify-center text-[#1A2332] hover:bg-[#F5F7FA] transition-colors">
+              <span className="material-icons" style={{ fontSize: "16px" }}>notifications</span>
+            </button>
+            <button title="Help Center" onClick={() => setHelpCenterOpen(true)}
+              className="w-9 h-9 rounded-lg flex items-center justify-center text-[#1A2332] hover:bg-[#F5F7FA] transition-colors">
+              <span className="material-icons" style={{ fontSize: "16px" }}>help_outline</span>
+            </button>
+            <button title="Settings" onClick={() => navigate("/settings")}
+              className="w-9 h-9 rounded-lg flex items-center justify-center text-[#1A2332] hover:bg-[#F5F7FA] transition-colors">
+              <span className="material-icons" style={{ fontSize: "16px" }}>settings</span>
+            </button>
+          </div>
+
+          {/* Separator */}
+          <div className="w-px h-6 bg-[#E5E7EB] flex-shrink-0" />
+
+          {/* User section: avatar + chevron only */}
           <button
             ref={userAvatarRef}
             onClick={() => setUserMenuOpen(!userMenuOpen)}
-            className="flex items-center gap-2 hover:bg-[#F5F7FA] rounded-lg px-2 py-1 transition-colors"
+            className="flex items-center gap-2 hover:bg-[#F5F7FA] rounded-lg pr-1 transition-colors"
           >
-            <div className="w-8 h-8 bg-[#4A6FA5] rounded-full flex items-center justify-center text-white text-[12px] flex-shrink-0" style={{ fontWeight: 600 }}>
+            <div className="w-8 h-8 bg-[#4A6FA5] rounded-full flex items-center justify-center text-white text-[14px] flex-shrink-0" style={{ fontWeight: 600 }}>
               JD
-            </div>
-            <div className="text-left leading-none">
-              <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600, lineHeight: "20px" }}>John Doe</div>
-              <div className="text-[12px] text-[#6B7280]" style={{ lineHeight: "16px" }}>doe.j@example.com</div>
             </div>
             <span className="material-icons text-[#1A2332]" style={{ fontSize: "16px" }}>keyboard_arrow_down</span>
           </button>
