@@ -298,9 +298,8 @@ export function Calendar() {
         {[
           { value: "28",     label: "Total Jobs",   icon: "work",                color: "#4A6FA5" },
           { value: "22",     label: "Scheduled",    icon: "check_circle",        color: "#16A34A" },
-          { value: "4",      label: "Unscheduled",  icon: "warning",             color: "#D97706" },
           { value: "3",      label: "In Progress",  icon: "play_circle_filled",  color: "#7C3AED" },
-          { value: "1",      label: "Cancelled",    icon: "cancel",              color: "#DC2626" },
+          { value: "5",      label: "Completed",    icon: "task_alt",            color: "#16A34A" },
           { value: "$18,503",label: "Revenue",      icon: "attach_money",        color: "#16A34A", sub: "+12%" },
           { value: "92%",    label: "Success",      icon: "speed",               color: "#16A34A" },
         ].map(s => (
@@ -864,12 +863,8 @@ export function Calendar() {
         ))}
         <div className="w-px h-4 bg-[#E5E7EB] mx-1" />
         {[
-          { label: "Scheduled",   color: "#D97706" },
-          { label: "Dispatched",  color: "#4A6FA5" },
-          { label: "Enroute",     color: "#4A6FA5" },
+          { label: "Scheduled",   color: "#4A6FA5" },
           { label: "In Progress", color: "#7C3AED" },
-          { label: "Paused",      color: "#6B7280" },
-          { label: "Cancelled",   color: "#DC2626" },
           { label: "Completed",   color: "#16A34A" },
         ].map(item => (
           <div key={item.label} className="flex items-center gap-1.5">
