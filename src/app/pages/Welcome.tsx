@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router";
 import { Button } from "../components/ui/button";
-import logoImg from "figma:asset/58956be46c544ae8676a6fc4c67137e1d450e75f.png";
+import logoImg from "../../assets/vision360-logo.svg";
 
 export function Welcome() {
   const navigate = useNavigate();
@@ -19,7 +19,7 @@ export function Welcome() {
         <div className="relative z-10 p-12 lg:p-16 flex flex-col h-full">
           <div className="mt-auto mb-16">
             <div className="mb-8">
-              <img src={logoImg} alt="Vision360 Logo" className="h-[96px] w-auto object-contain brightness-0 invert mb-6" />
+              <img src={logoImg} alt="Vision360 Logo" className="h-[96px] w-auto object-contain mb-6" />
             </div>
             <h1 className="text-4xl lg:text-5xl font-bold text-white mb-6 leading-tight">
               Transform your <br />

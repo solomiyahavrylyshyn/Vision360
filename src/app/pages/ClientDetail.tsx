@@ -609,7 +609,7 @@ export function ClientDetail() {
             className="w-7 h-7 flex items-center justify-center hover:bg-[#F5F7FA] rounded-md transition-colors"
             aria-label="Edit contact"
           >
-            <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "15px" }}>edit</span>
+            <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "16px" }}>edit</span>
           </button>
         </div>
         <div className="p-5 space-y-4">
@@ -677,7 +677,7 @@ export function ClientDetail() {
             className="w-7 h-7 flex items-center justify-center hover:bg-[#F5F7FA] rounded-md transition-colors"
             aria-label="Edit addresses"
           >
-            <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "15px" }}>edit</span>
+            <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "16px" }}>edit</span>
           </button>
         </div>
         <div className="p-5 space-y-4">
