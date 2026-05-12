@@ -8,8 +8,12 @@ type LogoProps = {
 };
 
 /**
- * Vision360 logo — simplified white-text version for the dark sidebar.
- * Eye keeps the brand's cyan/teal accent; wordmark and subtitle render in white.
+ * Vision360 sidebar logo — rebuilt as a clean inline SVG so it reads
+ * correctly on the dark navy sidebar.
+ *
+ * - Eye keeps the brand cyan (#5EEAD4) of the original artwork
+ * - Wordmark + subtitle render in pure white so they pop against #1C2B3A
+ *   (this is the explicit request: "letters and everything black should be white")
  */
 export function Logo({
   height = 56,
@@ -23,8 +27,8 @@ export function Logo({
   const viewBox = iconOnly
     ? "0 0 60 60"
     : withSubtitle
-      ? "0 0 320 76"
-      : "0 0 320 60";
+      ? "0 0 240 76"
+      : "0 0 240 60";
 
   return (
     <svg
