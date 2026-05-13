@@ -1,6 +1,7 @@
 import { useState, useMemo, type DragEvent, type FormEvent, type MouseEvent } from "react";
 import { useNavigate } from "react-router";
 import { PageHeader } from "../components/ui/page-header";
+import { CreateActionButton } from "../components/ui/create-action-button";
 import {
   format,
   startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek, endOfWeek,
@@ -472,14 +473,9 @@ export function Calendar() {
                 </button>
               ))}
             </div>
-            <button
-              onClick={() => navigate("/jobs/new")}
-              className="h-9 px-4 bg-[#4A6FA5] text-white rounded-lg text-[13px] hover:bg-[#3d5a85] flex items-center gap-1.5"
-              style={{ fontWeight: 600 }}
-            >
-              <span className="material-icons" style={{ fontSize: "18px" }}>add</span>
+            <CreateActionButton onClick={() => navigate("/jobs/new")}>
               Create Job
-            </button>
+            </CreateActionButton>
           </>
         }
       />

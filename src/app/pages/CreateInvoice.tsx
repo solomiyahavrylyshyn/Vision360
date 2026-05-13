@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { ItemPicker, catalogItemToLineItem, type CatalogItem, type SelectedLineItem } from "../components/ItemPicker";
 import { PageHeader } from "../components/ui/page-header";
+import { PlusIcon } from "../components/ui/plus-icon";
 
 // Mock catalog (same as CreateEstimate)
 const mockCatalogItems: CatalogItem[] = [
@@ -134,7 +135,7 @@ export function CreateInvoice() {
               className="px-4 py-2 bg-[#4A6FA5] text-white rounded-lg text-[13px] hover:bg-[#3d5a85] flex items-center gap-1.5"
               style={{ fontWeight: 600 }}
             >
-              <span className="material-icons" style={{ fontSize: "16px" }}>add</span>
+              <PlusIcon className="h-4 w-4" />
               Add Item
             </button>
           </div>

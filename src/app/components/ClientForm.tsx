@@ -6,6 +6,7 @@ import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { marketingSourcesStore } from "../stores/marketingSourcesStore";
+import { PlusIcon } from "./ui/plus-icon";
 
 interface AdditionalContact {
   id: string;
@@ -571,7 +572,7 @@ export function ClientForm({ open, onOpenChange, client, onSave }: ClientFormPro
                     className="text-[13px] text-[#4A6FA5] hover:text-[#3d5a85] transition-colors flex items-center gap-1.5"
                     style={{ fontWeight: 500 }}
                   >
-                    <span className="material-icons" style={{ fontSize: "18px" }}>add</span>
+                    <PlusIcon className="h-[18px] w-[18px]" />
                     Add additional contact
                   </button>
                 </div>

@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router";
 import { ItemPicker, catalogItemToLineItem, type CatalogItem, type SelectedLineItem } from "../components/ItemPicker";
+import { PlusIcon } from "../components/ui/plus-icon";
 
 // Mock catalog items
 const mockCatalogItems: CatalogItem[] = [
@@ -636,7 +637,7 @@ export function CreateExpense() {
                   className="flex items-center gap-1.5 px-3 py-1.5 bg-[#4A6FA5] hover:bg-[#3D5F8F] text-white rounded-lg text-[12px] transition-colors"
                   style={{ fontWeight: 500 }}
                 >
-                  <span className="material-icons" style={{ fontSize: "16px" }}>add</span>
+                  <PlusIcon className="h-4 w-4" />
                   Add Item
                 </button>
               </div>

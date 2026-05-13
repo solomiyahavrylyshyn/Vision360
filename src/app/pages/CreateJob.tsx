@@ -3,6 +3,7 @@ import { useNavigate } from "react-router";
 import { ItemPicker, catalogItemToLineItem, type CatalogItem, type SelectedLineItem } from "../components/ItemPicker";
 import { jobTypesStore } from "../stores/jobTypesStore";
 import { PageHeader } from "../components/ui/page-header";
+import { PlusIcon } from "../components/ui/plus-icon";
 
 // Mock catalog items (same as CreateEstimate)
 const mockCatalogItems: CatalogItem[] = [
@@ -226,7 +227,7 @@ export function CreateJob() {
               className="px-4 py-2 bg-[#4A6FA5] text-white rounded-lg text-[13px] hover:bg-[#3d5a85] flex items-center gap-1.5"
               style={{ fontWeight: 600 }}
             >
-              <span className="material-icons" style={{ fontSize: "16px" }}>add</span>
+              <PlusIcon className="h-4 w-4" />
               Add Item
             </button>
           </div>

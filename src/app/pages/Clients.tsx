@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useSyncExternalStore } from "react";
+import { useState, useRef, useEffect, useId, useSyncExternalStore } from "react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { useNavigate } from "react-router";
@@ -19,6 +19,8 @@ import {
 import { marketingSourcesStore } from "../stores/marketingSourcesStore";
 import { tagsStore } from "../stores/tagsStore";
 import { countiesStore } from "../stores/countiesStore";
+import { PlusIcon } from "../components/ui/plus-icon";
+import { CreateActionButton } from "../components/ui/create-action-button";
 
 interface Client {
   id: string;
@@ -191,14 +193,26 @@ export function Clients() {
   );
 
   const Sparkline = ({ data, color = "#4A6FA5" }: { data: number[]; color?: string }) => {
-    const w = 72, h = 24, pad = 2;
+    const gradientId = useId();
+    const w = 64, h = 32, pad = 1.28;
     const min = Math.min(...data), max = Math.max(...data), range = max - min || 1;
     const pts = data.map((v, i) => `${pad + (i / (data.length - 1)) * (w - pad * 2)},${h - pad - ((v - min) / range) * (h - pad * 2)}`).join(" ");
     const area = `M${pts.split(" ")[0]} L${pts} L${w - pad},${h} L${pad},${h} Z`;
     return (
-      <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} fill="none">
-        <path d={`M${pts}`} stroke={color} strokeWidth="1.5" strokeLinejoin="round" />
-        <path d={area} fill={color} fillOpacity="0.08" />
+      <svg width={w} height={h} viewBox="0 0 64 32" fill="none" aria-hidden="true">
+        <g clipPath={`url(#${gradientId}-clip)`}>
+          <path d={area} fill={`url(#${gradientId}-gradient)`} />
+          <path d={`M${pts}`} stroke={color} strokeWidth="1.5" strokeLinejoin="round" />
+        </g>
+        <defs>
+          <linearGradient id={`${gradientId}-gradient`} x1="32" y1="1.33334" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+            <stop stopColor={color} />
+            <stop offset="1" stopColor={color} stopOpacity="0" />
+          </linearGradient>
+          <clipPath id={`${gradientId}-clip`}>
+            <rect width="64" height="32" fill="white" />
+          </clipPath>
+        </defs>
       </svg>
     );
   };
@@ -264,28 +278,9 @@ export function Clients() {
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <Button onClick={() => navigate("/clients/new")} className="h-10 bg-[#4A6FA5] px-5 hover:bg-[#3d5a85]">
-                <span className="material-icons mr-1.5" style={{ fontSize: "18px" }}>add</span>
+              <CreateActionButton onClick={() => navigate("/clients/new")}>
                 Create Client
-              </Button>
-              <KebabMenu triggerClassName="w-10 h-10 border border-[#D8DEE8] rounded-lg bg-white">
-                <KebabItem
-                  icon="visibility"
-                  onSelect={e => {
-                    e.preventDefault();
-                    setShowEmptyStatePreview(false);
-                    setSelectedClients(new Set());
-                    setCurrentPage(1);
-                  }}
-                >
-                  View contacts
-                </KebabItem>
-                <KebabItem icon="file_upload">Import Contacts</KebabItem>
-                <KebabItem icon="view_column" onSelect={e => { e.preventDefault(); setPendingColumns(new Set(visibleColumns)); setEditColumnsOpen(true); }}>Edit Columns</KebabItem>
-                <KebabItem icon="content_copy" onSelect={() => navigate("/clients/duplicates")}>Manage Duplicates</KebabItem>
-                <KebabSeparator />
-                <KebabItem icon="file_download">Export</KebabItem>
-              </KebabMenu>
+              </CreateActionButton>
             </div>
           </div>
         ) : (
@@ -294,28 +289,9 @@ export function Clients() {
             count={selectedClients.size > 0 ? `${filteredClients.length} records · ${selectedClients.size} selected` : `${filteredClients.length} records`}
             actions={
               <>
-                <Button onClick={() => navigate("/clients/new")} className="bg-[#4A6FA5] hover:bg-[#3d5a85]">
-                  <span className="material-icons mr-1.5" style={{ fontSize: "18px" }}>add</span>
+                <CreateActionButton onClick={() => navigate("/clients/new")}>
                   Create Client
-                </Button>
-                <KebabMenu triggerClassName="w-9 h-9 border border-[#E5E7EB] rounded-lg bg-white">
-                  <KebabItem
-                    icon="visibility_off"
-                    onSelect={e => {
-                      e.preventDefault();
-                      setShowEmptyStatePreview(true);
-                      setSelectedClients(new Set());
-                      setCurrentPage(1);
-                    }}
-                  >
-                    Preview empty state
-                  </KebabItem>
-                  <KebabItem icon="view_column" onSelect={e => { e.preventDefault(); setPendingColumns(new Set(visibleColumns)); setEditColumnsOpen(true); }}>Edit Columns</KebabItem>
-                  <KebabItem icon="content_copy" onSelect={() => navigate("/clients/duplicates")}>Manage Duplicates</KebabItem>
-                  <KebabSeparator />
-                  <KebabItem icon="file_upload">Import</KebabItem>
-                  <KebabItem icon="file_download">Export</KebabItem>
-                </KebabMenu>
+                </CreateActionButton>
               </>
             }
           />
@@ -416,11 +392,10 @@ export function Clients() {
                   <p className="mt-2 max-w-[320px] text-[14px] leading-6 text-[#546478]">
                     Add your first client to start tracking contact details, properties, jobs, invoices, and notes.
                   </p>
-                  <div className="mt-4 flex flex-col gap-2.5">
-                    <Button onClick={() => navigate("/clients/new")} className="h-9 w-[160px] bg-[#4A6FA5] hover:bg-[#3d5a85]">
-                      <span className="material-icons mr-1.5" style={{ fontSize: "18px" }}>add</span>
+                  <div className="mt-4 flex flex-col items-start gap-2.5">
+                    <CreateActionButton onClick={() => navigate("/clients/new")} className="w-[142px]">
                       Create Client
-                    </Button>
+                    </CreateActionButton>
                     <Button variant="outline" className="h-9 w-[160px] border-[#D8DEE8] bg-white text-[#374151] hover:bg-[#F5F7FA]">
                       <span className="material-icons mr-1.5" style={{ fontSize: "17px" }}>file_upload</span>
                       Import Contacts
@@ -711,6 +686,40 @@ export function Clients() {
                 )}
               </button>
             </div>
+            <div className="ml-auto">
+              <KebabMenu triggerClassName="w-10 h-10 border border-[#D8DEE8] rounded-xl bg-white">
+                {showEmptyStatePreview ? (
+                  <KebabItem
+                    icon="visibility"
+                    onSelect={e => {
+                      e.preventDefault();
+                      setShowEmptyStatePreview(false);
+                      setSelectedClients(new Set());
+                      setCurrentPage(1);
+                    }}
+                  >
+                    View contacts
+                  </KebabItem>
+                ) : (
+                  <KebabItem
+                    icon="visibility_off"
+                    onSelect={e => {
+                      e.preventDefault();
+                      setShowEmptyStatePreview(true);
+                      setSelectedClients(new Set());
+                      setCurrentPage(1);
+                    }}
+                  >
+                    Preview empty state
+                  </KebabItem>
+                )}
+                <KebabItem icon="view_column" onSelect={e => { e.preventDefault(); setPendingColumns(new Set(visibleColumns)); setEditColumnsOpen(true); }}>Edit Columns</KebabItem>
+                <KebabItem icon="content_copy" onSelect={() => navigate("/clients/duplicates")}>Manage Duplicates</KebabItem>
+                <KebabSeparator />
+                <KebabItem icon="file_upload">{showEmptyStatePreview ? "Import Contacts" : "Import"}</KebabItem>
+                <KebabItem icon="file_download">Export</KebabItem>
+              </KebabMenu>
+            </div>
           </div>
           <SelectionBar
             count={selectedClients.size}
@@ -775,7 +784,7 @@ export function Clients() {
                       case "name":
                         return (
                           <td key="name" className="px-4 py-4">
-                            <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>{client.name}</div>
+                            <div className="text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist", fontStyle: "normal", fontWeight: 400, lineHeight: "20px" }}>{client.name}</div>
                             {client.company && <div className="text-[12px] text-[#8899AA]">{client.company}</div>}
                           </td>
                         );

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { KebabMenu, KebabItem } from "../components/ui/kebab-menu";
+import { PlusIcon } from "../components/ui/plus-icon";
 
 interface Expense {
   id: number;
@@ -241,7 +242,7 @@ export function JobDetail() {
             onClick={() => { setAddingJobNote(true); setNewJobNoteText(""); }}
             className="w-7 h-7 flex items-center justify-center hover:bg-[#F5F7FA] rounded-md transition-colors"
           >
-            <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "16px" }}>add</span>
+            <PlusIcon className="h-4 w-4 text-[#9CA3AF]" />
           </button>
         </div>
 
@@ -436,7 +437,7 @@ export function JobDetail() {
               className="text-[12px] text-[#4A6FA5] hover:underline flex items-center gap-1"
               style={{ fontWeight: 500 }}
             >
-              <span className="material-icons" style={{ fontSize: "16px" }}>add</span>
+              <PlusIcon className="h-4 w-4" />
               Create estimate
             </button>
           </div>
@@ -501,7 +502,7 @@ export function JobDetail() {
               className="text-[12px] text-[#4A6FA5] hover:underline flex items-center gap-1"
               style={{ fontWeight: 500 }}
             >
-              <span className="material-icons" style={{ fontSize: "16px" }}>add</span>
+              <PlusIcon className="h-4 w-4" />
               Create invoice
             </button>
           </div>
@@ -598,7 +599,7 @@ export function JobDetail() {
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Products & Services</h3>
         <button className="text-[12px] text-[#4A6FA5] hover:underline flex items-center gap-1" style={{ fontWeight: 500 }}>
-          <span className="material-icons" style={{ fontSize: "16px" }}>add</span>
+          <PlusIcon className="h-4 w-4" />
           Add line item
         </button>
       </div>
@@ -645,7 +646,7 @@ export function JobDetail() {
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Expenses</h3>
         <button className="text-[12px] text-[#4A6FA5] hover:underline flex items-center gap-1" style={{ fontWeight: 500 }}>
-          <span className="material-icons" style={{ fontSize: "16px" }}>add</span>
+          <PlusIcon className="h-4 w-4" />
           Add expense
         </button>
       </div>

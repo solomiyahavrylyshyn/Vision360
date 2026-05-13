@@ -11,6 +11,7 @@ import {
   SelectTrigger, SelectValue,
 } from "../components/ui/select";
 import { Card } from "../components/ui/card";
+import { CreateActionButton } from "../components/ui/create-action-button";
 
 interface Job {
   id: number;
@@ -168,14 +169,9 @@ export function Jobs() {
         count={selectedJobs.size > 0 ? `${filtered.length} records · ${selectedJobs.size} selected` : `${filtered.length} records`}
         actions={
           <>
-            <button
-              onClick={() => navigate("/jobs/new")}
-              className="h-9 px-4 bg-[#4A6FA5] hover:bg-[#3d5a85] text-white rounded-lg text-[13px] flex items-center gap-1.5 transition-colors"
-              style={{ fontWeight: 600 }}
-            >
-              <span className="material-icons" style={{ fontSize: "18px" }}>add</span>
+            <CreateActionButton onClick={() => navigate("/jobs/new")}>
               Create Job
-            </button>
+            </CreateActionButton>
             <KebabMenu triggerClassName="w-9 h-9 border border-[#E5E7EB] rounded-lg bg-white">
               <KebabItem icon="view_column">Edit Columns</KebabItem>
               <KebabItem icon="swap_horiz">Change Status</KebabItem>

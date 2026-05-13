@@ -4,6 +4,7 @@ import { Card } from "../components/ui/card";
 import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
 import { PageHeader } from "../components/ui/page-header";
 import { SelectionBar } from "../components/ui/selection-bar";
+import { CreateActionButton } from "../components/ui/create-action-button";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type EstimateStatus = "Unsent" | "Pending" | "Approved" | "Declined" | "Won" | "Archived" | "Drafted" | "Accepted" | "Sent";
@@ -268,14 +269,9 @@ export function Estimates() {
         count={selectedIds.size > 0 ? `${filtered.length} records · ${selectedIds.size} selected` : `${filtered.length} records`}
         actions={
           <>
-            <button
-              onClick={() => setCreateModalOpen(true)}
-              className="h-9 px-4 bg-[#4A6FA5] text-white rounded-lg text-[13px] hover:bg-[#3d5a85] flex items-center gap-2 shadow-sm"
-              style={{ fontWeight: 600 }}
-            >
-              <span className="material-icons" style={{ fontSize: "18px" }}>add</span>
+            <CreateActionButton onClick={() => setCreateModalOpen(true)}>
               Create Estimate
-            </button>
+            </CreateActionButton>
             <KebabMenu triggerClassName="w-9 h-9 border border-[#E5E7EB] rounded-lg bg-white">
               <KebabItem icon="view_column">Edit Columns</KebabItem>
               <KebabItem icon="swap_horiz">Change Status</KebabItem>

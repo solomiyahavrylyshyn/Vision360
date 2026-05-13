@@ -7,6 +7,7 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Textarea } from "../components/ui/textarea";
+import { PlusIcon } from "../components/ui/plus-icon";
 import {
   Select,
   SelectContent,
@@ -519,7 +520,7 @@ export function ClientDetail() {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button className="bg-[#4A6FA5] hover:bg-[#3d5a85] h-9 px-4 text-white text-[13px]">
-          <span className="material-icons mr-1.5" style={{ fontSize: "18px" }}>add</span>
+          <PlusIcon className="mr-1.5 shrink-0" />
           Create
         </Button>
       </DropdownMenuTrigger>
@@ -718,7 +719,7 @@ export function ClientDetail() {
             className="w-7 h-7 flex items-center justify-center hover:bg-[#F5F7FA] rounded-md transition-colors"
             aria-label="Add note"
           >
-            <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "16px" }}>add</span>
+            <PlusIcon className="h-4 w-4 text-[#9CA3AF]" />
           </button>
         </div>
 
@@ -1196,7 +1197,7 @@ export function ClientDetail() {
             <div className="border-b border-[#E5E7EB] px-6 py-4 flex items-center justify-between">
               <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Jobs</h3>
               <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-[#F5F7FA]" onClick={() => navigate("/jobs/new")}>
-                <span className="material-icons text-[#546478]" style={{ fontSize: "20px" }}>add</span>
+                <PlusIcon className="h-5 w-5 text-[#546478]" />
               </Button>
             </div>
             <div className="p-6">
@@ -1211,7 +1212,7 @@ export function ClientDetail() {
             <div className="border-b border-[#E5E7EB] px-6 py-4 flex items-center justify-between">
               <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Estimates</h3>
               <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-[#F5F7FA]" onClick={() => navigate("/estimates/new")}>
-                <span className="material-icons text-[#546478]" style={{ fontSize: "20px" }}>add</span>
+                <PlusIcon className="h-5 w-5 text-[#546478]" />
               </Button>
             </div>
             <div className="p-6">
@@ -1229,7 +1230,7 @@ export function ClientDetail() {
                 <span className="text-[12px] text-[#6B7280]">{invoiceRows.length} invoices</span>
               </div>
               <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-[#F5F7FA]" onClick={() => navigate("/invoices/new")}>
-                <span className="material-icons text-[#546478]" style={{ fontSize: "20px" }}>add</span>
+                <PlusIcon className="h-5 w-5 text-[#546478]" />
               </Button>
             </div>
             <div className="px-6 py-5 overflow-x-auto">
@@ -1247,7 +1248,7 @@ export function ClientDetail() {
                 <span className="text-[12px] text-[#6B7280]">{paymentRows.length} payments</span>
               </div>
               <Button className="h-8 px-3 gap-1.5 text-[13px] bg-[#4A6FA5] hover:bg-[#3d5a85] text-white" onClick={() => toast.info("Collect payment coming soon")}>
-                <span className="material-icons" style={{ fontSize: "16px" }}>add</span>
+                <PlusIcon className="h-4 w-4" />
                 Collect payment
               </Button>
             </div>
@@ -1270,7 +1271,7 @@ export function ClientDetail() {
                   className="h-8 px-3 gap-1.5 text-[13px] text-[#4A6FA5] hover:bg-[#EEF2F8]"
                   onClick={() => { setShowAddAddress(true); setNewAddr({ street: "", unit: "", city: "", state: "", zip: "", county: "", notes: "" }); }}
                 >
-                  <span className="material-icons" style={{ fontSize: "16px" }}>add</span>
+                  <PlusIcon className="h-4 w-4" />
                   Add address
                 </Button>
               </div>
@@ -1440,7 +1441,7 @@ export function ClientDetail() {
             <div className="border-b border-[#E5E7EB] px-6 py-4 flex items-center justify-between">
               <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Notes</h3>
               <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-[#F5F7FA]" onClick={() => toast.info("Add note coming soon")}>
-                <span className="material-icons text-[#546478]" style={{ fontSize: "20px" }}>add</span>
+                <PlusIcon className="h-5 w-5 text-[#546478]" />
               </Button>
             </div>
             <div className="p-6 space-y-4">

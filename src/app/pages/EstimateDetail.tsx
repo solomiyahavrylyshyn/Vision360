@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate, useParams } from "react-router";
 import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
+import { PlusIcon } from "../components/ui/plus-icon";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type EstimateStatus = "Unsent" | "Pending" | "Approved" | "Declined" | "Won" | "Archived" | "Drafted" | "Accepted" | "Sent";
@@ -353,7 +354,7 @@ export function EstimateDetail() {
             className="px-4 py-2 bg-[#4A6FA5] text-white rounded-lg text-[13px] hover:bg-[#3d5a85] flex items-center gap-1.5"
             style={{ fontWeight: 600 }}
           >
-            <span className="material-icons" style={{ fontSize: "16px" }}>add</span>
+            <PlusIcon className="h-4 w-4" />
             Add Item
           </button>
         </div>

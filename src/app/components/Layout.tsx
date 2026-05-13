@@ -5,6 +5,7 @@ import { MessagingCenter } from "./MessagingCenter";
 import { AiAssistant } from "./AiAssistant";
 import { Dialer } from "./Dialer";
 import { HelpCenter } from "./HelpCenter";
+import { PlusIcon } from "./ui/plus-icon";
 
 const navItems = [
   { to: "/", icon: "home", label: "Home" },
@@ -539,9 +540,9 @@ export function Layout() {
             ref={createBtnRef}
             title="Create"
             onClick={() => setCreateMenuOpen(!createMenuOpen)}
-            className="w-9 h-9 bg-[#4A6FA5] rounded-lg flex items-center justify-center text-white hover:bg-[#3d5a85] transition-colors flex-shrink-0"
+            className="flex h-9 min-h-[36px] w-9 min-w-[36px] flex-none items-center justify-center rounded-lg bg-[#4A6FA5] p-2 text-white transition-colors hover:bg-[#3d5a85] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4A6FA5]/30"
           >
-            <span className="material-icons" style={{ fontSize: "16px" }}>add</span>
+            <PlusIcon className="h-4 w-4 shrink-0" />
           </button>
 
           {/* Separator */}

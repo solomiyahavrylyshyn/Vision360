@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
+import { PlusIcon } from "../components/ui/plus-icon";
 
 // ─── Shared type/data (mirrors Items.tsx) ────────────────────────────────────
 type ItemType =
@@ -324,7 +325,7 @@ export function ItemDetail() {
             <div className="text-[12px] text-[#9CA3AF] text-center py-6">No notes yet</div>
           )}
           <button className="mt-auto flex items-center gap-1 text-[12px] text-[#4A6FA5] hover:underline" style={{ fontWeight: 500 }}>
-            <span className="material-icons" style={{ fontSize: "14px" }}>add</span>
+            <PlusIcon className="h-3.5 w-3.5" />
             Add note
           </button>
         </div>

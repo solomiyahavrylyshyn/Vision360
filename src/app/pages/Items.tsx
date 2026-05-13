@@ -6,6 +6,8 @@ import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-men
 import { PageHeader } from "../components/ui/page-header";
 import { SelectionBar } from "../components/ui/selection-bar";
 import { useDraggableColumns, DraggableTh } from "../components/ui/draggable-columns";
+import { PlusIcon } from "../components/ui/plus-icon";
+import { CreateActionButton } from "../components/ui/create-action-button";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type ItemType =
@@ -538,14 +540,9 @@ export function Items() {
         className="mb-4"
         actions={
           <>
-            <button
-              onClick={() => { setEditingItem(null); setItemModalOpen(true); }}
-              className="h-9 px-4 bg-[#4A6FA5] text-white rounded-lg text-[13px] hover:bg-[#3d5a85] flex items-center gap-1.5"
-              style={{ fontWeight: 600 }}
-            >
-              <span className="material-icons" style={{ fontSize: "18px" }}>add</span>
+            <CreateActionButton onClick={() => { setEditingItem(null); setItemModalOpen(true); }}>
               {activeTab === "pricebook" ? "Create Pricebook Item" : "Create Item"}
-            </button>
+            </CreateActionButton>
             <KebabMenu triggerClassName="w-9 h-9 border border-[#E5E7EB] rounded-lg bg-white">
               <KebabItem icon="view_column">Edit Columns</KebabItem>
               <KebabItem icon="content_copy">Manage Duplicates</KebabItem>
@@ -1105,7 +1102,7 @@ export function Items() {
               className="h-9 px-4 bg-[#4A6FA5] text-white rounded-lg text-[13px] hover:bg-[#3d5a85] flex items-center gap-2 shadow-sm"
               style={{ fontWeight: 600 }}
             >
-              <span className="material-icons" style={{ fontSize: "18px" }}>add</span>
+              <PlusIcon className="mr-1.5 shrink-0" />
               Create Brand
             </button>
           </div>
@@ -1156,7 +1153,7 @@ export function Items() {
               className="h-9 px-4 bg-[#4A6FA5] text-white rounded-lg text-[13px] hover:bg-[#3d5a85] flex items-center gap-2 shadow-sm"
               style={{ fontWeight: 600 }}
             >
-              <span className="material-icons" style={{ fontSize: "18px" }}>add</span>
+              <PlusIcon className="mr-1.5 shrink-0" />
               Create Catalog
             </button>
           </div>

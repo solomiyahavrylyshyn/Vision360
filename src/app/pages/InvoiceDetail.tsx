@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
+import { PlusIcon } from "../components/ui/plus-icon";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type InvoiceStatus =
@@ -556,7 +557,7 @@ export function InvoiceDetail() {
                 className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-[12px] bg-[#4A6FA5] text-white hover:bg-[#3d5a85]"
                 style={{ fontWeight: 500 }}
               >
-                <span className="material-icons" style={{ fontSize: "14px" }}>add</span>
+                <PlusIcon className="h-3.5 w-3.5" />
                 Record
               </button>
             ) : null
@@ -645,7 +646,7 @@ export function InvoiceDetail() {
                 <div className="text-[12px] text-[#9CA3AF] text-center py-6">No notes yet</div>
               )}
               <button className="mt-auto flex items-center gap-1 text-[12px] text-[#4A6FA5] hover:underline" style={{ fontWeight: 500 }}>
-                <span className="material-icons" style={{ fontSize: "14px" }}>add</span>
+                <PlusIcon className="h-3.5 w-3.5" />
                 Add note
               </button>
             </>
