@@ -68,13 +68,12 @@ const DEFAULT_TABS: { key: TabKey; label: string; count?: number }[] = [
 /* ── WorkTable: reusable draggable-column table for jobs/estimates/invoices ── */
 interface WorkItem {
   id: number; type: string; title: string; subtitle: string;
-  date: string; status: string; statusColor: string; amount: string;
+  date: string; amount: string;
 }
 
 const WORK_COLS = [
   { key: "item",   label: "Item"   },
   { key: "date",   label: "Date"   },
-  { key: "status", label: "Status" },
   { key: "amount", label: "Amount" },
 ] as const;
 
@@ -133,13 +132,6 @@ function WorkTable({ items, emptyIcon, emptyLabel }: {
                       <div className="text-[13px] text-[#6B7280]">{item.date}</div>
                     </td>
                   );
-                  case "status": return (
-                    <td key="status" className="py-4">
-                      <span className="px-2 py-1 rounded text-[11px] text-white" style={{ fontWeight: 500, backgroundColor: item.statusColor }}>
-                        {item.status}
-                      </span>
-                    </td>
-                  );
                   case "amount": return (
                     <td key="amount" className="py-4 text-right">
                       <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>{item.amount || "—"}</div>
@@ -159,25 +151,24 @@ function WorkTable({ items, emptyIcon, emptyLabel }: {
 /* ── InvoiceTable ── */
 interface InvoiceRow {
   id: number; invoiceNo: string; jobNo: string; type: string;
-  status: string; statusColor: string; date: string;
+  date: string;
   total: string; balance: string; dueDate: string;
 }
 const INVOICE_COLS = [
   { key: "invoiceNo", label: "Invoice #" },
   { key: "jobNo",     label: "Job #"     },
   { key: "type",      label: "Type"      },
-  { key: "status",    label: "Status"    },
   { key: "date",      label: "Date"      },
   { key: "total",     label: "Total"     },
   { key: "balance",   label: "Balance"   },
   { key: "dueDate",   label: "Due Date"  },
 ] as const;
 const invoiceRows: InvoiceRow[] = [
-  { id: 1, invoiceNo: "INV-2026-0041", jobNo: "J-1048", type: "Service",      status: "Overdue",  statusColor: "#DC2626", date: "Mar 15, 2026", total: "$1,240.00", balance: "$1,240.00", dueDate: "Apr 14, 2026" },
-  { id: 2, invoiceNo: "INV-2026-0035", jobNo: "J-1039", type: "Service",      status: "Paid",     statusColor: "#16A34A", date: "Feb 20, 2026", total: "$890.00",   balance: "$0.00",     dueDate: "Mar 22, 2026" },
-  { id: 3, invoiceNo: "INV-2025-0198", jobNo: "J-0997", type: "Maintenance",  status: "Paid",     statusColor: "#16A34A", date: "Nov 4, 2025",  total: "$430.00",   balance: "$0.00",     dueDate: "Dec 4, 2025"  },
-  { id: 4, invoiceNo: "INV-2025-0177", jobNo: "J-0981", type: "Installation", status: "Paid",     statusColor: "#16A34A", date: "Sep 8, 2025",  total: "$3,750.00", balance: "$0.00",     dueDate: "Oct 8, 2025"  },
-  { id: 5, invoiceNo: "INV-2026-0048", jobNo: "J-1054", type: "Service",      status: "Draft",    statusColor: "#6B7280", date: "Apr 28, 2026", total: "$560.00",   balance: "$560.00",   dueDate: "May 28, 2026" },
+  { id: 1, invoiceNo: "INV-2026-0041", jobNo: "J-1048", type: "Service",      date: "Mar 15, 2026", total: "$1,240.00", balance: "$1,240.00", dueDate: "Apr 14, 2026" },
+  { id: 2, invoiceNo: "INV-2026-0035", jobNo: "J-1039", type: "Service",      date: "Feb 20, 2026", total: "$890.00",   balance: "$0.00",     dueDate: "Mar 22, 2026" },
+  { id: 3, invoiceNo: "INV-2025-0198", jobNo: "J-0997", type: "Maintenance",  date: "Nov 4, 2025",  total: "$430.00",   balance: "$0.00",     dueDate: "Dec 4, 2025"  },
+  { id: 4, invoiceNo: "INV-2025-0177", jobNo: "J-0981", type: "Installation", date: "Sep 8, 2025",  total: "$3,750.00", balance: "$0.00",     dueDate: "Oct 8, 2025"  },
+  { id: 5, invoiceNo: "INV-2026-0048", jobNo: "J-1054", type: "Service",      date: "Apr 28, 2026", total: "$560.00",   balance: "$560.00",   dueDate: "May 28, 2026" },
 ];
 function InvoiceTable() {
   const [cols, moveCols] = useDraggableColumns([...INVOICE_COLS]);
@@ -202,7 +193,6 @@ function InvoiceTable() {
                   case "invoiceNo": return <td key="invoiceNo" className="py-3.5 pr-4"><span className="text-[13px] text-[#4A6FA5] font-medium hover:underline">{row.invoiceNo}</span></td>;
                   case "jobNo":     return <td key="jobNo"     className="py-3.5 pr-4"><span className="text-[13px] text-[#4A6FA5] hover:underline">{row.jobNo}</span></td>;
                   case "type":      return <td key="type"      className="py-3.5 pr-4"><span className="text-[13px] text-[#374151]">{row.type}</span></td>;
-                  case "status":    return <td key="status"    className="py-3.5 pr-4"><span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] text-white" style={{ backgroundColor: row.statusColor, fontWeight: 500 }}>{row.status}</span></td>;
                   case "date":      return <td key="date"      className="py-3.5 pr-4"><span className="text-[13px] text-[#6B7280]">{row.date}</span></td>;
                   case "total":     return <td key="total"     className="py-3.5 pr-4 text-right"><span className="text-[13px] text-[#1A2332] font-medium">{row.total}</span></td>;
                   case "balance":   return <td key="balance"   className="py-3.5 pr-4 text-right"><span className={`text-[13px] font-medium ${row.balance === "$0.00" ? "text-[#16A34A]" : "text-[#DC2626]"}`}>{row.balance}</span></td>;
@@ -221,21 +211,20 @@ function InvoiceTable() {
 /* ── PaymentTable ── */
 interface PaymentRow {
   id: number; date: string; invoiceNo: string;
-  amount: string; method: string; status: string; statusColor: string; note: string;
+  amount: string; method: string; note: string;
 }
 const PAYMENT_COLS = [
   { key: "date",      label: "Date"      },
   { key: "invoiceNo", label: "Invoice #" },
   { key: "amount",    label: "Amount"    },
   { key: "method",    label: "Method"    },
-  { key: "status",    label: "Status"    },
   { key: "note",      label: "Note"      },
 ] as const;
 const paymentRows: PaymentRow[] = [
-  { id: 1, date: "Mar 22, 2026", invoiceNo: "INV-2026-0035", amount: "$890.00",   method: "ACH",         status: "Completed", statusColor: "#16A34A", note: "" },
-  { id: 2, date: "Dec 3, 2025",  invoiceNo: "INV-2025-0198", amount: "$430.00",   method: "Credit Card", status: "Completed", statusColor: "#16A34A", note: "" },
-  { id: 3, date: "Oct 7, 2025",  invoiceNo: "INV-2025-0177", amount: "$2,000.00", method: "Check",       status: "Completed", statusColor: "#16A34A", note: "Partial — check #4421" },
-  { id: 4, date: "Oct 20, 2025", invoiceNo: "INV-2025-0177", amount: "$1,750.00", method: "ACH",         status: "Completed", statusColor: "#16A34A", note: "Final balance" },
+  { id: 1, date: "Mar 22, 2026", invoiceNo: "INV-2026-0035", amount: "$890.00",   method: "ACH",         note: "" },
+  { id: 2, date: "Dec 3, 2025",  invoiceNo: "INV-2025-0198", amount: "$430.00",   method: "Credit Card", note: "" },
+  { id: 3, date: "Oct 7, 2025",  invoiceNo: "INV-2025-0177", amount: "$2,000.00", method: "Check",       note: "Partial - check #4421" },
+  { id: 4, date: "Oct 20, 2025", invoiceNo: "INV-2025-0177", amount: "$1,750.00", method: "ACH",         note: "Final balance" },
 ];
 function PaymentTable() {
   const [cols, moveCols] = useDraggableColumns([...PAYMENT_COLS]);
@@ -261,7 +250,6 @@ function PaymentTable() {
                   case "invoiceNo": return <td key="invoiceNo" className="py-3.5 pr-4"><span className="text-[13px] text-[#4A6FA5] hover:underline cursor-pointer">{row.invoiceNo}</span></td>;
                   case "amount":    return <td key="amount"    className="py-3.5 pr-4 text-right"><span className="text-[13px] text-[#1A2332] font-medium">{row.amount}</span></td>;
                   case "method":    return <td key="method"    className="py-3.5 pr-4"><span className="text-[13px] text-[#374151]">{row.method}</span></td>;
-                  case "status":    return <td key="status"    className="py-3.5 pr-4"><span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] text-white" style={{ backgroundColor: row.statusColor, fontWeight: 500 }}>{row.status}</span></td>;
                   case "note":      return <td key="note"      className="py-3.5"><span className="text-[13px] text-[#6B7280] italic">{row.note || "—"}</span></td>;
                   default: return null;
                 }
@@ -515,10 +503,10 @@ export function ClientDetail() {
 
   /* ── work data ── */
   const jobItems = [
-    { id: 2, type: "job", title: "Job #1", subtitle: "AC Estimate", date: "Scheduled for Mar 30, 2026", status: "Scheduled", statusColor: "#4A6FA5", amount: "$0.00" },
+    { id: 2, type: "job", title: "Job #1", subtitle: "AC Estimate", date: "Scheduled for Mar 30, 2026", amount: "$0.00" },
   ];
   const estimateItems = [
-    { id: 3, type: "estimate", title: "Estimate #1", subtitle: "AC Unit Replacement", date: "Created Mar 28, 2026", status: "Draft", statusColor: "#6B7280", amount: "$2,450.00" },
+    { id: 3, type: "estimate", title: "Estimate #1", subtitle: "AC Unit Replacement", date: "Created Mar 28, 2026", amount: "$2,450.00" },
   ];
 
   const getInitials = (name: string) =>
@@ -1554,7 +1542,7 @@ export function ClientDetail() {
                   {client.address}, {client.city}, {client.state} {client.zip}
                 </div>
 
-                {/* Phone + Email row + Status */}
+                {/* Phone + Email row */}
                 <div className="flex items-center gap-5">
                   <a href={`tel:${client.mobilePhone}`} className="flex items-center gap-1.5 text-[13px] text-[#4A6FA5] hover:underline">
                     <span className="material-icons" style={{ fontSize: "15px" }}>phone</span>
