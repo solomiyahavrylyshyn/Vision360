@@ -140,6 +140,285 @@ function SectionCard({ id, title, description, children }: { id?: string; title:
   );
 }
 
+// Marek-style Tax settings: Tax ID inputs at top, "Default" group of tax rates,
+// then tax groups that combine rates. Radio selects the default rate/group.
+type TaxRateRow = { id: string; name: string; rate: string; description: string };
+type TaxGroupRow = { id: string; name: string; description: string; rateIds: string[] };
+
+function TaxSettingsCard() {
+  const [taxIdName, setTaxIdName] = useState("");
+  const [taxIdNumber, setTaxIdNumber] = useState("");
+  const [rates, setRates] = useState<TaxRateRow[]>([
+    { id: "r1", name: "Flor",           rate: "6.0",  description: "Sales Tax" },
+    { id: "r2", name: "Lviw Airport Tax", rate: "0.5",  description: "" },
+    { id: "r3", name: "Lviw Sales Tax",   rate: "23.0", description: "" },
+    { id: "r4", name: "Tampa Tax",        rate: "0.5",  description: "City of Tampa" },
+  ]);
+  const [groups, setGroups] = useState<TaxGroupRow[]>([
+    { id: "g1", name: "Hillsborough County",      description: "Tpa+G=Hilld", rateIds: ["r1", "r4"] },
+    { id: "g2", name: "Lviv Airport Tax Profile", description: "",            rateIds: ["r2", "r3"] },
+  ]);
+  const [defaultId, setDefaultId] = useState<string>("g1");
+  const [pickerOpenFor, setPickerOpenFor] = useState<string | null>(null);
+
+  const sumGroupRate = (rateIds: string[]) =>
+    rateIds.reduce((acc, rid) => acc + (parseFloat(rates.find(r => r.id === rid)?.rate || "0") || 0), 0);
+
+  const addRate = () => {
+    const id = `r${Date.now()}`;
+    setRates([...rates, { id, name: "", rate: "", description: "" }]);
+  };
+  const addGroup = () => {
+    const id = `g${Date.now()}`;
+    setGroups([...groups, { id, name: "", description: "", rateIds: [] }]);
+  };
+  const removeRate = (id: string) => {
+    setRates(rates.filter(r => r.id !== id));
+    setGroups(groups.map(g => ({ ...g, rateIds: g.rateIds.filter(x => x !== id) })));
+    if (defaultId === id) setDefaultId(rates.find(r => r.id !== id)?.id ?? groups[0]?.id ?? "");
+  };
+  const removeGroup = (id: string) => {
+    setGroups(groups.filter(g => g.id !== id));
+    if (defaultId === id) setDefaultId(rates[0]?.id ?? "");
+  };
+  const updateRate = (id: string, patch: Partial<TaxRateRow>) =>
+    setRates(rates.map(r => r.id === id ? { ...r, ...patch } : r));
+  const updateGroup = (id: string, patch: Partial<TaxGroupRow>) =>
+    setGroups(groups.map(g => g.id === id ? { ...g, ...patch } : g));
+  const toggleRateInGroup = (groupId: string, rateId: string) => {
+    setGroups(groups.map(g => g.id === groupId
+      ? { ...g, rateIds: g.rateIds.includes(rateId) ? g.rateIds.filter(x => x !== rateId) : [...g.rateIds, rateId] }
+      : g));
+  };
+
+  return (
+    <Card className="border border-[#E1E6EF] bg-white p-6 shadow-[0_8px_22px_rgba(26,35,50,0.035)]">
+      {/* Header row */}
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="text-[18px] leading-6 text-[#1A2332]" style={{ fontWeight: 700 }}>Tax settings</h2>
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={addGroup}
+            className="h-8 border-[#BFE3C8] bg-white px-3 text-[12px] text-[#16A34A] hover:bg-[#F0FDF4]"
+            style={{ fontWeight: 600 }}
+          >
+            + Create Tax Group
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={addRate}
+            className="h-8 border-[#BFE3C8] bg-white px-3 text-[12px] text-[#16A34A] hover:bg-[#F0FDF4]"
+            style={{ fontWeight: 600 }}
+          >
+            + Create Tax Rate
+          </Button>
+        </div>
+      </div>
+
+      {/* Tax ID block */}
+      <div className="grid grid-cols-2 gap-0 rounded-xl border border-[#E5E7EB] overflow-hidden">
+        <label className="flex flex-col px-3 py-2 border-r border-[#E5E7EB]">
+          <span className="text-[11px] text-[#6B7280]">Tax ID name (ex: GST)</span>
+          <input
+            value={taxIdName}
+            onChange={e => setTaxIdName(e.target.value)}
+            className="bg-transparent text-[14px] text-[#1A2332] outline-none mt-0.5"
+          />
+        </label>
+        <label className="flex flex-col px-3 py-2">
+          <span className="text-[11px] text-[#6B7280]">Tax ID number</span>
+          <input
+            value={taxIdNumber}
+            onChange={e => setTaxIdNumber(e.target.value)}
+            className="bg-transparent text-[14px] text-[#1A2332] outline-none mt-0.5"
+          />
+        </label>
+      </div>
+      <div className="mt-2 text-[12px] text-[#6B7280]">Tax ID name and number will appear on invoices</div>
+
+      {/* Divider + Default label */}
+      <div className="mt-5 border-t border-[#E5E7EB] pt-4 flex items-center gap-1.5">
+        <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>Default</span>
+        <span
+          className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-[#9CA3AF] text-[10px] text-[#9CA3AF]"
+          title="Select one rate or group as default"
+        >
+          ?
+        </span>
+      </div>
+
+      {/* Rate rows */}
+      <div className="mt-3 space-y-2">
+        {rates.map(rate => (
+          <TaxRow
+            key={rate.id}
+            kind="rate"
+            checked={defaultId === rate.id}
+            onCheck={() => setDefaultId(rate.id)}
+            onRemove={() => removeRate(rate.id)}
+            nameLabel="Tax name"
+            rateLabel="Tax rate (%)"
+            name={rate.name}
+            rateValue={rate.rate}
+            description={rate.description}
+            onNameChange={v => updateRate(rate.id, { name: v })}
+            onRateChange={v => updateRate(rate.id, { rate: v })}
+            onDescriptionChange={v => updateRate(rate.id, { description: v })}
+          />
+        ))}
+      </div>
+
+      {/* Divider before groups */}
+      {groups.length > 0 && <div className="mt-5 border-t border-[#E5E7EB] pt-4" />}
+
+      {/* Group rows */}
+      <div className="space-y-3">
+        {groups.map(group => {
+          const computed = sumGroupRate(group.rateIds).toFixed(1);
+          const composition = group.rateIds
+            .map(rid => {
+              const r = rates.find(x => x.id === rid);
+              return r ? `${r.name} (${r.rate}%)` : null;
+            })
+            .filter(Boolean)
+            .join(" + ");
+          return (
+            <div key={group.id}>
+              <TaxRow
+                kind="group"
+                checked={defaultId === group.id}
+                onCheck={() => setDefaultId(group.id)}
+                onRemove={() => removeGroup(group.id)}
+                nameLabel="Tax group name"
+                rateLabel="Tax group rate (%)"
+                name={group.name}
+                rateValue={computed}
+                rateLocked
+                description={group.description}
+                onNameChange={v => updateGroup(group.id, { name: v })}
+                onDescriptionChange={v => updateGroup(group.id, { description: v })}
+              />
+              <div className="mt-1.5 ml-10 flex items-center gap-3 relative">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setPickerOpenFor(pickerOpenFor === group.id ? null : group.id)}
+                  className="h-7 border-[#BFE3C8] bg-white px-3 text-[12px] text-[#16A34A] hover:bg-[#F0FDF4]"
+                  style={{ fontWeight: 600 }}
+                >
+                  Select Tax Rates
+                </Button>
+                <span className="text-[12px] text-[#6B7280]">{composition || "No rates selected"}</span>
+                {pickerOpenFor === group.id && (
+                  <div
+                    className="absolute top-9 left-0 z-10 w-[260px] rounded-lg border border-[#E5E7EB] bg-white p-2 shadow-lg"
+                  >
+                    {rates.map(r => (
+                      <label key={r.id} className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#F5F7FA] cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={group.rateIds.includes(r.id)}
+                          onChange={() => toggleRateInGroup(group.id, r.id)}
+                          className="h-4 w-4 accent-[#4A6FA5]"
+                        />
+                        <span className="flex-1 text-[13px] text-[#1A2332]">{r.name || "(unnamed)"}</span>
+                        <span className="text-[12px] text-[#6B7280]">{r.rate}%</span>
+                      </label>
+                    ))}
+                    <button
+                      onClick={() => setPickerOpenFor(null)}
+                      className="mt-1 w-full text-[12px] text-[#4A6FA5] hover:underline"
+                    >
+                      Done
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </Card>
+  );
+}
+
+function TaxRow({
+  kind, checked, onCheck, onRemove,
+  nameLabel, rateLabel, name, rateValue, description, rateLocked,
+  onNameChange, onRateChange, onDescriptionChange,
+}: {
+  kind: "rate" | "group";
+  checked: boolean;
+  onCheck: () => void;
+  onRemove: () => void;
+  nameLabel: string;
+  rateLabel: string;
+  name: string;
+  rateValue: string;
+  description: string;
+  rateLocked?: boolean;
+  onNameChange: (v: string) => void;
+  onRateChange?: (v: string) => void;
+  onDescriptionChange: (v: string) => void;
+}) {
+  return (
+    <div className="flex items-stretch gap-2">
+      <button
+        type="button"
+        onClick={onCheck}
+        aria-pressed={checked}
+        className={`mt-3 h-4 w-4 shrink-0 rounded-full border ${checked ? "border-[#4A6FA5] bg-[#4A6FA5]" : "border-[#9CA3AF] bg-white"} flex items-center justify-center`}
+      >
+        {checked && <span className="h-1.5 w-1.5 rounded-full bg-white" />}
+      </button>
+
+      {/* Name */}
+      <label className="flex flex-col rounded-xl border border-[#E5E7EB] bg-white px-3 py-1.5 w-[180px]">
+        <span className="text-[11px] text-[#6B7280]">{nameLabel}</span>
+        <input
+          value={name}
+          onChange={e => onNameChange(e.target.value)}
+          className="bg-transparent text-[14px] text-[#1A2332] outline-none mt-0.5"
+        />
+      </label>
+
+      {/* Rate */}
+      <label className={`flex flex-col rounded-xl border border-[#E5E7EB] px-3 py-1.5 w-[120px] ${rateLocked ? "bg-[#F3F4F6]" : "bg-white"}`}>
+        <span className="text-[11px] text-[#6B7280]">{rateLabel}</span>
+        <input
+          value={rateValue}
+          readOnly={rateLocked}
+          onChange={e => onRateChange?.(e.target.value)}
+          className="bg-transparent text-[14px] text-[#1A2332] outline-none mt-0.5"
+        />
+      </label>
+
+      {/* Description */}
+      <label className="flex flex-col rounded-xl border border-[#E5E7EB] bg-white px-3 py-1.5 flex-1">
+        <span className="text-[11px] text-[#6B7280]">Internal tax description</span>
+        <input
+          value={description}
+          onChange={e => onDescriptionChange(e.target.value)}
+          className="bg-transparent text-[14px] text-[#1A2332] outline-none mt-0.5"
+        />
+      </label>
+
+      <button
+        type="button"
+        onClick={onRemove}
+        className={`shrink-0 mt-1 self-start h-9 px-4 rounded-lg text-[13px] ${kind === "group" ? "bg-white border border-[#FEE2E2] text-[#DC2626] hover:bg-[#FEF2F2]" : "bg-[#F3F4F6] text-[#9CA3AF] cursor-not-allowed"}`}
+        style={{ fontWeight: 600 }}
+        disabled={kind === "rate"}
+      >
+        Remove
+      </button>
+    </div>
+  );
+}
+
 function EmptyModuleNote({ title, copy }: { title: string; copy: string }) {
   return (
     <div className="rounded-xl border border-[#D8E3F4] bg-[#F8FBFF] p-4">
@@ -690,53 +969,8 @@ export function Settings() {
                   </div>
                 </SectionCard>
 
-                <SectionCard title="Taxes & Rates" description="Create tax rates, combine them into profiles, and set a default for invoices and jobs.">
-                  <div className="mb-4 grid grid-cols-2 gap-4">
-                    <Field label="Tax ID / EIN"><Input defaultValue="47-1234567" className="h-9 border-[#D8DEE8]" /></Field>
-                    <Field label="Tax ID display name (e.g. GST, VAT)"><Input defaultValue="Sales Tax" className="h-9 border-[#D8DEE8]" /></Field>
-                  </div>
-                  <div className="grid grid-cols-[minmax(0,1fr)_300px] gap-4">
-                    <div>
-                      <div className="mb-2 flex items-center justify-between">
-                        <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 700 }}>Tax profiles</div>
-                        <Button className="h-7 bg-[#4A6FA5] px-3 text-[12px] hover:bg-[#3d5a85]">+ Create tax profile</Button>
-                      </div>
-                      <div className="space-y-2">
-                        {taxProfiles.map(profile => (
-                          <div key={profile.name} className="rounded-xl border border-[#E5E7EB] px-4 py-3">
-                            <div className="flex items-center justify-between gap-3">
-                              <div>
-                                <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 700 }}>{profile.name}</div>
-                                <div className="text-[12px] text-[#546478]">{profile.rates}</div>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 800 }}>{profile.total}</div>
-                                {profile.default && <span className="inline-flex rounded-full bg-[#DCFCE7] px-2 py-0.5 text-[11px] text-[#15803D]" style={{ fontWeight: 700 }}>Default</span>}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="mb-2 flex items-center justify-between">
-                        <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 700 }}>Tax rates</div>
-                        <Button className="h-7 bg-[#4A6FA5] px-3 text-[12px] hover:bg-[#3d5a85]">+ Create tax rate</Button>
-                      </div>
-                      <div className="space-y-2">
-                        {taxRates.map(rate => (
-                          <div key={rate.name} className="flex items-center justify-between rounded-lg border border-[#E5E7EB] px-3 py-2">
-                            <div>
-                              <div className="text-[12px] text-[#1A2332]" style={{ fontWeight: 700 }}>{rate.name}</div>
-                              <div className="text-[11px] text-[#7A8799]">{rate.jurisdiction}</div>
-                            </div>
-                            <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 800 }}>{rate.rate}</div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </SectionCard>
+                <TaxSettingsCard />
+
 
                 <SectionCard title="Regional" description="Country, counties, timezone, currency, date format, and first day of the week.">
                   <div className="grid grid-cols-2 gap-4">
@@ -772,8 +1006,27 @@ export function Settings() {
                       ))}
                     </div>
                   </div>
-                  <Button className="mt-4 h-8 bg-[#4A6FA5] px-4 text-[13px] hover:bg-[#3d5a85]">Save</Button>
                 </SectionCard>
+
+                {/* Footer — Save / Cancel for Company Profile */}
+                <div className="flex items-center justify-end gap-3 rounded-xl border border-[#E1E6EF] bg-white px-5 py-4 shadow-[0_8px_22px_rgba(26,35,50,0.035)]">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => toast.info("Changes discarded")}
+                    className="border-[#E5E7EB] text-[#546478] hover:bg-[#EDF0F5] h-10 px-6"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={() => toast.success("Company profile saved")}
+                    className="bg-[#4A6FA5] hover:bg-[#3d5a85] text-white h-10 px-6"
+                    style={{ fontWeight: 600 }}
+                  >
+                    Save changes
+                  </Button>
+                </div>
 
               </div>
             </>
