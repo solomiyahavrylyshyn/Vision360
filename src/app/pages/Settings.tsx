@@ -501,7 +501,7 @@ function RegionalSettingsCard() {
 }
 
 // Business hours — day list (Sunday Closed, Mon-Fri 9-5, etc.) with inline Edit
-function BusinessHoursCard() {
+function BusinessHoursCard({ footer }: { footer?: React.ReactNode }) {
   const [editing, setEditing] = useState(false);
   type Row = { day: string; open: boolean; from: string; to: string };
   const [rows, setRows] = useState<Row[]>([
@@ -576,6 +576,11 @@ function BusinessHoursCard() {
           </div>
         ))}
       </div>
+      {footer && (
+        <div className="mt-5 -mx-6 -mb-6 px-5 py-4 border-t border-[#E1E6EF] flex items-center justify-end gap-3 bg-white rounded-b-xl">
+          {footer}
+        </div>
+      )}
     </Card>
   );
 }
@@ -1177,27 +1182,28 @@ export function Settings() {
 
 
                 <RegionalSettingsCard />
-                <BusinessHoursCard />
-
-                {/* Footer — Save / Cancel for Company Profile */}
-                <div className="flex items-center justify-end gap-3 px-1">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => toast.info("Changes discarded")}
-                    className="border-[#E5E7EB] text-[#546478] hover:bg-[#EDF0F5] h-10 px-6"
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="button"
-                    onClick={() => toast.success("Company profile saved")}
-                    className="bg-[#4A6FA5] hover:bg-[#3d5a85] text-white h-10 px-6"
-                    style={{ fontWeight: 600 }}
-                  >
-                    Save changes
-                  </Button>
-                </div>
+                <BusinessHoursCard
+                  footer={
+                    <>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => toast.info("Changes discarded")}
+                        className="border-[#E5E7EB] text-[#546478] hover:bg-[#EDF0F5] h-10 px-6"
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        type="button"
+                        onClick={() => toast.success("Company profile saved")}
+                        className="bg-[#4A6FA5] hover:bg-[#3d5a85] text-white h-10 px-6"
+                        style={{ fontWeight: 600 }}
+                      >
+                        Save changes
+                      </Button>
+                    </>
+                  }
+                />
 
               </div>
             </>
@@ -1598,27 +1604,27 @@ export function Settings() {
                       Add field
                     </Button>
                   </div>
-                </SectionCard>
 
-                {/* Footer — Save / Cancel (inline, no card wrapper) */}
-                <div className="flex items-center justify-end gap-3 px-1">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => toast.info("Changes discarded")}
-                    className="border-[#E5E7EB] text-[#546478] hover:bg-[#EDF0F5] h-10 px-6"
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="button"
-                    onClick={() => toast.success("Team settings saved")}
-                    className="bg-[#4A6FA5] hover:bg-[#3d5a85] text-white h-10 px-6"
-                    style={{ fontWeight: 600 }}
-                  >
-                    Save changes
-                  </Button>
-                </div>
+                  {/* Footer — Save / Cancel attached to the last card */}
+                  <div className="mt-5 -mx-5 -mb-5 px-5 py-4 border-t border-[#E1E6EF] flex items-center justify-end gap-3 bg-white rounded-b-xl">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => toast.info("Changes discarded")}
+                      className="border-[#E5E7EB] text-[#546478] hover:bg-[#EDF0F5] h-10 px-6"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={() => toast.success("Team settings saved")}
+                      className="bg-[#4A6FA5] hover:bg-[#3d5a85] text-white h-10 px-6"
+                      style={{ fontWeight: 600 }}
+                    >
+                      Save changes
+                    </Button>
+                  </div>
+                </SectionCard>
               </div>
             </>
           )}
