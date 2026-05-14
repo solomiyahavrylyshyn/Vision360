@@ -771,7 +771,6 @@ function BillingAndPlanSection() {
             >
               Notify me about Pro
             </Button>
-            <span className="text-[12px] text-[#6B7280]">No plan change available in MVP.</span>
           </div>
         </Card>
       </div>
