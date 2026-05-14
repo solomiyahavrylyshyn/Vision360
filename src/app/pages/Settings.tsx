@@ -238,11 +238,11 @@ function TaxSettingsCard() {
             />
           </label>
         </div>
-        <div className="text-[12px] text-[#6B7280] leading-tight pt-0.5">Tax ID name and number will appear on invoices</div>
+        <div className="text-[12px] text-[#6B7280] leading-tight pt-0.5 pl-3">Tax ID name and number will appear on invoices</div>
       </div>
 
       {/* Divider + Default label */}
-      <div className="mt-3 border-t border-[#E5E7EB] pt-3 flex items-center gap-1.5">
+      <div className="mt-3 border-t border-[#E5E7EB] pt-3 flex items-center gap-1.5 pl-3">
         <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>Default</span>
         <span
           className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-[#9CA3AF] text-[10px] text-[#9CA3AF]"
