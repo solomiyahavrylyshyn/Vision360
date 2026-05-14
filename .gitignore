@@ -1,2 +1,6 @@
 /node_modules/
 /.claude/worktrees/
+
+# Per-developer Claude launch config (paths differ Windows vs macOS).
+# A template is kept at .claude/launch.example.json — copy it locally.
+/.claude/launch.json

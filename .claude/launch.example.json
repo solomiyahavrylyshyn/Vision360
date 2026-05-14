@@ -1,0 +1,20 @@
+{
+  "_comment": "Copy this file to .claude/launch.json on your machine. .claude/launch.json is git-ignored because the runtimeExecutable path is OS-specific. Pick the configuration that matches your OS and delete the other one.",
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "_os": "Windows — uses node.exe directly so it works without `npm` on PATH",
+      "name": "Vision360 Dev",
+      "runtimeExecutable": "C:\\Program Files\\nodejs\\node.exe",
+      "runtimeArgs": ["node_modules\\vite\\bin\\vite.js"],
+      "port": 5173
+    },
+    {
+      "_os": "macOS / Linux — adjust the node path to match your nvm install (run `which node`)",
+      "name": "Vision360 Dev",
+      "runtimeExecutable": "/Users/YOUR_USER/.nvm/versions/node/vXX.YY.Z/bin/node",
+      "runtimeArgs": ["node_modules/vite/bin/vite.js"],
+      "port": 5173
+    }
+  ]
+}
