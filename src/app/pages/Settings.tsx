@@ -253,7 +253,7 @@ function TaxSettingsCard() {
       </div>
 
       {/* Rate rows */}
-      <div className="mt-1.5 space-y-2">
+      <div className="mt-1 space-y-2">
         {rates.map(rate => (
           <TaxRow
             key={rate.id}
