@@ -1180,7 +1180,7 @@ export function Settings() {
                 <BusinessHoursCard />
 
                 {/* Footer — Save / Cancel for Company Profile */}
-                <div className="flex items-center justify-end gap-3 rounded-xl border border-[#E1E6EF] bg-white px-5 py-4 shadow-[0_8px_22px_rgba(26,35,50,0.035)]">
+                <div className="flex items-center justify-end gap-3 px-1">
                   <Button
                     type="button"
                     variant="outline"
@@ -1600,8 +1600,8 @@ export function Settings() {
                   </div>
                 </SectionCard>
 
-                {/* Footer — Save / Cancel */}
-                <div className="flex items-center justify-end gap-3 rounded-xl border border-[#E1E6EF] bg-white px-5 py-4 shadow-[0_8px_22px_rgba(26,35,50,0.035)]">
+                {/* Footer — Save / Cancel (inline, no card wrapper) */}
+                <div className="flex items-center justify-end gap-3 px-1">
                   <Button
                     type="button"
                     variant="outline"
