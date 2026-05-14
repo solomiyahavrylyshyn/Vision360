@@ -220,20 +220,20 @@ function TaxSettingsCard() {
 
       {/* Tax ID block */}
       <div className="grid grid-cols-2 gap-0 rounded-xl border border-[#E5E7EB] overflow-hidden">
-        <label className="flex flex-col px-3 py-1 border-r border-[#E5E7EB]">
+        <label className="flex flex-col px-3 py-2.5 border-r border-[#E5E7EB]">
           <span className="text-[11px] text-[#6B7280]">Tax ID name (ex: GST)</span>
           <input
             value={taxIdName}
             onChange={e => setTaxIdName(e.target.value)}
-            className="bg-transparent text-[13px] text-[#1A2332] outline-none"
+            className="bg-transparent text-[14px] text-[#1A2332] outline-none mt-0.5"
           />
         </label>
-        <label className="flex flex-col px-3 py-1">
+        <label className="flex flex-col px-3 py-2.5">
           <span className="text-[11px] text-[#6B7280]">Tax ID number</span>
           <input
             value={taxIdNumber}
             onChange={e => setTaxIdNumber(e.target.value)}
-            className="bg-transparent text-[13px] text-[#1A2332] outline-none"
+            className="bg-transparent text-[14px] text-[#1A2332] outline-none mt-0.5"
           />
         </label>
       </div>
@@ -370,46 +370,46 @@ function TaxRow({
         type="button"
         onClick={onCheck}
         aria-pressed={checked}
-        className={`mt-2.5 h-4 w-4 shrink-0 rounded-full border ${checked ? "border-[#4A6FA5] bg-[#4A6FA5]" : "border-[#9CA3AF] bg-white"} flex items-center justify-center`}
+        className={`mt-3.5 h-4 w-4 shrink-0 rounded-full border ${checked ? "border-[#4A6FA5] bg-[#4A6FA5]" : "border-[#9CA3AF] bg-white"} flex items-center justify-center`}
       >
         {checked && <span className="h-1.5 w-1.5 rounded-full bg-white" />}
       </button>
 
       {/* Name */}
-      <label className="flex flex-col rounded-lg border border-[#E5E7EB] bg-white px-2.5 py-1 w-[160px]">
+      <label className="flex flex-col rounded-xl border border-[#E5E7EB] bg-white px-3 py-2 w-[170px]">
         <span className="text-[11px] text-[#6B7280]">{nameLabel}</span>
         <input
           value={name}
           onChange={e => onNameChange(e.target.value)}
-          className="bg-transparent text-[13px] text-[#1A2332] outline-none"
+          className="bg-transparent text-[14px] text-[#1A2332] outline-none mt-0.5"
         />
       </label>
 
       {/* Rate */}
-      <label className={`flex flex-col rounded-lg border border-[#E5E7EB] px-2.5 py-1 w-[110px] ${rateLocked ? "bg-[#F3F4F6]" : "bg-white"}`}>
+      <label className={`flex flex-col rounded-xl border border-[#E5E7EB] px-3 py-2 w-[115px] ${rateLocked ? "bg-[#F3F4F6]" : "bg-white"}`}>
         <span className="text-[11px] text-[#6B7280]">{rateLabel}</span>
         <input
           value={rateValue}
           readOnly={rateLocked}
           onChange={e => onRateChange?.(e.target.value)}
-          className="bg-transparent text-[13px] text-[#1A2332] outline-none"
+          className="bg-transparent text-[14px] text-[#1A2332] outline-none mt-0.5"
         />
       </label>
 
       {/* Description */}
-      <label className="flex flex-col rounded-lg border border-[#E5E7EB] bg-white px-2.5 py-1 flex-1">
+      <label className="flex flex-col rounded-xl border border-[#E5E7EB] bg-white px-3 py-2 flex-1">
         <span className="text-[11px] text-[#6B7280]">Internal tax description</span>
         <input
           value={description}
           onChange={e => onDescriptionChange(e.target.value)}
-          className="bg-transparent text-[13px] text-[#1A2332] outline-none"
+          className="bg-transparent text-[14px] text-[#1A2332] outline-none mt-0.5"
         />
       </label>
 
       <button
         type="button"
         onClick={onRemove}
-        className={`shrink-0 mt-0.5 self-start h-8 px-4 rounded-lg text-[13px] ${kind === "group" ? "bg-white border border-[#FEE2E2] text-[#DC2626] hover:bg-[#FEF2F2]" : "bg-[#F3F4F6] text-[#9CA3AF] cursor-not-allowed"}`}
+        className={`shrink-0 mt-1 self-start h-9 px-4 rounded-lg text-[13px] ${kind === "group" ? "bg-white border border-[#FEE2E2] text-[#DC2626] hover:bg-[#FEF2F2]" : "bg-[#F3F4F6] text-[#9CA3AF] cursor-not-allowed"}`}
         style={{ fontWeight: 600 }}
         disabled={kind === "rate"}
       >
