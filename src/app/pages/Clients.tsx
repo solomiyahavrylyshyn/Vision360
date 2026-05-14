@@ -476,44 +476,6 @@ export function Clients() {
                 </button>
               </div>
               <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
-                {/* Customer type */}
-                <div>
-                  <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>Customer type</label>
-                  <select value={pendingFilters.customerType} onChange={e => setPendingFilters(p => ({ ...p, customerType: e.target.value }))}
-                    className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] text-[#374151] bg-white focus:outline-none focus:border-[#4A6FA5]">
-                    <option value="">All</option>
-                    <option value="residential">Residential</option>
-                    <option value="commercial">Commercial</option>
-                  </select>
-                </div>
-
-                {/* Tags (checkboxes — multi-select) */}
-                <div>
-                  <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>Tags</label>
-                  <div className="border border-[#E5E7EB] rounded-md p-2 max-h-[180px] overflow-y-auto bg-white">
-                    {availableTags.length === 0 ? (
-                      <div className="text-[13px] text-[#9CA3AF] text-center py-2">No tags</div>
-                    ) : availableTags.map(tag => (
-                      <label key={tag} className="flex items-center gap-2 cursor-pointer hover:bg-[#F5F7FA] p-2 rounded">
-                        <input type="checkbox" checked={pendingFilters.tags.includes(tag)}
-                          onChange={e => setPendingFilters(p => ({ ...p, tags: e.target.checked ? [...p.tags, tag] : p.tags.filter(t => t !== tag) }))}
-                          className="w-4 h-4 accent-[#4A6FA5]" />
-                        <span className="text-[13px] text-[#374151]">{tag}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Lead source */}
-                <div>
-                  <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>Lead source</label>
-                  <select value={pendingFilters.leadSource} onChange={e => setPendingFilters(p => ({ ...p, leadSource: e.target.value }))}
-                    className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] text-[#374151] bg-white focus:outline-none focus:border-[#4A6FA5]">
-                    <option value="">All</option>
-                    {marketingSources.map(s => <option key={s} value={s}>{s}</option>)}
-                  </select>
-                </div>
-
                 {/* Payment terms */}
                 <div>
                   <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>Payment terms</label>

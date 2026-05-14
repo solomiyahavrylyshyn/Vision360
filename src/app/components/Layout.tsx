@@ -222,7 +222,7 @@ export function Layout() {
             type="button"
             aria-label="Open branding settings"
             className="rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-white/70"
-            onClick={() => navigate("/settings?section=business#branding")}
+            onClick={() => navigate("/settings?section=companyProfile")}
           >
             <img
               src={companyLogoSrc}
