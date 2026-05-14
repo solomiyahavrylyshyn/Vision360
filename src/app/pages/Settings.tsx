@@ -719,6 +719,38 @@ export function Settings() {
   const [newJobTypeName, setNewJobTypeName] = useState("");
   const [editingJobType, setEditingJobType] = useState<string | null>(null);
   const [editingJobTypeValue, setEditingJobTypeValue] = useState("");
+
+  // ── Team / Invite user ──
+  const [team, setTeam] = useState(teamMembers);
+  const [teamSearch, setTeamSearch] = useState("");
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const emptyInvite = { name: "", email: "", role: "Employee" as "Owner" | "Employee", title: "", rate: "" };
+  const [invite, setInvite] = useState(emptyInvite);
+  const filteredTeam = team.filter(m => {
+    const q = teamSearch.trim().toLowerCase();
+    if (!q) return true;
+    return m.name.toLowerCase().includes(q) || m.email.toLowerCase().includes(q) || m.title.toLowerCase().includes(q);
+  });
+  const submitInvite = () => {
+    if (!invite.name.trim() || !invite.email.trim()) {
+      toast.error("Name and email are required");
+      return;
+    }
+    setTeam(prev => [
+      ...prev,
+      {
+        name: invite.name.trim(),
+        email: invite.email.trim(),
+        role: invite.role,
+        title: invite.title.trim() || "—",
+        rate: invite.rate.trim() ? (invite.rate.includes("/") ? invite.rate : `$${invite.rate}/hr`) : "$0/hr",
+        status: "Invited",
+      },
+    ]);
+    toast.success(`Invitation sent to ${invite.email}`);
+    setInvite(emptyInvite);
+    setInviteOpen(false);
+  };
   const [cfEntity, setCfEntity] = useState<CfEntity>("clients");
   const [companyInfoTab, setCompanyInfoTab] = useState<"profile" | "branding">("profile");
   const [brandPrimary, setBrandPrimary] = useState(() => getStoredBrandTheme().primary);
@@ -1159,8 +1191,19 @@ export function Settings() {
                 description="MVP keeps permissions simple: Owner/Admin and Employee. Employees should not access billing or system preference changes."
               />
               <div className="mb-4 flex items-center justify-between">
-                <Input placeholder="Search users..." className="h-9 max-w-[360px] border-[#D8DEE8]" />
-                <Button className="h-9 bg-[#4A6FA5] px-4 text-[14px] hover:bg-[#3d5a85]">Invite user</Button>
+                <Input
+                  placeholder="Search users..."
+                  value={teamSearch}
+                  onChange={e => setTeamSearch(e.target.value)}
+                  className="h-9 max-w-[360px] border-[#D8DEE8]"
+                />
+                <Button
+                  className="h-9 bg-[#4A6FA5] px-4 text-[14px] hover:bg-[#3d5a85]"
+                  onClick={() => setInviteOpen(true)}
+                >
+                  <span className="material-icons mr-1.5" style={{ fontSize: "16px" }}>person_add</span>
+                  Invite user
+                </Button>
               </div>
               <div className="overflow-hidden rounded-xl border border-[#E5E7EB] bg-white">
                 <table className="w-full">
@@ -1172,7 +1215,13 @@ export function Settings() {
                     </tr>
                   </thead>
                   <tbody>
-                    {teamMembers.map(member => (
+                    {filteredTeam.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="px-4 py-8 text-center text-[13px] text-[#9CA3AF]">
+                          No users match "{teamSearch}".
+                        </td>
+                      </tr>
+                    ) : filteredTeam.map(member => (
                       <tr key={member.email} className="border-t border-[#E5E7EB]">
                         <td className="px-4 py-3 text-[14px] text-[#1A2332]" style={{ fontWeight: 700 }}>{member.name}</td>
                         <td className="px-4 py-3 text-[14px] text-[#546478]">{member.email}</td>
@@ -1189,6 +1238,100 @@ export function Settings() {
                   </tbody>
                 </table>
               </div>
+
+              {/* Invite user modal */}
+              {inviteOpen && (
+                <div
+                  className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm"
+                  onClick={() => setInviteOpen(false)}
+                >
+                  <div
+                    className="w-[460px] bg-white rounded-xl border border-[#E5E7EB] shadow-2xl overflow-hidden"
+                    onClick={e => e.stopPropagation()}
+                  >
+                    <div className="px-6 py-4 border-b border-[#E5E7EB] flex items-center justify-between">
+                      <h3 className="text-[16px] text-[#1A2332]" style={{ fontWeight: 700 }}>Invite user</h3>
+                      <button
+                        onClick={() => setInviteOpen(false)}
+                        className="text-[#9CA3AF] hover:text-[#1A2332]"
+                      >
+                        <span className="material-icons" style={{ fontSize: "20px" }}>close</span>
+                      </button>
+                    </div>
+                    <div className="p-6 space-y-4">
+                      <div>
+                        <label className="block text-[13px] text-[#1A2332] mb-1.5" style={{ fontWeight: 600 }}>Name</label>
+                        <Input
+                          value={invite.name}
+                          onChange={e => setInvite({ ...invite, name: e.target.value })}
+                          placeholder="Full name"
+                          className="h-10 border-[#D8DEE8]"
+                          autoFocus
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[13px] text-[#1A2332] mb-1.5" style={{ fontWeight: 600 }}>Email</label>
+                        <Input
+                          type="email"
+                          value={invite.email}
+                          onChange={e => setInvite({ ...invite, email: e.target.value })}
+                          placeholder="name@company.com"
+                          className="h-10 border-[#D8DEE8]"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[13px] text-[#1A2332] mb-1.5" style={{ fontWeight: 600 }}>Role</label>
+                          <select
+                            value={invite.role}
+                            onChange={e => setInvite({ ...invite, role: e.target.value as "Owner" | "Employee" })}
+                            className="h-10 w-full rounded-lg border border-[#D8DEE8] bg-white px-3 text-[14px] text-[#1A2332]"
+                          >
+                            <option value="Employee">Employee</option>
+                            <option value="Owner">Owner / Admin</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-[13px] text-[#1A2332] mb-1.5" style={{ fontWeight: 600 }}>Pay rate</label>
+                          <Input
+                            value={invite.rate}
+                            onChange={e => setInvite({ ...invite, rate: e.target.value })}
+                            placeholder="25"
+                            className="h-10 border-[#D8DEE8]"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-[13px] text-[#1A2332] mb-1.5" style={{ fontWeight: 600 }}>User role title</label>
+                        <Input
+                          value={invite.title}
+                          onChange={e => setInvite({ ...invite, title: e.target.value })}
+                          placeholder="Technician, Office Staff, Installer…"
+                          className="h-10 border-[#D8DEE8]"
+                        />
+                      </div>
+                    </div>
+                    <div className="px-6 py-4 border-t border-[#E5E7EB] flex items-center justify-end gap-3 bg-[#FAFBFC]">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => { setInvite(emptyInvite); setInviteOpen(false); }}
+                        className="border-[#E5E7EB] text-[#546478] hover:bg-[#EDF0F5] h-10 px-6"
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        type="button"
+                        onClick={submitInvite}
+                        className="bg-[#4A6FA5] hover:bg-[#3d5a85] text-white h-10 px-6"
+                        style={{ fontWeight: 600 }}
+                      >
+                        Send invite
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
               <div className="mt-4 grid grid-cols-2 gap-4">
                 <SectionCard title="Invite security">
                   <div className="space-y-4">
