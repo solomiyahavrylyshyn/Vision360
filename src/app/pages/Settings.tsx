@@ -15,6 +15,7 @@ import { applyBrandTheme, DEFAULT_BRAND_THEME, getStoredBrandLogo, getStoredBran
 
 type SettingsSection =
   | "home"
+  | "companyInfo"
   | "companyProfile"
   | "team"
   | "billing"
@@ -41,7 +42,7 @@ type SettingsSection =
 
 const sectionAliases: Partial<Record<SettingsSection, SettingsSection>> = {
   profile: "companyProfile",
-  business: "companyProfile",
+  business: "companyInfo",
   notifications: "jobs",
   security: "team",
   taxes: "taxProfiles",
@@ -57,7 +58,8 @@ const navGroups: Array<{
     title: "Business Management",
     icon: "business",
     items: [
-      { id: "companyProfile", label: "Company Info", description: "Company info, branding, regional defaults" },
+      { id: "companyInfo", label: "Company Info", description: "Company name, address, contact details" },
+      { id: "companyProfile", label: "Company Profile", description: "Branding, logo, colors, social links" },
       { id: "team", label: "Manage Team", description: "Users, roles, employee access" },
       { id: "billing", label: "Billing & Plan", description: "Core plan, users, subscription payments" },
     ],
@@ -294,6 +296,7 @@ export function Settings() {
   const [editingJobTypeValue, setEditingJobTypeValue] = useState("");
   const [cfEntity, setCfEntity] = useState<CfEntity>("clients");
   const [cfNewOption, setCfNewOption] = useState<Record<string, string>>({});
+  const [companyInfoTab, setCompanyInfoTab] = useState<"profile" | "branding">("profile");
   const [brandPrimary, setBrandPrimary] = useState(() => getStoredBrandTheme().primary);
   const [brandAccent, setBrandAccent] = useState(() => getStoredBrandTheme().accent);
   const [brandLogoPreview, setBrandLogoPreview] = useState(() => getStoredBrandLogo());
@@ -403,7 +406,7 @@ export function Settings() {
 
           {filteredNavGroups.map(group => (
             <div key={group.title} className="mt-4">
-              <div className="mb-1 flex items-center gap-2 px-3 text-[12px] uppercase tracking-wide text-[#7A8799]" style={{ fontWeight: 800 }}>
+              <div className="mb-1 flex items-center gap-2 px-3 text-[12px] tracking-wide text-[#7A8799]" style={{ fontWeight: 800 }}>
                 <span className="material-icons" style={{ fontSize: "15px" }}>{group.icon}</span>
                 {group.title}
               </div>
@@ -466,7 +469,7 @@ export function Settings() {
             </>
           )}
 
-          {activeSection === "companyProfile" && (
+          {activeSection === "companyInfo" && (
             <>
               <SectionHeader
                 title="Company Info"
@@ -495,114 +498,91 @@ export function Settings() {
                     </div>
                   </div>
                 </SectionCard>
+              </div>
+            </>
+          )}
 
-                <SectionCard id="branding" title="Branding" description="White-label controls for logo, app color, document accents, and social links.">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="rounded-xl border border-dashed border-[#C8D5E8] bg-[#F8FAFC] p-4">
-                      <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-xl bg-white text-[#4A6FA5] shadow-sm">
-                        {brandLogoPreview ? (
-                          <img src={brandLogoPreview} alt="Company logo preview" className="h-12 w-12 object-contain" />
-                        ) : (
-                          <span className="material-icons" style={{ fontSize: "28px" }}>image</span>
-                        )}
+          {activeSection === "companyProfile" && (
+            <>
+              <SectionHeader
+                title="Company Profile"
+                description="Manage branding, logo, colors, and social links."
+              />
+              <div className="mb-4 flex gap-1 border-b border-[#E1E6EF]">
+                {(["branding"] as const).map(tab => (
+                  <button
+                    key={tab}
+                    onClick={() => setCompanyInfoTab(tab)}
+                    className={`px-4 pb-2.5 pt-1 text-[13px] transition-colors ${
+                      companyInfoTab === tab
+                        ? "border-b-2 border-[#4A6FA5] text-[#4A6FA5]"
+                        : "text-[#546478] hover:text-[#1A2332]"
+                    }`}
+                    style={{ fontWeight: companyInfoTab === tab ? 700 : 600 }}
+                  >
+                    Branding
+                  </button>
+                ))}
+              </div>
+              <div className="space-y-4">
+
+                <SectionCard id="branding" title="Brand assets" description="Your company branding is shown in Client Hub, email messages, and on all PDFs.">
+                  <div className="grid grid-cols-3 divide-x divide-[#E1E6EF]">
+
+                    {/* Brand Colors */}
+                    <div className="pr-6">
+                      <div className="mb-3 text-[13px] text-[#7A8799]" style={{ fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>Brand Colors</div>
+                      <div className="space-y-2.5">
+                        <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] px-3 py-3 transition-colors hover:border-[#C8D5E8] hover:bg-[#EBF3FF]">
+                          <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-lg shadow-sm" style={{ backgroundColor: brandPrimary }}>
+                            <input
+                              type="color"
+                              value={/^#[0-9a-f]{6}$/i.test(brandPrimary) ? brandPrimary : "#4A6FA5"}
+                              onChange={e => setBrandPrimary(e.target.value)}
+                              className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                            />
+                          </div>
+                          <div>
+                            <div className="text-[11px] text-[#9AA3AF]" style={{ fontWeight: 600 }}>Main brand color</div>
+                            <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 700 }}>{brandPrimary.toUpperCase()}</div>
+                          </div>
+                          <span className="material-icons ml-auto text-[#C8D5E8]" style={{ fontSize: "16px" }}>colorize</span>
+                        </label>
+                        <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] px-3 py-3 transition-colors hover:border-[#C8D5E8] hover:bg-[#EBF3FF]">
+                          <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-lg shadow-sm" style={{ backgroundColor: brandAccent }}>
+                            <input
+                              type="color"
+                              value={/^#[0-9a-f]{6}$/i.test(brandAccent) ? brandAccent : "#F97316"}
+                              onChange={e => setBrandAccent(e.target.value)}
+                              className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                            />
+                          </div>
+                          <div>
+                            <div className="text-[11px] text-[#9AA3AF]" style={{ fontWeight: 600 }}>Accent color</div>
+                            <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 700 }}>{brandAccent.toUpperCase()}</div>
+                          </div>
+                          <span className="material-icons ml-auto text-[#C8D5E8]" style={{ fontSize: "16px" }}>colorize</span>
+                        </label>
                       </div>
-                      <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 700 }}>Company logo</div>
-                      <p className="mt-1 text-[13px] leading-5 text-[#546478]">
-                        Upload logo for the sidebar, invoices, estimates, and receipts.
-                      </p>
-                      <input
-                        ref={logoInputRef}
-                        type="file"
-                        accept="image/png,image/svg+xml"
-                        className="hidden"
-                        onChange={e => handleLogoUpload(e.target.files?.[0])}
-                      />
-                      <Button
-                        variant="outline"
-                        className="mt-3 h-9 border-[#C8D5E8] text-[#4A6FA5] hover:bg-[#4A6FA5] hover:text-white"
-                        onClick={() => logoInputRef.current?.click()}
-                      >
-                        Upload logo
-                      </Button>
-                      {brandLogoPreview && (
+                      <div className="mt-4 flex gap-2">
                         <Button
-                          variant="ghost"
-                          className="ml-2 mt-3 h-9 px-3 text-[13px] text-[#546478] hover:bg-[#F5F7FA]"
-                          onClick={() => {
-                            resetBrandLogo();
-                            setBrandLogoPreview("");
-                            if (logoInputRef.current) logoInputRef.current.value = "";
-                            toast.success("Default logo restored");
-                          }}
-                        >
-                          Remove
-                        </Button>
-                      )}
-                    </div>
-                    <div className="grid gap-4">
-                      <Field label="Primary brand color">
-                        <div className="flex gap-2">
-                          <Input
-                            value={brandPrimary}
-                            onChange={e => setBrandPrimary(e.target.value)}
-                            className="h-9 border-[#D8DEE8]"
-                          />
-                          <input
-                            type="color"
-                            value={/^#[0-9a-f]{6}$/i.test(brandPrimary) ? brandPrimary : "#4A6FA5"}
-                            onChange={e => setBrandPrimary(e.target.value)}
-                            className="h-9 w-12 rounded-lg border border-[#D8DEE8] bg-white p-1"
-                          />
-                        </div>
-                      </Field>
-                      <Field label="Accent color">
-                        <div className="flex gap-2">
-                          <Input
-                            value={brandAccent}
-                            onChange={e => setBrandAccent(e.target.value)}
-                            className="h-9 border-[#D8DEE8]"
-                          />
-                          <input
-                            type="color"
-                            value={/^#[0-9a-f]{6}$/i.test(brandAccent) ? brandAccent : "#F97316"}
-                            onChange={e => setBrandAccent(e.target.value)}
-                            className="h-9 w-12 rounded-lg border border-[#D8DEE8] bg-white p-1"
-                          />
-                        </div>
-                      </Field>
-                      <Field label="Social links">
-                        <Input placeholder="https://instagram.com/omega-home" className="h-9 border-[#D8DEE8]" />
-                      </Field>
-                      <div className="flex items-center justify-between rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] p-3">
-                        <div>
-                          <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 700 }}>Theme preview</div>
-                          <div className="mt-1 text-[12px] text-[#546478]">Applies primary color to buttons, links, active states, and focus rings.</div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="h-7 w-7 rounded-lg border border-white shadow-sm" style={{ backgroundColor: brandPrimary }} />
-                          <span className="h-7 w-7 rounded-lg border border-white shadow-sm" style={{ backgroundColor: brandAccent }} />
-                        </div>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        <Button
-                          className="h-9 bg-[#4A6FA5] px-4 text-[14px] hover:bg-[#3d5a85]"
+                          className="h-8 rounded-lg bg-[#4A6FA5] px-4 text-[12px] hover:bg-[#3d5a85]"
+                          style={{ fontWeight: 700 }}
                           onClick={() => {
                             applyBrandTheme({ primary: brandPrimary, accent: brandAccent });
-                            toast.success("Brand theme applied");
+                            toast.success("Brand colors updated successfully");
                           }}
                         >
-                          Apply branding
+                          Save
                         </Button>
                         <Button
                           variant="outline"
-                          className="h-9 border-[#C8D5E8] px-4 text-[14px] text-[#4A6FA5] hover:bg-[#EBF0F8]"
+                          className="h-8 rounded-lg border-[#D8DEE8] px-3 text-[12px] text-[#546478] hover:bg-[#F5F7FA]"
+                          style={{ fontWeight: 600 }}
                           onClick={() => {
                             resetBrandTheme();
-                            resetBrandLogo();
                             setBrandPrimary(DEFAULT_BRAND_THEME.primary);
                             setBrandAccent(DEFAULT_BRAND_THEME.accent);
-                            setBrandLogoPreview("");
-                            if (logoInputRef.current) logoInputRef.current.value = "";
                             toast.success("Default theme restored");
                           }}
                         >
@@ -610,6 +590,94 @@ export function Settings() {
                         </Button>
                       </div>
                     </div>
+
+                    {/* Logo */}
+                    <div className="px-6">
+                      <div className="mb-3 text-[13px] text-[#7A8799]" style={{ fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>Logo</div>
+                      <input
+                        ref={logoInputRef}
+                        type="file"
+                        accept="image/png,image/svg+xml"
+                        className="hidden"
+                        onChange={e => handleLogoUpload(e.target.files?.[0])}
+                      />
+                      <div
+                        className="group flex h-[130px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-[#C8D5E8] bg-[#F8FAFC] transition-colors hover:border-[#4A6FA5] hover:bg-[#EBF3FF]"
+                        onClick={() => !brandLogoPreview && logoInputRef.current?.click()}
+                      >
+                        {brandLogoPreview ? (
+                          <img src={brandLogoPreview} alt="Company logo" className="max-h-[110px] max-w-full object-contain p-3" />
+                        ) : (
+                          <>
+                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-[#E1E6EF] group-hover:ring-[#4A6FA5]">
+                              <span className="material-icons text-[#9AA3AF] group-hover:text-[#4A6FA5]" style={{ fontSize: "20px" }}>upload</span>
+                            </div>
+                            <span className="mt-2 text-[12px] text-[#9AA3AF] group-hover:text-[#4A6FA5]">No logo</span>
+                          </>
+                        )}
+                      </div>
+                      <div className="mt-3 flex gap-2">
+                        <Button
+                          variant="outline"
+                          className="h-8 rounded-lg border-[#C8D5E8] px-4 text-[12px] text-[#4A6FA5] hover:bg-[#EBF3FF]"
+                          style={{ fontWeight: 700 }}
+                          onClick={() => logoInputRef.current?.click()}
+                        >
+                          {brandLogoPreview ? "Change logo" : "Add logo"}
+                        </Button>
+                        {brandLogoPreview && (
+                          <Button
+                            variant="outline"
+                            className="h-8 rounded-lg border-[#FECACA] px-3 text-[12px] text-[#DC2626] hover:bg-[#FEF2F2]"
+                            style={{ fontWeight: 600 }}
+                            onClick={() => {
+                              resetBrandLogo();
+                              setBrandLogoPreview("");
+                              if (logoInputRef.current) logoInputRef.current.value = "";
+                              toast.success("Logo removed");
+                            }}
+                          >
+                            Remove
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Client Document Settings */}
+                    <div className="pl-6">
+                      <div className="mb-3 text-[13px] text-[#7A8799]" style={{ fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>Client Document Settings</div>
+                      <div className="flex h-[130px] w-full items-center justify-center overflow-hidden rounded-xl border border-[#E5E7EB] bg-gradient-to-b from-[#F8FAFC] to-[#EEF2F7]">
+                        <div className="rounded-lg border border-[#E1E6EF] bg-white p-2.5 shadow-md" style={{ width: 88, transform: "rotate(-1deg)" }}>
+                          <div className="mb-1 flex items-center justify-between">
+                            <div className="h-1.5 w-12 rounded-full bg-[#1A2332]" />
+                            <div className="h-3 w-3 rounded-sm" style={{ backgroundColor: brandPrimary }} />
+                          </div>
+                          <div className="mb-2 h-1 w-8 rounded-full bg-[#C8D5E8]" />
+                          <div className="space-y-1 mb-2">
+                            {[14, 20, 10, 18].map((w, i) => (
+                              <div key={i} className="h-0.5 rounded-full bg-[#E5E7EB]" style={{ width: w * 3 }} />
+                            ))}
+                          </div>
+                          <div className="flex justify-between text-[5px] text-[#9AA3AF]">
+                            <div className="h-4 w-10 rounded bg-[#F5F7FA]" />
+                            <div className="h-4 w-10 rounded bg-[#F5F7FA]" />
+                          </div>
+                          <div className="mt-2 flex justify-end">
+                            <div className="h-2 w-10 rounded-full" style={{ backgroundColor: brandPrimary, opacity: 0.8 }} />
+                          </div>
+                        </div>
+                      </div>
+                      <div className="mt-3">
+                        <Button
+                          variant="outline"
+                          className="h-8 rounded-lg border-[#C8D5E8] px-4 text-[12px] text-[#4A6FA5] hover:bg-[#EBF3FF]"
+                          style={{ fontWeight: 700 }}
+                        >
+                          Edit Settings
+                        </Button>
+                      </div>
+                    </div>
+
                   </div>
                 </SectionCard>
               </div>
