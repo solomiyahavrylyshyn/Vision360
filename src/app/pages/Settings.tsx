@@ -1042,6 +1042,13 @@ export function Settings() {
   const [scheduleStartHour, setScheduleStartHour] = useState("7:00 AM");
   const [scheduleEndHour, setScheduleEndHour] = useState("7:00 PM");
   const [scheduleSlot, setScheduleSlot] = useState("30");
+  // Job statuses — Marek's three; labels are editable, colors locked
+  type JobStatus = { id: "scheduled" | "inProgress" | "completed"; label: string; color: string; bg: string; icon: string };
+  const [jobStatuses, setJobStatuses] = useState<JobStatus[]>([
+    { id: "scheduled",  label: "Scheduled",   color: "#4A6FA5", bg: "#EBF0F8", icon: "event_note" },
+    { id: "inProgress", label: "In Progress", color: "#B45309", bg: "#FEF3C7", icon: "play_circle" },
+    { id: "completed",  label: "Completed",   color: "#15803D", bg: "#DCFCE7", icon: "check_circle" },
+  ]);
   const filteredTeam = team.filter(m => {
     const q = teamSearch.trim().toLowerCase();
     if (!q) return true;
@@ -2148,22 +2155,49 @@ export function Settings() {
                       </div>
                     </SectionCard>
 
-                    {/* Job Statuses (read-only) */}
-                    <SectionCard title="Job Statuses" description="Marek's MVP set: three statuses only, pre-coded and not customizable.">
-                      <div className="flex flex-wrap gap-2">
-                        {([
-                          { label: "Scheduled",   bg: "#EBF0F8", color: "#4A6FA5", icon: "event_note" },
-                          { label: "In Progress", bg: "#FEF3C7", color: "#B45309", icon: "play_circle" },
-                          { label: "Completed",   bg: "#DCFCE7", color: "#15803D", icon: "check_circle" },
-                        ] as const).map(s => (
-                          <div key={s.label} className="flex items-center gap-2 rounded-full border border-[#E5E7EB] bg-white px-3 py-1.5">
-                            <span className="material-icons" style={{ fontSize: "16px", color: s.color }}>{s.icon}</span>
-                            <span className="text-[13px]" style={{ color: s.color, fontWeight: 600 }}>{s.label}</span>
+                    {/* Job Statuses — editable labels */}
+                    <SectionCard title="Job Statuses" description="MVP ships three statuses. Rename them to match how your team talks (e.g. Booked / Working / Done).">
+                      <div className="space-y-2">
+                        {jobStatuses.map(s => (
+                          <div key={s.id} className="flex items-center gap-3">
+                            {/* Color/icon chip — locked */}
+                            <div
+                              className="shrink-0 flex items-center justify-center h-9 w-9 rounded-lg border"
+                              style={{ backgroundColor: s.bg, borderColor: s.bg }}
+                              title="Color is locked — three core states"
+                            >
+                              <span className="material-icons" style={{ fontSize: "18px", color: s.color }}>{s.icon}</span>
+                            </div>
+                            {/* Editable label */}
+                            <label className="flex flex-col rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5 flex-1 max-w-[320px]">
+                              <span className="text-[11px] text-[#6B7280]">Status label</span>
+                              <input
+                                value={s.label}
+                                onChange={e => setJobStatuses(jobStatuses.map(x => x.id === s.id ? { ...x, label: e.target.value } : x))}
+                                className="bg-transparent text-[13px] outline-none mt-0.5"
+                                style={{ color: s.color, fontWeight: 600 }}
+                              />
+                            </label>
+                            {/* Reset to default */}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const defaults: Record<JobStatus["id"], string> = {
+                                  scheduled: "Scheduled",
+                                  inProgress: "In Progress",
+                                  completed: "Completed",
+                                };
+                                setJobStatuses(jobStatuses.map(x => x.id === s.id ? { ...x, label: defaults[s.id] } : x));
+                              }}
+                              className="text-[12px] text-[#4A6FA5] hover:underline"
+                            >
+                              Reset
+                            </button>
                           </div>
                         ))}
                       </div>
-                      <p className="mt-3 text-[12px] text-[#6B7280]">
-                        Customisable workflows (dispatched, on-route, paused, cancelled, on hold) land with Pro / Enterprise.
+                      <p className="mt-4 text-[12px] text-[#6B7280]">
+                        Only the labels are editable. The three core states (Scheduled / In Progress / Completed) stay pre-coded — adding new ones (dispatched, on-route, paused, cancelled, on hold) ships with Pro / Enterprise.
                       </p>
                     </SectionCard>
 
