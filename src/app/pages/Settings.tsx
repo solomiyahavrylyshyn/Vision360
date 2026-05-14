@@ -278,7 +278,6 @@ export function Settings() {
   const [editingJobType, setEditingJobType] = useState<string | null>(null);
   const [editingJobTypeValue, setEditingJobTypeValue] = useState("");
   const [cfEntity, setCfEntity] = useState<CfEntity>("clients");
-  const [cfNewOption, setCfNewOption] = useState<Record<string, string>>({});
   const [companyInfoTab, setCompanyInfoTab] = useState<"profile" | "branding">("profile");
   const [brandPrimary, setBrandPrimary] = useState(() => getStoredBrandTheme().primary);
   const [brandAccent, setBrandAccent] = useState(() => getStoredBrandTheme().accent);
@@ -380,13 +379,6 @@ export function Settings() {
         </div>
 
         <nav className="flex-1 overflow-y-auto px-3 py-3">
-          <button onClick={() => setActiveSection("home")} className={navItemClass("home")}>
-            <div className="flex items-center gap-2">
-              <span className="material-icons" style={{ fontSize: "17px" }}>dashboard</span>
-              <span className="text-[13px]" style={{ fontWeight: activeSection === "home" ? 700 : 600 }}>Overview</span>
-            </div>
-          </button>
-
           {filteredNavGroups.map(group => (
             <div key={group.title} className="mt-4">
               <div className="mb-1 flex items-center gap-2 px-3 text-[12px] tracking-wide text-[#7A8799]" style={{ fontWeight: 800 }}>
@@ -671,7 +663,6 @@ export function Settings() {
                     {[
                       { label: "Client signs an estimate", sub: "In-app and email notification when a client signs" },
                       { label: "Client signs an invoice", sub: "In-app and email notification when a client pays" },
-                      { label: "New client message", sub: "Notify when a client replies via Client Hub" },
                       { label: "Job status changes", sub: "Notify when a job moves to In Progress or Completed" },
                     ].map(n => (
                       <div key={n.label} className="flex items-center justify-between rounded-lg border border-[#E5E7EB] px-4 py-3">
@@ -897,7 +888,7 @@ export function Settings() {
                   </Field>
                 </SectionCard>
 
-                <SectionCard title="Custom Fields" description="Add up to 2 custom fields per entity for clients, estimates, jobs, invoices, and team members.">
+                <SectionCard title="Custom Fields" description="Configure 2 custom fields per entity — clients, jobs, estimates, invoices, and items.">
                   <div className="mb-4 flex gap-2">
                     {(["clients", "jobs", "estimates", "invoices", "items"] as CfEntity[]).map(entity => (
                       <button
@@ -911,37 +902,33 @@ export function Settings() {
                     ))}
                   </div>
                   <div className="space-y-3">
-                    {customFields.filter(field => field.entity === cfEntity).map(field => (
-                      <div key={field.id} className="rounded-xl border border-[#E5E7EB] p-4">
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 800 }}>{field.label}</div>
-                            <div className="mt-1 text-[13px] text-[#546478]">Type: {field.type}{field.required ? " • Required" : ""}</div>
-                            {field.options && field.options.length > 0 && (
-                              <div className="mt-2 flex flex-wrap gap-1.5">
-                                {field.options.map(option => <span key={option} className="rounded-full bg-[#F1F5F9] px-2 py-0.5 text-[12px] text-[#546478]">{option}</span>)}
-                              </div>
-                            )}
-                          </div>
-                          <Button variant="outline" className="h-8 px-3 text-[12px]" onClick={() => customFieldsStore.removeField(field.id)}>Delete</Button>
+                    {customFields[cfEntity].map((field, idx) => (
+                      <div key={idx} className="rounded-xl border border-[#E5E7EB] p-4">
+                        <div className="grid grid-cols-[1fr_180px] items-center gap-3">
+                          <Field label={`Field ${idx + 1} label`}>
+                            <Input
+                              value={field.label}
+                              onChange={e => customFieldsStore.updateField(cfEntity, idx, { label: e.target.value })}
+                              className="h-9 border-[#D8DEE8] text-[14px]"
+                            />
+                          </Field>
+                          <Field label="Type">
+                            <select
+                              value={field.type}
+                              onChange={e => customFieldsStore.updateField(cfEntity, idx, { type: e.target.value as CfFieldType })}
+                              className="h-9 w-full rounded-lg border border-[#D8DEE8] bg-white px-3 text-[14px]"
+                            >
+                              <option value="text">Text</option>
+                              <option value="number">Number</option>
+                              <option value="date">Date</option>
+                              <option value="checkbox">Checkbox</option>
+                              <option value="dropdown">Dropdown</option>
+                            </select>
+                          </Field>
                         </div>
                       </div>
                     ))}
-                    {customFields.filter(field => field.entity === cfEntity).length === 0 && (
-                      <div className="rounded-xl border border-dashed border-[#C8D5E8] p-6 text-center text-[13px] text-[#546478]">No custom fields for this area yet.</div>
-                    )}
                   </div>
-                  {customFields.filter(field => field.entity === cfEntity).length < 2 && (
-                    <Button
-                      className="mt-4 h-9 bg-[#4A6FA5] px-4 text-[14px] hover:bg-[#3d5a85]"
-                      onClick={() => {
-                        customFieldsStore.addField({ entity: cfEntity, label: "New custom field", type: "text", required: false });
-                        toast.success("Custom field added");
-                      }}
-                    >
-                      Add custom field
-                    </Button>
-                  )}
                 </SectionCard>
 
                 <SectionCard title="Terms & Conditions" description="Default terms attached to estimates and invoices sent to clients.">
@@ -1072,73 +1059,6 @@ export function Settings() {
             </>
           )}
 
-          {activeSection === "customFields" && (
-            <>
-              <SectionHeader title="Custom Fields" description="Create lightweight custom fields for clients, jobs, estimates, invoices, and items." />
-              <SectionCard title="Custom field library">
-                <div className="mb-5 flex gap-2">
-                  {(["clients", "jobs", "estimates", "invoices", "items"] as CfEntity[]).map(entity => (
-                    <button
-                      key={entity}
-                      onClick={() => setCfEntity(entity)}
-                      className={`h-8 rounded-lg px-3 text-[13px] capitalize ${cfEntity === entity ? "bg-[#4A6FA5] text-white" : "border border-[#E5E7EB] bg-white text-[#546478] hover:bg-[#F5F7FA]"}`}
-                      style={{ fontWeight: 700 }}
-                    >
-                      {entity}
-                    </button>
-                  ))}
-                </div>
-                <div className="space-y-3">
-                  {customFields.filter(field => field.entity === cfEntity).map(field => (
-                    <div key={field.id} className="rounded-xl border border-[#E5E7EB] p-4">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 800 }}>{field.label}</div>
-                          <div className="mt-1 text-[13px] text-[#546478]">Type: {field.type} {field.required ? "• Required" : ""}</div>
-                          {field.options && field.options.length > 0 && <div className="mt-2 flex flex-wrap gap-1.5">{field.options.map(option => <span key={option} className="rounded-full bg-[#F1F5F9] px-2 py-0.5 text-[12px] text-[#546478]">{option}</span>)}</div>}
-                        </div>
-                        <Button variant="outline" className="h-8 px-3 text-[12px]" onClick={() => customFieldsStore.removeField(field.id)}>Delete</Button>
-                      </div>
-                      {field.type === "select" && (
-                        <div className="mt-3 flex max-w-[460px] gap-2">
-                          <Input
-                            value={cfNewOption[field.id] ?? ""}
-                            onChange={e => setCfNewOption(prev => ({ ...prev, [field.id]: e.target.value }))}
-                            placeholder="Add option..."
-                            className="h-8 border-[#D8DEE8] text-[13px]"
-                          />
-                          <Button
-                            variant="outline"
-                            className="h-8 px-3 text-[12px]"
-                            onClick={() => {
-                              const option = (cfNewOption[field.id] ?? "").trim();
-                              if (!option) return;
-                              customFieldsStore.addOption(field.id, option);
-                              setCfNewOption(prev => ({ ...prev, [field.id]: "" }));
-                            }}
-                          >
-                            Add option
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                  {customFields.filter(field => field.entity === cfEntity).length === 0 && (
-                    <div className="rounded-xl border border-dashed border-[#C8D5E8] p-6 text-center text-[13px] text-[#546478]">No custom fields for this area yet.</div>
-                  )}
-                </div>
-                <Button
-                  className="mt-4 h-9 bg-[#4A6FA5] px-4 text-[14px] hover:bg-[#3d5a85]"
-                  onClick={() => {
-                    customFieldsStore.addField({ entity: cfEntity, label: "New custom field", type: "text", required: false });
-                    toast.success("Custom field added");
-                  }}
-                >
-                  Add custom field
-                </Button>
-              </SectionCard>
-            </>
-          )}
         </div>
       </main>
     </div>

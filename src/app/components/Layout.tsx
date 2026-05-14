@@ -666,21 +666,6 @@ export function Layout() {
       >
         <div className="p-0.5">
 
-          {/* Notifications toggle */}
-          <button
-            onClick={() => setNotificationsEnabled(!notificationsEnabled)}
-            className="w-full flex items-center gap-2 px-2 py-[5.5px] rounded-[6px] hover:bg-[#F5F7FA] transition-colors"
-          >
-            <span className="material-icons text-[#6B7280] flex-shrink-0 w-5 h-5 flex items-center justify-center" style={{ fontSize: "16px" }}>notifications</span>
-            <span className="flex-1 text-[14px] text-[#1A2332] text-left">Notifications</span>
-            <div className={`w-[33px] h-[18px] rounded-full flex items-center flex-shrink-0 transition-colors ${notificationsEnabled ? "bg-[#4A6FA5]" : "bg-[#E5E7EB]"}`}>
-              <div className={`w-3.5 h-3.5 bg-white rounded-full shadow-[0_1px_2px_rgba(0,0,0,0.2)] transition-transform mx-[2px] ${notificationsEnabled ? "translate-x-[15px]" : "translate-x-0"}`} />
-            </div>
-          </button>
-
-          {/* Separator */}
-          <div className="flex items-center px-2 py-1"><div className="h-px w-full bg-[#E5E7EB]" /></div>
-
           {/* Profile / Account / Help */}
           <button onClick={() => { setUserMenuOpen(false); }} className="w-full flex items-center gap-2 px-2 py-[5.5px] rounded-[6px] hover:bg-[#F5F7FA] transition-colors">
             <span className="material-icons text-[#6B7280] flex-shrink-0 w-5 h-5 flex items-center justify-center" style={{ fontSize: "16px" }}>person</span>
