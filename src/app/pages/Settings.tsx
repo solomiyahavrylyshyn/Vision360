@@ -404,7 +404,7 @@ export function Settings() {
             <>
               <SectionHeader
                 title="Settings"
-                description="Manage Vision360 around four MVP areas: business management, system preferences, finance center, and integrations."
+                description="Manage your business details, system preferences, payments, and connected apps."
               />
               <div className="grid grid-cols-2 gap-4">
                 {navGroups.map(group => (
