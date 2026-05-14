@@ -106,15 +106,15 @@ function CustomBarTooltip({ active, payload, label }: any) {
 function StatCard({ icon, iconBg, iconColor, label, value, change, changeUp }: typeof allStatCards[0]) {
   return (
     <div className="bg-white border border-[#E5E7EB] rounded-xl p-5">
-      <div className="flex items-center gap-3 mb-3">
-        <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: iconBg }}>
-          <span className="material-icons" style={{ fontSize: "20px", color: iconColor }}>{icon}</span>
+      <div className="flex items-start justify-between mb-3">
+        <div className="text-[28px] text-[#1A2332] leading-none" style={{ fontWeight: 700 }}>{value}</div>
+        <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ background: iconBg }}>
+          <span className="material-icons" style={{ fontSize: "18px", color: iconColor }}>{icon}</span>
         </div>
       </div>
-      <div className="text-[26px] text-[#1A2332] leading-none mb-1.5" style={{ fontWeight: 700 }}>{value}</div>
       <div className="text-[13px] text-[#6B7280] mb-2">{label}</div>
       <div className={`flex items-center gap-1 text-[12px] ${changeUp ? "text-[#16A34A]" : "text-[#DC2626]"}`} style={{ fontWeight: 500 }}>
-        <span className="material-icons" style={{ fontSize: "14px" }}>{changeUp ? "arrow_upward" : "arrow_downward"}</span>
+        <span className="material-icons" style={{ fontSize: "13px" }}>{changeUp ? "arrow_upward" : "arrow_downward"}</span>
         {change}
         <span className="text-[#9CA3AF] font-normal ml-1">vs last period</span>
       </div>
@@ -199,18 +199,18 @@ function AllBusinessTab() {
         <h2 className="text-[15px] text-[#1A2332] mb-4" style={{ fontWeight: 600 }}>Quick Overview</h2>
         <div className="grid grid-cols-4 gap-4">
           {quickOverview.map(item => (
-            <div key={item.label} className="flex items-start gap-4 p-4 bg-[#F9FAFB] rounded-xl">
-              <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style={{ background: item.iconBg }}>
-                <span className="material-icons" style={{ fontSize: "20px", color: item.iconColor }}>{item.icon}</span>
-              </div>
-              <div>
-                <div className="text-[24px] text-[#1A2332] leading-none mb-1" style={{ fontWeight: 700 }}>{item.value}</div>
-                <div className="text-[12px] text-[#6B7280] mb-1.5">{item.label}</div>
-                <div className={`flex items-center gap-0.5 text-[11px] ${item.changeUp ? "text-[#16A34A]" : "text-[#DC2626]"}`} style={{ fontWeight: 500 }}>
-                  <span className="material-icons" style={{ fontSize: "12px" }}>{item.changeUp ? "arrow_upward" : "arrow_downward"}</span>
-                  {item.change}
-                  <span className="text-[#9CA3AF] font-normal ml-1">vs last period</span>
+            <div key={item.label} className="p-4 bg-[#F9FAFB] rounded-xl">
+              <div className="flex items-start justify-between mb-2">
+                <div className="text-[26px] text-[#1A2332] leading-none" style={{ fontWeight: 700 }}>{item.value}</div>
+                <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ background: item.iconBg }}>
+                  <span className="material-icons" style={{ fontSize: "18px", color: item.iconColor }}>{item.icon}</span>
                 </div>
+              </div>
+              <div className="text-[12px] text-[#6B7280] mb-1.5">{item.label}</div>
+              <div className={`flex items-center gap-0.5 text-[11px] ${item.changeUp ? "text-[#16A34A]" : "text-[#DC2626]"}`} style={{ fontWeight: 500 }}>
+                <span className="material-icons" style={{ fontSize: "12px" }}>{item.changeUp ? "arrow_upward" : "arrow_downward"}</span>
+                {item.change}
+                <span className="text-[#9CA3AF] font-normal ml-1">vs last period</span>
               </div>
             </div>
           ))}
