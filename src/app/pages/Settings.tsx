@@ -19,34 +19,24 @@ type SettingsSection =
   | "companyProfile"
   | "team"
   | "billing"
-  | "regional"
-  | "taxProfiles"
+  | "general"
   | "jobs"
   | "estimates"
   | "invoices"
   | "items"
-  | "legalTexts"
   | "finance"
   | "integrations"
-  | "marketingSources"
-  | "customerTags"
-  | "counties"
-  | "jobTypes"
   | "customFields"
   | "profile"
   | "business"
-  | "notifications"
   | "security"
-  | "taxes"
-  | "templates";
+  | "taxes";
 
 const sectionAliases: Partial<Record<SettingsSection, SettingsSection>> = {
   profile: "companyProfile",
   business: "companyInfo",
-  notifications: "jobs",
   security: "team",
-  taxes: "taxProfiles",
-  templates: "legalTexts",
+  taxes: "general",
 };
 
 const navGroups: Array<{
@@ -59,7 +49,7 @@ const navGroups: Array<{
     icon: "business",
     items: [
       { id: "companyInfo", label: "Company Info", description: "Company name, address, contact details" },
-      { id: "companyProfile", label: "Company Profile", description: "Branding, logo, colors, social links" },
+      { id: "companyProfile", label: "Company Profile", description: "About, branding, taxes, regional" },
       { id: "team", label: "Manage Team", description: "Users, roles, employee access" },
       { id: "billing", label: "Billing & Plan", description: "Core plan, users, subscription payments" },
     ],
@@ -68,25 +58,18 @@ const navGroups: Array<{
     title: "System Preferences",
     icon: "settings",
     items: [
-      { id: "regional", label: "Regional", description: "Country, currency, date format, week start" },
-      { id: "taxProfiles", label: "Tax Profiles", description: "Rates, tax profiles, defaults" },
-      { id: "jobs", label: "Jobs", description: "Schedule board, signatures, notes" },
+      { id: "general", label: "General", description: "Industry, custom fields, legal texts" },
+      { id: "jobs", label: "Jobs", description: "Job types, schedule, signatures, notes" },
       { id: "estimates", label: "Estimates", description: "Templates, deposits, terms" },
       { id: "invoices", label: "Invoices", description: "Templates, signatures, receipt notes" },
       { id: "items", label: "Items", description: "Catalog and item settings" },
-      { id: "legalTexts", label: "Legal Texts", description: "Terms, policies, form notes" },
-      { id: "marketingSources", label: "Lead Sources" },
-      { id: "customerTags", label: "Customer Tags" },
-      { id: "counties", label: "Counties" },
-      { id: "jobTypes", label: "Job Types" },
-      { id: "customFields", label: "Custom Fields" },
     ],
   },
   {
     title: "Finance Center",
     icon: "account_balance",
     items: [
-      { id: "finance", label: "Money Setup", description: "Payment gateway, payout bank, financing" },
+      { id: "finance", label: "Payments", description: "Payment gateway, payout bank, methods" },
     ],
   },
   {
@@ -506,24 +489,8 @@ export function Settings() {
             <>
               <SectionHeader
                 title="Company Profile"
-                description="Manage branding, logo, colors, and social links."
+                description="About your business, branding, social links, taxes, and regional settings."
               />
-              <div className="mb-4 flex gap-1 border-b border-[#E1E6EF]">
-                {(["branding"] as const).map(tab => (
-                  <button
-                    key={tab}
-                    onClick={() => setCompanyInfoTab(tab)}
-                    className={`px-4 pb-2.5 pt-1 text-[13px] transition-colors ${
-                      companyInfoTab === tab
-                        ? "border-b-2 border-[#4A6FA5] text-[#4A6FA5]"
-                        : "text-[#546478] hover:text-[#1A2332]"
-                    }`}
-                    style={{ fontWeight: companyInfoTab === tab ? 700 : 600 }}
-                  >
-                    Branding
-                  </button>
-                ))}
-              </div>
               <div className="space-y-4">
 
                 <SectionCard id="branding" title="Brand assets" description="Your company branding is shown in Client Hub, email messages, and on all PDFs.">
@@ -680,84 +647,129 @@ export function Settings() {
 
                   </div>
                 </SectionCard>
-              </div>
-            </>
-          )}
 
-          {activeSection === "regional" && (
-            <>
-              <SectionHeader
-                title="Regional"
-                description="Defaults should usually come from onboarding, but owners can adjust country, language, time zone, currency, date format, and week start."
-              />
-              <SectionCard title="Regional defaults">
-                <div className="grid grid-cols-2 gap-4">
-                  <Field label="Country">
-                    <select className="h-9 w-full rounded-lg border border-[#D8DEE8] bg-white px-3 text-[14px]"><option>United States</option><option>Ukraine</option><option>Cyprus</option></select>
-                  </Field>
-                  <Field label="Language">
-                    <select className="h-9 w-full rounded-lg border border-[#D8DEE8] bg-white px-3 text-[14px]">
-                      <option>English</option>
-                      <option>Spanish</option>
-                    </select>
-                  </Field>
-                  <Field label="Region / state / oblast"><Input defaultValue="Florida" className="h-9 border-[#D8DEE8]" /></Field>
-                  <Field label="Time zone">
-                    <select className="h-9 w-full rounded-lg border border-[#D8DEE8] bg-white px-3 text-[14px]"><option>Eastern Time</option><option>Central Time</option><option>Europe/Kyiv</option></select>
-                  </Field>
-                  <Field label="Currency">
-                    <select className="h-9 w-full rounded-lg border border-[#D8DEE8] bg-white px-3 text-[14px]"><option>USD - US Dollar</option><option>UAH - Ukrainian Hryvnia</option><option>EUR - Euro</option></select>
-                  </Field>
-                  <Field label="Date format">
-                    <select className="h-9 w-full rounded-lg border border-[#D8DEE8] bg-white px-3 text-[14px]"><option>May 7, 2026</option><option>7 May 2026</option><option>07/05/2026</option></select>
-                  </Field>
-                  <Field label="First day of week">
-                    <select className="h-9 w-full rounded-lg border border-[#D8DEE8] bg-white px-3 text-[14px]"><option>Sunday</option><option>Monday</option></select>
-                  </Field>
-                </div>
-              </SectionCard>
-            </>
-          )}
+                <SectionCard title="About" description="A short note about your business, visible to your team.">
+                  <textarea
+                    defaultValue="Omega Home Services is a full-service home maintenance company based in Tampa, FL. We specialize in HVAC, plumbing, and general repairs."
+                    className="min-h-[90px] w-full rounded-lg border border-[#D8DEE8] bg-white px-3 py-2 text-[14px] leading-5 text-[#1A2332] outline-none focus:border-[#4A6FA5] focus:ring-2 focus:ring-[#4A6FA5]/20"
+                  />
+                  <Button className="mt-3 h-8 bg-[#4A6FA5] px-4 text-[13px] hover:bg-[#3d5a85]">Save</Button>
+                </SectionCard>
 
-          {activeSection === "taxProfiles" && (
-            <>
-              <SectionHeader
-                title="Tax Profiles"
-                description="Create individual tax rates, combine them into tax profiles, and set one default profile for invoices and jobs."
-              />
-              <div className="grid grid-cols-[minmax(0,1fr)_360px] gap-4">
-                <SectionCard title="Tax profiles" description="Profiles can include one or more tax rates.">
+                <SectionCard title="Social network links" description="Links shown on your Client Hub and customer-facing pages.">
+                  <div className="grid grid-cols-2 gap-4">
+                    <Field label="Facebook"><Input placeholder="https://facebook.com/your-page" className="h-9 border-[#D8DEE8]" /></Field>
+                    <Field label="Instagram"><Input defaultValue="https://instagram.com/omega-home" className="h-9 border-[#D8DEE8]" /></Field>
+                    <Field label="LinkedIn"><Input placeholder="https://linkedin.com/company/your-page" className="h-9 border-[#D8DEE8]" /></Field>
+                    <Field label="Website"><Input defaultValue="https://omega-home.com" className="h-9 border-[#D8DEE8]" /></Field>
+                  </div>
+                  <Button className="mt-3 h-8 bg-[#4A6FA5] px-4 text-[13px] hover:bg-[#3d5a85]">Save</Button>
+                </SectionCard>
+
+                <SectionCard title="Notifications" description="Control when the app notifies you about client activity.">
                   <div className="space-y-3">
-                    {taxProfiles.map(profile => (
-                      <div key={profile.name} className="rounded-xl border border-[#E5E7EB] p-4">
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 700 }}>{profile.name}</div>
-                            <div className="mt-1 text-[13px] text-[#546478]">{profile.rates}</div>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-[16px] text-[#1A2332]" style={{ fontWeight: 800 }}>{profile.total}</div>
-                            {profile.default && <span className="mt-1 inline-flex rounded-full bg-[#DCFCE7] px-2 py-0.5 text-[11px] text-[#15803D]" style={{ fontWeight: 700 }}>Default</span>}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <Button className="mt-4 h-9 bg-[#4A6FA5] px-4 text-[14px] hover:bg-[#3d5a85]">Add tax profile</Button>
-                </SectionCard>
-                <SectionCard title="Tax rates">
-                  <div className="space-y-2">
-                    {taxRates.map(rate => (
-                      <div key={rate.name} className="flex items-center justify-between rounded-lg border border-[#E5E7EB] px-3 py-2">
+                    {[
+                      { label: "Client signs an estimate", sub: "In-app and email notification when a client signs" },
+                      { label: "Client signs an invoice", sub: "In-app and email notification when a client pays" },
+                      { label: "New client message", sub: "Notify when a client replies via Client Hub" },
+                      { label: "Job status changes", sub: "Notify when a job moves to In Progress or Completed" },
+                    ].map(n => (
+                      <div key={n.label} className="flex items-center justify-between rounded-lg border border-[#E5E7EB] px-4 py-3">
                         <div>
-                          <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 700 }}>{rate.name}</div>
-                          <div className="text-[12px] text-[#7A8799]">{rate.jurisdiction}</div>
+                          <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>{n.label}</div>
+                          <div className="text-[12px] text-[#7A8799]">{n.sub}</div>
                         </div>
-                        <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 800 }}>{rate.rate}</div>
+                        <Switch defaultChecked />
                       </div>
                     ))}
                   </div>
                 </SectionCard>
+
+                <SectionCard title="Taxes & Rates" description="Create tax rates, combine them into profiles, and set a default for invoices and jobs.">
+                  <div className="mb-4 grid grid-cols-2 gap-4">
+                    <Field label="Tax ID / EIN"><Input defaultValue="47-1234567" className="h-9 border-[#D8DEE8]" /></Field>
+                    <Field label="Tax ID display name (e.g. GST, VAT)"><Input defaultValue="Sales Tax" className="h-9 border-[#D8DEE8]" /></Field>
+                  </div>
+                  <div className="grid grid-cols-[minmax(0,1fr)_300px] gap-4">
+                    <div>
+                      <div className="mb-2 flex items-center justify-between">
+                        <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 700 }}>Tax profiles</div>
+                        <Button className="h-7 bg-[#4A6FA5] px-3 text-[12px] hover:bg-[#3d5a85]">+ Create tax profile</Button>
+                      </div>
+                      <div className="space-y-2">
+                        {taxProfiles.map(profile => (
+                          <div key={profile.name} className="rounded-xl border border-[#E5E7EB] px-4 py-3">
+                            <div className="flex items-center justify-between gap-3">
+                              <div>
+                                <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 700 }}>{profile.name}</div>
+                                <div className="text-[12px] text-[#546478]">{profile.rates}</div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 800 }}>{profile.total}</div>
+                                {profile.default && <span className="inline-flex rounded-full bg-[#DCFCE7] px-2 py-0.5 text-[11px] text-[#15803D]" style={{ fontWeight: 700 }}>Default</span>}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="mb-2 flex items-center justify-between">
+                        <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 700 }}>Tax rates</div>
+                        <Button className="h-7 bg-[#4A6FA5] px-3 text-[12px] hover:bg-[#3d5a85]">+ Create tax rate</Button>
+                      </div>
+                      <div className="space-y-2">
+                        {taxRates.map(rate => (
+                          <div key={rate.name} className="flex items-center justify-between rounded-lg border border-[#E5E7EB] px-3 py-2">
+                            <div>
+                              <div className="text-[12px] text-[#1A2332]" style={{ fontWeight: 700 }}>{rate.name}</div>
+                              <div className="text-[11px] text-[#7A8799]">{rate.jurisdiction}</div>
+                            </div>
+                            <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 800 }}>{rate.rate}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </SectionCard>
+
+                <SectionCard title="Regional" description="Country, counties, timezone, currency, date format, and first day of the week.">
+                  <div className="grid grid-cols-2 gap-4">
+                    <Field label="Country">
+                      <select className="h-9 w-full rounded-lg border border-[#D8DEE8] bg-white px-3 text-[14px]"><option>United States</option><option>Ukraine</option><option>Cyprus</option></select>
+                    </Field>
+                    <Field label="Time zone">
+                      <select className="h-9 w-full rounded-lg border border-[#D8DEE8] bg-white px-3 text-[14px]"><option>Eastern Time (ET)</option><option>Central Time (CT)</option><option>Europe/Kyiv</option></select>
+                    </Field>
+                    <Field label="Currency">
+                      <select className="h-9 w-full rounded-lg border border-[#D8DEE8] bg-white px-3 text-[14px]"><option>USD - US Dollar</option><option>UAH - Ukrainian Hryvnia</option><option>EUR - Euro</option></select>
+                    </Field>
+                    <Field label="Date format">
+                      <select className="h-9 w-full rounded-lg border border-[#D8DEE8] bg-white px-3 text-[14px]"><option>May 7, 2026</option><option>7 May 2026</option><option>07/05/2026</option></select>
+                    </Field>
+                    <Field label="First day of week">
+                      <select className="h-9 w-full rounded-lg border border-[#D8DEE8] bg-white px-3 text-[14px]"><option>Sunday</option><option>Monday</option></select>
+                    </Field>
+                    <Field label="Region / state / oblast"><Input defaultValue="Florida" className="h-9 border-[#D8DEE8]" /></Field>
+                  </div>
+                  <div className="mt-4">
+                    <div className="mb-2 text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>Counties / regions used in client addresses</div>
+                    <div className="flex gap-2">
+                      <Input placeholder="Add county or oblast..." className="h-9 max-w-[320px] border-[#D8DEE8] text-[13px]" />
+                      <Button className="h-9 bg-[#4A6FA5] px-4 text-[13px] hover:bg-[#3d5a85]">Add</Button>
+                    </div>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {["Hillsborough County", "Pinellas County", "Pasco County"].map(c => (
+                        <span key={c} className="flex items-center gap-1 rounded-full border border-[#E5E7EB] bg-[#F8FAFC] px-3 py-1 text-[12px] text-[#546478]">
+                          {c}
+                          <button className="ml-1 text-[#9AA3AF] hover:text-[#DC2626]">×</button>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <Button className="mt-4 h-8 bg-[#4A6FA5] px-4 text-[13px] hover:bg-[#3d5a85]">Save</Button>
+                </SectionCard>
+
               </div>
             </>
           )}
@@ -863,7 +875,103 @@ export function Settings() {
             </>
           )}
 
-          {(activeSection === "jobs" || activeSection === "estimates" || activeSection === "invoices" || activeSection === "items" || activeSection === "legalTexts") && (
+          {activeSection === "general" && (
+            <>
+              <SectionHeader
+                title="General"
+                description="Industry type, custom fields, terms & conditions, and company policies."
+              />
+              <div className="space-y-4">
+                <SectionCard title="Industry" description="Helps Vision360 tailor defaults for your type of business.">
+                  <Field label="Industry type">
+                    <select className="h-9 w-full max-w-[380px] rounded-lg border border-[#D8DEE8] bg-white px-3 text-[14px]">
+                      <option>Home Services</option>
+                      <option>HVAC</option>
+                      <option>Plumbing</option>
+                      <option>Electrical</option>
+                      <option>Landscaping</option>
+                      <option>Cleaning</option>
+                      <option>General Contracting</option>
+                      <option>Other</option>
+                    </select>
+                  </Field>
+                </SectionCard>
+
+                <SectionCard title="Custom Fields" description="Add up to 2 custom fields per entity for clients, estimates, jobs, invoices, and team members.">
+                  <div className="mb-4 flex gap-2">
+                    {(["clients", "jobs", "estimates", "invoices", "items"] as CfEntity[]).map(entity => (
+                      <button
+                        key={entity}
+                        onClick={() => setCfEntity(entity)}
+                        className={`h-8 rounded-lg px-3 text-[13px] capitalize ${cfEntity === entity ? "bg-[#4A6FA5] text-white" : "border border-[#E5E7EB] bg-white text-[#546478] hover:bg-[#F5F7FA]"}`}
+                        style={{ fontWeight: 700 }}
+                      >
+                        {entity}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="space-y-3">
+                    {customFields.filter(field => field.entity === cfEntity).map(field => (
+                      <div key={field.id} className="rounded-xl border border-[#E5E7EB] p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 800 }}>{field.label}</div>
+                            <div className="mt-1 text-[13px] text-[#546478]">Type: {field.type}{field.required ? " • Required" : ""}</div>
+                            {field.options && field.options.length > 0 && (
+                              <div className="mt-2 flex flex-wrap gap-1.5">
+                                {field.options.map(option => <span key={option} className="rounded-full bg-[#F1F5F9] px-2 py-0.5 text-[12px] text-[#546478]">{option}</span>)}
+                              </div>
+                            )}
+                          </div>
+                          <Button variant="outline" className="h-8 px-3 text-[12px]" onClick={() => customFieldsStore.removeField(field.id)}>Delete</Button>
+                        </div>
+                      </div>
+                    ))}
+                    {customFields.filter(field => field.entity === cfEntity).length === 0 && (
+                      <div className="rounded-xl border border-dashed border-[#C8D5E8] p-6 text-center text-[13px] text-[#546478]">No custom fields for this area yet.</div>
+                    )}
+                  </div>
+                  {customFields.filter(field => field.entity === cfEntity).length < 2 && (
+                    <Button
+                      className="mt-4 h-9 bg-[#4A6FA5] px-4 text-[14px] hover:bg-[#3d5a85]"
+                      onClick={() => {
+                        customFieldsStore.addField({ entity: cfEntity, label: "New custom field", type: "text", required: false });
+                        toast.success("Custom field added");
+                      }}
+                    >
+                      Add custom field
+                    </Button>
+                  )}
+                </SectionCard>
+
+                <SectionCard title="Terms & Conditions" description="Default terms attached to estimates and invoices sent to clients.">
+                  <textarea
+                    defaultValue="Standard terms and conditions attached to estimates and invoices. Payment is due within 15 days of approval. Equipment remains property of Omega Home Services until invoice is paid in full."
+                    className="min-h-[120px] w-full rounded-lg border border-[#D8DEE8] bg-white px-3 py-2 text-[14px] leading-5 text-[#1A2332] outline-none focus:border-[#4A6FA5] focus:ring-2 focus:ring-[#4A6FA5]/20"
+                  />
+                  <Button className="mt-3 h-8 bg-[#4A6FA5] px-4 text-[13px] hover:bg-[#3d5a85]">Save</Button>
+                </SectionCard>
+
+                <SectionCard title="Policies" description="Internal company policies visible to team members.">
+                  <textarea
+                    defaultValue="Employee policy text that can be referenced by team members. Covers conduct, schedule, and equipment use."
+                    className="min-h-[120px] w-full rounded-lg border border-[#D8DEE8] bg-white px-3 py-2 text-[14px] leading-5 text-[#1A2332] outline-none focus:border-[#4A6FA5] focus:ring-2 focus:ring-[#4A6FA5]/20"
+                  />
+                  <Button className="mt-3 h-8 bg-[#4A6FA5] px-4 text-[13px] hover:bg-[#3d5a85]">Save</Button>
+                </SectionCard>
+
+                <SectionCard title="Privacy Policy" description="Your company's privacy policy shown on the Client Hub and customer-facing pages.">
+                  <textarea
+                    defaultValue="Omega Home Services respects your privacy. We collect only the information necessary to provide our services and will never share your data with third parties without your consent."
+                    className="min-h-[120px] w-full rounded-lg border border-[#D8DEE8] bg-white px-3 py-2 text-[14px] leading-5 text-[#1A2332] outline-none focus:border-[#4A6FA5] focus:ring-2 focus:ring-[#4A6FA5]/20"
+                  />
+                  <Button className="mt-3 h-8 bg-[#4A6FA5] px-4 text-[13px] hover:bg-[#3d5a85]">Save</Button>
+                </SectionCard>
+              </div>
+            </>
+          )}
+
+          {(activeSection === "jobs" || activeSection === "estimates" || activeSection === "invoices" || activeSection === "items") && (
             <>
               <SectionHeader
                 title={{
@@ -871,13 +979,33 @@ export function Settings() {
                   estimates: "Estimate Preferences",
                   invoices: "Invoice Preferences",
                   items: "Item Preferences",
-                  legalTexts: "Legal Texts",
-                }[activeSection]}
+                }[activeSection as "jobs" | "estimates" | "invoices" | "items"]}
                 description="System preference areas are intentionally simple and module-specific. Clients do not get a separate settings area in MVP."
               />
               <div className="space-y-4">
                 {activeSection === "jobs" && (
                   <>
+                    <SectionCard title="Job Types" description="Types used when creating jobs. Helps categorize and filter work orders.">
+                      <div className="mb-3 flex gap-2">
+                        <Input
+                          value={newJobTypeName}
+                          onChange={e => setNewJobTypeName(e.target.value)}
+                          placeholder="New job type..."
+                          className="h-9 max-w-[320px] border-[#D8DEE8] text-[13px]"
+                          onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addJobType(); } }}
+                        />
+                        <Button className="h-9 bg-[#4A6FA5] px-4 text-[13px] hover:bg-[#3d5a85]" onClick={addJobType}>Add</Button>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {jobTypes.map(jt => (
+                          <span key={jt} className="flex items-center gap-1 rounded-full border border-[#E5E7EB] bg-[#F8FAFC] px-3 py-1.5 text-[13px] text-[#1A2332]">
+                            {jt}
+                            <button className="ml-1 text-[#9AA3AF] hover:text-[#DC2626]" onClick={() => { jobTypesStore.removeJobType(jt); toast.success("Job type removed"); }}>×</button>
+                          </span>
+                        ))}
+                        {jobTypes.length === 0 && <span className="text-[13px] text-[#9AA3AF]">No job types yet.</span>}
+                      </div>
+                    </SectionCard>
                     <EmptyModuleNote title="Schedule board" copy="Keep schedule behavior mostly pre-coded for MVP. Minor preferences can be added after Marek's next review." />
                     <SectionCard title="Job notes"><textarea defaultValue="Default job note visible to employees in the field." className="min-h-[120px] w-full rounded-lg border border-[#D8DEE8] px-3 py-2 text-[14px]" /></SectionCard>
                   </>
@@ -897,14 +1025,6 @@ export function Settings() {
                   </>
                 )}
                 {activeSection === "items" && <EmptyModuleNote title="Item settings to review" copy="Marek has not finalized item settings yet. Keep catalog behavior simple until the next pass." />}
-                {activeSection === "legalTexts" && (
-                  <SectionCard title="Reusable legal text">
-                    <div className="grid grid-cols-2 gap-4">
-                      <Field label="Terms and conditions"><textarea defaultValue="Standard terms and conditions attached to estimates and invoices." className="min-h-[120px] w-full rounded-lg border border-[#D8DEE8] px-3 py-2 text-[14px]" /></Field>
-                      <Field label="Employee policy"><textarea defaultValue="Policy text that can be attached to employee users." className="min-h-[120px] w-full rounded-lg border border-[#D8DEE8] px-3 py-2 text-[14px]" /></Field>
-                    </div>
-                  </SectionCard>
-                )}
               </div>
             </>
           )}
@@ -950,82 +1070,6 @@ export function Settings() {
                 ))}
               </div>
             </>
-          )}
-
-          {activeSection === "marketingSources" && (
-            <AddListSection
-              title="Lead Sources"
-              description="Manage lead sources used when creating or editing clients."
-              placeholder="New source name..."
-              value={newSourceName}
-              onValueChange={setNewSourceName}
-              onAdd={addSource}
-              rows={marketingSources}
-              editing={editingSource}
-              editValue={editingValue}
-              onStartEdit={row => { setEditingSource(row); setEditingValue(row); }}
-              onEditValueChange={setEditingValue}
-              onSaveEdit={row => { marketingSourcesStore.renameSource(row, editingValue); setEditingSource(null); toast.success("Source renamed"); }}
-              onCancelEdit={() => setEditingSource(null)}
-              onDelete={row => { marketingSourcesStore.removeSource(row); toast.success("Source removed"); }}
-            />
-          )}
-
-          {activeSection === "customerTags" && (
-            <AddListSection
-              title="Customer Tags"
-              description="Manage tags for organizing clients."
-              placeholder="New tag name..."
-              value={newTagName}
-              onValueChange={setNewTagName}
-              onAdd={addTag}
-              rows={customerTags}
-              editing={editingTag}
-              editValue={editingTagValue}
-              onStartEdit={row => { setEditingTag(row); setEditingTagValue(row); }}
-              onEditValueChange={setEditingTagValue}
-              onSaveEdit={row => { tagsStore.renameTag(row, editingTagValue); setEditingTag(null); toast.success("Tag renamed"); }}
-              onCancelEdit={() => setEditingTag(null)}
-              onDelete={row => { tagsStore.removeTag(row); toast.success("Tag removed"); }}
-            />
-          )}
-
-          {activeSection === "counties" && (
-            <AddListSection
-              title="Counties"
-              description="Manage county/oblast options available on client addresses."
-              placeholder="New county name..."
-              value={newCountyName}
-              onValueChange={setNewCountyName}
-              onAdd={addCounty}
-              rows={counties}
-              editing={editingCounty}
-              editValue={editingCountyValue}
-              onStartEdit={row => { setEditingCounty(row); setEditingCountyValue(row); }}
-              onEditValueChange={setEditingCountyValue}
-              onSaveEdit={row => { countiesStore.renameCounty(row, editingCountyValue); setEditingCounty(null); toast.success("County renamed"); }}
-              onCancelEdit={() => setEditingCounty(null)}
-              onDelete={row => { countiesStore.removeCounty(row); toast.success("County removed"); }}
-            />
-          )}
-
-          {activeSection === "jobTypes" && (
-            <AddListSection
-              title="Job Types"
-              description="Manage job type options used in job creation."
-              placeholder="New job type..."
-              value={newJobTypeName}
-              onValueChange={setNewJobTypeName}
-              onAdd={addJobType}
-              rows={jobTypes}
-              editing={editingJobType}
-              editValue={editingJobTypeValue}
-              onStartEdit={row => { setEditingJobType(row); setEditingJobTypeValue(row); }}
-              onEditValueChange={setEditingJobTypeValue}
-              onSaveEdit={row => { jobTypesStore.renameJobType(row, editingJobTypeValue); setEditingJobType(null); toast.success("Job type renamed"); }}
-              onCancelEdit={() => setEditingJobType(null)}
-              onDelete={row => { jobTypesStore.removeJobType(row); toast.success("Job type removed"); }}
-            />
           )}
 
           {activeSection === "customFields" && (
