@@ -406,17 +406,6 @@ export function Settings() {
                 title="Settings"
                 description="Manage Vision360 around four MVP areas: business management, system preferences, finance center, and integrations."
               />
-              <div className="mb-5 rounded-xl border border-[#BDD4F5] bg-[#EBF3FF] p-4">
-                <div className="flex items-start gap-3">
-                  <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "20px" }}>info</span>
-                  <div>
-                    <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 700 }}>MVP scope note</div>
-                    <p className="mt-1 text-[13px] leading-5 text-[#546478]">
-                      Keep settings simple for Peter: owner/admin plus employee access, defaults from onboarding, editable tax profiles, and money setup separated into Finance Center.
-                    </p>
-                  </div>
-                </div>
-              </div>
               <div className="grid grid-cols-2 gap-4">
                 {navGroups.map(group => (
                   <Card key={group.title} className="border border-[#E1E6EF] bg-white p-5 shadow-[0_8px_22px_rgba(26,35,50,0.035)]">
@@ -741,12 +730,12 @@ export function Settings() {
                     <Field label="First day of week">
                       <select className="h-9 w-full rounded-lg border border-[#D8DEE8] bg-white px-3 text-[14px]"><option>Sunday</option><option>Monday</option></select>
                     </Field>
-                    <Field label="Region / state / oblast"><Input defaultValue="Florida" className="h-9 border-[#D8DEE8]" /></Field>
+                    <Field label="Region / State"><Input defaultValue="Florida" className="h-9 border-[#D8DEE8]" /></Field>
                   </div>
                   <div className="mt-4">
                     <div className="mb-2 text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>Counties / regions used in client addresses</div>
                     <div className="flex gap-2">
-                      <Input placeholder="Add county or oblast..." className="h-9 max-w-[320px] border-[#D8DEE8] text-[13px]" />
+                      <Input placeholder="Add county or region..." className="h-9 max-w-[320px] border-[#D8DEE8] text-[13px]" />
                       <Button className="h-9 bg-[#4A6FA5] px-4 text-[13px] hover:bg-[#3d5a85]">Add</Button>
                     </div>
                     <div className="mt-2 flex flex-wrap gap-2">
