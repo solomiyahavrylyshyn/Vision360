@@ -220,7 +220,7 @@ function TaxSettingsCard() {
 
       {/* Tax ID block */}
       <div className="grid grid-cols-2 gap-0 rounded-xl border border-[#E5E7EB] overflow-hidden">
-        <label className="flex flex-col px-3 py-2 border-r border-[#E5E7EB]">
+        <label className="flex flex-col px-3 py-1 border-r border-[#E5E7EB]">
           <span className="text-[11px] text-[#6B7280]">Tax ID name (ex: GST)</span>
           <input
             value={taxIdName}
@@ -228,7 +228,7 @@ function TaxSettingsCard() {
             className="bg-transparent text-[13px] text-[#1A2332] outline-none"
           />
         </label>
-        <label className="flex flex-col px-3 py-2">
+        <label className="flex flex-col px-3 py-1">
           <span className="text-[11px] text-[#6B7280]">Tax ID number</span>
           <input
             value={taxIdNumber}
@@ -237,10 +237,10 @@ function TaxSettingsCard() {
           />
         </label>
       </div>
-      <div className="mt-2 text-[12px] text-[#6B7280]">Tax ID name and number will appear on invoices</div>
+      <div className="mt-1.5 text-[12px] text-[#6B7280]">Tax ID name and number will appear on invoices</div>
 
       {/* Divider + Default label */}
-      <div className="mt-5 border-t border-[#E5E7EB] pt-4 flex items-center gap-1.5">
+      <div className="mt-3 border-t border-[#E5E7EB] pt-3 flex items-center gap-1.5">
         <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>Default</span>
         <span
           className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-[#9CA3AF] text-[10px] text-[#9CA3AF]"
