@@ -1042,13 +1042,23 @@ export function Settings() {
   const [scheduleStartHour, setScheduleStartHour] = useState("7:00 AM");
   const [scheduleEndHour, setScheduleEndHour] = useState("7:00 PM");
   const [scheduleSlot, setScheduleSlot] = useState("30");
-  // Job statuses — Marek's three; labels are editable, colors locked
-  type JobStatus = { id: "scheduled" | "inProgress" | "completed"; label: string; color: string; bg: string; icon: string };
+  // Job statuses — MVP starts with three core; additional ones can be added
+  type JobStatus = { id: string; label: string; color: string; bg: string; icon: string; core?: boolean };
   const [jobStatuses, setJobStatuses] = useState<JobStatus[]>([
-    { id: "scheduled",  label: "Scheduled",   color: "#4A6FA5", bg: "#EBF0F8", icon: "event_note" },
-    { id: "inProgress", label: "In Progress", color: "#B45309", bg: "#FEF3C7", icon: "play_circle" },
-    { id: "completed",  label: "Completed",   color: "#15803D", bg: "#DCFCE7", icon: "check_circle" },
+    { id: "scheduled",  label: "Scheduled",   color: "#4A6FA5", bg: "#EBF0F8", icon: "event_note",   core: true },
+    { id: "inProgress", label: "In Progress", color: "#B45309", bg: "#FEF3C7", icon: "play_circle",  core: true },
+    { id: "completed",  label: "Completed",   color: "#15803D", bg: "#DCFCE7", icon: "check_circle", core: true },
   ]);
+  // Palette for custom statuses
+  const STATUS_PALETTE: { color: string; bg: string; icon: string }[] = [
+    { color: "#7C3AED", bg: "#EDE9FE", icon: "schedule"          },
+    { color: "#DC2626", bg: "#FEE2E2", icon: "cancel"            },
+    { color: "#0891B2", bg: "#CFFAFE", icon: "local_shipping"    },
+    { color: "#EA580C", bg: "#FFEDD5", icon: "pause_circle"      },
+    { color: "#6B7280", bg: "#F3F4F6", icon: "hourglass_empty"   },
+    { color: "#0D9488", bg: "#CCFBF1", icon: "near_me"           },
+  ];
+  const [newStatusLabel, setNewStatusLabel] = useState("");
   const filteredTeam = team.filter(m => {
     const q = teamSearch.trim().toLowerCase();
     if (!q) return true;
@@ -2155,49 +2165,103 @@ export function Settings() {
                       </div>
                     </SectionCard>
 
-                    {/* Job Statuses — editable labels */}
-                    <SectionCard title="Job Statuses" description="MVP ships three statuses. Rename them to match how your team talks (e.g. Booked / Working / Done).">
+                    {/* Job Statuses — editable labels + add custom */}
+                    <SectionCard title="Job Statuses" description="MVP ships three core statuses. Rename them or add your own (Dispatched, On Route, Paused, Cancelled…).">
                       <div className="space-y-2">
-                        {jobStatuses.map(s => (
-                          <div key={s.id} className="flex items-center gap-3">
-                            {/* Color/icon chip — locked */}
-                            <div
-                              className="shrink-0 flex items-center justify-center h-9 w-9 rounded-lg border"
-                              style={{ backgroundColor: s.bg, borderColor: s.bg }}
-                              title="Color is locked — three core states"
-                            >
-                              <span className="material-icons" style={{ fontSize: "18px", color: s.color }}>{s.icon}</span>
+                        {jobStatuses.map(s => {
+                          const defaultLabel: Record<string, string> = {
+                            scheduled: "Scheduled",
+                            inProgress: "In Progress",
+                            completed: "Completed",
+                          };
+                          const isCore = !!s.core;
+                          // Cycle through palette on chip click for custom statuses
+                          const cycleColor = () => {
+                            if (isCore) return;
+                            const palette = STATUS_PALETTE;
+                            const idx = palette.findIndex(p => p.color === s.color);
+                            const next = palette[(idx + 1) % palette.length];
+                            setJobStatuses(jobStatuses.map(x => x.id === s.id ? { ...x, ...next } : x));
+                          };
+                          return (
+                            <div key={s.id} className="flex items-center gap-3">
+                              {/* Color/icon chip */}
+                              <button
+                                type="button"
+                                onClick={cycleColor}
+                                className={`shrink-0 flex items-center justify-center h-9 w-9 rounded-lg border ${isCore ? "cursor-default" : "hover:ring-2 hover:ring-[#4A6FA5]/30 cursor-pointer"}`}
+                                style={{ backgroundColor: s.bg, borderColor: s.bg }}
+                                title={isCore ? "Core status — color locked" : "Click to change color"}
+                              >
+                                <span className="material-icons" style={{ fontSize: "18px", color: s.color }}>{s.icon}</span>
+                              </button>
+                              {/* Editable label */}
+                              <label className="flex flex-col rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5 flex-1 max-w-[320px]">
+                                <span className="text-[11px] text-[#6B7280]">Status label</span>
+                                <input
+                                  value={s.label}
+                                  onChange={e => setJobStatuses(jobStatuses.map(x => x.id === s.id ? { ...x, label: e.target.value } : x))}
+                                  className="bg-transparent text-[13px] outline-none mt-0.5"
+                                  style={{ color: s.color, fontWeight: 600 }}
+                                />
+                              </label>
+                              {isCore ? (
+                                <button
+                                  type="button"
+                                  onClick={() => setJobStatuses(jobStatuses.map(x => x.id === s.id ? { ...x, label: defaultLabel[s.id] ?? x.label } : x))}
+                                  className="text-[12px] text-[#4A6FA5] hover:underline"
+                                  title="Reset label to default"
+                                >
+                                  Reset
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => setJobStatuses(jobStatuses.filter(x => x.id !== s.id))}
+                                  className="shrink-0 h-9 w-9 rounded-lg border border-[#E5E7EB] bg-white text-[#9CA3AF] hover:bg-[#FEF2F2] hover:border-[#FECACA] hover:text-[#DC2626] flex items-center justify-center transition-colors"
+                                  title="Remove status"
+                                >
+                                  <span className="material-icons" style={{ fontSize: "18px" }}>delete_outline</span>
+                                </button>
+                              )}
                             </div>
-                            {/* Editable label */}
-                            <label className="flex flex-col rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5 flex-1 max-w-[320px]">
-                              <span className="text-[11px] text-[#6B7280]">Status label</span>
-                              <input
-                                value={s.label}
-                                onChange={e => setJobStatuses(jobStatuses.map(x => x.id === s.id ? { ...x, label: e.target.value } : x))}
-                                className="bg-transparent text-[13px] outline-none mt-0.5"
-                                style={{ color: s.color, fontWeight: 600 }}
-                              />
-                            </label>
-                            {/* Reset to default */}
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const defaults: Record<JobStatus["id"], string> = {
-                                  scheduled: "Scheduled",
-                                  inProgress: "In Progress",
-                                  completed: "Completed",
-                                };
-                                setJobStatuses(jobStatuses.map(x => x.id === s.id ? { ...x, label: defaults[s.id] } : x));
-                              }}
-                              className="text-[12px] text-[#4A6FA5] hover:underline"
-                            >
-                              Reset
-                            </button>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
-                      <p className="mt-4 text-[12px] text-[#6B7280]">
-                        Only the labels are editable. The three core states (Scheduled / In Progress / Completed) stay pre-coded — adding new ones (dispatched, on-route, paused, cancelled, on hold) ships with Pro / Enterprise.
+
+                      {/* Add new status */}
+                      <div className="mt-4 flex items-center gap-2">
+                        <Input
+                          value={newStatusLabel}
+                          onChange={e => setNewStatusLabel(e.target.value)}
+                          placeholder="Add status (e.g. Dispatched, On Route, Cancelled)"
+                          className="h-9 max-w-[360px] border-[#D8DEE8] text-[13px]"
+                          onKeyDown={e => {
+                            if (e.key === "Enter") {
+                              const v = newStatusLabel.trim();
+                              if (!v) return;
+                              const palette = STATUS_PALETTE[jobStatuses.filter(x => !x.core).length % STATUS_PALETTE.length];
+                              setJobStatuses([...jobStatuses, { id: `st${Date.now()}`, label: v, ...palette }]);
+                              setNewStatusLabel("");
+                            }
+                          }}
+                        />
+                        <Button
+                          className="h-9 bg-[#4A6FA5] px-4 text-[13px] hover:bg-[#3d5a85]"
+                          onClick={() => {
+                            const v = newStatusLabel.trim();
+                            if (!v) return;
+                            const palette = STATUS_PALETTE[jobStatuses.filter(x => !x.core).length % STATUS_PALETTE.length];
+                            setJobStatuses([...jobStatuses, { id: `st${Date.now()}`, label: v, ...palette }]);
+                            setNewStatusLabel("");
+                          }}
+                        >
+                          + Add status
+                        </Button>
+                      </div>
+
+                      <p className="mt-3 text-[12px] text-[#6B7280]">
+                        The three core statuses (Scheduled / In Progress / Completed) stay in the system but you can rename them. Click any custom status chip to cycle through colors; trash icon removes it.
                       </p>
                     </SectionCard>
 
