@@ -237,7 +237,7 @@ function TaxSettingsCard() {
           />
         </label>
       </div>
-      <div className="mt-1 text-[12px] text-[#6B7280]">Tax ID name and number will appear on invoices</div>
+      <div className="mt-0.5 text-[12px] text-[#6B7280]">Tax ID name and number will appear on invoices</div>
 
       {/* Divider + Default label */}
       <div className="mt-3 border-t border-[#E5E7EB] pt-3 flex items-center gap-1.5">
