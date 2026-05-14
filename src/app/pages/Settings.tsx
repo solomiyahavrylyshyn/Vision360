@@ -860,6 +860,520 @@ function BillingAndPlanSection() {
   );
 }
 
+// Items Preferences — Marek's spec
+function ItemsPreferences() {
+  type ItemType = { id: string; label: string; color: string; bg: string; core?: boolean };
+  const [itemTypes, setItemTypes] = useState<ItemType[]>([
+    { id: "service",   label: "Service",   color: "#16A34A", bg: "#DCFCE7", core: true },
+    { id: "material",  label: "Material",  color: "#4A6FA5", bg: "#EBF0F8", core: true },
+    { id: "equipment", label: "Equipment", color: "#7C3AED", bg: "#EDE9FE", core: true },
+    { id: "asset",     label: "Asset",     color: "#0891B2", bg: "#CFFAFE", core: true },
+    { id: "fee",       label: "Fee",       color: "#EA580C", bg: "#FFEDD5", core: true },
+  ]);
+  const [newItemType, setNewItemType] = useState("");
+  const [categories, setCategories] = useState<string[]>([
+    "Plumbing", "Electrical", "HVAC", "Maintenance", "Parts",
+  ]);
+  const [newCategory, setNewCategory] = useState("");
+  const [vendors, setVendors] = useState([
+    { id: "v1", name: "HVAC Supply Co.",   code: "HVS",  contact: "orders@hvac-supply.com" },
+    { id: "v2", name: "Equipment Depot",   code: "EQD",  contact: "sales@equipdepot.com"  },
+    { id: "v3", name: "Square D",          code: "SQD",  contact: "support@squared.com"   },
+  ]);
+  const [pricebookActive, setPricebookActive] = useState(true);
+  const [trackInventory, setTrackInventory] = useState(false);
+  const [lowStockAlerts, setLowStockAlerts] = useState(true);
+  const [defaultMarkup, setDefaultMarkup] = useState("20");
+
+  return (
+    <>
+      {/* Item Types */}
+      <SectionCard title="Item Types" description="Categorize everything you sell. Five core types ship with MVP; add your own as needed.">
+        <div className="space-y-2">
+          {itemTypes.map(t => (
+            <div key={t.id} className="flex items-center gap-3">
+              <div className="shrink-0 h-9 w-9 rounded-lg flex items-center justify-center" style={{ backgroundColor: t.bg }}>
+                <span className="text-[12px]" style={{ color: t.color, fontWeight: 800 }}>{t.label[0]}</span>
+              </div>
+              <label className="flex flex-col rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5 flex-1 max-w-[320px]">
+                <span className="text-[11px] text-[#6B7280]">Item type</span>
+                <input
+                  value={t.label}
+                  onChange={e => setItemTypes(itemTypes.map(x => x.id === t.id ? { ...x, label: e.target.value } : x))}
+                  className="bg-transparent text-[13px] outline-none mt-0.5"
+                  style={{ color: t.color, fontWeight: 600 }}
+                />
+              </label>
+              {t.core ? (
+                <span className="text-[11px] text-[#9CA3AF] uppercase tracking-wide" style={{ fontWeight: 700 }}>Core</span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setItemTypes(itemTypes.filter(x => x.id !== t.id))}
+                  className="shrink-0 h-9 w-9 rounded-lg border border-[#E5E7EB] bg-white text-[#9CA3AF] hover:bg-[#FEF2F2] hover:border-[#FECACA] hover:text-[#DC2626] flex items-center justify-center"
+                  title="Remove type"
+                >
+                  <span className="material-icons" style={{ fontSize: "18px" }}>delete_outline</span>
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+        <div className="mt-4 flex gap-2">
+          <Input
+            value={newItemType}
+            onChange={e => setNewItemType(e.target.value)}
+            placeholder="Add item type (e.g. Bundle, Membership)"
+            className="h-9 max-w-[320px] border-[#D8DEE8] text-[13px]"
+            onKeyDown={e => {
+              if (e.key === "Enter") {
+                const v = newItemType.trim();
+                if (!v) return;
+                setItemTypes([...itemTypes, { id: `it${Date.now()}`, label: v, color: "#4A6FA5", bg: "#EBF0F8" }]);
+                setNewItemType("");
+              }
+            }}
+          />
+          <Button
+            className="h-9 bg-[#4A6FA5] px-4 text-[13px] hover:bg-[#3d5a85]"
+            onClick={() => {
+              const v = newItemType.trim();
+              if (!v) return;
+              setItemTypes([...itemTypes, { id: `it${Date.now()}`, label: v, color: "#4A6FA5", bg: "#EBF0F8" }]);
+              setNewItemType("");
+            }}
+          >+ Add type</Button>
+        </div>
+      </SectionCard>
+
+      {/* Categories */}
+      <SectionCard title="Categories" description="Free-form labels used to group items in the catalog (e.g. by trade, by storage location).">
+        <div className="flex flex-wrap gap-2">
+          {categories.map(c => (
+            <span key={c} className="flex items-center gap-1 rounded-full border border-[#E5E7EB] bg-[#F8FAFC] px-3 py-1.5 text-[13px] text-[#1A2332]">
+              {c}
+              <button onClick={() => setCategories(categories.filter(x => x !== c))} className="ml-1 text-[#9AA3AF] hover:text-[#DC2626]">×</button>
+            </span>
+          ))}
+          {categories.length === 0 && <span className="text-[13px] text-[#9CA3AF]">No categories yet.</span>}
+        </div>
+        <div className="mt-3 flex gap-2">
+          <Input
+            value={newCategory}
+            onChange={e => setNewCategory(e.target.value)}
+            placeholder="Add category"
+            className="h-9 max-w-[320px] border-[#D8DEE8] text-[13px]"
+            onKeyDown={e => {
+              if (e.key === "Enter") {
+                const v = newCategory.trim();
+                if (!v || categories.includes(v)) return;
+                setCategories([...categories, v]); setNewCategory("");
+              }
+            }}
+          />
+          <Button
+            className="h-9 bg-[#4A6FA5] px-4 text-[13px] hover:bg-[#3d5a85]"
+            onClick={() => { const v = newCategory.trim(); if (!v || categories.includes(v)) return; setCategories([...categories, v]); setNewCategory(""); }}
+          >Add</Button>
+        </div>
+      </SectionCard>
+
+      {/* Pricebook */}
+      <SectionCard title="Pricebook" description="Flat-rate items grouped into a service price guide for the field tech.">
+        <div className="space-y-3">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Use Pricebook for jobs and estimates</div>
+              <div className="text-[13px] text-[#546478]">When enabled, techs pick from pre-priced items instead of typing prices manually.</div>
+            </div>
+            <Switch checked={pricebookActive} onCheckedChange={setPricebookActive} />
+          </div>
+          <div className="pt-2 border-t border-[#E5E7EB] grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[13px] text-[#1A2332] mb-1.5" style={{ fontWeight: 600 }}>Default markup on materials</label>
+              <div className="flex items-center gap-2">
+                <Input value={defaultMarkup} onChange={e => setDefaultMarkup(e.target.value.replace(/\D/g, "").slice(0, 3))} className="h-9 w-24 border-[#D8DEE8] text-[14px]" />
+                <span className="text-[14px] text-[#6B7280]">% over cost</span>
+              </div>
+            </div>
+            <div>
+              <label className="block text-[13px] text-[#1A2332] mb-1.5" style={{ fontWeight: 600 }}>Price display on customer-facing docs</label>
+              <select className="h-9 w-full rounded-lg border border-[#D8DEE8] bg-white px-3 text-[14px] text-[#1A2332]">
+                <option>Show line-item prices</option>
+                <option>Show total only</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </SectionCard>
+
+      {/* Equipment Settings */}
+      <SectionCard title="Equipment Settings" description="Inventory and equipment-specific behavior.">
+        <div className="space-y-3">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Track inventory quantities</div>
+              <div className="text-[13px] text-[#546478]">Decrement quantity-on-hand each time an item is added to a job or invoice.</div>
+            </div>
+            <Switch checked={trackInventory} onCheckedChange={setTrackInventory} />
+          </div>
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Low-stock alerts</div>
+              <div className="text-[13px] text-[#546478]">Notify Owner / Admin when a tracked item drops below its reorder threshold.</div>
+            </div>
+            <Switch checked={lowStockAlerts} onCheckedChange={setLowStockAlerts} />
+          </div>
+        </div>
+      </SectionCard>
+
+      {/* Vendors */}
+      <SectionCard title="Vendors" description="Suppliers attached to items for cost tracking and reorder.">
+        <div className="overflow-hidden rounded-xl border border-[#E5E7EB]">
+          <table className="w-full text-[13px]">
+            <thead className="bg-[#F5F7FA] text-[11px] uppercase tracking-wide text-[#546478]">
+              <tr>
+                <th className="px-3 py-2 text-left" style={{ fontWeight: 800 }}>Vendor</th>
+                <th className="px-3 py-2 text-left w-[100px]" style={{ fontWeight: 800 }}>Code</th>
+                <th className="px-3 py-2 text-left" style={{ fontWeight: 800 }}>Contact</th>
+                <th className="px-3 py-2 w-10" />
+              </tr>
+            </thead>
+            <tbody>
+              {vendors.map(v => (
+                <tr key={v.id} className="border-t border-[#E5E7EB]">
+                  <td className="px-3 py-2 text-[#1A2332]" style={{ fontWeight: 600 }}>{v.name}</td>
+                  <td className="px-3 py-2 text-[#546478]">{v.code}</td>
+                  <td className="px-3 py-2 text-[#546478]">{v.contact}</td>
+                  <td className="px-3 py-2 text-right">
+                    <button onClick={() => setVendors(vendors.filter(x => x.id !== v.id))} className="text-[#9CA3AF] hover:text-[#DC2626]" title="Remove">
+                      <span className="material-icons" style={{ fontSize: "18px" }}>delete_outline</span>
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <Button
+          variant="outline"
+          className="mt-3 h-9 border-[#C8D5E8] text-[#4A6FA5] hover:bg-[#EBF0F8]"
+          onClick={() => setVendors([...vendors, { id: `v${Date.now()}`, name: "New vendor", code: "", contact: "" }])}
+        >+ Add vendor</Button>
+
+        {/* Footer — Save / Cancel attached */}
+        <div className="mt-5 -mx-5 -mb-5 px-5 py-4 border-t border-[#E1E6EF] flex items-center justify-end gap-3 bg-white rounded-b-xl">
+          <Button type="button" variant="outline" onClick={() => toast.info("Changes discarded")} className="border-[#E5E7EB] text-[#546478] hover:bg-[#EDF0F5] h-10 px-6">Cancel</Button>
+          <Button type="button" onClick={() => toast.success("Item preferences saved")} className="bg-[#4A6FA5] hover:bg-[#3d5a85] text-white h-10 px-6" style={{ fontWeight: 600 }}>Save changes</Button>
+        </div>
+      </SectionCard>
+    </>
+  );
+}
+
+// Invoices Preferences — Marek's spec
+function InvoicesPreferences({ templateCards }: { templateCards: { title: string; description: string }[] }) {
+  const [numberingPrefix, setNumberingPrefix] = useState("INV-");
+  const [nextNumber, setNextNumber] = useState("1003");
+  const [zeroPad, setZeroPad] = useState("4");
+  const [requireDeposit, setRequireDeposit] = useState(false);
+  const [depositPercent, setDepositPercent] = useState("25");
+  const [paymentTerms, setPaymentTerms] = useState(["Due on receipt", "Net 15", "Net 30", "Net 60"]);
+  const [newPaymentTerm, setNewPaymentTerm] = useState("");
+  const [discountTypes, setDiscountTypes] = useState(["Senior", "Veteran", "Promo Code", "Loyalty"]);
+  const [newDiscount, setNewDiscount] = useState("");
+  const [requireSig, setRequireSig] = useState(true);
+  const [requireSigInvoice, setRequireSigInvoice] = useState(false);
+
+  return (
+    <>
+      {/* Templates */}
+      <SectionCard title="Invoice Templates" description="Four pre-built layouts instead of advanced document customization.">
+        <div className="grid grid-cols-4 gap-3">
+          {templateCards.map(card => (
+            <div key={card.title} className="rounded-xl border border-[#E5E7EB] p-3">
+              <div className="mb-2 h-24 rounded-lg bg-[#F5F7FA]" />
+              <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 700 }}>{card.title}</div>
+              <p className="mt-1 text-[12px] leading-4 text-[#546478]">{card.description}</p>
+            </div>
+          ))}
+        </div>
+      </SectionCard>
+
+      {/* Numbering */}
+      <SectionCard title="Numbering" description="How invoice numbers are generated.">
+        <div className="grid grid-cols-3 gap-3">
+          <div>
+            <label className="block text-[13px] text-[#1A2332] mb-1.5" style={{ fontWeight: 600 }}>Prefix</label>
+            <Input value={numberingPrefix} onChange={e => setNumberingPrefix(e.target.value)} className="h-9 border-[#D8DEE8]" />
+          </div>
+          <div>
+            <label className="block text-[13px] text-[#1A2332] mb-1.5" style={{ fontWeight: 600 }}>Next number</label>
+            <Input value={nextNumber} onChange={e => setNextNumber(e.target.value.replace(/\D/g, ""))} className="h-9 border-[#D8DEE8]" />
+          </div>
+          <div>
+            <label className="block text-[13px] text-[#1A2332] mb-1.5" style={{ fontWeight: 600 }}>Zero-pad to</label>
+            <select value={zeroPad} onChange={e => setZeroPad(e.target.value)} className="h-9 w-full rounded-lg border border-[#D8DEE8] bg-white px-3 text-[14px]">
+              {["3", "4", "5", "6"].map(n => <option key={n} value={n}>{n} digits</option>)}
+            </select>
+          </div>
+        </div>
+        <p className="mt-3 text-[12px] text-[#6B7280]">
+          Preview: <span className="font-mono text-[#1A2332]" style={{ fontWeight: 600 }}>{numberingPrefix}{nextNumber.padStart(parseInt(zeroPad), "0")}</span>
+        </p>
+      </SectionCard>
+
+      {/* Deposits */}
+      <SectionCard title="Deposits" description="Collect a deposit when the customer accepts an estimate or signs an invoice.">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Require deposit before scheduling</div>
+            <div className="text-[13px] text-[#546478]">Customer pays a percentage upfront; rest is invoiced when the job is done.</div>
+          </div>
+          <Switch checked={requireDeposit} onCheckedChange={setRequireDeposit} />
+        </div>
+        {requireDeposit && (
+          <div className="mt-3 pt-3 border-t border-[#E5E7EB] flex items-center gap-3">
+            <span className="text-[13px] text-[#1A2332]">Default deposit:</span>
+            <Input value={depositPercent} onChange={e => setDepositPercent(e.target.value.replace(/\D/g, "").slice(0, 3))} className="h-9 w-20 border-[#D8DEE8]" />
+            <span className="text-[13px] text-[#6B7280]">% of total</span>
+          </div>
+        )}
+      </SectionCard>
+
+      {/* Financing */}
+      <SectionCard title="Financing" description="Offer the customer a financing plan instead of paying in full.">
+        <div className="rounded-lg border border-dashed border-[#D8E3F4] bg-[#F8FBFF] px-4 py-5 text-center">
+          <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "28px" }}>credit_score</span>
+          <div className="text-[13px] text-[#1A2332] mt-1" style={{ fontWeight: 600 }}>Lender integration coming soon</div>
+          <div className="text-[12px] text-[#6B7280] mt-1">Wells Fargo, GreenSky and Synchrony brochures will plug in here.</div>
+        </div>
+      </SectionCard>
+
+      {/* Discounts */}
+      <SectionCard title="Discounts" description="Predefined discount labels available on estimates and invoices.">
+        <div className="flex flex-wrap gap-2">
+          {discountTypes.map(d => (
+            <span key={d} className="flex items-center gap-1 rounded-full border border-[#E5E7EB] bg-[#F8FAFC] px-3 py-1.5 text-[13px] text-[#1A2332]">
+              {d}
+              <button onClick={() => setDiscountTypes(discountTypes.filter(x => x !== d))} className="ml-1 text-[#9AA3AF] hover:text-[#DC2626]">×</button>
+            </span>
+          ))}
+        </div>
+        <div className="mt-3 flex gap-2">
+          <Input value={newDiscount} onChange={e => setNewDiscount(e.target.value)} placeholder="Add discount label" className="h-9 max-w-[320px] border-[#D8DEE8] text-[13px]"
+            onKeyDown={e => { if (e.key === "Enter") { const v = newDiscount.trim(); if (!v || discountTypes.includes(v)) return; setDiscountTypes([...discountTypes, v]); setNewDiscount(""); }}}
+          />
+          <Button className="h-9 bg-[#4A6FA5] px-4 text-[13px] hover:bg-[#3d5a85]"
+            onClick={() => { const v = newDiscount.trim(); if (!v || discountTypes.includes(v)) return; setDiscountTypes([...discountTypes, v]); setNewDiscount(""); }}>Add</Button>
+        </div>
+      </SectionCard>
+
+      {/* Payment Terms */}
+      <SectionCard title="Payment Terms" description="Selectable terms shown on invoice creation.">
+        <div className="flex flex-wrap gap-2">
+          {paymentTerms.map(t => (
+            <span key={t} className="flex items-center gap-1 rounded-full border border-[#E5E7EB] bg-[#F8FAFC] px-3 py-1.5 text-[13px] text-[#1A2332]">
+              {t}
+              <button onClick={() => setPaymentTerms(paymentTerms.filter(x => x !== t))} className="ml-1 text-[#9AA3AF] hover:text-[#DC2626]">×</button>
+            </span>
+          ))}
+        </div>
+        <div className="mt-3 flex gap-2">
+          <Input value={newPaymentTerm} onChange={e => setNewPaymentTerm(e.target.value)} placeholder="Add term (e.g. Net 45)" className="h-9 max-w-[320px] border-[#D8DEE8] text-[13px]"
+            onKeyDown={e => { if (e.key === "Enter") { const v = newPaymentTerm.trim(); if (!v || paymentTerms.includes(v)) return; setPaymentTerms([...paymentTerms, v]); setNewPaymentTerm(""); }}}
+          />
+          <Button className="h-9 bg-[#4A6FA5] px-4 text-[13px] hover:bg-[#3d5a85]"
+            onClick={() => { const v = newPaymentTerm.trim(); if (!v || paymentTerms.includes(v)) return; setPaymentTerms([...paymentTerms, v]); setNewPaymentTerm(""); }}>Add</Button>
+        </div>
+      </SectionCard>
+
+      {/* Signature Settings */}
+      <SectionCard title="Signature Settings" description="Capture customer authorization on invoices.">
+        <div className="space-y-3">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Require client signature on estimates</div>
+              <div className="text-[13px] text-[#546478]">Customer signs the estimate before work begins.</div>
+            </div>
+            <Switch checked={requireSig} onCheckedChange={setRequireSig} />
+          </div>
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Require client signature on invoices</div>
+              <div className="text-[13px] text-[#546478]">Signature captured at delivery confirms receipt of services rendered.</div>
+            </div>
+            <Switch checked={requireSigInvoice} onCheckedChange={setRequireSigInvoice} />
+          </div>
+        </div>
+      </SectionCard>
+
+      {/* Notes on invoice */}
+      <SectionCard title="Notes on invoice" description="Default fine print printed at the bottom of every invoice and receipt.">
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-[13px] text-[#1A2332] mb-1.5" style={{ fontWeight: 600 }}>Invoice fine print</label>
+            <textarea defaultValue="Equipment remains property of Omega Home Services until invoice is paid in full." className="min-h-[100px] w-full rounded-lg border border-[#D8DEE8] px-3 py-2 text-[14px] outline-none focus:border-[#4A6FA5] focus:ring-2 focus:ring-[#4A6FA5]/20 resize-y" />
+          </div>
+          <div>
+            <label className="block text-[13px] text-[#1A2332] mb-1.5" style={{ fontWeight: 600 }}>Receipt note</label>
+            <textarea defaultValue="Paid in full. Thank you for your business." className="min-h-[100px] w-full rounded-lg border border-[#D8DEE8] px-3 py-2 text-[14px] outline-none focus:border-[#4A6FA5] focus:ring-2 focus:ring-[#4A6FA5]/20 resize-y" />
+          </div>
+        </div>
+
+        {/* Footer — Save / Cancel attached */}
+        <div className="mt-5 -mx-5 -mb-5 px-5 py-4 border-t border-[#E1E6EF] flex items-center justify-end gap-3 bg-white rounded-b-xl">
+          <Button type="button" variant="outline" onClick={() => toast.info("Changes discarded")} className="border-[#E5E7EB] text-[#546478] hover:bg-[#EDF0F5] h-10 px-6">Cancel</Button>
+          <Button type="button" onClick={() => toast.success("Invoice preferences saved")} className="bg-[#4A6FA5] hover:bg-[#3d5a85] text-white h-10 px-6" style={{ fontWeight: 600 }}>Save changes</Button>
+        </div>
+      </SectionCard>
+    </>
+  );
+}
+
+// Finance Center — Marek's spec
+function FinanceCenterSection() {
+  const [stripeConnected, setStripeConnected] = useState(true);
+  const [paypalConnected, setPaypalConnected] = useState(false);
+  const [methods, setMethods] = useState({
+    creditCard: true,
+    ach: false,
+    cash: true,
+    check: true,
+    financing: false,
+  });
+  const [bankName, setBankName] = useState("Bank of America");
+  const [bankAcct, setBankAcct] = useState("8821");
+  const [routing, setRouting] = useState("026009593");
+
+  return (
+    <>
+      <SectionHeader title="Finance Center" description="Payment gateways, payout bank, customer payment methods, and expense tracking." />
+
+      <div className="space-y-4">
+        {/* Payments / Gateways */}
+        <SectionCard title="Payments" description="Connect a payment processor so customers can pay invoices online.">
+          <div className="space-y-3">
+            {/* Stripe */}
+            <div className="flex items-center justify-between rounded-xl border border-[#E5E7EB] p-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-[#635BFF] text-white" style={{ fontWeight: 800 }}>S</div>
+                <div>
+                  <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 700 }}>Stripe</div>
+                  <div className="text-[12px] text-[#6B7280]">Cards · ACH · Apple Pay · Google Pay</div>
+                </div>
+              </div>
+              {stripeConnected ? (
+                <div className="flex items-center gap-2">
+                  <span className="rounded-full bg-[#DCFCE7] px-2 py-0.5 text-[11px] text-[#15803D]" style={{ fontWeight: 700 }}>Connected</span>
+                  <Button variant="outline" className="h-9 border-[#E5E7EB] text-[#546478] hover:bg-[#EDF0F5]" onClick={() => { setStripeConnected(false); toast.info("Stripe disconnected"); }}>Disconnect</Button>
+                </div>
+              ) : (
+                <Button className="h-9 bg-[#635BFF] hover:bg-[#5048d8] text-white" onClick={() => { setStripeConnected(true); toast.success("Stripe connected"); }}>Connect Stripe</Button>
+              )}
+            </div>
+
+            {/* PayPal */}
+            <div className="flex items-center justify-between rounded-xl border border-[#E5E7EB] p-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-[#003087] text-white" style={{ fontWeight: 800 }}>P</div>
+                <div>
+                  <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 700 }}>PayPal</div>
+                  <div className="text-[12px] text-[#6B7280]">Customers pay with PayPal or Venmo.</div>
+                </div>
+              </div>
+              {paypalConnected ? (
+                <div className="flex items-center gap-2">
+                  <span className="rounded-full bg-[#DCFCE7] px-2 py-0.5 text-[11px] text-[#15803D]" style={{ fontWeight: 700 }}>Connected</span>
+                  <Button variant="outline" className="h-9 border-[#E5E7EB] text-[#546478] hover:bg-[#EDF0F5]" onClick={() => { setPaypalConnected(false); toast.info("PayPal disconnected"); }}>Disconnect</Button>
+                </div>
+              ) : (
+                <Button className="h-9 bg-[#003087] hover:bg-[#001a52] text-white" onClick={() => { setPaypalConnected(true); toast.success("PayPal connected"); }}>Connect PayPal</Button>
+              )}
+            </div>
+          </div>
+        </SectionCard>
+
+        {/* Bank Information */}
+        <SectionCard title="Bank Information" description="Where payouts from your payment processor are deposited.">
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label className="block text-[13px] text-[#1A2332] mb-1.5" style={{ fontWeight: 600 }}>Bank name</label>
+              <Input value={bankName} onChange={e => setBankName(e.target.value)} className="h-9 border-[#D8DEE8]" />
+            </div>
+            <div>
+              <label className="block text-[13px] text-[#1A2332] mb-1.5" style={{ fontWeight: 600 }}>Account (last 4)</label>
+              <Input value={bankAcct} onChange={e => setBankAcct(e.target.value.replace(/\D/g, "").slice(0, 4))} className="h-9 border-[#D8DEE8]" />
+            </div>
+            <div>
+              <label className="block text-[13px] text-[#1A2332] mb-1.5" style={{ fontWeight: 600 }}>Routing</label>
+              <Input value={routing} onChange={e => setRouting(e.target.value.replace(/\D/g, "").slice(0, 9))} className="h-9 border-[#D8DEE8]" />
+            </div>
+          </div>
+          <p className="mt-3 text-[12px] text-[#6B7280]">
+            Plaid-verified bank connection coming with Pro. For MVP we capture the last-4 and routing for reporting only.
+          </p>
+        </SectionCard>
+
+        {/* Payment Methods */}
+        <SectionCard title="Payment Methods" description="Which methods appear when an invoice is sent to a customer.">
+          <div className="space-y-2">
+            {[
+              { id: "creditCard", label: "Credit / Debit cards", desc: "Stripe required."                },
+              { id: "ach",        label: "ACH bank transfer",    desc: "Lower fees, slower clearing."   },
+              { id: "cash",       label: "Cash",                 desc: "Mark paid manually in the app." },
+              { id: "check",      label: "Check",                desc: "Track check number on payment." },
+              { id: "financing",  label: "Financing",            desc: "Send customer to a lender plan (coming soon)." },
+            ].map(m => (
+              <div key={m.id} className="flex items-center justify-between rounded-lg border border-[#E5E7EB] px-3 py-2">
+                <div>
+                  <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>{m.label}</div>
+                  <div className="text-[12px] text-[#6B7280]">{m.desc}</div>
+                </div>
+                <Switch checked={(methods as any)[m.id]} onCheckedChange={v => setMethods({ ...methods, [m.id]: v })} />
+              </div>
+            ))}
+          </div>
+        </SectionCard>
+
+        {/* Notes on receipt */}
+        <SectionCard title="Notes on receipt" description="Printed at the bottom of every payment receipt.">
+          <textarea defaultValue="Thank you for your payment. Keep this receipt for your records." className="min-h-[90px] w-full rounded-lg border border-[#D8DEE8] px-3 py-2 text-[14px] outline-none focus:border-[#4A6FA5] focus:ring-2 focus:ring-[#4A6FA5]/20 resize-y" />
+        </SectionCard>
+
+        {/* Expense Tracking */}
+        <SectionCard title="Expense Tracking" description="How expenses move from the Expenses module into your books.">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Auto-categorize by vendor</div>
+                <div className="text-[13px] text-[#546478]">Apply the last category used for that vendor on new expenses.</div>
+              </div>
+              <Switch defaultChecked />
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Require receipt photo</div>
+                <div className="text-[13px] text-[#546478]">Field tech must attach a photo before saving an expense.</div>
+              </div>
+              <Switch defaultChecked />
+            </div>
+            <div className="rounded-lg border border-dashed border-[#D8E3F4] bg-[#F8FBFF] px-4 py-3 text-[13px] text-[#546478]">
+              QuickBooks export of expenses opens up once the QuickBooks integration is enabled in Integrations.
+            </div>
+          </div>
+
+          {/* Footer — Save / Cancel attached */}
+          <div className="mt-5 -mx-5 -mb-5 px-5 py-4 border-t border-[#E1E6EF] flex items-center justify-end gap-3 bg-white rounded-b-xl">
+            <Button type="button" variant="outline" onClick={() => toast.info("Changes discarded")} className="border-[#E5E7EB] text-[#546478] hover:bg-[#EDF0F5] h-10 px-6">Cancel</Button>
+            <Button type="button" onClick={() => toast.success("Finance settings saved")} className="bg-[#4A6FA5] hover:bg-[#3d5a85] text-white h-10 px-6" style={{ fontWeight: 600 }}>Save changes</Button>
+          </div>
+        </SectionCard>
+      </div>
+    </>
+  );
+}
+
 function EmptyModuleNote({ title, copy }: { title: string; copy: string }) {
   return (
     <div className="rounded-xl border border-[#D8E3F4] bg-[#F8FBFF] p-4">
@@ -2422,32 +2936,13 @@ export function Settings() {
                     <SectionCard title="Estimate rules"><div className="grid grid-cols-2 gap-4"><div className="flex items-center justify-between rounded-lg border border-[#E5E7EB] p-3"><span className="text-[14px] text-[#1A2332]">Require client signature before proceeding</span><Switch defaultChecked /></div><Field label="Payment terms"><Input defaultValue="Payment is due within 15 days of approval." className="h-9 border-[#D8DEE8]" /></Field></div></SectionCard>
                   </>
                 )}
-                {activeSection === "invoices" && (
-                  <>
-                    <SectionCard title="Invoice templates"><div className="grid grid-cols-4 gap-3">{templateCards.map(card => <div key={card.title} className="rounded-xl border border-[#E5E7EB] p-3"><div className="mb-2 h-24 rounded-lg bg-[#F5F7FA]" /><div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 700 }}>{card.title}</div><p className="mt-1 text-[12px] leading-4 text-[#546478]">{card.description}</p></div>)}</div></SectionCard>
-                    <SectionCard title="Invoice and receipt notes"><div className="grid grid-cols-2 gap-4"><Field label="Invoice fine print"><textarea defaultValue="Equipment remains property of Omega Home Services until invoice is paid in full." className="min-h-[100px] w-full rounded-lg border border-[#D8DEE8] px-3 py-2 text-[14px]" /></Field><Field label="Receipt note"><textarea defaultValue="Paid in full. Thank you for your business." className="min-h-[100px] w-full rounded-lg border border-[#D8DEE8] px-3 py-2 text-[14px]" /></Field></div></SectionCard>
-                  </>
-                )}
-                {activeSection === "items" && <EmptyModuleNote title="Item settings to review" copy="Marek has not finalized item settings yet. Keep catalog behavior simple until the next pass." />}
+                {activeSection === "invoices" && <InvoicesPreferences templateCards={templateCards} />}
+                {activeSection === "items" && <ItemsPreferences />}
               </div>
             </>
           )}
 
-          {activeSection === "finance" && (
-            <>
-              <SectionHeader
-                title="Finance Center"
-                description="Money setup gets its own category: payment gateway, payout bank, payment methods, financing, and expense tracking."
-              />
-              <div className="grid grid-cols-2 gap-4">
-                <SectionCard title="Payment gateway"><p className="text-[13px] leading-5 text-[#546478]">Connect Stripe or another processor and define where credit card payments are deposited.</p><Button className="mt-4 h-9 bg-[#4A6FA5] px-4 text-[14px] hover:bg-[#3d5a85]">Configure payments</Button></SectionCard>
-                <SectionCard title="Bank deposit account"><div className="rounded-xl border border-[#E5E7EB] p-4"><div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 700 }}>Operating account</div><div className="mt-1 text-[13px] text-[#546478]">Bank of America •••• 8821</div></div></SectionCard>
-                <SectionCard title="Customer payment methods"><div className="space-y-3">{["Credit cards", "ACH bank transfer", "Cash", "Check"].map(method => <div key={method} className="flex items-center justify-between rounded-lg border border-[#E5E7EB] px-3 py-2"><span className="text-[14px] text-[#1A2332]">{method}</span><Switch defaultChecked={method !== "ACH bank transfer"} /></div>)}</div></SectionCard>
-                <SectionCard title="Financing"><p className="text-[13px] leading-5 text-[#546478]">Placeholder for future home-improvement lenders and financing brochures.</p><div className="mt-3 rounded-lg bg-[#FEF3C7] px-3 py-2 text-[13px] text-[#92400E]">Coming after MVP review.</div></SectionCard>
-                <SectionCard title="Expense tracking"><p className="text-[13px] leading-5 text-[#546478]">Needs Marek's next pass because expenses exist in the app and require a settings area.</p></SectionCard>
-              </div>
-            </>
-          )}
+          {activeSection === "finance" && <FinanceCenterSection />}
 
           {activeSection === "integrations" && (
             <>
