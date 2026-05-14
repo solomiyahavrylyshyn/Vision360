@@ -73,7 +73,7 @@ export function applyBrandTheme(theme: BrandTheme, persist = true) {
 
   const root = document.documentElement;
   root.style.setProperty("--primary", primary);
-  root.style.setProperty("--accent", primary);
+  root.style.setProperty("--accent", accent);
   root.style.setProperty("--ring", primary);
   root.style.setProperty("--chart-1", primary);
   root.style.setProperty("--sidebar-primary", primary);
@@ -105,16 +105,27 @@ export function applyBrandTheme(theme: BrandTheme, persist = true) {
 
   style.textContent = `
     .bg-\\[\\#4A6FA5\\] { background-color: var(--brand-primary) !important; }
+    [class~="bg-[#4A6FA5]/5"] { background-color: color-mix(in srgb, var(--brand-primary) 5%, transparent) !important; }
+    [class~="bg-[#4A6FA5]/10"] { background-color: color-mix(in srgb, var(--brand-primary) 10%, transparent) !important; }
+    [class~="bg-[#4A6FA5]/15"] { background-color: color-mix(in srgb, var(--brand-primary) 15%, transparent) !important; }
     .bg-\\[\\#1C2B3A\\] { background-color: var(--brand-sidebar) !important; }
     .bg-\\[\\#F5F7FA\\], .bg-\\[\\#F2F4F7\\], .bg-\\[\\#F8FAFC\\] { background-color: var(--brand-page-bg) !important; }
     .bg-\\[\\#EDF0F5\\], .bg-\\[\\#F0F2F5\\] { background-color: var(--brand-page-bg-soft) !important; }
-    .hover\\:bg-\\[\\#3d5a85\\]:hover { background-color: var(--brand-primary-hover) !important; }
+    .hover\\:bg-\\[\\#4A6FA5\\]:hover { background-color: var(--brand-primary) !important; }
+    .hover\\:bg-\\[\\#3d5a85\\]:hover, .hover\\:bg-\\[\\#3D5F8F\\]:hover { background-color: var(--brand-primary-hover) !important; }
+    [class~="hover:bg-[#4A6FA5]/10"]:hover { background-color: color-mix(in srgb, var(--brand-primary) 10%, transparent) !important; }
+    [class~="hover:bg-[#4A6FA5]/40"]:hover { background-color: color-mix(in srgb, var(--brand-primary) 40%, transparent) !important; }
     .bg-\\[\\#EBF0F8\\], .bg-\\[\\#EBF2FC\\], .bg-\\[\\#EEF3FA\\] { background-color: var(--brand-primary-light) !important; }
+    .hover\\:bg-\\[\\#EBF0F8\\]:hover, .hover\\:bg-\\[\\#EBF2FC\\]:hover, .hover\\:bg-\\[\\#EEF3FA\\]:hover { background-color: var(--brand-primary-light) !important; }
     .text-\\[\\#4A6FA5\\] { color: var(--brand-primary) !important; }
     .text-\\[\\#81B4F3\\] { color: var(--brand-sidebar-active-text) !important; }
     .bg-\\[rgba\\(74\\2c 111\\2c 165\\2c 0\\.3\\)\\] { background-color: color-mix(in srgb, var(--brand-sidebar-active) 72%, white 0%) !important; }
-    .hover\\:text-\\[\\#3d5a85\\]:hover { color: var(--brand-primary-hover) !important; }
+    .hover\\:text-\\[\\#4A6FA5\\]:hover { color: var(--brand-primary) !important; }
+    .hover\\:text-\\[\\#3d5a85\\]:hover, .hover\\:text-\\[\\#3D5F8F\\]:hover { color: var(--brand-primary-hover) !important; }
     .border-\\[\\#4A6FA5\\] { border-color: var(--brand-primary) !important; }
+    [class~="border-[#4A6FA5]/40"] { border-color: color-mix(in srgb, var(--brand-primary) 40%, transparent) !important; }
+    .hover\\:border-\\[\\#4A6FA5\\]:hover { border-color: var(--brand-primary) !important; }
+    [class~="hover:border-[#4A6FA5]/40"]:hover { border-color: color-mix(in srgb, var(--brand-primary) 40%, transparent) !important; }
     .border-\\[\\#C8D5E8\\], .border-\\[\\#BDD4F5\\] { border-color: var(--brand-primary-border) !important; }
     .ring-\\[\\#4A6FA5\\] { --tw-ring-color: color-mix(in srgb, var(--brand-primary) 30%, transparent) !important; }
     .focus\\:border-\\[\\#4A6FA5\\]:focus { border-color: var(--brand-primary) !important; }
@@ -123,6 +134,7 @@ export function applyBrandTheme(theme: BrandTheme, persist = true) {
     .bg-\\[\\#F97316\\] { background-color: var(--brand-accent) !important; }
     .text-\\[\\#F97316\\] { color: var(--brand-accent) !important; }
     .border-\\[\\#F97316\\] { border-color: var(--brand-accent) !important; }
+    .hover\\:text-white:hover { color: #FFFFFF !important; }
   `;
 
   if (persist && typeof window !== "undefined") {
