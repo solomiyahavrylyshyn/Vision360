@@ -585,6 +585,282 @@ function BusinessHoursCard({ footer }: { footer?: React.ReactNode }) {
   );
 }
 
+// Billing & Plan — Marek's MVP spec
+function BillingAndPlanSection() {
+  const BASE_PRICE = 49;
+  const PER_USER = 15;
+  const userCount = 3; // owner + 2 employees for MVP example
+  const monthly = BASE_PRICE + PER_USER * userCount;
+
+  // Payment method (edit modal)
+  const [card, setCard] = useState({ brand: "Visa", last4: "4242", expiry: "12/2026", holder: "Peter Novak" });
+  const [editCardOpen, setEditCardOpen] = useState(false);
+  const [draftCard, setDraftCard] = useState(card);
+
+  const history = [
+    { id: "INV-2026-05", label: "May 2026",   amount: 94, status: "Paid", date: "May 1, 2026"   },
+    { id: "INV-2026-04", label: "April 2026", amount: 94, status: "Paid", date: "Apr 1, 2026"   },
+    { id: "INV-2026-03", label: "March 2026", amount: 94, status: "Paid", date: "Mar 1, 2026"   },
+    { id: "INV-2026-02", label: "February 2026", amount: 79, status: "Paid", date: "Feb 1, 2026" },
+  ];
+
+  return (
+    <>
+      <SectionHeader
+        title="Billing & Plan"
+        description="Your subscription, payment method, history, and direct line to your account manager."
+      />
+
+      {/* Plan details + price breakdown */}
+      <div className="grid grid-cols-[minmax(0,1fr)_340px] gap-4">
+        <Card className="border border-[#E1E6EF] bg-white p-6 shadow-[0_8px_22px_rgba(26,35,50,0.035)]">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <h2 className="text-[20px] leading-7 text-[#1A2332]" style={{ fontWeight: 800 }}>Vision360 Core</h2>
+                <span className="rounded-full bg-[#DCFCE7] px-2 py-0.5 text-[11px] text-[#15803D]" style={{ fontWeight: 700 }}>Active</span>
+              </div>
+              <p className="text-[13px] text-[#546478]">
+                Core module — schedule, clients, jobs, estimates, invoices, payments, expenses, items.
+              </p>
+              <p className="mt-2 text-[12px] text-[#6B7280]">
+                MVP ships with one plan only. Plan switching opens up when Pro and Enterprise launch.
+              </p>
+            </div>
+            <div className="text-right shrink-0">
+              <div className="text-[32px] leading-9 text-[#1A2332]" style={{ fontWeight: 800 }}>${monthly}</div>
+              <div className="text-[13px] text-[#546478]">per month</div>
+            </div>
+          </div>
+
+          {/* Price breakdown */}
+          <div className="mt-5 rounded-xl border border-[#E5E7EB] bg-[#FAFBFC] p-4">
+            <div className="text-[13px] text-[#1A2332] mb-2" style={{ fontWeight: 600 }}>What's included</div>
+            <div className="space-y-1.5 text-[13px]">
+              <div className="flex items-center justify-between">
+                <span className="text-[#546478]">Base subscription</span>
+                <span className="text-[#1A2332]" style={{ fontWeight: 600 }}>${BASE_PRICE}.00</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-[#546478]">{userCount} users × ${PER_USER} / user</span>
+                <span className="text-[#1A2332]" style={{ fontWeight: 600 }}>${PER_USER * userCount}.00</span>
+              </div>
+              <div className="flex items-center justify-between border-t border-[#E5E7EB] pt-1.5 mt-1">
+                <span className="text-[#1A2332]" style={{ fontWeight: 700 }}>Total monthly</span>
+                <span className="text-[#1A2332]" style={{ fontWeight: 800 }}>${monthly}.00</span>
+              </div>
+            </div>
+            <p className="mt-2 text-[12px] text-[#6B7280]">
+              Adding or removing users in Manage Team prorates this total on the next billing cycle.
+            </p>
+          </div>
+        </Card>
+
+        {/* Account manager */}
+        <Card className="border border-[#E1E6EF] bg-white p-6 shadow-[0_8px_22px_rgba(26,35,50,0.035)]">
+          <h2 className="text-[16px] leading-6 text-[#1A2332] mb-3" style={{ fontWeight: 700 }}>Your account manager</h2>
+          <div className="flex items-center gap-3">
+            <div className="h-12 w-12 rounded-full bg-[#4A6FA5] text-white flex items-center justify-center text-[16px]" style={{ fontWeight: 700 }}>SH</div>
+            <div>
+              <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 700 }}>Solomiia Havrylyshyn</div>
+              <div className="text-[12px] text-[#6B7280]">solomiia@vision360.com</div>
+            </div>
+          </div>
+          <p className="mt-3 text-[13px] leading-5 text-[#546478]">
+            Direct email support for MVP customers — Solomiia answers personally. A full support center launches with Pro.
+          </p>
+          <div className="mt-4 flex flex-col gap-2">
+            <Button
+              onClick={() => window.location.href = "mailto:solomiia@vision360.com?subject=Vision360%20support"}
+              className="h-10 bg-[#4A6FA5] hover:bg-[#3d5a85] text-white"
+              style={{ fontWeight: 600 }}
+            >
+              <span className="material-icons mr-1.5" style={{ fontSize: "16px" }}>mail</span>
+              Email Solomiia
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => toast.info("Schedule-a-call coming soon")}
+              className="h-9 border-[#E5E7EB] text-[#546478] hover:bg-[#EDF0F5]"
+            >
+              Schedule a call
+            </Button>
+          </div>
+        </Card>
+      </div>
+
+      {/* Payment method + Payment history */}
+      <div className="mt-4 grid grid-cols-2 gap-4">
+        <SectionCard title="Subscription payment method" description="Card we charge each month for Vision360.">
+          <div className="flex items-center justify-between rounded-xl border border-[#E5E7EB] p-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-14 items-center justify-center rounded-lg bg-[#1A2332] text-white text-[11px]" style={{ fontWeight: 800 }}>{card.brand.toUpperCase()}</div>
+              <div>
+                <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 700 }}>•••• •••• •••• {card.last4}</div>
+                <div className="text-[13px] text-[#546478]">{card.holder} · Expires {card.expiry}</div>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              className="h-9 border-[#E5E7EB] text-[#546478] hover:bg-[#EDF0F5]"
+              onClick={() => { setDraftCard(card); setEditCardOpen(true); }}
+            >
+              Edit
+            </Button>
+          </div>
+          <p className="mt-2 text-[12px] text-[#6B7280]">All charges appear on your statement as "Vision360 FSM".</p>
+        </SectionCard>
+
+        <SectionCard title="Payment history" description="Last invoices for your subscription.">
+          <div className="space-y-2">
+            {history.map(row => (
+              <div key={row.id} className="flex items-center justify-between rounded-lg border border-[#E5E7EB] px-3 py-2 text-[13px]">
+                <div>
+                  <div className="text-[#1A2332]" style={{ fontWeight: 600 }}>{row.label}</div>
+                  <div className="text-[11px] text-[#6B7280]">{row.date} · {row.id}</div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-[#1A2332]" style={{ fontWeight: 600 }}>${row.amount}.00</span>
+                  <span className="rounded-full bg-[#DCFCE7] px-2 py-0.5 text-[11px] text-[#15803D]" style={{ fontWeight: 700 }}>{row.status}</span>
+                  <button
+                    onClick={() => toast.success(`Receipt ${row.id} downloaded`)}
+                    className="text-[#4A6FA5] hover:text-[#3d5a85]"
+                    title="Download receipt"
+                  >
+                    <span className="material-icons" style={{ fontSize: "18px" }}>file_download</span>
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </SectionCard>
+      </div>
+
+      {/* Coming soon plans */}
+      <div className="mt-4">
+        <Card className="border border-[#D8E3F4] bg-gradient-to-br from-[#F8FBFF] to-white p-6 shadow-[0_8px_22px_rgba(26,35,50,0.035)]">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "20px" }}>rocket_launch</span>
+            <h2 className="text-[16px] leading-6 text-[#1A2332]" style={{ fontWeight: 700 }}>Advanced plans coming soon</h2>
+          </div>
+          <p className="text-[13px] leading-5 text-[#546478] mb-4">
+            Vision360 Pro and Enterprise are on the roadmap. They add route optimization, dispatching, advanced reporting, multi-location and white-label.
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-xl border border-[#E5E7EB] bg-white p-4">
+              <div className="flex items-center justify-between mb-1">
+                <div className="text-[15px] text-[#1A2332]" style={{ fontWeight: 700 }}>Vision360 Pro</div>
+                <span className="rounded-full bg-[#FEF3C7] px-2 py-0.5 text-[11px] text-[#B45309]" style={{ fontWeight: 700 }}>Coming Q3</span>
+              </div>
+              <p className="text-[12px] text-[#6B7280] leading-snug">Route optimization, dispatch board, call tracking, conversion analytics.</p>
+            </div>
+            <div className="rounded-xl border border-[#E5E7EB] bg-white p-4">
+              <div className="flex items-center justify-between mb-1">
+                <div className="text-[15px] text-[#1A2332]" style={{ fontWeight: 700 }}>Vision360 Enterprise</div>
+                <span className="rounded-full bg-[#FEF3C7] px-2 py-0.5 text-[11px] text-[#B45309]" style={{ fontWeight: 700 }}>Coming Q4</span>
+              </div>
+              <p className="text-[12px] text-[#6B7280] leading-snug">Multi-location, custom permissions, white-label, dedicated success manager.</p>
+            </div>
+          </div>
+          <div className="mt-4 flex items-center gap-3">
+            <Button
+              variant="outline"
+              onClick={() => toast.success("You'll be notified when Pro launches")}
+              className="h-9 border-[#C8D5E8] text-[#4A6FA5] hover:bg-[#EBF0F8]"
+              style={{ fontWeight: 600 }}
+            >
+              Notify me about Pro
+            </Button>
+            <span className="text-[12px] text-[#6B7280]">No plan change available in MVP.</span>
+          </div>
+        </Card>
+      </div>
+
+      {/* Edit card modal */}
+      {editCardOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm"
+          onClick={() => setEditCardOpen(false)}
+        >
+          <div
+            className="w-[440px] bg-white rounded-xl border border-[#E5E7EB] shadow-2xl overflow-hidden"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="px-6 py-4 border-b border-[#E5E7EB] flex items-center justify-between">
+              <h3 className="text-[16px] text-[#1A2332]" style={{ fontWeight: 700 }}>Edit payment method</h3>
+              <button onClick={() => setEditCardOpen(false)} className="text-[#9CA3AF] hover:text-[#1A2332]">
+                <span className="material-icons" style={{ fontSize: "20px" }}>close</span>
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-[13px] text-[#1A2332] mb-1.5" style={{ fontWeight: 600 }}>Cardholder name</label>
+                <Input
+                  value={draftCard.holder}
+                  onChange={e => setDraftCard({ ...draftCard, holder: e.target.value })}
+                  className="h-10 border-[#D8DEE8]"
+                />
+              </div>
+              <div>
+                <label className="block text-[13px] text-[#1A2332] mb-1.5" style={{ fontWeight: 600 }}>Card number (last 4)</label>
+                <Input
+                  value={draftCard.last4}
+                  onChange={e => setDraftCard({ ...draftCard, last4: e.target.value.replace(/\D/g, "").slice(0, 4) })}
+                  placeholder="4242"
+                  className="h-10 border-[#D8DEE8]"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[13px] text-[#1A2332] mb-1.5" style={{ fontWeight: 600 }}>Brand</label>
+                  <select
+                    value={draftCard.brand}
+                    onChange={e => setDraftCard({ ...draftCard, brand: e.target.value })}
+                    className="h-10 w-full rounded-lg border border-[#D8DEE8] bg-white px-3 text-[14px] text-[#1A2332]"
+                  >
+                    {["Visa", "Mastercard", "Amex", "Discover"].map(b => <option key={b} value={b}>{b}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[13px] text-[#1A2332] mb-1.5" style={{ fontWeight: 600 }}>Expiry (MM/YYYY)</label>
+                  <Input
+                    value={draftCard.expiry}
+                    onChange={e => setDraftCard({ ...draftCard, expiry: e.target.value })}
+                    placeholder="12/2026"
+                    className="h-10 border-[#D8DEE8]"
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t border-[#E5E7EB] flex items-center justify-end gap-3 bg-[#FAFBFC]">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setEditCardOpen(false)}
+                className="border-[#E5E7EB] text-[#546478] hover:bg-[#EDF0F5] h-10 px-6"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                onClick={() => {
+                  setCard(draftCard);
+                  setEditCardOpen(false);
+                  toast.success("Payment method updated");
+                }}
+                className="bg-[#4A6FA5] hover:bg-[#3d5a85] text-white h-10 px-6"
+                style={{ fontWeight: 600 }}
+              >
+                Save card
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 function EmptyModuleNote({ title, copy }: { title: string; copy: string }) {
   return (
     <div className="rounded-xl border border-[#D8E3F4] bg-[#F8FBFF] p-4">
@@ -1630,53 +1906,7 @@ export function Settings() {
           )}
 
           {activeSection === "billing" && (
-            <>
-              <SectionHeader
-                title="Billing & Plan"
-                description="MVP shows a Core plan placeholder, payment method, payment history, and direct account manager contact."
-              />
-              <div className="grid grid-cols-[minmax(0,1fr)_340px] gap-4">
-                <SectionCard title="Plan details">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <div className="text-[20px] text-[#1A2332]" style={{ fontWeight: 800 }}>Vision360 Core</div>
-                      <p className="mt-1 text-[13px] text-[#546478]">Core module with 3 users: owner plus two employees.</p>
-                      <div className="mt-3 rounded-lg bg-[#F8FAFC] px-3 py-2 text-[13px] text-[#546478]">Advanced versions are coming soon. Change plan is hidden for MVP.</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-[28px] leading-8 text-[#1A2332]" style={{ fontWeight: 800 }}>$99</div>
-                      <div className="text-[13px] text-[#546478]">monthly</div>
-                    </div>
-                  </div>
-                </SectionCard>
-                <SectionCard title="Account manager">
-                  <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 700 }}>Solomiia Havrylyshyn</div>
-                  <p className="mt-1 text-[13px] leading-5 text-[#546478]">Quick email support for MVP customers before a full support center exists.</p>
-                  <Button variant="outline" className="mt-3 h-9 border-[#C8D5E8] text-[#4A6FA5]">Email account manager</Button>
-                </SectionCard>
-              </div>
-              <div className="mt-4 grid grid-cols-2 gap-4">
-                <SectionCard title="Subscription payment method">
-                  <div className="flex items-center justify-between rounded-xl border border-[#E5E7EB] p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#EBF0F8] text-[#4A6FA5]"><span className="material-icons">credit_card</span></div>
-                      <div><div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 700 }}>•••• •••• •••• 4242</div><div className="text-[13px] text-[#546478]">Expires 12/2026</div></div>
-                    </div>
-                    <Button variant="outline" className="h-8">Edit</Button>
-                  </div>
-                </SectionCard>
-                <SectionCard title="Payment history">
-                  <div className="space-y-2">
-                    {["May 2026", "April 2026", "March 2026"].map(month => (
-                      <div key={month} className="flex items-center justify-between rounded-lg border border-[#E5E7EB] px-3 py-2 text-[13px]">
-                        <span className="text-[#1A2332]" style={{ fontWeight: 600 }}>{month}</span>
-                        <span className="text-[#546478]">$99.00 paid</span>
-                      </div>
-                    ))}
-                  </div>
-                </SectionCard>
-              </div>
-            </>
+            <BillingAndPlanSection />
           )}
 
           {activeSection === "general" && (
