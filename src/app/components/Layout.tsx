@@ -24,6 +24,7 @@ export function Layout() {
   const navigate = useNavigate();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [notifMenuOpen, setNotifMenuOpen] = useState(false);
   const [createMenuOpen, setCreateMenuOpen] = useState(false);
   const [globalSearchOpen, setGlobalSearchOpen] = useState(false);
   const [searchFilterOpen, setSearchFilterOpen] = useState(false);
@@ -51,6 +52,8 @@ export function Layout() {
   }, []);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const userAvatarRef = useRef<HTMLButtonElement>(null);
+  const notifMenuRef = useRef<HTMLDivElement>(null);
+  const notifBtnRef = useRef<HTMLButtonElement>(null);
   const createMenuRef = useRef<HTMLDivElement>(null);
   const createBtnRef = useRef<HTMLButtonElement>(null);
   const searchRef = useRef<HTMLDivElement>(null);
@@ -118,6 +121,10 @@ export function Layout() {
           userAvatarRef.current && !userAvatarRef.current.contains(event.target as Node)) {
         setUserMenuOpen(false);
       }
+      if (notifMenuOpen && notifMenuRef.current && !notifMenuRef.current.contains(event.target as Node) &&
+          notifBtnRef.current && !notifBtnRef.current.contains(event.target as Node)) {
+        setNotifMenuOpen(false);
+      }
       if (createMenuOpen && createMenuRef.current && !createMenuRef.current.contains(event.target as Node) &&
           createBtnRef.current && !createBtnRef.current.contains(event.target as Node)) {
         setCreateMenuOpen(false);
@@ -129,7 +136,7 @@ export function Layout() {
     }
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [userMenuOpen, createMenuOpen, globalSearchOpen]);
+  }, [userMenuOpen, notifMenuOpen, createMenuOpen, globalSearchOpen]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -572,9 +579,10 @@ export function Layout() {
 
           {/* Icon action buttons (transparent, 36×36 with 8px padding, radius 8) */}
           <div className="flex items-center gap-1">
-            <button title="Notifications" onClick={() => setUserMenuOpen(!userMenuOpen)}
-              className="w-9 h-9 p-2 rounded-lg flex items-center justify-center text-[#1A2332] hover:bg-[#F5F7FA] transition-colors">
+            <button ref={notifBtnRef} title="Notifications" onClick={() => { setNotifMenuOpen(!notifMenuOpen); setUserMenuOpen(false); }}
+              className="relative w-9 h-9 p-2 rounded-lg flex items-center justify-center text-[#1A2332] hover:bg-[#F5F7FA] transition-colors">
               <span className="material-icons-outlined" style={{ fontSize: "20px" }}>notifications</span>
+              <span className="absolute top-1.5 right-1.5 w-[7px] h-[7px] rounded-full bg-[#DC2626] border border-white" />
             </button>
             <button title="Help Center" onClick={() => setHelpCenterOpen(true)}
               className="w-9 h-9 p-2 rounded-lg flex items-center justify-center text-[#1A2332] hover:bg-[#F5F7FA] transition-colors">
@@ -684,16 +692,6 @@ export function Layout() {
           {/* Separator */}
           <div className="flex items-center px-2 py-1"><div className="h-px w-full bg-[#E5E7EB]" /></div>
 
-          {/* Notifications inbox */}
-          <button onClick={() => setUserMenuOpen(false)} className="w-full flex items-center gap-2 px-2 py-[5.5px] rounded-[6px] hover:bg-[#F5F7FA] transition-colors">
-            <span className="material-icons text-[#6B7280] flex-shrink-0 w-5 h-5 flex items-center justify-center" style={{ fontSize: "16px" }}>inbox</span>
-            <span className="flex-1 text-[14px] text-[#1A2332] text-left">Notifications</span>
-            <span className="flex items-center justify-center min-w-[18px] h-5 px-1.5 rounded-lg text-[12px] text-white bg-[#DC2626]" style={{ fontWeight: 500 }}>1</span>
-          </button>
-
-          {/* Separator */}
-          <div className="flex items-center px-2 py-1"><div className="h-px w-full bg-[#E5E7EB]" /></div>
-
           {/* Settings */}
           <button onClick={() => { setUserMenuOpen(false); navigate("/settings"); }} className="w-full flex items-center gap-2 px-2 py-[5.5px] rounded-[6px] hover:bg-[#F5F7FA] transition-colors">
             <span className="material-icons text-[#6B7280] flex-shrink-0 w-5 h-5 flex items-center justify-center" style={{ fontSize: "16px" }}>settings</span>
@@ -709,6 +707,46 @@ export function Layout() {
             <span className="flex-1 text-[14px] text-[#DC2626] text-left">Log out</span>
           </button>
 
+        </div>
+      </div>
+
+      {/* Notifications Dropdown */}
+      <div
+        ref={notifMenuRef}
+        className={`fixed w-[340px] bg-white border border-[#E5E7EB] rounded-lg shadow-[0_4px_6px_-1px_rgba(0,0,0,0.1),0_2px_4px_-2px_rgba(0,0,0,0.1)] z-[1100] transition-all duration-150 ease-out overflow-hidden ${
+          notifMenuOpen ? "opacity-100 scale-100 pointer-events-auto" : "opacity-0 scale-[0.98] pointer-events-none"
+        }`}
+        style={{ right: "16px", top: "68px", transformOrigin: "top right" }}
+      >
+        <div className="flex items-center justify-between px-4 py-3 border-b border-[#F3F4F6]">
+          <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 700 }}>Notifications</span>
+          <button onClick={() => setNotifMenuOpen(false)} className="text-[12px] text-[#4A6FA5] hover:underline">Mark all read</button>
+        </div>
+        <div className="divide-y divide-[#F3F4F6]">
+          {[
+            { icon: "description", color: "#4A6FA5", bg: "#EBF0F8", title: "Estimate signed", body: "Travis Jones signed Estimate #E-1042", time: "2 min ago", unread: true },
+            { icon: "payments", color: "#16A34A", bg: "#DCFCE7", title: "Payment received", body: "Mike Delgado paid Invoice #INV-884 — $450.00", time: "1 hr ago", unread: true },
+            { icon: "work", color: "#D97706", bg: "#FEF3C7", title: "Job status changed", body: 'Job #J-2091 moved to "In Progress"', time: "3 hr ago", unread: false },
+          ].map((n) => (
+            <div key={n.title} className={`flex items-start gap-3 px-4 py-3 cursor-pointer hover:bg-[#F9FAFB] transition-colors ${n.unread ? "bg-[#F8FBFF]" : ""}`}>
+              <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{ backgroundColor: n.bg }}>
+                <span className="material-icons" style={{ fontSize: "16px", color: n.color }}>{n.icon}</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: n.unread ? 700 : 500 }}>{n.title}</span>
+                  <span className="text-[11px] text-[#9CA3AF] shrink-0">{n.time}</span>
+                </div>
+                <p className="text-[12px] text-[#6B7280] mt-0.5 truncate">{n.body}</p>
+              </div>
+              {n.unread && <div className="w-2 h-2 rounded-full bg-[#4A6FA5] shrink-0 mt-1.5" />}
+            </div>
+          ))}
+        </div>
+        <div className="px-4 py-2.5 border-t border-[#F3F4F6]">
+          <button className="w-full text-center text-[13px] text-[#4A6FA5] hover:underline" onClick={() => setNotifMenuOpen(false)}>
+            View all notifications
+          </button>
         </div>
       </div>
 
