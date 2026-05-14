@@ -1368,38 +1368,41 @@ export function ClientDetail() {
 
       case "documents":
         return (
-          <div className="space-y-4">
-            {/* Header */}
-            <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
-              <div className="px-6 py-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Documents</h3>
-                  <span className="text-[12px] text-[#6B7280]">{documents.length} files</span>
-                </div>
-                <Button
-                  size="sm"
-                  className="h-8 px-3 gap-1.5 text-[13px] bg-[#4A6FA5] hover:bg-[#3d5a85] text-white"
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  <span className="material-icons" style={{ fontSize: "16px" }}>upload</span>
-                  Upload
-                </Button>
+          <div className="space-y-3">
+            {/* Toolbar */}
+            <div className="bg-white border border-[#E5E7EB] rounded-xl px-4 py-3 flex items-center gap-3">
+              <div className="relative flex-1 max-w-[260px]">
+                <span className="material-icons absolute left-2.5 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: "15px" }}>search</span>
+                <input
+                  type="text"
+                  placeholder="Search documents..."
+                  className="w-full h-8 pl-8 pr-3 rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] text-[13px] text-[#1A2332] placeholder:text-[#9CA3AF] outline-none focus:border-[#4A6FA5] focus:bg-white"
+                />
               </div>
-            </div>
-
-            {/* Drop zone */}
-            <div
-              className={`border-2 border-dashed rounded-lg px-6 py-8 text-center transition-colors cursor-pointer ${
-                isDragOver ? "border-[#4A6FA5] bg-[#EEF2F8]" : "border-[#E5E7EB] bg-white hover:border-[#4A6FA5] hover:bg-[#F9FAFB]"
-              }`}
-              onClick={() => fileInputRef.current?.click()}
-              onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
-              onDragLeave={() => setIsDragOver(false)}
-              onDrop={(e) => { e.preventDefault(); setIsDragOver(false); handleFilesAdded(e.dataTransfer.files); }}
-            >
-              <span className="material-icons text-[#9CA3AF] mb-2 block" style={{ fontSize: "32px" }}>cloud_upload</span>
-              <p className="text-[14px] text-[#374151]" style={{ fontWeight: 500 }}>Drop files here or <span className="text-[#4A6FA5]">browse</span></p>
-              <p className="text-[12px] text-[#9CA3AF] mt-1">PDF, images, Word, Excel — any format</p>
+              <select className="h-8 rounded-lg border border-[#E5E7EB] bg-white px-3 text-[13px] text-[#374151] outline-none focus:border-[#4A6FA5]">
+                <option>Date: All time</option>
+                <option>Last 7 days</option>
+                <option>Last 30 days</option>
+                <option>Last 90 days</option>
+              </select>
+              <select className="h-8 rounded-lg border border-[#E5E7EB] bg-white px-3 text-[13px] text-[#374151] outline-none focus:border-[#4A6FA5]">
+                <option>All Categories</option>
+                <option>Photos</option>
+                <option>Documents</option>
+                <option>Agreements</option>
+              </select>
+              <div className="flex-1" />
+              <Button
+                size="sm"
+                className="h-8 px-3 gap-1.5 text-[13px] bg-[#4A6FA5] hover:bg-[#3d5a85] text-white shrink-0"
+                onClick={() => fileInputRef.current?.click()}
+                onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
+                onDragLeave={() => setIsDragOver(false)}
+                onDrop={(e) => { e.preventDefault(); setIsDragOver(false); handleFilesAdded(e.dataTransfer.files); }}
+              >
+                <span className="material-icons" style={{ fontSize: "16px" }}>upload</span>
+                Upload
+              </Button>
             </div>
 
             {/* Hidden file input */}
