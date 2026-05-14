@@ -242,7 +242,7 @@ function TaxSettingsCard() {
       </div>
 
       {/* Divider + Default label */}
-      <div className="mt-3 border-t border-[#E5E7EB] pt-3 flex items-center gap-1.5 pl-3">
+      <div className="mt-1.5 border-t border-[#E5E7EB] pt-1.5 flex items-center gap-1.5 pl-3">
         <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>Default</span>
         <span
           className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-[#9CA3AF] text-[10px] text-[#9CA3AF]"
