@@ -69,7 +69,7 @@ export function Clients() {
   const [searchQuery, setSearchQuery] = useState("");
   const [clients, setClients] = useState<Client[]>(initialClients);
   const [selectedClients, setSelectedClients] = useState<Set<string>>(new Set());
-  const [showEmptyStatePreview, setShowEmptyStatePreview] = useState(true);
+  const [showEmptyStatePreview, setShowEmptyStatePreview] = useState(false);
   const [rowsPerPage, setRowsPerPage] = useState(50);
   const [currentPage, setCurrentPage] = useState(1);
   const [clientCols, moveClientCol] = useDraggableColumns(CLIENTS_COLS);

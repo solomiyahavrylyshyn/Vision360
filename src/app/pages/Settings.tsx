@@ -1,5 +1,5 @@
-import { useEffect, useState, useSyncExternalStore } from "react";
-import { useSearchParams } from "react-router";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useLocation, useSearchParams } from "react-router";
 import { toast } from "sonner";
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
@@ -11,6 +11,7 @@ import { customFieldsStore, type CfEntity } from "../stores/customFieldsStore";
 import { jobTypesStore } from "../stores/jobTypesStore";
 import { marketingSourcesStore } from "../stores/marketingSourcesStore";
 import { tagsStore } from "../stores/tagsStore";
+import { applyBrandTheme, DEFAULT_BRAND_THEME, getStoredBrandLogo, getStoredBrandTheme, resetBrandLogo, resetBrandTheme, setBrandLogo } from "../utils/brandTheme";
 
 type SettingsSection =
   | "home"
@@ -56,7 +57,7 @@ const navGroups: Array<{
     title: "Business Management",
     icon: "business",
     items: [
-      { id: "companyProfile", label: "Company Profile", description: "Company info, branding, regional defaults" },
+      { id: "companyProfile", label: "Company Info", description: "Company info, branding, regional defaults" },
       { id: "team", label: "Manage Team", description: "Users, roles, employee access" },
       { id: "billing", label: "Billing & Plan", description: "Core plan, users, subscription payments" },
     ],
@@ -141,9 +142,9 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-function SectionCard({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
+function SectionCard({ id, title, description, children }: { id?: string; title: string; description?: string; children: React.ReactNode }) {
   return (
-    <Card className="border border-[#E1E6EF] bg-white p-5 shadow-[0_8px_22px_rgba(26,35,50,0.035)]">
+    <Card id={id} className="scroll-mt-4 border border-[#E1E6EF] bg-white p-5 shadow-[0_8px_22px_rgba(26,35,50,0.035)]">
       <div className="mb-4">
         <h2 className="text-[16px] leading-6 text-[#1A2332]" style={{ fontWeight: 700 }}>{title}</h2>
         {description && <p className="mt-0.5 text-[13px] leading-5 text-[#6B7280]">{description}</p>}
@@ -269,6 +270,7 @@ function AddListSection({
 
 export function Settings() {
   const [searchParams] = useSearchParams();
+  const location = useLocation();
   const [activeSection, setActiveSection] = useState<SettingsSection>("home");
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -292,11 +294,23 @@ export function Settings() {
   const [editingJobTypeValue, setEditingJobTypeValue] = useState("");
   const [cfEntity, setCfEntity] = useState<CfEntity>("clients");
   const [cfNewOption, setCfNewOption] = useState<Record<string, string>>({});
+  const [brandPrimary, setBrandPrimary] = useState(() => getStoredBrandTheme().primary);
+  const [brandAccent, setBrandAccent] = useState(() => getStoredBrandTheme().accent);
+  const [brandLogoPreview, setBrandLogoPreview] = useState(() => getStoredBrandLogo());
+  const logoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const section = searchParams.get("section") as SettingsSection;
     if (section) setActiveSection(normalizeSection(section));
   }, [searchParams]);
+
+  useEffect(() => {
+    if (!location.hash) return;
+
+    window.requestAnimationFrame(() => {
+      document.getElementById(location.hash.slice(1))?.scrollIntoView({ block: "start", behavior: "smooth" });
+    });
+  }, [activeSection, location.hash]);
 
   const filteredNavGroups = navGroups.map(group => ({
     ...group,
@@ -341,6 +355,26 @@ export function Settings() {
     jobTypesStore.addJobType(newJobTypeName);
     setNewJobTypeName("");
     toast.success("Job type added");
+  };
+
+  const handleLogoUpload = (file: File | undefined) => {
+    if (!file) return;
+
+    const supportedTypes = ["image/png", "image/svg+xml"];
+    if (!supportedTypes.includes(file.type)) {
+      toast.error("Upload a PNG or SVG logo");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = String(reader.result ?? "");
+      setBrandLogo(dataUrl);
+      setBrandLogoPreview(dataUrl);
+      toast.success("Logo applied");
+    };
+    reader.onerror = () => toast.error("Logo upload failed");
+    reader.readAsDataURL(file);
   };
 
   return (
@@ -435,66 +469,146 @@ export function Settings() {
           {activeSection === "companyProfile" && (
             <>
               <SectionHeader
-                title="Company Profile"
-                description="One scrolling profile page for company identity, industry, branding, social links, and defaults used across forms."
+                title="Company Info"
+                description="Manage the basic company information used across client-facing documents and system defaults."
               />
               <div className="space-y-4">
-                <SectionCard title="Company identity" description="Core business information shown on client-facing documents.">
+                <SectionCard title="Company Info" description="Core business information shown on documents, emails, and customer-facing records.">
                   <div className="grid grid-cols-2 gap-4">
-                    <Field label="Company name"><Input defaultValue="Omega Home Services" className="h-9 border-[#D8DEE8]" /></Field>
-                    <Field label="Legal entity"><Input defaultValue="Omega Home Services LLC" className="h-9 border-[#D8DEE8]" /></Field>
-                    <Field label="Business owner name"><Input defaultValue="Peter Novak" className="h-9 border-[#D8DEE8]" /></Field>
-                    <Field label="Tax ID / EIN"><Input defaultValue="12-3456789" className="h-9 border-[#D8DEE8]" /></Field>
+                    <Field label="Company Name"><Input defaultValue="Omega Home Services" className="h-9 border-[#D8DEE8]" /></Field>
+                    <Field label="Legal entity name"><Input defaultValue="Omega Home Services LLC" className="h-9 border-[#D8DEE8]" /></Field>
+                    <Field label="Business Owner Name"><Input defaultValue="Peter Novak" className="h-9 border-[#D8DEE8]" /></Field>
                     <div className="col-span-2">
-                      <Field label="Business address"><Input defaultValue="123 Main Street, Suite 100" className="h-9 border-[#D8DEE8]" /></Field>
+                      <Field label="Address"><Input defaultValue="123 Main Street, Suite 100, Tampa, FL 33606" className="h-9 border-[#D8DEE8]" /></Field>
+                    </div>
+                    <Field label="Phone number"><Input defaultValue="(813) 286-7572" className="h-9 border-[#D8DEE8]" /></Field>
+                    <Field label="Website"><Input defaultValue="https://omega-home.com" className="h-9 border-[#D8DEE8]" /></Field>
+                    <Field label="Email address"><Input defaultValue="office@omega-home.com" className="h-9 border-[#D8DEE8]" /></Field>
+                    <Field label="License number"><Input defaultValue="LIC-2486-FL" className="h-9 border-[#D8DEE8]" /></Field>
+                    <div className="col-span-2">
+                      <Field label="Business hours">
+                        <textarea
+                          defaultValue={"Mon-Fri 8:00 AM - 6:00 PM\nSat 9:00 AM - 2:00 PM"}
+                          className="min-h-[76px] w-full rounded-lg border border-[#D8DEE8] bg-white px-3 py-2 text-[14px] leading-5 text-[#1A2332] outline-none focus:border-[#4A6FA5] focus:ring-2 focus:ring-[#4A6FA5]/20"
+                        />
+                      </Field>
                     </div>
                   </div>
                 </SectionCard>
 
-                <SectionCard title="About and industry" description="Used later for onboarding defaults and form customization.">
-                  <div className="grid grid-cols-[minmax(0,1fr)_260px] gap-4">
-                    <Field label="About company">
-                      <textarea
-                        defaultValue="Family-owned home services company focused on plumbing, repairs, and installation work."
-                        className="min-h-[96px] w-full rounded-lg border border-[#D8DEE8] bg-white px-3 py-2 text-[14px] leading-5 text-[#1A2332] outline-none focus:border-[#4A6FA5] focus:ring-2 focus:ring-[#4A6FA5]/20"
-                      />
-                    </Field>
-                    <Field label="Industry">
-                      <select className="h-9 w-full rounded-lg border border-[#D8DEE8] bg-white px-3 text-[14px] text-[#1A2332] outline-none focus:border-[#4A6FA5]">
-                        <option>Plumbing</option>
-                        <option>HVAC</option>
-                        <option>Roofing</option>
-                        <option>Cleaning</option>
-                        <option>Power washing</option>
-                      </select>
-                    </Field>
-                  </div>
-                </SectionCard>
-
-                <SectionCard title="Branding" description="White-label controls for logo, app name, document colors, and social links.">
+                <SectionCard id="branding" title="Branding" description="White-label controls for logo, app color, document accents, and social links.">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="rounded-xl border border-dashed border-[#C8D5E8] bg-[#F8FAFC] p-4">
                       <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-xl bg-white text-[#4A6FA5] shadow-sm">
-                        <span className="material-icons" style={{ fontSize: "28px" }}>image</span>
+                        {brandLogoPreview ? (
+                          <img src={brandLogoPreview} alt="Company logo preview" className="h-12 w-12 object-contain" />
+                        ) : (
+                          <span className="material-icons" style={{ fontSize: "28px" }}>image</span>
+                        )}
                       </div>
                       <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 700 }}>Company logo</div>
-                      <p className="mt-1 text-[13px] leading-5 text-[#546478]">Upload logo for sidebar, invoices, estimates, and receipts.</p>
-                      <Button variant="outline" className="mt-3 h-9 border-[#C8D5E8] text-[#4A6FA5]">Upload logo</Button>
+                      <p className="mt-1 text-[13px] leading-5 text-[#546478]">
+                        Upload logo for the sidebar, invoices, estimates, and receipts.
+                      </p>
+                      <input
+                        ref={logoInputRef}
+                        type="file"
+                        accept="image/png,image/svg+xml"
+                        className="hidden"
+                        onChange={e => handleLogoUpload(e.target.files?.[0])}
+                      />
+                      <Button
+                        variant="outline"
+                        className="mt-3 h-9 border-[#C8D5E8] text-[#4A6FA5] hover:bg-[#4A6FA5] hover:text-white"
+                        onClick={() => logoInputRef.current?.click()}
+                      >
+                        Upload logo
+                      </Button>
+                      {brandLogoPreview && (
+                        <Button
+                          variant="ghost"
+                          className="ml-2 mt-3 h-9 px-3 text-[13px] text-[#546478] hover:bg-[#F5F7FA]"
+                          onClick={() => {
+                            resetBrandLogo();
+                            setBrandLogoPreview("");
+                            if (logoInputRef.current) logoInputRef.current.value = "";
+                            toast.success("Default logo restored");
+                          }}
+                        >
+                          Remove
+                        </Button>
+                      )}
                     </div>
                     <div className="grid gap-4">
                       <Field label="Primary brand color">
                         <div className="flex gap-2">
-                          <Input defaultValue="#4A6FA5" className="h-9 border-[#D8DEE8]" />
-                          <input type="color" defaultValue="#4A6FA5" className="h-9 w-12 rounded-lg border border-[#D8DEE8] bg-white p-1" />
+                          <Input
+                            value={brandPrimary}
+                            onChange={e => setBrandPrimary(e.target.value)}
+                            className="h-9 border-[#D8DEE8]"
+                          />
+                          <input
+                            type="color"
+                            value={/^#[0-9a-f]{6}$/i.test(brandPrimary) ? brandPrimary : "#4A6FA5"}
+                            onChange={e => setBrandPrimary(e.target.value)}
+                            className="h-9 w-12 rounded-lg border border-[#D8DEE8] bg-white p-1"
+                          />
                         </div>
                       </Field>
                       <Field label="Accent color">
                         <div className="flex gap-2">
-                          <Input defaultValue="#F97316" className="h-9 border-[#D8DEE8]" />
-                          <input type="color" defaultValue="#f97316" className="h-9 w-12 rounded-lg border border-[#D8DEE8] bg-white p-1" />
+                          <Input
+                            value={brandAccent}
+                            onChange={e => setBrandAccent(e.target.value)}
+                            className="h-9 border-[#D8DEE8]"
+                          />
+                          <input
+                            type="color"
+                            value={/^#[0-9a-f]{6}$/i.test(brandAccent) ? brandAccent : "#F97316"}
+                            onChange={e => setBrandAccent(e.target.value)}
+                            className="h-9 w-12 rounded-lg border border-[#D8DEE8] bg-white p-1"
+                          />
                         </div>
                       </Field>
-                      <Field label="Website / social links"><Input placeholder="https://omega-home.com" className="h-9 border-[#D8DEE8]" /></Field>
+                      <Field label="Social links">
+                        <Input placeholder="https://instagram.com/omega-home" className="h-9 border-[#D8DEE8]" />
+                      </Field>
+                      <div className="flex items-center justify-between rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] p-3">
+                        <div>
+                          <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 700 }}>Theme preview</div>
+                          <div className="mt-1 text-[12px] text-[#546478]">Applies primary color to buttons, links, active states, and focus rings.</div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="h-7 w-7 rounded-lg border border-white shadow-sm" style={{ backgroundColor: brandPrimary }} />
+                          <span className="h-7 w-7 rounded-lg border border-white shadow-sm" style={{ backgroundColor: brandAccent }} />
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          className="h-9 bg-[#4A6FA5] px-4 text-[14px] hover:bg-[#3d5a85]"
+                          onClick={() => {
+                            applyBrandTheme({ primary: brandPrimary, accent: brandAccent });
+                            toast.success("Brand theme applied");
+                          }}
+                        >
+                          Apply branding
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className="h-9 border-[#C8D5E8] px-4 text-[14px] text-[#4A6FA5] hover:bg-[#EBF0F8]"
+                          onClick={() => {
+                            resetBrandTheme();
+                            resetBrandLogo();
+                            setBrandPrimary(DEFAULT_BRAND_THEME.primary);
+                            setBrandAccent(DEFAULT_BRAND_THEME.accent);
+                            setBrandLogoPreview("");
+                            if (logoInputRef.current) logoInputRef.current.value = "";
+                            toast.success("Default theme restored");
+                          }}
+                        >
+                          Get back to default
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </SectionCard>
@@ -506,12 +620,18 @@ export function Settings() {
             <>
               <SectionHeader
                 title="Regional"
-                description="Defaults should usually come from onboarding, but owners can adjust country, time zone, currency, date format, and week start."
+                description="Defaults should usually come from onboarding, but owners can adjust country, language, time zone, currency, date format, and week start."
               />
               <SectionCard title="Regional defaults">
                 <div className="grid grid-cols-2 gap-4">
                   <Field label="Country">
                     <select className="h-9 w-full rounded-lg border border-[#D8DEE8] bg-white px-3 text-[14px]"><option>United States</option><option>Ukraine</option><option>Cyprus</option></select>
+                  </Field>
+                  <Field label="Language">
+                    <select className="h-9 w-full rounded-lg border border-[#D8DEE8] bg-white px-3 text-[14px]">
+                      <option>English</option>
+                      <option>Spanish</option>
+                    </select>
                   </Field>
                   <Field label="Region / state / oblast"><Input defaultValue="Florida" className="h-9 border-[#D8DEE8]" /></Field>
                   <Field label="Time zone">

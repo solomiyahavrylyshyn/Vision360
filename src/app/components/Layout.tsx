@@ -6,6 +6,7 @@ import { AiAssistant } from "./AiAssistant";
 import { Dialer } from "./Dialer";
 import { HelpCenter } from "./HelpCenter";
 import { PlusIcon } from "./ui/plus-icon";
+import { applyStoredBrandTheme, BRAND_LOGO_EVENT, getStoredBrandLogo } from "../utils/brandTheme";
 
 const navItems = [
   { to: "/", icon: "home", label: "Home" },
@@ -34,6 +35,20 @@ export function Layout() {
   const [aiAssistantOpen, setAiAssistantOpen] = useState(false);
   const [dialerOpen, setDialerOpen] = useState(false);
   const [helpCenterOpen, setHelpCenterOpen] = useState(false);
+  const [companyLogoSrc, setCompanyLogoSrc] = useState(() => getStoredBrandLogo() || logoImg);
+
+  useEffect(() => {
+    applyStoredBrandTheme();
+    setCompanyLogoSrc(getStoredBrandLogo() || logoImg);
+
+    const handleLogoChange = (event: Event) => {
+      const nextLogo = (event as CustomEvent<string>).detail;
+      setCompanyLogoSrc(nextLogo || logoImg);
+    };
+
+    window.addEventListener(BRAND_LOGO_EVENT, handleLogoChange);
+    return () => window.removeEventListener(BRAND_LOGO_EVENT, handleLogoChange);
+  }, []);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const userAvatarRef = useRef<HTMLButtonElement>(null);
   const createMenuRef = useRef<HTMLDivElement>(null);
@@ -196,16 +211,23 @@ export function Layout() {
       >
         {/* Logo area */}
         <div className={`flex items-center flex-shrink-0 -mt-6 -mb-6 ${sidebarCollapsed ? "justify-center px-2" : "px-4"}`}>
-          <img
-            src={logoImg}
-            alt="Vision360 Logo"
-            className="object-contain"
-            style={{
-              height: sidebarCollapsed ? "116px" : "152px",
-              maxWidth: sidebarCollapsed ? "116px" : "208px",
-              objectPosition: sidebarCollapsed ? "center" : "left center",
-            }}
-          />
+          <button
+            type="button"
+            aria-label="Open branding settings"
+            className="rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+            onClick={() => navigate("/settings?section=business#branding")}
+          >
+            <img
+              src={companyLogoSrc}
+              alt="Company Logo"
+              className="object-contain"
+              style={{
+                height: sidebarCollapsed ? "116px" : "152px",
+                maxWidth: sidebarCollapsed ? "116px" : "208px",
+                objectPosition: sidebarCollapsed ? "center" : "left center",
+              }}
+            />
+          </button>
         </div>
 
         {/* Navigation */}

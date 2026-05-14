@@ -463,9 +463,8 @@ export function ClientDetail() {
       { id: 1, text: "Prefers morning appointments.", date: "Added Mar 10, 2026" },
       { id: 2, text: "Has three properties requiring service.", date: "Added Jan 15, 2024" },
       { id: 3, text: "Requested annual maintenance plan.", date: "Added Dec 5, 2023" },
-      { id: 4, text: "Requested annual maintenance plan.", date: "Added Nov 3, 2023" },
-      { id: 5, text: "Prefers email communication over phone.", date: "Added Oct 20, 2023" },
-      { id: 6, text: "Has two dogs, please close gates.", date: "Added Jul 15, 2021" },
+      { id: 4, text: "Prefers email communication over phone.", date: "Added Oct 20, 2023" },
+      { id: 5, text: "Has two dogs, please close gates.", date: "Added Jul 15, 2021" },
     ],
     additionalContacts: [
       { id: "1", firstName: "Sandra", lastName: "Delgado", phone: "(813) 555-0011", email: "sandra@delgadoprop.com", relationship: "Spouse" },
@@ -632,9 +631,20 @@ export function ClientDetail() {
               <div className="text-[13px] text-[#1A2332] font-medium">{client.role}</div>
             </div>
           )}
-          <div>
-            <div className="text-[11px] uppercase tracking-wider text-[#546478] font-semibold mb-0.5">Customer Since</div>
-            <div className="text-[13px] text-[#1A2332] font-medium">{client.customerSince}</div>
+          <div className="flex items-end justify-between gap-4">
+            <div>
+              <div className="text-[11px] uppercase tracking-wider text-[#546478] font-semibold mb-0.5">Customer Since</div>
+              <div className="text-[13px] text-[#1A2332] font-medium">{client.customerSince}</div>
+            </div>
+            <label className="flex items-center gap-2.5 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={clientData.isTaxable}
+                onChange={(e) => handleCheckboxChange("isTaxable", e.target.checked)}
+                className="w-4 h-4 accent-[#4A6FA5]"
+              />
+              <span className="text-[13px] text-[#4B5563]">Taxable Customer</span>
+            </label>
           </div>
           {client.additionalContacts && client.additionalContacts.length > 0 && (
             <div className="pt-3 border-t border-[#E5E7EB]">
@@ -699,6 +709,53 @@ export function ClientDetail() {
               rows={2}
               className="w-full text-[12px] text-[#374151] border border-[#E5E7EB] rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-[#4A6FA5] bg-[#F9FAFB] placeholder:text-[#9CA3AF]"
             />
+          </div>
+          <div className="space-y-3 border-t border-[#E5E7EB] pt-4">
+            {cfClientFields.slice(0, 2).map((field, idx) => {
+              const cfValue = (clientData as Record<string, string>)[`cf_${idx}`] ?? "";
+              const setCf = (val: string) => setClientData(prev => ({ ...prev, [`cf_${idx}`]: val }));
+              return (
+                <div key={idx}>
+                  <div className="text-[11px] uppercase tracking-wider text-[#546478] font-semibold mb-1">{field.label}</div>
+                  {field.type === "text" && (
+                    <input value={cfValue} onChange={e => setCf(e.target.value)} placeholder={field.label}
+                      className="w-full h-8 px-3 text-[13px] border border-[#E5E7EB] rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-[#4A6FA5]" />
+                  )}
+                  {field.type === "number" && (
+                    <input type="number" value={cfValue} onChange={e => setCf(e.target.value)} placeholder="0"
+                      className="w-full h-8 px-3 text-[13px] border border-[#E5E7EB] rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-[#4A6FA5]" />
+                  )}
+                  {field.type === "date" && (
+                    <input type="date" value={cfValue} onChange={e => setCf(e.target.value)}
+                      className="w-full h-8 px-3 text-[13px] border border-[#E5E7EB] rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-[#4A6FA5]" />
+                  )}
+                  {field.type === "checkbox" && (
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input type="checkbox" checked={cfValue === "true"} onChange={e => setCf(e.target.checked ? "true" : "")}
+                        className="w-4 h-4 accent-[#4A6FA5]" />
+                      <span className="text-[13px] text-[#4B5563]">{field.label}</span>
+                    </label>
+                  )}
+                  {field.type === "dropdown" && (
+                    <Select value={cfValue || "none"} onValueChange={v => setCf(v === "none" ? "" : v)}>
+                      <SelectTrigger className="border-[#E5E7EB] bg-white h-8 text-[13px] rounded-lg" style={{ fontWeight: 400 }}>
+                        <SelectValue placeholder={`Select ${field.label}`} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">— Select —</SelectItem>
+                        {field.options.map(opt => <SelectItem key={opt} value={opt}>{opt}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+              );
+            })}
+            <p className="text-[11px] text-[#9CA3AF] pt-1">
+              Configure in{" "}
+              <span className="text-[#4A6FA5] cursor-pointer hover:underline" onClick={() => navigate("/settings?section=customFields")}>
+                Settings → Custom Fields
+              </span>
+            </p>
           </div>
         </div>
       </div>
@@ -866,65 +923,6 @@ export function ClientDetail() {
               {notesExpanded ? "Show less" : `Show ${clientData.notesArray.length - 4} more`}
             </button>
           )}</>
-        </div>
-        {/* Custom Fields + Taxable */}
-        <div className="p-5 space-y-3 border-t border-[#E5E7EB]">
-          {cfClientFields.slice(0, 2).map((field, idx) => {
-            const cfKey = `cf_${idx}` as keyof typeof clientData;
-            const cfValue = (clientData as Record<string, string>)[`cf_${idx}`] ?? "";
-            const setCf = (val: string) => setClientData(prev => ({ ...prev, [`cf_${idx}`]: val }));
-            return (
-              <div key={idx}>
-                <div className="text-[11px] uppercase tracking-wider text-[#546478] font-semibold mb-1">{field.label}</div>
-                {field.type === "text" && (
-                  <input value={cfValue} onChange={e => setCf(e.target.value)} placeholder={field.label}
-                    className="w-full h-8 px-3 text-[13px] border border-[#E5E7EB] rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-[#4A6FA5]" />
-                )}
-                {field.type === "number" && (
-                  <input type="number" value={cfValue} onChange={e => setCf(e.target.value)} placeholder="0"
-                    className="w-full h-8 px-3 text-[13px] border border-[#E5E7EB] rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-[#4A6FA5]" />
-                )}
-                {field.type === "date" && (
-                  <input type="date" value={cfValue} onChange={e => setCf(e.target.value)}
-                    className="w-full h-8 px-3 text-[13px] border border-[#E5E7EB] rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-[#4A6FA5]" />
-                )}
-                {field.type === "checkbox" && (
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" checked={cfValue === "true"} onChange={e => setCf(e.target.checked ? "true" : "")}
-                      className="w-4 h-4 accent-[#4A6FA5]" />
-                    <span className="text-[13px] text-[#4B5563]">{field.label}</span>
-                  </label>
-                )}
-                {field.type === "dropdown" && (
-                  <Select value={cfValue || "none"} onValueChange={v => setCf(v === "none" ? "" : v)}>
-                    <SelectTrigger className="border-[#E5E7EB] bg-white h-8 text-[13px] rounded-lg" style={{ fontWeight: 400 }}>
-                      <SelectValue placeholder={`Select ${field.label}`} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">— Select —</SelectItem>
-                      {field.options.map(opt => <SelectItem key={opt} value={opt}>{opt}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                )}
-              </div>
-            );
-          })}
-          <p className="text-[11px] text-[#9CA3AF] pt-1">
-            Configure in{" "}
-            <span className="text-[#4A6FA5] cursor-pointer hover:underline" onClick={() => navigate("/settings?section=customFields")}>
-              Settings → Custom Fields
-            </span>
-          </p>
-          {/* Taxable checkbox */}
-          <label className="flex items-center gap-2.5 cursor-pointer pt-1 border-t border-[#E5E7EB]">
-            <input
-              type="checkbox"
-              checked={clientData.isTaxable}
-              onChange={(e) => handleCheckboxChange("isTaxable", e.target.checked)}
-              className="w-4 h-4 accent-[#4A6FA5]"
-            />
-            <span className="text-[13px] text-[#4B5563]">Taxable Customer</span>
-          </label>
         </div>
       </div>
     </div>
