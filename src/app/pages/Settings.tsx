@@ -274,7 +274,7 @@ function TaxSettingsCard() {
       </div>
 
       {/* Divider before groups */}
-      {groups.length > 0 && <div className="mt-1 border-t border-[#E5E7EB] pt-1" />}
+      {groups.length > 0 && <div className="mt-0.5 border-t border-[#E5E7EB] pt-0.5" />}
 
       {/* Group rows */}
       <div className="space-y-3">
