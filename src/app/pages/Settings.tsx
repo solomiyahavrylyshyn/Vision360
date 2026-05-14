@@ -860,6 +860,157 @@ function BillingAndPlanSection() {
   );
 }
 
+// Tiny SVG-ish preview of a template — used inside the card thumb
+function TemplatePreview({ kind }: { kind: string }) {
+  // Each template has a slightly different mini-layout
+  const variants: Record<string, React.ReactNode> = {
+    Classic: (
+      <>
+        <div className="h-3 w-12 rounded bg-[#1A2332]" />
+        <div className="mt-1.5 h-2 w-20 rounded bg-[#9CA3AF]/40" />
+        <div className="mt-2 space-y-1">
+          {[1,2,3].map(i => <div key={i} className="h-1.5 w-full rounded bg-[#E5E7EB]" />)}
+        </div>
+        <div className="mt-2 ml-auto h-2 w-10 rounded bg-[#4A6FA5]" />
+      </>
+    ),
+    Modern: (
+      <>
+        <div className="h-4 w-14 rounded bg-[#4A6FA5]" />
+        <div className="mt-2 h-1.5 w-24 rounded bg-[#9CA3AF]/30" />
+        <div className="mt-3 space-y-1.5">
+          {[1,2].map(i => <div key={i} className="h-2 w-full rounded bg-[#E5E7EB]" />)}
+        </div>
+        <div className="mt-auto pt-2 flex justify-between">
+          <div className="h-2 w-8 rounded bg-[#9CA3AF]/40" />
+          <div className="h-2 w-10 rounded bg-[#4A6FA5]" />
+        </div>
+      </>
+    ),
+    Compact: (
+      <>
+        <div className="flex items-center justify-between">
+          <div className="h-2 w-10 rounded bg-[#1A2332]" />
+          <div className="h-2 w-6 rounded bg-[#9CA3AF]/40" />
+        </div>
+        <div className="mt-1.5 space-y-1">
+          {[1,2,3,4].map(i => <div key={i} className="h-1 w-full rounded bg-[#E5E7EB]" />)}
+        </div>
+        <div className="mt-1.5 ml-auto h-1.5 w-8 rounded bg-[#4A6FA5]" />
+      </>
+    ),
+    Detailed: (
+      <>
+        <div className="h-3 w-10 rounded bg-[#1A2332]" />
+        <div className="mt-1 h-1.5 w-full rounded bg-[#9CA3AF]/30" />
+        <div className="mt-2 space-y-1">
+          {[1,2,3,4,5].map(i => (
+            <div key={i} className="flex gap-1">
+              <div className="h-1.5 w-8 rounded bg-[#E5E7EB]" />
+              <div className="h-1.5 flex-1 rounded bg-[#E5E7EB]" />
+              <div className="h-1.5 w-6 rounded bg-[#9CA3AF]/40" />
+            </div>
+          ))}
+        </div>
+      </>
+    ),
+  };
+  return (
+    <div className="mb-2 h-24 rounded-lg bg-[#F5F7FA] border border-[#E5E7EB] p-2 flex flex-col overflow-hidden">
+      {variants[kind] ?? variants.Classic}
+    </div>
+  );
+}
+
+// Larger preview used inside the modal
+function TemplatePreviewLarge({ kind }: { kind: string }) {
+  // Reuses the mini variant but at "letter paper" proportions
+  const lines = (count: number, w = "100%") => (
+    Array.from({ length: count }).map((_, i) => (
+      <div key={i} className="h-2 rounded bg-[#E5E7EB]" style={{ width: w }} />
+    ))
+  );
+  const headerVariants: Record<string, React.ReactNode> = {
+    Classic: (
+      <>
+        <div className="flex items-start justify-between">
+          <div>
+            <div className="h-5 w-32 rounded bg-[#1A2332]" />
+            <div className="mt-2 h-2 w-40 rounded bg-[#9CA3AF]/40" />
+            <div className="mt-1 h-2 w-28 rounded bg-[#9CA3AF]/40" />
+          </div>
+          <div className="text-right">
+            <div className="h-4 w-20 rounded bg-[#4A6FA5] ml-auto" />
+            <div className="mt-2 h-2 w-16 rounded bg-[#9CA3AF]/40 ml-auto" />
+            <div className="mt-1 h-2 w-12 rounded bg-[#9CA3AF]/40 ml-auto" />
+          </div>
+        </div>
+      </>
+    ),
+    Modern: (
+      <div className="bg-[#4A6FA5] -mx-8 -mt-8 px-8 py-6 mb-6">
+        <div className="h-5 w-32 rounded bg-white/80" />
+        <div className="mt-2 h-2 w-40 rounded bg-white/40" />
+      </div>
+    ),
+    Compact: (
+      <div className="flex items-center justify-between pb-3 border-b border-[#E5E7EB]">
+        <div className="h-4 w-24 rounded bg-[#1A2332]" />
+        <div className="h-3 w-20 rounded bg-[#9CA3AF]/40" />
+      </div>
+    ),
+    Detailed: (
+      <>
+        <div className="h-5 w-40 rounded bg-[#1A2332]" />
+        <div className="mt-2 grid grid-cols-3 gap-2">
+          <div className="h-2 rounded bg-[#9CA3AF]/40" />
+          <div className="h-2 rounded bg-[#9CA3AF]/40" />
+          <div className="h-2 rounded bg-[#9CA3AF]/40" />
+        </div>
+        <div className="mt-3 h-px bg-[#E5E7EB]" />
+      </>
+    ),
+  };
+  return (
+    <div className="w-[440px] bg-white border border-[#E5E7EB] shadow-sm rounded-md p-8" style={{ aspectRatio: "8.5 / 11" }}>
+      {headerVariants[kind] ?? headerVariants.Classic}
+      <div className="mt-6 space-y-1.5">
+        {lines(4)}
+      </div>
+      <div className="mt-6 grid grid-cols-[1fr_60px_60px_60px] gap-2 pb-1 border-b border-[#E5E7EB]">
+        <div className="h-2 rounded bg-[#1A2332]" />
+        <div className="h-2 rounded bg-[#1A2332]" />
+        <div className="h-2 rounded bg-[#1A2332]" />
+        <div className="h-2 rounded bg-[#1A2332]" />
+      </div>
+      <div className="mt-2 space-y-2">
+        {Array.from({ length: kind === "Detailed" ? 7 : kind === "Compact" ? 3 : 5 }).map((_, i) => (
+          <div key={i} className="grid grid-cols-[1fr_60px_60px_60px] gap-2">
+            <div className="h-2 rounded bg-[#E5E7EB]" />
+            <div className="h-2 rounded bg-[#E5E7EB]" />
+            <div className="h-2 rounded bg-[#E5E7EB]" />
+            <div className="h-2 rounded bg-[#E5E7EB]" />
+          </div>
+        ))}
+      </div>
+      <div className="mt-6 ml-auto w-40 space-y-1.5">
+        <div className="flex justify-between">
+          <div className="h-2 w-16 rounded bg-[#9CA3AF]/40" />
+          <div className="h-2 w-12 rounded bg-[#9CA3AF]/40" />
+        </div>
+        <div className="flex justify-between">
+          <div className="h-2 w-16 rounded bg-[#9CA3AF]/40" />
+          <div className="h-2 w-12 rounded bg-[#9CA3AF]/40" />
+        </div>
+        <div className="flex justify-between border-t border-[#E5E7EB] pt-1.5">
+          <div className="h-3 w-20 rounded bg-[#1A2332]" />
+          <div className="h-3 w-16 rounded bg-[#4A6FA5]" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Items Preferences — Marek's spec
 function ItemsPreferences() {
   type ItemType = { id: string; label: string; color: string; bg: string; core?: boolean };
@@ -1073,6 +1224,8 @@ function ItemsPreferences() {
 
 // Invoices Preferences — Marek's spec
 function InvoicesPreferences({ templateCards }: { templateCards: { title: string; description: string }[] }) {
+  const [selectedTemplate, setSelectedTemplate] = useState<string>("Classic");
+  const [previewTemplate, setPreviewTemplate] = useState<string | null>(null);
   const [numberingPrefix, setNumberingPrefix] = useState("INV-");
   const [nextNumber, setNextNumber] = useState("1003");
   const [zeroPad, setZeroPad] = useState("4");
@@ -1088,16 +1241,70 @@ function InvoicesPreferences({ templateCards }: { templateCards: { title: string
   return (
     <>
       {/* Templates */}
-      <SectionCard title="Invoice Templates" description="Four pre-built layouts instead of advanced document customization.">
+      <SectionCard title="Invoice Templates" description="Pick the layout used on every invoice and receipt PDF.">
         <div className="grid grid-cols-4 gap-3">
-          {templateCards.map(card => (
-            <div key={card.title} className="rounded-xl border border-[#E5E7EB] p-3">
-              <div className="mb-2 h-24 rounded-lg bg-[#F5F7FA]" />
-              <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 700 }}>{card.title}</div>
-              <p className="mt-1 text-[12px] leading-4 text-[#546478]">{card.description}</p>
-            </div>
-          ))}
+          {templateCards.map(card => {
+            const selected = selectedTemplate === card.title;
+            return (
+              <button
+                key={card.title}
+                type="button"
+                onClick={() => { setSelectedTemplate(card.title); toast.success(`${card.title} template selected`); }}
+                className={`text-left rounded-xl border p-3 transition-all relative cursor-pointer ${
+                  selected
+                    ? "border-[#4A6FA5] ring-2 ring-[#4A6FA5]/30 bg-[#F8FBFF]"
+                    : "border-[#E5E7EB] hover:border-[#C8D5E8] hover:bg-[#FAFBFC]"
+                }`}
+              >
+                {selected && (
+                  <span className="absolute top-2 right-2 inline-flex items-center justify-center h-5 w-5 rounded-full bg-[#4A6FA5] text-white">
+                    <span className="material-icons" style={{ fontSize: "14px" }}>check</span>
+                  </span>
+                )}
+                <TemplatePreview kind={card.title} />
+                <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 700 }}>{card.title}</div>
+                <p className="mt-1 text-[12px] leading-4 text-[#546478]">{card.description}</p>
+                <div className="mt-2 flex items-center gap-3 text-[11px]">
+                  <button
+                    type="button"
+                    onClick={e => { e.stopPropagation(); setPreviewTemplate(card.title); }}
+                    className="text-[#4A6FA5] hover:underline"
+                    style={{ fontWeight: 600 }}
+                  >
+                    Preview
+                  </button>
+                  {selected
+                    ? <span className="text-[#16A34A]" style={{ fontWeight: 700 }}>In use</span>
+                    : <span className="text-[#9CA3AF]">Click to use</span>}
+                </div>
+              </button>
+            );
+          })}
         </div>
+
+        {/* Preview modal */}
+        {previewTemplate && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setPreviewTemplate(null)}>
+            <div className="w-[640px] max-h-[80vh] bg-white rounded-xl border border-[#E5E7EB] shadow-2xl overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+              <div className="px-6 py-4 border-b border-[#E5E7EB] flex items-center justify-between">
+                <div>
+                  <h3 className="text-[16px] text-[#1A2332]" style={{ fontWeight: 700 }}>{previewTemplate} template</h3>
+                  <p className="text-[12px] text-[#6B7280]">{templateCards.find(c => c.title === previewTemplate)?.description}</p>
+                </div>
+                <button onClick={() => setPreviewTemplate(null)} className="text-[#9CA3AF] hover:text-[#1A2332]">
+                  <span className="material-icons" style={{ fontSize: "20px" }}>close</span>
+                </button>
+              </div>
+              <div className="flex-1 overflow-auto bg-[#F5F7FA] p-6 flex items-start justify-center">
+                <TemplatePreviewLarge kind={previewTemplate} />
+              </div>
+              <div className="px-6 py-4 border-t border-[#E5E7EB] flex items-center justify-end gap-3 bg-white">
+                <Button type="button" variant="outline" onClick={() => setPreviewTemplate(null)} className="border-[#E5E7EB] text-[#546478] hover:bg-[#EDF0F5] h-10 px-6">Close</Button>
+                <Button type="button" onClick={() => { setSelectedTemplate(previewTemplate); setPreviewTemplate(null); toast.success(`${previewTemplate} template selected`); }} className="bg-[#4A6FA5] hover:bg-[#3d5a85] text-white h-10 px-6" style={{ fontWeight: 600 }}>Use this template</Button>
+              </div>
+            </div>
+          </div>
+        )}
       </SectionCard>
 
       {/* Numbering */}
