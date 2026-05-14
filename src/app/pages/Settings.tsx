@@ -467,6 +467,26 @@ export function Settings() {
                     </div>
                   </div>
                 </SectionCard>
+
+                {/* Footer — Save / Cancel (matches CreateClient pattern) */}
+                <div className="flex items-center justify-end gap-3 pt-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => toast.info("Changes discarded")}
+                    className="border-[#E5E7EB] text-[#546478] hover:bg-[#EDF0F5] h-10 px-6"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={() => toast.success("Company info saved")}
+                    className="bg-[#4A6FA5] hover:bg-[#3d5a85] text-white h-10 px-6"
+                    style={{ fontWeight: 600 }}
+                  >
+                    Save changes
+                  </Button>
+                </div>
               </div>
             </>
           )}
