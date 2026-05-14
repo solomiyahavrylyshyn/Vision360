@@ -374,7 +374,7 @@ export function JobDetail() {
     };
     const count = counts[key];
     const base = BASE_TABS.find(t => t.key === key)!.label;
-    return count && count > 0 ? `${base}(${count})` : base;
+    return count && count > 0 ? `${base} (${count})` : base;
   };
 
   const toggleTabVisibility = (key: TabKey) => {
