@@ -201,7 +201,7 @@ function TaxSettingsCard() {
             type="button"
             variant="outline"
             onClick={addGroup}
-            className="h-8 border-[#BFE3C8] bg-white px-3 text-[12px] text-[#16A34A] hover:bg-[#F0FDF4]"
+            className="h-8 border-[#C8D5E8] bg-white px-3 text-[12px] text-[#4A6FA5] hover:bg-[#EBF0F8]"
             style={{ fontWeight: 600 }}
           >
             + Create Tax Group
@@ -210,7 +210,7 @@ function TaxSettingsCard() {
             type="button"
             variant="outline"
             onClick={addRate}
-            className="h-8 border-[#BFE3C8] bg-white px-3 text-[12px] text-[#16A34A] hover:bg-[#F0FDF4]"
+            className="h-8 border-[#C8D5E8] bg-white px-3 text-[12px] text-[#4A6FA5] hover:bg-[#EBF0F8]"
             style={{ fontWeight: 600 }}
           >
             + Create Tax Rate
@@ -306,7 +306,7 @@ function TaxSettingsCard() {
                   type="button"
                   variant="outline"
                   onClick={() => setPickerOpenFor(pickerOpenFor === group.id ? null : group.id)}
-                  className="h-7 border-[#BFE3C8] bg-white px-3 text-[12px] text-[#16A34A] hover:bg-[#F0FDF4]"
+                  className="h-7 border-[#C8D5E8] bg-white px-3 text-[12px] text-[#4A6FA5] hover:bg-[#EBF0F8]"
                   style={{ fontWeight: 600 }}
                 >
                   Select Tax Rates
@@ -518,14 +518,14 @@ function BusinessHoursCard() {
           <h2 className="text-[18px] leading-6 text-[#1A2332] mb-1" style={{ fontWeight: 700 }}>Business hours</h2>
           <p className="text-[13px] text-[#6B7280]">
             Business hours set your default availability for{" "}
-            <a className="text-[#16A34A] hover:underline" href="#online-booking">online booking</a>, team members, and{" "}
-            <a className="text-[#16A34A] hover:underline" href="#request">request</a> forms.
+            <a className="text-[#4A6FA5] hover:underline" href="#online-booking">online booking</a>, team members, and{" "}
+            <a className="text-[#4A6FA5] hover:underline" href="#request">request</a> forms.
           </p>
         </div>
         <button
           type="button"
           onClick={() => setEditing(!editing)}
-          className="shrink-0 text-[13px] text-[#16A34A] hover:underline"
+          className="shrink-0 text-[13px] text-[#4A6FA5] hover:underline"
           style={{ fontWeight: 600 }}
         >
           {editing ? "Done" : "Edit"}
