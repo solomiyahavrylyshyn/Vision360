@@ -8,8 +8,8 @@ export type CfEntity = "clients" | "jobs" | "estimates" | "invoices" | "items";
 export interface CfField { label: string; type: CfFieldType; options: string[] }
 
 const defaultFields = (): CfField[] => [
-  { label: "Custom Field 1", type: "text", options: [] },
-  { label: "Custom Field 2", type: "text", options: [] },
+  { label: "", type: "text", options: [] },
+  { label: "", type: "text", options: [] },
 ];
 
 let fields: Record<CfEntity, CfField[]> = {

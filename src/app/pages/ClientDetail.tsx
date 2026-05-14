@@ -719,52 +719,63 @@ export function ClientDetail() {
               className="w-full text-[12px] text-[#374151] border border-[#E5E7EB] rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-[#4A6FA5] bg-[#F9FAFB] placeholder:text-[#9CA3AF]"
             />
           </div>
-          <div className="space-y-3 border-t border-[#E5E7EB] pt-4">
-            {cfClientFields.slice(0, 2).map((field, idx) => {
-              const cfValue = (clientData as Record<string, string>)[`cf_${idx}`] ?? "";
-              const setCf = (val: string) => setClientData(prev => ({ ...prev, [`cf_${idx}`]: val }));
+          <div className="border-t border-[#E5E7EB] pt-4">
+            {(() => {
+              const configured = cfClientFields.slice(0, 2).filter(f => f.label.trim() !== "");
+              if (configured.length === 0) {
+                return (
+                  <p className="text-[12px] text-[#9CA3AF]">
+                    No custom fields configured.{" "}
+                    <span className="text-[#4A6FA5] cursor-pointer hover:underline" onClick={() => navigate("/settings?section=general")}>
+                      Configure in Settings
+                    </span>
+                  </p>
+                );
+              }
               return (
-                <div key={idx}>
-                  <div className="text-[11px] uppercase tracking-wider text-[#546478] font-semibold mb-1">{field.label}</div>
-                  {field.type === "text" && (
-                    <input value={cfValue} onChange={e => setCf(e.target.value)} placeholder={field.label}
-                      className="w-full h-8 px-3 text-[13px] border border-[#E5E7EB] rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-[#4A6FA5]" />
-                  )}
-                  {field.type === "number" && (
-                    <input type="number" value={cfValue} onChange={e => setCf(e.target.value)} placeholder="0"
-                      className="w-full h-8 px-3 text-[13px] border border-[#E5E7EB] rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-[#4A6FA5]" />
-                  )}
-                  {field.type === "date" && (
-                    <input type="date" value={cfValue} onChange={e => setCf(e.target.value)}
-                      className="w-full h-8 px-3 text-[13px] border border-[#E5E7EB] rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-[#4A6FA5]" />
-                  )}
-                  {field.type === "checkbox" && (
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input type="checkbox" checked={cfValue === "true"} onChange={e => setCf(e.target.checked ? "true" : "")}
-                        className="w-4 h-4 accent-[#4A6FA5]" />
-                      <span className="text-[13px] text-[#4B5563]">{field.label}</span>
-                    </label>
-                  )}
-                  {field.type === "dropdown" && (
-                    <Select value={cfValue || "none"} onValueChange={v => setCf(v === "none" ? "" : v)}>
-                      <SelectTrigger className="border-[#E5E7EB] bg-white h-8 text-[13px] rounded-lg" style={{ fontWeight: 400 }}>
-                        <SelectValue placeholder={`Select ${field.label}`} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">— Select —</SelectItem>
-                        {field.options.map(opt => <SelectItem key={opt} value={opt}>{opt}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  )}
+                <div className="space-y-3">
+                  {configured.map((field, idx) => {
+                    const cfValue = (clientData as Record<string, string>)[`cf_${idx}`] ?? "";
+                    const setCf = (val: string) => setClientData(prev => ({ ...prev, [`cf_${idx}`]: val }));
+                    return (
+                      <div key={idx}>
+                        <div className="text-[11px] uppercase tracking-wider text-[#546478] font-semibold mb-1">{field.label}</div>
+                        {field.type === "text" && (
+                          <input value={cfValue} onChange={e => setCf(e.target.value)} placeholder={field.label}
+                            className="w-full h-8 px-3 text-[13px] border border-[#E5E7EB] rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-[#4A6FA5]" />
+                        )}
+                        {field.type === "number" && (
+                          <input type="number" value={cfValue} onChange={e => setCf(e.target.value)} placeholder="0"
+                            className="w-full h-8 px-3 text-[13px] border border-[#E5E7EB] rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-[#4A6FA5]" />
+                        )}
+                        {field.type === "date" && (
+                          <input type="date" value={cfValue} onChange={e => setCf(e.target.value)}
+                            className="w-full h-8 px-3 text-[13px] border border-[#E5E7EB] rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-[#4A6FA5]" />
+                        )}
+                        {field.type === "checkbox" && (
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" checked={cfValue === "true"} onChange={e => setCf(e.target.checked ? "true" : "")}
+                              className="w-4 h-4 accent-[#4A6FA5]" />
+                            <span className="text-[13px] text-[#4B5563]">{field.label}</span>
+                          </label>
+                        )}
+                        {field.type === "dropdown" && (
+                          <Select value={cfValue || "none"} onValueChange={v => setCf(v === "none" ? "" : v)}>
+                            <SelectTrigger className="border-[#E5E7EB] bg-white h-8 text-[13px] rounded-lg" style={{ fontWeight: 400 }}>
+                              <SelectValue placeholder={`Select ${field.label}`} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">— Select —</SelectItem>
+                              {field.options.map(opt => <SelectItem key={opt} value={opt}>{opt}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               );
-            })}
-            <p className="text-[11px] text-[#9CA3AF] pt-1">
-              Configure in{" "}
-              <span className="text-[#4A6FA5] cursor-pointer hover:underline" onClick={() => navigate("/settings?section=customFields")}>
-                Settings → Custom Fields
-              </span>
-            </p>
+            })()}
           </div>
         </div>
       </div>

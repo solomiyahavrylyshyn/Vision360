@@ -898,6 +898,7 @@ export function Settings() {
                             <Input
                               value={field.label}
                               onChange={e => customFieldsStore.updateField(cfEntity, idx, { label: e.target.value })}
+                              placeholder="Enter field label..."
                               className="h-9 border-[#D8DEE8] text-[14px]"
                             />
                           </Field>
