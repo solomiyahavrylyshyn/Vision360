@@ -750,14 +750,14 @@ function BillingAndPlanSection() {
             <div className="rounded-xl border border-[#E5E7EB] bg-white p-4">
               <div className="flex items-center justify-between mb-1">
                 <div className="text-[15px] text-[#1A2332]" style={{ fontWeight: 700 }}>Vision360 Pro</div>
-                <span className="rounded-full bg-[#FEF3C7] px-2 py-0.5 text-[11px] text-[#B45309]" style={{ fontWeight: 700 }}>Coming Q3</span>
+                <span className="rounded-full bg-[#FEF3C7] px-2 py-0.5 text-[11px] text-[#B45309]" style={{ fontWeight: 700 }}>Coming soon</span>
               </div>
               <p className="text-[12px] text-[#6B7280] leading-snug">Route optimization, dispatch board, call tracking, conversion analytics.</p>
             </div>
             <div className="rounded-xl border border-[#E5E7EB] bg-white p-4">
               <div className="flex items-center justify-between mb-1">
                 <div className="text-[15px] text-[#1A2332]" style={{ fontWeight: 700 }}>Vision360 Enterprise</div>
-                <span className="rounded-full bg-[#FEF3C7] px-2 py-0.5 text-[11px] text-[#B45309]" style={{ fontWeight: 700 }}>Coming Q4</span>
+                <span className="rounded-full bg-[#FEF3C7] px-2 py-0.5 text-[11px] text-[#B45309]" style={{ fontWeight: 700 }}>Coming soon</span>
               </div>
               <p className="text-[12px] text-[#6B7280] leading-snug">Multi-location, custom permissions, white-label, dedicated success manager.</p>
             </div>
