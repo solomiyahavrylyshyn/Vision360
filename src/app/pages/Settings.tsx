@@ -419,6 +419,162 @@ function TaxRow({
   );
 }
 
+// Big-row regional dropdowns: Country / Timezone / Date format / Time format / First day
+function RegionalSettingsCard() {
+  const wrapper =
+    "h-12 w-full rounded-xl border border-[#D8DEE8] bg-white px-4 text-[14px] text-[#1A2332] outline-none focus:border-[#4A6FA5] focus:ring-2 focus:ring-[#4A6FA5]/20 appearance-none cursor-pointer";
+  const labelClass = "block text-[13px] text-[#1A2332] mb-1.5";
+  return (
+    <Card className="border border-[#E1E6EF] bg-white p-6 shadow-[0_8px_22px_rgba(26,35,50,0.035)]">
+      <h2 className="text-[18px] leading-6 text-[#1A2332] mb-4" style={{ fontWeight: 700 }}>Regional settings</h2>
+      <div className="space-y-4">
+        <label className="block">
+          <span className={labelClass} style={{ fontWeight: 600 }}>Country</span>
+          <div className="relative">
+            <select className={wrapper} defaultValue="United States">
+              <option>United States</option>
+              <option>Ukraine</option>
+              <option>Canada</option>
+              <option>Cyprus</option>
+            </select>
+            <span className="material-icons pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: "20px" }}>expand_more</span>
+          </div>
+        </label>
+
+        <label className="block">
+          <span className={labelClass} style={{ fontWeight: 600 }}>Timezone</span>
+          <div className="relative">
+            <select className={wrapper} defaultValue="(GMT-05:00) America/New_York">
+              <option>(GMT-05:00) America/New_York</option>
+              <option>(GMT-06:00) America/Chicago</option>
+              <option>(GMT-07:00) America/Denver</option>
+              <option>(GMT-08:00) America/Los_Angeles</option>
+              <option>(GMT+02:00) Europe/Kyiv</option>
+            </select>
+            <span className="material-icons pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: "20px" }}>expand_more</span>
+          </div>
+        </label>
+
+        <label className="block">
+          <span className={labelClass} style={{ fontWeight: 600 }}>Date format</span>
+          <div className="relative">
+            <select className={wrapper} defaultValue="Jan 31, 2026">
+              <option>Jan 31, 2026</option>
+              <option>31 Jan 2026</option>
+              <option>01/31/2026</option>
+              <option>31/01/2026</option>
+              <option>2026-01-31</option>
+            </select>
+            <span className="material-icons pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: "20px" }}>expand_more</span>
+          </div>
+        </label>
+
+        <label className="block">
+          <span className={labelClass} style={{ fontWeight: 600 }}>Time format</span>
+          <div className="relative">
+            <select className={wrapper} defaultValue="12 Hour (1:30PM)">
+              <option>12 Hour (1:30PM)</option>
+              <option>24 Hour (13:30)</option>
+            </select>
+            <span className="material-icons pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: "20px" }}>expand_more</span>
+          </div>
+        </label>
+
+        <label className="block">
+          <span className={labelClass} style={{ fontWeight: 600 }}>First day of the week</span>
+          <div className="relative">
+            <select className={wrapper} defaultValue="Sunday">
+              <option>Sunday</option>
+              <option>Monday</option>
+            </select>
+            <span className="material-icons pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: "20px" }}>expand_more</span>
+          </div>
+        </label>
+      </div>
+    </Card>
+  );
+}
+
+// Business hours — day list (Sunday Closed, Mon-Fri 9-5, etc.) with inline Edit
+function BusinessHoursCard() {
+  const [editing, setEditing] = useState(false);
+  type Row = { day: string; open: boolean; from: string; to: string };
+  const [rows, setRows] = useState<Row[]>([
+    { day: "Sunday",    open: false, from: "9:00 am", to: "5:00 pm" },
+    { day: "Monday",    open: true,  from: "9:00 am", to: "5:00 pm" },
+    { day: "Tuesday",   open: true,  from: "9:00 am", to: "5:00 pm" },
+    { day: "Wednesday", open: true,  from: "9:00 am", to: "5:00 pm" },
+    { day: "Thursday",  open: true,  from: "9:00 am", to: "5:00 pm" },
+    { day: "Friday",    open: true,  from: "9:00 am", to: "5:00 pm" },
+    { day: "Saturday",  open: false, from: "9:00 am", to: "5:00 pm" },
+  ]);
+  const updateRow = (i: number, patch: Partial<Row>) =>
+    setRows(rows.map((r, idx) => idx === i ? { ...r, ...patch } : r));
+
+  return (
+    <Card className="border border-[#E1E6EF] bg-white p-6 shadow-[0_8px_22px_rgba(26,35,50,0.035)]">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h2 className="text-[18px] leading-6 text-[#1A2332] mb-1" style={{ fontWeight: 700 }}>Business hours</h2>
+          <p className="text-[13px] text-[#6B7280]">
+            Business hours set your default availability for{" "}
+            <a className="text-[#16A34A] hover:underline" href="#online-booking">online booking</a>, team members, and{" "}
+            <a className="text-[#16A34A] hover:underline" href="#request">request</a> forms.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setEditing(!editing)}
+          className="shrink-0 text-[13px] text-[#16A34A] hover:underline"
+          style={{ fontWeight: 600 }}
+        >
+          {editing ? "Done" : "Edit"}
+        </button>
+      </div>
+
+      <div className="mt-4 divide-y divide-[#E5E7EB]">
+        {rows.map((r, i) => (
+          <div key={r.day} className="grid grid-cols-[140px_1fr] items-center py-3">
+            <div className="text-[14px] text-[#1A2332]">{r.day}</div>
+            {editing ? (
+              <div className="flex items-center gap-2">
+                <label className="flex items-center gap-2 text-[13px] text-[#1A2332]">
+                  <input
+                    type="checkbox"
+                    checked={r.open}
+                    onChange={e => updateRow(i, { open: e.target.checked })}
+                    className="h-4 w-4 accent-[#4A6FA5]"
+                  />
+                  Open
+                </label>
+                {r.open && (
+                  <>
+                    <input
+                      value={r.from}
+                      onChange={e => updateRow(i, { from: e.target.value })}
+                      className="h-8 w-24 rounded-lg border border-[#D8DEE8] bg-white px-2 text-[13px] text-[#1A2332]"
+                    />
+                    <span className="text-[13px] text-[#6B7280]">–</span>
+                    <input
+                      value={r.to}
+                      onChange={e => updateRow(i, { to: e.target.value })}
+                      className="h-8 w-24 rounded-lg border border-[#D8DEE8] bg-white px-2 text-[13px] text-[#1A2332]"
+                    />
+                  </>
+                )}
+              </div>
+            ) : (
+              <div className="text-[14px] text-[#1A2332]">
+                {r.open ? `${r.from} – ${r.to}` : <span className="text-[#6B7280]">Closed</span>}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
 function EmptyModuleNote({ title, copy }: { title: string; copy: string }) {
   return (
     <div className="rounded-xl border border-[#D8E3F4] bg-[#F8FBFF] p-4">
@@ -736,14 +892,6 @@ export function Settings() {
                     <Field label="Website"><Input defaultValue="https://omega-home.com" className="h-9 border-[#D8DEE8]" /></Field>
                     <Field label="Email address"><Input defaultValue="office@omega-home.com" className="h-9 border-[#D8DEE8]" /></Field>
                     <Field label="License number"><Input defaultValue="LIC-2486-FL" className="h-9 border-[#D8DEE8]" /></Field>
-                    <div className="col-span-2">
-                      <Field label="Business hours">
-                        <textarea
-                          defaultValue={"Mon-Fri 8:00 AM - 6:00 PM\nSat 9:00 AM - 2:00 PM"}
-                          className="min-h-[76px] w-full rounded-lg border border-[#D8DEE8] bg-white px-3 py-2 text-[14px] leading-5 text-[#1A2332] outline-none focus:border-[#4A6FA5] focus:ring-2 focus:ring-[#4A6FA5]/20"
-                        />
-                      </Field>
-                    </div>
                   </div>
 
                   {/* Footer — Save / Cancel (matches CreateClient pattern) */}
@@ -972,41 +1120,8 @@ export function Settings() {
                 <TaxSettingsCard />
 
 
-                <SectionCard title="Regional" description="Country, counties, timezone, currency, date format, and first day of the week.">
-                  <div className="grid grid-cols-2 gap-4">
-                    <Field label="Country">
-                      <select className="h-9 w-full rounded-lg border border-[#D8DEE8] bg-white px-3 text-[14px]"><option>United States</option><option>Ukraine</option><option>Cyprus</option></select>
-                    </Field>
-                    <Field label="Time zone">
-                      <select className="h-9 w-full rounded-lg border border-[#D8DEE8] bg-white px-3 text-[14px]"><option>Eastern Time (ET)</option><option>Central Time (CT)</option><option>Europe/Kyiv</option></select>
-                    </Field>
-                    <Field label="Currency">
-                      <select className="h-9 w-full rounded-lg border border-[#D8DEE8] bg-white px-3 text-[14px]"><option>USD - US Dollar</option><option>UAH - Ukrainian Hryvnia</option><option>EUR - Euro</option></select>
-                    </Field>
-                    <Field label="Date format">
-                      <select className="h-9 w-full rounded-lg border border-[#D8DEE8] bg-white px-3 text-[14px]"><option>May 7, 2026</option><option>7 May 2026</option><option>07/05/2026</option></select>
-                    </Field>
-                    <Field label="First day of week">
-                      <select className="h-9 w-full rounded-lg border border-[#D8DEE8] bg-white px-3 text-[14px]"><option>Sunday</option><option>Monday</option></select>
-                    </Field>
-                    <Field label="Region / State"><Input defaultValue="Florida" className="h-9 border-[#D8DEE8]" /></Field>
-                  </div>
-                  <div className="mt-4">
-                    <div className="mb-2 text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>Counties / regions used in client addresses</div>
-                    <div className="flex gap-2">
-                      <Input placeholder="Add county or region..." className="h-9 max-w-[320px] border-[#D8DEE8] text-[13px]" />
-                      <Button className="h-9 bg-[#4A6FA5] px-4 text-[13px] hover:bg-[#3d5a85]">Add</Button>
-                    </div>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {["Hillsborough County", "Pinellas County", "Pasco County"].map(c => (
-                        <span key={c} className="flex items-center gap-1 rounded-full border border-[#E5E7EB] bg-[#F8FAFC] px-3 py-1 text-[12px] text-[#546478]">
-                          {c}
-                          <button className="ml-1 text-[#9AA3AF] hover:text-[#DC2626]">×</button>
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </SectionCard>
+                <RegionalSettingsCard />
+                <BusinessHoursCard />
 
                 {/* Footer — Save / Cancel for Company Profile */}
                 <div className="flex items-center justify-end gap-3 rounded-xl border border-[#E1E6EF] bg-white px-5 py-4 shadow-[0_8px_22px_rgba(26,35,50,0.035)]">
