@@ -531,7 +531,7 @@ export function Settings() {
 
                     {/* Brand Colors */}
                     <div className="pr-6">
-                      <div className="mb-3 text-[13px] text-[#7A8799]" style={{ fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>Brand Colors</div>
+                      <div className="mb-3 text-[13px] text-[#7A8799]" style={{ fontWeight: 600 }}>Brand Colors</div>
                       <div className="space-y-2.5">
                         <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] px-3 py-3 transition-colors hover:border-[#C8D5E8] hover:bg-[#EBF3FF]">
                           <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-lg shadow-sm" style={{ backgroundColor: brandPrimary }}>
@@ -593,7 +593,7 @@ export function Settings() {
 
                     {/* Logo */}
                     <div className="px-6">
-                      <div className="mb-3 text-[13px] text-[#7A8799]" style={{ fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>Logo</div>
+                      <div className="mb-3 text-[13px] text-[#7A8799]" style={{ fontWeight: 600 }}>Logo</div>
                       <input
                         ref={logoInputRef}
                         type="file"
@@ -645,7 +645,7 @@ export function Settings() {
 
                     {/* Client Document Settings */}
                     <div className="pl-6">
-                      <div className="mb-3 text-[13px] text-[#7A8799]" style={{ fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>Client Document Settings</div>
+                      <div className="mb-3 text-[13px] text-[#7A8799]" style={{ fontWeight: 600 }}>Client Document Settings</div>
                       <div className="flex h-[130px] w-full items-center justify-center overflow-hidden rounded-xl border border-[#E5E7EB] bg-gradient-to-b from-[#F8FAFC] to-[#EEF2F7]">
                         <div className="rounded-lg border border-[#E1E6EF] bg-white p-2.5 shadow-md" style={{ width: 88, transform: "rotate(-1deg)" }}>
                           <div className="mb-1 flex items-center justify-between">
