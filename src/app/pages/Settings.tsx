@@ -282,6 +282,9 @@ export function Settings() {
   const [brandPrimary, setBrandPrimary] = useState(() => getStoredBrandTheme().primary);
   const [brandAccent, setBrandAccent] = useState(() => getStoredBrandTheme().accent);
   const [brandLogoPreview, setBrandLogoPreview] = useState(() => getStoredBrandLogo());
+  const [tcFile, setTcFile] = useState<string | null>(null);
+  const [policiesFile, setPoliciesFile] = useState<string | null>(null);
+  const [privacyFile, setPrivacyFile] = useState<string | null>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -921,29 +924,49 @@ export function Settings() {
                   </div>
                 </SectionCard>
 
-                <SectionCard title="Terms & Conditions" description="Default terms attached to estimates and invoices sent to clients.">
-                  <textarea
-                    defaultValue="Standard terms and conditions attached to estimates and invoices. Payment is due within 15 days of approval. Equipment remains property of Omega Home Services until invoice is paid in full."
-                    className="min-h-[120px] w-full rounded-lg border border-[#D8DEE8] bg-white px-3 py-2 text-[14px] leading-5 text-[#1A2332] outline-none focus:border-[#4A6FA5] focus:ring-2 focus:ring-[#4A6FA5]/20"
-                  />
-                  <Button className="mt-3 h-8 bg-[#4A6FA5] px-4 text-[13px] hover:bg-[#3d5a85]">Save</Button>
-                </SectionCard>
+                {/* ── Reusable legal-text card helper ── */}
+                {([
+                  { title: "Terms & Conditions", description: "Default terms attached to estimates and invoices sent to clients.", file: tcFile, setFile: setTcFile, placeholder: "Paste or type your terms and conditions here…" },
+                  { title: "Policies", description: "Internal company policies visible to team members.", file: policiesFile, setFile: setPoliciesFile, placeholder: "Paste or type your company policies here…" },
+                  { title: "Privacy Policy", description: "Your company's privacy policy shown on the Client Hub and customer-facing pages.", file: privacyFile, setFile: setPrivacyFile, placeholder: "Paste or type your privacy policy here…" },
+                ] as { title: string; description: string; file: string | null; setFile: (v: string | null) => void; placeholder: string }[]).map(({ title, description, file, setFile, placeholder }) => (
+                  <SectionCard key={title} title={title} description={description}>
+                    {/* Upload zone */}
+                    {file ? (
+                      <div className="flex items-center gap-3 rounded-lg border border-[#D8DEE8] bg-[#F5F7FA] px-4 py-3">
+                        <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "20px" }}>description</span>
+                        <span className="flex-1 text-[13px] text-[#1A2332] truncate" style={{ fontWeight: 500 }}>{file}</span>
+                        <button onClick={() => setFile(null)} className="text-[#9CA3AF] hover:text-[#DC2626] transition-colors">
+                          <span className="material-icons" style={{ fontSize: "18px" }}>close</span>
+                        </button>
+                      </div>
+                    ) : (
+                      <label className="flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-[#D8DEE8] bg-[#F9FAFB] px-4 py-5 cursor-pointer hover:border-[#4A6FA5] hover:bg-[#F0F4FB] transition-colors">
+                        <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "28px" }}>upload_file</span>
+                        <span className="text-[13px] text-[#6B7280]">
+                          <span className="text-[#4A6FA5] font-medium">Upload a file</span> — PDF or DOCX
+                        </span>
+                        <input type="file" accept=".pdf,.doc,.docx" className="hidden"
+                          onChange={e => { const f = e.target.files?.[0]; if (f) setFile(f.name); }} />
+                      </label>
+                    )}
 
-                <SectionCard title="Policies" description="Internal company policies visible to team members.">
-                  <textarea
-                    defaultValue="Employee policy text that can be referenced by team members. Covers conduct, schedule, and equipment use."
-                    className="min-h-[120px] w-full rounded-lg border border-[#D8DEE8] bg-white px-3 py-2 text-[14px] leading-5 text-[#1A2332] outline-none focus:border-[#4A6FA5] focus:ring-2 focus:ring-[#4A6FA5]/20"
-                  />
-                  <Button className="mt-3 h-8 bg-[#4A6FA5] px-4 text-[13px] hover:bg-[#3d5a85]">Save</Button>
-                </SectionCard>
+                    {/* Divider */}
+                    <div className="flex items-center gap-3 my-1">
+                      <div className="flex-1 h-px bg-[#E5E7EB]" />
+                      <span className="text-[12px] text-[#9CA3AF]">or type directly below</span>
+                      <div className="flex-1 h-px bg-[#E5E7EB]" />
+                    </div>
 
-                <SectionCard title="Privacy Policy" description="Your company's privacy policy shown on the Client Hub and customer-facing pages.">
-                  <textarea
-                    defaultValue="Omega Home Services respects your privacy. We collect only the information necessary to provide our services and will never share your data with third parties without your consent."
-                    className="min-h-[120px] w-full rounded-lg border border-[#D8DEE8] bg-white px-3 py-2 text-[14px] leading-5 text-[#1A2332] outline-none focus:border-[#4A6FA5] focus:ring-2 focus:ring-[#4A6FA5]/20"
-                  />
-                  <Button className="mt-3 h-8 bg-[#4A6FA5] px-4 text-[13px] hover:bg-[#3d5a85]">Save</Button>
-                </SectionCard>
+                    {/* Text area */}
+                    <textarea
+                      rows={5}
+                      placeholder={placeholder}
+                      className="w-full rounded-lg border border-[#D8DEE8] bg-white px-3 py-2 text-[14px] leading-5 text-[#1A2332] placeholder:text-[#9CA3AF] outline-none focus:border-[#4A6FA5] focus:ring-2 focus:ring-[#4A6FA5]/20 resize-y"
+                    />
+                    <Button className="mt-3 h-8 bg-[#4A6FA5] px-4 text-[13px] hover:bg-[#3d5a85]">Save</Button>
+                  </SectionCard>
+                ))}
               </div>
             </>
           )}
