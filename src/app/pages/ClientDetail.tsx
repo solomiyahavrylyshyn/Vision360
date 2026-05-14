@@ -360,12 +360,14 @@ export function ClientDetail() {
   const [showAddAddress, setShowAddAddress] = useState(false);
   const [newAddr, setNewAddr] = useState({ street: "", unit: "", city: "", state: "", zip: "", county: "", notes: "" });
 
-  interface DocFile { id: string; name: string; size: string; date: string; icon: string; iconColor: string; }
+  interface DocFile { id: string; name: string; size: string; date: string; icon: string; iconColor: string; isImage?: boolean; previewUrl?: string; previewGradient?: string; }
   const [documents, setDocuments] = useState<DocFile[]>([
     { id: "1", name: "Service Agreement - 2026.pdf", size: "245 KB",  date: "Mar 28, 2026", icon: "picture_as_pdf", iconColor: "#DC2626" },
-    { id: "2", name: "HVAC System Photo.jpg",        size: "1.2 MB",  date: "Mar 15, 2026", icon: "image",          iconColor: "#F59E0B" },
+    { id: "2", name: "HVAC System Photo.jpg",        size: "1.2 MB",  date: "Mar 15, 2026", icon: "image",          iconColor: "#F59E0B", isImage: true, previewGradient: "linear-gradient(135deg,#fde68a 0%,#f59e0b 50%,#d97706 100%)" },
     { id: "3", name: "Property Blueprint.pdf",       size: "3.8 MB",  date: "Feb 10, 2026", icon: "picture_as_pdf", iconColor: "#DC2626" },
-    { id: "4", name: "Before Service.jpg",           size: "980 KB",  date: "Jan 20, 2026", icon: "image",          iconColor: "#F59E0B" },
+    { id: "4", name: "Before Service.jpg",           size: "980 KB",  date: "Jan 20, 2026", icon: "image",          iconColor: "#F59E0B", isImage: true, previewGradient: "linear-gradient(135deg,#bfdbfe 0%,#60a5fa 50%,#3b82f6 100%)" },
+    { id: "5", name: "After Service.jpg",            size: "1.1 MB",  date: "Jan 20, 2026", icon: "image",          iconColor: "#F59E0B", isImage: true, previewGradient: "linear-gradient(135deg,#d1fae5 0%,#34d399 50%,#059669 100%)" },
+    { id: "6", name: "Equipment Photo.jpg",          size: "870 KB",  date: "Mar 10, 2026", icon: "image",          iconColor: "#F59E0B", isImage: true, previewGradient: "linear-gradient(135deg,#e9d5ff 0%,#a78bfa 50%,#7c3aed 100%)" },
   ]);
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -389,15 +391,22 @@ export function ClientDetail() {
   const handleFilesAdded = (files: FileList | null) => {
     if (!files) return;
     const today = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-    const newDocs: DocFile[] = Array.from(files).map((f) => ({
-      id: Math.random().toString(36).slice(2),
-      name: f.name,
-      size: formatSize(f.size),
-      date: today,
-      ...getFileIcon(f.name),
-    }));
-    setDocuments((prev) => [...newDocs, ...prev]);
-    toast.success(`${newDocs.length} file${newDocs.length > 1 ? "s" : ""} uploaded`);
+    const imageExts = ["jpg", "jpeg", "png", "gif", "webp"];
+    Array.from(files).forEach((f) => {
+      const ext = f.name.split(".").pop()?.toLowerCase() ?? "";
+      const isImage = imageExts.includes(ext);
+      const id = Math.random().toString(36).slice(2);
+      const doc: DocFile = { id, name: f.name, size: formatSize(f.size), date: today, ...getFileIcon(f.name), isImage };
+      setDocuments((prev) => [doc, ...prev]);
+      if (isImage) {
+        const reader = new FileReader();
+        reader.onload = () => {
+          setDocuments((prev) => prev.map((d) => d.id === id ? { ...d, previewUrl: String(reader.result) } : d));
+        };
+        reader.readAsDataURL(f);
+      }
+    });
+    toast.success(`${files.length} file${files.length > 1 ? "s" : ""} uploaded`);
   };
   // Auto-transition rules (server-driven in production):
   //   prospect → active   when first invoice with payment > 0 is recorded
@@ -1404,27 +1413,47 @@ export function ClientDetail() {
 
             {/* Files grid */}
             {documents.length > 0 && (
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-3 gap-3">
                 {documents.map((file) => (
-                  <div key={file.id} className="bg-white border border-[#E5E7EB] rounded-lg p-3 hover:bg-[#F9FAFB] transition-colors group">
-                    <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 rounded bg-[#F3F4F6] flex items-center justify-center shrink-0">
-                        <span className="material-icons" style={{ fontSize: "20px", color: file.iconColor }}>{file.icon}</span>
+                  <div key={file.id} className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden hover:shadow-md transition-shadow group relative">
+                    {/* Preview area */}
+                    {file.isImage ? (
+                      file.previewUrl ? (
+                        <img src={file.previewUrl} alt={file.name} className="w-full h-[148px] object-cover" />
+                      ) : (
+                        <div
+                          className="w-full h-[148px] flex items-center justify-center"
+                          style={{ background: file.previewGradient ?? "linear-gradient(135deg,#fde68a,#f59e0b)" }}
+                        >
+                          <span className="material-icons text-white/70" style={{ fontSize: "44px" }}>image</span>
+                        </div>
+                      )
+                    ) : (
+                      <div
+                        className="w-full h-[148px] flex items-center justify-center"
+                        style={{ backgroundColor: file.iconColor + "12" }}
+                      >
+                        <span className="material-icons" style={{ fontSize: "52px", color: file.iconColor, opacity: 0.75 }}>{file.icon}</span>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-[13px] text-[#1A2332] truncate" style={{ fontWeight: 500 }}>{file.name}</div>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className="text-[11px] text-[#9CA3AF]">{file.size}</span>
-                          <span className="text-[#D1D5DB]">·</span>
-                          <span className="text-[11px] text-[#9CA3AF]">{file.date}</span>
+                    )}
+
+                    {/* Delete button */}
+                    <button
+                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 w-7 h-7 flex items-center justify-center rounded-full bg-white/90 shadow text-[#9CA3AF] hover:text-[#DC2626] transition-all"
+                      onClick={() => setDocuments((prev) => prev.filter((d) => d.id !== file.id))}
+                    >
+                      <span className="material-icons" style={{ fontSize: "14px" }}>close</span>
+                    </button>
+
+                    {/* File info */}
+                    <div className="px-3 py-2.5 border-t border-[#F3F4F6]">
+                      <div className="flex items-center gap-2">
+                        <span className="material-icons shrink-0" style={{ fontSize: "14px", color: file.iconColor }}>{file.icon}</span>
+                        <div className="min-w-0">
+                          <div className="text-[12px] text-[#1A2332] truncate" style={{ fontWeight: 600 }}>{file.name}</div>
+                          <div className="text-[11px] text-[#9CA3AF] mt-0.5">{file.size} · {file.date}</div>
                         </div>
                       </div>
-                      <button
-                        className="opacity-0 group-hover:opacity-100 w-6 h-6 flex items-center justify-center rounded hover:bg-[#FEF2F2] text-[#9CA3AF] hover:text-[#DC2626] transition-all shrink-0"
-                        onClick={() => setDocuments((prev) => prev.filter((d) => d.id !== file.id))}
-                      >
-                        <span className="material-icons" style={{ fontSize: "14px" }}>close</span>
-                      </button>
                     </div>
                   </div>
                 ))}
