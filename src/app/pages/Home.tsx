@@ -211,7 +211,7 @@ function AllBusinessTab() {
                 <span className="text-[#6B7280] font-normal ml-1">vs last period</span>
               </div>
             </div>
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 self-center" style={{ background: item.iconBg }}>
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 mt-1" style={{ background: item.iconBg }}>
               <span className="material-icons" style={{ fontSize: "24px", color: item.iconColor }}>{item.icon}</span>
             </div>
           </div>
