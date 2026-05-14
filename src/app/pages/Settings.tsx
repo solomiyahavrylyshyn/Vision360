@@ -726,6 +726,25 @@ export function Settings() {
   const [inviteOpen, setInviteOpen] = useState(false);
   const emptyInvite = { name: "", email: "", role: "Employee" as "Owner" | "Employee", title: "", rate: "" };
   const [invite, setInvite] = useState(emptyInvite);
+  // ── Login security & 2FA ──
+  const [tempPasswordLink, setTempPasswordLink] = useState(true);
+  const [forceChangeOnLogin, setForceChangeOnLogin] = useState(true);
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState(true);
+  const [twoFactorMethod, setTwoFactorMethod] = useState<"email" | "phone" | "either">("either");
+  // ── User role titles (Technician, Installer, etc.) ──
+  const [userRoleTitles, setUserRoleTitles] = useState<string[]>([
+    "Salesperson", "Office Staff", "Technician", "Installer", "Lead Installer", "Laborer",
+  ]);
+  const [newRoleTitle, setNewRoleTitle] = useState("");
+  // ── Pay rate type per company default ──
+  const [defaultPayType, setDefaultPayType] = useState<"hourly" | "daily" | "salary">("hourly");
+  // ── User custom fields ──
+  type UserCF = { id: string; label: string; type: "Text" | "Dropdown"; options?: string };
+  const [userCustomFields, setUserCustomFields] = useState<UserCF[]>([
+    { id: "ucf1", label: "Office / Field user", type: "Dropdown", options: "Office, Field" },
+    { id: "ucf2", label: "Reports to",           type: "Text" },
+  ]);
+  const [newUserCfLabel, setNewUserCfLabel] = useState("");
   const filteredTeam = team.filter(m => {
     const q = teamSearch.trim().toLowerCase();
     if (!q) return true;
@@ -1332,16 +1351,274 @@ export function Settings() {
                   </div>
                 </div>
               )}
-              <div className="mt-4 grid grid-cols-2 gap-4">
-                <SectionCard title="Invite security">
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between"><div><div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 700 }}>Send temporary password link</div><div className="text-[13px] text-[#546478]">Require user to change password on first login.</div></div><Switch defaultChecked /></div>
-                    <div className="flex items-center justify-between"><div><div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 700 }}>Two-factor authorization</div><div className="text-[13px] text-[#546478]">Use email or phone when available.</div></div><Switch defaultChecked /></div>
+              <div className="mt-4 space-y-4">
+
+                {/* Login Security & Password */}
+                <SectionCard title="Login Security & Password" description="How invitations and password resets work for users you add.">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between gap-4">
+                      <div>
+                        <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Send temporary password link on invite</div>
+                        <div className="text-[13px] text-[#546478]">Owner receives a one-time link by email instead of typing a password manually.</div>
+                      </div>
+                      <Switch checked={tempPasswordLink} onCheckedChange={setTempPasswordLink} />
+                    </div>
+                    <div className="flex items-center justify-between gap-4">
+                      <div>
+                        <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Require password change on first login</div>
+                        <div className="text-[13px] text-[#546478]">User must set their own password after using the temporary link.</div>
+                      </div>
+                      <Switch checked={forceChangeOnLogin} onCheckedChange={setForceChangeOnLogin} />
+                    </div>
+                    <div className="pt-2 border-t border-[#E5E7EB] flex items-center justify-between gap-4">
+                      <div>
+                        <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Send password reset link</div>
+                        <div className="text-[13px] text-[#546478]">Trigger a manual reset email for a chosen user.</div>
+                      </div>
+                      <Button variant="outline" className="h-9 border-[#E5E7EB] text-[#546478] hover:bg-[#EDF0F5] px-4"
+                        onClick={() => toast.success("Password reset link sent")}>
+                        Send reset link
+                      </Button>
+                    </div>
                   </div>
                 </SectionCard>
-                <SectionCard title="Roles placeholder">
-                  <p className="text-[13px] leading-5 text-[#546478]">Custom permission matrices stay out of MVP. Keep Owner and Employee, with optional user role title like Technician, Office Staff, Installer, or Laborer.</p>
+
+                {/* Two-Factor Authentication */}
+                <SectionCard title="Two-Factor Authentication" description="Add a second step to login using email or phone code.">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between gap-4">
+                      <div>
+                        <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Enable 2FA for the workspace</div>
+                        <div className="text-[13px] text-[#546478]">When on, all users must complete a second step on every new device.</div>
+                      </div>
+                      <Switch checked={twoFactorEnabled} onCheckedChange={setTwoFactorEnabled} />
+                    </div>
+                    {twoFactorEnabled && (
+                      <div>
+                        <div className="text-[13px] text-[#1A2332] mb-2" style={{ fontWeight: 600 }}>Delivery method</div>
+                        <div className="grid grid-cols-3 gap-2">
+                          {([
+                            { id: "email",  label: "Email",          desc: "Send 6-digit code to user's email." },
+                            { id: "phone",  label: "Phone (SMS)",    desc: "Send code via SMS, requires phone on user profile." },
+                            { id: "either", label: "Either",         desc: "Let the user choose at login." },
+                          ] as const).map(opt => (
+                            <button
+                              key={opt.id}
+                              type="button"
+                              onClick={() => setTwoFactorMethod(opt.id)}
+                              className={`text-left rounded-lg border p-3 transition-colors ${
+                                twoFactorMethod === opt.id
+                                  ? "border-[#4A6FA5] bg-[#EBF0F8]"
+                                  : "border-[#E5E7EB] hover:bg-[#F5F7FA]"
+                              }`}
+                            >
+                              <div className="text-[13px] text-[#1A2332] mb-0.5" style={{ fontWeight: 600 }}>{opt.label}</div>
+                              <div className="text-[11px] text-[#6B7280] leading-snug">{opt.desc}</div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </SectionCard>
+
+                {/* User Profile defaults */}
+                <SectionCard title="User Profile defaults" description="Fields every user record carries. Marek's MVP set: username, full name, and a pay rate.">
+                  <div className="grid grid-cols-3 gap-3">
+                    {[
+                      { label: "Username", hint: "Auto-derived from email, editable." },
+                      { label: "Full name", hint: "Display name across the app." },
+                      { label: "Phone",     hint: "Required when 2FA uses SMS." },
+                      { label: "User role", hint: "Owner / Admin or Employee." },
+                      { label: "Role title", hint: "Free-form: Technician, Office Staff, …" },
+                      { label: "Pay rate",  hint: "Hourly, daily, or salary — set per user." },
+                    ].map(f => (
+                      <div key={f.label} className="rounded-lg border border-[#E5E7EB] bg-[#FAFBFC] px-3 py-2">
+                        <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>{f.label}</div>
+                        <div className="text-[11px] text-[#6B7280] leading-snug">{f.hint}</div>
+                      </div>
+                    ))}
+                  </div>
+                </SectionCard>
+
+                {/* Pay Rates */}
+                <SectionCard title="Pay Rates" description="How the company tracks compensation. Affects commission and reporting later.">
+                  <div className="flex items-center gap-2">
+                    {([
+                      { id: "hourly", label: "Hourly" },
+                      { id: "daily",  label: "Per day" },
+                      { id: "salary", label: "Salary" },
+                    ] as const).map(opt => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setDefaultPayType(opt.id)}
+                        className={`h-9 px-4 rounded-lg text-[13px] border transition-colors ${
+                          defaultPayType === opt.id
+                            ? "border-[#4A6FA5] bg-[#EBF0F8] text-[#4A6FA5]"
+                            : "border-[#E5E7EB] text-[#546478] hover:bg-[#F5F7FA]"
+                        }`}
+                        style={{ fontWeight: 600 }}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="mt-3 text-[12px] text-[#6B7280]">
+                    Individual users can override this default from their profile (e.g., Lead Installer paid hourly while Salesperson is on commission).
+                  </p>
+                </SectionCard>
+
+                {/* Roles & Permissions matrix */}
+                <SectionCard title="Roles & Permissions" description="MVP ships with two roles only — Owner / Admin and Employee. Owner has the full key; Employee is restricted from billing, system preferences, and sensitive fields.">
+                  <div className="overflow-hidden rounded-xl border border-[#E5E7EB]">
+                    <table className="w-full text-[13px]">
+                      <thead className="bg-[#F5F7FA] text-[11px] uppercase tracking-wide text-[#546478]">
+                        <tr>
+                          <th className="px-4 py-2 text-left" style={{ fontWeight: 800 }}>Capability</th>
+                          <th className="px-4 py-2 text-center w-[120px]" style={{ fontWeight: 800 }}>Owner / Admin</th>
+                          <th className="px-4 py-2 text-center w-[120px]" style={{ fontWeight: 800 }}>Employee</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {[
+                          ["Create / edit clients, jobs, estimates, invoices",      true, true],
+                          ["Add notes, photos, signatures to jobs",                  true, true],
+                          ["View own schedule and assigned jobs",                    true, true],
+                          ["Mark job In Progress / Completed",                       true, true],
+                          ["Send invoices to customers",                             true, true],
+                          ["View company-wide reports and revenue",                  true, false],
+                          ["Manage team (invite / deactivate users)",                true, false],
+                          ["Change billing & subscription plan",                     true, false],
+                          ["Change company info, branding, tax settings",            true, false],
+                          ["Change system preferences (custom fields, job types)",   true, false],
+                          ["Edit bank / payout details",                             true, false],
+                        ].map(([label, admin, emp], i) => (
+                          <tr key={i} className="border-t border-[#E5E7EB]">
+                            <td className="px-4 py-2 text-[#1A2332]">{label as string}</td>
+                            <td className="px-4 py-2 text-center">
+                              {admin ? (
+                                <span className="material-icons text-[#16A34A]" style={{ fontSize: "18px" }}>check_circle</span>
+                              ) : (
+                                <span className="material-icons text-[#D1D5DB]" style={{ fontSize: "18px" }}>remove_circle_outline</span>
+                              )}
+                            </td>
+                            <td className="px-4 py-2 text-center">
+                              {emp ? (
+                                <span className="material-icons text-[#16A34A]" style={{ fontSize: "18px" }}>check_circle</span>
+                              ) : (
+                                <span className="material-icons text-[#D1D5DB]" style={{ fontSize: "18px" }}>remove_circle_outline</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <p className="mt-3 text-[12px] text-[#6B7280]">
+                    A free-form <em>Role title</em> (Technician, Installer, Office Staff, …) can be added per user without creating a new permission set. Custom permission matrices stay out of MVP.
+                  </p>
+                </SectionCard>
+
+                {/* User Role Titles */}
+                <SectionCard title="User Role Titles" description="Free-form titles used on user profiles. Affect display and commission rules later, not permissions.">
+                  <div className="flex flex-wrap gap-2">
+                    {userRoleTitles.map(t => (
+                      <span key={t} className="flex items-center gap-1 rounded-full border border-[#E5E7EB] bg-[#F8FAFC] px-3 py-1 text-[12px] text-[#546478]">
+                        {t}
+                        <button
+                          onClick={() => setUserRoleTitles(userRoleTitles.filter(x => x !== t))}
+                          className="ml-1 text-[#9AA3AF] hover:text-[#DC2626]"
+                          title={`Remove ${t}`}
+                        >×</button>
+                      </span>
+                    ))}
+                  </div>
+                  <div className="mt-3 flex gap-2">
+                    <Input
+                      placeholder="Add role title (e.g. Lead Technician)"
+                      value={newRoleTitle}
+                      onChange={e => setNewRoleTitle(e.target.value)}
+                      className="h-9 max-w-[320px] border-[#D8DEE8] text-[13px]"
+                    />
+                    <Button
+                      className="h-9 bg-[#4A6FA5] px-4 text-[13px] hover:bg-[#3d5a85]"
+                      onClick={() => {
+                        const v = newRoleTitle.trim();
+                        if (!v) return;
+                        if (userRoleTitles.some(t => t.toLowerCase() === v.toLowerCase())) {
+                          toast.error("That title already exists");
+                          return;
+                        }
+                        setUserRoleTitles([...userRoleTitles, v]);
+                        setNewRoleTitle("");
+                      }}
+                    >
+                      Add
+                    </Button>
+                  </div>
+                </SectionCard>
+
+                {/* User Custom Fields */}
+                <SectionCard title="User Custom Fields" description="Extra fields you want on every user (e.g., Office / Field flag, who they report to).">
+                  <div className="space-y-2">
+                    {userCustomFields.map(cf => (
+                      <div key={cf.id} className="flex items-center gap-3 rounded-lg border border-[#E5E7EB] px-3 py-2">
+                        <div className="flex-1">
+                          <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>{cf.label}</div>
+                          {cf.options && <div className="text-[11px] text-[#6B7280]">Options: {cf.options}</div>}
+                        </div>
+                        <span className="text-[11px] uppercase tracking-wide text-[#6B7280] rounded-full bg-[#F5F7FA] px-2 py-0.5" style={{ fontWeight: 700 }}>{cf.type}</span>
+                        <button
+                          onClick={() => setUserCustomFields(userCustomFields.filter(x => x.id !== cf.id))}
+                          className="text-[#9CA3AF] hover:text-[#DC2626]"
+                          title="Remove"
+                        >
+                          <span className="material-icons" style={{ fontSize: "18px" }}>close</span>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-3 flex gap-2">
+                    <Input
+                      placeholder="Add field label (e.g. Reports to)"
+                      value={newUserCfLabel}
+                      onChange={e => setNewUserCfLabel(e.target.value)}
+                      className="h-9 max-w-[320px] border-[#D8DEE8] text-[13px]"
+                    />
+                    <Button
+                      className="h-9 bg-[#4A6FA5] px-4 text-[13px] hover:bg-[#3d5a85]"
+                      onClick={() => {
+                        const v = newUserCfLabel.trim();
+                        if (!v) return;
+                        setUserCustomFields([...userCustomFields, { id: `ucf${Date.now()}`, label: v, type: "Text" }]);
+                        setNewUserCfLabel("");
+                      }}
+                    >
+                      Add field
+                    </Button>
+                  </div>
+                </SectionCard>
+
+                {/* Footer — Save / Cancel */}
+                <div className="flex items-center justify-end gap-3 rounded-xl border border-[#E1E6EF] bg-white px-5 py-4 shadow-[0_8px_22px_rgba(26,35,50,0.035)]">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => toast.info("Changes discarded")}
+                    className="border-[#E5E7EB] text-[#546478] hover:bg-[#EDF0F5] h-10 px-6"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={() => toast.success("Team settings saved")}
+                    className="bg-[#4A6FA5] hover:bg-[#3d5a85] text-white h-10 px-6"
+                    style={{ fontWeight: 600 }}
+                  >
+                    Save changes
+                  </Button>
+                </div>
               </div>
             </>
           )}
