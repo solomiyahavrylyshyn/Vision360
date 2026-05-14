@@ -244,11 +244,14 @@ function TaxSettingsCard() {
       {/* Divider + Default label */}
       <div className="mt-0.5 border-t border-[#E5E7EB] pt-1.5 flex items-center gap-1.5 pl-3">
         <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>Default</span>
-        <span
-          className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-[#9CA3AF] text-[10px] text-[#9CA3AF]"
-          title="Select one rate or group as default"
-        >
-          ?
+        <span className="relative group">
+          <span className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-[#9CA3AF] text-[10px] text-[#9CA3AF] cursor-help">
+            ?
+          </span>
+          <span className="invisible group-hover:visible absolute left-1/2 -translate-x-1/2 top-6 z-20 w-[260px] rounded-lg bg-[#1A2332] text-white text-[12px] leading-snug px-3 py-2 shadow-lg">
+            Select the radio button next to a tax rate or group to make it the default applied to new invoices and jobs.
+            <span className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-[#1A2332] rotate-45" />
+          </span>
         </span>
       </div>
 
