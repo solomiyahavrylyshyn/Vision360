@@ -466,27 +466,27 @@ export function Settings() {
                       </Field>
                     </div>
                   </div>
-                </SectionCard>
 
-                {/* Footer — Save / Cancel (matches CreateClient pattern) */}
-                <div className="flex items-center justify-end gap-3 pt-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => toast.info("Changes discarded")}
-                    className="border-[#E5E7EB] text-[#546478] hover:bg-[#EDF0F5] h-10 px-6"
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="button"
-                    onClick={() => toast.success("Company info saved")}
-                    className="bg-[#4A6FA5] hover:bg-[#3d5a85] text-white h-10 px-6"
-                    style={{ fontWeight: 600 }}
-                  >
-                    Save changes
-                  </Button>
-                </div>
+                  {/* Footer — Save / Cancel (matches CreateClient pattern) */}
+                  <div className="mt-5 -mx-5 -mb-5 px-5 py-4 border-t border-[#E1E6EF] flex items-center justify-end gap-3 bg-white rounded-b-xl">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => toast.info("Changes discarded")}
+                      className="border-[#E5E7EB] text-[#546478] hover:bg-[#EDF0F5] h-10 px-6"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={() => toast.success("Company info saved")}
+                      className="bg-[#4A6FA5] hover:bg-[#3d5a85] text-white h-10 px-6"
+                      style={{ fontWeight: 600 }}
+                    >
+                      Save changes
+                    </Button>
+                  </div>
+                </SectionCard>
               </div>
             </>
           )}
