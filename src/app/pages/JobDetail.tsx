@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useNavigate, useParams } from "react-router";
 import { KebabMenu, KebabItem } from "../components/ui/kebab-menu";
 import { PlusIcon } from "../components/ui/plus-icon";
@@ -24,10 +24,33 @@ interface NoteEntry {
   date: string;
 }
 
+interface DocFile {
+  id: string;
+  name: string;
+  size: string;
+  date: string;
+  icon: string;
+  iconColor: string;
+  isImage?: boolean;
+  previewUrl?: string;
+  previewGradient?: string;
+}
+
+const INITIAL_DOCS: DocFile[] = [
+  { id: "1", name: "AC_Estimate_draft.pdf", size: "245 KB", date: "Mar 30, 2026", icon: "picture_as_pdf", iconColor: "#DC2626" },
+  { id: "2", name: "Site_Photos_Before.jpg", size: "1.2 MB", date: "Mar 30, 2026", icon: "image", iconColor: "#2563EB", isImage: true, previewGradient: "linear-gradient(135deg,#bfdbfe,#3b82f6)" },
+  { id: "3", name: "Service_Agreement.docx", size: "88 KB", date: "Mar 28, 2026", icon: "description", iconColor: "#2563EB" },
+  { id: "4", name: "Property_Map.pdf", size: "156 KB", date: "Mar 27, 2026", icon: "picture_as_pdf", iconColor: "#DC2626" },
+  { id: "5", name: "Invoice_Draft.pdf", size: "112 KB", date: "Mar 26, 2026", icon: "picture_as_pdf", iconColor: "#DC2626" },
+  { id: "6", name: "Duct_System_Photo.jpg", size: "2.1 MB", date: "Mar 25, 2026", icon: "image", iconColor: "#059669", isImage: true, previewGradient: "linear-gradient(135deg,#d1fae5,#10b981)" },
+  { id: "7", name: "Permit_Application.pdf", size: "320 KB", date: "Mar 22, 2026", icon: "picture_as_pdf", iconColor: "#DC2626" },
+];
+
 const mockJobData: Record<string, any> = {
   "1": {
     id: 1, title: "AC Estimate", client: "Travis Jones", clientInitials: "TJ",
     address: "4405 North Clark Avenue", city: "Tampa", state: "FL", zip: "33614",
+    gateCode: "4821",
     phone: "(813) 612-5487", email: "ccj924@yahoo.com",
     jobNumber: "29899-J01", jobType: "Estimate",
     startedOn: "Mar 30, 2026", endsOn: "Mar 30, 2026",
@@ -40,26 +63,40 @@ const mockJobData: Record<string, any> = {
     tags: ["New Homeowner"],
     notes: [
       { id: 1, text: "Prefers morning appointments.", date: "Mar 28, 2026" },
-      { id: 2, text: "Has three properties requiring service.", date: "Feb 14, 2026" },
-      { id: 3, text: "Requested annual maintenance plan.", date: "Jan 10, 2026" },
-      { id: 4, text: "Gate code: 4821", date: "Dec 03, 2025" },
+      { id: 2, text: "Has three properties requiring service.", date: "Feb 19, 2026" },
+      { id: 3, text: "Requested annual maintenance plan.", date: "Jan 15, 2026" },
+      { id: 4, text: "Requested annual maintenance plan.", date: "Jan 10, 2026" },
       { id: 5, text: "Large dog on property, call ahead.", date: "Nov 22, 2025" },
     ] as NoteEntry[],
-    privateNotes: [] as NoteEntry[],
-    fieldNotes: [] as NoteEntry[],
+    fieldNotes: [
+      { id: 1, text: "Prefers morning appointments.", date: "Mar 28, 2026" },
+      { id: 2, text: "Has three properties requiring service.", date: "Feb 14, 2026" },
+      { id: 3, text: "Requested annual maintenance plan.", date: "Jan 10, 2026" },
+      { id: 4, text: "Requested annual maintenance plan.", date: "Jan 05, 2026" },
+    ] as NoteEntry[],
+    privateNotes: [
+      { id: 1, text: "Requested annual maintenance plan.", date: "Jan 15, 2026" },
+      { id: 2, text: "Requested annual maintenance plan.", date: "Jan 10, 2026" },
+      { id: 3, text: "Internal note: check warranty status.", date: "Dec 20, 2025" },
+    ] as NoteEntry[],
     lineItems: [{ name: "Tree Removal", description: "Complete removal of a tree, including cutting it down to ground level, hauling away all wood and debris.", quantity: 1, unitCost: 0, unitPrice: 0, total: 0 }],
     totalCost: 0, totalPrice: 0,
-    expenses: [{ id: 1, item: "HD Items", description: "Plywood", date: "Mar 31, 2026", amount: 152.00 }] as Expense[],
-    expenseTotal: 152.00,
+    expenses: [
+      { id: 1, item: "HD Items", description: "Plywood", date: "Mar 31, 2026", amount: 152.00 },
+      { id: 2, item: "Refrigerant", description: "R-410A 25lb cylinder", date: "Mar 30, 2026", amount: 287.50 },
+      { id: 3, item: "Copper Fittings", description: "Assorted fittings pack", date: "Mar 29, 2026", amount: 64.20 },
+      { id: 4, item: "Filter Pack", description: "MERV-11 filters (6-pack)", date: "Mar 28, 2026", amount: 48.00 },
+    ] as Expense[],
+    expenseTotal: 551.70,
     visits: [{ id: 1, dateTime: "Mar 30, 2026 — Anytime", title: "Travis Jones - AC Estimate", status: "Scheduled" }] as Visit[],
-    profitability: { totalPrice: 0, lineItemCost: 0, labor: 0, expenses: 152.00, profit: -152.00, margin: 0 },
+    profitability: { totalPrice: 0, lineItemCost: 0, labor: 0, expenses: 551.70, profit: -551.70, margin: 0 },
     linkedEstimate: { id: 1, title: "Estimate #1", status: "Draft" },
     linkedInvoice: null,
-    photos: { before: [], after: [] },
   },
   "2": {
     id: 2, title: "Tree Removal", client: "Sarah Johnson", clientInitials: "SJ",
     address: "1220 Elm Street", city: "Orlando", state: "FL", zip: "32801",
+    gateCode: "",
     phone: "(407) 555-1234", email: "sarah.j@email.com",
     jobNumber: "29900-J01", jobType: "Install",
     startedOn: "Apr 10, 2026", endsOn: "Apr 10, 2026",
@@ -71,8 +108,8 @@ const mockJobData: Record<string, any> = {
     lastService: "Apr-03",
     tags: ["Landscaping"],
     notes: [] as NoteEntry[],
-    privateNotes: [] as NoteEntry[],
     fieldNotes: [] as NoteEntry[],
+    privateNotes: [] as NoteEntry[],
     lineItems: [{ name: "Tree Removal", description: "Full tree removal service", quantity: 1, unitCost: 200, unitPrice: 450, total: 450 }],
     totalCost: 200, totalPrice: 450,
     expenses: [] as Expense[], expenseTotal: 0,
@@ -80,7 +117,6 @@ const mockJobData: Record<string, any> = {
     profitability: { totalPrice: 450, lineItemCost: 200, labor: 0, expenses: 0, profit: 250, margin: 55.6 },
     linkedEstimate: null,
     linkedInvoice: { id: 1, title: "Invoice #1", status: "Draft" },
-    photos: { before: [], after: [] },
   },
 };
 
@@ -96,17 +132,214 @@ const priorityColors: Record<string, { bg: string; text: string }> = {
   High: { bg: "#FEF2F2", text: "#DC2626" },
 };
 
-type TabKey = "details" | "documents" | "items" | "expenses";
-type NotesTabKey = "notes" | "private" | "field";
-type DocTabKey = "estimates" | "invoices" | "photos";
+type TabKey = "details" | "estimate" | "invoices" | "items" | "expenses" | "documents";
 
-const TABS: { key: TabKey; label: string }[] = [
+const BASE_TABS: { key: TabKey; label: string }[] = [
   { key: "details", label: "Job Details" },
-  { key: "documents", label: "Documents" },
+  { key: "estimate", label: "Estimate" },
+  { key: "invoices", label: "Invoices" },
   { key: "items", label: "Items" },
   { key: "expenses", label: "Expenses" },
+  { key: "documents", label: "Documents" },
 ];
 
+/* ──────────────────────────────────────────
+   NOTE COLUMN SUB-COMPONENT
+────────────────────────────────────────── */
+function NoteColumn({ title, initialNotes }: { title: string; initialNotes: NoteEntry[] }) {
+  const [notes, setNotes] = useState<NoteEntry[]>(initialNotes);
+  const [collapsed, setCollapsed] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [newText, setNewText] = useState("");
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingText, setEditingText] = useState("");
+  const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
+
+  const SHOW = 4;
+  const visibleNotes = expanded ? notes : notes.slice(0, SHOW);
+
+  const handleSaveNote = () => {
+    const trimmed = newText.trim();
+    if (!trimmed) return;
+    const today = new Date();
+    const dateStr = today.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    const newId = Math.max(0, ...notes.map(n => n.id)) + 1;
+    setNotes(prev => [{ id: newId, text: trimmed, date: dateStr }, ...prev]);
+    setAdding(false);
+    setNewText("");
+  };
+
+  const handleSaveEdit = () => {
+    const trimmed = editingText.trim();
+    if (!trimmed) return;
+    setNotes(prev => prev.map(n => n.id === editingId ? { ...n, text: trimmed } : n));
+    setEditingId(null);
+  };
+
+  return (
+    <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden flex flex-col">
+      {/* Header */}
+      <div className="flex items-center gap-2 px-4 py-3 border-b border-[#E5E7EB]">
+        <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>subject</span>
+        <span className="flex-1 text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>
+          {title}
+          {notes.length > 0 && (
+            <span className="text-[#9CA3AF] ml-1" style={{ fontWeight: 400 }}>({notes.length})</span>
+          )}
+        </span>
+        <button
+          onClick={() => { setAdding(true); setNewText(""); }}
+          className="w-6 h-6 flex items-center justify-center hover:bg-[#F5F7FA] rounded transition-colors"
+          title="Add note"
+        >
+          <PlusIcon className="h-3.5 w-3.5 text-[#9CA3AF]" />
+        </button>
+        <button
+          onClick={() => setCollapsed(v => !v)}
+          className="w-6 h-6 flex items-center justify-center hover:bg-[#F5F7FA] rounded transition-colors"
+          title={collapsed ? "Expand" : "Collapse"}
+        >
+          <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "20px" }}>
+            {collapsed ? "add" : "remove"}
+          </span>
+        </button>
+      </div>
+
+      {!collapsed && (
+        <div className="flex flex-col">
+          {/* Add note form */}
+          {adding && (
+            <div className="px-4 py-3 border-b border-[#E5E7EB] bg-[#F9FAFB]">
+              <textarea
+                autoFocus
+                value={newText}
+                onChange={e => setNewText(e.target.value)}
+                placeholder="Write a note…"
+                rows={3}
+                className="w-full text-[13px] text-[#1A2332] border border-[#E5E7EB] rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-[#4A6FA5] bg-white placeholder:text-[#9CA3AF]"
+              />
+              <div className="flex gap-2 mt-2">
+                <button
+                  onClick={handleSaveNote}
+                  disabled={!newText.trim()}
+                  className="h-7 px-3 bg-[#4A6FA5] hover:bg-[#3d5a85] disabled:opacity-40 text-white text-[12px] rounded-md transition-colors"
+                  style={{ fontWeight: 500 }}
+                >Save</button>
+                <button
+                  onClick={() => { setAdding(false); setNewText(""); }}
+                  className="h-7 px-3 text-[#546478] hover:bg-[#EDF0F5] text-[12px] rounded-md transition-colors"
+                  style={{ fontWeight: 500 }}
+                >Cancel</button>
+              </div>
+            </div>
+          )}
+
+          {/* Empty state */}
+          {notes.length === 0 && !adding && (
+            <div className="py-8 text-center text-[12px] text-[#9CA3AF]">No {title.toLowerCase()} yet</div>
+          )}
+
+          {/* Notes list */}
+          {notes.length > 0 && (
+            <div className="divide-y divide-[#E5E7EB]">
+              {visibleNotes.map((note) => {
+                const isLong = note.text.length > 120;
+                const isExpanded = expandedIds.has(note.id);
+                const isEditing = editingId === note.id;
+                return (
+                  <div key={note.id} className="group px-4 py-3">
+                    {isEditing ? (
+                      <div>
+                        <textarea
+                          autoFocus
+                          value={editingText}
+                          onChange={e => setEditingText(e.target.value)}
+                          rows={3}
+                          className="w-full text-[13px] text-[#1A2332] border border-[#4A6FA5] rounded-lg px-3 py-2 resize-none focus:outline-none bg-white"
+                        />
+                        <div className="flex gap-2 mt-2">
+                          <button
+                            onClick={handleSaveEdit}
+                            disabled={!editingText.trim()}
+                            className="h-7 px-3 bg-[#4A6FA5] hover:bg-[#3d5a85] disabled:opacity-40 text-white text-[12px] rounded-md transition-colors"
+                            style={{ fontWeight: 500 }}
+                          >Save</button>
+                          <button
+                            onClick={() => setEditingId(null)}
+                            className="h-7 px-3 text-[#546478] hover:bg-[#EDF0F5] text-[12px] rounded-md transition-colors"
+                            style={{ fontWeight: 500 }}
+                          >Cancel</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div>
+                        <div className="flex items-start justify-between gap-2">
+                          <p
+                            className={`text-[13px] text-[#1A2332] leading-[20px] flex-1 ${!isExpanded && isLong ? "line-clamp-2" : ""}`}
+                            style={{ fontWeight: 500 }}
+                          >
+                            {note.text}
+                          </p>
+                          <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-0.5">
+                            <button
+                              onClick={() => { setEditingId(note.id); setEditingText(note.text); }}
+                              className="w-6 h-6 flex items-center justify-center hover:bg-[#EDF0F5] rounded transition-colors"
+                            >
+                              <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "14px" }}>edit</span>
+                            </button>
+                            <button
+                              onClick={() => setNotes(prev => prev.filter(n => n.id !== note.id))}
+                              className="w-6 h-6 flex items-center justify-center hover:bg-[#FEF2F2] rounded transition-colors"
+                            >
+                              <span className="material-icons text-[#9CA3AF] hover:text-[#DC2626]" style={{ fontSize: "14px" }}>delete</span>
+                            </button>
+                          </div>
+                        </div>
+                        {isLong && (
+                          <button
+                            onClick={() => setExpandedIds(prev => {
+                              const s = new Set(prev);
+                              isExpanded ? s.delete(note.id) : s.add(note.id);
+                              return s;
+                            })}
+                            className="mt-1 text-[11px] text-[#4A6FA5] hover:underline"
+                            style={{ fontWeight: 500 }}
+                          >
+                            {isExpanded ? "Show less" : "Read more"}
+                          </button>
+                        )}
+                        <div className="text-[11px] text-[#9CA3AF] mt-1">{note.date}</div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Show more / less */}
+          {notes.length > SHOW && (
+            <button
+              onClick={() => setExpanded(v => !v)}
+              className="w-full py-2.5 text-[12px] text-[#4A6FA5] hover:text-[#3d5a85] hover:bg-[#F5F7FA] rounded-lg transition-colors flex items-center justify-center gap-1 border-t border-[#E5E7EB]"
+              style={{ fontWeight: 500 }}
+            >
+              <span className="material-icons" style={{ fontSize: "14px" }}>
+                {expanded ? "expand_less" : "expand_more"}
+              </span>
+              {expanded ? "Show less" : `Show ${notes.length - SHOW} more`}
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ──────────────────────────────────────────
+   MAIN COMPONENT
+────────────────────────────────────────── */
 export function JobDetail() {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -117,23 +350,32 @@ export function JobDetail() {
   const [showTabSettings, setShowTabSettings] = useState(false);
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
   const [currentStatus, setCurrentStatus] = useState<string>(job.status);
-  const [notesTab, setNotesTab] = useState<NotesTabKey>("notes");
-  const [jobNotes, setJobNotes] = useState<NoteEntry[]>(job.notes);
-  const [notesExpanded, setNotesExpanded] = useState(false);
-  const [addingJobNote, setAddingJobNote] = useState(false);
-  const [newJobNoteText, setNewJobNoteText] = useState("");
-  const [editingJobNoteId, setEditingJobNoteId] = useState<number | null>(null);
-  const [editingJobNoteText, setEditingJobNoteText] = useState("");
-  const [expandedJobNoteIds, setExpandedJobNoteIds] = useState<Set<number>>(new Set());
-  const [docTab, setDocTab] = useState<DocTabKey>("estimates");
-  const [photoTab, setPhotoTab] = useState<"before" | "after">("before");
   const [editingSection, setEditingSection] = useState<null | "address" | "schedule" | "overview">(null);
   const [editJob, setEditJob] = useState<any>(job);
+
+  // Documents state
+  const [documents, setDocuments] = useState<DocFile[]>(INITIAL_DOCS);
+  const [docSearch, setDocSearch] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const openEdit = (section: "address" | "schedule" | "overview") => {
     setEditJob(job);
     setEditingSection(section);
   };
   const setEditField = (field: string, value: any) => setEditJob((p: any) => ({ ...p, [field]: value }));
+
+  /* ── Tab label with counts ── */
+  const getTabLabel = (key: TabKey): string => {
+    const counts: Partial<Record<TabKey, number>> = {
+      estimate: job.linkedEstimate ? 1 : 0,
+      invoices: job.linkedInvoice ? 1 : 0,
+      expenses: job.expenses.length,
+      documents: documents.length,
+    };
+    const count = counts[key];
+    const base = BASE_TABS.find(t => t.key === key)!.label;
+    return count && count > 0 ? `${base}(${count})` : base;
+  };
 
   const toggleTabVisibility = (key: TabKey) => {
     setHiddenTabs(prev => {
@@ -142,7 +384,7 @@ export function JobDetail() {
       else {
         next.add(key);
         if (activeTab === key) {
-          const firstVisible = TABS.find(t => t.key !== key && !next.has(t.key));
+          const firstVisible = BASE_TABS.find(t => t.key !== key && !next.has(t.key));
           if (firstVisible) setActiveTab(firstVisible.key);
         }
       }
@@ -150,8 +392,7 @@ export function JobDetail() {
     });
   };
 
-  const visibleTabs = TABS.filter(t => !hiddenTabs.has(t.key));
-
+  const visibleTabs = BASE_TABS.filter(t => !hiddenTabs.has(t.key));
   const statusColor = statusColors[currentStatus] || "#6B7280";
 
   const handleStatusChange = (newStatus: string) => {
@@ -159,22 +400,56 @@ export function JobDetail() {
     setStatusDropdownOpen(false);
   };
 
+  /* ── File helpers ── */
+  const getFileIcon = (name: string): { icon: string; iconColor: string } => {
+    const ext = name.split(".").pop()?.toLowerCase();
+    if (ext === "pdf") return { icon: "picture_as_pdf", iconColor: "#DC2626" };
+    if (["jpg", "jpeg", "png", "gif", "webp"].includes(ext || "")) return { icon: "image", iconColor: "#2563EB" };
+    if (["doc", "docx"].includes(ext || "")) return { icon: "description", iconColor: "#2563EB" };
+    if (["xls", "xlsx"].includes(ext || "")) return { icon: "table_chart", iconColor: "#059669" };
+    return { icon: "insert_drive_file", iconColor: "#6B7280" };
+  };
+
+  const formatSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const handleFilesAdded = (files: FileList | null) => {
+    if (!files) return;
+    const today = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    Array.from(files).forEach((f) => {
+      const docId = String(Date.now() + Math.random());
+      const isImage = f.type.startsWith("image/");
+      const doc: DocFile = { id: docId, name: f.name, size: formatSize(f.size), date: today, ...getFileIcon(f.name), isImage };
+      if (isImage) {
+        const reader = new FileReader();
+        reader.onload = () => setDocuments(prev => prev.map(d => d.id === docId ? { ...d, previewUrl: String(reader.result) } : d));
+        reader.readAsDataURL(f);
+      }
+      setDocuments(prev => [doc, ...prev]);
+    });
+  };
+
   /* ──────────────────────────────────────────
-     CONTENT RENDERERS (per tab)
+     CONTENT RENDERERS
   ────────────────────────────────────────── */
 
   const renderDetailsTab = () => (
-    <div className="flex gap-4 items-stretch">
+    <div className="flex gap-4 items-start">
 
-      {/* ── Job Overview ── */}
-      <div className="flex-1 min-w-0 bg-white border border-[#E5E7EB] rounded-lg p-5 flex flex-col">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Job Overview</h3>
-          <button onClick={() => openEdit("overview")} className="text-[#9CA3AF] hover:text-[#6B7280]">
-            <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
-          </button>
-        </div>
-        <div className="flex flex-col gap-4">
+      {/* ── Left: stacked cards ── */}
+      <div className="flex flex-col gap-4 w-[260px] shrink-0">
+
+        {/* Job Overview */}
+        <div className="bg-white border border-[#E5E7EB] rounded-lg p-5 flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Job Overview</h3>
+            <button onClick={() => openEdit("overview")} className="text-[#9CA3AF] hover:text-[#6B7280]">
+              <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
+            </button>
+          </div>
           <div className="flex flex-col gap-1">
             <div className="text-[11px] text-[#9CA3AF]">Job Title</div>
             <div className="text-[13px] text-[#374151]" style={{ fontWeight: 500 }}>{job.title}</div>
@@ -185,6 +460,7 @@ export function JobDetail() {
               <span className="material-icons text-[#6B7280] mt-0.5" style={{ fontSize: "15px" }}>location_on</span>
               <div className="text-[13px] text-[#374151] leading-[20px]">
                 {job.address}<br />{job.city}, {job.state} {job.zip}
+                {job.gateCode && <><br /><span className="text-[#9CA3AF]">Gate code: {job.gateCode}</span></>}
               </div>
             </div>
           </div>
@@ -197,398 +473,170 @@ export function JobDetail() {
             <div className="text-[13px] text-[#374151]">{job.jobNumber}</div>
           </div>
         </div>
-      </div>
 
-      {/* ── Job Date & Time ── */}
-      <div className="flex-1 min-w-0 bg-white border border-[#E5E7EB] rounded-lg p-5 flex flex-col">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Job Date & Time</h3>
-          <button onClick={() => openEdit("schedule")} className="text-[#9CA3AF] hover:text-[#6B7280]">
-            <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
-          </button>
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div className="flex flex-col gap-1">
-            <div className="text-[11px] text-[#9CA3AF]">Start Date</div>
-            <div className="text-[13px] text-[#374151]" style={{ fontWeight: 500 }}>{job.startedOn}</div>
+        {/* Job Date & Time */}
+        <div className="bg-white border border-[#E5E7EB] rounded-lg p-5 flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Job Date & Time</h3>
+            <button onClick={() => openEdit("schedule")} className="text-[#9CA3AF] hover:text-[#6B7280]">
+              <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
+            </button>
           </div>
-          <div className="flex flex-col gap-1">
-            <div className="text-[11px] text-[#9CA3AF]">End Date</div>
-            <div className="text-[13px] text-[#374151]" style={{ fontWeight: 500 }}>{job.endsOn}</div>
-          </div>
-          <div className="flex flex-col gap-1">
-            <div className="text-[11px] text-[#9CA3AF]">Start Time</div>
-            <div className="text-[13px] text-[#374151]" style={{ fontWeight: 500 }}>{job.startTime}</div>
-          </div>
-          <div className="flex flex-col gap-1">
-            <div className="text-[11px] text-[#9CA3AF]">End Time</div>
-            <div className="text-[13px] text-[#374151]" style={{ fontWeight: 500 }}>{job.endTime}</div>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Notes Panel ── */}
-      <div className="w-[300px] shrink-0 bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center gap-2 px-5 py-3.5 border-b border-[#E5E7EB]">
-          <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>notes</span>
-          <span className="flex-1 text-[13px] font-semibold text-[#1A2332]">
-            Notes
-            {jobNotes.length > 0 && (
-              <span className="ml-1 text-[#9CA3AF]" style={{ fontWeight: 400 }}>({jobNotes.length})</span>
-            )}
-          </span>
-          <button
-            onClick={() => { setAddingJobNote(true); setNewJobNoteText(""); }}
-            className="w-7 h-7 flex items-center justify-center hover:bg-[#F5F7FA] rounded-md transition-colors"
-          >
-            <PlusIcon className="h-4 w-4 text-[#9CA3AF]" />
-          </button>
-        </div>
-
-        {/* Note type tabs */}
-        <div className="flex border-b border-[#E5E7EB] px-5">
-          {(["notes", "private", "field"] as NotesTabKey[]).map((t) => {
-            const label = t === "notes" ? "Notes" : t === "private" ? "Private Notes" : "Field Notes";
-            return (
-              <button
-                key={t}
-                onClick={() => { setNotesTab(t); setAddingJobNote(false); }}
-                className={`py-2.5 mr-4 text-[12px] border-b-2 transition-colors ${
-                  notesTab === t ? "border-[#4A6FA5] text-[#4A6FA5]" : "border-transparent text-[#6B7280] hover:text-[#374151]"
-                }`}
-                style={{ fontWeight: notesTab === t ? 600 : 500 }}
-              >
-                {label}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Add note form */}
-        {addingJobNote && notesTab === "notes" && (
-          <div className="px-5 py-3 border-b border-[#E5E7EB] bg-[#F9FAFB]">
-            <textarea
-              autoFocus
-              value={newJobNoteText}
-              onChange={e => setNewJobNoteText(e.target.value)}
-              placeholder="Write a note…"
-              rows={3}
-              className="w-full text-[13px] text-[#1A2332] border border-[#E5E7EB] rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-[#4A6FA5] bg-white placeholder:text-[#9CA3AF]"
-            />
-            <div className="flex gap-2 mt-2">
-              <button
-                onClick={() => {
-                  const trimmed = newJobNoteText.trim();
-                  if (!trimmed) return;
-                  const today = new Date();
-                  const dateStr = `Added ${today.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
-                  const newId = Math.max(0, ...jobNotes.map(n => n.id)) + 1;
-                  setJobNotes(prev => [{ id: newId, text: trimmed, date: dateStr }, ...prev]);
-                  setAddingJobNote(false);
-                  setNewJobNoteText("");
-                }}
-                disabled={!newJobNoteText.trim()}
-                className="h-7 px-3 bg-[#4A6FA5] hover:bg-[#3d5a85] disabled:opacity-40 text-white text-[12px] rounded-md transition-colors"
-                style={{ fontWeight: 500 }}
-              >Save</button>
-              <button
-                onClick={() => { setAddingJobNote(false); setNewJobNoteText(""); }}
-                className="h-7 px-3 text-[#546478] hover:bg-[#EDF0F5] text-[12px] rounded-md transition-colors"
-                style={{ fontWeight: 500 }}
-              >Cancel</button>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1">
+              <div className="text-[11px] text-[#9CA3AF]">Start Date</div>
+              <div className="text-[13px] text-[#374151]" style={{ fontWeight: 500 }}>{job.startedOn}</div>
+            </div>
+            <div className="flex flex-col gap-1">
+              <div className="text-[11px] text-[#9CA3AF]">End Date</div>
+              <div className="text-[13px] text-[#374151]" style={{ fontWeight: 500 }}>{job.endsOn}</div>
+            </div>
+            <div className="flex flex-col gap-1">
+              <div className="text-[11px] text-[#9CA3AF]">Start Time</div>
+              <div className="text-[13px] text-[#374151]" style={{ fontWeight: 500 }}>{job.startTime}</div>
+            </div>
+            <div className="flex flex-col gap-1">
+              <div className="text-[11px] text-[#9CA3AF]">End Time</div>
+              <div className="text-[13px] text-[#374151]" style={{ fontWeight: 500 }}>{job.endTime}</div>
             </div>
           </div>
-        )}
-
-        {/* Notes list */}
-        <div className="px-5 pt-2 pb-1">
-          {notesTab === "private" && (
-            <div className="py-6 text-center text-[12px] text-[#9CA3AF]">No private notes yet</div>
-          )}
-          {notesTab === "field" && (
-            <div className="py-6 text-center text-[12px] text-[#9CA3AF]">No field notes yet</div>
-          )}
-          {notesTab === "notes" && jobNotes.length === 0 && !addingJobNote && (
-            <div className="py-6 text-center text-[12px] text-[#9CA3AF]">No notes yet</div>
-          )}
-          {notesTab === "notes" && <>{(notesExpanded ? jobNotes : jobNotes.slice(0, 4)).map((note, index, arr) => {
-            const isLong = note.text.length > 120;
-            const isExpanded = expandedJobNoteIds.has(note.id);
-            const isEditingThis = editingJobNoteId === note.id;
-            return (
-              <div key={note.id} className={`group py-3 ${index < arr.length - 1 ? "border-b border-[#E5E7EB]" : ""}`}>
-                {isEditingThis ? (
-                  <div>
-                    <textarea
-                      autoFocus
-                      value={editingJobNoteText}
-                      onChange={e => setEditingJobNoteText(e.target.value)}
-                      rows={3}
-                      className="w-full text-[13px] text-[#1A2332] border border-[#4A6FA5] rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-[#4A6FA5] bg-white"
-                    />
-                    <div className="flex gap-2 mt-2">
-                      <button
-                        onClick={() => {
-                          const trimmed = editingJobNoteText.trim();
-                          if (!trimmed) return;
-                          setJobNotes(prev => prev.map(n => n.id === note.id ? { ...n, text: trimmed } : n));
-                          setEditingJobNoteId(null);
-                        }}
-                        disabled={!editingJobNoteText.trim()}
-                        className="h-7 px-3 bg-[#4A6FA5] hover:bg-[#3d5a85] disabled:opacity-40 text-white text-[12px] rounded-md transition-colors"
-                        style={{ fontWeight: 500 }}
-                      >Save</button>
-                      <button
-                        onClick={() => setEditingJobNoteId(null)}
-                        className="h-7 px-3 text-[#546478] hover:bg-[#EDF0F5] text-[12px] rounded-md transition-colors"
-                        style={{ fontWeight: 500 }}
-                      >Cancel</button>
-                    </div>
-                  </div>
-                ) : (
-                  <div>
-                    <div className="flex items-start justify-between gap-2">
-                      <p className={`text-[13px] text-[#1A2332] leading-[20px] flex-1 ${!isExpanded && isLong ? "line-clamp-2" : ""}`}
-                        style={{ fontWeight: 500 }}>
-                        {note.text}
-                      </p>
-                      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-0.5">
-                        <button
-                          onClick={() => { setEditingJobNoteId(note.id); setEditingJobNoteText(note.text); }}
-                          className="w-6 h-6 flex items-center justify-center hover:bg-[#EDF0F5] rounded transition-colors"
-                        >
-                          <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "14px" }}>edit</span>
-                        </button>
-                        <button
-                          onClick={() => {
-                            setJobNotes(prev => prev.filter(n => n.id !== note.id));
-                            setExpandedJobNoteIds(prev => { const s = new Set(prev); s.delete(note.id); return s; });
-                          }}
-                          className="w-6 h-6 flex items-center justify-center hover:bg-[#FEF2F2] rounded transition-colors"
-                        >
-                          <span className="material-icons text-[#9CA3AF] hover:text-[#DC2626]" style={{ fontSize: "14px" }}>delete</span>
-                        </button>
-                      </div>
-                    </div>
-                    {isLong && (
-                      <button
-                        onClick={() => setExpandedJobNoteIds(prev => {
-                          const s = new Set(prev);
-                          isExpanded ? s.delete(note.id) : s.add(note.id);
-                          return s;
-                        })}
-                        className="mt-1 text-[11px] text-[#4A6FA5] hover:underline"
-                        style={{ fontWeight: 500 }}
-                      >
-                        {isExpanded ? "Show less" : "Read more"}
-                      </button>
-                    )}
-                    <div className="text-[11px] text-[#9CA3AF] mt-1">{note.date}</div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-          {jobNotes.length > 4 && (
-            <button
-              onClick={() => setNotesExpanded(v => !v)}
-              className="w-full py-2.5 text-[12px] text-[#4A6FA5] hover:text-[#3d5a85] hover:bg-[#F5F7FA] rounded-lg transition-colors flex items-center justify-center gap-1 border-t border-[#E5E7EB] mt-1"
-              style={{ fontWeight: 500 }}
-            >
-              <span className="material-icons" style={{ fontSize: "14px" }}>
-                {notesExpanded ? "expand_less" : "expand_more"}
-              </span>
-              {notesExpanded ? "Show less" : `Show ${jobNotes.length - 4} more`}
-            </button>
-          )}</>}
         </div>
+      </div>
+
+      {/* ── Right: 3 note columns ── */}
+      <div className="flex-1 grid grid-cols-3 gap-4">
+        <NoteColumn title="Job Notes" initialNotes={job.notes} />
+        <NoteColumn title="Field Notes" initialNotes={job.fieldNotes} />
+        <NoteColumn title="Private Notes" initialNotes={job.privateNotes} />
       </div>
     </div>
   );
 
-  const renderDocumentsTab = () => (
+  const renderEstimateTab = () => (
     <div className="bg-white border border-[#E5E7EB] rounded-lg p-5">
-      {/* Sub-tabs */}
-      <div className="flex gap-1 border-b border-[#E5E7EB] mb-5">
-        {(["estimates", "invoices", "photos"] as DocTabKey[]).map((t) => {
-          const label = t === "estimates" ? "Estimates" : t === "invoices" ? "Invoices" : "Photos";
-          return (
-            <button
-              key={t}
-              onClick={() => setDocTab(t)}
-              className={`pb-3 px-3 text-[13px] border-b-2 transition-colors ${
-                docTab === t ? "border-[#4A6FA5] text-[#4A6FA5]" : "border-transparent text-[#6B7280] hover:text-[#374151]"
-              }`}
-              style={{ fontWeight: docTab === t ? 600 : 500 }}
-            >
-              {label}
-            </button>
-          );
-        })}
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Estimates</h3>
+        <button
+          onClick={() => navigate("/estimates/create")}
+          className="text-[12px] text-[#4A6FA5] hover:underline flex items-center gap-1"
+          style={{ fontWeight: 500 }}
+        >
+          <PlusIcon className="h-4 w-4" />
+          Create estimate
+        </button>
       </div>
-
-      {docTab === "estimates" && (
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Estimates</h3>
-            <button
-              onClick={() => navigate("/estimates/create")}
-              className="text-[12px] text-[#4A6FA5] hover:underline flex items-center gap-1"
-              style={{ fontWeight: 500 }}
-            >
-              <PlusIcon className="h-4 w-4" />
-              Create estimate
-            </button>
-          </div>
-          {job.linkedEstimate ? (
-            <table className="w-full text-[13px]">
-              <thead>
-                <tr className="border-b border-[#E5E7EB]">
-                  <th className="text-left py-2 text-[11px] uppercase tracking-wide text-[#9CA3AF]" style={{ fontWeight: 600 }}>Estimate</th>
-                  <th className="text-left py-2 text-[11px] uppercase tracking-wide text-[#9CA3AF]" style={{ fontWeight: 600 }}>Status</th>
-                  <th className="py-2"></th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr className="border-b border-[#F3F4F6]">
-                  <td className="py-3">
-                    <div className="flex items-center gap-2">
-                      <span className="material-icons text-[#6B7280]" style={{ fontSize: "18px" }}>request_quote</span>
-                      <button
-                        onClick={() => navigate(`/estimates/${job.linkedEstimate.id}`)}
-                        className="text-[#4A6FA5] hover:underline"
-                        style={{ fontWeight: 500 }}
-                      >
-                        {job.linkedEstimate.title}
-                      </button>
-                    </div>
-                  </td>
-                  <td className="py-3">
-                    <span className="px-1.5 py-0.5 rounded text-[11px] bg-[#F3F4F6] text-[#6B7280]" style={{ fontWeight: 500 }}>
-                      {job.linkedEstimate.status}
-                    </span>
-                  </td>
-                  <td className="py-3 text-right">
-                    <button className="text-[12px] text-[#6B7280] hover:text-[#374151]">
-                      <span className="material-icons" style={{ fontSize: "18px" }}>open_in_new</span>
-                    </button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          ) : (
-            <div className="text-center py-8">
-              <span className="material-icons text-[#D1D5DB] mb-2 block" style={{ fontSize: "40px" }}>request_quote</span>
-              <div className="text-[13px] text-[#9CA3AF]">No estimates yet</div>
-              <button
-                onClick={() => navigate("/estimates/create")}
-                className="mt-3 text-[12px] text-[#4A6FA5] hover:underline"
-                style={{ fontWeight: 500 }}
-              >
-                Create the first estimate
-              </button>
-            </div>
-          )}
+      {job.linkedEstimate ? (
+        <table className="w-full text-[13px]">
+          <thead>
+            <tr className="border-b border-[#E5E7EB]">
+              <th className="text-left py-2 text-[11px] uppercase tracking-wide text-[#9CA3AF]" style={{ fontWeight: 600 }}>Estimate</th>
+              <th className="text-left py-2 text-[11px] uppercase tracking-wide text-[#9CA3AF]" style={{ fontWeight: 600 }}>Status</th>
+              <th className="py-2"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr className="border-b border-[#F3F4F6]">
+              <td className="py-3">
+                <div className="flex items-center gap-2">
+                  <span className="material-icons text-[#6B7280]" style={{ fontSize: "18px" }}>request_quote</span>
+                  <button
+                    onClick={() => navigate(`/estimates/${job.linkedEstimate.id}`)}
+                    className="text-[#4A6FA5] hover:underline"
+                    style={{ fontWeight: 500 }}
+                  >
+                    {job.linkedEstimate.title}
+                  </button>
+                </div>
+              </td>
+              <td className="py-3">
+                <span className="px-1.5 py-0.5 rounded text-[11px] bg-[#F3F4F6] text-[#6B7280]" style={{ fontWeight: 500 }}>
+                  {job.linkedEstimate.status}
+                </span>
+              </td>
+              <td className="py-3 text-right">
+                <button className="text-[12px] text-[#6B7280] hover:text-[#374151]">
+                  <span className="material-icons" style={{ fontSize: "18px" }}>open_in_new</span>
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      ) : (
+        <div className="text-center py-8">
+          <span className="material-icons text-[#D1D5DB] mb-2 block" style={{ fontSize: "40px" }}>request_quote</span>
+          <div className="text-[13px] text-[#9CA3AF]">No estimates yet</div>
+          <button
+            onClick={() => navigate("/estimates/create")}
+            className="mt-3 text-[12px] text-[#4A6FA5] hover:underline"
+            style={{ fontWeight: 500 }}
+          >
+            Create the first estimate
+          </button>
         </div>
       )}
+    </div>
+  );
 
-      {docTab === "invoices" && (
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Invoices</h3>
-            <button
-              onClick={() => navigate("/invoices/create")}
-              className="text-[12px] text-[#4A6FA5] hover:underline flex items-center gap-1"
-              style={{ fontWeight: 500 }}
-            >
-              <PlusIcon className="h-4 w-4" />
-              Create invoice
-            </button>
-          </div>
-          {job.linkedInvoice ? (
-            <table className="w-full text-[13px]">
-              <thead>
-                <tr className="border-b border-[#E5E7EB]">
-                  <th className="text-left py-2 text-[11px] uppercase tracking-wide text-[#9CA3AF]" style={{ fontWeight: 600 }}>Invoice</th>
-                  <th className="text-left py-2 text-[11px] uppercase tracking-wide text-[#9CA3AF]" style={{ fontWeight: 600 }}>Status</th>
-                  <th className="py-2"></th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr className="border-b border-[#F3F4F6]">
-                  <td className="py-3">
-                    <div className="flex items-center gap-2">
-                      <span className="material-icons text-[#6B7280]" style={{ fontSize: "18px" }}>receipt</span>
-                      <button
-                        onClick={() => navigate(`/invoices/${job.linkedInvoice.id}`)}
-                        className="text-[#4A6FA5] hover:underline"
-                        style={{ fontWeight: 500 }}
-                      >
-                        {job.linkedInvoice.title}
-                      </button>
-                    </div>
-                  </td>
-                  <td className="py-3">
-                    <span className="px-1.5 py-0.5 rounded text-[11px] bg-[#F3F4F6] text-[#6B7280]" style={{ fontWeight: 500 }}>
-                      {job.linkedInvoice.status}
-                    </span>
-                  </td>
-                  <td className="py-3 text-right">
-                    <button className="text-[12px] text-[#6B7280] hover:text-[#374151]">
-                      <span className="material-icons" style={{ fontSize: "18px" }}>open_in_new</span>
-                    </button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          ) : (
-            <div className="text-center py-8">
-              <span className="material-icons text-[#D1D5DB] mb-2 block" style={{ fontSize: "40px" }}>receipt</span>
-              <div className="text-[13px] text-[#9CA3AF]">No invoices yet</div>
-              <button
-                onClick={() => navigate("/invoices/create")}
-                className="mt-3 text-[12px] text-[#4A6FA5] hover:underline"
-                style={{ fontWeight: 500 }}
-              >
-                Create the first invoice
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-
-      {docTab === "photos" && (
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Attachments & Photos</h3>
-            <button className="px-3 py-1.5 border border-[#4A6FA5] text-[#4A6FA5] rounded-md text-[12px] hover:bg-[#EBF0F8] flex items-center gap-1" style={{ fontWeight: 500 }}>
-              <span className="material-icons" style={{ fontSize: "16px" }}>add_a_photo</span>
-              Upload
-            </button>
-          </div>
-          <div className="flex gap-4 border-b border-[#E5E7EB] mb-4">
-            <button
-              onClick={() => setPhotoTab("before")}
-              className={`pb-2 text-[13px] border-b-2 ${photoTab === "before" ? "border-[#4A6FA5] text-[#4A6FA5]" : "border-transparent text-[#6B7280]"}`}
-              style={{ fontWeight: photoTab === "before" ? 600 : 500 }}
-            >
-              Before
-            </button>
-            <button
-              onClick={() => setPhotoTab("after")}
-              className={`pb-2 text-[13px] border-b-2 ${photoTab === "after" ? "border-[#4A6FA5] text-[#4A6FA5]" : "border-transparent text-[#6B7280]"}`}
-              style={{ fontWeight: photoTab === "after" ? 600 : 500 }}
-            >
-              After
-            </button>
-          </div>
-          <div className="border-2 border-dashed border-[#E5E7EB] rounded-lg p-8 text-center">
-            <span className="material-icons text-[#D1D5DB] mb-2 block" style={{ fontSize: "40px" }}>photo_camera</span>
-            <p className="text-[13px] text-[#9CA3AF]">
-              No {photoTab} photos yet. Upload photos to document job progress.
-            </p>
-          </div>
+  const renderInvoicesTab = () => (
+    <div className="bg-white border border-[#E5E7EB] rounded-lg p-5">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Invoices</h3>
+        <button
+          onClick={() => navigate("/invoices/create")}
+          className="text-[12px] text-[#4A6FA5] hover:underline flex items-center gap-1"
+          style={{ fontWeight: 500 }}
+        >
+          <PlusIcon className="h-4 w-4" />
+          Create invoice
+        </button>
+      </div>
+      {job.linkedInvoice ? (
+        <table className="w-full text-[13px]">
+          <thead>
+            <tr className="border-b border-[#E5E7EB]">
+              <th className="text-left py-2 text-[11px] uppercase tracking-wide text-[#9CA3AF]" style={{ fontWeight: 600 }}>Invoice</th>
+              <th className="text-left py-2 text-[11px] uppercase tracking-wide text-[#9CA3AF]" style={{ fontWeight: 600 }}>Status</th>
+              <th className="py-2"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr className="border-b border-[#F3F4F6]">
+              <td className="py-3">
+                <div className="flex items-center gap-2">
+                  <span className="material-icons text-[#6B7280]" style={{ fontSize: "18px" }}>receipt</span>
+                  <button
+                    onClick={() => navigate(`/invoices/${job.linkedInvoice.id}`)}
+                    className="text-[#4A6FA5] hover:underline"
+                    style={{ fontWeight: 500 }}
+                  >
+                    {job.linkedInvoice.title}
+                  </button>
+                </div>
+              </td>
+              <td className="py-3">
+                <span className="px-1.5 py-0.5 rounded text-[11px] bg-[#F3F4F6] text-[#6B7280]" style={{ fontWeight: 500 }}>
+                  {job.linkedInvoice.status}
+                </span>
+              </td>
+              <td className="py-3 text-right">
+                <button className="text-[12px] text-[#6B7280] hover:text-[#374151]">
+                  <span className="material-icons" style={{ fontSize: "18px" }}>open_in_new</span>
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      ) : (
+        <div className="text-center py-8">
+          <span className="material-icons text-[#D1D5DB] mb-2 block" style={{ fontSize: "40px" }}>receipt</span>
+          <div className="text-[13px] text-[#9CA3AF]">No invoices yet</div>
+          <button
+            onClick={() => navigate("/invoices/create")}
+            className="mt-3 text-[12px] text-[#4A6FA5] hover:underline"
+            style={{ fontWeight: 500 }}
+          >
+            Create the first invoice
+          </button>
         </div>
       )}
     </div>
@@ -693,12 +741,135 @@ export function JobDetail() {
     </div>
   );
 
+  const renderDocumentsTab = () => {
+    const filtered = documents.filter(d =>
+      !docSearch || d.name.toLowerCase().includes(docSearch.toLowerCase())
+    );
+    return (
+      <div className="space-y-3">
+        {/* Toolbar */}
+        <div className="bg-white border border-[#E5E7EB] rounded-xl px-4 py-3 flex items-center gap-3">
+          <div className="relative flex-1 max-w-[260px]">
+            <span className="material-icons absolute left-2.5 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: "15px" }}>search</span>
+            <input
+              type="text"
+              value={docSearch}
+              onChange={e => setDocSearch(e.target.value)}
+              placeholder="Search documents..."
+              className="w-full h-8 pl-8 pr-3 rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] text-[13px] text-[#1A2332] placeholder:text-[#9CA3AF] outline-none focus:border-[#4A6FA5] focus:bg-white"
+            />
+          </div>
+          <select className="h-8 rounded-lg border border-[#E5E7EB] bg-white px-3 text-[13px] text-[#374151] outline-none focus:border-[#4A6FA5]">
+            <option>Date: All time</option>
+            <option>Last 7 days</option>
+            <option>Last 30 days</option>
+            <option>Last 90 days</option>
+          </select>
+          <select className="h-8 rounded-lg border border-[#E5E7EB] bg-white px-3 text-[13px] text-[#374151] outline-none focus:border-[#4A6FA5]">
+            <option>All Categories</option>
+            <option>Photos</option>
+            <option>Documents</option>
+            <option>Agreements</option>
+          </select>
+          <div className="flex-1" />
+          <button
+            className="h-8 px-3 gap-1.5 text-[13px] bg-[#4A6FA5] hover:bg-[#3d5a85] text-white rounded-md flex items-center shrink-0 transition-colors"
+            style={{ fontWeight: 500 }}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <span className="material-icons" style={{ fontSize: "16px" }}>upload</span>
+            Upload
+          </button>
+        </div>
+
+        {/* Hidden file input */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          className="hidden"
+          onChange={e => handleFilesAdded(e.target.files)}
+        />
+
+        {/* Files grid */}
+        {filtered.length > 0 ? (
+          <div className="grid grid-cols-3 gap-3">
+            {filtered.map((file) => (
+              <div
+                key={file.id}
+                className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden hover:shadow-md transition-shadow group relative"
+              >
+                {/* Preview area */}
+                {file.isImage ? (
+                  file.previewUrl ? (
+                    <img src={file.previewUrl} alt={file.name} className="w-full h-[148px] object-cover" />
+                  ) : (
+                    <div
+                      className="w-full h-[148px] flex items-center justify-center"
+                      style={{ background: file.previewGradient ?? "linear-gradient(135deg,#fde68a,#f59e0b)" }}
+                    >
+                      <span className="material-icons text-white/70" style={{ fontSize: "44px" }}>image</span>
+                    </div>
+                  )
+                ) : (
+                  <div
+                    className="w-full h-[148px] flex items-center justify-center"
+                    style={{ backgroundColor: file.iconColor + "12" }}
+                  >
+                    <span className="material-icons" style={{ fontSize: "52px", color: file.iconColor, opacity: 0.75 }}>{file.icon}</span>
+                  </div>
+                )}
+
+                {/* Delete button */}
+                <button
+                  className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 w-7 h-7 flex items-center justify-center rounded-full bg-white/90 shadow text-[#9CA3AF] hover:text-[#DC2626] transition-all"
+                  onClick={() => setDocuments(prev => prev.filter(d => d.id !== file.id))}
+                >
+                  <span className="material-icons" style={{ fontSize: "14px" }}>close</span>
+                </button>
+
+                {/* File info */}
+                <div className="px-3 py-2.5 border-t border-[#F3F4F6]">
+                  <div className="flex items-center gap-2">
+                    <span className="material-icons shrink-0" style={{ fontSize: "14px", color: file.iconColor }}>{file.icon}</span>
+                    <div className="min-w-0">
+                      <div className="text-[12px] text-[#1A2332] truncate" style={{ fontWeight: 600 }}>{file.name}</div>
+                      <div className="text-[11px] text-[#9CA3AF] mt-0.5">{file.size} · {file.date}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="bg-white border border-[#E5E7EB] rounded-xl text-center py-14">
+            <span className="material-icons text-[#D1D5DB] mb-2 block" style={{ fontSize: "40px" }}>folder_open</span>
+            <div className="text-[13px] text-[#9CA3AF]">
+              {docSearch ? "No documents match your search" : "No documents yet"}
+            </div>
+            {!docSearch && (
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="mt-3 text-[12px] text-[#4A6FA5] hover:underline"
+                style={{ fontWeight: 500 }}
+              >
+                Upload the first document
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const renderContent = () => {
     switch (activeTab) {
-      case "details": return renderDetailsTab();
+      case "details":   return renderDetailsTab();
+      case "estimate":  return renderEstimateTab();
+      case "invoices":  return renderInvoicesTab();
+      case "items":     return renderItemsTab();
+      case "expenses":  return renderExpensesTab();
       case "documents": return renderDocumentsTab();
-      case "items": return renderItemsTab();
-      case "expenses": return renderExpensesTab();
       default: return null;
     }
   };
@@ -823,7 +994,7 @@ export function JobDetail() {
                 </div>
               </div>
 
-              {/* Three-column data grid — inherited from client */}
+              {/* Three-column data grid */}
               <div className="grid grid-cols-3 gap-6 flex-1 border-l border-[#E5E7EB] pl-10">
                 {/* Column 1: Customer since + Tags */}
                 <div className="flex flex-col gap-4">
@@ -863,7 +1034,7 @@ export function JobDetail() {
                   </div>
                 </div>
 
-                {/* Column 3: Notes */}
+                {/* Column 3: Notes preview */}
                 <div className="relative group cursor-pointer flex flex-col gap-1">
                   <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Notes ({job.notes.length})</div>
                   {job.notes.length > 0 ? (
@@ -953,21 +1124,24 @@ export function JobDetail() {
       <div className="bg-white sticky top-0 z-30">
         <div className="flex items-center overflow-x-auto scrollbar-hide border-b border-[#E5E7EB]">
           <div className="flex items-center px-6">
-            {visibleTabs.map(({ key, label }) => (
-              <button
-                key={key}
-                onClick={() => setActiveTab(key)}
-                className={`relative h-[45px] px-4 shrink-0 text-[13px] transition-colors whitespace-nowrap ${
-                  activeTab === key ? "text-[#4A6FA5]" : "text-[#6B7280] hover:text-[#374151]"
-                }`}
-                style={{ fontWeight: 500 }}
-              >
-                {label}
-                {activeTab === key && (
-                  <div className="absolute bottom-[10px] left-0 right-0 h-[2px] bg-[#4A6FA5]" />
-                )}
-              </button>
-            ))}
+            {visibleTabs.map(({ key }) => {
+              const label = getTabLabel(key);
+              return (
+                <button
+                  key={key}
+                  onClick={() => setActiveTab(key)}
+                  className={`relative h-[45px] px-4 shrink-0 text-[13px] transition-colors whitespace-nowrap ${
+                    activeTab === key ? "text-[#4A6FA5]" : "text-[#6B7280] hover:text-[#374151]"
+                  }`}
+                  style={{ fontWeight: 500 }}
+                >
+                  {label}
+                  {activeTab === key && (
+                    <div className="absolute bottom-[10px] left-0 right-0 h-[2px] bg-[#4A6FA5]" />
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -1168,7 +1342,7 @@ export function JobDetail() {
               </button>
             </div>
             <div className="border-t border-[#F3F4F6] pt-1">
-              {TABS.map(({ key, label }) => (
+              {BASE_TABS.map(({ key, label }) => (
                 <label key={key} className="flex items-center gap-2.5 px-4 py-2 hover:bg-[#F9FAFB] cursor-pointer">
                   <input
                     type="checkbox"
