@@ -692,15 +692,6 @@ export function Layout() {
           {/* Separator */}
           <div className="flex items-center px-2 py-1"><div className="h-px w-full bg-[#E5E7EB]" /></div>
 
-          {/* Settings */}
-          <button onClick={() => { setUserMenuOpen(false); navigate("/settings"); }} className="w-full flex items-center gap-2 px-2 py-[5.5px] rounded-[6px] hover:bg-[#F5F7FA] transition-colors">
-            <span className="material-icons text-[#6B7280] flex-shrink-0 w-5 h-5 flex items-center justify-center" style={{ fontSize: "16px" }}>settings</span>
-            <span className="flex-1 text-[14px] text-[#1A2332] text-left">Settings</span>
-          </button>
-
-          {/* Separator */}
-          <div className="flex items-center px-2 py-1"><div className="h-px w-full bg-[#E5E7EB]" /></div>
-
           {/* Log out */}
           <button onClick={() => { setUserMenuOpen(false); navigate("/login"); }} className="w-full flex items-center gap-2 px-2 py-[5.5px] rounded-[6px] hover:bg-[#FEF2F2] transition-colors">
             <span className="material-icons flex-shrink-0 w-5 h-5 flex items-center justify-center" style={{ fontSize: "16px", color: "#DC2626" }}>logout</span>

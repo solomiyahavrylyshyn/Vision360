@@ -195,12 +195,12 @@ function AllBusinessTab() {
       </div>
 
       {/* Quick Overview — single unified bar */}
-      <div className="bg-white border border-[#E5E7EB] rounded-xl flex" style={{ boxShadow: "0px 1px 2px rgba(0,0,0,0.05)" }}>
+      <div className="bg-white border border-[#E5E7EB] rounded-xl flex items-center py-4" style={{ boxShadow: "0px 1px 2px rgba(0,0,0,0.05)" }}>
         {quickOverview.map((item, i) => (
           <div
             key={item.label}
             className={`flex items-start gap-2 flex-1 ${i > 0 ? "border-l border-[#E5E7EB]" : ""}`}
-            style={{ padding: "16px 24px 16px 16px", height: "112px" }}
+            style={{ padding: "0px 24px 0px 16px", height: "80px" }}
           >
             <div className="flex flex-col gap-1 flex-1 justify-center h-full">
               <div className="text-[24px] text-[#1A2332]" style={{ fontWeight: 600, lineHeight: "135%" }}>{item.value}</div>
