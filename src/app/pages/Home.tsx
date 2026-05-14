@@ -1,5 +1,6 @@
 import * as React from "react";
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
+import { companyStore } from "../stores/companyStore";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, AreaChart, Area,
@@ -472,6 +473,7 @@ function ReportsTab() {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export function Home() {
+  const companyName = useSyncExternalStore(companyStore.subscribe, companyStore.getCompanyName);
   const [activeTab, setActiveTab] = useState<DashTab>("All Business");
   const [dateRange, setDateRange] = useState<string>("This Month");
   const [dateOpen, setDateOpen] = useState(false);
@@ -500,7 +502,7 @@ export function Home() {
       <div className="flex items-start justify-between mb-4">
         <div>
           <h1 className="text-[22px] text-[#1A2332]" style={{ fontWeight: 700 }}>
-            Vision360 Business Insights
+            {companyName} Business Insights
           </h1>
           <p className="text-[13px] text-[#6B7280] mt-0.5">Overview of your business performance</p>
         </div>

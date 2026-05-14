@@ -6,6 +6,7 @@ import { Card } from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Switch } from "../components/ui/switch";
+import { companyStore } from "../stores/companyStore";
 import { countiesStore } from "../stores/countiesStore";
 import { customFieldsStore, type CfEntity } from "../stores/customFieldsStore";
 import { jobTypesStore } from "../stores/jobTypesStore";
@@ -259,6 +260,7 @@ export function Settings() {
   const [activeSection, setActiveSection] = useState<SettingsSection>("home");
   const [searchQuery, setSearchQuery] = useState("");
 
+  const companyName = useSyncExternalStore(companyStore.subscribe, companyStore.getCompanyName);
   const marketingSources = useSyncExternalStore(marketingSourcesStore.subscribe, marketingSourcesStore.getSources);
   const customerTags = useSyncExternalStore(tagsStore.subscribe, tagsStore.getTags);
   const counties = useSyncExternalStore(countiesStore.subscribe, countiesStore.getCounties);
@@ -445,7 +447,7 @@ export function Settings() {
               <div className="space-y-4">
                 <SectionCard title="Company Info" description="Core business information shown on documents, emails, and customer-facing records.">
                   <div className="grid grid-cols-2 gap-4">
-                    <Field label="Company Name"><Input defaultValue="Omega Home Services" className="h-9 border-[#D8DEE8]" /></Field>
+                    <Field label="Company Name"><Input value={companyName} onChange={e => companyStore.setCompanyName(e.target.value)} className="h-9 border-[#D8DEE8]" /></Field>
                     <Field label="Legal entity name"><Input defaultValue="Omega Home Services LLC" className="h-9 border-[#D8DEE8]" /></Field>
                     <Field label="Business Owner Name"><Input defaultValue="Peter Novak" className="h-9 border-[#D8DEE8]" /></Field>
                     <div className="col-span-2">
