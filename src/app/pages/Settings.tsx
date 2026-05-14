@@ -1844,28 +1844,81 @@ export function Settings() {
                 {/* User Custom Fields */}
                 <SectionCard title="User Custom Fields" description="Extra fields you want on every user (e.g., Office / Field flag, who they report to).">
                   <div className="space-y-2">
-                    {userCustomFields.map(cf => (
-                      <div key={cf.id} className="flex items-center gap-3 rounded-lg border border-[#E5E7EB] px-3 py-2">
-                        <div className="flex-1">
-                          <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>{cf.label}</div>
-                          {cf.options && <div className="text-[11px] text-[#6B7280]">Options: {cf.options}</div>}
-                        </div>
-                        <span className="text-[11px] uppercase tracking-wide text-[#6B7280] rounded-full bg-[#F5F7FA] px-2 py-0.5" style={{ fontWeight: 700 }}>{cf.type}</span>
-                        <button
-                          onClick={() => setUserCustomFields(userCustomFields.filter(x => x.id !== cf.id))}
-                          className="text-[#9CA3AF] hover:text-[#DC2626]"
-                          title="Remove"
-                        >
-                          <span className="material-icons" style={{ fontSize: "18px" }}>close</span>
-                        </button>
+                    {userCustomFields.length === 0 && (
+                      <div className="rounded-lg border border-dashed border-[#E5E7EB] px-3 py-6 text-center text-[13px] text-[#9CA3AF]">
+                        No custom fields yet. Add one below.
                       </div>
-                    ))}
+                    )}
+                    {userCustomFields.map(cf => {
+                      const update = (patch: Partial<UserCF>) =>
+                        setUserCustomFields(userCustomFields.map(x => x.id === cf.id ? { ...x, ...patch } : x));
+                      return (
+                        <div key={cf.id} className="flex items-stretch gap-2">
+                          {/* Label */}
+                          <label className="flex flex-col rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5 flex-1 min-w-0">
+                            <span className="text-[11px] text-[#6B7280]">Field label</span>
+                            <input
+                              value={cf.label}
+                              onChange={e => update({ label: e.target.value })}
+                              placeholder="e.g. Reports to"
+                              className="bg-transparent text-[13px] text-[#1A2332] outline-none mt-0.5"
+                            />
+                          </label>
+                          {/* Type */}
+                          <label className="flex flex-col rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5 w-[140px]">
+                            <span className="text-[11px] text-[#6B7280]">Type</span>
+                            <select
+                              value={cf.type}
+                              onChange={e => {
+                                const newType = e.target.value as "Text" | "Dropdown";
+                                update({ type: newType, options: newType === "Dropdown" ? (cf.options ?? "") : undefined });
+                              }}
+                              className="bg-transparent text-[13px] text-[#1A2332] outline-none mt-0.5 -ml-0.5"
+                            >
+                              <option value="Text">Text</option>
+                              <option value="Dropdown">Dropdown</option>
+                            </select>
+                          </label>
+                          {/* Options (Dropdown only) */}
+                          {cf.type === "Dropdown" ? (
+                            <label className="flex flex-col rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5 flex-1 min-w-0">
+                              <span className="text-[11px] text-[#6B7280]">Options (comma-separated)</span>
+                              <input
+                                value={cf.options ?? ""}
+                                onChange={e => update({ options: e.target.value })}
+                                placeholder="Office, Field"
+                                className="bg-transparent text-[13px] text-[#1A2332] outline-none mt-0.5"
+                              />
+                            </label>
+                          ) : (
+                            <div className="flex flex-1 min-w-0 items-center px-3 text-[12px] text-[#9CA3AF]">Free-form text input</div>
+                          )}
+                          {/* Remove */}
+                          <button
+                            type="button"
+                            onClick={() => setUserCustomFields(userCustomFields.filter(x => x.id !== cf.id))}
+                            className="shrink-0 self-start mt-1 h-9 w-9 rounded-lg border border-[#E5E7EB] bg-white text-[#9CA3AF] hover:bg-[#FEF2F2] hover:border-[#FECACA] hover:text-[#DC2626] flex items-center justify-center transition-colors"
+                            title="Remove field"
+                          >
+                            <span className="material-icons" style={{ fontSize: "18px" }}>delete_outline</span>
+                          </button>
+                        </div>
+                      );
+                    })}
                   </div>
                   <div className="mt-3 flex gap-2">
                     <Input
                       placeholder="Add field label (e.g. Reports to)"
                       value={newUserCfLabel}
                       onChange={e => setNewUserCfLabel(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === "Enter") {
+                          const v = newUserCfLabel.trim();
+                          if (!v) return;
+                          setUserCustomFields([...userCustomFields, { id: `ucf${Date.now()}`, label: v, type: "Text" }]);
+                          setNewUserCfLabel("");
+                        }
+                      }}
                       className="h-9 max-w-[320px] border-[#D8DEE8] text-[13px]"
                     />
                     <Button
@@ -1877,7 +1930,7 @@ export function Settings() {
                         setNewUserCfLabel("");
                       }}
                     >
-                      Add field
+                      + Add field
                     </Button>
                   </div>
 
