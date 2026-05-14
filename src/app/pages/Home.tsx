@@ -65,17 +65,17 @@ const expensesByCategoryData = [
 ];
 
 const allStatCards = [
-  { icon: "attach_money", iconBg: "#EBF0F8", iconColor: "#4A6FA5", label: "Total Revenue",   value: "$109,800", change: "+18%", changeUp: true  },
-  { icon: "receipt_long", iconBg: "#FEF2F2", iconColor: "#DC2626", label: "Total Expenses",  value: "$61,300",  change: "-12%", changeUp: false },
-  { icon: "trending_up",  iconBg: "#DCFCE7", iconColor: "#16A34A", label: "Net Profit",      value: "$48,500",  change: "+24%", changeUp: true  },
-  { icon: "schedule",     iconBg: "#F3E8FF", iconColor: "#9333EA", label: "Profit Margin",   value: "44.2%",    change: "+5%",  changeUp: true  },
+  { icon: "payments",        iconBg: "rgba(22,163,74,0.15)",   iconColor: "#16A34A", label: "Total Revenue",  value: "$109,800", change: "+18%", changeUp: true  },
+  { icon: "receipt_long",    iconBg: "rgba(245,158,11,0.15)",  iconColor: "#F59E0B", label: "Total Expenses", value: "$61,300",  change: "-12%", changeUp: false },
+  { icon: "monetization_on", iconBg: "rgba(74,111,165,0.15)",  iconColor: "#4A6FA5", label: "Net Profit",     value: "$48,500",  change: "+24%", changeUp: true  },
+  { icon: "pie_chart",       iconBg: "rgba(168,86,247,0.15)",  iconColor: "#A856F7", label: "Profit Margin",  value: "44.2%",    change: "+5%",  changeUp: true  },
 ];
 
 const quickOverview = [
-  { icon: "work",            iconBg: "#EBF0F8", iconColor: "#4A6FA5", label: "Jobs Completed",  value: "23",  change: "+15%", changeUp: true  },
-  { icon: "pending_actions", iconBg: "#DCFCE7", iconColor: "#16A34A", label: "Jobs In Progress", value: "12",  change: "+9%",  changeUp: true  },
-  { icon: "receipt",         iconBg: "#FEF2F2", iconColor: "#DC2626", label: "Invoices Overdue", value: "8",   change: "+3",   changeUp: false },
-  { icon: "people",          iconBg: "#F0F9FF", iconColor: "#0EA5E9", label: "Active Clients",   value: "156", change: "+8%",  changeUp: true  },
+  { icon: "work",            iconBg: "rgba(74,111,165,0.15)",  iconColor: "#4A6FA5", label: "Jobs Completed",  value: "23",  change: "+15%", changeUp: true  },
+  { icon: "pending_actions", iconBg: "rgba(22,163,74,0.15)",   iconColor: "#16A34A", label: "Jobs In Progress", value: "12",  change: "+9%",  changeUp: true  },
+  { icon: "receipt",         iconBg: "rgba(220,38,38,0.15)",   iconColor: "#DC2626", label: "Invoices Overdue", value: "8",   change: "+3",   changeUp: false },
+  { icon: "people",          iconBg: "rgba(129,180,243,0.15)", iconColor: "#81B4F3", label: "Active Clients",   value: "156", change: "+8%",  changeUp: true  },
 ];
 
 const ALL_TABS = ["All Business", "Sales Performance", "Financial Performance", "Reports"] as const;
@@ -105,18 +105,18 @@ function CustomBarTooltip({ active, payload, label }: any) {
 
 function StatCard({ icon, iconBg, iconColor, label, value, change, changeUp }: typeof allStatCards[0]) {
   return (
-    <div className="bg-white border border-[#E5E7EB] rounded-xl p-5">
-      <div className="flex items-start justify-between mb-3">
-        <div className="text-[28px] text-[#1A2332] leading-none" style={{ fontWeight: 700 }}>{value}</div>
-        <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ background: iconBg }}>
-          <span className="material-icons" style={{ fontSize: "18px", color: iconColor }}>{icon}</span>
+    <div className="bg-white border border-[#E5E7EB] rounded-lg p-4 flex items-start gap-2" style={{ boxShadow: "0px 1px 2px rgba(0,0,0,0.05)" }}>
+      <div className="flex flex-col gap-1 flex-1">
+        <div className="text-[24px] text-[#1A2332]" style={{ fontWeight: 600, lineHeight: "135%" }}>{value}</div>
+        <div className="text-[16px] text-[#6B7280]" style={{ fontWeight: 600, lineHeight: "24px" }}>{label}</div>
+        <div className={`flex items-center gap-1 text-[12px] ${changeUp ? "text-[#16A34A]" : "text-[#DC2626]"}`} style={{ fontWeight: 400, lineHeight: "16px" }}>
+          <span className="material-icons" style={{ fontSize: "14px" }}>{changeUp ? "trending_up" : "trending_down"}</span>
+          {change}
+          <span className="text-[#6B7280] font-normal ml-1">vs last period</span>
         </div>
       </div>
-      <div className="text-[13px] text-[#6B7280] mb-2">{label}</div>
-      <div className={`flex items-center gap-1 text-[12px] ${changeUp ? "text-[#16A34A]" : "text-[#DC2626]"}`} style={{ fontWeight: 500 }}>
-        <span className="material-icons" style={{ fontSize: "13px" }}>{changeUp ? "arrow_upward" : "arrow_downward"}</span>
-        {change}
-        <span className="text-[#9CA3AF] font-normal ml-1">vs last period</span>
+      <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style={{ background: iconBg }}>
+        <span className="material-icons" style={{ fontSize: "24px", color: iconColor }}>{icon}</span>
       </div>
     </div>
   );
@@ -194,27 +194,28 @@ function AllBusinessTab() {
         </div>
       </div>
 
-      {/* Quick Overview */}
-      <div className="bg-white border border-[#E5E7EB] rounded-xl p-5">
-        <h2 className="text-[15px] text-[#1A2332] mb-4" style={{ fontWeight: 600 }}>Quick Overview</h2>
-        <div className="grid grid-cols-4 gap-4">
-          {quickOverview.map(item => (
-            <div key={item.label} className="p-4 bg-[#F9FAFB] rounded-xl">
-              <div className="flex items-start justify-between mb-2">
-                <div className="text-[26px] text-[#1A2332] leading-none" style={{ fontWeight: 700 }}>{item.value}</div>
-                <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ background: item.iconBg }}>
-                  <span className="material-icons" style={{ fontSize: "18px", color: item.iconColor }}>{item.icon}</span>
-                </div>
-              </div>
-              <div className="text-[12px] text-[#6B7280] mb-1.5">{item.label}</div>
-              <div className={`flex items-center gap-0.5 text-[11px] ${item.changeUp ? "text-[#16A34A]" : "text-[#DC2626]"}`} style={{ fontWeight: 500 }}>
-                <span className="material-icons" style={{ fontSize: "12px" }}>{item.changeUp ? "arrow_upward" : "arrow_downward"}</span>
+      {/* Quick Overview — single unified bar */}
+      <div className="bg-white border border-[#E5E7EB] rounded-xl flex" style={{ boxShadow: "0px 1px 2px rgba(0,0,0,0.05)" }}>
+        {quickOverview.map((item, i) => (
+          <div
+            key={item.label}
+            className={`flex items-start gap-2 flex-1 ${i > 0 ? "border-l border-[#E5E7EB]" : ""}`}
+            style={{ padding: "16px 24px 16px 16px", height: "112px" }}
+          >
+            <div className="flex flex-col gap-1 flex-1 justify-center h-full">
+              <div className="text-[24px] text-[#1A2332]" style={{ fontWeight: 600, lineHeight: "135%" }}>{item.value}</div>
+              <div className="text-[16px] text-[#6B7280]" style={{ fontWeight: 600, lineHeight: "24px" }}>{item.label}</div>
+              <div className={`flex items-center gap-1 text-[12px] ${item.changeUp ? "text-[#16A34A]" : "text-[#DC2626]"}`} style={{ fontWeight: 400, lineHeight: "16px" }}>
+                <span className="material-icons" style={{ fontSize: "14px" }}>{item.changeUp ? "trending_up" : "trending_down"}</span>
                 {item.change}
-                <span className="text-[#9CA3AF] font-normal ml-1">vs last period</span>
+                <span className="text-[#6B7280] font-normal ml-1">vs last period</span>
               </div>
             </div>
-          ))}
-        </div>
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 self-center" style={{ background: item.iconBg }}>
+              <span className="material-icons" style={{ fontSize: "24px", color: item.iconColor }}>{item.icon}</span>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
