@@ -1025,6 +1025,23 @@ export function Settings() {
     { id: "ucf2", label: "Reports to",           type: "Text" },
   ]);
   const [newUserCfLabel, setNewUserCfLabel] = useState("");
+
+  // ── Jobs Preferences ──
+  const [requireSigBeforeStart, setRequireSigBeforeStart] = useState(true);
+  const [requireSigOnComplete, setRequireSigOnComplete] = useState(true);
+  const [requireParentSig, setRequireParentSig] = useState(false);
+  type JobNote = { id: string; title: string; body: string };
+  const [jobNotes, setJobNotes] = useState<JobNote[]>([
+    { id: "jn1", title: "Service Agreement",
+      body: "By signing below, the customer agrees to the scope of work described in this job and to the terms of service published at vision360.com/terms." },
+    { id: "jn2", title: "Authorization to Proceed",
+      body: "I authorize Omega Home Services to perform the work described above and accept full responsibility for the agreed amount." },
+    { id: "jn3", title: "Unforeseen Parts Disclaimer",
+      body: "Additional parts or labor discovered during the job may be billed separately at standard hourly rates after written approval from the customer." },
+  ]);
+  const [scheduleStartHour, setScheduleStartHour] = useState("7:00 AM");
+  const [scheduleEndHour, setScheduleEndHour] = useState("7:00 PM");
+  const [scheduleSlot, setScheduleSlot] = useState("30");
   const filteredTeam = team.filter(m => {
     const q = teamSearch.trim().toLowerCase();
     if (!q) return true;
@@ -2108,6 +2125,7 @@ export function Settings() {
               <div className="space-y-4">
                 {activeSection === "jobs" && (
                   <>
+                    {/* Job Types */}
                     <SectionCard title="Job Types" description="Types used when creating jobs. Helps categorize and filter work orders.">
                       <div className="mb-3 flex gap-2">
                         <Input
@@ -2129,8 +2147,173 @@ export function Settings() {
                         {jobTypes.length === 0 && <span className="text-[13px] text-[#9AA3AF]">No job types yet.</span>}
                       </div>
                     </SectionCard>
-                    <EmptyModuleNote title="Schedule board" copy="Keep schedule behavior mostly pre-coded for MVP. Minor preferences can be added after Marek's next review." />
-                    <SectionCard title="Job notes"><textarea defaultValue="Default job note visible to employees in the field." className="min-h-[120px] w-full rounded-lg border border-[#D8DEE8] px-3 py-2 text-[14px]" /></SectionCard>
+
+                    {/* Job Statuses (read-only) */}
+                    <SectionCard title="Job Statuses" description="Marek's MVP set: three statuses only, pre-coded and not customizable.">
+                      <div className="flex flex-wrap gap-2">
+                        {([
+                          { label: "Scheduled",   bg: "#EBF0F8", color: "#4A6FA5", icon: "event_note" },
+                          { label: "In Progress", bg: "#FEF3C7", color: "#B45309", icon: "play_circle" },
+                          { label: "Completed",   bg: "#DCFCE7", color: "#15803D", icon: "check_circle" },
+                        ] as const).map(s => (
+                          <div key={s.label} className="flex items-center gap-2 rounded-full border border-[#E5E7EB] bg-white px-3 py-1.5">
+                            <span className="material-icons" style={{ fontSize: "16px", color: s.color }}>{s.icon}</span>
+                            <span className="text-[13px]" style={{ color: s.color, fontWeight: 600 }}>{s.label}</span>
+                          </div>
+                        ))}
+                      </div>
+                      <p className="mt-3 text-[12px] text-[#6B7280]">
+                        Customisable workflows (dispatched, on-route, paused, cancelled, on hold) land with Pro / Enterprise.
+                      </p>
+                    </SectionCard>
+
+                    {/* Signature Settings */}
+                    <SectionCard title="Signature Settings" description="Require the customer's signature at key moments. Captured signatures attach to the job PDF for legal protection.">
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between gap-4">
+                          <div>
+                            <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Require signature before starting work</div>
+                            <div className="text-[13px] text-[#546478]">Field tech can't mark a job In Progress until the customer signs the Authorization to Proceed.</div>
+                          </div>
+                          <Switch checked={requireSigBeforeStart} onCheckedChange={setRequireSigBeforeStart} />
+                        </div>
+                        <div className="flex items-center justify-between gap-4">
+                          <div>
+                            <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Require signature on completion</div>
+                            <div className="text-[13px] text-[#546478]">Customer signs off when the work is done; locks the job into the Completed state.</div>
+                          </div>
+                          <Switch checked={requireSigOnComplete} onCheckedChange={setRequireSigOnComplete} />
+                        </div>
+                        <div className="flex items-center justify-between gap-4">
+                          <div>
+                            <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Capture parent / guardian signature when minor present</div>
+                            <div className="text-[13px] text-[#546478]">Optional second signature line shown on the customer-facing form.</div>
+                          </div>
+                          <Switch checked={requireParentSig} onCheckedChange={setRequireParentSig} />
+                        </div>
+                      </div>
+                    </SectionCard>
+
+                    {/* Notes on Jobs */}
+                    <SectionCard title="Notes on Jobs" description="Reusable legal / operational text printed on the job sheet (service agreements, authorization, disclaimers).">
+                      <div className="space-y-3">
+                        {jobNotes.map(note => (
+                          <div key={note.id} className="rounded-xl border border-[#E5E7EB] p-3 space-y-2">
+                            <div className="flex items-center gap-2">
+                              <input
+                                value={note.title}
+                                onChange={e => setJobNotes(jobNotes.map(n => n.id === note.id ? { ...n, title: e.target.value } : n))}
+                                placeholder="Note title"
+                                className="flex-1 h-8 px-2 text-[13px] text-[#1A2332] border-0 outline-none bg-transparent"
+                                style={{ fontWeight: 600 }}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setJobNotes(jobNotes.filter(n => n.id !== note.id))}
+                                className="shrink-0 h-8 w-8 rounded-lg border border-[#E5E7EB] bg-white text-[#9CA3AF] hover:bg-[#FEF2F2] hover:border-[#FECACA] hover:text-[#DC2626] flex items-center justify-center transition-colors"
+                                title="Remove note"
+                              >
+                                <span className="material-icons" style={{ fontSize: "18px" }}>delete_outline</span>
+                              </button>
+                            </div>
+                            <textarea
+                              value={note.body}
+                              onChange={e => setJobNotes(jobNotes.map(n => n.id === note.id ? { ...n, body: e.target.value } : n))}
+                              rows={3}
+                              placeholder="Note text shown on the job sheet…"
+                              className="w-full rounded-lg border border-[#E5E7EB] bg-[#FAFBFC] px-3 py-2 text-[13px] leading-5 text-[#1A2332] outline-none focus:border-[#4A6FA5] focus:ring-2 focus:ring-[#4A6FA5]/20 resize-y"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                      <Button
+                        className="mt-3 h-9 bg-[#4A6FA5] px-4 text-[13px] hover:bg-[#3d5a85]"
+                        onClick={() => setJobNotes([...jobNotes, { id: `jn${Date.now()}`, title: "New note", body: "" }])}
+                      >
+                        + Add note
+                      </Button>
+                    </SectionCard>
+
+                    {/* Schedule Board */}
+                    <SectionCard title="Schedule Board" description="Working hours and slot size used across the Schedule view.">
+                      <div className="grid grid-cols-3 gap-3">
+                        <div>
+                          <label className="block text-[13px] text-[#1A2332] mb-1.5" style={{ fontWeight: 600 }}>Day starts at</label>
+                          <select
+                            value={scheduleStartHour}
+                            onChange={e => setScheduleStartHour(e.target.value)}
+                            className="h-9 w-full rounded-lg border border-[#D8DEE8] bg-white px-3 text-[14px] text-[#1A2332]"
+                          >
+                            {["5:00 AM", "6:00 AM", "7:00 AM", "8:00 AM", "9:00 AM"].map(h => <option key={h}>{h}</option>)}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-[13px] text-[#1A2332] mb-1.5" style={{ fontWeight: 600 }}>Day ends at</label>
+                          <select
+                            value={scheduleEndHour}
+                            onChange={e => setScheduleEndHour(e.target.value)}
+                            className="h-9 w-full rounded-lg border border-[#D8DEE8] bg-white px-3 text-[14px] text-[#1A2332]"
+                          >
+                            {["5:00 PM", "6:00 PM", "7:00 PM", "8:00 PM", "9:00 PM", "10:00 PM"].map(h => <option key={h}>{h}</option>)}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-[13px] text-[#1A2332] mb-1.5" style={{ fontWeight: 600 }}>Slot duration</label>
+                          <select
+                            value={scheduleSlot}
+                            onChange={e => setScheduleSlot(e.target.value)}
+                            className="h-9 w-full rounded-lg border border-[#D8DEE8] bg-white px-3 text-[14px] text-[#1A2332]"
+                          >
+                            <option value="15">15 minutes</option>
+                            <option value="30">30 minutes</option>
+                            <option value="60">1 hour</option>
+                          </select>
+                        </div>
+                      </div>
+                      <p className="mt-3 text-[12px] text-[#6B7280]">
+                        Time zone follows Company Profile → Regional settings. Advanced scheduling (route optimization, dispatch board) ships with Pro.
+                      </p>
+                    </SectionCard>
+
+                    {/* Custom Fields shortcut + Save footer */}
+                    <SectionCard title="Job Custom Fields" description="Each job form supports 2 custom fields (e.g. job category, materials, reporting tag).">
+                      <div className="flex items-center justify-between rounded-lg border border-[#D8E3F4] bg-[#F8FBFF] px-4 py-3">
+                        <div className="flex items-center gap-3">
+                          <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "20px" }}>tune</span>
+                          <div>
+                            <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>Manage in General → Custom Fields</div>
+                            <div className="text-[12px] text-[#6B7280]">All custom fields are configured in one place across Clients, Jobs, Estimates, Invoices, Items.</div>
+                          </div>
+                        </div>
+                        <Button
+                          variant="outline"
+                          className="h-9 border-[#C8D5E8] text-[#4A6FA5] hover:bg-[#EBF0F8]"
+                          onClick={() => { setActiveSection("general"); setCfEntity("jobs"); }}
+                        >
+                          Open
+                        </Button>
+                      </div>
+
+                      {/* Footer — Save / Cancel attached to the last card */}
+                      <div className="mt-5 -mx-5 -mb-5 px-5 py-4 border-t border-[#E1E6EF] flex items-center justify-end gap-3 bg-white rounded-b-xl">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => toast.info("Changes discarded")}
+                          className="border-[#E5E7EB] text-[#546478] hover:bg-[#EDF0F5] h-10 px-6"
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          type="button"
+                          onClick={() => toast.success("Jobs preferences saved")}
+                          className="bg-[#4A6FA5] hover:bg-[#3d5a85] text-white h-10 px-6"
+                          style={{ fontWeight: 600 }}
+                        >
+                          Save changes
+                        </Button>
+                      </div>
+                    </SectionCard>
                   </>
                 )}
                 {activeSection === "estimates" && (
