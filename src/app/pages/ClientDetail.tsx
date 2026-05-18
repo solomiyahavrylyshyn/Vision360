@@ -283,22 +283,42 @@ function DraggableTab({ tabKey, label, count, isActive, onMove, onClick }: Dragg
     collect: (m) => ({ isOver: m.isOver() }),
   });
   drag(drop(ref));
+  // Folder-style tab: rounded top corners, border on top/left/right, the active
+  // tab's bottom border is the same color as the content area so it "merges"
+  // with the panel below. A negative margin-bottom overlaps the shelf line
+  // under the tab row for the seamless folder effect.
   return (
     <button
       ref={ref}
       onClick={onClick}
-      className={`relative h-[29px] px-3 shrink-0 text-[13px] transition-all whitespace-nowrap select-none rounded-lg ${
+      className={`relative shrink-0 select-none whitespace-nowrap transition-colors ${
         isDragging ? "opacity-40" : ""
-      } ${isOver ? "ring-2 ring-[#4A6FA5]" : ""} ${
-        isActive
-          ? "bg-[#4A6FA5] text-white shadow-sm"
-          : "text-[#6B7280] hover:text-[#374151] hover:bg-[#E5E7EB]"
-      }`}
-      style={{ fontWeight: 500, cursor: "grab" }}
+      } ${isOver ? "ring-2 ring-[#4A6FA5]" : ""}`}
+      style={{
+        cursor: "grab",
+        height: 36,
+        padding: "0 16px",
+        marginRight: 2,
+        marginBottom: -1,
+        borderTopLeftRadius: 8,
+        borderTopRightRadius: 8,
+        borderTop: `1px solid ${isActive ? "#D8DEE8" : "#E5E7EB"}`,
+        borderLeft: `1px solid ${isActive ? "#D8DEE8" : "#E5E7EB"}`,
+        borderRight: `1px solid ${isActive ? "#D8DEE8" : "#E5E7EB"}`,
+        // Active tab's bottom matches the page bg so the shelf line is "cut"
+        // under the tab — creates the seamless folder-tab appearance.
+        borderBottom: isActive ? "1px solid #F5F7FA" : "1px solid #E5E7EB",
+        background: isActive ? "#FFFFFF" : "#F0F2F5",
+        color: isActive ? "#1A2332" : "#6B7280",
+        fontWeight: isActive ? 600 : 500,
+        fontSize: 13,
+        boxShadow: isActive ? "0 -1px 2px rgba(0,0,0,0.04)" : "none",
+        zIndex: isActive ? 2 : 1,
+      }}
     >
       {label}
       {count !== undefined && count > 0 && (
-        <span className="ml-0.5" style={{ fontWeight: 400 }}>({count})</span>
+        <span className="ml-1" style={{ fontWeight: 400, color: isActive ? "#6B7280" : "#9CA3AF" }}>({count})</span>
       )}
     </button>
   );
@@ -1765,11 +1785,12 @@ export function ClientDetail() {
           ))}
         </div>
 
-        {/* Pill tabs */}
-        <div className="mt-4">
+        {/* Folder-style tabs */}
+        <div className="mt-6">
           <DndProvider backend={HTML5Backend}>
-            <div className="flex items-center gap-2">
-              <div className="inline-flex items-center bg-white rounded-[10px] p-[3px] overflow-x-auto scrollbar-hide">
+            <div className="flex items-end justify-between">
+              {/* Tab row with the shelf line under it */}
+              <div className="flex items-end flex-1 border-b border-[#E5E7EB] overflow-x-auto scrollbar-hide">
                 {visibleTabs.map(({ key, label, count }) => (
                   <DraggableTab
                     key={key}
@@ -1784,7 +1805,7 @@ export function ClientDetail() {
               </div>
               <button
                 onClick={() => setShowTabSettings(true)}
-                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#F5F7FA] text-[#1A2332] transition-colors"
+                className="w-9 h-9 ml-2 flex items-center justify-center rounded-lg hover:bg-[#F5F7FA] text-[#1A2332] transition-colors shrink-0 self-end mb-0.5"
                 title="Customize tabs"
               >
                 <span className="material-icons" style={{ fontSize: "16px" }}>settings</span>
@@ -1793,8 +1814,8 @@ export function ClientDetail() {
           </DndProvider>
         </div>
 
-        {/* Tab content (inner cards have their own white bg+border per Figma) */}
-        <div className="mt-4">
+        {/* Tab content — sits directly under the tab shelf so active tab visually merges */}
+        <div>
           {renderContent()}
         </div>
       </div>
