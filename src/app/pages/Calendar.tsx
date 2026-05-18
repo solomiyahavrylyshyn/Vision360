@@ -861,7 +861,7 @@ export function Calendar() {
                 <div
                   key={member.id}
                   className="flex items-center gap-2 px-3 border-b border-[#E5E7EB]"
-                  style={{ height: 160 }}
+                  style={{ height: 96 }}
                 >
                   <div
                     className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[12px] shrink-0"
@@ -925,7 +925,7 @@ export function Calendar() {
                       <div
                         key={member.id}
                         className="relative border-b border-[#E5E7EB]"
-                        style={{ height: 160 }}
+                        style={{ height: 96 }}
                         onDragOver={(event) => handleDayDragOver(event, member.id)}
                         onDragLeave={() => setDropPreview(null)}
                         onDrop={(event) => handleDayDrop(event, member.id)}
