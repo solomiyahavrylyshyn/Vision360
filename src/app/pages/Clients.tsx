@@ -341,7 +341,7 @@ export function Clients() {
                     <span className="text-[12px] text-[#6B7280]" style={{ fontWeight: 400, lineHeight: "16px" }}>{c.period}</span>
                   </div>
                 </div>
-                <div className="shrink-0 mt-1">
+                <div className="shrink-0">
                   <Sparkline data={c.data} color="#4A6FA5" />
                 </div>
               </div>
@@ -368,21 +368,21 @@ export function Clients() {
                 className="absolute pointer-events-none"
                 style={{
                   width: 100, height: 100,
-                  right: -7, top: -42,
+                  left: 229, bottom: 94,
                   background: "rgba(129,180,243,0.8)",
                   filter: "blur(57px)",
                 }}
               />
 
-              <div className="relative flex flex-col h-full px-4 py-4 gap-2">
+              <div className="relative flex flex-col h-full px-4 py-4 gap-1">
                 {/* What's New header */}
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5 self-stretch">
                   <span className="material-icons text-[#81B4F3]" style={{ fontSize: "12px" }}>auto_awesome</span>
                   <span className="text-[12px] text-[#81B4F3]" style={{ fontWeight: 600, lineHeight: "16px" }}>What's New</span>
                 </div>
 
                 {/* Title + description */}
-                <div className="flex-1 flex flex-col gap-0.5">
+                <div className="flex-1 flex flex-col gap-0.5 self-stretch">
                   <div className="text-[12px] text-white" style={{ fontWeight: 600, lineHeight: "16px" }}>
                     Integration with QuickBooks Online
                   </div>
@@ -391,10 +391,10 @@ export function Clients() {
                   </p>
                 </div>
 
-                {/* Learn more button */}
+                {/* Learn more button — right-aligned per Figma (align-items: flex-end on column) */}
                 <button
-                  className="self-start inline-flex items-center justify-center px-2 bg-[#4A6FA5] hover:bg-[#3d5a85] rounded-lg text-white transition-colors"
-                  style={{ height: 24, minHeight: 24, fontSize: 12, fontWeight: 500, lineHeight: "16px" }}
+                  className="self-end inline-flex items-center justify-center bg-[#4A6FA5] hover:bg-[#3d5a85] rounded-lg text-white transition-colors"
+                  style={{ width: 80, height: 24, minHeight: 24, padding: "3px 8px", fontSize: 12, fontWeight: 500, lineHeight: "16px" }}
                 >
                   Learn more
                 </button>
