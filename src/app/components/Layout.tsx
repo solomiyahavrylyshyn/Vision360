@@ -674,7 +674,7 @@ export function Layout() {
       >
         <div className="p-0.5">
 
-          {/* Profile / Account / Help */}
+          {/* Profile / Account */}
           <button onClick={() => { setUserMenuOpen(false); }} className="w-full flex items-center gap-2 px-2 py-[5.5px] rounded-[6px] hover:bg-[#F5F7FA] transition-colors">
             <span className="material-icons text-[#6B7280] flex-shrink-0 w-5 h-5 flex items-center justify-center" style={{ fontSize: "16px" }}>person</span>
             <span className="flex-1 text-[14px] text-[#1A2332] text-left">Profile</span>
@@ -682,11 +682,6 @@ export function Layout() {
           <button onClick={() => { setUserMenuOpen(false); }} className="w-full flex items-center gap-2 px-2 py-[5.5px] rounded-[6px] hover:bg-[#F5F7FA] transition-colors">
             <span className="material-icons text-[#6B7280] flex-shrink-0 w-5 h-5 flex items-center justify-center" style={{ fontSize: "16px" }}>manage_accounts</span>
             <span className="flex-1 text-[14px] text-[#1A2332] text-left">Account</span>
-          </button>
-          <button onClick={() => { setUserMenuOpen(false); setHelpCenterOpen(true); }} className="w-full flex items-center gap-2 px-2 py-[5.5px] rounded-[6px] hover:bg-[#F5F7FA] transition-colors">
-            <span className="material-icons text-[#6B7280] flex-shrink-0 w-5 h-5 flex items-center justify-center" style={{ fontSize: "16px" }}>help_outline</span>
-            <span className="flex-1 text-[14px] text-[#1A2332] text-left">Help</span>
-            <span className="flex items-center justify-center px-2 py-0.5 rounded-lg text-[12px] text-[#81B4F3]" style={{ fontWeight: 500, background: "rgba(129,180,243,0.2)" }}>New</span>
           </button>
 
           {/* Separator */}
