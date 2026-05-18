@@ -183,9 +183,8 @@ function NoteColumn({ title, initialNotes }: { title: string; initialNotes: Note
 
   return (
     <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden flex flex-col">
-      {/* Header */}
+      {/* Header — only "+" icon per Marek's spec */}
       <div className="flex items-center gap-2 px-4 py-3 border-b border-[#E5E7EB]">
-        <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>subject</span>
         <span className="flex-1 text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>
           {title}
           {notes.length > 0 && (
@@ -198,15 +197,6 @@ function NoteColumn({ title, initialNotes }: { title: string; initialNotes: Note
           title="Add note"
         >
           <PlusIcon className="h-3.5 w-3.5 text-[#9CA3AF]" />
-        </button>
-        <button
-          onClick={() => setCollapsed(v => !v)}
-          className="w-6 h-6 flex items-center justify-center hover:bg-[#F5F7FA] rounded transition-colors"
-          title={collapsed ? "Expand" : "Collapse"}
-        >
-          <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "20px" }}>
-            {collapsed ? "add" : "remove"}
-          </span>
         </button>
       </div>
 
@@ -1110,9 +1100,9 @@ export function JobDetail() {
 
         {/* Summary content */}
         <div className="px-8 pt-7 pb-6">
-          <div className="flex items-start gap-10">
+          <div className="flex items-stretch gap-10">
             {/* Main info section */}
-            <div className="flex-1 flex gap-8">
+            <div className="flex-1 flex items-stretch gap-8">
               {/* Left: Name + Address + Icons + Status */}
               <div className="flex flex-col gap-4 min-w-[270px]">
                 <div className="flex items-baseline gap-2">
@@ -1190,19 +1180,24 @@ export function JobDetail() {
                 </div>
               </div>
 
-              {/* Quick data (Customer since / Last service / Notes) — tags & membership removed per Marek (no tags / no memberships in MVP) */}
-              <div className="grid grid-cols-3 gap-6 border-l border-[#E5E7EB] pl-8" style={{ minWidth: 340 }}>
-                <div className="flex flex-col gap-1">
-                  <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Customer since</div>
-                  <div className="text-[13px] text-[#374151] leading-[20px]">{job.customerSince}</div>
-                </div>
-                <div className="flex flex-col gap-1">
-                  <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Last Service</div>
-                  <div className="text-[13px] text-[#374151] leading-[20px]">
-                    {job.lastService || <span className="text-[#9CA3AF]">—</span>}
+              {/* Quick data — Customer since stacked over Last Service, then Notes (no internal divider) */}
+              <div className="flex items-stretch gap-8 pl-2" style={{ minWidth: 340 }}>
+                {/* Column 1: Customer since + Last Service stacked vertically */}
+                <div className="flex flex-col gap-3">
+                  <div className="flex flex-col gap-1">
+                    <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Customer since</div>
+                    <div className="text-[13px] text-[#374151] leading-[20px]">{job.customerSince}</div>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Last Service</div>
+                    <div className="text-[13px] text-[#374151] leading-[20px]">
+                      {job.lastService || <span className="text-[#9CA3AF]">—</span>}
+                    </div>
                   </div>
                 </div>
-                <div className="relative group cursor-pointer flex flex-col gap-1">
+
+                {/* Column 2: Notes */}
+                <div className="relative group cursor-pointer flex flex-col gap-1 flex-1">
                   <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Notes ({job.notes.length})</div>
                   {job.notes.length > 0 ? (
                     <div className="flex flex-col gap-1">
@@ -1241,6 +1236,9 @@ export function JobDetail() {
                 </div>
               </div>
             </div>
+
+            {/* Vertical divider before KPI tiles — separates customer-quick-data from financial KPIs */}
+            <div className="w-px bg-[#E5E7EB] self-stretch mx-2" />
 
             {/* Financial KPI cards — 4 distinct stat cards per Marek's reference screenshot.
                 Colors set via inline style to be immune from Tailwind class-ordering surprises
