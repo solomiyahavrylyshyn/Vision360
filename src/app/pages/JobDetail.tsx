@@ -354,10 +354,8 @@ export function JobDetail() {
   const [editingSection, setEditingSection] = useState<null | "address" | "schedule" | "overview">(null);
   const [editJob, setEditJob] = useState<any>(job);
 
-  // Assigned-to (per Marek: surface technician with quick dropdown to reassign without opening edit modal)
-  const TECHNICIANS = ["Travis Jones", "Peter Romanenko", "Ernesto Diaz", "Alex Petrov", "Sarah Williams"];
-  const [assignedTo, setAssignedTo] = useState<string>("Travis Jones");
-  const [assignedDropdownOpen, setAssignedDropdownOpen] = useState(false);
+  // (Assigned-to dropdown removed — Marek's reference screenshot doesn't include it on the
+  // Job Date & Time card; reintroduce later if/when the team confirms the verbal spec.)
 
   // Documents state
   const [documents, setDocuments] = useState<DocFile[]>(INITIAL_DOCS);
@@ -480,10 +478,10 @@ export function JobDetail() {
           </div>
         </div>
 
-        {/* Appointment (date/time + assigned to) */}
+        {/* Job Date & Time — matches Marek's reference screenshot (no Assigned to section) */}
         <div className="bg-white border border-[#E5E7EB] rounded-lg p-5 flex flex-col gap-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Appointment</h3>
+            <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Job Date & Time</h3>
             <button onClick={() => openEdit("schedule")} className="text-[#9CA3AF] hover:text-[#6B7280]">
               <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
             </button>
@@ -504,49 +502,6 @@ export function JobDetail() {
             <div className="flex flex-col gap-1">
               <div className="text-[11px] text-[#9CA3AF]">End Time</div>
               <div className="text-[13px] text-[#374151]" style={{ fontWeight: 500 }}>{job.endTime}</div>
-            </div>
-          </div>
-
-          {/* Assigned to — quick chevron-edit dropdown so dispatcher can reassign without opening the modal */}
-          <div className="flex flex-col gap-1">
-            <div className="text-[11px] text-[#9CA3AF]">Assigned to</div>
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setAssignedDropdownOpen(o => !o)}
-                className="w-full flex items-center justify-between gap-2 h-8 px-2 -ml-2 rounded-md hover:bg-[#F5F7FA] transition-colors"
-              >
-                <span className="flex items-center gap-2 min-w-0">
-                  <span className="w-6 h-6 rounded-full bg-[#4A6FA5] text-white text-[10px] flex items-center justify-center shrink-0" style={{ fontWeight: 600 }}>
-                    {assignedTo.split(" ").map(n => n[0]).join("").slice(0, 2)}
-                  </span>
-                  <span className="text-[13px] text-[#374151] truncate" style={{ fontWeight: 500 }}>{assignedTo}</span>
-                </span>
-                <span className="material-icons text-[#9CA3AF] shrink-0" style={{ fontSize: "18px" }}>arrow_drop_down</span>
-              </button>
-              {assignedDropdownOpen && (
-                <>
-                  <div className="fixed inset-0 z-30" onClick={() => setAssignedDropdownOpen(false)} />
-                  <div className="absolute left-0 top-full mt-1 z-40 w-full min-w-[200px] bg-white border border-[#E5E7EB] rounded-md shadow-lg py-1">
-                    {TECHNICIANS.map(tech => (
-                      <button
-                        key={tech}
-                        onClick={() => { setAssignedTo(tech); setAssignedDropdownOpen(false); }}
-                        className={`w-full text-left px-3 py-2 text-[13px] flex items-center gap-2 hover:bg-[#F5F7FA] ${tech === assignedTo ? "text-[#4A6FA5]" : "text-[#374151]"}`}
-                        style={{ fontWeight: tech === assignedTo ? 600 : 400 }}
-                      >
-                        <span className="w-5 h-5 rounded-full bg-[#4A6FA5] text-white text-[9px] flex items-center justify-center shrink-0" style={{ fontWeight: 600 }}>
-                          {tech.split(" ").map(n => n[0]).join("").slice(0, 2)}
-                        </span>
-                        <span className="flex-1 truncate">{tech}</span>
-                        {tech === assignedTo && (
-                          <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "16px" }}>check</span>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
             </div>
           </div>
         </div>
@@ -1100,44 +1055,43 @@ export function JobDetail() {
               </div>
             </div>
 
-            {/* Financial KPI cards — 4 distinct stat cards per Marek's spec ('made it closer to customer' / 4 KPI blocks) */}
+            {/* Financial KPI cards — 4 distinct stat cards per Marek's reference screenshot.
+                Colors set via inline style to be immune from Tailwind class-ordering surprises
+                (the user reported Compensation rendering red — explicit inline color fixes that). */}
             <div className="grid grid-cols-4 gap-3 shrink-0" style={{ width: 580 }}>
-              {/* Total Price */}
+              {/* Total Price (green) */}
               <div className="bg-white border border-[#E5E7EB] rounded-lg p-3 flex flex-col gap-1" style={{ boxShadow: "0px 1px 2px rgba(0,0,0,0.05)" }}>
-                <div className="text-[11px] text-[#9CA3AF] leading-[16px]" style={{ fontWeight: 500 }}>Total Price</div>
-                <div className="text-[18px] text-[#16A34A] leading-[24px]" style={{ fontWeight: 600 }}>
+                <div className="text-[11px] leading-[16px]" style={{ fontWeight: 500, color: "#9CA3AF" }}>Total Price</div>
+                <div className="text-[18px] leading-[24px]" style={{ fontWeight: 600, color: "#16A34A" }}>
                   ${job.profitability.totalPrice.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
               </div>
-              {/* Compensation */}
+              {/* Compensation (dark gray) */}
               <div className="bg-white border border-[#E5E7EB] rounded-lg p-3 flex flex-col gap-1" style={{ boxShadow: "0px 1px 2px rgba(0,0,0,0.05)" }}>
-                <div className="text-[11px] text-[#9CA3AF] leading-[16px]" style={{ fontWeight: 500 }}>Compensation</div>
-                <div className="text-[18px] text-[#1A2332] leading-[24px]" style={{ fontWeight: 600 }}>
+                <div className="text-[11px] leading-[16px]" style={{ fontWeight: 500, color: "#9CA3AF" }}>Compensation</div>
+                <div className="text-[18px] leading-[24px]" style={{ fontWeight: 600, color: "#1A2332" }}>
                   ${job.profitability.labor.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
               </div>
-              {/* All Expenses */}
+              {/* All Expenses (dark gray) */}
               <div className="bg-white border border-[#E5E7EB] rounded-lg p-3 flex flex-col gap-1" style={{ boxShadow: "0px 1px 2px rgba(0,0,0,0.05)" }}>
-                <div className="text-[11px] text-[#9CA3AF] leading-[16px]" style={{ fontWeight: 500 }}>All Expenses</div>
-                <div className="text-[18px] text-[#1A2332] leading-[24px]" style={{ fontWeight: 600 }}>
+                <div className="text-[11px] leading-[16px]" style={{ fontWeight: 500, color: "#9CA3AF" }}>All Expenses</div>
+                <div className="text-[18px] leading-[24px]" style={{ fontWeight: 600, color: "#1A2332" }}>
                   ${(job.profitability.lineItemCost + job.profitability.expenses).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
               </div>
-              {/* Profit Margin */}
+              {/* Profit Margin (green if positive, red if negative) */}
               <div className="bg-white border border-[#E5E7EB] rounded-lg p-3 flex flex-col gap-1" style={{ boxShadow: "0px 1px 2px rgba(0,0,0,0.05)" }}>
                 <div className="flex items-center gap-1.5">
-                  <div className="text-[11px] text-[#9CA3AF] leading-[16px]" style={{ fontWeight: 500 }}>Profit Margin</div>
+                  <div className="text-[11px] leading-[16px]" style={{ fontWeight: 500, color: "#9CA3AF" }}>Profit Margin</div>
                   <div className="relative group">
-                    <span className="material-icons text-[#9CA3AF] cursor-help" style={{ fontSize: "13px" }}>info</span>
+                    <span className="material-icons cursor-help" style={{ fontSize: "13px", color: "#9CA3AF" }}>info</span>
                     <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden group-hover:block bg-white border border-[#E5E7EB] rounded-md shadow-lg px-3 py-2 z-50 whitespace-nowrap">
-                      <div className="text-[12px] text-[#1A2332]">(Total Price − Costs) / Total Price</div>
+                      <div className="text-[12px]" style={{ color: "#1A2332" }}>(Total Price − Costs) / Total Price</div>
                     </div>
                   </div>
                 </div>
-                <div
-                  className="text-[18px] leading-[24px]"
-                  style={{ fontWeight: 600, color: job.profitability.margin < 0 ? "#DC2626" : "#16A34A" }}
-                >
+                <div className="text-[18px] leading-[24px]" style={{ fontWeight: 600, color: job.profitability.margin < 0 ? "#DC2626" : "#16A34A" }}>
                   {job.profitability.margin.toFixed(2)}%
                 </div>
               </div>
