@@ -311,6 +311,7 @@ function DraggableTab({ tabKey, label, count, isActive, onMove, onClick }: Dragg
         fontWeight: isActive ? 600 : 500,
         fontSize: 13,
         boxShadow: isActive ? "0 -1px 2px rgba(0,0,0,0.04)" : "none",
+        position: "relative",
         zIndex: isActive ? 2 : 1,
       }}
     >
