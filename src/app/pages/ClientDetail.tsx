@@ -1789,7 +1789,7 @@ export function ClientDetail() {
           <DndProvider backend={HTML5Backend}>
             <div className="flex items-end justify-between">
               {/* Tab row with the shelf line under it */}
-              <div className="flex items-end flex-1 border-b border-[#E5E7EB] overflow-x-auto scrollbar-hide">
+              <div className="flex items-end flex-1 overflow-x-auto scrollbar-hide">
                 {visibleTabs.map(({ key, label, count }) => (
                   <DraggableTab
                     key={key}
