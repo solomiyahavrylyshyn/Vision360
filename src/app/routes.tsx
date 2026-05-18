@@ -40,6 +40,8 @@ import { CreateProperty } from "./pages/CreateProperty";
 import { ServiceAgreements } from "./pages/ServiceAgreements";
 import { CreateServiceAgreement } from "./pages/CreateServiceAgreement";
 import { CreatePayment } from "./pages/CreatePayment";
+import { Profile } from "./pages/Profile";
+import { Account } from "./pages/Account";
 
 export const router = createBrowserRouter([
   {
@@ -109,6 +111,8 @@ export const router = createBrowserRouter([
       { path: "marketing", Component: Marketing },
       { path: "reports", Component: Reports },
       { path: "settings", Component: Settings },
+      { path: "profile", Component: Profile },
+      { path: "account", Component: Account },
     ],
   },
 ]);

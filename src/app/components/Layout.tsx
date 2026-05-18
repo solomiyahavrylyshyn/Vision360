@@ -675,11 +675,11 @@ export function Layout() {
         <div className="p-0.5">
 
           {/* Profile / Account */}
-          <button onClick={() => { setUserMenuOpen(false); }} className="w-full flex items-center gap-2 px-2 py-[5.5px] rounded-[6px] hover:bg-[#F5F7FA] transition-colors">
+          <button onClick={() => { setUserMenuOpen(false); navigate("/profile"); }} className="w-full flex items-center gap-2 px-2 py-[5.5px] rounded-[6px] hover:bg-[#F5F7FA] transition-colors">
             <span className="material-icons text-[#6B7280] flex-shrink-0 w-5 h-5 flex items-center justify-center" style={{ fontSize: "16px" }}>person</span>
             <span className="flex-1 text-[14px] text-[#1A2332] text-left">Profile</span>
           </button>
-          <button onClick={() => { setUserMenuOpen(false); }} className="w-full flex items-center gap-2 px-2 py-[5.5px] rounded-[6px] hover:bg-[#F5F7FA] transition-colors">
+          <button onClick={() => { setUserMenuOpen(false); navigate("/account"); }} className="w-full flex items-center gap-2 px-2 py-[5.5px] rounded-[6px] hover:bg-[#F5F7FA] transition-colors">
             <span className="material-icons text-[#6B7280] flex-shrink-0 w-5 h-5 flex items-center justify-center" style={{ fontSize: "16px" }}>manage_accounts</span>
             <span className="flex-1 text-[14px] text-[#1A2332] text-left">Account</span>
           </button>
