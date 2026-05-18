@@ -1472,50 +1472,61 @@ export function ClientDetail() {
                 </div>
               </div>
             ) : (
-              <div className="grid grid-cols-3 gap-3">
+              // Windows File Explorer medium-icons style: dense grid, image-first, name below.
+              // Tooltip on hover shows full filename + metadata so we don't clutter the tile.
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7 gap-3">
                 {filteredDocuments.map((file) => (
-                  <div key={file.id} className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden hover:shadow-md transition-shadow group relative">
-                    {/* Preview area */}
-                    {file.isImage ? (
-                      file.previewUrl ? (
-                        <img src={file.previewUrl} alt={file.name} className="w-full h-[148px] object-cover" />
+                  <div
+                    key={file.id}
+                    className="flex flex-col items-center text-center group relative cursor-pointer rounded-lg p-2 hover:bg-[#EEF3FA] transition-colors"
+                    title={`${file.name}\n${file.size} · ${file.date}${file.uploadedBy ? ` · ${file.uploadedBy}` : ""}`}
+                  >
+                    {/* Thumbnail */}
+                    <div className="w-full aspect-[4/3] rounded-md border border-[#E5E7EB] overflow-hidden bg-white">
+                      {file.isImage ? (
+                        file.previewUrl ? (
+                          <img src={file.previewUrl} alt={file.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <div
+                            className="w-full h-full flex items-center justify-center"
+                            style={{ background: file.previewGradient ?? "linear-gradient(135deg,#fde68a,#f59e0b)" }}
+                          >
+                            <span className="material-icons text-white/70" style={{ fontSize: "32px" }}>image</span>
+                          </div>
+                        )
                       ) : (
                         <div
-                          className="w-full h-[148px] flex items-center justify-center"
-                          style={{ background: file.previewGradient ?? "linear-gradient(135deg,#fde68a,#f59e0b)" }}
+                          className="w-full h-full flex items-center justify-center"
+                          style={{ backgroundColor: file.iconColor + "12" }}
                         >
-                          <span className="material-icons text-white/70" style={{ fontSize: "44px" }}>image</span>
+                          <span className="material-icons" style={{ fontSize: "40px", color: file.iconColor, opacity: 0.85 }}>{file.icon}</span>
                         </div>
-                      )
-                    ) : (
-                      <div
-                        className="w-full h-[148px] flex items-center justify-center"
-                        style={{ backgroundColor: file.iconColor + "12" }}
-                      >
-                        <span className="material-icons" style={{ fontSize: "52px", color: file.iconColor, opacity: 0.75 }}>{file.icon}</span>
-                      </div>
-                    )}
+                      )}
+                    </div>
 
-                    {/* Delete button */}
+                    {/* Filename (2 lines max) */}
+                    <div
+                      className="mt-2 text-[12px] text-[#1A2332] leading-[16px] w-full px-0.5"
+                      style={{
+                        fontWeight: 500,
+                        display: "-webkit-box",
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: "vertical",
+                        overflow: "hidden",
+                        wordBreak: "break-word",
+                      }}
+                    >
+                      {file.name}
+                    </div>
+
+                    {/* Hover delete */}
                     <button
-                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 w-7 h-7 flex items-center justify-center rounded-full bg-white/90 shadow text-[#9CA3AF] hover:text-[#DC2626] transition-all"
-                      onClick={() => setDocuments((prev) => prev.filter((d) => d.id !== file.id))}
+                      className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 w-6 h-6 flex items-center justify-center rounded-full bg-white/95 shadow text-[#9CA3AF] hover:text-[#DC2626] transition-all"
+                      onClick={(e) => { e.stopPropagation(); setDocuments((prev) => prev.filter((d) => d.id !== file.id)); }}
+                      title="Remove"
                     >
                       <span className="material-icons" style={{ fontSize: "14px" }}>close</span>
                     </button>
-
-                    {/* File info */}
-                    <div className="px-3 py-2.5 border-t border-[#F3F4F6]">
-                      <div className="flex items-center gap-2">
-                        <span className="material-icons shrink-0" style={{ fontSize: "14px", color: file.iconColor }}>{file.icon}</span>
-                        <div className="min-w-0">
-                          <div className="text-[12px] text-[#1A2332] truncate" style={{ fontWeight: 600 }}>{file.name}</div>
-                          <div className="text-[11px] text-[#9CA3AF] mt-0.5 truncate">
-                            {file.size} · {file.date}{file.uploadedBy ? ` · ${file.uploadedBy}` : ""}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
                   </div>
                 ))}
               </div>
