@@ -287,10 +287,12 @@ function DraggableTab({ tabKey, label, count, isActive, onMove, onClick }: Dragg
     <button
       ref={ref}
       onClick={onClick}
-      className={`relative h-[45px] px-4 shrink-0 text-[13px] transition-colors whitespace-nowrap select-none ${
+      className={`relative h-[29px] px-3 shrink-0 text-[13px] transition-all whitespace-nowrap select-none rounded-lg ${
         isDragging ? "opacity-40" : ""
-      } ${isOver ? "border-l-2 border-[#4A6FA5]" : ""} ${
-        isActive ? "text-[#4A6FA5]" : "text-[#6B7280] hover:text-[#374151]"
+      } ${isOver ? "ring-2 ring-[#4A6FA5]" : ""} ${
+        isActive
+          ? "bg-[#4A6FA5] text-white shadow-sm"
+          : "text-[#6B7280] hover:text-[#374151] hover:bg-[#E5E7EB]"
       }`}
       style={{ fontWeight: 500, cursor: "grab" }}
     >
@@ -298,7 +300,6 @@ function DraggableTab({ tabKey, label, count, isActive, onMove, onClick }: Dragg
       {count !== undefined && count > 0 && (
         <span className="ml-0.5" style={{ fontWeight: 400 }}>({count})</span>
       )}
-      {isActive && <div className="absolute bottom-[10px] left-0 right-0 h-[2px] bg-[#4A6FA5]" />}
     </button>
   );
 }
@@ -597,7 +598,6 @@ export function ClientDetail() {
   ────────────────────────────────────────── */
   const KebabMenu = () => (
     <KebabMenuShared triggerClassName="w-9 h-9 border border-[#E5E7EB] rounded-md bg-white" contentClassName="min-w-[220px]">
-      <KebabItem icon="tab_unselected" onClick={() => setShowTabSettings(true)}>Edit Tabs</KebabItem>
       <KebabItem icon="print" onClick={() => toast.info("Print functionality coming soon")}>Print</KebabItem>
       <DropdownMenuSub>
         <DropdownMenuSubTrigger className="flex items-center gap-2.5 px-3 h-9 text-[13px] text-[#374151] cursor-pointer rounded-none" style={{ fontWeight: 500 }}>
@@ -675,20 +675,9 @@ export function ClientDetail() {
               <div className="text-[13px] text-[#1A2332] font-medium">{client.role}</div>
             </div>
           )}
-          <div className="flex items-end justify-between gap-4">
-            <div>
-              <div className="text-[11px] uppercase tracking-wider text-[#546478] font-semibold mb-0.5">Customer Since</div>
-              <div className="text-[13px] text-[#1A2332] font-medium">{client.customerSince}</div>
-            </div>
-            <label className="flex items-center gap-2.5 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={clientData.isTaxable}
-                onChange={(e) => handleCheckboxChange("isTaxable", e.target.checked)}
-                className="w-4 h-4 accent-[#4A6FA5]"
-              />
-              <span className="text-[13px] text-[#4B5563]">Taxable Customer</span>
-            </label>
+          <div>
+            <div className="text-[11px] uppercase tracking-wider text-[#546478] font-semibold mb-0.5">Customer Since</div>
+            <div className="text-[13px] text-[#1A2332] font-medium">{client.customerSince}</div>
           </div>
           {client.additionalContacts && client.additionalContacts.length > 0 && (
             <div className="pt-3 border-t border-[#E5E7EB]">
@@ -746,71 +735,60 @@ export function ClientDetail() {
             <div className="text-[13px] text-[#1A2332] font-medium leading-[20px]">{client.city}, {client.state} {client.zip}</div>
           </div>
           <div>
-            <div className="text-[11px] uppercase tracking-wider text-[#546478] font-semibold mb-1">Address Notes</div>
-            <textarea
-              defaultValue={client.gateCode ? `Gate code: ${client.gateCode}` : ""}
-              placeholder="Gate code, access notes…"
-              rows={2}
-              className="w-full text-[12px] text-[#374151] border border-[#E5E7EB] rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-[#4A6FA5] bg-[#F9FAFB] placeholder:text-[#9CA3AF]"
-            />
+            <div className="text-[13px] text-[#1A2332] mb-1" style={{ fontWeight: 600 }}>Address notes</div>
+            <div className="text-[13px] text-[#1A2332]">
+              {client.gateCode ? `Gate code: ${client.gateCode}` : <span className="text-[#9CA3AF]">—</span>}
+            </div>
           </div>
-          <div className="border-t border-[#E5E7EB] pt-4">
+
+          {/* Custom Fields section — lives in the Addresses card */}
+          <div className="pt-3 border-t border-[#E5E7EB]">
+            <div className="text-[13px] text-[#1A2332] mb-2" style={{ fontWeight: 600 }}>Custom Fields</div>
             {(() => {
               const configured = cfClientFields.slice(0, 2).filter(f => f.label.trim() !== "");
               if (configured.length === 0) {
                 return (
-                  <p className="text-[12px] text-[#9CA3AF]">
-                    No custom fields configured.{" "}
-                    <span className="text-[#4A6FA5] cursor-pointer hover:underline" onClick={() => navigate("/settings?section=general")}>
-                      Configure in Settings
-                    </span>
-                  </p>
+                  <div className="flex items-center gap-1 text-[12px] text-[#6B7280]">
+                    <span>Configure in</span>
+                    <button
+                      onClick={() => navigate("/settings?section=customFields")}
+                      className="text-[12px] text-[#4A6FA5] hover:underline"
+                      style={{ fontWeight: 500 }}
+                    >
+                      Settings &gt; Custom Fields
+                    </button>
+                  </div>
                 );
               }
               return (
                 <div className="space-y-3">
                   {configured.map((field, idx) => {
                     const cfValue = (clientData as Record<string, string>)[`cf_${idx}`] ?? "";
-                    const setCf = (val: string) => setClientData(prev => ({ ...prev, [`cf_${idx}`]: val }));
                     return (
                       <div key={idx}>
-                        <div className="text-[11px] uppercase tracking-wider text-[#546478] font-semibold mb-1">{field.label}</div>
-                        {field.type === "text" && (
-                          <input value={cfValue} onChange={e => setCf(e.target.value)} placeholder={field.label}
-                            className="w-full h-8 px-3 text-[13px] border border-[#E5E7EB] rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-[#4A6FA5]" />
-                        )}
-                        {field.type === "number" && (
-                          <input type="number" value={cfValue} onChange={e => setCf(e.target.value)} placeholder="0"
-                            className="w-full h-8 px-3 text-[13px] border border-[#E5E7EB] rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-[#4A6FA5]" />
-                        )}
-                        {field.type === "date" && (
-                          <input type="date" value={cfValue} onChange={e => setCf(e.target.value)}
-                            className="w-full h-8 px-3 text-[13px] border border-[#E5E7EB] rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-[#4A6FA5]" />
-                        )}
-                        {field.type === "checkbox" && (
-                          <label className="flex items-center gap-2 cursor-pointer">
-                            <input type="checkbox" checked={cfValue === "true"} onChange={e => setCf(e.target.checked ? "true" : "")}
-                              className="w-4 h-4 accent-[#4A6FA5]" />
-                            <span className="text-[13px] text-[#4B5563]">{field.label}</span>
-                          </label>
-                        )}
-                        {field.type === "dropdown" && (
-                          <Select value={cfValue || "none"} onValueChange={v => setCf(v === "none" ? "" : v)}>
-                            <SelectTrigger className="border-[#E5E7EB] bg-white h-8 text-[13px] rounded-lg" style={{ fontWeight: 400 }}>
-                              <SelectValue placeholder={`Select ${field.label}`} />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="none">— Select —</SelectItem>
-                              {field.options.map(opt => <SelectItem key={opt} value={opt}>{opt}</SelectItem>)}
-                            </SelectContent>
-                          </Select>
-                        )}
+                        <div className="text-[12px] text-[#6B7280] mb-0.5">{field.label}</div>
+                        <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>
+                          {cfValue || <span className="text-[#9CA3AF]">—</span>}
+                        </div>
                       </div>
                     );
                   })}
                 </div>
               );
             })()}
+          </div>
+
+          {/* Taxable Customer checkbox — lives in the Addresses card */}
+          <div className="pt-3 border-t border-[#E5E7EB]">
+            <label className="flex items-center gap-2.5 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={clientData.isTaxable}
+                onChange={(e) => handleCheckboxChange("isTaxable", e.target.checked)}
+                className="w-4 h-4 accent-[#4A6FA5]"
+              />
+              <span className="text-[13px] text-[#1A2332]">Taxable Customer</span>
+            </label>
           </div>
         </div>
       </div>
@@ -1690,125 +1668,136 @@ export function ClientDetail() {
   return (
     <div className="min-h-screen bg-[#F5F7FA]">
 
-      {/* ── SUMMARY BAR ── */}
-      <div className="bg-white border-b border-[#E5E7EB]">
-        {/* Back arrow + Actions */}
-        <div className="px-8 h-12 flex items-center justify-between gap-1.5 border-b border-[#F3F4F6]">
+      {/* ── PAGE HEADER (back arrow + title on gray, outside the white card) ── */}
+      <div className="px-6 pt-6 pb-4 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
           <button
             onClick={() => navigate("/clients")}
-            className="inline-flex items-center gap-1.5 text-[13px] text-[#4A6FA5] hover:text-[#3d5a85] transition-colors"
-            style={{ fontWeight: 500 }}
+            className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-white transition-colors"
             aria-label="Back to Clients"
             title="Back to Clients"
           >
-            <span className="material-icons" style={{ fontSize: "18px" }}>arrow_back</span>
-            <span>Back to Clients</span>
+            <span className="material-icons text-[#1A2332]" style={{ fontSize: "18px" }}>chevron_left</span>
           </button>
-          <div className="flex items-center gap-2">
-            {!isEditing ? (
-              <>
-                <CreateDropdown />
-                <KebabMenu />
-              </>
-            ) : (
-              <>
-                <Button
-                  variant="outline"
-                  onClick={handleCancelClick}
-                  className="border-[#E5E7EB] text-[#546478] hover:bg-[#EDF0F5] h-8 px-3 text-[13px]"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleSaveClick}
-                  className="bg-[#4A6FA5] hover:bg-[#3d5a85] h-8 px-3 text-white text-[13px]"
-                >
-                  Save Changes
-                </Button>
-              </>
-            )}
-          </div>
+          <h1 className="text-[24px] text-[#1A2332]" style={{ fontWeight: 600, letterSpacing: "-0.01em" }}>
+            Client details
+          </h1>
         </div>
-
-
-        {/* Summary content */}
-        <div className="px-8 pt-5 pb-[14px]">
-          <div className="flex items-start gap-8">
-            {/* Left: Name + Address */}
-            <div className="shrink-0 flex flex-col gap-3 min-w-[260px]">
-                <div className="flex items-center gap-2">
-                  <h1 className="text-[22px] text-[#1A2332] leading-[32px]" style={{ fontWeight: 600, letterSpacing: "-0.01em" }}>
-                    {client.name}
-                  </h1>
-                  <span className="text-[15px] text-[#9CA3AF] leading-[32px]" style={{ fontWeight: 400 }}>
-                    ({client.customerId.replace(/^C-/, "")})
-                  </span>
-                </div>
-
-                {/* Address */}
-                <div className="flex items-center gap-1.5 text-[13px] text-[#374151]">
-                  <span className="material-icons text-[#6B7280]" style={{ fontSize: "15px" }}>location_on</span>
-                  {client.address}, {client.city}, {client.state} {client.zip}
-                </div>
-
-                {/* Phone + Email row */}
-                <div className="flex items-center gap-5">
-                  <a href={`tel:${client.mobilePhone}`} className="flex items-center gap-1.5 text-[13px] text-[#4A6FA5] hover:underline">
-                    <span className="material-icons" style={{ fontSize: "15px" }}>phone</span>
-                    {client.mobilePhone}
-                  </a>
-                  <a href={`mailto:${client.email}`} className="flex items-center gap-1.5 text-[13px] text-[#4A6FA5] hover:underline">
-                    <span className="material-icons" style={{ fontSize: "15px" }}>email</span>
-                    {client.email}
-                  </a>
-                </div>
-
-            </div>
-
-            {/* Financial Summary — 4 horizontal stat cards */}
-            <div className="flex gap-3 shrink-0 ml-auto">
-              {[
-                { label: "Total Revenue", value: `$${client.totalRevenue.toLocaleString("en-US", { minimumFractionDigits: 0 })}`, color: "#16A34A" },
-                { label: "Balance",       value: `$${client.openBalance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, color: "#1A2332" },
-                { label: "Past Due",      value: `$${client.pastDueBalance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, color: "#DC2626" },
-                { label: "Open Jobs",     value: "3", color: "#1A2332" },
-              ].map(({ label, value, color }) => (
-                <div key={label} className="w-[180px] bg-white border border-[#E5E7EB] rounded-xl px-4 py-3">
-                  <div className="text-[12px] text-[#546478] mb-1">{label}</div>
-                  <div className="text-[22px] tabular-nums" style={{ fontWeight: 700, color, letterSpacing: "-0.01em" }}>{value}</div>
-                </div>
-              ))}
-            </div>
-          </div>
+        <div className="flex items-center gap-2">
+          {!isEditing ? (
+            <CreateDropdown />
+          ) : (
+            <>
+              <Button
+                variant="outline"
+                onClick={handleCancelClick}
+                className="border-[#E5E7EB] text-[#546478] hover:bg-[#EDF0F5] h-9 px-3 text-[13px]"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSaveClick}
+                className="bg-[#4A6FA5] hover:bg-[#3d5a85] h-9 px-3 text-white text-[13px]"
+              >
+                Save Changes
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
-      {/* ── HORIZONTAL TABS ── */}
-      <div className="bg-white sticky top-0 z-30">
-        <DndProvider backend={HTML5Backend}>
-          <div className="flex items-center border-b border-[#E5E7EB]">
-            {/* Scrollable tabs */}
-            <div className="flex items-center px-6 overflow-x-auto scrollbar-hide flex-1">
-              {visibleTabs.map(({ key, label, count }) => (
-                <DraggableTab
-                  key={key}
-                  tabKey={key}
-                  label={label}
-                  count={count}
-                  isActive={activeTab === key}
-                  onMove={moveTab}
-                  onClick={() => { setActiveTab(key); if (isEditing) setIsEditing(false); }}
-                />
-              ))}
-            </div>
-          </div>
-        </DndProvider>
-      </div>
+      {/* ── ONE BIG WHITE CARD CONTAINING EVERYTHING (per Figma spec) ── */}
+      <div className="mx-6 mb-6 bg-white border border-[#E5E7EB] rounded-xl p-4">
 
-      {/* ── CONTENT AREA ── */}
-      <main className="min-h-[calc(100vh-200px)] p-6 pb-12 space-y-4 bg-[#F5F7FA]">
-        {renderContent()}
-      </main>
+        {/* Name + address + phone + kebab row */}
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <h2 className="text-[20px] text-[#1A2332] leading-[27px]" style={{ fontWeight: 600 }}>
+                {client.name}
+              </h2>
+              <span className="text-[16px] text-[#6B7280] leading-[24px]" style={{ fontWeight: 400 }}>
+                ({client.customerId.replace(/^C-/, "")})
+              </span>
+            </div>
+            <KebabMenu />
+          </div>
+
+          {/* Address · Phone · Email — single inline row with separators */}
+          <div className="flex items-center gap-0.5 flex-wrap">
+            <div className="flex items-center gap-2 pr-2">
+              <span className="material-icons text-[#1A2332]" style={{ fontSize: "16px" }}>location_on</span>
+              <span className="text-[14px] text-[#1A2332]">{client.address}, {client.city}, {client.state} {client.zip}</span>
+            </div>
+            <div className="w-px h-6 bg-[#E5E7EB]" />
+            <a href={`tel:${client.mobilePhone}`} className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-[#F5F7FA] text-[14px] text-[#4A6FA5]" style={{ fontWeight: 500 }}>
+              <span className="material-icons" style={{ fontSize: "16px" }}>phone</span>
+              {client.mobilePhone}
+            </a>
+            <div className="w-px h-6 bg-[#E5E7EB]" />
+            <a href={`mailto:${client.email}`} className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-[#F5F7FA] text-[14px] text-[#4A6FA5]" style={{ fontWeight: 500 }}>
+              <span className="material-icons" style={{ fontSize: "16px" }}>mail</span>
+              {client.email}
+            </a>
+          </div>
+        </div>
+
+        {/* KPI tiles row (4 cards spanning full width, BELOW the name row per Figma) */}
+        <div className="flex gap-4 mt-4">
+          {[
+            { label: "Total revenue", value: `$${client.totalRevenue.toLocaleString("en-US", { minimumFractionDigits: 0 })}`, icon: "trending_up", iconColor: "#16A34A" },
+            { label: "Balance",       value: `$${client.openBalance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, icon: "paid",        iconColor: "#4A6FA5" },
+            { label: "Past Due",      value: `$${client.pastDueBalance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, icon: "schedule",    iconColor: "#DC2626" },
+            { label: "Open Jobs",     value: "3", icon: "work", iconColor: "#6B7280" },
+          ].map(({ label, value, icon, iconColor }) => (
+            <div key={label} className="flex-1 bg-white border border-[#E5E7EB] rounded-lg p-4 flex items-center gap-2" style={{ boxShadow: "0px 1px 2px rgba(0,0,0,0.05)" }}>
+              <div className="flex-1 flex flex-col gap-1">
+                <div className="text-[14px] leading-[20px]" style={{ fontWeight: 600, color: "#6B7280" }}>{label}</div>
+                <div className="text-[22px] tabular-nums leading-[28px]" style={{ fontWeight: 600, color: "#1A2332", letterSpacing: "-0.01em" }}>{value}</div>
+              </div>
+              <div
+                className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
+                style={{ backgroundColor: `${iconColor}26` }}
+              >
+                <span className="material-icons" style={{ fontSize: "22px", color: iconColor }}>{icon}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Pill tabs */}
+        <div className="mt-4">
+          <DndProvider backend={HTML5Backend}>
+            <div className="flex items-center gap-2">
+              <div className="inline-flex items-center bg-white rounded-[10px] p-[3px] overflow-x-auto scrollbar-hide">
+                {visibleTabs.map(({ key, label, count }) => (
+                  <DraggableTab
+                    key={key}
+                    tabKey={key}
+                    label={label}
+                    count={count}
+                    isActive={activeTab === key}
+                    onMove={moveTab}
+                    onClick={() => { setActiveTab(key); if (isEditing) setIsEditing(false); }}
+                  />
+                ))}
+              </div>
+              <button
+                onClick={() => setShowTabSettings(true)}
+                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#F5F7FA] text-[#1A2332] transition-colors"
+                title="Customize tabs"
+              >
+                <span className="material-icons" style={{ fontSize: "16px" }}>settings</span>
+              </button>
+            </div>
+          </DndProvider>
+        </div>
+
+        {/* Tab content (inner cards have their own white bg+border per Figma) */}
+        <div className="mt-4">
+          {renderContent()}
+        </div>
+      </div>
 
       {/* ── PER-SECTION EDIT MODAL ── */}
       {editingSection && (

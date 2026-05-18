@@ -54,6 +54,7 @@ const mockJobData: Record<string, any> = {
     gateCode: "4821",
     phone: "(813) 612-5487", email: "ccj924@yahoo.com",
     jobNumber: "29899-J01", jobType: "Estimate",
+    assignedTo: "Peter Novak",
     startedOn: "Mar 30, 2026", endsOn: "Mar 30, 2026",
     startTime: "9:00 AM", endTime: "11:00 AM",
     status: "Scheduled" as const,
@@ -101,6 +102,7 @@ const mockJobData: Record<string, any> = {
     gateCode: "",
     phone: "(407) 555-1234", email: "sarah.j@email.com",
     jobNumber: "29900-J01", jobType: "Install",
+    assignedTo: "Travis Webb",
     startedOn: "Apr 10, 2026", endsOn: "Apr 10, 2026",
     startTime: "9:00 AM", endTime: "1:00 PM",
     status: "In Progress" as const,
@@ -355,12 +357,15 @@ export function JobDetail() {
   const [editingSection, setEditingSection] = useState<null | "address" | "schedule" | "overview">(null);
   const [editJob, setEditJob] = useState<any>(job);
 
-  // (Assigned-to dropdown removed — Marek's reference screenshot doesn't include it on the
-  // Job Date & Time card; reintroduce later if/when the team confirms the verbal spec.)
+  const FIELD_EMPLOYEES = ["Peter Novak", "Travis Webb", "Ernesto Reyes", "Alex Kim"];
+  const [assignedTo, setAssignedTo] = useState<string>(job.assignedTo || "");
+  const [assignedToOpen, setAssignedToOpen] = useState(false);
 
   // Documents state
   const [documents, setDocuments] = useState<DocFile[]>(INITIAL_DOCS);
   const [docSearch, setDocSearch] = useState("");
+  const [docDate, setDocDate] = useState("all");
+  const [docCategory, setDocCategory] = useState("all");
   const fileInputRef = useRef<HTMLInputElement>(null);
   // Right-side preview panel selection
   const [previewFileId, setPreviewFileId] = useState<string | null>(null);
@@ -457,7 +462,7 @@ export function JobDetail() {
     <div className="flex gap-4 items-start">
 
       {/* ── Left: single combined card (Job Overview + Job Date & Time in one container per reference) ── */}
-      <div className="w-[280px] shrink-0">
+      <div className="w-[420px] shrink-0">
         <div className="bg-white border border-[#E5E7EB] rounded-lg p-5 flex flex-col gap-5">
 
           {/* Job Overview section */}
@@ -468,9 +473,16 @@ export function JobDetail() {
                 <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
               </button>
             </div>
-            <div className="flex flex-col gap-1">
-              <div className="text-[11px] text-[#9CA3AF]">Job Title</div>
-              <div className="text-[13px] text-[#374151]" style={{ fontWeight: 500 }}>{job.title}</div>
+            {/* Title + Type side-by-side per reference screenshot */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex flex-col gap-1">
+                <div className="text-[11px] text-[#9CA3AF]">Job Title</div>
+                <div className="text-[13px] text-[#374151]" style={{ fontWeight: 500 }}>{job.title}</div>
+              </div>
+              <div className="flex flex-col gap-1">
+                <div className="text-[11px] text-[#9CA3AF]">Job Type</div>
+                <div className="text-[13px] text-[#374151]">{job.jobType}</div>
+              </div>
             </div>
             <div className="flex flex-col gap-1">
               <div className="text-[11px] text-[#9CA3AF]">Service Address</div>
@@ -482,20 +494,12 @@ export function JobDetail() {
                 </div>
               </div>
             </div>
-            <div className="flex flex-col gap-1">
-              <div className="text-[11px] text-[#9CA3AF]">Job Type</div>
-              <div className="text-[13px] text-[#374151]">{job.jobType}</div>
-            </div>
-            <div className="flex flex-col gap-1">
-              <div className="text-[11px] text-[#9CA3AF]">Job #</div>
-              <div className="text-[13px] text-[#374151]">{job.jobNumber}</div>
-            </div>
           </section>
 
           {/* Divider between the two sections */}
           <div className="h-px bg-[#E5E7EB]" />
 
-          {/* Job Date & Time section */}
+          {/* Job Date & Time section — includes Assigned To per reference screenshot */}
           <section className="flex flex-col gap-4">
             <div className="flex items-center justify-between">
               <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Job Date & Time</h3>
@@ -503,7 +507,7 @@ export function JobDetail() {
                 <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
               </button>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div className="flex flex-col gap-1">
                 <div className="text-[11px] text-[#9CA3AF]">Start Date</div>
                 <div className="text-[13px] text-[#374151]" style={{ fontWeight: 500 }}>{job.startedOn}</div>
@@ -511,6 +515,45 @@ export function JobDetail() {
               <div className="flex flex-col gap-1">
                 <div className="text-[11px] text-[#9CA3AF]">End Date</div>
                 <div className="text-[13px] text-[#374151]" style={{ fontWeight: 500 }}>{job.endsOn}</div>
+              </div>
+              {/* Assigned To dropdown — third column, spans both rows */}
+              <div className="flex flex-col gap-1 row-span-2">
+                <div className="text-[11px] text-[#9CA3AF]">Assigned To</div>
+                <div className="relative">
+                  <button
+                    onClick={() => setAssignedToOpen(!assignedToOpen)}
+                    className="flex items-center gap-1 text-[13px] text-[#374151] hover:text-[#4A6FA5] transition-colors w-full"
+                    style={{ fontWeight: 500 }}
+                  >
+                    {assignedTo || <span className="text-[#9CA3AF]">Unassigned</span>}
+                    <span className="material-icons" style={{ fontSize: "14px", color: "#9CA3AF" }}>arrow_drop_down</span>
+                  </button>
+                  {assignedTo && (
+                    <div className="text-[11px] text-[#9CA3AF] mt-0.5">Technician</div>
+                  )}
+                  {assignedToOpen && (
+                    <div className="absolute left-0 top-full mt-1 bg-white border border-[#E5E7EB] rounded-md shadow-lg z-50 w-[180px] py-1">
+                      <button
+                        onClick={() => { setAssignedTo(""); setAssignedToOpen(false); }}
+                        className="w-full text-left px-3 py-2 text-[13px] text-[#9CA3AF] hover:bg-[#F3F4F6] italic"
+                      >
+                        Unassigned
+                      </button>
+                      {FIELD_EMPLOYEES.map((name) => (
+                        <button
+                          key={name}
+                          onClick={() => { setAssignedTo(name); setAssignedToOpen(false); }}
+                          className="w-full text-left px-3 py-2 text-[13px] text-[#374151] hover:bg-[#F3F4F6] flex items-center gap-2"
+                        >
+                          <span className="w-6 h-6 rounded-full bg-[#4A6FA5] flex items-center justify-center text-white text-[10px]" style={{ fontWeight: 600, flexShrink: 0 }}>
+                            {name.split(" ").map((n) => n[0]).join("")}
+                          </span>
+                          {name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
               <div className="flex flex-col gap-1">
                 <div className="text-[11px] text-[#9CA3AF]">Start Time</div>
@@ -764,9 +807,25 @@ export function JobDetail() {
   );
 
   const renderDocumentsTab = () => {
-    const filtered = documents.filter(d =>
-      !docSearch || d.name.toLowerCase().includes(docSearch.toLowerCase())
-    );
+    // Derive category from file type (matches Clients tab convention)
+    const categoryOf = (d: DocFile): string => {
+      if (d.isImage) return "Photos";
+      if (/agreement/i.test(d.name)) return "Agreements";
+      return "Documents";
+    };
+    // Crude date filter — mock docs use friendly dates like "Mar 30, 2026"
+    const withinDays = (dateStr: string, days: number): boolean => {
+      const parsed = new Date(dateStr);
+      if (isNaN(parsed.getTime())) return true;
+      const diff = (Date.now() - parsed.getTime()) / (1000 * 60 * 60 * 24);
+      return diff <= days;
+    };
+    const filtered = documents.filter(d => {
+      if (docSearch && !d.name.toLowerCase().includes(docSearch.toLowerCase())) return false;
+      if (docCategory !== "all" && categoryOf(d) !== docCategory) return false;
+      if (docDate !== "all" && !withinDays(d.date, parseInt(docDate, 10))) return false;
+      return true;
+    });
     return (
       <div className="space-y-3">
         {/* Toolbar */}
@@ -781,17 +840,25 @@ export function JobDetail() {
               className="w-full h-8 pl-8 pr-3 rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] text-[13px] text-[#1A2332] placeholder:text-[#9CA3AF] outline-none focus:border-[#4A6FA5] focus:bg-white"
             />
           </div>
-          <select className="h-8 rounded-lg border border-[#E5E7EB] bg-white px-3 text-[13px] text-[#374151] outline-none focus:border-[#4A6FA5]">
-            <option>Date: All time</option>
-            <option>Last 7 days</option>
-            <option>Last 30 days</option>
-            <option>Last 90 days</option>
+          <select
+            value={docDate}
+            onChange={e => setDocDate(e.target.value)}
+            className="h-8 rounded-lg border border-[#E5E7EB] bg-white px-3 text-[13px] text-[#374151] outline-none focus:border-[#4A6FA5]"
+          >
+            <option value="all">Date: All time</option>
+            <option value="7">Last 7 days</option>
+            <option value="30">Last 30 days</option>
+            <option value="90">Last 90 days</option>
           </select>
-          <select className="h-8 rounded-lg border border-[#E5E7EB] bg-white px-3 text-[13px] text-[#374151] outline-none focus:border-[#4A6FA5]">
-            <option>All Categories</option>
-            <option>Photos</option>
-            <option>Documents</option>
-            <option>Agreements</option>
+          <select
+            value={docCategory}
+            onChange={e => setDocCategory(e.target.value)}
+            className="h-8 rounded-lg border border-[#E5E7EB] bg-white px-3 text-[13px] text-[#374151] outline-none focus:border-[#4A6FA5]"
+          >
+            <option value="all">All Categories</option>
+            <option value="Photos">Photos</option>
+            <option value="Documents">Documents</option>
+            <option value="Agreements">Agreements</option>
           </select>
           <div className="flex-1" />
           <button
@@ -925,9 +992,11 @@ export function JobDetail() {
           <div className="bg-white border border-[#E5E7EB] rounded-xl text-center py-14">
             <span className="material-icons text-[#D1D5DB] mb-2 block" style={{ fontSize: "40px" }}>folder_open</span>
             <div className="text-[13px] text-[#9CA3AF]">
-              {docSearch ? "No documents match your search" : "No documents yet"}
+              {docSearch || docDate !== "all" || docCategory !== "all"
+                ? "No documents match your filters"
+                : "No documents yet"}
             </div>
-            {!docSearch && (
+            {!docSearch && docDate === "all" && docCategory === "all" && (
               <button
                 onClick={() => fileInputRef.current?.click()}
                 className="mt-3 text-[12px] text-[#4A6FA5] hover:underline"
@@ -1184,10 +1253,10 @@ export function JobDetail() {
                   ${job.profitability.totalPrice.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
               </div>
-              {/* Compensation (dark gray) */}
+              {/* Compensation (red — expenses-style cost) */}
               <div className="bg-white border border-[#E5E7EB] rounded-lg p-3 flex flex-col gap-1" style={{ boxShadow: "0px 1px 2px rgba(0,0,0,0.05)" }}>
                 <div className="text-[11px] leading-[16px]" style={{ fontWeight: 500, color: "#9CA3AF" }}>Compensation</div>
-                <div className="text-[18px] leading-[24px]" style={{ fontWeight: 600, color: "#1A2332" }}>
+                <div className="text-[18px] leading-[24px]" style={{ fontWeight: 600, color: "#DC2626" }}>
                   ${job.profitability.labor.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
               </div>
@@ -1394,6 +1463,19 @@ export function JobDetail() {
                         <option value="High">High</option>
                       </select>
                     </div>
+                  </div>
+                  <div>
+                    <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>Assigned To</label>
+                    <select
+                      value={editJob.assignedTo || ""}
+                      onChange={(e) => { setEditField("assignedTo", e.target.value); setAssignedTo(e.target.value); }}
+                      className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
+                    >
+                      <option value="">Unassigned</option>
+                      {FIELD_EMPLOYEES.map((name) => (
+                        <option key={name} value={name}>{name}</option>
+                      ))}
+                    </select>
                   </div>
                   <div>
                     <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>Customer</label>

@@ -38,6 +38,7 @@ const sectionAliases: Partial<Record<SettingsSection, SettingsSection>> = {
   business: "companyInfo",
   security: "team",
   taxes: "general",
+  home: "companyInfo",
 };
 
 const navGroups: Array<{
@@ -1698,13 +1699,14 @@ function AddListSection({
 export function Settings() {
   const [searchParams] = useSearchParams();
   const location = useLocation();
-  const [activeSection, setActiveSection] = useState<SettingsSection>("home");
+  // Land straight on Company Info — no more 4-tile home landing.
+  const [activeSection, setActiveSection] = useState<SettingsSection>("companyInfo");
   const [searchQuery, setSearchQuery] = useState("");
-  // Per Marek: settings nav groups are collapsible accordions, all collapsed by default
-  // so the user sees only the top-level group titles (Business Management, System
-  // Preferences, Finance Center, Integrations) until they click to expand.
-  // While searching, every group is force-expanded so matches stay visible.
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  // Settings nav groups are collapsible accordions. Business Management is opened
+  // by default (it contains Company Info, the landing destination); the other
+  // groups stay collapsed until the user clicks to expand. While searching,
+  // every group is force-expanded so matches stay visible.
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set(["Business Management"]));
   const toggleGroupExpanded = (title: string) =>
     setExpandedGroups(prev => {
       const next = new Set(prev);
@@ -1973,39 +1975,6 @@ export function Settings() {
 
       <main className="flex-1 overflow-y-auto">
         <div className="max-w-[1120px] px-8 py-7">
-          {activeSection === "home" && (
-            <>
-              <SectionHeader
-                title="Settings"
-                description="Manage your business details, system preferences, payments, and connected apps."
-              />
-              <div className="grid grid-cols-2 gap-4">
-                {navGroups.map(group => (
-                  <Card key={group.title} className="border border-[#E1E6EF] bg-white p-5 shadow-[0_8px_22px_rgba(26,35,50,0.035)]">
-                    <div className="mb-4 flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#EBF0F8] text-[#4A6FA5]">
-                        <span className="material-icons" style={{ fontSize: "22px" }}>{group.icon}</span>
-                      </div>
-                      <h2 className="text-[17px] text-[#1A2332]" style={{ fontWeight: 750 }}>{group.title}</h2>
-                    </div>
-                    <div className="space-y-2">
-                      {group.items.slice(0, 4).map(item => (
-                        <button
-                          key={item.id}
-                          onClick={() => setActiveSection(item.id)}
-                          className="flex w-full items-center justify-between rounded-lg border border-[#E5E7EB] px-3 py-2 text-left hover:bg-[#F8FAFC]"
-                        >
-                          <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>{item.label}</span>
-                          <span className="material-icons text-[#9AA3AF]" style={{ fontSize: "16px" }}>chevron_right</span>
-                        </button>
-                      ))}
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            </>
-          )}
-
           {activeSection === "companyInfo" && (
             <>
               <SectionHeader
