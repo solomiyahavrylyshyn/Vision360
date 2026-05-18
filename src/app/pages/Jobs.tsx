@@ -12,6 +12,7 @@ import {
 } from "../components/ui/select";
 import { Card } from "../components/ui/card";
 import { CreateActionButton } from "../components/ui/create-action-button";
+import { StatCard } from "../components/ui/stat-card";
 
 interface Job {
   id: number;
@@ -184,29 +185,46 @@ export function Jobs() {
         }
       />
 
-      {/* ── Stats Cards ── */}
-      <div className="grid grid-cols-3 gap-5 mb-8">
-        {(["Scheduled", "In Progress", "Completed"] as const).map(s => (
-          <Card
-            key={s}
-            onClick={() => setQfStatus(qfStatus === s ? "All" : s)}
-            className={`p-5 border bg-white hover:shadow-sm transition-shadow cursor-pointer ${qfStatus === s ? "border-[#4A6FA5] ring-1 ring-[#4A6FA5]/20" : "border-[#E5E7EB]"}`}
-          >
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full shrink-0" style={{ background: statusColors[s] }} />
-                  <span className="text-[12px] text-[#546478]" style={{ fontWeight: 600 }}>{s}</span>
-                </div>
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: statusBg[s] }}>
-                  <span className="material-icons" style={{ fontSize: "16px", color: statusColors[s] }}>{statusIcons[s]}</span>
-                </div>
-              </div>
-              <div className="text-[26px] text-[#1A2332] leading-none mb-1" style={{ fontWeight: 700 }}>{statusCounts[s]}</div>
-              <div className="text-[12px] text-[#9CA3AF]">jobs</div>
-            </div>
-          </Card>
-        ))}
+      {/* ── Stats Cards (Clients-template style) ── */}
+      <div className="grid grid-cols-4 gap-4 mb-6">
+        <StatCard
+          value={String(statusCounts["Scheduled"])}
+          label="Scheduled"
+          sub="upcoming"
+          change="+8%"
+          changeUp
+          period="vs last week"
+          data={[2, 3, 4, 3, 5, 4, 6]}
+        />
+        <StatCard
+          value={String(statusCounts["In Progress"])}
+          label="In progress"
+          sub="active right now"
+          change="+12%"
+          changeUp
+          period="vs last week"
+          data={[1, 2, 2, 3, 4, 3, 5]}
+          sparklineColor="#F59E0B"
+        />
+        <StatCard
+          value={String(statusCounts["Completed"])}
+          label="Completed"
+          sub="this month"
+          change="+24%"
+          changeUp
+          period="vs prev. month"
+          data={[5, 6, 7, 8, 9, 10, 12]}
+          sparklineColor="#16A34A"
+        />
+        <StatCard
+          value={`$${jobs.reduce((sum, j) => sum + (j.total ?? 0), 0).toLocaleString("en-US")}`}
+          label="Revenue"
+          sub="this month"
+          change="+18%"
+          changeUp
+          period="vs prev. month"
+          data={[3, 4, 4, 5, 6, 6, 7]}
+        />
       </div>
 
       {/* ── Table ── */}
@@ -248,7 +266,7 @@ export function Jobs() {
               }`}
               style={{ fontWeight: 500 }}
             >
-              <span className="material-icons" style={{ fontSize: "16px" }}>tune</span>
+              <span className="material-icons" style={{ fontSize: "16px" }}>filter_alt</span>
               Filter
               {activeFilterCount > 0 && (
                 <span className="w-4 h-4 bg-[#4A6FA5] text-white text-[10px] rounded-full flex items-center justify-center" style={{ fontWeight: 700 }}>
@@ -286,8 +304,8 @@ export function Jobs() {
                   key={col.key}
                   colKey={col.key}
                   onMove={moveJobCol}
-                  className={`px-4 py-3 text-left text-[11px] uppercase tracking-wide text-[#546478] select-none${col.sortable ? " cursor-pointer" : ""}${col.key === "total" ? " text-right" : ""}`}
-                  style={{ fontWeight: 600 }}
+                  className={`px-4 py-3 text-left text-[14px] text-[#1A2332] select-none${col.sortable ? " cursor-pointer" : ""}${col.key === "total" ? " text-right" : ""}`}
+                  style={{ fontWeight: 500 }}
                   onClick={col.sortable ? () => toggleSort(col.key as SortField) : undefined}
                 >
                   <div className={`flex items-center${col.key === "total" ? " justify-end" : ""}`}>
@@ -350,31 +368,41 @@ export function Jobs() {
             ))}
           </tbody>
         </table>
-      </div>
 
-      {/* ── Pagination ── */}
-      <div className="mt-4 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="text-[13px] text-[#546478]">Rows per page:</span>
-          <Select value={String(rowsPerPage)} onValueChange={v => { setRowsPerPage(Number(v)); setCurrentPage(1); }}>
-            <SelectTrigger className="h-8 w-[70px] border-[#E5E7EB] text-[13px]" style={{ fontWeight: 500 }}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {[10, 25, 50, 100].map(n => <SelectItem key={n} value={String(n)}>{n}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <span className="text-[13px] text-[#546478] ml-4">
-            {totalItems === 0 ? "0-0" : `${startIndex + 1}-${endIndex}`} of {totalItems}
-          </span>
-        </div>
-        <div className="flex items-center gap-1">
-          <button className="p-1.5 text-[#546478] hover:bg-[#EDF0F5] rounded disabled:opacity-40" disabled={currentPage === 1} onClick={() => setCurrentPage(currentPage - 1)}>
-            <span className="material-icons" style={{ fontSize: "20px" }}>chevron_left</span>
-          </button>
-          <button className="p-1.5 text-[#546478] hover:bg-[#EDF0F5] rounded disabled:opacity-40" disabled={currentPage === totalPages || totalPages === 0} onClick={() => setCurrentPage(currentPage + 1)}>
-            <span className="material-icons" style={{ fontSize: "20px" }}>chevron_right</span>
-          </button>
+        {/* ── Pagination (inside table card per template) ── */}
+        <div className="flex items-center justify-between bg-white px-4 py-4 border-t border-[#E5E7EB]">
+          <div className="flex items-center gap-3">
+            <span className="text-[14px] text-[#6B7280]" style={{ fontWeight: 400 }}>Rows per page:</span>
+            <Select value={String(rowsPerPage)} onValueChange={v => { setRowsPerPage(Number(v)); setCurrentPage(1); }}>
+              <SelectTrigger className="h-9 w-[59px] border-[#E5E7EB] text-[14px] text-[#1A2332]" style={{ fontWeight: 400, boxShadow: "0px 1px 2px rgba(0,0,0,0.05)" }}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {[10, 25, 50, 100].map(n => <SelectItem key={n} value={String(n)}>{n}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <span className="text-[14px] text-[#6B7280]" style={{ fontWeight: 400 }}>
+              {totalItems === 0 ? "0-0" : `${startIndex + 1}-${endIndex}`} of {totalItems}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              className="w-9 h-9 flex items-center justify-center text-[#1A2332] hover:bg-[#F3F4F6] rounded-lg disabled:opacity-50 transition-colors"
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage(currentPage - 1)}
+              aria-label="Previous page"
+            >
+              <span className="material-icons" style={{ fontSize: "16px" }}>chevron_left</span>
+            </button>
+            <button
+              className="w-9 h-9 flex items-center justify-center text-[#1A2332] hover:bg-[#F3F4F6] rounded-lg disabled:opacity-50 transition-colors"
+              disabled={currentPage === totalPages || totalPages === 0}
+              onClick={() => setCurrentPage(currentPage + 1)}
+              aria-label="Next page"
+            >
+              <span className="material-icons" style={{ fontSize: "16px" }}>chevron_right</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>

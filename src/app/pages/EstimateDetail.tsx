@@ -626,9 +626,7 @@ export function EstimateDetail() {
             >
               {tab.label}
               {tab.key === "items" && estimate.items.length > 0 && (
-                <span className="ml-1.5 text-[11px] px-1.5 py-0.5 rounded-full bg-[#EEF3FA] text-[#4A6FA5]" style={{ fontWeight: 600 }}>
-                  {estimate.items.length}
-                </span>
+                <span className="ml-1" style={{ fontWeight: 400 }}>({estimate.items.length})</span>
               )}
             </button>
           ))}

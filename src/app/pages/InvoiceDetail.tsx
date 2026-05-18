@@ -839,21 +839,29 @@ export function InvoiceDetail() {
       {/* ── TABS ── */}
       <div className="bg-white sticky top-0 z-30 border-b border-[#E5E7EB]">
         <div className="flex items-center px-6">
-          {TABS.map(({ key, label }) => (
-            <button
-              key={key}
-              onClick={() => setActiveTab(key)}
-              className={`relative h-[45px] px-4 shrink-0 text-[13px] transition-colors whitespace-nowrap ${
-                activeTab === key ? "text-[#4A6FA5]" : "text-[#6B7280] hover:text-[#374151]"
-              }`}
-              style={{ fontWeight: 500 }}
-            >
-              {label}
-              {activeTab === key && (
-                <div className="absolute bottom-[10px] left-0 right-0 h-[2px] bg-[#4A6FA5]" />
-              )}
-            </button>
-          ))}
+          {TABS.map(({ key, label }) => {
+            // Live tab counts matching the Clients/Jobs template
+            const counts: Partial<Record<TabKey, number>> = { activity: activity.length };
+            const count = counts[key];
+            return (
+              <button
+                key={key}
+                onClick={() => setActiveTab(key)}
+                className={`relative h-[45px] px-4 shrink-0 text-[13px] transition-colors whitespace-nowrap ${
+                  activeTab === key ? "text-[#4A6FA5]" : "text-[#6B7280] hover:text-[#374151]"
+                }`}
+                style={{ fontWeight: 500 }}
+              >
+                {label}
+                {count !== undefined && count > 0 && (
+                  <span className="ml-1" style={{ fontWeight: 400 }}>({count})</span>
+                )}
+                {activeTab === key && (
+                  <div className="absolute bottom-[10px] left-0 right-0 h-[2px] bg-[#4A6FA5]" />
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
 

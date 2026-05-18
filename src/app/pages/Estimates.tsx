@@ -5,6 +5,7 @@ import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-men
 import { PageHeader } from "../components/ui/page-header";
 import { SelectionBar } from "../components/ui/selection-bar";
 import { CreateActionButton } from "../components/ui/create-action-button";
+import { StatCard } from "../components/ui/stat-card";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type EstimateStatus = "Unsent" | "Pending" | "Approved" | "Declined" | "Won" | "Archived" | "Drafted" | "Accepted" | "Sent";
@@ -284,26 +285,58 @@ export function Estimates() {
         }
       />
 
-      {/* Status Summary Cards */}
-      <div className="grid grid-cols-6 gap-5 mb-8">
-        {statusCounts.map(({ status, count, worth }) => (
-          <Card
-            key={status}
-            onClick={() => { setQfStatus(qfStatus === status ? "All" : status); setPage(1); }}
-            className={`p-5 border bg-white hover:shadow-sm transition-shadow cursor-pointer ${
-              qfStatus === status ? "border-[#4A6FA5] ring-1 ring-[#4A6FA5]/20" : "border-[#E5E7EB]"
-            }`}
-          >
-            <div>
-              <div className="flex items-center gap-1.5 mb-3">
-                <span className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: statusColors[status] }} />
-                <div className="text-[12px]" style={{ fontWeight: 600, color: "#546478" }}>{status}</div>
-              </div>
-              <div className="text-[26px] leading-none mb-1" style={{ fontWeight: 700, color: "#1A2332" }}>{count}</div>
-              <div className="text-[12px]" style={{ fontVariantNumeric: "tabular-nums", color: worth > 0 ? "#374151" : "#9CA3AF" }}>${fmt(worth)}</div>
-            </div>
-          </Card>
-        ))}
+      {/* ── Stats Cards (Clients-template style) ── */}
+      <div className="grid grid-cols-4 gap-4 mb-6">
+        {(() => {
+          const total       = estimates.length;
+          const pending     = estimates.filter(e => e.status === "Pending").length;
+          const won         = estimates.filter(e => e.status === "Won");
+          const wonCount    = won.length;
+          const wonValue    = won.reduce((sum, e) => sum + e.amount, 0);
+          const conversion  = total > 0 ? Math.round((wonCount / total) * 100) : 0;
+          return (
+            <>
+              <StatCard
+                value={String(total)}
+                label="Estimates"
+                sub="this month"
+                change="+14%"
+                changeUp
+                period="vs prev. period"
+                data={[2, 3, 2, 4, 3, 5, 4]}
+              />
+              <StatCard
+                value={String(pending)}
+                label="Pending"
+                sub="awaiting response"
+                change="+5%"
+                changeUp
+                period="vs prev. period"
+                data={[0, 1, 0, 1, 1, 0, 1]}
+                sparklineColor="#F59E0B"
+              />
+              <StatCard
+                value={`${conversion}%`}
+                label="Conversion rate"
+                sub="this month"
+                change="+5%"
+                changeUp
+                period="vs prev. period"
+                data={[3, 4, 4, 5, 5, 6, 6]}
+                sparklineColor="#16A34A"
+              />
+              <StatCard
+                value={`$${wonValue.toLocaleString("en-US")}`}
+                label="Won value"
+                sub="this month"
+                change="+18%"
+                changeUp
+                period="vs prev. period"
+                data={[3, 4, 4, 5, 6, 6, 7]}
+              />
+            </>
+          );
+        })()}
       </div>
 
       {/* Table */}
@@ -330,7 +363,7 @@ export function Estimates() {
           </select>
           <div className="w-px h-5 bg-[#E5E7EB] mx-1" />
           <button className="h-8 px-3 border border-[#E5E7EB] rounded-lg text-[13px] text-[#546478] hover:bg-[#F5F7FA] flex items-center gap-1.5 bg-white" style={{ fontWeight: 500 }}>
-            <span className="material-icons" style={{ fontSize: "16px" }}>tune</span>
+            <span className="material-icons" style={{ fontSize: "16px" }}>filter_alt</span>
             Filter
           </button>
           <div className="flex-1" />
@@ -361,24 +394,24 @@ export function Estimates() {
                     className="w-4 h-4 rounded border-[#E5E7EB] cursor-pointer accent-[#4A6FA5]"
                   />
                 </th>
-                <th className="px-4 py-3 text-left text-[11px] uppercase tracking-wide text-[#546478] cursor-pointer select-none whitespace-nowrap" style={{ fontWeight: 600 }} onClick={() => toggleSort("estimateNumber")}>
+                <th className="px-4 py-3 text-left text-[14px] text-[#1A2332] cursor-pointer select-none whitespace-nowrap" style={{ fontWeight: 600 }} onClick={() => toggleSort("estimateNumber")}>
                   <div className="flex items-center">Estimate <SortIcon field="estimateNumber" /></div>
                 </th>
-                <th className="px-4 py-3 text-left text-[11px] uppercase tracking-wide text-[#546478] cursor-pointer select-none whitespace-nowrap" style={{ fontWeight: 600 }} onClick={() => toggleSort("clientName")}>
+                <th className="px-4 py-3 text-left text-[14px] text-[#1A2332] cursor-pointer select-none whitespace-nowrap" style={{ fontWeight: 600 }} onClick={() => toggleSort("clientName")}>
                   <div className="flex items-center">Client <SortIcon field="clientName" /></div>
                 </th>
-                <th className="px-4 py-3 text-left text-[11px] uppercase tracking-wide text-[#546478] cursor-pointer select-none whitespace-nowrap" style={{ fontWeight: 600 }} onClick={() => toggleSort("createdDate")}>
+                <th className="px-4 py-3 text-left text-[14px] text-[#1A2332] cursor-pointer select-none whitespace-nowrap" style={{ fontWeight: 600 }} onClick={() => toggleSort("createdDate")}>
                   <div className="flex items-center">Created <SortIcon field="createdDate" /></div>
                 </th>
-                <th className="px-4 py-3 text-center text-[11px] uppercase tracking-wide text-[#546478] whitespace-nowrap" style={{ fontWeight: 600 }}>Option</th>
-                <th className="px-4 py-3 text-right text-[11px] uppercase tracking-wide text-[#546478] cursor-pointer select-none whitespace-nowrap" style={{ fontWeight: 600 }} onClick={() => toggleSort("amount")}>
+                <th className="px-4 py-3 text-center text-[14px] text-[#1A2332] whitespace-nowrap" style={{ fontWeight: 600 }}>Option</th>
+                <th className="px-4 py-3 text-right text-[14px] text-[#1A2332] cursor-pointer select-none whitespace-nowrap" style={{ fontWeight: 600 }} onClick={() => toggleSort("amount")}>
                   <div className="flex items-center justify-end">Amount <SortIcon field="amount" /></div>
                 </th>
-                <th className="px-4 py-3 text-left text-[11px] uppercase tracking-wide text-[#546478] cursor-pointer select-none whitespace-nowrap" style={{ fontWeight: 600 }} onClick={() => toggleSort("status")}>
+                <th className="px-4 py-3 text-left text-[14px] text-[#1A2332] cursor-pointer select-none whitespace-nowrap" style={{ fontWeight: 600 }} onClick={() => toggleSort("status")}>
                   <div className="flex items-center">Status <SortIcon field="status" /></div>
                 </th>
                 {["Job", "Sent Date", "Expiration Date", "Team Member", "Source", "Deposit due"].map(h => (
-                  <th key={h} className="px-4 py-3 text-left text-[11px] uppercase tracking-wide text-[#546478] whitespace-nowrap" style={{ fontWeight: 600 }}>{h}</th>
+                  <th key={h} className="px-4 py-3 text-left text-[14px] text-[#1A2332] whitespace-nowrap" style={{ fontWeight: 600 }}>{h}</th>
                 ))}
                 <th className="px-4 py-3 w-10" />
               </tr>

@@ -5,6 +5,7 @@ import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-men
 import { PageHeader } from "../components/ui/page-header";
 import { SelectionBar } from "../components/ui/selection-bar";
 import { CreateActionButton } from "../components/ui/create-action-button";
+import { StatCard } from "../components/ui/stat-card";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type PaymentMethod = "Cash" | "Check" | "Credit Card" | "Debit Card" | "Bank Transfer" | "Other";
@@ -157,24 +158,47 @@ export function Payments() {
         }
       />
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-4 gap-5 mb-8">
-        {summaryCards.map(c => (
-          <Card
-            key={c.label}
-            onClick={() => { setQfStatus(qfStatus === c.filterVal ? "All" : c.filterVal); setPage(1); }}
-            className={`p-5 border bg-white hover:shadow-sm transition-shadow cursor-pointer ${qfStatus === c.filterVal ? "border-[#4A6FA5] ring-1 ring-[#4A6FA5]/20" : "border-[#E5E7EB]"}`}
-          >
-            <div>
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: c.color }} />
-                <div className="text-[12px]" style={{ fontWeight: 600, color: "#546478" }}>{c.label}</div>
-              </div>
-              <div className="text-[24px] mb-1 leading-none" style={{ fontWeight: 700, color: "#1A2332", fontVariantNumeric: "tabular-nums" }}>{c.value}</div>
-              <div className="text-[11px] text-[#9CA3AF]">{c.sub}</div>
-            </div>
-          </Card>
-        ))}
+      {/* ── Stats Cards (Clients-template style) ── */}
+      <div className="grid grid-cols-4 gap-4 mb-6">
+        <StatCard
+          value={`$${fmt(summary.totalCollected)}`}
+          label="Collected"
+          sub={`${summary.completedCount} payments`}
+          change="+22%"
+          changeUp
+          period="vs prev. period"
+          data={[3, 4, 4, 5, 6, 6, 7]}
+          sparklineColor="#16A34A"
+        />
+        <StatCard
+          value={`$${fmt(summary.pendingTotal)}`}
+          label="Pending"
+          sub={`${summary.pendingCount} payments`}
+          change="+8%"
+          changeUp
+          period="vs prev. period"
+          data={[1, 2, 2, 3, 3, 4, 3]}
+          sparklineColor="#F59E0B"
+        />
+        <StatCard
+          value={`$${fmt(summary.refundedTotal)}`}
+          label="Refunded"
+          sub={`${summary.refundedCount} payments`}
+          change="-3%"
+          changeUp={false}
+          period="vs prev. period"
+          data={[2, 1, 1, 1, 0, 1, 1]}
+          sparklineColor="#8B5CF6"
+        />
+        <StatCard
+          value={String(summary.totalPayments)}
+          label="Total"
+          sub="all payments"
+          change="+15%"
+          changeUp
+          period="vs prev. period"
+          data={[4, 5, 5, 6, 7, 7, 8]}
+        />
       </div>
 
       <div className={`flex gap-6`}>
@@ -206,7 +230,7 @@ export function Payments() {
             </select>
             <div className="w-px h-5 bg-[#E5E7EB] mx-1" />
             <button className="h-8 px-3 border border-[#E5E7EB] rounded-lg text-[13px] text-[#546478] hover:bg-[#F5F7FA] flex items-center gap-1.5 bg-white" style={{ fontWeight: 500 }}>
-              <span className="material-icons" style={{ fontSize: "16px" }}>tune</span>
+              <span className="material-icons" style={{ fontSize: "16px" }}>filter_alt</span>
               Filter
             </button>
             <div className="flex-1" />
@@ -240,7 +264,7 @@ export function Payments() {
                       className="w-4 h-4 rounded border-[#E5E7EB] cursor-pointer accent-[#4A6FA5]" />
                   </th>
                   {["Date", "Client", "Invoice", "Amount", "Method", "Status", "Note"].map(h => (
-                    <th key={h} className="px-4 py-3 text-left text-[11px] uppercase tracking-wider text-[#546478]" style={{ fontWeight: 600 }}>{h}</th>
+                    <th key={h} className="px-4 py-3 text-left text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>{h}</th>
                   ))}
                 </tr>
               </thead>

@@ -5,6 +5,7 @@ import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-men
 import { PageHeader } from "../components/ui/page-header";
 import { SelectionBar } from "../components/ui/selection-bar";
 import { CreateActionButton } from "../components/ui/create-action-button";
+import { StatCard } from "../components/ui/stat-card";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type InvoiceStatus =
@@ -354,24 +355,48 @@ export function Invoices() {
         }
       />
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-5 gap-5 mb-8">
-        {summaryCards.map(c => (
-          <Card
-            key={c.label}
-            onClick={() => { setQfStatus(qfStatus === c.filterVal ? "All" : c.filterVal); setPage(1); }}
-            className={`p-5 border bg-white hover:shadow-sm transition-shadow cursor-pointer ${qfStatus === c.filterVal ? "border-[#4A6FA5] ring-1 ring-[#4A6FA5]/20" : "border-[#E5E7EB]"}`}
-          >
-            <div>
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: c.color }} />
-                <div className="text-[12px]" style={{ fontWeight: 600, color: "#546478" }}>{c.label}</div>
-              </div>
-              <div className="text-[24px] mb-1 leading-none" style={{ fontWeight: 700, color: "#1A2332", fontVariantNumeric: "tabular-nums" }}>{c.value}</div>
-              <div className="text-[11px] text-[#9CA3AF]">{c.sub}</div>
-            </div>
-          </Card>
-        ))}
+      {/* ── Stats Cards (Clients-template style) ── */}
+      <div className="grid grid-cols-4 gap-4 mb-6">
+        <StatCard
+          value={`$${fmt(summary.unpaid.total)}`}
+          label="Unpaid"
+          sub={`${summary.unpaid.count} invoices`}
+          change="+5%"
+          changeUp={false}
+          period="vs prev. period"
+          data={[2, 3, 2, 4, 3, 5, 4]}
+          sparklineColor="#3B82F6"
+        />
+        <StatCard
+          value={`$${fmt(summary.overdue.total)}`}
+          label="Overdue"
+          sub={`${summary.overdue.count} invoices`}
+          change="-3%"
+          changeUp={false}
+          period="vs prev. period"
+          data={[1, 2, 1, 3, 2, 2, 1]}
+          sparklineColor="#EF4444"
+        />
+        <StatCard
+          value={`$${fmt(summary.paid.total)}`}
+          label="Paid"
+          sub={`${summary.paid.count} invoices`}
+          change="+18%"
+          changeUp
+          period="vs prev. period"
+          data={[3, 4, 4, 5, 6, 6, 7]}
+          sparklineColor="#16A34A"
+        />
+        <StatCard
+          value={`$${fmt(summary.notDeposited.total)}`}
+          label="Not deposited"
+          sub={`${summary.notDeposited.count} invoices`}
+          change="+11%"
+          changeUp
+          period="vs prev. period"
+          data={[2, 3, 3, 4, 4, 5, 5]}
+          sparklineColor="#F59E0B"
+        />
       </div>
 
       {/* Table */}
@@ -400,7 +425,7 @@ export function Invoices() {
           </select>
           <div className="w-px h-5 bg-[#E5E7EB] mx-1" />
           <button className="h-8 px-3 border border-[#E5E7EB] rounded-lg text-[13px] text-[#546478] hover:bg-[#F5F7FA] flex items-center gap-1.5 bg-white" style={{ fontWeight: 500 }}>
-            <span className="material-icons" style={{ fontSize: "16px" }}>tune</span>
+            <span className="material-icons" style={{ fontSize: "16px" }}>filter_alt</span>
             Filter
           </button>
           <div className="flex-1" />
@@ -431,7 +456,7 @@ export function Invoices() {
                     className="w-4 h-4 rounded border-[#E5E7EB] cursor-pointer accent-[#4A6FA5]" />
                 </th>
                 {["Number", "Type", "Date", "Client", "Job", "Status", "Total", "Balance", "Due Date"].map(h => (
-                  <th key={h} className="px-3 py-3 text-left text-[11px] uppercase tracking-wider text-[#546478] whitespace-nowrap" style={{ fontWeight: 600 }}>{h}</th>
+                  <th key={h} className="px-3 py-3 text-left text-[14px] text-[#1A2332] whitespace-nowrap" style={{ fontWeight: 500 }}>{h}</th>
                 ))}
               </tr>
             </thead>
