@@ -568,9 +568,9 @@ export function JobDetail() {
   );
 
   const renderEstimateTab = () => (
-    <div className="bg-white border border-[#E5E7EB] rounded-lg p-5">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Estimates</h3>
+    <>
+      <div className="flex items-center justify-between mb-5">
+        <h3 className="text-[15px] text-[#1A2332]" style={{ fontWeight: 600 }}>Estimates</h3>
         <button
           onClick={() => navigate("/estimates/create")}
           className="text-[12px] text-[#4A6FA5] hover:underline flex items-center gap-1"
@@ -629,13 +629,13 @@ export function JobDetail() {
           </button>
         </div>
       )}
-    </div>
+    </>
   );
 
   const renderInvoicesTab = () => (
-    <div className="bg-white border border-[#E5E7EB] rounded-lg p-5">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Invoices</h3>
+    <>
+      <div className="flex items-center justify-between mb-5">
+        <h3 className="text-[15px] text-[#1A2332]" style={{ fontWeight: 600 }}>Invoices</h3>
         <button
           onClick={() => navigate("/invoices/create")}
           className="text-[12px] text-[#4A6FA5] hover:underline flex items-center gap-1"
@@ -694,13 +694,13 @@ export function JobDetail() {
           </button>
         </div>
       )}
-    </div>
+    </>
   );
 
   const renderItemsTab = () => (
-    <div className="bg-white border border-[#E5E7EB] rounded-lg p-5">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Products & Services</h3>
+    <>
+      <div className="flex items-center justify-between mb-5">
+        <h3 className="text-[15px] text-[#1A2332]" style={{ fontWeight: 600 }}>Products & Services</h3>
         <button className="text-[12px] text-[#4A6FA5] hover:underline flex items-center gap-1" style={{ fontWeight: 500 }}>
           <PlusIcon className="h-4 w-4" />
           Add line item
@@ -741,13 +741,13 @@ export function JobDetail() {
           <div className="text-[16px] text-[#1A2332]" style={{ fontWeight: 600 }}>${job.totalPrice.toFixed(2)}</div>
         </div>
       </div>
-    </div>
+    </>
   );
 
   const renderExpensesTab = () => (
-    <div className="bg-white border border-[#E5E7EB] rounded-lg p-5">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Expenses</h3>
+    <>
+      <div className="flex items-center justify-between mb-5">
+        <h3 className="text-[15px] text-[#1A2332]" style={{ fontWeight: 600 }}>Expenses</h3>
         <button className="text-[12px] text-[#4A6FA5] hover:underline flex items-center gap-1" style={{ fontWeight: 500 }}>
           <PlusIcon className="h-4 w-4" />
           Add expense
@@ -793,7 +793,7 @@ export function JobDetail() {
           <div className="text-[13px] text-[#9CA3AF]">No expenses recorded</div>
         </div>
       )}
-    </div>
+    </>
   );
 
   const renderDocumentsTab = () => {
@@ -1289,35 +1289,62 @@ export function JobDetail() {
       </div>
 
       {/* ── HORIZONTAL TABS ── */}
-      <div className="bg-white sticky top-0 z-30">
-        <div className="flex items-center overflow-x-auto scrollbar-hide border-b border-[#E5E7EB]">
-          <div className="flex items-center px-6">
-            {visibleTabs.map(({ key }) => {
-              const label = getTabLabel(key);
-              return (
-                <button
-                  key={key}
-                  onClick={() => setActiveTab(key)}
-                  className={`relative h-[45px] px-4 shrink-0 text-[13px] transition-colors whitespace-nowrap ${
-                    activeTab === key ? "text-[#4A6FA5]" : "text-[#6B7280] hover:text-[#374151]"
-                  }`}
-                  style={{ fontWeight: 500 }}
-                >
-                  {label}
-                  {activeTab === key && (
-                    <div className="absolute bottom-[10px] left-0 right-0 h-[2px] bg-[#4A6FA5]" />
-                  )}
-                </button>
-              );
-            })}
-          </div>
+      <div className="mt-6 px-6">
+        <div className="flex items-end overflow-x-auto scrollbar-hide">
+          {visibleTabs.map(({ key }) => {
+            const label = getTabLabel(key);
+            const isActive = activeTab === key;
+            return (
+              <button
+                key={key}
+                onClick={() => setActiveTab(key)}
+                className="relative shrink-0 select-none whitespace-nowrap transition-colors"
+                style={{
+                  padding: "10px 24px",
+                  marginRight: 4,
+                  borderTopLeftRadius: 10,
+                  borderTopRightRadius: 10,
+                  borderTop: `1px solid ${isActive ? "#D8DEE8" : "transparent"}`,
+                  borderLeft: `1px solid ${isActive ? "#D8DEE8" : "transparent"}`,
+                  borderRight: `1px solid ${isActive ? "#D8DEE8" : "transparent"}`,
+                  borderBottom: isActive ? "1px solid #F5F7FA" : "none",
+                  marginBottom: 0,
+                  background: isActive ? "#F5F7FA" : "transparent",
+                  color: isActive ? "#1A2332" : "#374151",
+                  fontWeight: isActive ? 600 : 400,
+                  fontSize: 13,
+                  boxShadow: isActive ? "0 -1px 3px rgba(0,0,0,0.05)" : "none",
+                  position: "relative",
+                  zIndex: isActive ? 2 : 1,
+                }}
+              >
+                {label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
       {/* ── CONTENT AREA ── */}
-      <main className="min-h-[calc(100vh-200px)] p-6 pb-12 space-y-4 bg-[#F5F7FA]">
-        {renderContent()}
-      </main>
+      <div className="px-6 pb-12">
+        <div
+          className="border border-[#D8DEE8]"
+          style={{
+            position: "relative",
+            zIndex: 1,
+            marginTop: -1,
+            borderTopLeftRadius: activeTab === visibleTabs[0]?.key ? 0 : 12,
+            borderTopRightRadius: 12,
+            borderBottomLeftRadius: 12,
+            borderBottomRightRadius: 12,
+            background: "#F5F7FA",
+          }}
+        >
+          <div className="p-4">
+            {renderContent()}
+          </div>
+        </div>
+      </div>
 
       {/* ── PER-SECTION EDIT MODAL ── */}
       {editingSection && (

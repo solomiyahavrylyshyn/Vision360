@@ -296,21 +296,20 @@ function DraggableTab({ tabKey, label, count, isActive, onMove, onClick }: Dragg
       } ${isOver ? "ring-2 ring-[#4A6FA5]" : ""}`}
       style={{
         cursor: "grab",
-        height: 36,
-        padding: "0 16px",
-        marginRight: 2,
-        borderTopLeftRadius: 8,
-        borderTopRightRadius: 8,
+        padding: "10px 24px",
+        marginRight: 4,
+        borderTopLeftRadius: 10,
+        borderTopRightRadius: 10,
         borderTop: `1px solid ${isActive ? "#D8DEE8" : "transparent"}`,
         borderLeft: `1px solid ${isActive ? "#D8DEE8" : "transparent"}`,
         borderRight: `1px solid ${isActive ? "#D8DEE8" : "transparent"}`,
-        borderBottom: isActive ? "1px solid #FFFFFF" : "none",
-        marginBottom: -1,
-        background: isActive ? "#FFFFFF" : "transparent",
-        color: isActive ? "#1A2332" : "#6B7280",
-        fontWeight: isActive ? 600 : 500,
+        borderBottom: isActive ? "1px solid #F5F7FA" : "none",
+        marginBottom: 0,
+        background: isActive ? "#F5F7FA" : "transparent",
+        color: isActive ? "#1A2332" : "#374151",
+        fontWeight: isActive ? 600 : 400,
         fontSize: 13,
-        boxShadow: isActive ? "0 -1px 2px rgba(0,0,0,0.04)" : "none",
+        boxShadow: isActive ? "0 -1px 3px rgba(0,0,0,0.05)" : "none",
         position: "relative",
         zIndex: isActive ? 2 : 1,
       }}
@@ -1234,7 +1233,7 @@ export function ClientDetail() {
 
       case "appointments":
         return (
-          <div className="bg-white border border-[#E5E7EB] rounded-lg py-16 text-center">
+          <div className="py-16 text-center">
             <span className="material-icons text-[#D1D5DB] mb-3 block" style={{ fontSize: "40px" }}>construction</span>
             <p className="text-[14px] text-[#6B7280]" style={{ fontWeight: 500 }}>Coming soon</p>
             <p className="text-[13px] text-[#9CA3AF] mt-1">This feature will be available in a future update.</p>
@@ -1243,58 +1242,54 @@ export function ClientDetail() {
 
       case "jobs":
         return (
-          <div className="bg-white border border-[#E5E7EB] rounded-lg">
-            <div className="border-b border-[#E5E7EB] px-6 py-4 flex items-center justify-between">
-              <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Jobs</h3>
+          <>
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-[15px] text-[#1A2332]" style={{ fontWeight: 600 }}>Jobs</h3>
               <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-[#F5F7FA]" onClick={() => navigate("/jobs/new")}>
                 <PlusIcon className="h-5 w-5 text-[#546478]" />
               </Button>
             </div>
-            <div className="p-6">
-              <WorkTable items={jobItems} emptyIcon="work" emptyLabel="No jobs yet for this client." />
-            </div>
-          </div>
+            <WorkTable items={jobItems} emptyIcon="work" emptyLabel="No jobs yet for this client." />
+          </>
         );
 
       case "estimates":
         return (
-          <div className="bg-white border border-[#E5E7EB] rounded-lg">
-            <div className="border-b border-[#E5E7EB] px-6 py-4 flex items-center justify-between">
-              <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Estimates</h3>
+          <>
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-[15px] text-[#1A2332]" style={{ fontWeight: 600 }}>Estimates</h3>
               <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-[#F5F7FA]" onClick={() => navigate("/estimates/new")}>
                 <PlusIcon className="h-5 w-5 text-[#546478]" />
               </Button>
             </div>
-            <div className="p-6">
-              <WorkTable items={estimateItems} emptyIcon="request_quote" emptyLabel="No estimates yet for this client." />
-            </div>
-          </div>
+            <WorkTable items={estimateItems} emptyIcon="request_quote" emptyLabel="No estimates yet for this client." />
+          </>
         );
 
       case "invoices":
         return (
-          <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
-            <div className="border-b border-[#E5E7EB] px-6 py-4 flex items-center justify-between">
+          <>
+            <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-3">
-                <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Invoices</h3>
+                <h3 className="text-[15px] text-[#1A2332]" style={{ fontWeight: 600 }}>Invoices</h3>
                 <span className="text-[12px] text-[#6B7280]">{invoiceRows.length} invoices</span>
               </div>
               <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-[#F5F7FA]" onClick={() => navigate("/invoices/new")}>
                 <PlusIcon className="h-5 w-5 text-[#546478]" />
               </Button>
             </div>
-            <div className="px-6 py-5 overflow-x-auto">
+            <div className="overflow-x-auto">
               <InvoiceTable />
             </div>
-          </div>
+          </>
         );
 
       case "payments":
         return (
-          <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
-            <div className="border-b border-[#E5E7EB] px-6 py-4 flex items-center justify-between">
+          <>
+            <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-3">
-                <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Payments</h3>
+                <h3 className="text-[15px] text-[#1A2332]" style={{ fontWeight: 600 }}>Payments</h3>
                 <span className="text-[12px] text-[#6B7280]">{paymentRows.length} payments</span>
               </div>
               <Button className="h-8 px-3 gap-1.5 text-[13px] bg-[#4A6FA5] hover:bg-[#3d5a85] text-white" onClick={() => toast.info("Collect payment coming soon")}>
@@ -1302,29 +1297,27 @@ export function ClientDetail() {
                 Collect payment
               </Button>
             </div>
-            <div className="px-6 py-5 overflow-x-auto">
+            <div className="overflow-x-auto">
               <PaymentTable />
             </div>
-          </div>
+          </>
         );
 
       case "addresses":
         return (
           <div className="space-y-4">
-            {/* Header card */}
-            <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
-              <div className="px-6 py-4 flex items-center justify-between">
-                <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Service Address</h3>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 px-3 gap-1.5 text-[13px] text-[#4A6FA5] hover:bg-[#EEF2F8]"
-                  onClick={() => { setShowAddAddress(true); setNewAddr({ street: "", unit: "", city: "", state: "", zip: "", county: "", notes: "" }); }}
-                >
-                  <PlusIcon className="h-4 w-4" />
-                  Add address
-                </Button>
-              </div>
+            {/* Header */}
+            <div className="flex items-center justify-between mb-1">
+              <h3 className="text-[15px] text-[#1A2332]" style={{ fontWeight: 600 }}>Service Addresses</h3>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 px-3 gap-1.5 text-[13px] text-[#4A6FA5] hover:bg-[#EEF2F8]"
+                onClick={() => { setShowAddAddress(true); setNewAddr({ street: "", unit: "", city: "", state: "", zip: "", county: "", notes: "" }); }}
+              >
+                <PlusIcon className="h-4 w-4" />
+                Add address
+              </Button>
             </div>
 
             {/* Address cards */}
@@ -1642,14 +1635,14 @@ export function ClientDetail() {
 
       case "notes":
         return (
-          <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
-            <div className="border-b border-[#E5E7EB] px-6 py-4 flex items-center justify-between">
-              <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Notes</h3>
+          <>
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-[15px] text-[#1A2332]" style={{ fontWeight: 600 }}>Notes</h3>
               <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-[#F5F7FA]" onClick={() => toast.info("Add note coming soon")}>
                 <PlusIcon className="h-5 w-5 text-[#546478]" />
               </Button>
             </div>
-            <div className="p-6 space-y-4">
+            <div className="space-y-4">
               {client.notesArray.map((note) => (
                 <div key={note.id} className="border border-[#E5E7EB] rounded-lg p-4 hover:bg-[#F9FAFB] transition-colors">
                   <div className="flex items-center gap-2 mb-2">
@@ -1660,7 +1653,7 @@ export function ClientDetail() {
                 </div>
               ))}
             </div>
-          </div>
+          </>
         );
 
       case "pos":
@@ -1669,7 +1662,7 @@ export function ClientDetail() {
       case "activity":
       case "marketing":
         return (
-          <div className="bg-white border border-[#E5E7EB] rounded-lg py-16 text-center">
+          <div className="py-16 text-center">
             <span className="material-icons text-[#D1D5DB] mb-3 block" style={{ fontSize: "40px" }}>construction</span>
             <p className="text-[14px] text-[#6B7280]" style={{ fontWeight: 500 }}>Coming soon</p>
             <p className="text-[13px] text-[#9CA3AF] mt-1">This feature will be available in a future update.</p>
@@ -1812,9 +1805,25 @@ export function ClientDetail() {
           </DndProvider>
         </div>
 
-        {/* Tab content card — active tab's white bottom cuts through the top border */}
-        <div className="border border-[#D8DEE8] rounded-xl bg-white" style={{ position: "relative", zIndex: 1 }}>
-          {renderContent()}
+        {/* Tab content card — card pulls up 1px so active tab's white borderBottom sits exactly on the top border.
+            When the first visible tab is active its left border is flush with the card left edge, so we drop
+            the top-left radius to avoid an exposed rounded notch at that corner. */}
+        <div
+          className="border border-[#D8DEE8]"
+          style={{
+            position: "relative",
+            zIndex: 1,
+            marginTop: -1,
+            borderTopLeftRadius: activeTab === visibleTabs[0]?.key ? 0 : 12,
+            borderTopRightRadius: 12,
+            borderBottomLeftRadius: 12,
+            borderBottomRightRadius: 12,
+            background: "#F5F7FA",
+          }}
+        >
+          <div className="p-4">
+            {renderContent()}
+          </div>
         </div>
       </div>
 
