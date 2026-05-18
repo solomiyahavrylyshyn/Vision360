@@ -89,7 +89,8 @@ const mockJobData: Record<string, any> = {
     ] as Expense[],
     expenseTotal: 551.70,
     visits: [{ id: 1, dateTime: "Mar 30, 2026 — Anytime", title: "Travis Jones - AC Estimate", status: "Scheduled" }] as Visit[],
-    profitability: { totalPrice: 0, lineItemCost: 0, labor: 0, expenses: 551.70, profit: -551.70, margin: 0 },
+    // Per Marek's mock: Total Price 45,230 · Compensation 14,526.75 · All Expenses 8,547.52 · Margin 51.75%
+    profitability: { totalPrice: 45230, lineItemCost: 7995.82, labor: 14526.75, expenses: 551.70, profit: 23407.93, margin: 51.75 },
     linkedEstimate: { id: 1, title: "Estimate #1", status: "Draft" },
     linkedInvoice: null,
   },
@@ -1047,47 +1048,18 @@ export function JobDetail() {
                 </div>
               </div>
 
-              {/* Three-column data grid */}
-              <div className="grid grid-cols-3 gap-6 flex-1 border-l border-[#E5E7EB] pl-10">
-                {/* Column 1: Customer since + Tags */}
-                <div className="flex flex-col gap-4">
-                  <div className="flex flex-col gap-1">
-                    <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Customer since</div>
-                    <div className="text-[13px] text-[#374151] leading-[20px]">{job.customerSince}</div>
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Tags ({job.tags.length})</div>
-                    {job.tags.length > 0 ? (
-                      <div className="flex gap-1.5 flex-wrap">
-                        {job.tags.slice(0, 2).map((tag: string, i: number) => (
-                          <span key={i} className="inline-flex items-center px-2 py-1 rounded bg-[#E0E7FF] text-[11px] text-[#4338CA] leading-[16px] h-[24.5px]" style={{ fontWeight: 500 }}>
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-[13px] text-[#9CA3AF] leading-[20px]">—</div>
-                    )}
+              {/* Quick data (Customer since / Last service / Notes) — tags & membership removed per Marek (no tags / no memberships in MVP) */}
+              <div className="grid grid-cols-3 gap-6 border-l border-[#E5E7EB] pl-8" style={{ minWidth: 340 }}>
+                <div className="flex flex-col gap-1">
+                  <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Customer since</div>
+                  <div className="text-[13px] text-[#374151] leading-[20px]">{job.customerSince}</div>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Last Service</div>
+                  <div className="text-[13px] text-[#374151] leading-[20px]">
+                    {job.lastService || <span className="text-[#9CA3AF]">—</span>}
                   </div>
                 </div>
-
-                {/* Column 2: Membership + Last Service */}
-                <div className="flex flex-col gap-4">
-                  <div className="flex flex-col gap-1">
-                    <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Membership</div>
-                    <div className="text-[13px] text-[#374151] leading-[20px]">
-                      {job.membership || <span className="text-[#9CA3AF]">—</span>}
-                    </div>
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Last Service</div>
-                    <div className="text-[13px] text-[#374151] leading-[20px]">
-                      {job.lastService || <span className="text-[#9CA3AF]">—</span>}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Column 3: Notes preview */}
                 <div className="relative group cursor-pointer flex flex-col gap-1">
                   <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Notes ({job.notes.length})</div>
                   {job.notes.length > 0 ? (
@@ -1101,7 +1073,6 @@ export function JobDetail() {
                   ) : (
                     <div className="text-[13px] text-[#9CA3AF] leading-[20px]">—</div>
                   )}
-
                   {/* Notes hover tooltip */}
                   {job.notes.length > 0 && (
                     <div className="absolute left-0 top-full mt-2 hidden group-hover:flex flex-col gap-2 w-[320px] z-[60]">
@@ -1129,43 +1100,45 @@ export function JobDetail() {
               </div>
             </div>
 
-            {/* Financial Summary */}
-            <div className="border-l border-[#E5E7EB] pl-8" style={{ width: "280px" }}>
-              <div className="grid grid-cols-2 gap-x-6 gap-y-4 w-[255px]">
-                <div className="flex flex-col gap-1">
-                  <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Total Price</div>
-                  <div className="text-[18px] text-[#16A34A] leading-[28px]" style={{ fontWeight: 600 }}>
-                    ${job.profitability.totalPrice.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </div>
+            {/* Financial KPI cards — 4 distinct stat cards per Marek's spec ('made it closer to customer' / 4 KPI blocks) */}
+            <div className="grid grid-cols-4 gap-3 shrink-0" style={{ width: 580 }}>
+              {/* Total Price */}
+              <div className="bg-white border border-[#E5E7EB] rounded-lg p-3 flex flex-col gap-1" style={{ boxShadow: "0px 1px 2px rgba(0,0,0,0.05)" }}>
+                <div className="text-[11px] text-[#9CA3AF] leading-[16px]" style={{ fontWeight: 500 }}>Total Price</div>
+                <div className="text-[18px] text-[#16A34A] leading-[24px]" style={{ fontWeight: 600 }}>
+                  ${job.profitability.totalPrice.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
-                <div className="flex flex-col gap-1">
-                  <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Compensation</div>
-                  <div className="text-[18px] text-[#1A2332] leading-[28px]" style={{ fontWeight: 500 }}>
-                    ${job.profitability.labor.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </div>
+              </div>
+              {/* Compensation */}
+              <div className="bg-white border border-[#E5E7EB] rounded-lg p-3 flex flex-col gap-1" style={{ boxShadow: "0px 1px 2px rgba(0,0,0,0.05)" }}>
+                <div className="text-[11px] text-[#9CA3AF] leading-[16px]" style={{ fontWeight: 500 }}>Compensation</div>
+                <div className="text-[18px] text-[#1A2332] leading-[24px]" style={{ fontWeight: 600 }}>
+                  ${job.profitability.labor.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
-                <div className="flex flex-col gap-1">
-                  <div className="text-[11px] text-[#9CA3AF] leading-[16px]">All Expenses</div>
-                  <div className="text-[18px] text-[#1A2332] leading-[28px]" style={{ fontWeight: 500 }}>
-                    ${(job.profitability.lineItemCost + job.profitability.expenses).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </div>
+              </div>
+              {/* All Expenses */}
+              <div className="bg-white border border-[#E5E7EB] rounded-lg p-3 flex flex-col gap-1" style={{ boxShadow: "0px 1px 2px rgba(0,0,0,0.05)" }}>
+                <div className="text-[11px] text-[#9CA3AF] leading-[16px]" style={{ fontWeight: 500 }}>All Expenses</div>
+                <div className="text-[18px] text-[#1A2332] leading-[24px]" style={{ fontWeight: 600 }}>
+                  ${(job.profitability.lineItemCost + job.profitability.expenses).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
-                <div className="flex flex-col gap-1">
-                  <div className="flex items-center gap-1.5">
-                    <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Profit Margin</div>
-                    <div className="relative group">
-                      <span className="material-icons text-[#9CA3AF] cursor-help" style={{ fontSize: "14px" }}>info</span>
-                      <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden group-hover:block bg-white border border-[#E5E7EB] rounded-md shadow-lg px-3 py-2 z-50 whitespace-nowrap">
-                        <div className="text-[12px] text-[#1A2332]">(Total Price − Costs) / Total Price</div>
-                      </div>
+              </div>
+              {/* Profit Margin */}
+              <div className="bg-white border border-[#E5E7EB] rounded-lg p-3 flex flex-col gap-1" style={{ boxShadow: "0px 1px 2px rgba(0,0,0,0.05)" }}>
+                <div className="flex items-center gap-1.5">
+                  <div className="text-[11px] text-[#9CA3AF] leading-[16px]" style={{ fontWeight: 500 }}>Profit Margin</div>
+                  <div className="relative group">
+                    <span className="material-icons text-[#9CA3AF] cursor-help" style={{ fontSize: "13px" }}>info</span>
+                    <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden group-hover:block bg-white border border-[#E5E7EB] rounded-md shadow-lg px-3 py-2 z-50 whitespace-nowrap">
+                      <div className="text-[12px] text-[#1A2332]">(Total Price − Costs) / Total Price</div>
                     </div>
                   </div>
-                  <div
-                    className="text-[18px] leading-[28px]"
-                    style={{ fontWeight: 600, color: job.profitability.margin < 0 ? "#DC2626" : "#16A34A" }}
-                  >
-                    {job.profitability.margin.toFixed(1)}%
-                  </div>
+                </div>
+                <div
+                  className="text-[18px] leading-[24px]"
+                  style={{ fontWeight: 600, color: job.profitability.margin < 0 ? "#DC2626" : "#16A34A" }}
+                >
+                  {job.profitability.margin.toFixed(2)}%
                 </div>
               </div>
             </div>
