@@ -323,93 +323,126 @@ function SalesPerformanceTab() {
 }
 
 function FinancialPerformanceTab() {
+  // Invoice status with Figma colors and percentages
+  const invoiceStatus = [
+    { label: "Paid",          count: 8, pct: 29, color: "#16A34A" },
+    { label: "Unpaid",        count: 3, pct: 21, color: "#4A6FA5" },
+    { label: "Overdue",       count: 5, pct: 15, color: "#DC2626" },
+    { label: "Not deposited", count: 4, pct: 25, color: "#F59E0B" },
+  ];
+  // Expenses by category with Figma colors
+  const expenseCats = [
+    { label: "Materials", pct: 40,  color: "#4A6FA5" },
+    { label: "Labor",     pct: 30,  color: "#16A34A" },
+    { label: "Equipment", pct: 15,  color: "#F59E0B" },
+    { label: "Travel",    pct: 7.5, color: "#A856F7" },
+    { label: "Other",     pct: 7.5, color: "#F0F4FB" },
+  ];
+
   return (
-    <div className="space-y-5">
-      {/* KPI row */}
+    <div className="space-y-6">
+      {/* ── KPI row (per Figma) ─────────────────────────────── */}
       <div className="grid grid-cols-4 gap-4">
         {[
-          { icon: "account_balance_wallet", iconBg: "#DCFCE7", iconColor: "#16A34A", label: "Total Collected",  value: "$14,628", change: "+11%", changeUp: true  },
-          { icon: "pending",                iconBg: "#FEF3C7", iconColor: "#D97706", label: "Outstanding",      value: "$9,389",  change: "+2%",  changeUp: false },
-          { icon: "receipt_long",           iconBg: "#FEF2F2", iconColor: "#DC2626", label: "Total Expenses",   value: "$61,300", change: "-12%", changeUp: false },
-          { icon: "savings",                iconBg: "#EBF0F8", iconColor: "#4A6FA5", label: "Net Cash Flow",    value: "$47,900", change: "+31%", changeUp: true  },
+          { icon: "account_balance_wallet", iconBg: "rgba(22,163,74,0.15)",  iconColor: "#16A34A", label: "Total collected", value: "$14,628", change: "+11%", changeUp: true  },
+          { icon: "star_border",            iconBg: "rgba(74,111,165,0.15)", iconColor: "#4A6FA5", label: "Outstanding",     value: "$9,389",  change: "+2%",  changeUp: false },
+          { icon: "trending_down",          iconBg: "rgba(245,158,11,0.15)", iconColor: "#F59E0B", label: "Total expenses",  value: "$61,300", change: "-12%", changeUp: false },
+          { icon: "savings",                iconBg: "rgba(107,114,128,0.15)",iconColor: "#6B7280", label: "Net cash flow",   value: "$47,900", change: "+31%", changeUp: true  },
         ].map(c => <StatCard key={c.label} {...c} />)}
       </div>
 
-      {/* Cash flow + invoice status */}
-      <div className="grid grid-cols-[1fr_340px] gap-4">
-        {/* Cash flow chart */}
-        <div className="bg-white border border-[#E5E7EB] rounded-xl p-5">
-          <h2 className="text-[15px] text-[#1A2332] mb-5" style={{ fontWeight: 600 }}>Cash Flow</h2>
-          <ResponsiveContainer width="100%" height={220}>
-            <AreaChart data={cashFlowData}>
-              <defs>
-                <linearGradient id="inflowGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%"  stopColor="#16A34A" stopOpacity={0.12} />
-                  <stop offset="95%" stopColor="#16A34A" stopOpacity={0} />
-                </linearGradient>
-                <linearGradient id="outflowGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%"  stopColor="#DC2626" stopOpacity={0.1} />
-                  <stop offset="95%" stopColor="#DC2626" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
-              <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#9CA3AF" }} />
-              <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "#9CA3AF" }} tickFormatter={v => `${v / 1000}K`} />
-              <Tooltip content={<CustomBarTooltip />} />
-              <Area dataKey="inflow"  name="Inflow"  stroke="#16A34A" strokeWidth={2} fill="url(#inflowGrad)"  dot={false} />
-              <Area dataKey="outflow" name="Outflow" stroke="#DC2626" strokeWidth={2} fill="url(#outflowGrad)" dot={false} />
-            </AreaChart>
-          </ResponsiveContainer>
-          <div className="flex items-center gap-5 mt-3 justify-center">
-            <div className="flex items-center gap-1.5 text-[12px] text-[#6B7280]"><span className="w-3 h-3 rounded-sm bg-[#16A34A]" />Inflow</div>
-            <div className="flex items-center gap-1.5 text-[12px] text-[#6B7280]"><span className="w-3 h-3 rounded-sm bg-[#DC2626]" />Outflow</div>
-          </div>
+      {/* ── Revenue trend (full-width, inflow/outflow area chart) ── */}
+      <div className="bg-white border border-[#E5E7EB] rounded-xl p-4">
+        <h2 className="text-[16px] text-[#1A2332] mb-3" style={{ fontWeight: 600, lineHeight: "24px" }}>Revenue trend</h2>
+        <ResponsiveContainer width="100%" height={194}>
+          <AreaChart data={cashFlowData}>
+            <defs>
+              <linearGradient id="finInflow" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%"   stopColor="#16A34A" stopOpacity={0.4} />
+                <stop offset="100%" stopColor="#16A34A" stopOpacity={0} />
+              </linearGradient>
+              <linearGradient id="finOutflow" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%"   stopColor="#DC2626" stopOpacity={0.4} />
+                <stop offset="100%" stopColor="#DC2626" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+            <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#6B7280" }} />
+            <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#6B7280" }} tickFormatter={v => v === 0 ? "0K" : `${v / 1000}K`} />
+            <Tooltip content={<CustomBarTooltip />} />
+            <Area dataKey="inflow"  name="Inflow"  stroke="#16A34A" strokeWidth={1} fill="url(#finInflow)"  dot={false} />
+            <Area dataKey="outflow" name="Outflow" stroke="#DC2626" strokeWidth={1} fill="url(#finOutflow)" dot={false} />
+          </AreaChart>
+        </ResponsiveContainer>
+        <div className="flex items-center gap-4 mt-3 justify-center">
+          <div className="flex items-center gap-1 text-[12px] text-[#1A2332]"><span className="w-2 h-2 rounded-sm bg-[#16A34A]" />Inflow</div>
+          <div className="flex items-center gap-1 text-[12px] text-[#1A2332]"><span className="w-2 h-2 rounded-sm bg-[#DC2626]" />Outflow</div>
         </div>
+      </div>
 
+      {/* ── Invoice status + Expenses by category (per Figma 430/722) ── */}
+      <div className="grid grid-cols-[430px_1fr] gap-4">
         {/* Invoice status */}
-        <div className="bg-white border border-[#E5E7EB] rounded-xl p-5">
-          <h2 className="text-[15px] text-[#1A2332] mb-4" style={{ fontWeight: 600 }}>Invoice Status</h2>
-          <div className="flex flex-col gap-3">
-            {invoiceStatusData.map(item => (
-              <div key={item.status} className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5 flex-1">
-                  <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: item.color }} />
-                  <span className="text-[13px] text-[#374151]">{item.status}</span>
-                  <span className="text-[11px] text-[#9CA3AF]">({item.count})</span>
-                </div>
-                <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>${item.amount.toLocaleString()}</span>
-              </div>
-            ))}
-          </div>
-          {/* Mini donut */}
-          <div className="flex justify-center mt-4">
-            <div className="w-[120px] h-[120px]">
+        <div className="bg-white border border-[#E5E7EB] rounded-xl p-4">
+          <h2 className="text-[16px] text-[#1A2332] mb-3" style={{ fontWeight: 600, lineHeight: "24px" }}>Invoice status</h2>
+          <div className="flex items-center justify-center gap-8 h-[206px]">
+            {/* Donut */}
+            <div className="w-[150px] h-[150px] shrink-0">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie data={invoiceStatusData} cx="50%" cy="50%" innerRadius={32} outerRadius={54} dataKey="amount" startAngle={90} endAngle={-270} strokeWidth={2}>
-                    {invoiceStatusData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                  <Pie
+                    data={invoiceStatus}
+                    cx="50%" cy="50%"
+                    innerRadius={0}
+                    outerRadius={75}
+                    dataKey="pct"
+                    startAngle={90}
+                    endAngle={-270}
+                    strokeWidth={0}
+                  >
+                    {invoiceStatus.map((entry, i) => <Cell key={i} fill={entry.color} />)}
                   </Pie>
                 </PieChart>
               </ResponsiveContainer>
             </div>
+            {/* Legend list */}
+            <div className="flex flex-col justify-center gap-1">
+              {invoiceStatus.map(item => (
+                <div key={item.label} className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{ width: 176, height: 32 }}>
+                  <span className="rounded-sm shrink-0" style={{ width: 10, height: 10, background: item.color }} />
+                  <span className="flex-1 text-[12px] text-[#1A2332]" style={{ fontWeight: 400, lineHeight: "16px" }}>
+                    {item.label} ({item.count})
+                  </span>
+                  <span className="text-[12px] text-[#1A2332]" style={{ fontWeight: 700, lineHeight: "16px" }}>{item.pct}%</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Expenses breakdown */}
-      <div className="bg-white border border-[#E5E7EB] rounded-xl p-5">
-        <h2 className="text-[15px] text-[#1A2332] mb-4" style={{ fontWeight: 600 }}>Expenses by Category</h2>
-        <div className="grid grid-cols-5 gap-4">
-          {expensesByCategoryData.map(cat => (
-            <div key={cat.category} className="text-center">
-              <div className="text-[11px] text-[#9CA3AF] mb-2" style={{ fontWeight: 500 }}>{cat.category}</div>
-              <div className="h-2 bg-[#F3F4F6] rounded-full overflow-hidden mb-2">
-                <div className="h-full rounded-full" style={{ width: `${cat.pct}%`, background: cat.color }} />
-              </div>
-              <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>${(cat.amount / 1000).toFixed(1)}K</div>
-              <div className="text-[11px] text-[#9CA3AF]">{cat.pct}%</div>
+        {/* Expenses by category */}
+        <div className="bg-white border border-[#E5E7EB] rounded-xl p-4">
+          <h2 className="text-[16px] text-[#1A2332] mb-3" style={{ fontWeight: 600, lineHeight: "24px" }}>Expenses by category</h2>
+          <div className="flex items-center gap-3" style={{ height: 206 }}>
+            {/* Labels column */}
+            <div className="flex flex-col" style={{ gap: 27, width: 60 }}>
+              {expenseCats.map(c => (
+                <div key={c.label} className="text-[12px] text-[#6B7280] text-right" style={{ fontWeight: 400, lineHeight: "16px", height: 16 }}>{c.label}</div>
+              ))}
             </div>
-          ))}
+            {/* Bars column */}
+            <div className="flex-1 flex flex-col" style={{ gap: 9 }}>
+              {expenseCats.map(c => (
+                <div key={c.label} style={{ height: 34, width: `${c.pct * 2.4}%`, minWidth: 40, background: c.color, borderRadius: 4 }} />
+              ))}
+            </div>
+            {/* Percentages column */}
+            <div className="flex flex-col" style={{ gap: 27, width: 54 }}>
+              {expenseCats.map(c => (
+                <div key={c.label} className="text-[12px] text-[#6B7280] text-right" style={{ fontWeight: 400, lineHeight: "16px", height: 16 }}>{c.pct}%</div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </div>
