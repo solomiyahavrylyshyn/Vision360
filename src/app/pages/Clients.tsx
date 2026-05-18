@@ -48,13 +48,26 @@ const initialClients: Client[] = [
   { id: "6", initials: "TC", avatarColor: "#DC2626", name: "Tom Carter", company: null, email: "tom.c@email.com", phone: "(555) 678-9012", address: "987 Cedar Ln, Plano, TX 75023", tags: ["Commercial", "Priority"], lastActivity: "Quote requested · today", totalJobs: 0, totalBilled: 0 },
 ];
 
-// Elegant quick-filter select class helper
+// Elegant quick-filter select class helper.
+// Uses appearance:none + a custom SVG chevron so we can control the chevron's
+// distance from the right border (browser-rendered chevrons sit flush to the edge).
+const QF_CHEVRON_GRAY = `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>")`;
+const QF_CHEVRON_BLUE = `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%234A6FA5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>")`;
+
 function qfClass(active: boolean) {
-  return `h-8 pl-3 pr-6 border rounded-lg text-[13px] bg-white cursor-pointer focus:outline-none transition-colors ${
+  return `h-8 pl-3 pr-8 border rounded-lg text-[13px] bg-white cursor-pointer focus:outline-none transition-colors appearance-none bg-no-repeat ${
     active
       ? "border-[#4A6FA5] text-[#4A6FA5] bg-[#EEF3FA]"
       : "border-[#E5E7EB] text-[#546478] hover:border-[#C5CEDD]"
   }`;
+}
+
+function qfStyle(active: boolean): React.CSSProperties {
+  return {
+    backgroundImage: active ? QF_CHEVRON_BLUE : QF_CHEVRON_GRAY,
+    backgroundPosition: "right 10px center",
+    backgroundSize: "12px 12px",
+  };
 }
 
 const CLIENTS_COLS = [
@@ -635,6 +648,7 @@ export function Clients() {
                 value={qfDate}
                 onChange={e => { setQfDate(e.target.value); setCurrentPage(1); }}
                 className={qfClass(qfDate !== "all_time")}
+                style={qfStyle(qfDate !== "all_time")}
               >
                 <option value="all_time">Date: All time</option>
                 <option value="today">Today</option>
@@ -646,6 +660,7 @@ export function Clients() {
                 value={qfBalance}
                 onChange={e => { setQfBalance(e.target.value); setCurrentPage(1); }}
                 className={qfClass(qfBalance !== "all")}
+                style={qfStyle(qfBalance !== "all")}
               >
                 <option value="all">Balance: All</option>
                 <option value="with_balance">With balance</option>
