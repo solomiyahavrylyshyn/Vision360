@@ -1180,9 +1180,8 @@ export function JobDetail() {
                 </div>
               </div>
 
-              {/* Quick data — Customer since stacked over Last Service, then Notes (no internal divider) */}
-              <div className="flex items-stretch gap-8 pl-2" style={{ minWidth: 340 }}>
-                {/* Column 1: Customer since + Last Service stacked vertically */}
+              {/* Quick data (Customer since / Last service / Notes) — tags & membership removed per Marek (no tags / no memberships in MVP) */}
+              <div className="grid grid-cols-2 gap-6 border-l border-[#E5E7EB] pl-8" style={{ minWidth: 320 }}>
                 <div className="flex flex-col gap-3">
                   <div className="flex flex-col gap-1">
                     <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Customer since</div>
@@ -1243,7 +1242,7 @@ export function JobDetail() {
             {/* Financial KPI cards — 4 distinct stat cards per Marek's reference screenshot.
                 Colors set via inline style to be immune from Tailwind class-ordering surprises
                 (the user reported Compensation rendering red — explicit inline color fixes that). */}
-            <div className="grid grid-cols-4 gap-3 shrink-0" style={{ width: 580 }}>
+            <div className="grid grid-cols-4 gap-3 shrink-0 border-l border-[#E5E7EB] pl-8" style={{ width: 612 }}>
               {/* Total Price (green) */}
               <div className="bg-white border border-[#E5E7EB] rounded-lg p-3 flex flex-col gap-1" style={{ boxShadow: "0px 1px 2px rgba(0,0,0,0.05)" }}>
                 <div className="text-[11px] leading-[16px]" style={{ fontWeight: 500, color: "#9CA3AF" }}>Total Price</div>
