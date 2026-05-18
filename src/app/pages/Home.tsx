@@ -450,60 +450,86 @@ function FinancialPerformanceTab() {
 }
 
 function ReportsTab() {
-  const reportItems = [
-    { icon: "bar_chart",        iconBg: "#EBF0F8", iconColor: "#4A6FA5", title: "Revenue Report",           desc: "Monthly revenue breakdown by client and job type", badge: "PDF" },
-    { icon: "receipt",          iconBg: "#DCFCE7", iconColor: "#16A34A", title: "Invoice Summary",           desc: "Paid, unpaid, and overdue invoice totals",           badge: "PDF" },
-    { icon: "account_balance",  iconBg: "#FEF3C7", iconColor: "#D97706", title: "Profit & Loss Statement",  desc: "Net profit summary with expense categories",         badge: "PDF" },
-    { icon: "people",           iconBg: "#F0F9FF", iconColor: "#0EA5E9", title: "Client Report",            desc: "Top clients by revenue and job count",               badge: "CSV" },
-    { icon: "work",             iconBg: "#F3E8FF", iconColor: "#9333EA", title: "Jobs Report",              desc: "Completed, scheduled, and in-progress jobs",         badge: "CSV" },
-    { icon: "payments",         iconBg: "#FEF2F2", iconColor: "#DC2626", title: "Expense Report",           desc: "All expenses by category and time period",           badge: "CSV" },
+  // PDF / CSV file-shape icon
+  const FileIcon = ({ type }: { type: "PDF" | "CSV" }) => {
+    const color = type === "PDF" ? "#DC2626" : "#16A34A";
+    return (
+      <div className="relative shrink-0" style={{ width: 24, height: 28 }}>
+        {/* Page body */}
+        <div className="absolute inset-0 rounded-sm" style={{ background: color }} />
+        {/* Folded corner */}
+        <div className="absolute top-0 right-0" style={{
+          width: 7, height: 7,
+          background: "#E4E7EC",
+          boxShadow: "-1.5px 1.5px 3px rgba(0,0,0,0.2)",
+        }} />
+        {/* Label badge */}
+        <div className="absolute left-0 right-0 flex items-center justify-center" style={{ bottom: 3, height: 9 }}>
+          <span className="text-white" style={{ fontSize: 7.5, fontWeight: 700, letterSpacing: "0.2px" }}>{type}</span>
+        </div>
+      </div>
+    );
+  };
+
+  const reportItems: { type: "PDF" | "CSV"; title: string; desc: string }[] = [
+    { type: "PDF", title: "Revenue report",           desc: "Monthly revenue breakdown by client and job type" },
+    { type: "PDF", title: "Invoice summary",          desc: "Paid, unpaid, and overdue invoice totals" },
+    { type: "PDF", title: "Profit & loss statement",  desc: "Net profit summary with expense categories" },
+    { type: "CSV", title: "Client report",            desc: "Top clients by revenue and job count" },
+    { type: "CSV", title: "Jobs report",              desc: "Completed, scheduled, and in-progress jobs" },
+    { type: "CSV", title: "Expense report",           desc: "All expenses by category and time period" },
   ];
 
   return (
-    <div className="space-y-5">
-      {/* Summary row */}
+    <div className="space-y-6">
+      {/* ── Summary row (per Figma) ─────────────────────────── */}
       <div className="grid grid-cols-3 gap-4">
         {[
-          { label: "Reports Generated", value: "48", sub: "this month", icon: "description", iconBg: "#EBF0F8", iconColor: "#4A6FA5" },
-          { label: "Last Export",       value: "2d ago", sub: "Revenue Report · PDF", icon: "file_download", iconBg: "#DCFCE7", iconColor: "#16A34A" },
-          { label: "Scheduled Reports", value: "3",    sub: "next run in 5 days",    icon: "schedule", iconBg: "#FEF3C7", iconColor: "#D97706" },
+          { value: "45",         label: "Reports generated", sub: "this month",            icon: "sync",            iconBg: "rgba(74,111,165,0.15)",  iconColor: "#4A6FA5" },
+          { value: "2 days ago", label: "Last export",        sub: "Revenue report (PDF)",  icon: "file_download",   iconBg: "rgba(22,163,74,0.15)",   iconColor: "#16A34A" },
+          { value: "3",          label: "Scheduled reports",  sub: "Next run in 5 days",   icon: "schedule",        iconBg: "rgba(245,158,11,0.15)",  iconColor: "#F59E0B" },
         ].map(c => (
-          <div key={c.label} className="bg-white border border-[#E5E7EB] rounded-xl p-5 flex items-center gap-4">
-            <div className="w-11 h-11 rounded-lg flex items-center justify-center shrink-0" style={{ background: c.iconBg }}>
-              <span className="material-icons" style={{ fontSize: "22px", color: c.iconColor }}>{c.icon}</span>
+          <div key={c.label} className="bg-white border border-[#E5E7EB] rounded-lg p-4 flex items-start gap-2" style={{ boxShadow: "0px 1px 2px rgba(0,0,0,0.05)" }}>
+            <div className="flex flex-col gap-1 flex-1">
+              <div className="text-[24px] text-[#1A2332]" style={{ fontWeight: 600, lineHeight: "135%" }}>{c.value}</div>
+              <div className="text-[16px] text-[#6B7280]" style={{ fontWeight: 600, lineHeight: "24px" }}>{c.label}</div>
+              <div className="text-[12px] text-[#6B7280]" style={{ fontWeight: 400, lineHeight: "16px" }}>{c.sub}</div>
             </div>
-            <div>
-              <div className="text-[24px] text-[#1A2332] leading-none mb-0.5" style={{ fontWeight: 700 }}>{c.value}</div>
-              <div className="text-[13px] text-[#6B7280]">{c.label}</div>
-              <div className="text-[11px] text-[#9CA3AF] mt-0.5">{c.sub}</div>
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style={{ background: c.iconBg }}>
+              <span className="material-icons" style={{ fontSize: "24px", color: c.iconColor }}>{c.icon}</span>
             </div>
           </div>
         ))}
       </div>
 
-      {/* Report list */}
-      <div className="bg-white border border-[#E5E7EB] rounded-xl p-5">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-[15px] text-[#1A2332]" style={{ fontWeight: 600 }}>Available Reports</h2>
-          <button className="flex items-center gap-1.5 px-3 py-1.5 bg-[#4A6FA5] text-white rounded-lg text-[12px] hover:bg-[#3d5a85] transition-colors" style={{ fontWeight: 500 }}>
-            <span className="material-icons" style={{ fontSize: "14px" }}>file_download</span>
-            Export All
+      {/* ── Available reports (per Figma) ────────────────────── */}
+      <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 py-3.5">
+          <h2 className="text-[16px] text-[#1A2332]" style={{ fontWeight: 600, lineHeight: "24px" }}>Available reports</h2>
+          <button className="h-8 px-3 flex items-center justify-center gap-1.5 bg-[#4A6FA5] hover:bg-[#3d5a85] rounded-lg text-white text-[14px] transition-colors" style={{ fontWeight: 500 }}>
+            <span className="material-icons" style={{ fontSize: "16px" }}>file_download</span>
+            Export all
           </button>
         </div>
-        <div className="grid grid-cols-2 gap-3">
+
+        {/* Report rows — 2-col grid, 16px gap, 16px h padding */}
+        <div className="grid grid-cols-2 gap-4 px-4 pb-4">
           {reportItems.map(r => (
-            <div key={r.title} className="flex items-center gap-3 p-3.5 border border-[#F3F4F6] rounded-xl hover:border-[#E5E7EB] hover:bg-[#FAFAFA] transition-all cursor-pointer group">
-              <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ background: r.iconBg }}>
-                <span className="material-icons" style={{ fontSize: "18px", color: r.iconColor }}>{r.icon}</span>
+            <div
+              key={r.title}
+              className="flex items-start justify-between gap-2 p-4 border border-[#E5E7EB] rounded-lg hover:bg-[#FAFAFA] transition-colors cursor-pointer group"
+            >
+              <div className="flex items-center gap-4 flex-1 min-w-0">
+                <FileIcon type={r.type} />
+                <div className="flex flex-col gap-0.5 min-w-0">
+                  <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600, lineHeight: "20px" }}>{r.title}</div>
+                  <div className="text-[14px] text-[#6B7280] truncate" style={{ fontWeight: 400, lineHeight: "20px" }}>{r.desc}</div>
+                </div>
               </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>{r.title}</div>
-                <div className="text-[11px] text-[#9CA3AF] truncate">{r.desc}</div>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <span className="text-[10px] px-1.5 py-0.5 bg-[#F3F4F6] text-[#6B7280] rounded" style={{ fontWeight: 600 }}>{r.badge}</span>
-                <span className="material-icons text-[#9CA3AF] group-hover:text-[#4A6FA5] transition-colors" style={{ fontSize: "16px" }}>file_download</span>
-              </div>
+              <button className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-[#F3F4F6] transition-colors shrink-0">
+                <span className="material-icons text-[#1A2332]" style={{ fontSize: "16px" }}>file_download</span>
+              </button>
             </div>
           ))}
         </div>
