@@ -604,7 +604,7 @@ export function Home() {
               editOpen ? "text-[#4A6FA5] bg-[#EBF0F8]" : "text-[#9CA3AF] hover:text-[#6B7280] hover:bg-[#F3F4F6]"
             }`}
           >
-            <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
+            <span className="material-icons" style={{ fontSize: "16px" }}>settings</span>
           </button>
 
           {editOpen && (
