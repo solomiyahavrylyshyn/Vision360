@@ -299,12 +299,13 @@ function DraggableTab({ tabKey, label, count, isActive, onMove, onClick }: Dragg
         height: 36,
         padding: "0 16px",
         marginRight: 2,
-        borderTopLeftRadius: 10,
-        borderTopRightRadius: 10,
+        borderTopLeftRadius: 8,
+        borderTopRightRadius: 8,
         borderTop: `1px solid ${isActive ? "#D8DEE8" : "transparent"}`,
         borderLeft: `1px solid ${isActive ? "#D8DEE8" : "transparent"}`,
         borderRight: `1px solid ${isActive ? "#D8DEE8" : "transparent"}`,
-        borderBottom: "none",
+        borderBottom: isActive ? "1px solid #FFFFFF" : "none",
+        marginBottom: -1,
         background: isActive ? "#FFFFFF" : "transparent",
         color: isActive ? "#1A2332" : "#6B7280",
         fontWeight: isActive ? 600 : 500,
@@ -1810,8 +1811,8 @@ export function ClientDetail() {
           </DndProvider>
         </div>
 
-        {/* Tab content — no top border so no floating corner when non-first tab is active */}
-        <div className="border-l border-r border-b border-[#D8DEE8] rounded-b-xl bg-white">
+        {/* Tab content card — active tab's white bottom cuts through the top border */}
+        <div className="border border-[#D8DEE8] rounded-xl bg-white" style={{ position: "relative", zIndex: 1 }}>
           {renderContent()}
         </div>
       </div>
