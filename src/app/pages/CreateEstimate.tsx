@@ -74,6 +74,14 @@ export function CreateEstimate() {
       <div className="h-1 bg-[#4A6FA5]" />
 
       <div className="max-w-[800px] mx-auto py-8 px-6">
+        <button
+          onClick={() => navigate("/estimates")}
+          className="inline-flex items-center gap-1.5 text-[13px] text-[#4A6FA5] hover:text-[#3d5a85] transition-colors mb-6"
+          style={{ fontWeight: 500 }}
+        >
+          <span className="material-icons" style={{ fontSize: "18px" }}>arrow_back</span>
+          <span>Back to Estimates</span>
+        </button>
         <PageHeader
           title="Create Estimate"
           icon="description"

@@ -529,11 +529,11 @@ export function EstimateDetail() {
         <div className="px-6 h-11 flex items-center gap-3">
           <button
             onClick={() => navigate("/estimates")}
-            className="inline-flex items-center gap-1.5 text-[13px] text-[#546478] hover:text-[#1A2332] transition-colors"
+            className="inline-flex items-center gap-1.5 text-[13px] text-[#4A6FA5] hover:text-[#3d5a85] transition-colors"
             style={{ fontWeight: 500 }}
           >
             <span className="material-icons" style={{ fontSize: "18px" }}>arrow_back</span>
-            Estimates
+            Back to Estimates
           </button>
           <span className="text-[#E5E7EB]">/</span>
           <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>

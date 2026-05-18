@@ -8,6 +8,14 @@ export function CreatePayment() {
     <div className="min-h-screen bg-[#F5F7FA]">
       <div className="max-w-[1200px] mx-auto">
         <div className="bg-white border-b border-[#E5E7EB] px-8 py-6">
+          <button
+            onClick={() => navigate("/payments")}
+            className="inline-flex items-center gap-1.5 text-[13px] text-[#4A6FA5] hover:text-[#3d5a85] transition-colors mb-4"
+            style={{ fontWeight: 500 }}
+          >
+            <span className="material-icons" style={{ fontSize: "18px" }}>arrow_back</span>
+            <span>Back to Payments</span>
+          </button>
           <h1 className="text-[26px] text-[#1A2332]" style={{ fontWeight: 700 }}>
             Record Payment
           </h1>

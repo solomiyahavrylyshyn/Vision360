@@ -1693,11 +1693,13 @@ export function ClientDetail() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => navigate("/clients")}
-            className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-white transition-colors"
+            className="inline-flex items-center gap-1.5 text-[13px] text-[#4A6FA5] hover:text-[#3d5a85] transition-colors"
+            style={{ fontWeight: 500 }}
             aria-label="Back to Clients"
             title="Back to Clients"
           >
-            <span className="material-icons text-[#1A2332]" style={{ fontSize: "18px" }}>chevron_left</span>
+            <span className="material-icons" style={{ fontSize: "18px" }}>arrow_back</span>
+            <span>Back to Clients</span>
           </button>
           <h1 className="text-[24px] text-[#1A2332]" style={{ fontWeight: 600, letterSpacing: "-0.01em" }}>
             Client details

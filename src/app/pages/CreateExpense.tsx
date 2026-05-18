@@ -186,17 +186,14 @@ export function CreateExpense() {
       <div className="bg-white border-b border-[#E5E7EB]">
         <div className="max-w-[1120px] mx-auto px-6 py-5">
           <div className="flex items-start justify-between">
-            <div className="flex items-start gap-3.5">
+            <div className="flex flex-col gap-2">
               <button
                 onClick={() => navigate("/expenses")}
-                className="mt-0.5 w-9 h-9 flex items-center justify-center rounded-lg border border-[#E5E7EB] bg-white hover:bg-[#F5F7FA] transition-colors flex-shrink-0"
+                className="inline-flex items-center gap-1.5 text-[13px] text-[#4A6FA5] hover:text-[#3d5a85] transition-colors self-start"
+                style={{ fontWeight: 500 }}
               >
-                <span
-                  className="material-icons text-[#546478]"
-                  style={{ fontSize: "20px" }}
-                >
-                  arrow_back
-                </span>
+                <span className="material-icons" style={{ fontSize: "18px" }}>arrow_back</span>
+                <span>Back to Expenses</span>
               </button>
               <div>
                 <h1
