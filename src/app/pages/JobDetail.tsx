@@ -365,6 +365,15 @@ export function JobDetail() {
   // Right-side preview panel selection
   const [previewFileId, setPreviewFileId] = useState<string | null>(null);
   const previewFile = documents.find(d => d.id === previewFileId) ?? null;
+  // Batch selection state for the documents grid (checkbox + bulk delete)
+  const [selectedDocs, setSelectedDocs] = useState<Set<string>>(new Set());
+  const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
+  const toggleSelected = (id: string) =>
+    setSelectedDocs(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
 
   const openEdit = (section: "address" | "schedule" | "overview") => {
     setEditJob(job);
@@ -447,67 +456,72 @@ export function JobDetail() {
   const renderDetailsTab = () => (
     <div className="flex gap-4 items-start">
 
-      {/* ── Left: stacked cards ── */}
-      <div className="flex flex-col gap-4 w-[260px] shrink-0">
+      {/* ── Left: single combined card (Job Overview + Job Date & Time in one container per reference) ── */}
+      <div className="w-[280px] shrink-0">
+        <div className="bg-white border border-[#E5E7EB] rounded-lg p-5 flex flex-col gap-5">
 
-        {/* Job Overview */}
-        <div className="bg-white border border-[#E5E7EB] rounded-lg p-5 flex flex-col gap-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Job Overview</h3>
-            <button onClick={() => openEdit("overview")} className="text-[#9CA3AF] hover:text-[#6B7280]">
-              <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
-            </button>
-          </div>
-          <div className="flex flex-col gap-1">
-            <div className="text-[11px] text-[#9CA3AF]">Job Title</div>
-            <div className="text-[13px] text-[#374151]" style={{ fontWeight: 500 }}>{job.title}</div>
-          </div>
-          <div className="flex flex-col gap-1">
-            <div className="text-[11px] text-[#9CA3AF]">Service Address</div>
-            <div className="flex items-start gap-1.5">
-              <span className="material-icons text-[#6B7280] mt-0.5" style={{ fontSize: "15px" }}>location_on</span>
-              <div className="text-[13px] text-[#374151] leading-[20px]">
-                {job.address}<br />{job.city}, {job.state} {job.zip}
-                {job.gateCode && <><br /><span className="text-[#9CA3AF]">Gate code: {job.gateCode}</span></>}
+          {/* Job Overview section */}
+          <section className="flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Job Overview</h3>
+              <button onClick={() => openEdit("overview")} className="text-[#9CA3AF] hover:text-[#6B7280]" title="Edit overview">
+                <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
+              </button>
+            </div>
+            <div className="flex flex-col gap-1">
+              <div className="text-[11px] text-[#9CA3AF]">Job Title</div>
+              <div className="text-[13px] text-[#374151]" style={{ fontWeight: 500 }}>{job.title}</div>
+            </div>
+            <div className="flex flex-col gap-1">
+              <div className="text-[11px] text-[#9CA3AF]">Service Address</div>
+              <div className="flex items-start gap-1.5">
+                <span className="material-icons text-[#6B7280] mt-0.5" style={{ fontSize: "15px" }}>location_on</span>
+                <div className="text-[13px] text-[#374151] leading-[20px]">
+                  {job.address}<br />{job.city}, {job.state} {job.zip}
+                  {job.gateCode && <><br /><span className="text-[#9CA3AF]">Gate code: {job.gateCode}</span></>}
+                </div>
               </div>
             </div>
-          </div>
-          <div className="flex flex-col gap-1">
-            <div className="text-[11px] text-[#9CA3AF]">Job Type</div>
-            <div className="text-[13px] text-[#374151]">{job.jobType}</div>
-          </div>
-          <div className="flex flex-col gap-1">
-            <div className="text-[11px] text-[#9CA3AF]">Job #</div>
-            <div className="text-[13px] text-[#374151]">{job.jobNumber}</div>
-          </div>
-        </div>
+            <div className="flex flex-col gap-1">
+              <div className="text-[11px] text-[#9CA3AF]">Job Type</div>
+              <div className="text-[13px] text-[#374151]">{job.jobType}</div>
+            </div>
+            <div className="flex flex-col gap-1">
+              <div className="text-[11px] text-[#9CA3AF]">Job #</div>
+              <div className="text-[13px] text-[#374151]">{job.jobNumber}</div>
+            </div>
+          </section>
 
-        {/* Job Date & Time — matches Marek's reference screenshot (no Assigned to section) */}
-        <div className="bg-white border border-[#E5E7EB] rounded-lg p-5 flex flex-col gap-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Job Date & Time</h3>
-            <button onClick={() => openEdit("schedule")} className="text-[#9CA3AF] hover:text-[#6B7280]">
-              <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
-            </button>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="flex flex-col gap-1">
-              <div className="text-[11px] text-[#9CA3AF]">Start Date</div>
-              <div className="text-[13px] text-[#374151]" style={{ fontWeight: 500 }}>{job.startedOn}</div>
+          {/* Divider between the two sections */}
+          <div className="h-px bg-[#E5E7EB]" />
+
+          {/* Job Date & Time section */}
+          <section className="flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Job Date & Time</h3>
+              <button onClick={() => openEdit("schedule")} className="text-[#9CA3AF] hover:text-[#6B7280]" title="Edit schedule">
+                <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
+              </button>
             </div>
-            <div className="flex flex-col gap-1">
-              <div className="text-[11px] text-[#9CA3AF]">End Date</div>
-              <div className="text-[13px] text-[#374151]" style={{ fontWeight: 500 }}>{job.endsOn}</div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex flex-col gap-1">
+                <div className="text-[11px] text-[#9CA3AF]">Start Date</div>
+                <div className="text-[13px] text-[#374151]" style={{ fontWeight: 500 }}>{job.startedOn}</div>
+              </div>
+              <div className="flex flex-col gap-1">
+                <div className="text-[11px] text-[#9CA3AF]">End Date</div>
+                <div className="text-[13px] text-[#374151]" style={{ fontWeight: 500 }}>{job.endsOn}</div>
+              </div>
+              <div className="flex flex-col gap-1">
+                <div className="text-[11px] text-[#9CA3AF]">Start Time</div>
+                <div className="text-[13px] text-[#374151]" style={{ fontWeight: 500 }}>{job.startTime}</div>
+              </div>
+              <div className="flex flex-col gap-1">
+                <div className="text-[11px] text-[#9CA3AF]">End Time</div>
+                <div className="text-[13px] text-[#374151]" style={{ fontWeight: 500 }}>{job.endTime}</div>
+              </div>
             </div>
-            <div className="flex flex-col gap-1">
-              <div className="text-[11px] text-[#9CA3AF]">Start Time</div>
-              <div className="text-[13px] text-[#374151]" style={{ fontWeight: 500 }}>{job.startTime}</div>
-            </div>
-            <div className="flex flex-col gap-1">
-              <div className="text-[11px] text-[#9CA3AF]">End Time</div>
-              <div className="text-[13px] text-[#374151]" style={{ fontWeight: 500 }}>{job.endTime}</div>
-            </div>
-          </div>
+          </section>
         </div>
       </div>
 
@@ -799,16 +813,73 @@ export function JobDetail() {
           onChange={e => handleFilesAdded(e.target.files)}
         />
 
+        {/* Batch selection action bar — appears when any file is selected */}
+        {selectedDocs.size > 0 && (
+          <div className="bg-[#EEF3FA] border border-[#C5D5EC] rounded-lg px-4 py-2 flex items-center gap-3">
+            <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>
+              {selectedDocs.size} selected
+            </span>
+            <button
+              onClick={() => setSelectedDocs(new Set(filtered.map(f => f.id)))}
+              className="text-[12px] text-[#4A6FA5] hover:underline"
+              style={{ fontWeight: 500 }}
+            >
+              Select all
+            </button>
+            <button
+              onClick={() => setSelectedDocs(new Set())}
+              className="text-[12px] text-[#6B7280] hover:underline"
+              style={{ fontWeight: 500 }}
+            >
+              Clear
+            </button>
+            <div className="flex-1" />
+            <button
+              onClick={() => setConfirmBulkDelete(true)}
+              className="h-8 px-3 flex items-center gap-1.5 border border-[#FCA5A5] bg-white hover:bg-[#FEF2F2] rounded-md text-[13px] text-[#DC2626] transition-colors"
+              style={{ fontWeight: 500 }}
+            >
+              <span className="material-icons" style={{ fontSize: "16px" }}>delete_outline</span>
+              Delete selected
+            </button>
+          </div>
+        )}
+
         {/* Files grid — Windows File Explorer medium-icons style per Marek's request */}
         {filtered.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7 gap-3">
-            {filtered.map((file) => (
+            {filtered.map((file) => {
+              const isSelected = selectedDocs.has(file.id);
+              return (
               <div
                 key={file.id}
-                onClick={() => setPreviewFileId(file.id)}
-                className="flex flex-col items-center text-center group relative cursor-pointer rounded-lg p-2 hover:bg-[#EEF3FA] transition-colors"
+                onClick={(e) => {
+                  // Cmd/Ctrl-click or Shift-click toggles selection without opening preview
+                  if (e.metaKey || e.ctrlKey || e.shiftKey || selectedDocs.size > 0) {
+                    toggleSelected(file.id);
+                  } else {
+                    setPreviewFileId(file.id);
+                  }
+                }}
+                className={`flex flex-col items-center text-center group relative cursor-pointer rounded-lg p-2 transition-colors ${
+                  isSelected ? "bg-[#DBE7F7] ring-2 ring-[#4A6FA5]" : "hover:bg-[#EEF3FA]"
+                }`}
                 title={`${file.name}\n${file.size} · ${file.date}`}
               >
+                {/* Hover/selected checkbox */}
+                <label
+                  onClick={(e) => e.stopPropagation()}
+                  className={`absolute top-1 left-1 z-10 ${isSelected || selectedDocs.size > 0 ? "opacity-100" : "opacity-0 group-hover:opacity-100"} transition-opacity`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={isSelected}
+                    onChange={() => toggleSelected(file.id)}
+                    className="w-4 h-4 accent-[#4A6FA5] cursor-pointer"
+                    aria-label={`Select ${file.name}`}
+                  />
+                </label>
+
                 {/* Thumbnail */}
                 <div className="w-full aspect-[4/3] rounded-md border border-[#E5E7EB] overflow-hidden bg-white">
                   {file.isImage ? (
@@ -847,7 +918,8 @@ export function JobDetail() {
                   {file.name}
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <div className="bg-white border border-[#E5E7EB] rounded-xl text-center py-14">
@@ -874,6 +946,48 @@ export function JobDetail() {
           onRename={(id, newName) => setDocuments(prev => prev.map(d => d.id === id ? { ...d, name: newName } : d))}
           onDelete={(id) => setDocuments(prev => prev.filter(d => d.id !== id))}
         />
+
+        {/* Batch-delete confirmation */}
+        {confirmBulkDelete && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center" role="alertdialog" aria-modal="true">
+            <div className="absolute inset-0 bg-black/40" onClick={() => setConfirmBulkDelete(false)} />
+            <div className="relative bg-white rounded-xl shadow-2xl w-[420px] max-w-[90vw] p-6">
+              <div className="flex items-start gap-3 mb-4">
+                <div className="w-10 h-10 rounded-full bg-[#FEF2F2] flex items-center justify-center shrink-0">
+                  <span className="material-icons" style={{ fontSize: "20px", color: "#DC2626" }}>delete_outline</span>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-[16px] text-[#1A2332] mb-1" style={{ fontWeight: 600 }}>
+                    Delete {selectedDocs.size} {selectedDocs.size === 1 ? "file" : "files"}?
+                  </h3>
+                  <p className="text-[13px] text-[#6B7280] leading-[18px]">
+                    The selected {selectedDocs.size === 1 ? "file" : "files"} will be permanently removed. This action cannot be undone.
+                  </p>
+                </div>
+              </div>
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={() => setConfirmBulkDelete(false)}
+                  className="h-9 px-4 border border-[#D8DEE8] hover:bg-[#F5F7FA] text-[#546478] text-[13px] rounded-md transition-colors"
+                  style={{ fontWeight: 500 }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    setDocuments(prev => prev.filter(d => !selectedDocs.has(d.id)));
+                    setSelectedDocs(new Set());
+                    setConfirmBulkDelete(false);
+                  }}
+                  className="h-9 px-4 bg-[#DC2626] hover:bg-[#B91C1C] text-white text-[13px] rounded-md transition-colors"
+                  style={{ fontWeight: 500 }}
+                >
+                  Delete {selectedDocs.size}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   };

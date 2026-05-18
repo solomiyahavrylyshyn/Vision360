@@ -375,6 +375,15 @@ export function ClientDetail() {
   // Selected file for the right-side preview panel (rename / download / delete)
   const [previewFileId, setPreviewFileId] = useState<string | null>(null);
   const previewFile = documents.find(d => d.id === previewFileId) ?? null;
+  // Batch selection state
+  const [selectedDocs, setSelectedDocs] = useState<Set<string>>(new Set());
+  const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
+  const toggleSelected = (id: string) =>
+    setSelectedDocs(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
   // Document quick-filter state (per Marek: search by file name, filter by uploader/category/date)
   const [docSearch, setDocSearch] = useState("");
   const [docDate, setDocDate] = useState("all");
@@ -1478,14 +1487,66 @@ export function ClientDetail() {
             ) : (
               // Windows File Explorer medium-icons style: dense grid, image-first, name below.
               // Tooltip on hover shows full filename + metadata so we don't clutter the tile.
+              <>
+              {/* Batch selection action bar */}
+              {selectedDocs.size > 0 && (
+                <div className="bg-[#EEF3FA] border border-[#C5D5EC] rounded-lg px-4 py-2 flex items-center gap-3 mb-3">
+                  <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>
+                    {selectedDocs.size} selected
+                  </span>
+                  <button
+                    onClick={() => setSelectedDocs(new Set(filteredDocuments.map(f => f.id)))}
+                    className="text-[12px] text-[#4A6FA5] hover:underline"
+                    style={{ fontWeight: 500 }}
+                  >Select all</button>
+                  <button
+                    onClick={() => setSelectedDocs(new Set())}
+                    className="text-[12px] text-[#6B7280] hover:underline"
+                    style={{ fontWeight: 500 }}
+                  >Clear</button>
+                  <div className="flex-1" />
+                  <button
+                    onClick={() => setConfirmBulkDelete(true)}
+                    className="h-8 px-3 flex items-center gap-1.5 border border-[#FCA5A5] bg-white hover:bg-[#FEF2F2] rounded-md text-[13px] text-[#DC2626] transition-colors"
+                    style={{ fontWeight: 500 }}
+                  >
+                    <span className="material-icons" style={{ fontSize: "16px" }}>delete_outline</span>
+                    Delete selected
+                  </button>
+                </div>
+              )}
+
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7 gap-3">
-                {filteredDocuments.map((file) => (
+                {filteredDocuments.map((file) => {
+                  const isSelected = selectedDocs.has(file.id);
+                  return (
                   <div
                     key={file.id}
-                    onClick={() => setPreviewFileId(file.id)}
-                    className="flex flex-col items-center text-center group relative cursor-pointer rounded-lg p-2 hover:bg-[#EEF3FA] transition-colors"
+                    onClick={(e) => {
+                      if (e.metaKey || e.ctrlKey || e.shiftKey || selectedDocs.size > 0) {
+                        toggleSelected(file.id);
+                      } else {
+                        setPreviewFileId(file.id);
+                      }
+                    }}
+                    className={`flex flex-col items-center text-center group relative cursor-pointer rounded-lg p-2 transition-colors ${
+                      isSelected ? "bg-[#DBE7F7] ring-2 ring-[#4A6FA5]" : "hover:bg-[#EEF3FA]"
+                    }`}
                     title={`${file.name}\n${file.size} · ${file.date}${file.uploadedBy ? ` · ${file.uploadedBy}` : ""}`}
                   >
+                    {/* Hover/selected checkbox */}
+                    <label
+                      onClick={(e) => e.stopPropagation()}
+                      className={`absolute top-1 left-1 z-10 ${isSelected || selectedDocs.size > 0 ? "opacity-100" : "opacity-0 group-hover:opacity-100"} transition-opacity`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => toggleSelected(file.id)}
+                        className="w-4 h-4 accent-[#4A6FA5] cursor-pointer"
+                        aria-label={`Select ${file.name}`}
+                      />
+                    </label>
                     {/* Thumbnail */}
                     <div className="w-full aspect-[4/3] rounded-md border border-[#E5E7EB] overflow-hidden bg-white">
                       {file.isImage ? (
@@ -1524,8 +1585,10 @@ export function ClientDetail() {
                       {file.name}
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
+              </>
             )}
 
             {/* Right-side preview panel */}
@@ -1535,6 +1598,44 @@ export function ClientDetail() {
               onRename={(id, newName) => setDocuments(prev => prev.map(d => d.id === id ? { ...d, name: newName } : d))}
               onDelete={(id) => setDocuments(prev => prev.filter(d => d.id !== id))}
             />
+
+            {/* Batch-delete confirmation */}
+            {confirmBulkDelete && (
+              <div className="fixed inset-0 z-[60] flex items-center justify-center" role="alertdialog" aria-modal="true">
+                <div className="absolute inset-0 bg-black/40" onClick={() => setConfirmBulkDelete(false)} />
+                <div className="relative bg-white rounded-xl shadow-2xl w-[420px] max-w-[90vw] p-6">
+                  <div className="flex items-start gap-3 mb-4">
+                    <div className="w-10 h-10 rounded-full bg-[#FEF2F2] flex items-center justify-center shrink-0">
+                      <span className="material-icons" style={{ fontSize: "20px", color: "#DC2626" }}>delete_outline</span>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="text-[16px] text-[#1A2332] mb-1" style={{ fontWeight: 600 }}>
+                        Delete {selectedDocs.size} {selectedDocs.size === 1 ? "file" : "files"}?
+                      </h3>
+                      <p className="text-[13px] text-[#6B7280] leading-[18px]">
+                        The selected {selectedDocs.size === 1 ? "file" : "files"} will be permanently removed. This action cannot be undone.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <button
+                      onClick={() => setConfirmBulkDelete(false)}
+                      className="h-9 px-4 border border-[#D8DEE8] hover:bg-[#F5F7FA] text-[#546478] text-[13px] rounded-md transition-colors"
+                      style={{ fontWeight: 500 }}
+                    >Cancel</button>
+                    <button
+                      onClick={() => {
+                        setDocuments(prev => prev.filter(d => !selectedDocs.has(d.id)));
+                        setSelectedDocs(new Set());
+                        setConfirmBulkDelete(false);
+                      }}
+                      className="h-9 px-4 bg-[#DC2626] hover:bg-[#B91C1C] text-white text-[13px] rounded-md transition-colors"
+                      style={{ fontWeight: 500 }}
+                    >Delete {selectedDocs.size}</button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         );
 
