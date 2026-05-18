@@ -299,13 +299,12 @@ function DraggableTab({ tabKey, label, count, isActive, onMove, onClick }: Dragg
         height: 36,
         padding: "0 16px",
         marginRight: 2,
-        borderTopLeftRadius: 8,
-        borderTopRightRadius: 8,
+        borderTopLeftRadius: 10,
+        borderTopRightRadius: 10,
         borderTop: `1px solid ${isActive ? "#D8DEE8" : "transparent"}`,
         borderLeft: `1px solid ${isActive ? "#D8DEE8" : "transparent"}`,
         borderRight: `1px solid ${isActive ? "#D8DEE8" : "transparent"}`,
-        borderBottom: isActive ? "1px solid #FFFFFF" : "none",
-        marginBottom: -1,
+        borderBottom: "none",
         background: isActive ? "#FFFFFF" : "transparent",
         color: isActive ? "#1A2332" : "#6B7280",
         fontWeight: isActive ? 600 : 500,
@@ -1782,12 +1781,12 @@ export function ClientDetail() {
           ))}
         </div>
 
-        {/* Folder-style tabs — one bordered container, shelf is its own border-b */}
-        <div className="mt-6 border border-[#D8DEE8] rounded-xl">
+        {/* Folder-style tabs */}
+        <div className="mt-6">
           <DndProvider backend={HTML5Backend}>
-            <div className="flex items-end justify-between border-b border-[#D8DEE8]">
-              {/* Tab row */}
-              <div className="flex items-end flex-1 overflow-x-auto scrollbar-hide px-1 pt-1">
+            <div className="flex items-end justify-between">
+              {/* Tab row with the shelf line under it */}
+              <div className="flex items-end flex-1 overflow-x-auto scrollbar-hide">
                 {visibleTabs.map(({ key, label, count }) => (
                   <DraggableTab
                     key={key}
@@ -1802,18 +1801,18 @@ export function ClientDetail() {
               </div>
               <button
                 onClick={() => setShowTabSettings(true)}
-                className="w-9 h-9 ml-2 flex items-center justify-center rounded-lg hover:bg-[#F5F7FA] text-[#1A2332] transition-colors shrink-0 self-end mb-0.5 mr-1"
+                className="w-9 h-9 ml-2 flex items-center justify-center rounded-lg hover:bg-[#F5F7FA] text-[#1A2332] transition-colors shrink-0 self-end mb-0.5"
                 title="Customize tabs"
               >
                 <span className="material-icons" style={{ fontSize: "16px" }}>settings</span>
               </button>
             </div>
           </DndProvider>
+        </div>
 
-          {/* Tab content */}
-          <div className="bg-white rounded-b-xl">
-            {renderContent()}
-          </div>
+        {/* Tab content — no top border so no floating corner when non-first tab is active */}
+        <div className="border-l border-r border-b border-[#D8DEE8] rounded-b-xl bg-white">
+          {renderContent()}
         </div>
       </div>
 
