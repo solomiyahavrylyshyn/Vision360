@@ -60,8 +60,8 @@ function qfClass(active: boolean) {
 const CLIENTS_COLS = [
   { key: "name",         label: "Name",         sortable: true  },
   { key: "address",      label: "Address",       sortable: false },
-  { key: "totalBilled",  label: "Total Billed",  sortable: true  },
-  { key: "lastActivity", label: "Last Activity", sortable: true  },
+  { key: "totalBilled",  label: "Total billed",  sortable: true  },
+  { key: "lastActivity", label: "Last activity", sortable: true  },
 ];
 
 export function Clients() {
@@ -660,7 +660,7 @@ export function Clients() {
                 }`}
                 style={{ fontWeight: 500 }}
               >
-                <span className="material-icons" style={{ fontSize: "16px" }}>tune</span>
+                <span className="material-icons" style={{ fontSize: "16px" }}>filter_alt</span>
                 Filter
                 {activeFilterCount > 0 && (
                   <span className="w-4 h-4 bg-[#4A6FA5] text-white text-[10px] rounded-full flex items-center justify-center" style={{ fontWeight: 700 }}>
@@ -776,7 +776,7 @@ export function Clients() {
                       case "totalBilled":
                         return (
                           <td key="totalBilled" className="px-4 py-4">
-                            <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>
+                            <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 400 }}>
                               ${client.totalBilled.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </div>
                           </td>
