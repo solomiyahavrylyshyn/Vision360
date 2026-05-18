@@ -501,7 +501,12 @@ export function Calendar() {
       </div>
 
       {/* Calendar content */}
-      <div className="flex-1 bg-white border border-[#E5E7EB] rounded-xl overflow-hidden flex flex-col" style={{ minHeight: 0 }}>
+      {/* For Month/Week views the card stretches to fill the page (flex-1).
+          For Day view it hugs its rows so the map sits flush underneath. */}
+      <div
+        className={`bg-white border border-[#E5E7EB] rounded-xl overflow-hidden flex flex-col ${viewMode === "day" ? "" : "flex-1"}`}
+        style={{ minHeight: 0 }}
+      >
 
         {/* ── MONTH VIEW ── */}
         {viewMode === "month" && (
@@ -850,8 +855,11 @@ export function Calendar() {
         )}
 
         {/* ── DAY VIEW — Horizontal Timeline ── */}
+        {/* No flex-1 here: the schedule card should only be as tall as its rows,
+            so the map below sits flush underneath instead of being pushed down
+            by a stretched empty container. */}
         {viewMode === "day" && (
-          <div className="flex-1 flex overflow-hidden" style={{ minHeight: 0 }}>
+          <div className="flex overflow-hidden">
 
             {/* Left: sticky team-member column */}
             <div className="shrink-0 flex flex-col bg-white border-r border-[#E5E7EB]" style={{ width: 140 }}>
