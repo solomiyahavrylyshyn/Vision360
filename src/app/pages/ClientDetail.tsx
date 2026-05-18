@@ -299,12 +299,13 @@ function DraggableTab({ tabKey, label, count, isActive, onMove, onClick }: Dragg
         height: 36,
         padding: "0 16px",
         marginRight: 2,
+        marginBottom: -1,
         borderTopLeftRadius: 8,
         borderTopRightRadius: 8,
         borderTop: `1px solid ${isActive ? "#D8DEE8" : "transparent"}`,
         borderLeft: `1px solid ${isActive ? "#D8DEE8" : "transparent"}`,
         borderRight: `1px solid ${isActive ? "#D8DEE8" : "transparent"}`,
-        borderBottom: "none",
+        borderBottom: isActive ? "1px solid #FFFFFF" : "none",
         background: isActive ? "#FFFFFF" : "transparent",
         color: isActive ? "#1A2332" : "#6B7280",
         fontWeight: isActive ? 600 : 500,
@@ -1810,8 +1811,8 @@ export function ClientDetail() {
           </DndProvider>
         </div>
 
-        {/* Tab content — sits directly under the tab shelf so active tab visually merges */}
-        <div>
+        {/* Tab content — sits directly under the tabs; border merges with active tab */}
+        <div className="border border-[#D8DEE8] rounded-b-xl rounded-tr-xl bg-white">
           {renderContent()}
         </div>
       </div>
