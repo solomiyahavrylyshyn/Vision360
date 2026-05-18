@@ -814,31 +814,41 @@ export function Clients() {
               ))}
             </tbody>
           </table>
-        </div>
 
-        {/* ── Pagination ── */}
-        <div className={showEmptyStatePreview ? "mt-2 flex items-center justify-between" : "mt-4 flex items-center justify-between"}>
-          <div className="flex items-center gap-2">
-            <span className="text-[13px] text-[#546478]">Rows per page:</span>
-            <Select value={String(rowsPerPage)} onValueChange={v => { setRowsPerPage(Number(v)); setCurrentPage(1); }}>
-              <SelectTrigger className="h-8 w-[70px] border-[#E5E7EB] text-[13px]" style={{ fontWeight: 500 }}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {[10, 25, 50, 100].map(n => <SelectItem key={n} value={String(n)}>{n}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            <span className="text-[13px] text-[#546478] ml-4">
-              {totalItems === 0 ? "0-0" : `${startIndex + 1}-${endIndex}`} of {totalItems}
-            </span>
-          </div>
-          <div className="flex items-center gap-1">
-            <button className="p-1.5 text-[#546478] hover:bg-[#EDF0F5] rounded disabled:opacity-40" disabled={currentPage === 1} onClick={() => setCurrentPage(currentPage - 1)}>
-              <span className="material-icons" style={{ fontSize: "20px" }}>chevron_left</span>
-            </button>
-            <button className="p-1.5 text-[#546478] hover:bg-[#EDF0F5] rounded disabled:opacity-40" disabled={currentPage === totalPages || totalPages === 0} onClick={() => setCurrentPage(currentPage + 1)}>
-              <span className="material-icons" style={{ fontSize: "20px" }}>chevron_right</span>
-            </button>
+          {/* ── Pagination (inside table card, white bg, top divider per Figma) ── */}
+          <div className="flex items-center justify-between bg-white px-4 py-4 border-t border-[#E5E7EB]">
+            <div className="flex items-center gap-3">
+              <span className="text-[14px] text-[#6B7280]" style={{ fontWeight: 400 }}>Rows per page:</span>
+              <Select value={String(rowsPerPage)} onValueChange={v => { setRowsPerPage(Number(v)); setCurrentPage(1); }}>
+                <SelectTrigger className="h-9 w-[59px] border-[#E5E7EB] text-[14px] text-[#1A2332]" style={{ fontWeight: 400, boxShadow: "0px 1px 2px rgba(0,0,0,0.05)" }}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {[10, 25, 50, 100].map(n => <SelectItem key={n} value={String(n)}>{n}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <span className="text-[14px] text-[#6B7280]" style={{ fontWeight: 400 }}>
+                {totalItems === 0 ? "0-0" : `${startIndex + 1}-${endIndex}`} of {totalItems}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                className="w-9 h-9 flex items-center justify-center text-[#1A2332] hover:bg-[#F3F4F6] rounded-lg disabled:opacity-50 transition-colors"
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(currentPage - 1)}
+                aria-label="Previous page"
+              >
+                <span className="material-icons" style={{ fontSize: "16px" }}>chevron_left</span>
+              </button>
+              <button
+                className="w-9 h-9 flex items-center justify-center text-[#1A2332] hover:bg-[#F3F4F6] rounded-lg disabled:opacity-50 transition-colors"
+                disabled={currentPage === totalPages || totalPages === 0}
+                onClick={() => setCurrentPage(currentPage + 1)}
+                aria-label="Next page"
+              >
+                <span className="material-icons" style={{ fontSize: "16px" }}>chevron_right</span>
+              </button>
+            </div>
           </div>
         </div>
 
