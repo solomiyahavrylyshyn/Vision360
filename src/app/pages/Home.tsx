@@ -223,91 +223,100 @@ function AllBusinessTab() {
 }
 
 function SalesPerformanceTab() {
+  const [salesPeriod, setSalesPeriod] = useState<"Monthly" | "Weekly" | "Quarterly">("Monthly");
+
   return (
-    <div className="space-y-5">
-      {/* KPI row */}
+    <div className="space-y-6">
+      {/* ── KPI row (per Figma) ─────────────────────────────── */}
       <div className="grid grid-cols-4 gap-4">
         {[
-          { icon: "description",   iconBg: "#EBF0F8", iconColor: "#4A6FA5", label: "Estimates Sent",   value: "128",   change: "+14%", changeUp: true  },
-          { icon: "check_circle",  iconBg: "#DCFCE7", iconColor: "#16A34A", label: "Conversion Rate",  value: "76.6%", change: "+5%",  changeUp: true  },
-          { icon: "work",          iconBg: "#FEF3C7", iconColor: "#D97706", label: "Jobs Won",         value: "98",    change: "+18%", changeUp: true  },
-          { icon: "people",        iconBg: "#F0F9FF", iconColor: "#0EA5E9", label: "New Clients",      value: "24",    change: "+9%",  changeUp: true  },
+          { icon: "schedule",     iconBg: "rgba(74,111,165,0.15)",  iconColor: "#4A6FA5", label: "Estimates sent",  value: "128",   change: "+14%", changeUp: true  },
+          { icon: "percent",      iconBg: "rgba(22,163,74,0.15)",   iconColor: "#16A34A", label: "Conversion rate", value: "76.6%", change: "+5%",  changeUp: true  },
+          { icon: "work",         iconBg: "rgba(245,158,11,0.15)",  iconColor: "#F59E0B", label: "Jobs won",        value: "98",    change: "-12%", changeUp: false },
+          { icon: "people",       iconBg: "rgba(129,180,243,0.15)", iconColor: "#81B4F3", label: "New clients",     value: "24",    change: "+9%",  changeUp: true  },
         ].map(c => <StatCard key={c.label} {...c} />)}
       </div>
 
-      {/* Charts row */}
-      <div className="grid grid-cols-[1fr_340px] gap-4">
-        {/* Estimates vs Converted */}
-        <div className="bg-white border border-[#E5E7EB] rounded-xl p-5">
-          <h2 className="text-[15px] text-[#1A2332] mb-5" style={{ fontWeight: 600 }}>Estimates vs Jobs Won</h2>
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={salesData} barGap={4} barCategoryGap="30%">
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
-              <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#9CA3AF" }} />
-              <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "#9CA3AF" }} />
+      {/* ── Charts row (per Figma: 722/430 ratio) ─────────────── */}
+      <div className="grid grid-cols-[1fr_430px] gap-4">
+        {/* Estimates vs jobs won */}
+        <div className="bg-white border border-[#E5E7EB] rounded-xl p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-[16px] text-[#1A2332]" style={{ fontWeight: 600, lineHeight: "24px" }}>Estimates vs jobs won</h2>
+            <div className="relative">
+              <select
+                value={salesPeriod}
+                onChange={e => setSalesPeriod(e.target.value as any)}
+                className="appearance-none pl-3 pr-8 h-9 border border-[#E5E7EB] rounded-lg text-[14px] text-[#1A2332] bg-white cursor-pointer focus:outline-none"
+                style={{ fontWeight: 400, boxShadow: "0px 1px 2px rgba(0,0,0,0.05)" }}
+              >
+                <option>Monthly</option>
+                <option>Weekly</option>
+                <option>Quarterly</option>
+              </select>
+              <span className="material-icons absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-[#6B7280]" style={{ fontSize: "16px" }}>keyboard_arrow_down</span>
+            </div>
+          </div>
+          <ResponsiveContainer width="100%" height={194}>
+            <BarChart data={salesData} barGap={4} barCategoryGap="28%">
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+              <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#6B7280" }} />
+              <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#6B7280" }} />
               <Tooltip content={<CustomBarTooltip />} cursor={{ fill: "#F9FAFB" }} />
-              <Bar dataKey="estimates" name="Estimates" fill="#CBD5E1" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="converted" name="Won" fill="#4A6FA5" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="estimates" name="Estimates" fill="#4A6FA5" radius={[2, 2, 0, 0]} />
+              <Bar dataKey="converted" name="Jobs won" fill="#F59E0B" radius={[2, 2, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
-          <div className="flex items-center gap-5 mt-3 justify-center">
-            <div className="flex items-center gap-1.5 text-[12px] text-[#6B7280]"><span className="w-3 h-3 rounded-sm bg-[#CBD5E1]" />Estimates</div>
-            <div className="flex items-center gap-1.5 text-[12px] text-[#6B7280]"><span className="w-3 h-3 rounded-sm bg-[#4A6FA5]" />Won</div>
+          <div className="flex items-center gap-4 mt-3 justify-center">
+            <div className="flex items-center gap-1 text-[12px] text-[#1A2332]"><span className="w-2 h-2 rounded-sm bg-[#4A6FA5]" />Estimates</div>
+            <div className="flex items-center gap-1 text-[12px] text-[#1A2332]"><span className="w-2 h-2 rounded-sm bg-[#F59E0B]" />Jobs won</div>
           </div>
         </div>
 
         {/* Revenue trend */}
-        <div className="bg-white border border-[#E5E7EB] rounded-xl p-5">
-          <h2 className="text-[15px] text-[#1A2332] mb-5" style={{ fontWeight: 600 }}>Revenue Trend</h2>
-          <ResponsiveContainer width="100%" height={220}>
+        <div className="bg-white border border-[#E5E7EB] rounded-xl p-4">
+          <h2 className="text-[16px] text-[#1A2332] mb-3" style={{ fontWeight: 600, lineHeight: "24px" }}>Revenue trend</h2>
+          <ResponsiveContainer width="100%" height={222}>
             <AreaChart data={salesData}>
               <defs>
                 <linearGradient id="salesGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%"  stopColor="#4A6FA5" stopOpacity={0.15} />
-                  <stop offset="95%" stopColor="#4A6FA5" stopOpacity={0} />
+                  <stop offset="0%"   stopColor="#4A6FA5" stopOpacity={0.4} />
+                  <stop offset="100%" stopColor="#4A6FA5" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
-              <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#9CA3AF" }} />
-              <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "#9CA3AF" }} tickFormatter={v => `${v / 1000}K`} />
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+              <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#6B7280" }} />
+              <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#6B7280" }} tickFormatter={v => v === 0 ? "0K" : `${v / 1000}K`} />
               <Tooltip content={<CustomBarTooltip />} />
-              <Area dataKey="revenue" name="Revenue" stroke="#4A6FA5" strokeWidth={2} fill="url(#salesGrad)" dot={false} />
+              <Area dataKey="revenue" name="Revenue" stroke="#4A6FA5" strokeWidth={1} fill="url(#salesGrad)" dot={false} />
             </AreaChart>
           </ResponsiveContainer>
         </div>
       </div>
 
-      {/* Top clients table */}
-      <div className="bg-white border border-[#E5E7EB] rounded-xl p-5">
-        <h2 className="text-[15px] text-[#1A2332] mb-4" style={{ fontWeight: 600 }}>Top Clients by Revenue</h2>
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-[#F3F4F6]">
-              {["Client", "Jobs", "Revenue", "vs Last Period"].map(h => (
-                <th key={h} className="text-left pb-2 text-[11px] text-[#9CA3AF] uppercase tracking-wide" style={{ fontWeight: 600 }}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {topClientsData.map((c, i) => (
-              <tr key={c.name} className={i < topClientsData.length - 1 ? "border-b border-[#F9FAFB]" : ""}>
-                <td className="py-3">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-7 h-7 rounded-full bg-[#EBF0F8] flex items-center justify-center text-[11px] text-[#4A6FA5]" style={{ fontWeight: 700 }}>
-                      {c.name.split(" ").map(n => n[0]).join("")}
-                    </div>
-                    <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{c.name}</span>
-                  </div>
-                </td>
-                <td className="py-3 text-[13px] text-[#6B7280]">{c.jobs}</td>
-                <td className="py-3 text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>${c.revenue.toLocaleString()}</td>
-                <td className="py-3">
-                  <span className={`text-[12px] ${c.change.startsWith("+") ? "text-[#16A34A]" : "text-[#DC2626]"}`} style={{ fontWeight: 500 }}>{c.change}</span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      {/* ── Top clients by revenue (per Figma) ────────────────── */}
+      <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
+        <div className="px-4 py-3.5 flex items-center">
+          <h2 className="text-[16px] text-[#1A2332]" style={{ fontWeight: 600, lineHeight: "24px" }}>Top clients by revenue</h2>
+        </div>
+        <div className="border-t border-[#E5E7EB]">
+          {/* Column header */}
+          <div className="grid grid-cols-4 px-2 h-10 items-center bg-[#F5F7FA] border-b border-[#E5E7EB]">
+            <div className="px-2 text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Client</div>
+            <div className="px-2 text-[14px] text-[#1A2332] text-right" style={{ fontWeight: 500 }}>Jobs</div>
+            <div className="px-2 text-[14px] text-[#1A2332] text-right" style={{ fontWeight: 500 }}>Revenue</div>
+            <div className="px-2 text-[14px] text-[#1A2332] text-right" style={{ fontWeight: 500 }}>Vs last period</div>
+          </div>
+          {/* Rows */}
+          {topClientsData.map((c) => (
+            <div key={c.name} className="grid grid-cols-4 px-2 h-[60px] items-center border-b border-[#E5E7EB] bg-white last:border-b-0">
+              <div className="px-2 text-[14px] text-[#1A2332]" style={{ fontWeight: 400 }}>{c.name}</div>
+              <div className="px-2 text-[14px] text-[#6B7280] text-right" style={{ fontWeight: 400 }}>{c.jobs}</div>
+              <div className="px-2 text-[14px] text-[#1A2332] text-right" style={{ fontWeight: 400 }}>${c.revenue.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 }).replace(",", ".")}</div>
+              <div className="px-2 text-[14px] text-right" style={{ fontWeight: 400, color: c.change.startsWith("+") ? "#16A34A" : "#DC2626" }}>{c.change}</div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
