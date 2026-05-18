@@ -300,8 +300,8 @@ function DraggableTab({ tabKey, label, count, isActive, onMove, onClick }: Dragg
         padding: "0 16px",
         marginRight: 2,
         marginBottom: -1,
-        borderTopLeftRadius: 8,
-        borderTopRightRadius: 8,
+        borderTopLeftRadius: 10,
+        borderTopRightRadius: 10,
         borderTop: `1px solid ${isActive ? "#D8DEE8" : "transparent"}`,
         borderLeft: `1px solid ${isActive ? "#D8DEE8" : "transparent"}`,
         borderRight: `1px solid ${isActive ? "#D8DEE8" : "transparent"}`,
@@ -1812,7 +1812,7 @@ export function ClientDetail() {
         </div>
 
         {/* Tab content — sits directly under the tabs; border merges with active tab */}
-        <div className="border border-[#D8DEE8] rounded-b-xl rounded-tr-xl bg-white">
+        <div className="border border-[#D8DEE8] rounded-xl bg-white">
           {renderContent()}
         </div>
       </div>
