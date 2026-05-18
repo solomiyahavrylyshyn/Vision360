@@ -1700,11 +1700,13 @@ export function Settings() {
   const location = useLocation();
   const [activeSection, setActiveSection] = useState<SettingsSection>("home");
   const [searchQuery, setSearchQuery] = useState("");
-  // Per Marek: settings nav groups are collapsible accordions so the sidebar stays compact.
-  // Default: all expanded. Search collapses nothing (still flat-filtered).
-  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
-  const toggleGroupCollapsed = (title: string) =>
-    setCollapsedGroups(prev => {
+  // Per Marek: settings nav groups are collapsible accordions, all collapsed by default
+  // so the user sees only the top-level group titles (Business Management, System
+  // Preferences, Finance Center, Integrations) until they click to expand.
+  // While searching, every group is force-expanded so matches stay visible.
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const toggleGroupExpanded = (title: string) =>
+    setExpandedGroups(prev => {
       const next = new Set(prev);
       if (next.has(title)) next.delete(title);
       else next.add(title);
@@ -1830,6 +1832,17 @@ export function Settings() {
     if (section) setActiveSection(normalizeSection(section));
   }, [searchParams]);
 
+  // Auto-expand the nav group that contains the currently active section so the
+  // user can see where they are after navigating in (otherwise the active item
+  // would be hidden inside a collapsed accordion).
+  useEffect(() => {
+    if (activeSection === "home") return;
+    const owning = navGroups.find(g => g.items.some(i => i.id === activeSection));
+    if (owning) {
+      setExpandedGroups(prev => (prev.has(owning.title) ? prev : new Set(prev).add(owning.title)));
+    }
+  }, [activeSection]);
+
   useEffect(() => {
     if (!location.hash) return;
 
@@ -1923,26 +1936,26 @@ export function Settings() {
           {filteredNavGroups.map(group => {
             // When the user is searching, force-expand so matches are visible.
             const isSearching = searchQuery.trim().length > 0;
-            const collapsed = !isSearching && collapsedGroups.has(group.title);
+            const expanded = isSearching || expandedGroups.has(group.title);
             return (
               <div key={group.title} className="mt-4">
                 <button
                   type="button"
-                  onClick={() => toggleGroupCollapsed(group.title)}
+                  onClick={() => toggleGroupExpanded(group.title)}
                   className="mb-1 flex w-full items-center gap-2 px-3 text-[12px] tracking-wide text-[#7A8799] hover:text-[#1A2332] transition-colors"
                   style={{ fontWeight: 800 }}
-                  aria-expanded={!collapsed}
+                  aria-expanded={expanded}
                 >
                   <span className="material-icons" style={{ fontSize: "15px" }}>{group.icon}</span>
                   <span className="flex-1 text-left">{group.title}</span>
                   <span
                     className="material-icons text-[#9CA3AF] transition-transform"
-                    style={{ fontSize: "16px", transform: collapsed ? "rotate(-90deg)" : "rotate(0deg)" }}
+                    style={{ fontSize: "16px", transform: expanded ? "rotate(0deg)" : "rotate(-90deg)" }}
                   >
                     expand_more
                   </span>
                 </button>
-                {!collapsed && (
+                {expanded && (
                   <div className="space-y-1">
                     {group.items.map(item => (
                       <button key={item.id} onClick={() => setActiveSection(item.id)} className={navItemClass(item.id)}>
