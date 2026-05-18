@@ -1700,6 +1700,16 @@ export function Settings() {
   const location = useLocation();
   const [activeSection, setActiveSection] = useState<SettingsSection>("home");
   const [searchQuery, setSearchQuery] = useState("");
+  // Per Marek: settings nav groups are collapsible accordions so the sidebar stays compact.
+  // Default: all expanded. Search collapses nothing (still flat-filtered).
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+  const toggleGroupCollapsed = (title: string) =>
+    setCollapsedGroups(prev => {
+      const next = new Set(prev);
+      if (next.has(title)) next.delete(title);
+      else next.add(title);
+      return next;
+    });
 
   const companyName = useSyncExternalStore(companyStore.subscribe, companyStore.getCompanyName);
   const marketingSources = useSyncExternalStore(marketingSourcesStore.subscribe, marketingSourcesStore.getSources);
@@ -1910,22 +1920,41 @@ export function Settings() {
         </div>
 
         <nav className="flex-1 overflow-y-auto px-3 py-3">
-          {filteredNavGroups.map(group => (
-            <div key={group.title} className="mt-4">
-              <div className="mb-1 flex items-center gap-2 px-3 text-[12px] tracking-wide text-[#7A8799]" style={{ fontWeight: 800 }}>
-                <span className="material-icons" style={{ fontSize: "15px" }}>{group.icon}</span>
-                {group.title}
+          {filteredNavGroups.map(group => {
+            // When the user is searching, force-expand so matches are visible.
+            const isSearching = searchQuery.trim().length > 0;
+            const collapsed = !isSearching && collapsedGroups.has(group.title);
+            return (
+              <div key={group.title} className="mt-4">
+                <button
+                  type="button"
+                  onClick={() => toggleGroupCollapsed(group.title)}
+                  className="mb-1 flex w-full items-center gap-2 px-3 text-[12px] tracking-wide text-[#7A8799] hover:text-[#1A2332] transition-colors"
+                  style={{ fontWeight: 800 }}
+                  aria-expanded={!collapsed}
+                >
+                  <span className="material-icons" style={{ fontSize: "15px" }}>{group.icon}</span>
+                  <span className="flex-1 text-left">{group.title}</span>
+                  <span
+                    className="material-icons text-[#9CA3AF] transition-transform"
+                    style={{ fontSize: "16px", transform: collapsed ? "rotate(-90deg)" : "rotate(0deg)" }}
+                  >
+                    expand_more
+                  </span>
+                </button>
+                {!collapsed && (
+                  <div className="space-y-1">
+                    {group.items.map(item => (
+                      <button key={item.id} onClick={() => setActiveSection(item.id)} className={navItemClass(item.id)}>
+                        <div className="text-[13px]" style={{ fontWeight: activeSection === item.id ? 700 : 600 }}>{item.label}</div>
+                        {item.description && <div className="mt-0.5 truncate text-[11px] text-[#8899AA]">{item.description}</div>}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
-              <div className="space-y-1">
-                {group.items.map(item => (
-                  <button key={item.id} onClick={() => setActiveSection(item.id)} className={navItemClass(item.id)}>
-                    <div className="text-[13px]" style={{ fontWeight: activeSection === item.id ? 700 : 600 }}>{item.label}</div>
-                    {item.description && <div className="mt-0.5 truncate text-[11px] text-[#8899AA]">{item.description}</div>}
-                  </button>
-                ))}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </nav>
       </aside>
 
@@ -2738,9 +2767,9 @@ export function Settings() {
                   </Field>
                 </SectionCard>
 
-                <SectionCard title="Custom Fields" description="Configure 2 custom fields per entity — clients, jobs, estimates, invoices, and items.">
-                  <div className="mb-4 flex gap-2">
-                    {(["clients", "jobs", "estimates", "invoices", "items"] as CfEntity[]).map(entity => (
+                <SectionCard title="Custom Fields" description="Configure 2 custom fields per entity — clients, jobs, estimates, invoices, items, and team. Team custom fields show up as extra columns on the Users table.">
+                  <div className="mb-4 flex flex-wrap gap-2">
+                    {(["clients", "jobs", "estimates", "invoices", "items", "team"] as CfEntity[]).map(entity => (
                       <button
                         key={entity}
                         onClick={() => setCfEntity(entity)}

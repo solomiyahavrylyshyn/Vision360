@@ -4,7 +4,7 @@
 type Listener = () => void;
 
 export type CfFieldType = "text" | "number" | "date" | "checkbox" | "dropdown";
-export type CfEntity = "clients" | "jobs" | "estimates" | "invoices" | "items";
+export type CfEntity = "clients" | "jobs" | "estimates" | "invoices" | "items" | "team";
 export interface CfField { label: string; type: CfFieldType; options: string[] }
 
 const defaultFields = (): CfField[] => [
@@ -18,6 +18,7 @@ let fields: Record<CfEntity, CfField[]> = {
   estimates: defaultFields(),
   invoices:  defaultFields(),
   items:     defaultFields(),
+  team:      defaultFields(),
 };
 
 let listeners: Listener[] = [];

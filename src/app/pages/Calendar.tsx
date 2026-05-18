@@ -612,7 +612,9 @@ export function Calendar() {
                   const isToday = isSameDay(d, new Date(2026, 3, 14));
                   const isWeekend = dayI === 0 || dayI === 6;
                   const labelBg = isToday ? "#DDE8F5" : isWeekend ? "#ECEEF3" : "#F8F9FB";
-                  const ROW_H = 78;
+                  // Per Marek: shorter schedule rows so the map below gets more space
+                  // (only 3 techs in MVP — wasted vertical space under each lane).
+                  const ROW_H = 52;
 
                   return (
                     <div key={dayI}>

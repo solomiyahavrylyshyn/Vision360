@@ -360,17 +360,35 @@ export function ClientDetail() {
   const [showAddAddress, setShowAddAddress] = useState(false);
   const [newAddr, setNewAddr] = useState({ street: "", unit: "", city: "", state: "", zip: "", county: "", notes: "" });
 
-  interface DocFile { id: string; name: string; size: string; date: string; icon: string; iconColor: string; isImage?: boolean; previewUrl?: string; previewGradient?: string; }
+  interface DocFile { id: string; name: string; size: string; date: string; icon: string; iconColor: string; isImage?: boolean; previewUrl?: string; previewGradient?: string; uploadedBy?: string; category?: string; }
   const [documents, setDocuments] = useState<DocFile[]>([
-    { id: "1", name: "Service Agreement - 2026.pdf", size: "245 KB",  date: "Mar 28, 2026", icon: "picture_as_pdf", iconColor: "#DC2626" },
-    { id: "2", name: "HVAC System Photo.jpg",        size: "1.2 MB",  date: "Mar 15, 2026", icon: "image",          iconColor: "#F59E0B", isImage: true, previewGradient: "linear-gradient(135deg,#fde68a 0%,#f59e0b 50%,#d97706 100%)" },
-    { id: "3", name: "Property Blueprint.pdf",       size: "3.8 MB",  date: "Feb 10, 2026", icon: "picture_as_pdf", iconColor: "#DC2626" },
-    { id: "4", name: "Before Service.jpg",           size: "980 KB",  date: "Jan 20, 2026", icon: "image",          iconColor: "#F59E0B", isImage: true, previewGradient: "linear-gradient(135deg,#bfdbfe 0%,#60a5fa 50%,#3b82f6 100%)" },
-    { id: "5", name: "After Service.jpg",            size: "1.1 MB",  date: "Jan 20, 2026", icon: "image",          iconColor: "#F59E0B", isImage: true, previewGradient: "linear-gradient(135deg,#d1fae5 0%,#34d399 50%,#059669 100%)" },
-    { id: "6", name: "Equipment Photo.jpg",          size: "870 KB",  date: "Mar 10, 2026", icon: "image",          iconColor: "#F59E0B", isImage: true, previewGradient: "linear-gradient(135deg,#e9d5ff 0%,#a78bfa 50%,#7c3aed 100%)" },
+    { id: "1", name: "Service Agreement - 2026.pdf", size: "245 KB",  date: "Mar 28, 2026", icon: "picture_as_pdf", iconColor: "#DC2626",                                                                                                                                            uploadedBy: "Marek Stroz",     category: "Agreements" },
+    { id: "2", name: "HVAC System Photo.jpg",        size: "1.2 MB",  date: "Mar 15, 2026", icon: "image",          iconColor: "#F59E0B", isImage: true, previewGradient: "linear-gradient(135deg,#fde68a 0%,#f59e0b 50%,#d97706 100%)",                                              uploadedBy: "Ernesto Diaz",    category: "Photos"     },
+    { id: "3", name: "Property Blueprint.pdf",       size: "3.8 MB",  date: "Feb 10, 2026", icon: "picture_as_pdf", iconColor: "#DC2626",                                                                                                                                            uploadedBy: "Marek Stroz",     category: "Documents"  },
+    { id: "4", name: "Before Service.jpg",           size: "980 KB",  date: "Jan 20, 2026", icon: "image",          iconColor: "#F59E0B", isImage: true, previewGradient: "linear-gradient(135deg,#bfdbfe 0%,#60a5fa 50%,#3b82f6 100%)",                                              uploadedBy: "Alex Petrov",     category: "Photos"     },
+    { id: "5", name: "After Service.jpg",            size: "1.1 MB",  date: "Jan 20, 2026", icon: "image",          iconColor: "#F59E0B", isImage: true, previewGradient: "linear-gradient(135deg,#d1fae5 0%,#34d399 50%,#059669 100%)",                                              uploadedBy: "Alex Petrov",     category: "Photos"     },
+    { id: "6", name: "Equipment Photo.jpg",          size: "870 KB",  date: "Mar 10, 2026", icon: "image",          iconColor: "#F59E0B", isImage: true, previewGradient: "linear-gradient(135deg,#e9d5ff 0%,#a78bfa 50%,#7c3aed 100%)",                                              uploadedBy: "Ernesto Diaz",    category: "Photos"     },
   ]);
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // Document quick-filter state (per Marek: search by file name, filter by uploader/category/date)
+  const [docSearch, setDocSearch] = useState("");
+  const [docDate, setDocDate] = useState("all");
+  const [docCategory, setDocCategory] = useState("all");
+  const [docUploader, setDocUploader] = useState("all");
+  const uploaderOptions = Array.from(new Set(documents.map(d => d.uploadedBy).filter(Boolean) as string[]));
+  const filteredDocuments = documents.filter(d => {
+    if (docSearch && !d.name.toLowerCase().includes(docSearch.toLowerCase())) return false;
+    if (docCategory !== "all" && d.category !== docCategory) return false;
+    if (docUploader !== "all" && d.uploadedBy !== docUploader) return false;
+    if (docDate !== "all") {
+      const docTs = new Date(d.date).getTime();
+      const now = Date.now();
+      const days = docDate === "7" ? 7 : docDate === "30" ? 30 : 90;
+      if (now - docTs > days * 24 * 60 * 60 * 1000) return false;
+    }
+    return true;
+  });
 
   const getFileIcon = (name: string): { icon: string; iconColor: string } => {
     const ext = name.split(".").pop()?.toLowerCase() ?? "";
@@ -1386,21 +1404,39 @@ export function ClientDetail() {
                 <span className="material-icons absolute left-2.5 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: "15px" }}>search</span>
                 <input
                   type="text"
+                  value={docSearch}
+                  onChange={e => setDocSearch(e.target.value)}
                   placeholder="Search documents..."
                   className="w-full h-8 pl-8 pr-3 rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] text-[13px] text-[#1A2332] placeholder:text-[#9CA3AF] outline-none focus:border-[#4A6FA5] focus:bg-white"
                 />
               </div>
-              <select className="h-8 rounded-lg border border-[#E5E7EB] bg-white px-3 text-[13px] text-[#374151] outline-none focus:border-[#4A6FA5]">
-                <option>Date: All time</option>
-                <option>Last 7 days</option>
-                <option>Last 30 days</option>
-                <option>Last 90 days</option>
+              <select
+                value={docDate}
+                onChange={e => setDocDate(e.target.value)}
+                className="h-8 rounded-lg border border-[#E5E7EB] bg-white px-3 text-[13px] text-[#374151] outline-none focus:border-[#4A6FA5]"
+              >
+                <option value="all">Date: All time</option>
+                <option value="7">Last 7 days</option>
+                <option value="30">Last 30 days</option>
+                <option value="90">Last 90 days</option>
               </select>
-              <select className="h-8 rounded-lg border border-[#E5E7EB] bg-white px-3 text-[13px] text-[#374151] outline-none focus:border-[#4A6FA5]">
-                <option>All Categories</option>
-                <option>Photos</option>
-                <option>Documents</option>
-                <option>Agreements</option>
+              <select
+                value={docCategory}
+                onChange={e => setDocCategory(e.target.value)}
+                className="h-8 rounded-lg border border-[#E5E7EB] bg-white px-3 text-[13px] text-[#374151] outline-none focus:border-[#4A6FA5]"
+              >
+                <option value="all">All Categories</option>
+                <option value="Photos">Photos</option>
+                <option value="Documents">Documents</option>
+                <option value="Agreements">Agreements</option>
+              </select>
+              <select
+                value={docUploader}
+                onChange={e => setDocUploader(e.target.value)}
+                className="h-8 rounded-lg border border-[#E5E7EB] bg-white px-3 text-[13px] text-[#374151] outline-none focus:border-[#4A6FA5]"
+              >
+                <option value="all">All uploaders</option>
+                {uploaderOptions.map(u => <option key={u} value={u}>{u}</option>)}
               </select>
               <div className="flex-1" />
               <Button
@@ -1426,9 +1462,18 @@ export function ClientDetail() {
             />
 
             {/* Files grid */}
-            {documents.length > 0 && (
+            {filteredDocuments.length === 0 ? (
+              <div className="bg-white border border-[#E5E7EB] rounded-xl py-12 text-center">
+                <span className="material-icons text-[#D1D5DB] mb-2 block" style={{ fontSize: "40px" }}>folder_open</span>
+                <div className="text-[13px] text-[#9CA3AF]">
+                  {docSearch || docDate !== "all" || docCategory !== "all" || docUploader !== "all"
+                    ? "No documents match your filters"
+                    : "No documents yet"}
+                </div>
+              </div>
+            ) : (
               <div className="grid grid-cols-3 gap-3">
-                {documents.map((file) => (
+                {filteredDocuments.map((file) => (
                   <div key={file.id} className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden hover:shadow-md transition-shadow group relative">
                     {/* Preview area */}
                     {file.isImage ? (
@@ -1465,7 +1510,9 @@ export function ClientDetail() {
                         <span className="material-icons shrink-0" style={{ fontSize: "14px", color: file.iconColor }}>{file.icon}</span>
                         <div className="min-w-0">
                           <div className="text-[12px] text-[#1A2332] truncate" style={{ fontWeight: 600 }}>{file.name}</div>
-                          <div className="text-[11px] text-[#9CA3AF] mt-0.5">{file.size} · {file.date}</div>
+                          <div className="text-[11px] text-[#9CA3AF] mt-0.5 truncate">
+                            {file.size} · {file.date}{file.uploadedBy ? ` · ${file.uploadedBy}` : ""}
+                          </div>
                         </div>
                       </div>
                     </div>
