@@ -339,7 +339,6 @@ export function ClientDetail() {
     });
   };
 
-  const visibleTabs = tabs.filter(t => !hiddenTabs.has(t.key));
   const [isEditing, setIsEditing] = useState(false);
   const [editingSection, setEditingSection] = useState<null | "name" | "contact" | "finance">(null);
   const [notesExpanded, setNotesExpanded] = useState(false);
@@ -375,6 +374,11 @@ export function ClientDetail() {
   // Selected file for the right-side preview panel (rename / download / delete)
   const [previewFileId, setPreviewFileId] = useState<string | null>(null);
   const previewFile = documents.find(d => d.id === previewFileId) ?? null;
+  // Visible tabs with live counts overlaid (Documents reflects documents.length,
+  // matching how Properties and Jobs show their counts).
+  const visibleTabs = tabs
+    .filter(t => !hiddenTabs.has(t.key))
+    .map(t => t.key === "documents" ? { ...t, count: documents.length } : t);
   // Batch selection state
   const [selectedDocs, setSelectedDocs] = useState<Set<string>>(new Set());
   const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
