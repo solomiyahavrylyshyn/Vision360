@@ -1701,9 +1701,6 @@ export function ClientDetail() {
             <span className="material-icons" style={{ fontSize: "18px" }}>arrow_back</span>
             <span>Back to Clients</span>
           </button>
-          <h1 className="text-[24px] text-[#1A2332]" style={{ fontWeight: 600, letterSpacing: "-0.01em" }}>
-            Client details
-          </h1>
         </div>
         <div className="flex items-center gap-2">
           {!isEditing ? (
