@@ -316,69 +316,90 @@ export function Clients() {
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-4 gap-5 mb-8">
-            <Card className="p-5 border border-[#E5E7EB] bg-white hover:shadow-sm transition-shadow">
-              <div className="flex items-start justify-between">
-                <div>
-                  <div className="text-[24px] mb-0.5 leading-none" style={{ fontWeight: 700, color: "#1A2332" }}>4</div>
-                  <div className="text-[12px] mb-0.5" style={{ fontWeight: 500, color: "#546478" }}>New inquiries</div>
-                  <div className="text-[11px] text-[#546478]">last 30 days</div>
-                  <div className="flex items-center gap-1 mt-1">
-                    <span className="text-[11px] text-[#16A34A] flex items-center gap-1" style={{ fontWeight: 500 }}>
-                      <span className="material-icons leading-none" style={{ fontSize: "14px" }}>trending_up</span>+100%
+          <div className="grid grid-cols-4 gap-4 mb-6">
+            {[
+              { value: "4", label: "New prospects",  sub: "last 30 days", change: "+100%", changeUp: true, period: "vs prev. period", data: [2, 3, 2, 4, 3, 5, 4] },
+              { value: "1", label: "New contacts",   sub: "last 30 days", change: "+25%",  changeUp: true, period: "vs prev. period", data: [0, 1, 0, 1, 1, 0, 1] },
+              { value: "6", label: "Total contacts", sub: "year to date", change: "+50%",  changeUp: true, period: "vs prev. year",   data: [3, 4, 4, 5, 5, 6, 6] },
+            ].map(c => (
+              <div
+                key={c.label}
+                className="bg-white border border-[#E5E7EB] rounded-lg p-4 flex items-start gap-2"
+                style={{ boxShadow: "0px 1px 2px rgba(0,0,0,0.05)", height: 130 }}
+              >
+                <div className="flex flex-col gap-1 flex-1 min-w-0">
+                  <div className="text-[24px] text-[#1A2332]" style={{ fontWeight: 600, lineHeight: "135%" }}>{c.value}</div>
+                  <div className="flex flex-col gap-0.5">
+                    <div className="text-[16px] text-[#6B7280]" style={{ fontWeight: 600, lineHeight: "24px" }}>{c.label}</div>
+                    <div className="text-[12px] text-[#6B7280]" style={{ fontWeight: 400, lineHeight: "16px" }}>{c.sub}</div>
+                  </div>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className={`flex items-center gap-1 text-[12px] ${c.changeUp ? "text-[#16A34A]" : "text-[#DC2626]"}`} style={{ fontWeight: 400, lineHeight: "16px" }}>
+                      <span className="material-icons" style={{ fontSize: "14px" }}>{c.changeUp ? "trending_up" : "trending_down"}</span>
+                      {c.change}
                     </span>
-                    <span className="text-[11px] text-[#546478]">vs prev. period</span>
+                    <span className="text-[12px] text-[#6B7280]" style={{ fontWeight: 400, lineHeight: "16px" }}>{c.period}</span>
                   </div>
                 </div>
-                <Sparkline data={[2, 3, 2, 4, 3, 5, 4]} color="#4A6FA5" />
+                <div className="shrink-0 mt-1">
+                  <Sparkline data={c.data} color="#4A6FA5" />
+                </div>
               </div>
-            </Card>
-            <Card className="p-5 border border-[#E5E7EB] bg-white hover:shadow-sm transition-shadow">
-              <div className="flex items-start justify-between">
-                <div>
-                  <div className="text-[24px] mb-0.5 leading-none" style={{ fontWeight: 700, color: "#1A2332" }}>1</div>
-                  <div className="text-[12px] mb-0.5" style={{ fontWeight: 500, color: "#546478" }}>New contacts</div>
-                  <div className="text-[11px] text-[#546478]">last 30 days</div>
-                  <div className="flex items-center gap-1 mt-1">
-                    <span className="text-[11px] text-[#16A34A] flex items-center gap-1" style={{ fontWeight: 500 }}>
-                      <span className="material-icons leading-none" style={{ fontSize: "14px" }}>trending_up</span>+25%
-                    </span>
-                    <span className="text-[11px] text-[#546478]">vs prev. period</span>
+            ))}
+
+            {/* What's New — QuickBooks integration tile */}
+            <div
+              className="relative overflow-hidden rounded-lg border border-[#E5E7EB] cursor-pointer group"
+              style={{ background: "#1C2B3A", height: 130, boxShadow: "0px 1px 2px rgba(0,0,0,0.05)" }}
+            >
+              {/* Blur glow ellipses */}
+              <div
+                aria-hidden
+                className="absolute pointer-events-none"
+                style={{
+                  width: 100, height: 100,
+                  left: -18, bottom: -56,
+                  background: "rgba(129,180,243,0.8)",
+                  filter: "blur(57px)",
+                }}
+              />
+              <div
+                aria-hidden
+                className="absolute pointer-events-none"
+                style={{
+                  width: 100, height: 100,
+                  right: -7, top: -42,
+                  background: "rgba(129,180,243,0.8)",
+                  filter: "blur(57px)",
+                }}
+              />
+
+              <div className="relative flex flex-col h-full px-4 py-4 gap-2">
+                {/* What's New header */}
+                <div className="flex items-center gap-1.5">
+                  <span className="material-icons text-[#81B4F3]" style={{ fontSize: "12px" }}>auto_awesome</span>
+                  <span className="text-[12px] text-[#81B4F3]" style={{ fontWeight: 600, lineHeight: "16px" }}>What's New</span>
+                </div>
+
+                {/* Title + description */}
+                <div className="flex-1 flex flex-col gap-0.5">
+                  <div className="text-[12px] text-white" style={{ fontWeight: 600, lineHeight: "16px" }}>
+                    Integration with QuickBooks Online
                   </div>
+                  <p className="text-[12px] text-[#ADB7C7]" style={{ fontWeight: 400, lineHeight: "16px" }}>
+                    Sync your clients, invoices, and payments automatically.
+                  </p>
                 </div>
-                <Sparkline data={[0, 1, 0, 1, 1, 0, 1]} color="#4A6FA5" />
+
+                {/* Learn more button */}
+                <button
+                  className="self-start inline-flex items-center justify-center px-2 bg-[#4A6FA5] hover:bg-[#3d5a85] rounded-lg text-white transition-colors"
+                  style={{ height: 24, minHeight: 24, fontSize: 12, fontWeight: 500, lineHeight: "16px" }}
+                >
+                  Learn more
+                </button>
               </div>
-            </Card>
-            <Card className="p-5 border border-[#E5E7EB] bg-white hover:shadow-sm transition-shadow">
-              <div className="flex items-start justify-between">
-                <div>
-                  <div className="text-[24px] mb-0.5 leading-none" style={{ fontWeight: 700, color: "#1A2332" }}>6</div>
-                  <div className="text-[12px] mb-0.5" style={{ fontWeight: 500, color: "#546478" }}>Total contacts</div>
-                  <div className="text-[11px] text-[#546478]">year to date</div>
-                  <div className="flex items-center gap-1 mt-1">
-                    <span className="text-[11px] text-[#16A34A] flex items-center gap-1" style={{ fontWeight: 500 }}>
-                      <span className="material-icons leading-none" style={{ fontSize: "14px" }}>trending_up</span>+50%
-                    </span>
-                    <span className="text-[11px] text-[#546478]">vs prev. year</span>
-                  </div>
-                </div>
-                <Sparkline data={[3, 4, 4, 5, 5, 6, 6]} color="#4A6FA5" />
-              </div>
-            </Card>
-            <Card className="p-5 border border-[#E5E7EB] bg-gradient-to-br from-[#1A2332] to-[#2a3a50] hover:shadow-sm transition-shadow cursor-pointer group overflow-hidden">
-              <div className="flex flex-col h-full justify-center items-start text-left gap-0.5">
-                <div className="flex items-center gap-1">
-                  <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "12px" }}>auto_awesome</span>
-                  <span className="text-[9px] text-[#4A6FA5] uppercase tracking-wide" style={{ fontWeight: 600 }}>What's New</span>
-                </div>
-                <div className="text-[12px] text-white leading-tight" style={{ fontWeight: 600 }}>Integration with QuickBooks Online</div>
-                <p className="text-[11px] text-[#8899AA] leading-snug">Sync your clients, invoices, and payments automatically.</p>
-                <div className="flex items-center gap-0.5 text-[#4A6FA5] group-hover:text-[#6b8fc0] transition-colors mt-0.5">
-                  <span className="text-[10px]" style={{ fontWeight: 600 }}>Learn more</span>
-                  <span className="material-icons" style={{ fontSize: "12px" }}>arrow_forward</span>
-                </div>
-              </div>
-            </Card>
+            </div>
           </div>
         )}
 
