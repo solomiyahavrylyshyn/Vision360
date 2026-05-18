@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import { useNavigate, useParams } from "react-router";
 import { KebabMenu, KebabItem } from "../components/ui/kebab-menu";
 import { PlusIcon } from "../components/ui/plus-icon";
+import { DocumentPreview } from "../components/DocumentPreview";
 
 interface Expense {
   id: number;
@@ -361,6 +362,9 @@ export function JobDetail() {
   const [documents, setDocuments] = useState<DocFile[]>(INITIAL_DOCS);
   const [docSearch, setDocSearch] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // Right-side preview panel selection
+  const [previewFileId, setPreviewFileId] = useState<string | null>(null);
+  const previewFile = documents.find(d => d.id === previewFileId) ?? null;
 
   const openEdit = (section: "address" | "schedule" | "overview") => {
     setEditJob(job);
@@ -801,6 +805,7 @@ export function JobDetail() {
             {filtered.map((file) => (
               <div
                 key={file.id}
+                onClick={() => setPreviewFileId(file.id)}
                 className="flex flex-col items-center text-center group relative cursor-pointer rounded-lg p-2 hover:bg-[#EEF3FA] transition-colors"
                 title={`${file.name}\n${file.size} · ${file.date}`}
               >
@@ -841,15 +846,6 @@ export function JobDetail() {
                 >
                   {file.name}
                 </div>
-
-                {/* Hover delete */}
-                <button
-                  className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 w-6 h-6 flex items-center justify-center rounded-full bg-white/95 shadow text-[#9CA3AF] hover:text-[#DC2626] transition-all"
-                  onClick={(e) => { e.stopPropagation(); setDocuments(prev => prev.filter(d => d.id !== file.id)); }}
-                  title="Remove"
-                >
-                  <span className="material-icons" style={{ fontSize: "14px" }}>close</span>
-                </button>
               </div>
             ))}
           </div>
@@ -870,6 +866,14 @@ export function JobDetail() {
             )}
           </div>
         )}
+
+        {/* Right-side preview panel (rename / download / delete-with-confirm) */}
+        <DocumentPreview
+          file={previewFile}
+          onClose={() => setPreviewFileId(null)}
+          onRename={(id, newName) => setDocuments(prev => prev.map(d => d.id === id ? { ...d, name: newName } : d))}
+          onDelete={(id) => setDocuments(prev => prev.filter(d => d.id !== id))}
+        />
       </div>
     );
   };

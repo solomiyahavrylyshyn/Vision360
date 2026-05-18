@@ -1,4 +1,5 @@
 import { useState, useSyncExternalStore, useCallback, useRef } from "react";
+import { DocumentPreview } from "../components/DocumentPreview";
 import { DndProvider, useDrag, useDrop } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { useDraggableColumns, DraggableTh } from "../components/ui/draggable-columns";
@@ -371,6 +372,9 @@ export function ClientDetail() {
   ]);
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // Selected file for the right-side preview panel (rename / download / delete)
+  const [previewFileId, setPreviewFileId] = useState<string | null>(null);
+  const previewFile = documents.find(d => d.id === previewFileId) ?? null;
   // Document quick-filter state (per Marek: search by file name, filter by uploader/category/date)
   const [docSearch, setDocSearch] = useState("");
   const [docDate, setDocDate] = useState("all");
@@ -1478,6 +1482,7 @@ export function ClientDetail() {
                 {filteredDocuments.map((file) => (
                   <div
                     key={file.id}
+                    onClick={() => setPreviewFileId(file.id)}
                     className="flex flex-col items-center text-center group relative cursor-pointer rounded-lg p-2 hover:bg-[#EEF3FA] transition-colors"
                     title={`${file.name}\n${file.size} · ${file.date}${file.uploadedBy ? ` · ${file.uploadedBy}` : ""}`}
                   >
@@ -1518,19 +1523,18 @@ export function ClientDetail() {
                     >
                       {file.name}
                     </div>
-
-                    {/* Hover delete */}
-                    <button
-                      className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 w-6 h-6 flex items-center justify-center rounded-full bg-white/95 shadow text-[#9CA3AF] hover:text-[#DC2626] transition-all"
-                      onClick={(e) => { e.stopPropagation(); setDocuments((prev) => prev.filter((d) => d.id !== file.id)); }}
-                      title="Remove"
-                    >
-                      <span className="material-icons" style={{ fontSize: "14px" }}>close</span>
-                    </button>
                   </div>
                 ))}
               </div>
             )}
+
+            {/* Right-side preview panel */}
+            <DocumentPreview
+              file={previewFile}
+              onClose={() => setPreviewFileId(null)}
+              onRename={(id, newName) => setDocuments(prev => prev.map(d => d.id === id ? { ...d, name: newName } : d))}
+              onDelete={(id) => setDocuments(prev => prev.filter(d => d.id !== id))}
+            />
           </div>
         );
 
