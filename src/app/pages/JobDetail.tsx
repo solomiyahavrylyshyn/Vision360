@@ -49,7 +49,7 @@ const INITIAL_DOCS: DocFile[] = [
 
 const mockJobData: Record<string, any> = {
   "1": {
-    id: 1, title: "AC Estimate", client: "Travis Jones", clientInitials: "TJ",
+    id: 1, title: "AC Estimate", client: "Travis Jones", clientId: "10", clientInitials: "TJ",
     address: "4405 North Clark Avenue", city: "Tampa", state: "FL", zip: "33614",
     gateCode: "4821",
     phone: "(813) 612-5487", email: "ccj924@yahoo.com",
@@ -97,7 +97,7 @@ const mockJobData: Record<string, any> = {
     linkedInvoice: null,
   },
   "2": {
-    id: 2, title: "Tree Removal", client: "Sarah Johnson", clientInitials: "SJ",
+    id: 2, title: "Tree Removal", client: "Sarah Johnson", clientId: "2", clientInitials: "SJ",
     address: "1220 Elm Street", city: "Orlando", state: "FL", zip: "32801",
     gateCode: "",
     phone: "(407) 555-1234", email: "sarah.j@email.com",
@@ -1106,9 +1106,13 @@ export function JobDetail() {
               {/* Left: Name + Address + Icons + Status */}
               <div className="flex flex-col gap-4 min-w-[270px]">
                 <div className="flex items-baseline gap-2">
-                  <h1 className="text-[22px] text-[#1A2332] leading-none" style={{ fontWeight: 600 }}>
+                  <button
+                    onClick={() => navigate(`/clients/${job.clientId}`)}
+                    className="text-[22px] text-[#1A2332] leading-none hover:text-[#4A6FA5] hover:underline transition-colors text-left"
+                    style={{ fontWeight: 600 }}
+                  >
                     {job.client}
-                  </h1>
+                  </button>
                   <span className="text-[13px] text-[#9CA3AF]">
                     {job.jobNumber}
                   </span>

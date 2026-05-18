@@ -19,6 +19,7 @@ interface Job {
   jobNumber: string; // {customerId}-J{NN} format, e.g. "29899-J01"
   title: string;
   client: string;
+  clientId: string;
   address: string;
   schedule: string;
   scheduleDateSort: string;
@@ -28,10 +29,10 @@ interface Job {
 }
 
 const mockJobs: Job[] = [
-  { id: 1, jobNumber: "29899-J01", title: "AC Estimate", client: "Travis Jones", address: "4405 North Clark Avenue, Tampa, Florida 33614", schedule: "March 30, 2026", scheduleDateSort: "2026-03-30", status: "Scheduled", jobType: "One-off", total: 0.0 },
-  { id: 2, jobNumber: "29900-J01", title: "Tree Removal", client: "Sarah Johnson", address: "1220 Elm Street, Orlando, Florida 32801", schedule: "April 10, 2026", scheduleDateSort: "2026-04-10", status: "In Progress", jobType: "One-off", total: 450.0 },
-  { id: 3, jobNumber: "29901-J03", title: "Monthly Lawn Care", client: "Mike Davis", address: "890 Oak Drive, Miami, Florida 33101", schedule: "April 15, 2026", scheduleDateSort: "2026-04-15", status: "Scheduled", jobType: "Recurring", total: 120.0 },
-  { id: 4, jobNumber: "29902-J01", title: "Plumbing Repair", client: "Lisa Brown", address: "567 Pine Road, Jacksonville, Florida 32099", schedule: "April 6, 2026", scheduleDateSort: "2026-04-06", status: "Completed", jobType: "One-off", total: 275.0 },
+  { id: 1, jobNumber: "29899-J01", title: "AC Estimate", client: "Travis Jones", clientId: "10", address: "4405 North Clark Avenue, Tampa, Florida 33614", schedule: "March 30, 2026", scheduleDateSort: "2026-03-30", status: "Scheduled", jobType: "One-off", total: 0.0 },
+  { id: 2, jobNumber: "29900-J01", title: "Tree Removal", client: "Sarah Johnson", clientId: "2", address: "1220 Elm Street, Orlando, Florida 32801", schedule: "April 10, 2026", scheduleDateSort: "2026-04-10", status: "In Progress", jobType: "One-off", total: 450.0 },
+  { id: 3, jobNumber: "29901-J03", title: "Monthly Lawn Care", client: "Mike Davis", clientId: "3", address: "890 Oak Drive, Miami, Florida 33101", schedule: "April 15, 2026", scheduleDateSort: "2026-04-15", status: "Scheduled", jobType: "Recurring", total: 120.0 },
+  { id: 4, jobNumber: "29902-J01", title: "Plumbing Repair", client: "Lisa Brown", clientId: "11", address: "567 Pine Road, Jacksonville, Florida 32099", schedule: "April 6, 2026", scheduleDateSort: "2026-04-06", status: "Completed", jobType: "One-off", total: 275.0 },
 ];
 
 const statusColors: Record<string, string> = {
@@ -337,7 +338,17 @@ export function Jobs() {
                         </td>
                       );
                     case "client":
-                      return <td key="client" className="px-4 py-4 text-[13px] text-[#546478]">{job.client}</td>;
+                      return (
+                        <td key="client" className="px-4 py-4" onClick={e => e.stopPropagation()}>
+                          <button
+                            onClick={() => navigate(`/clients/${job.clientId}`)}
+                            className="text-[13px] text-[#4A6FA5] hover:underline hover:text-[#3d5a85] transition-colors text-left"
+                            style={{ fontWeight: 500 }}
+                          >
+                            {job.client}
+                          </button>
+                        </td>
+                      );
                     case "address":
                       return <td key="address" className="px-4 py-4 text-[13px] text-[#546478]">{job.address}</td>;
                     case "schedule":
