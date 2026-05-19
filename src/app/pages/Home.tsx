@@ -1,6 +1,7 @@
 import * as React from "react";
 import { useState, useSyncExternalStore } from "react";
 import { companyStore } from "../stores/companyStore";
+import { ColumnSettingsIcon } from "../components/ui/column-settings-icon";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, AreaChart, Area,
@@ -629,7 +630,7 @@ export function Home() {
           })}
         </div>
 
-        {/* Customize tabs pencil */}
+        {/* Customize tabs */}
         <div className="relative">
           <button
             onClick={() => setEditOpen(v => !v)}
@@ -638,7 +639,7 @@ export function Home() {
               editOpen ? "text-[#4A6FA5] bg-[#EBF0F8]" : "text-[#9CA3AF] hover:text-[#6B7280] hover:bg-[#F3F4F6]"
             }`}
           >
-            <span className="material-icons" style={{ fontSize: "16px" }}>settings</span>
+            <ColumnSettingsIcon className="h-4 w-4" />
           </button>
 
           {editOpen && (

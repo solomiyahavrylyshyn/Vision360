@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
-import { DetailTabs } from "../components/ui/detail-tabs";
+import { DetailTabs, TabSettingsButton } from "../components/ui/detail-tabs";
 import { mockPayments, paymentStatusColors, paymentMethodIcons, type Payment } from "./Payments";
 
 type TabKey = "details" | "activity";
@@ -146,16 +146,18 @@ export function PaymentDetail() {
           <span className="material-icons" style={{ fontSize: "18px" }}>arrow_back</span>
           Back to Payments
         </button>
-        <KebabMenu triggerClassName="h-9 w-9 border border-[#E5E7EB] rounded-md hover:bg-[#EDF0F5] flex items-center justify-center">
-          <KebabItem icon="receipt" onSelect={() => navigate(`/invoices/${payment.invoiceId}`)}>Open Invoice</KebabItem>
-          <KebabItem icon="content_copy">Duplicate</KebabItem>
-          <KebabSeparator />
-          <KebabItem icon="block" destructive>Refund</KebabItem>
-        </KebabMenu>
       </div>
 
       {/* ── ONE BIG WHITE CARD CONTAINING EVERYTHING ── */}
-      <div className="mx-6 mb-6 bg-white border border-[#E5E7EB] rounded-xl p-4">
+      <div className="relative mx-6 mb-6 bg-white border border-[#E5E7EB] rounded-xl p-4">
+        <div className="absolute right-4 top-4">
+          <KebabMenu triggerClassName="h-9 w-9 border border-[#E5E7EB] rounded-md hover:bg-[#EDF0F5] flex items-center justify-center bg-white">
+            <KebabItem icon="receipt" onSelect={() => navigate(`/invoices/${payment.invoiceId}`)}>Open Invoice</KebabItem>
+            <KebabItem icon="content_copy">Duplicate</KebabItem>
+            <KebabSeparator />
+            <KebabItem icon="block" destructive>Refund</KebabItem>
+          </KebabMenu>
+        </div>
 
         {/* Identity row */}
         <div className="flex items-baseline gap-3">
@@ -166,7 +168,7 @@ export function PaymentDetail() {
         </div>
 
         {/* Unified tab bar */}
-        <DetailTabs tabs={TABS} activeTab={activeTab} onChange={setActiveTab} className="mt-6" />
+        <DetailTabs tabs={TABS} activeTab={activeTab} onChange={setActiveTab} trailing={<TabSettingsButton />} className="mt-6" />
 
         {/* Content */}
         <div className="mt-4">

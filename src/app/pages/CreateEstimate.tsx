@@ -27,7 +27,7 @@ export function CreateEstimate() {
   const [client, setClient] = useState(searchParams.get("client") || "");
   const [estimateName, setEstimateName] = useState("");
   const [estimateNumber] = useState("EST-010");
-  const [dateCreated, setDateCreated] = useState("2026-04-27");
+  const [dateCreated] = useState("2026-04-27");
   const [expirationDate, setExpirationDate] = useState("");
   const [linkedJob, setLinkedJob] = useState(searchParams.get("job") || "");
   const [source, setSource] = useState("");
@@ -113,25 +113,30 @@ export function CreateEstimate() {
         {/* Dates */}
         <div className="grid grid-cols-2 gap-4 mb-5">
           <div>
-            <label className={labelClass}>Date Created</label>
-            <input type="date" value={dateCreated} onChange={(e) => setDateCreated(e.target.value)} className={fieldClass} />
+            <label className={labelClass}>Created</label>
+            <input
+              type="date"
+              value={dateCreated}
+              readOnly
+              className={`${fieldClass} bg-[#F9FAFB] text-[#6B7280] cursor-not-allowed`}
+            />
           </div>
           <div>
-            <label className={labelClass}>Expiration Date</label>
+            <label className={labelClass}>Expiration Date <span className="text-[#9CA3AF]" style={{ fontWeight: 400 }}>(optional)</span></label>
             <input type="date" value={expirationDate} onChange={(e) => setExpirationDate(e.target.value)} className={fieldClass} />
           </div>
         </div>
 
         {/* Linked Job */}
         <div className="mb-5">
-          <label className={labelClass}>Linked Job</label>
+          <label className={labelClass}>Job</label>
           <select value={linkedJob} onChange={(e) => setLinkedJob(e.target.value)} className={fieldClass}>
             <option value="">None</option>
             {mockJobs.map(j => <option key={j} value={j}>{j}</option>)}
           </select>
         </div>
 
-        {/* Source + Team Member */}
+        {/* Source + Assigned Technician */}
         <div className="grid grid-cols-2 gap-4 mb-6">
           <div>
             <label className={labelClass}>Source</label>
@@ -141,7 +146,7 @@ export function CreateEstimate() {
             </select>
           </div>
           <div>
-            <label className={labelClass}>Team Member</label>
+            <label className={labelClass}>Assigned Technician</label>
             <select value={teamMember} onChange={(e) => setTeamMember(e.target.value)} className={fieldClass}>
               <option value="">Assign</option>
               {mockTeamMembers.map(m => <option key={m} value={m}>{m}</option>)}

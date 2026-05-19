@@ -26,10 +26,21 @@ import {
   DropdownMenuSubContent,
 } from "../components/ui/dropdown-menu";
 import { KebabMenu as KebabMenuShared, KebabItem } from "../components/ui/kebab-menu";
-import { DetailTabs } from "../components/ui/detail-tabs";
+import { DetailTabs, TabSettingsButton } from "../components/ui/detail-tabs";
 import { toast } from "sonner";
 import { tagsStore } from "../stores/tagsStore";
 import { customFieldsStore } from "../stores/customFieldsStore";
+import installHeatingSystem1Photo from "../../assets/documents/33702-install-heating-system-1.jpg";
+import installHeatingSystemPhoto from "../../assets/documents/33702-install-heating-system.jpg";
+import installDuctsVentsPhoto from "../../assets/documents/33805-install-ducts-vents.jpg";
+import installAc33841Photo from "../../assets/documents/33841-install-ac.jpg";
+import cuPhoto from "../../assets/documents/33897-cu.jpg";
+import installWaterHeaterPhoto from "../../assets/documents/34285-install-water-heater.jpg";
+import outdoorElectricalPanelPhoto from "../../assets/documents/34610-install-outlet-outdoor-electrical-panel.jpg";
+import installAcPhoto from "../../assets/documents/34689-install-ac.jpg";
+import installWaterHeaterTanklessPhoto from "../../assets/documents/34689-install-water-heater-tankless.jpg";
+import job87970Photo from "../../assets/documents/87970-20241208-113711.png";
+import job44644Photo from "../../assets/documents/44644-img-20241210-123749.png";
 
 const US_STATES = [
   "AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA",
@@ -313,12 +324,17 @@ export function ClientDetail() {
 
   interface DocFile { id: string; name: string; size: string; date: string; icon: string; iconColor: string; isImage?: boolean; previewUrl?: string; previewGradient?: string; uploadedBy?: string; category?: string; }
   const [documents, setDocuments] = useState<DocFile[]>([
-    { id: "1", name: "Service Agreement - 2026.pdf", size: "245 KB",  date: "Mar 28, 2026", icon: "picture_as_pdf", iconColor: "#DC2626",                                                                                                                                            uploadedBy: "Marek Stroz",     category: "Agreements" },
-    { id: "2", name: "HVAC System Photo.jpg",        size: "1.2 MB",  date: "Mar 15, 2026", icon: "image",          iconColor: "#F59E0B", isImage: true, previewGradient: "linear-gradient(135deg,#fde68a 0%,#f59e0b 50%,#d97706 100%)",                                              uploadedBy: "Ernesto Diaz",    category: "Photos"     },
-    { id: "3", name: "Property Blueprint.pdf",       size: "3.8 MB",  date: "Feb 10, 2026", icon: "picture_as_pdf", iconColor: "#DC2626",                                                                                                                                            uploadedBy: "Marek Stroz",     category: "Documents"  },
-    { id: "4", name: "Before Service.jpg",           size: "980 KB",  date: "Jan 20, 2026", icon: "image",          iconColor: "#F59E0B", isImage: true, previewGradient: "linear-gradient(135deg,#bfdbfe 0%,#60a5fa 50%,#3b82f6 100%)",                                              uploadedBy: "Alex Petrov",     category: "Photos"     },
-    { id: "5", name: "After Service.jpg",            size: "1.1 MB",  date: "Jan 20, 2026", icon: "image",          iconColor: "#F59E0B", isImage: true, previewGradient: "linear-gradient(135deg,#d1fae5 0%,#34d399 50%,#059669 100%)",                                              uploadedBy: "Alex Petrov",     category: "Photos"     },
-    { id: "6", name: "Equipment Photo.jpg",          size: "870 KB",  date: "Mar 10, 2026", icon: "image",          iconColor: "#F59E0B", isImage: true, previewGradient: "linear-gradient(135deg,#e9d5ff 0%,#a78bfa 50%,#7c3aed 100%)",                                              uploadedBy: "Ernesto Diaz",    category: "Photos"     },
+    { id: "photo-34610-outdoor-electrical-panel", name: "Copy of 34610 Install outlet outdoor electrical panel.jpg", size: "3.4 MB", date: "May 19, 2026", icon: "image", iconColor: "#F59E0B", isImage: true, previewUrl: outdoorElectricalPanelPhoto, uploadedBy: "Field Crew", category: "Photos" },
+    { id: "photo-33841-ac", name: "Copy of 33841 Install AC.jpg", size: "2.4 MB", date: "May 19, 2026", icon: "image", iconColor: "#F59E0B", isImage: true, previewUrl: installAc33841Photo, uploadedBy: "Field Crew", category: "Photos" },
+    { id: "photo-34689-tankless", name: "Copy of 34689 Install Water Heater Tankless.jpg", size: "1.8 MB", date: "May 19, 2026", icon: "image", iconColor: "#F59E0B", isImage: true, previewUrl: installWaterHeaterTanklessPhoto, uploadedBy: "Field Crew", category: "Photos" },
+    { id: "photo-34689-ac", name: "Copy of 34689 Install AC.jpg", size: "2.7 MB", date: "May 19, 2026", icon: "image", iconColor: "#F59E0B", isImage: true, previewUrl: installAcPhoto, uploadedBy: "Field Crew", category: "Photos" },
+    { id: "photo-34285-water-heater", name: "Copy of 34285 Install Water Heater.jpg", size: "1.8 MB", date: "May 19, 2026", icon: "image", iconColor: "#F59E0B", isImage: true, previewUrl: installWaterHeaterPhoto, uploadedBy: "Field Crew", category: "Photos" },
+    { id: "photo-33897-cu", name: "Copy of 33897 cu.jpg", size: "2.8 MB", date: "May 19, 2026", icon: "image", iconColor: "#F59E0B", isImage: true, previewUrl: cuPhoto, uploadedBy: "Field Crew", category: "Photos" },
+    { id: "photo-33805-ducts", name: "Copy of 33805 Install ducts & vents.jpg", size: "2.8 MB", date: "May 19, 2026", icon: "image", iconColor: "#F59E0B", isImage: true, previewUrl: installDuctsVentsPhoto, uploadedBy: "Field Crew", category: "Photos" },
+    { id: "photo-33702-heating-1", name: "Copy of 33702 Install heating system (1).jpg", size: "1.6 MB", date: "May 19, 2026", icon: "image", iconColor: "#F59E0B", isImage: true, previewUrl: installHeatingSystem1Photo, uploadedBy: "Field Crew", category: "Photos" },
+    { id: "photo-33702-heating", name: "Copy of 33702 Install heating system.jpg", size: "1.6 MB", date: "May 19, 2026", icon: "image", iconColor: "#F59E0B", isImage: true, previewUrl: installHeatingSystemPhoto, uploadedBy: "Field Crew", category: "Photos" },
+    { id: "photo-87970", name: "87970_20241208_113711.png", size: "10.0 MB", date: "May 19, 2026", icon: "image", iconColor: "#F59E0B", isImage: true, previewUrl: job87970Photo, uploadedBy: "Field Crew", category: "Photos" },
+    { id: "photo-44644", name: "44644_IMG_20241210_123749.png", size: "9.5 MB", date: "May 19, 2026", icon: "image", iconColor: "#F59E0B", isImage: true, previewUrl: job44644Photo, uploadedBy: "Field Crew", category: "Photos" },
   ]);
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -1713,15 +1729,7 @@ export function ClientDetail() {
           tabs={visibleTabs}
           activeTab={activeTab}
           onChange={(key) => { setActiveTab(key); if (isEditing) setIsEditing(false); }}
-          trailing={
-            <button
-              onClick={() => setShowTabSettings(true)}
-              className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-[#F5F7FA] text-[#1A2332] transition-colors shrink-0"
-              title="Customize tabs"
-            >
-              <span className="material-icons" style={{ fontSize: "18px" }}>settings</span>
-            </button>
-          }
+          trailing={<TabSettingsButton onClick={() => setShowTabSettings(true)} />}
           className="mt-6"
         />
 

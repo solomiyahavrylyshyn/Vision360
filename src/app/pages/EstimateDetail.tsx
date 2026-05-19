@@ -1,11 +1,11 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate, useParams } from "react-router";
 import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
-import { DetailTabs } from "../components/ui/detail-tabs";
+import { DetailTabs, TabSettingsButton } from "../components/ui/detail-tabs";
 import { PlusIcon } from "../components/ui/plus-icon";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
-type EstimateStatus = "Unsent" | "Pending" | "Approved" | "Declined" | "Won" | "Archived" | "Drafted" | "Accepted" | "Sent";
+type EstimateStatus = "Draft" | "Sent" | "Viewed by Customer" | "Awaiting Approval" | "Approved" | "Rejected" | "Expired" | "Archived";
 
 interface LineItem {
   id: number;
@@ -46,18 +46,28 @@ interface EstimateData {
 }
 
 const statusColors: Record<EstimateStatus, string> = {
-  Unsent: "#A855F7", Pending: "#F59E0B", Approved: "#3B82F6",
-  Declined: "#EF4444", Won: "#22C55E", Archived: "#9CA3AF",
-  Drafted: "#D97706", Accepted: "#15803D", Sent: "#1E40AF",
+  Draft: "#A855F7",
+  Sent: "#1E40AF",
+  "Viewed by Customer": "#0EA5E9",
+  "Awaiting Approval": "#F59E0B",
+  Approved: "#22C55E",
+  Rejected: "#EF4444",
+  Expired: "#6B7280",
+  Archived: "#9CA3AF",
 };
 const statusBg: Record<EstimateStatus, string> = {
-  Unsent: "#F3E8FF", Pending: "#FEF3C7", Approved: "#DBEAFE",
-  Declined: "#FEE2E2", Won: "#DCFCE7", Archived: "#F3F4F6",
-  Drafted: "#FEF9C3", Accepted: "#D1FAE5", Sent: "#EFF6FF",
+  Draft: "#F3E8FF",
+  Sent: "#EFF6FF",
+  "Viewed by Customer": "#E0F2FE",
+  "Awaiting Approval": "#FEF3C7",
+  Approved: "#DCFCE7",
+  Rejected: "#FEE2E2",
+  Expired: "#F3F4F6",
+  Archived: "#F3F4F6",
 };
 
-const primaryStatuses: EstimateStatus[] = ["Unsent", "Pending", "Approved", "Declined", "Won", "Archived"];
-const otherStatuses: EstimateStatus[] = ["Drafted", "Accepted", "Sent"];
+const primaryStatuses: EstimateStatus[] = ["Draft", "Sent", "Viewed by Customer", "Awaiting Approval", "Approved", "Rejected", "Expired"];
+const otherStatuses: EstimateStatus[] = ["Archived"];
 
 // ─── Mock data ────────────────────────────────────────────────────────────────
 const mockEstimates: Record<string, EstimateData> = {
@@ -67,7 +77,7 @@ const mockEstimates: Record<string, EstimateData> = {
     clientAddress: "8377 Standish Bend Dr Unit 1\nTampa, FL 33615",
     serviceAddress: "8377 Standish Bend Dr Unit 1\nTampa, FL 33615",
     dateCreated: "Mar 30, 2026", expirationDate: "Apr 30, 2026", sentDate: "—",
-    status: "Unsent", source: "Google Ads", teamMember: "Marek Stroz",
+    status: "Draft", source: "Google Ads", teamMember: "Marek Stroz",
     job: "Job-1: AC Estimate", jobId: 1,
     items: [],
     noteToClient: "Standard terms and conditions apply. Work will commence within 5 business days of estimate approval.",
@@ -83,7 +93,7 @@ const mockEstimates: Record<string, EstimateData> = {
     clientAddress: "1250 NW 24th St\nMiami, FL 33142",
     serviceAddress: "1250 NW 24th St\nMiami, FL 33142",
     dateCreated: "Mar 02, 2026", expirationDate: "Apr 02, 2026", sentDate: "Mar 03, 2026",
-    status: "Won", source: "Referral", teamMember: "Marek Stroz",
+    status: "Approved", source: "Referral", teamMember: "Marek Stroz",
     job: "Job-4: Bathroom Remodel", jobId: 4,
     items: [
       { id: 1, name: "SEER Heat Pump Condenser Unit", description: "High efficiency outdoor unit", quantity: 1, price: 3200, cost: 1800, amount: 3200, taxable: true },
@@ -96,7 +106,7 @@ const mockEstimates: Record<string, EstimateData> = {
     activity: [
       { id: 1, date: "Mar 02, 2026 08:30", action: "Estimate created", detail: "Created by Marek Stroz", icon: "add_circle" },
       { id: 2, date: "Mar 03, 2026 10:15", action: "Estimate sent", detail: "Sent to john.doe@email.com", icon: "send" },
-      { id: 3, date: "Mar 10, 2026 14:00", action: "Status changed", detail: "Marked as Won", icon: "check_circle" },
+      { id: 3, date: "Mar 10, 2026 14:00", action: "Estimate approved", detail: "Customer approved the estimate", icon: "check_circle" },
     ],
   },
   "6": {
@@ -105,7 +115,7 @@ const mockEstimates: Record<string, EstimateData> = {
     clientAddress: "4521 Pine Grove Ln\nOrlando, FL 32801",
     serviceAddress: "4521 Pine Grove Ln\nOrlando, FL 32801",
     dateCreated: "Feb 28, 2026", expirationDate: "Mar 28, 2026", sentDate: "Mar 01, 2026",
-    status: "Won", source: "Website", teamMember: "Marek Stroz",
+    status: "Approved", source: "Website", teamMember: "Marek Stroz",
     job: "Job-3: HVAC Replacement", jobId: 3,
     items: [
       { id: 1, name: "SEER Heat Pump Condenser Premium", description: "Ultra high efficiency", quantity: 1, price: 4800, cost: 2900, amount: 4800, taxable: true },
@@ -120,7 +130,31 @@ const mockEstimates: Record<string, EstimateData> = {
     activity: [
       { id: 1, date: "Feb 28, 2026 09:00", action: "Estimate created", detail: "Created by Marek Stroz", icon: "add_circle" },
       { id: 2, date: "Mar 01, 2026 11:30", action: "Estimate sent", detail: "Sent to sarah.w@gmail.com", icon: "send" },
-      { id: 3, date: "Mar 15, 2026 16:00", action: "Status changed", detail: "Marked as Won", icon: "check_circle" },
+      { id: 3, date: "Mar 15, 2026 16:00", action: "Estimate approved", detail: "Customer approved the estimate", icon: "check_circle" },
+    ],
+  },
+  "7": {
+    id: 7, estimateNumber: "5-1", estimateName: "Plumbing Repair", clientName: "Mike Rodriguez",
+    clientEmail: "mike.r@outlook.com", clientPhone: "(813) 555-0142",
+    clientAddress: "1804 W North B St\nTampa, FL 33606",
+    serviceAddress: "1804 W North B St\nTampa, FL 33606",
+    dateCreated: "Feb 25, 2026", expirationDate: "Mar 27, 2026", sentDate: "Feb 26, 2026",
+    status: "Viewed by Customer", source: "Job - 5", teamMember: "Marek Stroz",
+    job: "Job-5: Plumbing Repair", jobId: 5,
+    items: [
+      { id: 1, name: "Drain Cleaning Service", description: "Clear main drain line", quantity: 1, price: 175, cost: 40, amount: 175, taxable: false },
+      { id: 2, name: "Pipe Repair Labor", description: "Technician labor", quantity: 3, price: 95, cost: 45, amount: 285, taxable: false },
+      { id: 3, name: "PVC Repair Materials", description: "Pipe, fittings, primer, cement", quantity: 1, price: 390, cost: 140, amount: 390, taxable: true },
+    ],
+    noteToClient: "Estimate prepared from Job-5 after technician inspection. Expiration is optional and may be disabled by company settings.",
+    internalNote: "Estimate was created by assigned technician from the job record.",
+    terms: "Approval authorizes the listed repair scope. Payment due upon completion.", taxRate: 7.5, depositAmount: 0,
+    activity: [
+      { id: 1, date: "Feb 25, 2026 09:18", action: "Estimate created", detail: "Created from Job-5 by Marek Stroz", icon: "add_circle" },
+      { id: 2, date: "Feb 25, 2026 09:18", action: "Technician assigned", detail: "Marek Stroz assigned as estimate technician", icon: "engineering" },
+      { id: 3, date: "Feb 26, 2026 10:04", action: "Estimate sent", detail: "Sent to mike.r@outlook.com", icon: "send" },
+      { id: 4, date: "Feb 26, 2026 18:42", action: "Customer viewed estimate", detail: "Mike Rodriguez opened the estimate from email link", icon: "visibility" },
+      { id: 5, date: "Mar 04, 2026 08:11", action: "Customer viewed estimate again", detail: "Estimate viewed 7 days after it was sent", icon: "visibility" },
     ],
   },
 };
@@ -132,7 +166,7 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: "details", label: "Details" },
   { key: "items", label: "Items" },
   { key: "deposits", label: "Deposits" },
-  { key: "activity", label: "Activity" },
+  { key: "activity", label: "History & Activity" },
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -145,6 +179,7 @@ export function EstimateDetail() {
   const [notesTab, setNotesTab] = useState<NotesTabKey>("client");
   const [statusOpen, setStatusOpen] = useState(false);
   const [addItemOpen, setAddItemOpen] = useState(false);
+  const [customerPreviewOpen, setCustomerPreviewOpen] = useState(false);
 
   const statusRef = useRef<HTMLDivElement>(null);
 
@@ -175,6 +210,125 @@ export function EstimateDetail() {
   ];
 
   // ── Renderers ────────────────────────────────────────────────────────────────
+
+  const renderCustomerPreview = () => (
+    <div className="fixed inset-0 z-50 bg-black/45 backdrop-blur-[2px] flex items-start justify-center overflow-y-auto px-6 py-8" onClick={() => setCustomerPreviewOpen(false)}>
+      <div className="relative" onClick={(e) => e.stopPropagation()}>
+        <div className="mb-3 flex items-center justify-end gap-2">
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className="h-9 px-3 rounded-md bg-white border border-[#D8DEE8] text-[13px] text-[#1A2332] hover:bg-[#F5F7FA] inline-flex items-center gap-1.5"
+            style={{ fontWeight: 600 }}
+          >
+            <span className="material-icons" style={{ fontSize: "16px" }}>print</span>
+            Print
+          </button>
+          <button
+            type="button"
+            onClick={() => setCustomerPreviewOpen(false)}
+            className="h-9 w-9 rounded-md bg-white border border-[#D8DEE8] text-[#546478] hover:bg-[#F5F7FA] inline-flex items-center justify-center"
+            aria-label="Close preview"
+          >
+            <span className="material-icons" style={{ fontSize: "18px" }}>close</span>
+          </button>
+        </div>
+
+        <div className="bg-white text-[#5F6670] shadow-2xl border border-[#D7DCE3]" style={{ width: 760, minHeight: 980, padding: "32px 28px 44px", fontFamily: "Arial, sans-serif" }}>
+          <div className="flex items-start justify-between mb-9">
+            <div className="text-[12px] leading-[18px]">
+              <div style={{ fontWeight: 700 }}>Service Vision</div>
+              <div>8377 Standish Bend Dr Tampa FL 33615</div>
+              <div className="text-[#4A6FA5]">jaamsflying@gmail.com</div>
+              <div>(813) 263-0691</div>
+            </div>
+            <div className="text-right">
+              <div className="text-[31px] leading-none tracking-wide text-[#4F5660]" style={{ fontWeight: 800 }}>ESTIMATE</div>
+              <div className="grid grid-cols-[100px_120px] gap-x-6 gap-y-1 text-[12px] mt-11">
+                <div className="text-right" style={{ fontWeight: 700 }}>Estimate #</div>
+                <div className="text-right text-[#7C6A9D]">{estimate.estimateNumber}</div>
+                <div className="text-right" style={{ fontWeight: 700 }}>Date</div>
+                <div className="text-right text-[#7C6A9D]">{estimate.dateCreated}</div>
+                <div className="text-right" style={{ fontWeight: 700 }}>Total</div>
+                <div className="text-right text-[#7C6A9D]">${fmt(total)}</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-14 text-[12px] leading-[18px] mb-6">
+            <div>
+              <div className="mb-1" style={{ fontWeight: 700 }}>Prepared For:</div>
+              <div>{estimate.clientName}</div>
+              <div className="whitespace-pre-line">{estimate.clientAddress}</div>
+              <div>{estimate.clientPhone}</div>
+              <div className="text-[#4A6FA5]">{estimate.clientEmail}</div>
+            </div>
+            <div>
+              <div className="mb-1" style={{ fontWeight: 700 }}>Service Location:</div>
+              <div>{estimate.clientName}</div>
+              <div className="whitespace-pre-line">{estimate.serviceAddress}</div>
+              <div>{estimate.clientPhone}</div>
+              <div className="text-[#4A6FA5]">{estimate.clientEmail}</div>
+            </div>
+          </div>
+
+          <table className="w-full border-collapse text-[12px]">
+            <thead>
+              <tr className="border-y-[3px] border-[#4F5660] text-[#5F6670]">
+                <th className="text-left py-3 px-2" style={{ fontWeight: 700 }}>Description</th>
+                <th className="text-left py-3 px-2 w-[84px]" style={{ fontWeight: 700 }}>QTY</th>
+                <th className="text-left py-3 px-2 w-[102px]" style={{ fontWeight: 700 }}>Price</th>
+                <th className="text-left py-3 px-2 w-[102px]" style={{ fontWeight: 700 }}>Amount</th>
+                <th className="text-left py-3 px-2 w-[96px]" style={{ fontWeight: 700 }}>Inventory<br />Custom</th>
+              </tr>
+            </thead>
+            <tbody>
+              {estimate.items.map(item => (
+                <tr key={item.id} className="border-b border-[#E0E3E7]">
+                  <td className="py-3 px-2 align-top border-r border-dashed border-[#DDE2E8]">
+                    <div style={{ fontWeight: 700 }}>{item.name}</div>
+                    {item.description && <div className="leading-[17px]">{item.description}</div>}
+                  </td>
+                  <td className="py-3 px-2 align-top border-r border-dashed border-[#DDE2E8] text-[#6F6A93]">{item.quantity}</td>
+                  <td className="py-3 px-2 align-top border-r border-dashed border-[#DDE2E8] text-[#6F6A93]">${fmt(item.price)}</td>
+                  <td className="py-3 px-2 align-top border-r border-dashed border-[#DDE2E8] text-[#6F6A93]">${fmt(item.amount)}</td>
+                  <td className="py-3 px-2 align-top border-r border-dashed border-[#DDE2E8]" />
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          <div className="flex justify-end border-t border-[#E0E3E7] mb-28">
+            <div className="grid grid-cols-[90px_110px] text-[12px] leading-[18px]">
+              <div className="py-2 px-2" style={{ fontWeight: 700 }}>Subtotal</div>
+              <div className="py-2 px-2 text-right border-l border-dashed border-[#DDE2E8] text-[#6F6A93]">${fmt(subtotal)}</div>
+              <div className="py-1 px-2" style={{ fontWeight: 700 }}>Tip</div>
+              <div className="py-1 px-2 text-right border-l border-dashed border-[#DDE2E8] text-[#6F6A93]">$0.00</div>
+              {taxAmount > 0 && (
+                <>
+                  <div className="py-1 px-2" style={{ fontWeight: 700 }}>Tax</div>
+                  <div className="py-1 px-2 text-right border-l border-dashed border-[#DDE2E8] text-[#6F6A93]">${fmt(taxAmount)}</div>
+                </>
+              )}
+              <div className="py-2 px-2" style={{ fontWeight: 700 }}>Total</div>
+              <div className="py-2 px-2 text-right border-l border-dashed border-[#DDE2E8] text-[#6F6A93]">${fmt(total)}</div>
+            </div>
+          </div>
+
+          <div className="text-[12px] leading-[17px] text-[#111827]">
+            <div style={{ fontWeight: 700 }}>Terms:</div>
+            <div className="mb-5">{estimate.terms}</div>
+            <div style={{ fontWeight: 700 }}>Notes:</div>
+            <div>{estimate.noteToClient || "Thank you for your business."}</div>
+          </div>
+
+          <div className="mt-12 text-center text-[23px] leading-none text-[#111827]" style={{ fontWeight: 800 }}>
+            Thank you for your business
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 
   const renderDetailsTab = () => (
     <div className="flex gap-4 items-start">
@@ -223,11 +377,11 @@ export function EstimateDetail() {
               {[
                 { label: "Estimate #", value: estimate.estimateNumber },
                 { label: "Name", value: estimate.estimateName || "—" },
-                { label: "Date Created", value: estimate.dateCreated },
-                { label: "Expiration", value: estimate.expirationDate },
+                { label: "Created", value: estimate.dateCreated },
+                { label: "Expiration", value: estimate.expirationDate || "Not set" },
                 { label: "Sent Date", value: estimate.sentDate },
-                { label: "Team Member", value: estimate.teamMember || "—" },
-                { label: "Source", value: estimate.source || "—" },
+                { label: "Assigned Technician", value: estimate.teamMember || "—" },
+                { label: "Created From", value: estimate.job || estimate.source || "—" },
               ].map(({ label, value }) => (
                 <div key={label} className="flex flex-col gap-0.5">
                   <div className="text-[11px] text-[#9CA3AF]">{label}</div>
@@ -503,7 +657,7 @@ export function EstimateDetail() {
   const renderActivityTab = () => (
     <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
       <div className="px-5 py-4 border-b border-[#E5E7EB]">
-        <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Activity</h3>
+        <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>History & Activity</h3>
       </div>
       <div className="divide-y divide-[#F3F4F6]">
         {estimate.activity.map(entry => (
@@ -535,18 +689,6 @@ export function EstimateDetail() {
           <span className="material-icons" style={{ fontSize: "18px" }}>arrow_back</span>
           Back to Estimates
         </button>
-        <KebabMenu triggerClassName="w-9 h-9 border border-[#E5E7EB] rounded-md bg-white flex items-center justify-center hover:bg-[#F5F7FA]">
-          <KebabItem icon="send">Send</KebabItem>
-          <KebabItem icon="visibility">Preview</KebabItem>
-          <KebabItem icon="download">Download PDF</KebabItem>
-          <KebabSeparator />
-          <KebabItem icon="content_copy">Duplicate</KebabItem>
-          <KebabItem icon="receipt">Copy to Invoice</KebabItem>
-          <KebabItem icon="work">Copy to Job</KebabItem>
-          <KebabSeparator />
-          <KebabItem icon="block" destructive>Inactivate</KebabItem>
-          <KebabItem icon="print">Print</KebabItem>
-        </KebabMenu>
       </div>
 
       {/* ── ONE BIG WHITE CARD CONTAINING EVERYTHING ── */}
@@ -607,6 +749,17 @@ export function EstimateDetail() {
             </>
           )}
           </div>
+          <KebabMenu triggerClassName="w-9 h-9 border border-[#E5E7EB] rounded-md bg-white flex items-center justify-center hover:bg-[#F5F7FA]">
+            <KebabItem icon="edit" onClick={() => navigate(`/estimates/${id}/edit`)}>Edit</KebabItem>
+            <KebabItem icon="send">Send to Client</KebabItem>
+            <KebabItem icon="receipt">Make Invoice</KebabItem>
+            <KebabItem icon="link">Get Link</KebabItem>
+            <KebabItem icon="print" onClick={() => setCustomerPreviewOpen(true)}>Print</KebabItem>
+            <KebabSeparator />
+            <KebabItem icon="content_copy">Duplicate</KebabItem>
+            <KebabSeparator />
+            <KebabItem icon="delete" destructive>Delete</KebabItem>
+          </KebabMenu>
         </div>
 
         {/* Unified tab bar */}
@@ -617,6 +770,7 @@ export function EstimateDetail() {
           }))}
           activeTab={activeTab}
           onChange={setActiveTab}
+          trailing={<TabSettingsButton />}
           className="mt-2"
         />
 
@@ -628,6 +782,8 @@ export function EstimateDetail() {
           {activeTab === "activity" && renderActivityTab()}
         </div>
       </div>
+
+      {customerPreviewOpen && renderCustomerPreview()}
 
       {/* Add Item Modal */}
       {addItemOpen && (

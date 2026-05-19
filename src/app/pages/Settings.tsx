@@ -6,6 +6,7 @@ import { Card } from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Switch } from "../components/ui/switch";
+import { ColumnSettingsIcon } from "../components/ui/column-settings-icon";
 import { companyStore } from "../stores/companyStore";
 import { countiesStore } from "../stores/countiesStore";
 import { customFieldsStore, type CfEntity } from "../stores/customFieldsStore";
@@ -3058,7 +3059,7 @@ export function Settings() {
                     <SectionCard title="Job Custom Fields" description="Each job form supports 2 custom fields (e.g. job category, materials, reporting tag).">
                       <div className="flex items-center justify-between rounded-lg border border-[#D8E3F4] bg-[#F8FBFF] px-4 py-3">
                         <div className="flex items-center gap-3">
-                          <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "20px" }}>tune</span>
+                          <ColumnSettingsIcon className="h-5 w-5 text-[#1A2332]" />
                           <div>
                             <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>Manage in General → Custom Fields</div>
                             <div className="text-[12px] text-[#6B7280]">All custom fields are configured in one place across Clients, Jobs, Estimates, Invoices, Items.</div>

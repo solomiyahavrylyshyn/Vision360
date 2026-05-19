@@ -6,6 +6,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "./dropdown-menu";
+import { ColumnSettingsIcon } from "./column-settings-icon";
 import { cn } from "./utils";
 
 type KebabMenuProps = {
@@ -57,7 +58,7 @@ export function KebabMenu({
 }
 
 type KebabItemProps = {
-  icon?: string; // material-icons name
+  icon?: string | React.ReactNode; // material-icons name, or custom icon
   children: React.ReactNode;
   onSelect?: (e: Event) => void;
   onClick?: () => void;
@@ -75,6 +76,22 @@ export function KebabItem({
   destructive,
   className,
 }: KebabItemProps) {
+  const iconNode = React.isValidElement(icon) ? (
+    icon
+  ) : icon === "view_column" || icon === "tab_unselected" ? (
+    <ColumnSettingsIcon className="h-[18px] w-[18px] text-[#1A2332]" />
+  ) : icon ? (
+    <span
+      className={cn(
+        "material-icons flex-shrink-0",
+        destructive ? "text-[#DC2626]" : "text-[#6B7280]"
+      )}
+      style={{ fontSize: "18px" }}
+    >
+      {icon}
+    </span>
+  ) : null;
+
   return (
     <DropdownMenuItem
       disabled={disabled}
@@ -90,15 +107,9 @@ export function KebabItem({
       )}
       style={{ fontWeight: 500 }}
     >
-      {icon ? (
-        <span
-          className={cn(
-            "material-icons flex-shrink-0",
-            destructive ? "text-[#DC2626]" : "text-[#6B7280]"
-          )}
-          style={{ fontSize: "18px" }}
-        >
-          {icon}
+      {iconNode ? (
+        <span className="h-[18px] w-[18px] flex-shrink-0 inline-flex items-center justify-center">
+          {iconNode}
         </span>
       ) : (
         <span className="w-[18px] flex-shrink-0" aria-hidden="true" />
