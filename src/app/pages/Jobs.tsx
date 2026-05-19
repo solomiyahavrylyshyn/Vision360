@@ -170,19 +170,9 @@ export function Jobs() {
         title="Jobs"
         count={selectedJobs.size > 0 ? `${filtered.length} records · ${selectedJobs.size} selected` : `${filtered.length} records`}
         actions={
-          <>
-            <CreateActionButton onClick={() => navigate("/jobs/new")}>
-              Create Job
-            </CreateActionButton>
-            <KebabMenu triggerClassName="w-9 h-9 border border-[#E5E7EB] rounded-lg bg-white">
-              <KebabItem icon="view_column">Edit Columns</KebabItem>
-              <KebabItem icon="swap_horiz">Change Status</KebabItem>
-              <KebabItem icon="content_copy">Manage Duplicates</KebabItem>
-              <KebabSeparator />
-              <KebabItem icon="file_upload">Import</KebabItem>
-              <KebabItem icon="file_download">Export</KebabItem>
-            </KebabMenu>
-          </>
+          <CreateActionButton onClick={() => navigate("/jobs/new")}>
+            Create Job
+          </CreateActionButton>
         }
       />
 
@@ -275,6 +265,16 @@ export function Jobs() {
                 </span>
               )}
             </button>
+          </div>
+          <div className="ml-auto">
+            <KebabMenu triggerClassName="w-10 h-10 border border-[#D8DEE8] rounded-xl bg-white">
+              <KebabItem icon="view_column">Edit Columns</KebabItem>
+              <KebabItem icon="swap_horiz">Change Status</KebabItem>
+              <KebabItem icon="content_copy">Manage Duplicates</KebabItem>
+              <KebabSeparator />
+              <KebabItem icon="file_upload">Import</KebabItem>
+              <KebabItem icon="file_download">Export</KebabItem>
+            </KebabMenu>
           </div>
         </div>
         <SelectionBar

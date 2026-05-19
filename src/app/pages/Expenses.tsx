@@ -6,7 +6,7 @@ import { PageHeader } from "../components/ui/page-header";
 import { SelectionBar } from "../components/ui/selection-bar";
 import { CreateActionButton } from "../components/ui/create-action-button";
 
-interface Expense {
+export interface Expense {
   id: string;
   date: string;
   category: string;
@@ -19,7 +19,7 @@ interface Expense {
   receipts: number;
 }
 
-const mockExpenses: Expense[] = [
+export const mockExpenses: Expense[] = [
   { id: "1", date: "Apr 5, 2026", category: "Materials", merchant: "Home Depot", amount: 1245.5, jobId: "J-1234", jobTitle: "HVAC Installation", invoiceId: "INV-0042", notes: "Supplies for commercial HVAC project", receipts: 2 },
   { id: "2", date: "Apr 4, 2026", category: "Fuel", merchant: "Shell Gas Station", amount: 85.3, jobId: "J-1235", jobTitle: "Service Call", invoiceId: "INV-0043", notes: "Fleet vehicle fuel", receipts: 1 },
   { id: "3", date: "Apr 4, 2026", category: "Tools", merchant: "Grainger", amount: 567.89, jobId: "J-1236", jobTitle: "Equipment Repair", notes: "Replacement tools and equipment", receipts: 1 },
@@ -29,7 +29,7 @@ const mockExpenses: Expense[] = [
   { id: "7", date: "Mar 31, 2026", category: "Materials", merchant: "Ferguson Plumbing", amount: 723.45, jobId: "J-1235", jobTitle: "Service Call", invoiceId: "INV-0043", notes: "PVC pipes and fittings", receipts: 2 },
 ];
 
-const categoryColors: Record<string, string> = {
+export const expenseCategoryColors: Record<string, string> = {
   Materials: "#4A6FA5",
   Fuel: "#059669",
   Tools: "#D97706",
@@ -41,6 +41,7 @@ const categoryColors: Record<string, string> = {
   "Equipment Rental": "#EA580C",
   Other: "#8899AA",
 };
+const categoryColors = expenseCategoryColors;
 
 const categoryFilterOptions = ["All", "Materials", "Fuel", "Tools", "Software", "Meals", "Travel"];
 
@@ -63,7 +64,6 @@ export function Expenses() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterOpen, setFilterOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
 
   const filtered = expenses.filter((e) => {
     if (searchQuery) {
@@ -91,19 +91,9 @@ export function Expenses() {
         title="Expenses"
         count={selectedIds.size > 0 ? `${filtered.length} records · ${selectedIds.size} selected` : `${filtered.length} records`}
         actions={
-          <>
-            <CreateActionButton onClick={() => navigate("/expenses/new")}>
-              Create Expense
-            </CreateActionButton>
-            <KebabMenu triggerClassName="w-9 h-9 border border-[#E5E7EB] rounded-lg bg-white">
-              <KebabItem icon="view_column">Edit Columns</KebabItem>
-              <KebabItem icon="swap_horiz">Change Status</KebabItem>
-              <KebabItem icon="content_copy">Manage Duplicates</KebabItem>
-              <KebabSeparator />
-              <KebabItem icon="file_upload">Import</KebabItem>
-              <KebabItem icon="file_download">Export</KebabItem>
-            </KebabMenu>
-          </>
+          <CreateActionButton onClick={() => navigate("/expenses/new")}>
+            Create Expense
+          </CreateActionButton>
         }
       />
 
@@ -162,7 +152,16 @@ export function Expenses() {
             <span className="material-icons" style={{ fontSize: "16px" }}>tune</span>
             Filter
           </button>
-          <div className="flex-1" />
+          <div className="ml-auto">
+            <KebabMenu triggerClassName="w-10 h-10 border border-[#D8DEE8] rounded-xl bg-white">
+              <KebabItem icon="view_column">Edit Columns</KebabItem>
+              <KebabItem icon="swap_horiz">Change Status</KebabItem>
+              <KebabItem icon="content_copy">Manage Duplicates</KebabItem>
+              <KebabSeparator />
+              <KebabItem icon="file_upload">Import</KebabItem>
+              <KebabItem icon="file_download">Export</KebabItem>
+            </KebabMenu>
+          </div>
         </div>
         <SelectionBar
           count={selectedIds.size}
@@ -196,12 +195,13 @@ export function Expenses() {
                 {["Date", "Category", "Merchant", "Amount", "Job #", "Invoice #", "Notes", "Receipts"].map((h) => (
                   <th key={h} className="px-4 py-3 text-left text-xs text-[#546478] uppercase tracking-wide" style={{ fontWeight: 600 }}>{h}</th>
                 ))}
+                <th className="px-3 py-3 w-10" />
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-4 py-12 text-center">
+                  <td colSpan={10} className="px-4 py-12 text-center">
                     <span className="material-icons text-[#E5E7EB] mb-2" style={{ fontSize: "40px" }}>receipt_long</span>
                     <p className="text-[14px] text-[#8899AA]">No expenses found</p>
                   </td>
@@ -210,7 +210,7 @@ export function Expenses() {
                 filtered.map((expense) => (
                   <tr
                     key={expense.id}
-                    onClick={() => setSelectedExpense(expense)}
+                    onClick={() => navigate(`/expenses/${expense.id}`)}
                     className={`border-t border-[#E5E7EB] hover:bg-[#F5F7FA] cursor-pointer transition-colors ${selectedIds.has(expense.id) ? "bg-[#EBF0F8]" : ""}`}
                   >
                     <td className="px-3 py-3" onClick={e => e.stopPropagation()}>
@@ -279,6 +279,17 @@ export function Expenses() {
                         <span className="text-[13px] text-[#8899AA]">—</span>
                       )}
                     </td>
+                    <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
+                      <KebabMenu>
+                        <KebabItem icon="visibility" onSelect={() => navigate(`/expenses/${expense.id}`)}>View details</KebabItem>
+                        {expense.invoiceId && (
+                          <KebabItem icon="receipt" onSelect={() => navigate(`/invoices/${expense.invoiceId!.replace("INV-", "")}`)}>Open invoice</KebabItem>
+                        )}
+                        <KebabItem icon="edit">Edit</KebabItem>
+                        <KebabSeparator />
+                        <KebabItem icon="delete_outline" destructive>Delete</KebabItem>
+                      </KebabMenu>
+                    </td>
                   </tr>
                 ))
               )}
@@ -305,137 +316,6 @@ export function Expenses() {
         </div>
       </div>
 
-      {/* Detail Side Panel */}
-      {selectedExpense && (
-        <>
-          <div className="fixed inset-0 bg-black/20 z-40" onClick={() => setSelectedExpense(null)} />
-          <div className="fixed top-0 right-0 w-[440px] h-full bg-white shadow-xl z-50 flex flex-col">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-[#E5E7EB]">
-              <h2 className="text-[17px] text-[#1A2332]" style={{ fontWeight: 700 }}>Expense Details</h2>
-              <button onClick={() => setSelectedExpense(null)} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#F5F7FA] transition-colors">
-                <span className="material-icons text-[#546478]" style={{ fontSize: "20px" }}>close</span>
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-6">
-              <div className="text-center mb-6">
-                <div className="text-[32px] text-[#1A2332]" style={{ fontWeight: 700 }}>
-                  ${selectedExpense.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                </div>
-                <div className="flex items-center justify-center gap-2 mt-1">
-                  <div className="w-2 h-2 rounded-full" style={{ background: categoryColors[selectedExpense.category] || "#8899AA" }} />
-                  <span className="text-[13px] text-[#546478]">{selectedExpense.category}</span>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <DetailRow label="Merchant" value={selectedExpense.merchant} />
-                <DetailRow label="Date" value={selectedExpense.date} />
-                <DetailRow label="Category" value={selectedExpense.category} />
-
-                {selectedExpense.jobId && (
-                  <div className="flex items-center justify-between py-2 border-b border-[#F0F2F5]">
-                    <span className="text-[12px] text-[#8899AA] uppercase tracking-wide" style={{ fontWeight: 500 }}>Job</span>
-                    <span className="text-[13px] text-[#4A6FA5] cursor-pointer hover:underline" style={{ fontWeight: 500 }}
-                      onClick={() => { setSelectedExpense(null); navigate(`/jobs/${selectedExpense.jobId!.replace("J-", "")}`); }}>
-                      #{selectedExpense.jobId} — {selectedExpense.jobTitle}
-                    </span>
-                  </div>
-                )}
-
-                {selectedExpense.invoiceId && (
-                  <div className="flex items-center justify-between py-2 border-b border-[#F0F2F5]">
-                    <span className="text-[12px] text-[#8899AA] uppercase tracking-wide" style={{ fontWeight: 500 }}>Invoice</span>
-                    <span className="text-[13px] text-[#4A6FA5] cursor-pointer hover:underline" style={{ fontWeight: 500 }}
-                      onClick={() => { setSelectedExpense(null); navigate(`/invoices/${selectedExpense.invoiceId!.replace("INV-", "")}`); }}>
-                      #{selectedExpense.invoiceId}
-                    </span>
-                  </div>
-                )}
-
-                {selectedExpense.notes && (
-                  <div className="py-2 border-b border-[#F0F2F5]">
-                    <span className="text-[12px] text-[#8899AA] uppercase tracking-wide block mb-1" style={{ fontWeight: 500 }}>Notes</span>
-                    <p className="text-[13px] text-[#1A2332]">{selectedExpense.notes}</p>
-                  </div>
-                )}
-
-                <div className="py-2">
-                  <span className="text-[12px] text-[#8899AA] uppercase tracking-wide block mb-2" style={{ fontWeight: 500 }}>Receipts ({selectedExpense.receipts})</span>
-                  {selectedExpense.receipts > 0 ? (
-                    <div className="space-y-2">
-                      {Array.from({ length: selectedExpense.receipts }).map((_, i) => (
-                        <div key={i} className="flex items-center gap-2 px-3 py-2.5 bg-[#F5F7FA] rounded-lg">
-                          <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "18px" }}>description</span>
-                          <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>receipt_{i + 1}.jpg</span>
-                          <span className="text-[11px] text-[#8899AA] ml-auto">View</span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-[13px] text-[#8899AA]">No receipts attached</p>
-                  )}
-                </div>
-              </div>
-
-              <div className="mt-6 pt-4 border-t border-[#E5E7EB]">
-                <span className="text-[12px] text-[#8899AA] uppercase tracking-wide block mb-3" style={{ fontWeight: 500 }}>Activity</span>
-                <div className="space-y-3">
-                  <AuditItem icon="add_circle_outline" text="Expense created" time={selectedExpense.date + " at 10:30 AM"} user="John Smith" />
-                  {selectedExpense.receipts > 0 && (
-                    <AuditItem icon="attach_file" text={`${selectedExpense.receipts} receipt(s) attached`} time={selectedExpense.date + " at 10:32 AM"} user="John Smith" />
-                  )}
-                  {selectedExpense.jobId && (
-                    <AuditItem icon="link" text={`Linked to Job #${selectedExpense.jobId}`} time={selectedExpense.date + " at 10:33 AM"} user="John Smith" />
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div className="px-6 py-4 border-t border-[#E5E7EB] flex items-center gap-3">
-              {selectedExpense.invoiceId && (
-                <button
-                  onClick={() => { setSelectedExpense(null); navigate(`/invoices/${selectedExpense.invoiceId!.replace("INV-", "")}`); }}
-                  className="flex items-center gap-2 h-9 px-4 rounded-lg border border-[#E5E7EB] text-[13px] text-[#1A2332] hover:bg-[#F5F7FA] transition-colors"
-                  style={{ fontWeight: 500 }}
-                >
-                  <span className="material-icons" style={{ fontSize: "16px" }}>receipt</span>
-                  View Invoice
-                </button>
-              )}
-              <button className="flex items-center gap-2 h-9 px-4 rounded-lg border border-[#E5E7EB] text-[13px] text-[#546478] hover:bg-[#F5F7FA] transition-colors ml-auto" style={{ fontWeight: 500 }}>
-                <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
-                Edit
-              </button>
-              <button className="flex items-center gap-2 h-9 px-4 rounded-lg border border-[#FCA5A5] text-[13px] text-[#DC2626] hover:bg-[#FEE2E2]/50 transition-colors" style={{ fontWeight: 500 }}>
-                <span className="material-icons" style={{ fontSize: "16px" }}>delete_outline</span>
-                Delete
-              </button>
-            </div>
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
-
-function DetailRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between py-2 border-b border-[#F0F2F5]">
-      <span className="text-[12px] text-[#8899AA] uppercase tracking-wide" style={{ fontWeight: 500 }}>{label}</span>
-      <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{value}</span>
-    </div>
-  );
-}
-
-function AuditItem({ icon, text, time, user }: { icon: string; text: string; time: string; user: string }) {
-  return (
-    <div className="flex items-start gap-2.5">
-      <span className="material-icons text-[#8899AA] mt-0.5" style={{ fontSize: "16px" }}>{icon}</span>
-      <div>
-        <p className="text-[13px] text-[#1A2332]">{text}</p>
-        <p className="text-[11px] text-[#8899AA]">{user} · {time}</p>
-      </div>
     </div>
   );
 }

@@ -20,12 +20,14 @@ import { Invoices } from "./pages/Invoices";
 import { InvoiceDetail } from "./pages/InvoiceDetail";
 import { CreateInvoice } from "./pages/CreateInvoice";
 import { Payments } from "./pages/Payments";
+import { PaymentDetail } from "./pages/PaymentDetail";
 import { Jobs } from "./pages/Jobs";
 import { JobDetail } from "./pages/JobDetail";
 import { CreateJob } from "./pages/CreateJob";
 import { Events } from "./pages/Events";
 import { Calendar } from "./pages/Calendar";
 import { Expenses } from "./pages/Expenses";
+import { ExpenseDetail } from "./pages/ExpenseDetail";
 import { CreateExpense } from "./pages/CreateExpense";
 import { Items } from "./pages/Items";
 import { ItemDetail } from "./pages/ItemDetail";
@@ -96,11 +98,13 @@ export const router = createBrowserRouter([
       { path: "estimates/:id", Component: EstimateDetail },
       { path: "expenses", Component: Expenses },
       { path: "expenses/new", Component: CreateExpense },
+      { path: "expenses/:id", Component: ExpenseDetail },
       { path: "invoices", Component: Invoices },
       { path: "invoices/new", Component: CreateInvoice },
       { path: "invoices/:id", Component: InvoiceDetail },
       { path: "payments", Component: Payments },
       { path: "payments/new", Component: CreatePayment },
+      { path: "payments/:id", Component: PaymentDetail },
       { path: "properties", Component: Properties },
       { path: "properties/new", Component: CreateProperty },
       { path: "service-agreements", Component: ServiceAgreements },

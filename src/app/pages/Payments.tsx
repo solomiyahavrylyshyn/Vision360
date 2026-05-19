@@ -1,6 +1,5 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router";
-import { Card } from "../components/ui/card";
 import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
 import { PageHeader } from "../components/ui/page-header";
 import { SelectionBar } from "../components/ui/selection-bar";
@@ -8,10 +7,10 @@ import { CreateActionButton } from "../components/ui/create-action-button";
 import { StatCard } from "../components/ui/stat-card";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
-type PaymentMethod = "Cash" | "Check" | "Credit Card" | "Debit Card" | "Bank Transfer" | "Other";
-type PaymentStatus = "Completed" | "Pending" | "Refunded";
+export type PaymentMethod = "Cash" | "Check" | "Credit Card" | "Debit Card" | "Bank Transfer" | "Other";
+export type PaymentStatus = "Completed" | "Pending" | "Refunded";
 
-interface Payment {
+export interface Payment {
   id: number;
   date: string;
   amount: number;
@@ -27,13 +26,14 @@ interface Payment {
   createdAt: string;
 }
 
-const statusColors: Record<PaymentStatus, { text: string; bg: string }> = {
+export const paymentStatusColors: Record<PaymentStatus, { text: string; bg: string }> = {
   Completed: { text: "#22C55E", bg: "#DCFCE7" },
   Pending: { text: "#F59E0B", bg: "#FEF3C7" },
   Refunded: { text: "#8B5CF6", bg: "#EDE9FE" },
 };
+const statusColors = paymentStatusColors;
 
-const methodIcons: Record<PaymentMethod, string> = {
+export const paymentMethodIcons: Record<PaymentMethod, string> = {
   Cash: "payments",
   Check: "receipt",
   "Credit Card": "credit_card",
@@ -41,6 +41,7 @@ const methodIcons: Record<PaymentMethod, string> = {
   "Bank Transfer": "account_balance",
   Other: "more_horiz",
 };
+const methodIcons = paymentMethodIcons;
 
 const timeFilters = [
   "All time", "Today", "Yesterday", "Last 7 days", "Last 30 days",
@@ -48,7 +49,7 @@ const timeFilters = [
 ];
 
 // ─── Mock Data ───────────────────────────────────────────────────────────────
-const mockPayments: Payment[] = [
+export const mockPayments: Payment[] = [
   { id: 1, date: "2026-03-10", amount: 5000.00, method: "Bank Transfer", status: "Completed", clientName: "Travis Jones", clientEmail: "travis.j@email.com", invoiceId: 1, invoiceNumber: "INV-001", jobId: "JOB-003", note: "First installment", createdBy: "Marek Stroz", createdAt: "2026-03-10 14:22" },
   { id: 2, date: "2026-03-25", amount: 5502.00, method: "Check", status: "Completed", clientName: "Travis Jones", clientEmail: "travis.j@email.com", invoiceId: 1, invoiceNumber: "INV-001", jobId: "JOB-003", note: "Final payment", createdBy: "Marek Stroz", createdAt: "2026-03-25 11:45" },
   { id: 3, date: "2026-03-15", amount: 1000.00, method: "Credit Card", status: "Completed", clientName: "Sarah Williams", clientEmail: "sarah.w@email.com", invoiceId: 4, invoiceNumber: "INV-004", jobId: "JOB-006", note: "Partial payment", createdBy: "Marek Stroz", createdAt: "2026-03-15 13:30" },
@@ -81,8 +82,6 @@ export function Payments() {
   const perPage = 10;
 
 
-  // Detail panel
-  const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
 
   const fmt = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const fmtDate = (d: string) => {
@@ -142,19 +141,9 @@ export function Payments() {
         title="Payments"
         count={selectedIds.size > 0 ? `${filtered.length} records · ${selectedIds.size} selected` : `${filtered.length} records`}
         actions={
-          <>
-            <CreateActionButton>
-              Record Payment
-            </CreateActionButton>
-            <KebabMenu triggerClassName="w-9 h-9 border border-[#E5E7EB] rounded-lg bg-white">
-              <KebabItem icon="view_column">Edit Columns</KebabItem>
-              <KebabItem icon="swap_horiz">Change Status</KebabItem>
-              <KebabItem icon="content_copy">Manage Duplicates</KebabItem>
-              <KebabSeparator />
-              <KebabItem icon="file_upload">Import</KebabItem>
-              <KebabItem icon="file_download">Export</KebabItem>
-            </KebabMenu>
-          </>
+          <CreateActionButton>
+            Record Payment
+          </CreateActionButton>
         }
       />
 
@@ -203,7 +192,7 @@ export function Payments() {
 
       <div className={`flex gap-6`}>
         {/* Table */}
-        <div className={`bg-white border border-[#E5E7EB] rounded-xl overflow-hidden ${selectedPayment ? "flex-1" : "w-full"}`}>
+        <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden w-full">
           {/* Filter bar */}
           <div className="flex items-center gap-2 px-4 py-3 bg-white border-b border-[#E5E7EB]">
             <div className="relative">
@@ -233,7 +222,16 @@ export function Payments() {
               <span className="material-icons" style={{ fontSize: "16px" }}>filter_alt</span>
               Filter
             </button>
-            <div className="flex-1" />
+            <div className="ml-auto">
+              <KebabMenu triggerClassName="w-10 h-10 border border-[#D8DEE8] rounded-xl bg-white">
+                <KebabItem icon="view_column">Edit Columns</KebabItem>
+                <KebabItem icon="swap_horiz">Change Status</KebabItem>
+                <KebabItem icon="content_copy">Manage Duplicates</KebabItem>
+                <KebabSeparator />
+                <KebabItem icon="file_upload">Import</KebabItem>
+                <KebabItem icon="file_download">Export</KebabItem>
+              </KebabMenu>
+            </div>
           </div>
           <SelectionBar
             count={selectedIds.size}
@@ -266,12 +264,13 @@ export function Payments() {
                   {["Date", "Client", "Invoice", "Amount", "Method", "Status", "Note"].map(h => (
                     <th key={h} className="px-4 py-3 text-left text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>{h}</th>
                   ))}
+                  <th className="px-3 py-3 w-10" />
                 </tr>
               </thead>
               <tbody>
                 {paginated.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-4 py-16 text-center">
+                    <td colSpan={9} className="px-4 py-16 text-center">
                       <span className="material-icons text-[#C8D5E8] mb-2" style={{ fontSize: "48px" }}>credit_card_off</span>
                       <div className="text-[14px] text-[#546478]" style={{ fontWeight: 500 }}>No payments found</div>
                       <div className="text-[12px] text-[#8899AA] mt-1">Try adjusting your filters</div>
@@ -279,12 +278,11 @@ export function Payments() {
                   </tr>
                 ) : paginated.map((p, idx) => {
                   const ss = statusColors[p.status];
-                  const isSelected = selectedPayment?.id === p.id;
                   return (
                     <tr
                       key={p.id}
-                      onClick={() => setSelectedPayment(p)}
-                      className={`border-b border-[#EDF0F5] hover:bg-[#F9FBFD] transition-colors cursor-pointer ${isSelected ? "bg-[#EBF0F8]" : idx % 2 === 1 ? "bg-[#FAFBFC]" : "bg-white"}`}
+                      onClick={() => navigate(`/payments/${p.id}`)}
+                      className={`border-b border-[#EDF0F5] hover:bg-[#F9FBFD] transition-colors cursor-pointer ${idx % 2 === 1 ? "bg-[#FAFBFC]" : "bg-white"}`}
                     >
                       <td className="px-3 py-3" onClick={e => e.stopPropagation()}>
                         <input type="checkbox" checked={selectedIds.has(p.id)}
@@ -326,6 +324,15 @@ export function Payments() {
                         </span>
                       </td>
                       <td className="px-4 py-3 text-[13px] text-[#546478] max-w-[160px] truncate">{p.note || "—"}</td>
+                      <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
+                        <KebabMenu>
+                          <KebabItem icon="visibility" onSelect={() => navigate(`/payments/${p.id}`)}>View details</KebabItem>
+                          <KebabItem icon="receipt" onSelect={() => navigate(`/invoices/${p.invoiceId}`)}>Open invoice</KebabItem>
+                          <KebabItem icon="content_copy">Duplicate</KebabItem>
+                          <KebabSeparator />
+                          <KebabItem icon="block" destructive>Refund</KebabItem>
+                        </KebabMenu>
+                      </td>
                     </tr>
                   );
                 })}
@@ -352,137 +359,6 @@ export function Payments() {
           </div>
         </div>
 
-        {/* Detail Side Panel */}
-        {selectedPayment && (
-          <div className="w-[360px] bg-white border border-[#E5E7EB] rounded-xl overflow-hidden flex-shrink-0 flex flex-col">
-            <div className="px-5 py-4 border-b border-[#E5E7EB] flex items-center justify-between">
-              <h3 className="text-[15px] text-[#1A2332]" style={{ fontWeight: 700 }}>Payment Details</h3>
-              <button onClick={() => setSelectedPayment(null)} className="w-7 h-7 rounded-lg hover:bg-[#F5F7FA] flex items-center justify-center">
-                <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>close</span>
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto">
-              <div className="px-5 py-5 border-b border-[#EDF0F5] text-center">
-                <div className="text-[28px] text-[#1A2332] mb-2" style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
-                  {selectedPayment.status === "Refunded" ? "−" : ""}${fmt(selectedPayment.amount)}
-                </div>
-                <span
-                  className="px-3 py-1 rounded-full text-[12px]"
-                  style={{ fontWeight: 600, color: statusColors[selectedPayment.status].text, backgroundColor: statusColors[selectedPayment.status].bg }}
-                >
-                  {selectedPayment.status}
-                </span>
-              </div>
-
-              <div className="px-5 py-4 space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <div className="text-[11px] uppercase tracking-wider text-[#546478] mb-1" style={{ fontWeight: 600 }}>Date</div>
-                    <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{fmtDate(selectedPayment.date)}</div>
-                  </div>
-                  <div>
-                    <div className="text-[11px] uppercase tracking-wider text-[#546478] mb-1" style={{ fontWeight: 600 }}>Method</div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="material-icons text-[#546478]" style={{ fontSize: "15px" }}>{methodIcons[selectedPayment.method]}</span>
-                      <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{selectedPayment.method}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <div className="text-[11px] uppercase tracking-wider text-[#546478] mb-1" style={{ fontWeight: 600 }}>Client</div>
-                  <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{selectedPayment.clientName}</div>
-                  <div className="text-[12px] text-[#8899AA]">{selectedPayment.clientEmail}</div>
-                </div>
-
-                <div>
-                  <div className="text-[11px] uppercase tracking-wider text-[#546478] mb-1" style={{ fontWeight: 600 }}>Invoice</div>
-                  <button
-                    onClick={() => navigate(`/invoices/${selectedPayment.invoiceId}`)}
-                    className="flex items-center gap-2 px-3 py-2 bg-[#F5F7FA] border border-[#E5E7EB] rounded-lg hover:bg-[#EBF0F8] transition-colors w-full text-left"
-                  >
-                    <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "16px" }}>receipt</span>
-                    <span className="text-[13px] text-[#4A6FA5]" style={{ fontWeight: 500 }}>{selectedPayment.invoiceNumber}</span>
-                    <span className="material-icons text-[#C8D5E8] ml-auto" style={{ fontSize: "16px" }}>open_in_new</span>
-                  </button>
-                </div>
-
-                {selectedPayment.jobId && (
-                  <div>
-                    <div className="text-[11px] uppercase tracking-wider text-[#546478] mb-1" style={{ fontWeight: 600 }}>Job</div>
-                    <button
-                      onClick={() => navigate(`/jobs/${selectedPayment.jobId?.replace("JOB-", "")}`)}
-                      className="flex items-center gap-2 px-3 py-2 bg-[#F5F7FA] border border-[#E5E7EB] rounded-lg hover:bg-[#EBF0F8] transition-colors w-full text-left"
-                    >
-                      <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "16px" }}>work</span>
-                      <span className="text-[13px] text-[#4A6FA5]" style={{ fontWeight: 500 }}>{selectedPayment.jobId}</span>
-                      <span className="material-icons text-[#C8D5E8] ml-auto" style={{ fontSize: "16px" }}>open_in_new</span>
-                    </button>
-                  </div>
-                )}
-
-                {selectedPayment.note && (
-                  <div>
-                    <div className="text-[11px] uppercase tracking-wider text-[#546478] mb-1" style={{ fontWeight: 600 }}>Note</div>
-                    <div className="text-[13px] text-[#546478] bg-[#F9FAFB] border border-[#EDF0F5] rounded-lg px-3 py-2">{selectedPayment.note}</div>
-                  </div>
-                )}
-              </div>
-
-              <div className="px-5 py-4 border-t border-[#EDF0F5]">
-                <div className="text-[11px] uppercase tracking-wider text-[#546478] mb-3" style={{ fontWeight: 600 }}>Audit Trail</div>
-                <div className="space-y-3">
-                  <div className="flex gap-3">
-                    <div className="w-7 h-7 rounded-full bg-[#EBF0F8] flex items-center justify-center flex-shrink-0">
-                      <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "14px" }}>add_circle</span>
-                    </div>
-                    <div>
-                      <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>Payment recorded</div>
-                      <div className="text-[12px] text-[#8899AA]">by {selectedPayment.createdBy}</div>
-                      <div className="text-[11px] text-[#B0BEC5] mt-0.5">{selectedPayment.createdAt}</div>
-                    </div>
-                  </div>
-                  {selectedPayment.status === "Completed" && (
-                    <div className="flex gap-3">
-                      <div className="w-7 h-7 rounded-full bg-[#DCFCE7] flex items-center justify-center flex-shrink-0">
-                        <span className="material-icons text-[#22C55E]" style={{ fontSize: "14px" }}>check_circle</span>
-                      </div>
-                      <div>
-                        <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>Payment completed</div>
-                        <div className="text-[12px] text-[#8899AA]">Invoice balance updated</div>
-                        <div className="text-[11px] text-[#B0BEC5] mt-0.5">{selectedPayment.createdAt}</div>
-                      </div>
-                    </div>
-                  )}
-                  {selectedPayment.status === "Refunded" && (
-                    <div className="flex gap-3">
-                      <div className="w-7 h-7 rounded-full bg-[#EDE9FE] flex items-center justify-center flex-shrink-0">
-                        <span className="material-icons text-[#8B5CF6]" style={{ fontSize: "14px" }}>undo</span>
-                      </div>
-                      <div>
-                        <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>Payment refunded</div>
-                        <div className="text-[12px] text-[#8899AA]">Invoice balance adjusted</div>
-                        <div className="text-[11px] text-[#B0BEC5] mt-0.5">{selectedPayment.createdAt}</div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div className="px-5 py-3 border-t border-[#E5E7EB] bg-[#FAFBFC] flex items-center gap-2">
-              <button
-                onClick={() => navigate(`/invoices/${selectedPayment.invoiceId}`)}
-                className="flex-1 py-2 bg-[#4A6FA5] text-white rounded-lg text-[13px] hover:bg-[#3d5a85] flex items-center justify-center gap-1.5"
-                style={{ fontWeight: 600 }}
-              >
-                <span className="material-icons" style={{ fontSize: "16px" }}>receipt</span>
-                View Invoice
-              </button>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

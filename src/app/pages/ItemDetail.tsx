@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
+import { DetailTabs } from "../components/ui/detail-tabs";
 import { PlusIcon } from "../components/ui/plus-icon";
 
 // ─── Shared type/data (mirrors Items.tsx) ────────────────────────────────────
@@ -437,25 +438,9 @@ export function ItemDetail() {
         </div>
       </div>
 
-      {/* ── TABS ── */}
-      <div className="bg-white sticky top-0 z-30 border-b border-[#E5E7EB]">
-        <div className="flex items-center px-6">
-          {TABS.map(({ key, label }) => (
-            <button
-              key={key}
-              onClick={() => setActiveTab(key)}
-              className={`relative h-[45px] px-4 shrink-0 text-[13px] transition-colors whitespace-nowrap ${
-                activeTab === key ? "text-[#4A6FA5]" : "text-[#6B7280] hover:text-[#374151]"
-              }`}
-              style={{ fontWeight: 500 }}
-            >
-              {label}
-              {activeTab === key && (
-                <div className="absolute bottom-[10px] left-0 right-0 h-[2px] bg-[#4A6FA5]" />
-              )}
-            </button>
-          ))}
-        </div>
+      {/* ── UNIFIED TAB BAR ── */}
+      <div className="bg-white sticky top-0 z-30 px-6 py-3">
+        <DetailTabs tabs={TABS} activeTab={activeTab} onChange={setActiveTab} />
       </div>
 
       {/* ── CONTENT ── */}

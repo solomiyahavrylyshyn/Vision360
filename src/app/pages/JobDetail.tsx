@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import { useNavigate, useParams } from "react-router";
 import { KebabMenu, KebabItem } from "../components/ui/kebab-menu";
+import { DetailTabs } from "../components/ui/detail-tabs";
 import { PlusIcon } from "../components/ui/plus-icon";
 import { DocumentPreview } from "../components/DocumentPreview";
 
@@ -376,17 +377,15 @@ export function JobDetail() {
   };
   const setEditField = (field: string, value: any) => setEditJob((p: any) => ({ ...p, [field]: value }));
 
-  /* ── Tab label with counts ── */
-  const getTabLabel = (key: TabKey): string => {
+  /* ── Tab counts ── */
+  const getTabCount = (key: TabKey): number | undefined => {
     const counts: Partial<Record<TabKey, number>> = {
       estimate: job.linkedEstimate ? 1 : 0,
       invoices: job.linkedInvoice ? 1 : 0,
       expenses: job.expenses.length,
       documents: documents.length,
     };
-    const count = counts[key];
-    const base = BASE_TABS.find(t => t.key === key)!.label;
-    return count && count > 0 ? `${base} (${count})` : base;
+    return counts[key];
   };
 
   const toggleTabVisibility = (key: TabKey) => {
@@ -404,7 +403,9 @@ export function JobDetail() {
     });
   };
 
-  const visibleTabs = BASE_TABS.filter(t => !hiddenTabs.has(t.key));
+  const visibleTabs = BASE_TABS
+    .filter(t => !hiddenTabs.has(t.key))
+    .map(t => ({ ...t, count: getTabCount(t.key) }));
   const statusColor = statusColors[currentStatus] || "#6B7280";
 
   const handleStatusChange = (newStatus: string) => {
@@ -1288,62 +1289,18 @@ export function JobDetail() {
         </div>
       </div>
 
-      {/* ── HORIZONTAL TABS ── */}
+      {/* ── UNIFIED TAB BAR ── */}
       <div className="mt-6 px-6">
-        <div className="flex items-end overflow-x-auto scrollbar-hide">
-          {visibleTabs.map(({ key }) => {
-            const label = getTabLabel(key);
-            const isActive = activeTab === key;
-            return (
-              <button
-                key={key}
-                onClick={() => setActiveTab(key)}
-                className="relative shrink-0 select-none whitespace-nowrap transition-colors"
-                style={{
-                  padding: "10px 24px",
-                  marginRight: 4,
-                  borderTopLeftRadius: 10,
-                  borderTopRightRadius: 10,
-                  borderTop: `1px solid ${isActive ? "#D8DEE8" : "transparent"}`,
-                  borderLeft: `1px solid ${isActive ? "#D8DEE8" : "transparent"}`,
-                  borderRight: `1px solid ${isActive ? "#D8DEE8" : "transparent"}`,
-                  borderBottom: isActive ? "1px solid #F5F7FA" : "none",
-                  marginBottom: 0,
-                  background: isActive ? "#F5F7FA" : "transparent",
-                  color: isActive ? "#1A2332" : "#374151",
-                  fontWeight: isActive ? 600 : 400,
-                  fontSize: 13,
-                  boxShadow: isActive ? "0 -1px 3px rgba(0,0,0,0.05)" : "none",
-                  position: "relative",
-                  zIndex: isActive ? 2 : 1,
-                }}
-              >
-                {label}
-              </button>
-            );
-          })}
-        </div>
+        <DetailTabs
+          tabs={visibleTabs}
+          activeTab={activeTab}
+          onChange={setActiveTab}
+        />
       </div>
 
       {/* ── CONTENT AREA ── */}
-      <div className="px-6 pb-12">
-        <div
-          className="border border-[#D8DEE8]"
-          style={{
-            position: "relative",
-            zIndex: 1,
-            marginTop: -1,
-            borderTopLeftRadius: activeTab === visibleTabs[0]?.key ? 0 : 12,
-            borderTopRightRadius: 12,
-            borderBottomLeftRadius: 12,
-            borderBottomRightRadius: 12,
-            background: "#F5F7FA",
-          }}
-        >
-          <div className="p-4">
-            {renderContent()}
-          </div>
-        </div>
+      <div className="px-6 pb-12 mt-4">
+        {renderContent()}
       </div>
 
       {/* ── PER-SECTION EDIT MODAL ── */}

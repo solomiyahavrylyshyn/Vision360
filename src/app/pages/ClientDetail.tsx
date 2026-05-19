@@ -1,6 +1,6 @@
 import { useState, useSyncExternalStore, useCallback, useRef } from "react";
 import { DocumentPreview } from "../components/DocumentPreview";
-import { DndProvider, useDrag, useDrop } from "react-dnd";
+import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { useDraggableColumns, DraggableTh } from "../components/ui/draggable-columns";
 import { useNavigate, useParams } from "react-router";
@@ -26,6 +26,7 @@ import {
   DropdownMenuSubContent,
 } from "../components/ui/dropdown-menu";
 import { KebabMenu as KebabMenuShared, KebabItem } from "../components/ui/kebab-menu";
+import { DetailTabs } from "../components/ui/detail-tabs";
 import { toast } from "sonner";
 import { tagsStore } from "../stores/tagsStore";
 import { customFieldsStore } from "../stores/customFieldsStore";
@@ -264,83 +265,14 @@ function PaymentTable() {
   );
 }
 
-const TAB_ITEM = "CLIENT_TAB";
-interface DraggableTabProps {
-  tabKey: TabKey; label: string; count?: number;
-  isActive: boolean; onMove: (from: TabKey, to: TabKey) => void;
-  onClick: () => void;
-}
-function DraggableTab({ tabKey, label, count, isActive, onMove, onClick }: DraggableTabProps) {
-  const ref = useRef<HTMLButtonElement>(null);
-  const [{ isDragging }, drag] = useDrag({
-    type: TAB_ITEM,
-    item: { key: tabKey },
-    collect: (m) => ({ isDragging: m.isDragging() }),
-  });
-  const [{ isOver }, drop] = useDrop({
-    accept: TAB_ITEM,
-    drop: (dragged: { key: TabKey }) => { if (dragged.key !== tabKey) onMove(dragged.key, tabKey); },
-    collect: (m) => ({ isOver: m.isOver() }),
-  });
-  drag(drop(ref));
-  // Folder-style tab: rounded top corners, border on top/left/right, the active
-  // tab's bottom border is the same color as the content area so it "merges"
-  // with the panel below. A negative margin-bottom overlaps the shelf line
-  // under the tab row for the seamless folder effect.
-  return (
-    <button
-      ref={ref}
-      onClick={onClick}
-      className={`relative shrink-0 select-none whitespace-nowrap transition-colors ${
-        isDragging ? "opacity-40" : ""
-      } ${isOver ? "ring-2 ring-[#4A6FA5]" : ""}`}
-      style={{
-        cursor: "grab",
-        padding: "10px 24px",
-        marginRight: 4,
-        borderTopLeftRadius: 10,
-        borderTopRightRadius: 10,
-        borderTop: `1px solid ${isActive ? "#D8DEE8" : "transparent"}`,
-        borderLeft: `1px solid ${isActive ? "#D8DEE8" : "transparent"}`,
-        borderRight: `1px solid ${isActive ? "#D8DEE8" : "transparent"}`,
-        borderBottom: isActive ? "1px solid #F5F7FA" : "none",
-        marginBottom: 0,
-        background: isActive ? "#F5F7FA" : "transparent",
-        color: isActive ? "#1A2332" : "#374151",
-        fontWeight: isActive ? 600 : 400,
-        fontSize: 13,
-        boxShadow: isActive ? "0 -1px 3px rgba(0,0,0,0.05)" : "none",
-        position: "relative",
-        zIndex: isActive ? 2 : 1,
-      }}
-    >
-      {label}
-      {count !== undefined && count > 0 && (
-        <span className="ml-1" style={{ fontWeight: 400, color: isActive ? "#6B7280" : "#9CA3AF" }}>({count})</span>
-      )}
-    </button>
-  );
-}
-
 export function ClientDetail() {
   const navigate = useNavigate();
   useParams<{ id: string }>();
   const [activeTab, setActiveTab] = useState<TabKey>("details");
-  const [tabs, setTabs] = useState(DEFAULT_TABS);
+  const [tabs] = useState(DEFAULT_TABS);
   const [hiddenTabs, setHiddenTabs] = useState<Set<TabKey>>(new Set());
   const [showTabSettings, setShowTabSettings] = useState(false);
   const tabSettingsRef = useRef<HTMLDivElement>(null);
-
-  const moveTab = useCallback((from: TabKey, to: TabKey) => {
-    setTabs(prev => {
-      const arr = [...prev];
-      const fi = arr.findIndex(t => t.key === from);
-      const ti = arr.findIndex(t => t.key === to);
-      const [item] = arr.splice(fi, 1);
-      arr.splice(ti, 0, item);
-      return arr;
-    });
-  }, []);
 
   const toggleTabVisibility = (key: TabKey) => {
     setHiddenTabs(prev => {
@@ -1776,54 +1708,26 @@ export function ClientDetail() {
           ))}
         </div>
 
-        {/* Folder-style tabs */}
-        <div className="mt-6">
-          <DndProvider backend={HTML5Backend}>
-            <div className="flex items-end justify-between">
-              {/* Tab row with the shelf line under it */}
-              <div className="flex items-end flex-1 overflow-x-auto scrollbar-hide">
-                {visibleTabs.map(({ key, label, count }) => (
-                  <DraggableTab
-                    key={key}
-                    tabKey={key}
-                    label={label}
-                    count={count}
-                    isActive={activeTab === key}
-                    onMove={moveTab}
-                    onClick={() => { setActiveTab(key); if (isEditing) setIsEditing(false); }}
-                  />
-                ))}
-              </div>
-              <button
-                onClick={() => setShowTabSettings(true)}
-                className="w-9 h-9 ml-2 flex items-center justify-center rounded-lg hover:bg-[#F5F7FA] text-[#1A2332] transition-colors shrink-0 self-end mb-0.5"
-                title="Customize tabs"
-              >
-                <span className="material-icons" style={{ fontSize: "16px" }}>settings</span>
-              </button>
-            </div>
-          </DndProvider>
-        </div>
+        {/* Unified detail-page tab bar */}
+        <DetailTabs
+          tabs={visibleTabs}
+          activeTab={activeTab}
+          onChange={(key) => { setActiveTab(key); if (isEditing) setIsEditing(false); }}
+          trailing={
+            <button
+              onClick={() => setShowTabSettings(true)}
+              className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-[#F5F7FA] text-[#1A2332] transition-colors shrink-0"
+              title="Customize tabs"
+            >
+              <span className="material-icons" style={{ fontSize: "18px" }}>settings</span>
+            </button>
+          }
+          className="mt-6"
+        />
 
-        {/* Tab content card — card pulls up 1px so active tab's white borderBottom sits exactly on the top border.
-            When the first visible tab is active its left border is flush with the card left edge, so we drop
-            the top-left radius to avoid an exposed rounded notch at that corner. */}
-        <div
-          className="border border-[#D8DEE8]"
-          style={{
-            position: "relative",
-            zIndex: 1,
-            marginTop: -1,
-            borderTopLeftRadius: activeTab === visibleTabs[0]?.key ? 0 : 12,
-            borderTopRightRadius: 12,
-            borderBottomLeftRadius: 12,
-            borderBottomRightRadius: 12,
-            background: "#F5F7FA",
-          }}
-        >
-          <div className="p-4">
-            {renderContent()}
-          </div>
+        {/* Tab content */}
+        <div className="mt-4">
+          {renderContent()}
         </div>
       </div>
 

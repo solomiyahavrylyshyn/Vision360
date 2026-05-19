@@ -269,19 +269,9 @@ export function Estimates() {
         title="Estimates"
         count={selectedIds.size > 0 ? `${filtered.length} records · ${selectedIds.size} selected` : `${filtered.length} records`}
         actions={
-          <>
-            <CreateActionButton onClick={() => setCreateModalOpen(true)}>
-              Create Estimate
-            </CreateActionButton>
-            <KebabMenu triggerClassName="w-9 h-9 border border-[#E5E7EB] rounded-lg bg-white">
-              <KebabItem icon="view_column">Edit Columns</KebabItem>
-              <KebabItem icon="swap_horiz">Change Status</KebabItem>
-              <KebabItem icon="content_copy">Manage Duplicates</KebabItem>
-              <KebabSeparator />
-              <KebabItem icon="file_upload">Import</KebabItem>
-              <KebabItem icon="file_download">Export</KebabItem>
-            </KebabMenu>
-          </>
+          <CreateActionButton onClick={() => setCreateModalOpen(true)}>
+            Create Estimate
+          </CreateActionButton>
         }
       />
 
@@ -366,7 +356,16 @@ export function Estimates() {
             <span className="material-icons" style={{ fontSize: "16px" }}>filter_alt</span>
             Filter
           </button>
-          <div className="flex-1" />
+          <div className="ml-auto">
+            <KebabMenu triggerClassName="w-10 h-10 border border-[#D8DEE8] rounded-xl bg-white">
+              <KebabItem icon="view_column">Edit Columns</KebabItem>
+              <KebabItem icon="swap_horiz">Change Status</KebabItem>
+              <KebabItem icon="content_copy">Manage Duplicates</KebabItem>
+              <KebabSeparator />
+              <KebabItem icon="file_upload">Import</KebabItem>
+              <KebabItem icon="file_download">Export</KebabItem>
+            </KebabMenu>
+          </div>
         </div>
         <SelectionBar
           count={selectedIds.size}
@@ -477,7 +476,7 @@ export function Estimates() {
                     <span style={{ fontVariantNumeric: "tabular-nums", color: est.depositDue > 0 ? "#1A2332" : "#D1D5DB" }}>${fmt(est.depositDue)}</span>
                   </td>
                   <td className="px-4 py-4" onClick={(e) => e.stopPropagation()}>
-                    <KebabMenu triggerClassName="w-7 h-7 rounded hover:bg-[#F3F4F6] flex items-center justify-center">
+                    <KebabMenu>
                       <KebabItem icon="edit" onClick={() => navigate(`/estimates/${est.id}`)}>Edit</KebabItem>
                       <KebabItem icon="content_copy">Duplicate</KebabItem>
                       <KebabItem icon="send">Send to Client</KebabItem>

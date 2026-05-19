@@ -339,19 +339,9 @@ export function Invoices() {
         title="Invoices"
         count={selectedIds.size > 0 ? `${filtered.length} records · ${selectedIds.size} selected` : `${filtered.length} records`}
         actions={
-          <>
-            <CreateActionButton onClick={() => navigate("/invoices/new")}>
-              Create Invoice
-            </CreateActionButton>
-            <KebabMenu triggerClassName="w-9 h-9 border border-[#E5E7EB] rounded-lg bg-white">
-              <KebabItem icon="view_column">Edit Columns</KebabItem>
-              <KebabItem icon="swap_horiz">Change Status</KebabItem>
-              <KebabItem icon="content_copy">Manage Duplicates</KebabItem>
-              <KebabSeparator />
-              <KebabItem icon="file_upload">Import</KebabItem>
-              <KebabItem icon="file_download">Export</KebabItem>
-            </KebabMenu>
-          </>
+          <CreateActionButton onClick={() => navigate("/invoices/new")}>
+            Create Invoice
+          </CreateActionButton>
         }
       />
 
@@ -428,7 +418,16 @@ export function Invoices() {
             <span className="material-icons" style={{ fontSize: "16px" }}>filter_alt</span>
             Filter
           </button>
-          <div className="flex-1" />
+          <div className="ml-auto">
+            <KebabMenu triggerClassName="w-10 h-10 border border-[#D8DEE8] rounded-xl bg-white">
+              <KebabItem icon="view_column">Edit Columns</KebabItem>
+              <KebabItem icon="swap_horiz">Change Status</KebabItem>
+              <KebabItem icon="content_copy">Manage Duplicates</KebabItem>
+              <KebabSeparator />
+              <KebabItem icon="file_upload">Import</KebabItem>
+              <KebabItem icon="file_download">Export</KebabItem>
+            </KebabMenu>
+          </div>
         </div>
         <SelectionBar
           count={selectedIds.size}
@@ -458,12 +457,13 @@ export function Invoices() {
                 {["Number", "Type", "Date", "Client", "Job", "Status", "Total", "Balance", "Due Date"].map(h => (
                   <th key={h} className="px-3 py-3 text-left text-[14px] text-[#1A2332] whitespace-nowrap" style={{ fontWeight: 500 }}>{h}</th>
                 ))}
+                <th className="px-4 py-3 w-10" />
               </tr>
             </thead>
             <tbody>
               {paginated.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="px-4 py-16 text-center">
+                  <td colSpan={11} className="px-4 py-16 text-center">
                     <span className="material-icons text-[#C8D5E8] mb-2" style={{ fontSize: "48px" }}>receipt</span>
                     <div className="text-[14px] text-[#546478]" style={{ fontWeight: 500 }}>No invoices found</div>
                     <div className="text-[12px] text-[#8899AA] mt-1">Try adjusting your filters or create a new invoice</div>
@@ -511,6 +511,15 @@ export function Invoices() {
                     <span className={inv.balance > 0 ? "text-[#EF4444]" : "text-[#22C55E]"}>${fmt(inv.balance)}</span>
                   </td>
                   <td className="px-3 py-3 text-[13px] text-[#546478] whitespace-nowrap">{fmtDate(inv.dueDate)}</td>
+                  <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
+                    <KebabMenu>
+                      <KebabItem icon="edit" onSelect={() => navigate(`/invoices/${inv.id}`)}>Edit</KebabItem>
+                      <KebabItem icon="content_copy">Duplicate</KebabItem>
+                      <KebabItem icon="send">Send to Client</KebabItem>
+                      <KebabSeparator />
+                      <KebabItem icon="block" destructive>Void</KebabItem>
+                    </KebabMenu>
+                  </td>
                 </tr>
                 );
               })}

@@ -539,18 +539,9 @@ export function Items() {
         count={`${tabRecordCounts[activeTab]} records`}
         className="mb-4"
         actions={
-          <>
-            <CreateActionButton onClick={() => { setEditingItem(null); setItemModalOpen(true); }}>
-              {activeTab === "pricebook" ? "Create Pricebook Item" : "Create Item"}
-            </CreateActionButton>
-            <KebabMenu triggerClassName="w-9 h-9 border border-[#E5E7EB] rounded-lg bg-white">
-              <KebabItem icon="view_column">Edit Columns</KebabItem>
-              <KebabItem icon="content_copy">Manage Duplicates</KebabItem>
-              <KebabSeparator />
-              <KebabItem icon="file_upload" onClick={() => alert("Import functionality — CSV/Google Sheets import will be available with backend integration.")}>Import</KebabItem>
-              <KebabItem icon="file_download" onClick={() => handleExport()}>Export</KebabItem>
-            </KebabMenu>
-          </>
+          <CreateActionButton onClick={() => { setEditingItem(null); setItemModalOpen(true); }}>
+            {activeTab === "pricebook" ? "Create Pricebook Item" : "Create Item"}
+          </CreateActionButton>
         }
       />
 
@@ -605,6 +596,15 @@ export function Items() {
               <span className="material-icons" style={{ fontSize: "16px" }}>tune</span>
               Filters
             </button>
+            <div className="ml-auto">
+              <KebabMenu triggerClassName="w-10 h-10 border border-[#D8DEE8] rounded-xl bg-white">
+                <KebabItem icon="view_column">Edit Columns</KebabItem>
+                <KebabItem icon="content_copy">Manage Duplicates</KebabItem>
+                <KebabSeparator />
+                <KebabItem icon="file_upload">Import</KebabItem>
+                <KebabItem icon="file_download" onClick={() => handleExport()}>Export</KebabItem>
+              </KebabMenu>
+            </div>
           </div>
 
           {/* Table */}
@@ -631,7 +631,7 @@ export function Items() {
                       </div>
                     </DraggableTh>
                   ))}
-                  <th className="px-4 py-2 w-[60px] text-right text-[11px] uppercase tracking-wider text-[#546478]" style={{ fontWeight: 600 }}>Actions</th>
+                  <th className="px-4 py-3 w-10" />
                 </tr>
               </thead>
               <tbody>
@@ -679,7 +679,7 @@ export function Items() {
                       }
                     })}
                     <td className="px-4 py-2 text-right" onClick={e => e.stopPropagation()}>
-                      <KebabMenu triggerClassName="w-8 h-8 border border-[#E5E7EB] rounded-lg bg-white">
+                      <KebabMenu>
                         <KebabItem icon="edit">Edit</KebabItem>
                         <KebabItem icon="content_copy">Duplicate</KebabItem>
                         <KebabSeparator />
@@ -756,6 +756,15 @@ export function Items() {
               <span className="material-icons" style={{ fontSize: "16px" }}>tune</span>
               Filters
             </button>
+            <div className="ml-auto">
+              <KebabMenu triggerClassName="w-10 h-10 border border-[#D8DEE8] rounded-xl bg-white">
+                <KebabItem icon="view_column">Edit Columns</KebabItem>
+                <KebabItem icon="content_copy">Manage Duplicates</KebabItem>
+                <KebabSeparator />
+                <KebabItem icon="file_upload">Import</KebabItem>
+                <KebabItem icon="file_download" onClick={() => handleExport()}>Export</KebabItem>
+              </KebabMenu>
+            </div>
           </div>
 
           {/* Bulk actions bar */}
@@ -813,7 +822,7 @@ export function Items() {
                       </div>
                     </th>
                   ))}
-                  <th className="px-4 py-2 w-[60px] text-right text-[11px] uppercase tracking-wider text-[#546478]" style={{ fontWeight: 600 }}>Actions</th>
+                  <th className="px-4 py-3 w-10" />
                 </tr>
               </thead>
               <tbody>
@@ -866,7 +875,7 @@ export function Items() {
                           : <span className="text-[#C8D5E8]">—</span>}
                       </td>
                       <td className="px-4 py-2 text-right" onClick={(e) => e.stopPropagation()}>
-                        <KebabMenu triggerClassName="w-8 h-8 border border-[#E5E7EB] rounded-lg bg-white">
+                        <KebabMenu>
                           <KebabItem icon="edit" onClick={() => { setEditingItem(item); setItemModalOpen(true); }}>Edit</KebabItem>
                           <KebabItem icon="content_copy">Duplicate</KebabItem>
                           <KebabSeparator />

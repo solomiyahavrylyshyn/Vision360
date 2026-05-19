@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate, useParams } from "react-router";
 import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
+import { DetailTabs } from "../components/ui/detail-tabs";
 import { PlusIcon } from "../components/ui/plus-icon";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -610,27 +611,16 @@ export function EstimateDetail() {
         </KebabMenu>
       </div>
 
-      {/* Tabs */}
-      <div className="bg-white border-b border-[#E5E7EB] px-6">
-        <div className="flex gap-0">
-          {TABS.map(tab => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={`px-4 py-3.5 text-[13px] border-b-2 transition-colors ${
-                activeTab === tab.key
-                  ? "border-[#4A6FA5] text-[#4A6FA5]"
-                  : "border-transparent text-[#546478] hover:text-[#1A2332]"
-              }`}
-              style={{ fontWeight: activeTab === tab.key ? 600 : 500 }}
-            >
-              {tab.label}
-              {tab.key === "items" && estimate.items.length > 0 && (
-                <span className="ml-1" style={{ fontWeight: 400 }}>({estimate.items.length})</span>
-              )}
-            </button>
-          ))}
-        </div>
+      {/* Unified tab bar */}
+      <div className="bg-white px-6 pt-3 pb-3">
+        <DetailTabs
+          tabs={TABS.map(t => ({
+            ...t,
+            count: t.key === "items" ? estimate.items.length : undefined,
+          }))}
+          activeTab={activeTab}
+          onChange={setActiveTab}
+        />
       </div>
 
       {/* Tab content */}
