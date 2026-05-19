@@ -524,28 +524,40 @@ export function EstimateDetail() {
 
   // ── Main render ──────────────────────────────────────────────────────────────
   return (
-    <div className="bg-[#F5F7FA] min-h-full">
-      {/* Top nav bar */}
-      <div className="bg-white border-b border-[#E5E7EB]">
-        <div className="px-6 h-11 flex items-center gap-3">
-          <button
-            onClick={() => navigate("/estimates")}
-            className="inline-flex items-center gap-1.5 text-[13px] text-[#4A6FA5] hover:text-[#3d5a85] transition-colors"
-            style={{ fontWeight: 500 }}
-          >
-            <span className="material-icons" style={{ fontSize: "18px" }}>arrow_back</span>
-            Back to Estimates
-          </button>
-          <span className="text-[#E5E7EB]">/</span>
-          <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>
-            #{estimate.estimateNumber}{estimate.estimateName ? ` · ${estimate.estimateName}` : ""}
-          </span>
-        </div>
+    <div className="min-h-screen bg-[#F5F7FA]">
+      {/* ── PAGE HEADER (back arrow + actions on gray, outside the white card) ── */}
+      <div className="px-6 pt-6 pb-4 flex items-center justify-between gap-3">
+        <button
+          onClick={() => navigate("/estimates")}
+          className="inline-flex items-center gap-1.5 text-[13px] text-[#4A6FA5] hover:text-[#3d5a85] transition-colors"
+          style={{ fontWeight: 500 }}
+        >
+          <span className="material-icons" style={{ fontSize: "18px" }}>arrow_back</span>
+          Back to Estimates
+        </button>
+        <KebabMenu triggerClassName="w-9 h-9 border border-[#E5E7EB] rounded-md bg-white flex items-center justify-center hover:bg-[#F5F7FA]">
+          <KebabItem icon="send">Send</KebabItem>
+          <KebabItem icon="visibility">Preview</KebabItem>
+          <KebabItem icon="download">Download PDF</KebabItem>
+          <KebabSeparator />
+          <KebabItem icon="content_copy">Duplicate</KebabItem>
+          <KebabItem icon="receipt">Copy to Invoice</KebabItem>
+          <KebabItem icon="work">Copy to Job</KebabItem>
+          <KebabSeparator />
+          <KebabItem icon="block" destructive>Inactivate</KebabItem>
+          <KebabItem icon="print">Print</KebabItem>
+        </KebabMenu>
       </div>
 
-      {/* Status bar */}
-      <div className="bg-white border-b border-[#E5E7EB] px-6 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      {/* ── ONE BIG WHITE CARD CONTAINING EVERYTHING ── */}
+      <div className="mx-6 mb-6 bg-white border border-[#E5E7EB] rounded-xl p-4">
+
+        {/* Identity row: estimate # + status pill + client + job */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3 flex-wrap">
+          <h2 className="text-[20px] text-[#1A2332] leading-[27px]" style={{ fontWeight: 600 }}>
+            #{estimate.estimateNumber}{estimate.estimateName ? ` · ${estimate.estimateName}` : ""}
+          </h2>
           {/* Status pill with dropdown */}
           <div ref={statusRef} className="relative">
             <button
@@ -594,25 +606,10 @@ export function EstimateDetail() {
               </button>
             </>
           )}
+          </div>
         </div>
 
-        {/* Actions kebab */}
-        <KebabMenu triggerClassName="w-9 h-9 border border-[#E5E7EB] rounded-lg bg-white flex items-center justify-center hover:bg-[#F5F7FA]">
-          <KebabItem icon="send">Send</KebabItem>
-          <KebabItem icon="visibility">Preview</KebabItem>
-          <KebabItem icon="download">Download PDF</KebabItem>
-          <KebabSeparator />
-          <KebabItem icon="content_copy">Duplicate</KebabItem>
-          <KebabItem icon="receipt">Copy to Invoice</KebabItem>
-          <KebabItem icon="work">Copy to Job</KebabItem>
-          <KebabSeparator />
-          <KebabItem icon="block" destructive>Inactivate</KebabItem>
-          <KebabItem icon="print">Print</KebabItem>
-        </KebabMenu>
-      </div>
-
-      {/* Unified tab bar */}
-      <div className="bg-white px-6 pt-3 pb-3">
+        {/* Unified tab bar */}
         <DetailTabs
           tabs={TABS.map(t => ({
             ...t,
@@ -620,15 +617,16 @@ export function EstimateDetail() {
           }))}
           activeTab={activeTab}
           onChange={setActiveTab}
+          className="mt-2"
         />
-      </div>
 
-      {/* Tab content */}
-      <div className="p-6">
-        {activeTab === "details" && renderDetailsTab()}
-        {activeTab === "items" && renderItemsTab()}
-        {activeTab === "deposits" && renderDepositsTab()}
-        {activeTab === "activity" && renderActivityTab()}
+        {/* Tab content */}
+        <div className="mt-4">
+          {activeTab === "details" && renderDetailsTab()}
+          {activeTab === "items" && renderItemsTab()}
+          {activeTab === "deposits" && renderDepositsTab()}
+          {activeTab === "activity" && renderActivityTab()}
+        </div>
       </div>
 
       {/* Add Item Modal */}

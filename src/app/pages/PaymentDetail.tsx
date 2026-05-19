@@ -136,41 +136,43 @@ export function PaymentDetail() {
 
   return (
     <div className="min-h-screen bg-[#F5F7FA]">
-      {/* Header / summary bar */}
-      <div className="bg-white border-b border-[#E5E7EB]">
-        <div className="px-8 h-12 flex items-center justify-between border-b border-[#F3F4F6]">
-          <button
-            onClick={() => navigate("/payments")}
-            className="inline-flex items-center gap-1.5 text-[13px] text-[#4A6FA5] hover:text-[#3d5a85] transition-colors"
-            style={{ fontWeight: 500 }}
-          >
-            <span className="material-icons" style={{ fontSize: "18px" }}>arrow_back</span>
-            Back to Payments
-          </button>
-          <KebabMenu triggerClassName="h-8 w-8 border border-[#E5E7EB] rounded-md hover:bg-[#EDF0F5] flex items-center justify-center">
-            <KebabItem icon="receipt" onSelect={() => navigate(`/invoices/${payment.invoiceId}`)}>Open Invoice</KebabItem>
-            <KebabItem icon="content_copy">Duplicate</KebabItem>
-            <KebabSeparator />
-            <KebabItem icon="block" destructive>Refund</KebabItem>
-          </KebabMenu>
-        </div>
-        <div className="px-8 py-5 flex items-baseline gap-3">
-          <h1 className="text-[22px] text-[#1A2332] leading-none" style={{ fontWeight: 600 }}>
+      {/* ── PAGE HEADER (back arrow + actions on gray, outside the white card) ── */}
+      <div className="px-6 pt-6 pb-4 flex items-center justify-between gap-3">
+        <button
+          onClick={() => navigate("/payments")}
+          className="inline-flex items-center gap-1.5 text-[13px] text-[#4A6FA5] hover:text-[#3d5a85] transition-colors"
+          style={{ fontWeight: 500 }}
+        >
+          <span className="material-icons" style={{ fontSize: "18px" }}>arrow_back</span>
+          Back to Payments
+        </button>
+        <KebabMenu triggerClassName="h-9 w-9 border border-[#E5E7EB] rounded-md hover:bg-[#EDF0F5] flex items-center justify-center">
+          <KebabItem icon="receipt" onSelect={() => navigate(`/invoices/${payment.invoiceId}`)}>Open Invoice</KebabItem>
+          <KebabItem icon="content_copy">Duplicate</KebabItem>
+          <KebabSeparator />
+          <KebabItem icon="block" destructive>Refund</KebabItem>
+        </KebabMenu>
+      </div>
+
+      {/* ── ONE BIG WHITE CARD CONTAINING EVERYTHING ── */}
+      <div className="mx-6 mb-6 bg-white border border-[#E5E7EB] rounded-xl p-4">
+
+        {/* Identity row */}
+        <div className="flex items-baseline gap-3">
+          <h1 className="text-[20px] text-[#1A2332] leading-[27px]" style={{ fontWeight: 600 }}>
             Payment #{payment.id}
           </h1>
           <span className="text-[13px] text-[#9CA3AF]">{fmtDate(payment.date)} · {payment.clientName}</span>
         </div>
-      </div>
 
-      {/* Unified tab bar */}
-      <div className="bg-white px-6 py-3">
-        <DetailTabs tabs={TABS} activeTab={activeTab} onChange={setActiveTab} />
-      </div>
+        {/* Unified tab bar */}
+        <DetailTabs tabs={TABS} activeTab={activeTab} onChange={setActiveTab} className="mt-6" />
 
-      {/* Content */}
-      <main className="min-h-[calc(100vh-200px)] p-6 pb-12 bg-[#F5F7FA]">
-        {activeTab === "details" ? renderDetails() : renderActivity()}
-      </main>
+        {/* Content */}
+        <div className="mt-4">
+          {activeTab === "details" ? renderDetails() : renderActivity()}
+        </div>
+      </div>
     </div>
   );
 }

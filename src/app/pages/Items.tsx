@@ -593,7 +593,7 @@ export function Items() {
               <option value="Inactive">Inactive</option>
             </select>
             <button className="h-8 px-3 border border-[#E5E7EB] rounded-lg text-[13px] text-[#546478] bg-white hover:bg-[#F5F7FA] flex items-center gap-1.5 transition-colors">
-              <span className="material-icons" style={{ fontSize: "16px" }}>tune</span>
+              <span className="material-icons" style={{ fontSize: "16px" }}>filter_alt</span>
               Filters
             </button>
             <div className="ml-auto">
@@ -753,7 +753,7 @@ export function Items() {
               <option value="Inactive">Inactive</option>
             </select>
             <button className="h-8 px-3 border border-[#E5E7EB] rounded-lg text-[13px] text-[#546478] bg-white hover:bg-[#F5F7FA] flex items-center gap-1.5 transition-colors">
-              <span className="material-icons" style={{ fontSize: "16px" }}>tune</span>
+              <span className="material-icons" style={{ fontSize: "16px" }}>filter_alt</span>
               Filters
             </button>
             <div className="ml-auto">

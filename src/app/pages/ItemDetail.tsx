@@ -344,32 +344,33 @@ export function ItemDetail() {
 
   return (
     <div className="min-h-screen bg-[#F5F7FA]">
-      {/* ── SUMMARY BAR ── */}
-      <div className="bg-white border-b border-[#E5E7EB]">
-        {/* Back + Actions */}
-        <div className="px-8 h-12 flex items-center justify-between border-b border-[#F3F4F6]">
-          <button
-            onClick={() => navigate("/items")}
-            className="inline-flex items-center gap-1.5 text-[13px] text-[#4A6FA5] hover:text-[#3d5a85] transition-colors"
-            style={{ fontWeight: 500 }}
-          >
-            <span className="material-icons" style={{ fontSize: "18px" }}>arrow_back</span>
-            Back to Items
+      {/* ── PAGE HEADER (back arrow + actions on gray, outside the white card) ── */}
+      <div className="px-6 pt-6 pb-4 flex items-center justify-between gap-3">
+        <button
+          onClick={() => navigate("/items")}
+          className="inline-flex items-center gap-1.5 text-[13px] text-[#4A6FA5] hover:text-[#3d5a85] transition-colors"
+          style={{ fontWeight: 500 }}
+        >
+          <span className="material-icons" style={{ fontSize: "18px" }}>arrow_back</span>
+          Back to Items
+        </button>
+        <div className="flex items-center gap-2">
+          <button className="border border-[#E5E7EB] text-[#546478] hover:bg-[#EDF0F5] h-9 px-2.5 rounded-md flex items-center justify-center">
+            <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
           </button>
-          <div className="flex items-center gap-2">
-            <button className="border border-[#E5E7EB] text-[#546478] hover:bg-[#EDF0F5] h-8 px-2.5 rounded-md flex items-center justify-center">
-              <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
-            </button>
-            <KebabMenu triggerClassName="h-8 w-8 border border-[#E5E7EB] rounded-md hover:bg-[#EDF0F5] flex items-center justify-center">
-              <KebabItem icon="content_copy">Duplicate Item</KebabItem>
-              <KebabSeparator />
-              <KebabItem icon="block" destructive>Inactivate Item</KebabItem>
-            </KebabMenu>
-          </div>
+          <KebabMenu triggerClassName="h-9 w-9 border border-[#E5E7EB] rounded-md hover:bg-[#EDF0F5] flex items-center justify-center">
+            <KebabItem icon="content_copy">Duplicate Item</KebabItem>
+            <KebabSeparator />
+            <KebabItem icon="block" destructive>Inactivate Item</KebabItem>
+          </KebabMenu>
         </div>
+      </div>
+
+      {/* ── ONE BIG WHITE CARD CONTAINING EVERYTHING ── */}
+      <div className="mx-6 mb-6 bg-white border border-[#E5E7EB] rounded-xl p-4">
 
         {/* Summary content */}
-        <div className="px-8 pt-6 pb-5">
+        <div>
           <div className="flex items-start justify-between gap-8">
             {/* Left: name + badges */}
             <div className="flex flex-col gap-3">
@@ -436,17 +437,15 @@ export function ItemDetail() {
             </div>
           </div>
         </div>
-      </div>
 
-      {/* ── UNIFIED TAB BAR ── */}
-      <div className="bg-white sticky top-0 z-30 px-6 py-3">
-        <DetailTabs tabs={TABS} activeTab={activeTab} onChange={setActiveTab} />
-      </div>
+        {/* ── UNIFIED TAB BAR ── */}
+        <DetailTabs tabs={TABS} activeTab={activeTab} onChange={setActiveTab} className="mt-6" />
 
-      {/* ── CONTENT ── */}
-      <main className="min-h-[calc(100vh-200px)] p-6 pb-12 space-y-4 bg-[#F5F7FA]">
-        {activeTab === "details" ? renderDetailsTab() : renderActivityTab()}
-      </main>
+        {/* ── CONTENT ── */}
+        <div className="mt-4 space-y-4">
+          {activeTab === "details" ? renderDetailsTab() : renderActivityTab()}
+        </div>
+      </div>
     </div>
   );
 }

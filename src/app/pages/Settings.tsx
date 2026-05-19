@@ -1977,45 +1977,31 @@ export function Settings() {
         <div className="max-w-[1120px] px-8 py-7">
           {activeSection === "companyInfo" && (
             <>
-              <SectionHeader
-                title="Company Info"
-                description="Manage the basic company information used across client-facing documents and system defaults."
-              />
+              <SectionHeader title="Company info" />
               <div className="space-y-4">
-                <SectionCard title="Company Info" description="Core business information shown on documents, emails, and customer-facing records.">
+                <SectionCard title="Company info" description="Core business information shown on documents, emails, and customer-facing records.">
                   <div className="grid grid-cols-2 gap-4">
-                    <Field label="Company Name"><Input value={companyName} onChange={e => companyStore.setCompanyName(e.target.value)} className="h-9 border-[#D8DEE8]" /></Field>
-                    <Field label="Legal entity name"><Input defaultValue="Omega Home Services LLC" className="h-9 border-[#D8DEE8]" /></Field>
-                    <Field label="Business Owner Name"><Input defaultValue="Peter Novak" className="h-9 border-[#D8DEE8]" /></Field>
-                    <div className="col-span-2">
-                      <Field label="Address"><Input defaultValue="123 Main Street, Suite 100, Tampa, FL 33606" className="h-9 border-[#D8DEE8]" /></Field>
-                    </div>
+                    <Field label="Company name"><Input value={companyName} onChange={e => companyStore.setCompanyName(e.target.value)} className="h-9 border-[#D8DEE8]" /></Field>
+                    <Field label="Legal entity name"><Input defaultValue="Omega Home Services" className="h-9 border-[#D8DEE8]" /></Field>
+                    <Field label="Business owner name"><Input defaultValue="Peter Novak" className="h-9 border-[#D8DEE8]" /></Field>
+                    <Field label="Address"><Input defaultValue="123 Main Street, Suite 100, Tampa, FL 33606" className="h-9 border-[#D8DEE8]" /></Field>
                     <Field label="Phone number"><Input defaultValue="(813) 286-7572" className="h-9 border-[#D8DEE8]" /></Field>
                     <Field label="Website"><Input defaultValue="https://omega-home.com" className="h-9 border-[#D8DEE8]" /></Field>
-                    <Field label="Email address"><Input defaultValue="office@omega-home.com" className="h-9 border-[#D8DEE8]" /></Field>
+                    <Field label="Email"><Input defaultValue="office@omega-home.com" className="h-9 border-[#D8DEE8]" /></Field>
                     <Field label="License number"><Input defaultValue="LIC-2486-FL" className="h-9 border-[#D8DEE8]" /></Field>
                   </div>
-
-                  {/* Footer — Save / Cancel (matches CreateClient pattern) */}
-                  <div className="mt-5 -mx-5 -mb-5 px-5 py-4 border-t border-[#E1E6EF] flex items-center justify-end gap-3 bg-white rounded-b-xl">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => toast.info("Changes discarded")}
-                      className="border-[#E5E7EB] text-[#546478] hover:bg-[#EDF0F5] h-10 px-6"
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      type="button"
-                      onClick={() => toast.success("Company info saved")}
-                      className="bg-[#4A6FA5] hover:bg-[#3d5a85] text-white h-10 px-6"
-                      style={{ fontWeight: 600 }}
-                    >
-                      Save changes
-                    </Button>
-                  </div>
                 </SectionCard>
+
+                <div className="flex justify-end">
+                  <Button
+                    type="button"
+                    disabled
+                    className="bg-[#4A6FA5] text-white h-9 px-4 opacity-50"
+                    style={{ fontWeight: 500 }}
+                  >
+                    Save changes
+                  </Button>
+                </div>
               </div>
             </>
           )}
@@ -2029,7 +2015,7 @@ export function Settings() {
               <div className="space-y-4">
 
                 <SectionCard id="branding" title="Brand assets" description="Your company branding is shown in Client Hub, email messages, and on all PDFs.">
-                  <div className="grid grid-cols-3 divide-x divide-[#E1E6EF]">
+                  <div className="grid grid-cols-2 divide-x divide-[#E1E6EF]">
 
                     {/* Brand Colors */}
                     <div className="pr-6">
@@ -2094,7 +2080,7 @@ export function Settings() {
                     </div>
 
                     {/* Logo */}
-                    <div className="px-6">
+                    <div className="pl-6">
                       <div className="mb-3 text-[13px] text-[#7A8799]" style={{ fontWeight: 600 }}>Logo</div>
                       <input
                         ref={logoInputRef}
@@ -2145,41 +2131,6 @@ export function Settings() {
                       </div>
                     </div>
 
-                    {/* Client Document Settings */}
-                    <div className="pl-6">
-                      <div className="mb-3 text-[13px] text-[#7A8799]" style={{ fontWeight: 600 }}>Client Document Settings</div>
-                      <div className="flex h-[130px] w-full items-center justify-center overflow-hidden rounded-xl border border-[#E5E7EB] bg-gradient-to-b from-[#F8FAFC] to-[#EEF2F7]">
-                        <div className="rounded-lg border border-[#E1E6EF] bg-white p-2.5 shadow-md" style={{ width: 88, transform: "rotate(-1deg)" }}>
-                          <div className="mb-1 flex items-center justify-between">
-                            <div className="h-1.5 w-12 rounded-full bg-[#1A2332]" />
-                            <div className="h-3 w-3 rounded-sm" style={{ backgroundColor: brandPrimary }} />
-                          </div>
-                          <div className="mb-2 h-1 w-8 rounded-full bg-[#C8D5E8]" />
-                          <div className="space-y-1 mb-2">
-                            {[14, 20, 10, 18].map((w, i) => (
-                              <div key={i} className="h-0.5 rounded-full bg-[#E5E7EB]" style={{ width: w * 3 }} />
-                            ))}
-                          </div>
-                          <div className="flex justify-between text-[5px] text-[#9AA3AF]">
-                            <div className="h-4 w-10 rounded bg-[#F5F7FA]" />
-                            <div className="h-4 w-10 rounded bg-[#F5F7FA]" />
-                          </div>
-                          <div className="mt-2 flex justify-end">
-                            <div className="h-2 w-10 rounded-full" style={{ backgroundColor: brandPrimary, opacity: 0.8 }} />
-                          </div>
-                        </div>
-                      </div>
-                      <div className="mt-3">
-                        <Button
-                          variant="outline"
-                          className="h-8 rounded-lg border-[#C8D5E8] px-4 text-[12px] text-[#4A6FA5] hover:bg-[#EBF3FF]"
-                          style={{ fontWeight: 700 }}
-                        >
-                          Edit Settings
-                        </Button>
-                      </div>
-                    </div>
-
                   </div>
                 </SectionCard>
 
@@ -2188,7 +2139,6 @@ export function Settings() {
                     defaultValue="Omega Home Services is a full-service home maintenance company based in Tampa, FL. We specialize in HVAC, plumbing, and general repairs."
                     className="min-h-[90px] w-full rounded-lg border border-[#D8DEE8] bg-white px-3 py-2 text-[14px] leading-5 text-[#1A2332] outline-none focus:border-[#4A6FA5] focus:ring-2 focus:ring-[#4A6FA5]/20"
                   />
-                  <Button className="mt-3 h-8 bg-[#4A6FA5] px-4 text-[13px] hover:bg-[#3d5a85]">Save</Button>
                 </SectionCard>
 
                 <SectionCard title="Social network links" description="Links shown on your Client Hub and customer-facing pages.">
@@ -2198,7 +2148,6 @@ export function Settings() {
                     <Field label="LinkedIn"><Input placeholder="https://linkedin.com/company/your-page" className="h-9 border-[#D8DEE8]" /></Field>
                     <Field label="Website"><Input defaultValue="https://omega-home.com" className="h-9 border-[#D8DEE8]" /></Field>
                   </div>
-                  <Button className="mt-3 h-8 bg-[#4A6FA5] px-4 text-[13px] hover:bg-[#3d5a85]">Save</Button>
                 </SectionCard>
 
                 <SectionCard title="Notifications" description="Control when the app notifies you about client activity.">

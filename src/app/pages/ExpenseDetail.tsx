@@ -139,45 +139,47 @@ export function ExpenseDetail() {
 
   return (
     <div className="min-h-screen bg-[#F5F7FA]">
-      {/* Header / summary bar */}
-      <div className="bg-white border-b border-[#E5E7EB]">
-        <div className="px-8 h-12 flex items-center justify-between border-b border-[#F3F4F6]">
-          <button
-            onClick={() => navigate("/expenses")}
-            className="inline-flex items-center gap-1.5 text-[13px] text-[#4A6FA5] hover:text-[#3d5a85] transition-colors"
-            style={{ fontWeight: 500 }}
-          >
-            <span className="material-icons" style={{ fontSize: "18px" }}>arrow_back</span>
-            Back to Expenses
-          </button>
-          <KebabMenu triggerClassName="h-8 w-8 border border-[#E5E7EB] rounded-md hover:bg-[#EDF0F5] flex items-center justify-center">
-            {expense.invoiceId && (
-              <KebabItem icon="receipt" onSelect={() => navigate(`/invoices/${expense.invoiceId!.replace("INV-", "")}`)}>Open Invoice</KebabItem>
-            )}
-            <KebabItem icon="edit">Edit</KebabItem>
-            <KebabSeparator />
-            <KebabItem icon="delete_outline" destructive>Delete</KebabItem>
-          </KebabMenu>
-        </div>
-        <div className="px-8 py-5 flex items-baseline gap-3">
-          <h1 className="text-[22px] text-[#1A2332] leading-none" style={{ fontWeight: 600 }}>
+      {/* ── PAGE HEADER (back arrow + actions on gray, outside the white card) ── */}
+      <div className="px-6 pt-6 pb-4 flex items-center justify-between gap-3">
+        <button
+          onClick={() => navigate("/expenses")}
+          className="inline-flex items-center gap-1.5 text-[13px] text-[#4A6FA5] hover:text-[#3d5a85] transition-colors"
+          style={{ fontWeight: 500 }}
+        >
+          <span className="material-icons" style={{ fontSize: "18px" }}>arrow_back</span>
+          Back to Expenses
+        </button>
+        <KebabMenu triggerClassName="h-9 w-9 border border-[#E5E7EB] rounded-md hover:bg-[#EDF0F5] flex items-center justify-center">
+          {expense.invoiceId && (
+            <KebabItem icon="receipt" onSelect={() => navigate(`/invoices/${expense.invoiceId!.replace("INV-", "")}`)}>Open Invoice</KebabItem>
+          )}
+          <KebabItem icon="edit">Edit</KebabItem>
+          <KebabSeparator />
+          <KebabItem icon="delete_outline" destructive>Delete</KebabItem>
+        </KebabMenu>
+      </div>
+
+      {/* ── ONE BIG WHITE CARD CONTAINING EVERYTHING ── */}
+      <div className="mx-6 mb-6 bg-white border border-[#E5E7EB] rounded-xl p-4">
+
+        {/* Identity row */}
+        <div className="flex items-baseline gap-3">
+          <h1 className="text-[20px] text-[#1A2332] leading-[27px]" style={{ fontWeight: 600 }}>
             {expense.merchant}
           </h1>
           <span className="text-[13px] text-[#9CA3AF]">{expense.date} · {expense.category}</span>
         </div>
-      </div>
 
-      {/* Unified tab bar */}
-      <div className="bg-white px-6 py-3">
-        <DetailTabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
-      </div>
+        {/* Unified tab bar */}
+        <DetailTabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} className="mt-6" />
 
-      {/* Content */}
-      <main className="min-h-[calc(100vh-200px)] p-6 pb-12 bg-[#F5F7FA]">
-        {activeTab === "details" && renderDetails()}
-        {activeTab === "receipts" && renderReceipts()}
-        {activeTab === "activity" && renderActivity()}
-      </main>
+        {/* Content */}
+        <div className="mt-4">
+          {activeTab === "details" && renderDetails()}
+          {activeTab === "receipts" && renderReceipts()}
+          {activeTab === "activity" && renderActivity()}
+        </div>
+      </div>
     </div>
   );
 }

@@ -1069,38 +1069,39 @@ export function JobDetail() {
   ────────────────────────────────────────── */
   return (
     <div className="min-h-screen bg-[#F5F7FA]">
-      {/* ── SUMMARY BAR ── */}
-      <div className="bg-white border-b border-[#E5E7EB]">
-        {/* Back arrow + Actions */}
-        <div className="px-8 h-12 flex items-center justify-between gap-1.5 border-b border-[#F3F4F6]">
+      {/* ── PAGE HEADER (back arrow + actions on gray, outside the white card) ── */}
+      <div className="px-6 pt-6 pb-4 flex items-center justify-between gap-3">
+        <button
+          onClick={() => navigate("/jobs")}
+          className="inline-flex items-center gap-1.5 text-[13px] text-[#4A6FA5] hover:text-[#3d5a85] transition-colors"
+          style={{ fontWeight: 500 }}
+          aria-label="Back to Jobs"
+          title="Back to Jobs"
+        >
+          <span className="material-icons" style={{ fontSize: "18px" }}>arrow_back</span>
+          <span>Back to Jobs</span>
+        </button>
+        <div className="flex items-center gap-2">
           <button
-            onClick={() => navigate("/jobs")}
-            className="inline-flex items-center gap-1.5 text-[13px] text-[#4A6FA5] hover:text-[#3d5a85] transition-colors"
-            style={{ fontWeight: 500 }}
-            aria-label="Back to Jobs"
-            title="Back to Jobs"
+            onClick={() => navigate(`/jobs/${id}/edit`)}
+            className="border border-[#E5E7EB] text-[#546478] hover:bg-[#EDF0F5] h-9 px-2.5 rounded-md flex items-center justify-center"
           >
-            <span className="material-icons" style={{ fontSize: "18px" }}>arrow_back</span>
-            <span>Back to Jobs</span>
+            <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
           </button>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => navigate(`/jobs/${id}/edit`)}
-              className="border border-[#E5E7EB] text-[#546478] hover:bg-[#EDF0F5] h-8 px-2.5 rounded-md flex items-center justify-center"
-            >
-              <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
-            </button>
-            <KebabMenu triggerClassName="h-8 w-8 border border-[#E5E7EB] rounded-md hover:bg-[#EDF0F5] flex items-center justify-center">
-              <KebabItem icon="tab_unselected" onClick={() => setShowTabSettings(true)}>Edit Tabs</KebabItem>
-              <KebabItem icon="edit" onClick={() => navigate(`/jobs/${id}/edit`)}>Edit Job</KebabItem>
-              <KebabItem icon="content_copy">Duplicate Job</KebabItem>
-              <KebabItem icon="block" destructive>Inactivate Job</KebabItem>
-            </KebabMenu>
-          </div>
+          <KebabMenu triggerClassName="h-9 w-9 border border-[#E5E7EB] rounded-md hover:bg-[#EDF0F5] flex items-center justify-center">
+            <KebabItem icon="tab_unselected" onClick={() => setShowTabSettings(true)}>Edit Tabs</KebabItem>
+            <KebabItem icon="edit" onClick={() => navigate(`/jobs/${id}/edit`)}>Edit Job</KebabItem>
+            <KebabItem icon="content_copy">Duplicate Job</KebabItem>
+            <KebabItem icon="block" destructive>Inactivate Job</KebabItem>
+          </KebabMenu>
         </div>
+      </div>
+
+      {/* ── ONE BIG WHITE CARD CONTAINING EVERYTHING ── */}
+      <div className="mx-6 mb-6 bg-white border border-[#E5E7EB] rounded-xl p-4">
 
         {/* Summary content */}
-        <div className="px-8 pt-7 pb-6">
+        <div>
           <div className="flex items-stretch gap-10">
             {/* Main info section */}
             <div className="flex-1 flex items-stretch gap-8">
@@ -1287,20 +1288,19 @@ export function JobDetail() {
             </div>
           </div>
         </div>
-      </div>
 
-      {/* ── UNIFIED TAB BAR ── */}
-      <div className="mt-6 px-6">
+        {/* ── UNIFIED TAB BAR ── */}
         <DetailTabs
           tabs={visibleTabs}
           activeTab={activeTab}
           onChange={setActiveTab}
+          className="mt-6"
         />
-      </div>
 
-      {/* ── CONTENT AREA ── */}
-      <div className="px-6 pb-12 mt-4">
-        {renderContent()}
+        {/* ── CONTENT AREA ── */}
+        <div className="mt-4">
+          {renderContent()}
+        </div>
       </div>
 
       {/* ── PER-SECTION EDIT MODAL ── */}

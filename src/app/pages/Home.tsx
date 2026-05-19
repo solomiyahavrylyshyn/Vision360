@@ -605,24 +605,32 @@ export function Home() {
       </div>
 
       {/* ── Tabs bar ── */}
-      <div className="flex items-center gap-0 border-b border-[#E5E7EB] mb-6">
-        {shownTabs.map(tab => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`px-4 py-3 text-[13px] border-b-2 transition-colors whitespace-nowrap ${
-              safeTab === tab
-                ? "border-[#4A6FA5] text-[#4A6FA5]"
-                : "border-transparent text-[#6B7280] hover:text-[#374151]"
-            }`}
-            style={{ fontWeight: safeTab === tab ? 600 : 500 }}
-          >
-            {tab}
-          </button>
-        ))}
+      <div className="flex items-center gap-1 mb-6">
+        <div className="flex items-center gap-1 p-[3px] rounded-[10px]">
+          {shownTabs.map(tab => {
+            const isActive = safeTab === tab;
+            return (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className="h-[29px] px-2 rounded-lg text-[14px] transition-colors whitespace-nowrap inline-flex items-center justify-center"
+                style={{
+                  fontWeight: 500,
+                  background: isActive ? "#4A6FA5" : "transparent",
+                  color: isActive ? "#FFFFFF" : "#6B7280",
+                  boxShadow: isActive
+                    ? "0px 1px 3px rgba(0,0,0,0.1), 0px 1px 2px -1px rgba(0,0,0,0.1)"
+                    : "none",
+                }}
+              >
+                {tab}
+              </button>
+            );
+          })}
+        </div>
 
         {/* Customize tabs pencil */}
-        <div className="relative ml-2">
+        <div className="relative">
           <button
             onClick={() => setEditOpen(v => !v)}
             title="Customize tabs"

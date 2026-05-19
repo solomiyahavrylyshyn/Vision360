@@ -149,7 +149,7 @@ export function Expenses() {
             }`}
             style={{ fontWeight: 500 }}
           >
-            <span className="material-icons" style={{ fontSize: "16px" }}>tune</span>
+            <span className="material-icons" style={{ fontSize: "16px" }}>filter_alt</span>
             Filter
           </button>
           <div className="ml-auto">
