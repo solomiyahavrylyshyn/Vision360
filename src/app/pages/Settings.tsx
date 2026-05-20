@@ -750,7 +750,7 @@ function BillingAndPlanSection() {
           </div>
 
           {/* Payment method card */}
-          <div className="flex flex-col gap-4 rounded-xl border border-[#E5E7EB] bg-white p-4">
+          <div className="flex flex-1 flex-col justify-between gap-4 rounded-xl border border-[#E5E7EB] bg-white p-4">
             <div className="flex flex-col gap-1">
               <span className="text-[16px] leading-6 text-[#1A2332]" style={{ fontWeight: 600 }}>Subscription payment method</span>
               <span className="text-[14px] leading-5 text-[#6B7280]">Card we charge each month for Vision360.</span>
