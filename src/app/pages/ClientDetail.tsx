@@ -360,6 +360,8 @@ export function ClientDetail() {
   const [docDate, setDocDate] = useState("all");
   const [docCategory, setDocCategory] = useState("all");
   const [docUploader, setDocUploader] = useState("all");
+  const [docSortField, setDocSortField] = useState<"name" | "date" | "type" | "size" | "uploadedBy">("name");
+  const [docSortDir, setDocSortDir] = useState<"asc" | "desc">("asc");
   const uploaderOptions = Array.from(new Set(documents.map(d => d.uploadedBy).filter(Boolean) as string[]));
   const filteredDocuments = documents.filter(d => {
     if (docSearch && !d.name.toLowerCase().includes(docSearch.toLowerCase())) return false;
@@ -372,6 +374,27 @@ export function ClientDetail() {
       if (now - docTs > days * 24 * 60 * 60 * 1000) return false;
     }
     return true;
+  });
+  const parseDocSize = (size: string) => {
+    const [rawValue, rawUnit = "B"] = size.split(" ");
+    const value = Number(rawValue) || 0;
+    const unit = rawUnit.toUpperCase();
+    if (unit.startsWith("GB")) return value * 1024 * 1024 * 1024;
+    if (unit.startsWith("MB")) return value * 1024 * 1024;
+    if (unit.startsWith("KB")) return value * 1024;
+    return value;
+  };
+  const sortedDocuments = [...filteredDocuments].sort((a, b) => {
+    const dir = docSortDir === "asc" ? 1 : -1;
+    if (docSortField === "name") return a.name.localeCompare(b.name) * dir;
+    if (docSortField === "date") return (new Date(a.date).getTime() - new Date(b.date).getTime()) * dir;
+    if (docSortField === "type") {
+      const aType = a.name.split(".").pop()?.toLowerCase() || "";
+      const bType = b.name.split(".").pop()?.toLowerCase() || "";
+      return aType.localeCompare(bType) * dir || a.name.localeCompare(b.name) * dir;
+    }
+    if (docSortField === "size") return (parseDocSize(a.size) - parseDocSize(b.size)) * dir;
+    return (a.uploadedBy || "").localeCompare(b.uploadedBy || "") * dir || a.name.localeCompare(b.name) * dir;
   });
 
   const getFileIcon = (name: string): { icon: string; iconColor: string } => {
@@ -1393,6 +1416,54 @@ export function ClientDetail() {
                 <option value="all">All uploaders</option>
                 {uploaderOptions.map(u => <option key={u} value={u}>{u}</option>)}
               </select>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    className="h-8 px-3 rounded-lg border border-[#E5E7EB] bg-white text-[13px] text-[#374151] hover:bg-[#F5F7FA] flex items-center gap-1.5"
+                    style={{ fontWeight: 500 }}
+                  >
+                    <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "16px" }}>
+                      {docSortDir === "asc" ? "swap_vert" : "swap_vert"}
+                    </span>
+                    Sort
+                    <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "16px" }}>expand_more</span>
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-[220px] p-1">
+                  {[
+                    { key: "name", label: "Name" },
+                    { key: "date", label: "Date" },
+                    { key: "type", label: "Type" },
+                    { key: "size", label: "Size" },
+                    { key: "uploadedBy", label: "Uploaded by" },
+                  ].map((item) => (
+                    <DropdownMenuItem
+                      key={item.key}
+                      className="h-9 px-3 text-[13px] text-[#374151] flex items-center gap-2.5 cursor-pointer"
+                      onClick={() => setDocSortField(item.key as typeof docSortField)}
+                    >
+                      <span className="w-4 text-[#4A6FA5]">{docSortField === item.key ? "•" : ""}</span>
+                      <span>{item.label}</span>
+                    </DropdownMenuItem>
+                  ))}
+                  <div className="h-px bg-[#E5E7EB] my-1" />
+                  <DropdownMenuItem
+                    className="h-9 px-3 text-[13px] text-[#374151] flex items-center gap-2.5 cursor-pointer"
+                    onClick={() => setDocSortDir("asc")}
+                  >
+                    <span className="w-4 text-[#4A6FA5]">{docSortDir === "asc" ? "•" : ""}</span>
+                    <span>Ascending</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="h-9 px-3 text-[13px] text-[#374151] flex items-center gap-2.5 cursor-pointer"
+                    onClick={() => setDocSortDir("desc")}
+                  >
+                    <span className="w-4 text-[#4A6FA5]">{docSortDir === "desc" ? "•" : ""}</span>
+                    <span>Descending</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <div className="flex-1" />
               <Button
                 size="sm"
@@ -1417,7 +1488,7 @@ export function ClientDetail() {
             />
 
             {/* Files grid */}
-            {filteredDocuments.length === 0 ? (
+            {sortedDocuments.length === 0 ? (
               <div className="bg-white border border-[#E5E7EB] rounded-xl py-12 text-center">
                 <span className="material-icons text-[#D1D5DB] mb-2 block" style={{ fontSize: "40px" }}>folder_open</span>
                 <div className="text-[13px] text-[#9CA3AF]">
@@ -1437,7 +1508,7 @@ export function ClientDetail() {
                     {selectedDocs.size} selected
                   </span>
                   <button
-                    onClick={() => setSelectedDocs(new Set(filteredDocuments.map(f => f.id)))}
+                    onClick={() => setSelectedDocs(new Set(sortedDocuments.map(f => f.id)))}
                     className="text-[12px] text-[#4A6FA5] hover:underline"
                     style={{ fontWeight: 500 }}
                   >Select all</button>
@@ -1459,7 +1530,7 @@ export function ClientDetail() {
               )}
 
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7 gap-3">
-                {filteredDocuments.map((file) => {
+                {sortedDocuments.map((file) => {
                   const isSelected = selectedDocs.has(file.id);
                   return (
                   <div
