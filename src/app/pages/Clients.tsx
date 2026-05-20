@@ -6,6 +6,7 @@ import { Card } from "../components/ui/card";
 import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
 import { PageHeader } from "../components/ui/page-header";
 import { SelectionBar } from "../components/ui/selection-bar";
+import { QuickFilterSelect } from "../components/ui/quick-filter-select";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { useDraggableColumns, DraggableTh } from "../components/ui/draggable-columns";
@@ -48,27 +49,6 @@ const initialClients: Client[] = [
   { id: "6", initials: "TC", avatarColor: "#DC2626", name: "Tom Carter", company: null, email: "tom.c@email.com", phone: "(555) 678-9012", address: "987 Cedar Ln, Plano, TX 75023", tags: ["Commercial", "Priority"], lastActivity: "Quote requested · today", totalJobs: 0, totalBilled: 0 },
 ];
 
-// Elegant quick-filter select class helper.
-// Uses appearance:none + a custom SVG chevron so we can control the chevron's
-// distance from the right border (browser-rendered chevrons sit flush to the edge).
-const QF_CHEVRON_GRAY = `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>")`;
-const QF_CHEVRON_BLUE = `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%234A6FA5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>")`;
-
-function qfClass(active: boolean) {
-  return `h-8 pl-3 pr-8 border rounded-lg text-[13px] bg-white cursor-pointer focus:outline-none transition-colors appearance-none bg-no-repeat ${
-    active
-      ? "border-[#4A6FA5] text-[#4A6FA5] bg-[#EEF3FA]"
-      : "border-[#E5E7EB] text-[#546478] hover:border-[#C5CEDD]"
-  }`;
-}
-
-function qfStyle(active: boolean): React.CSSProperties {
-  return {
-    backgroundImage: active ? QF_CHEVRON_BLUE : QF_CHEVRON_GRAY,
-    backgroundPosition: "right 10px center",
-    backgroundSize: "12px 12px",
-  };
-}
 
 const CLIENTS_COLS = [
   { key: "name",         label: "Name",         sortable: true  },
@@ -651,27 +631,27 @@ export function Clients() {
             </div>
             <div className="w-px h-5 bg-[#E5E7EB] mx-1" />
             <div className="flex items-center gap-2">
-              <select
+              <QuickFilterSelect
+                prefix="Date:"
                 value={qfDate}
-                onChange={e => { setQfDate(e.target.value); setCurrentPage(1); }}
-                className={qfClass(qfDate !== "all_time")}
-                style={qfStyle(qfDate !== "all_time")}
-              >
-                <option value="all_time">Date: All time</option>
-                <option value="today">Today</option>
-                <option value="yesterday">Yesterday</option>
-                <option value="last_14">Last 14 days</option>
-                <option value="this_month">This month</option>
-              </select>
-              <select
+                onChange={v => { setQfDate(v); setCurrentPage(1); }}
+                options={[
+                  { value: "all_time", label: "All time" },
+                  { value: "today",    label: "Today" },
+                  { value: "yesterday",label: "Yesterday" },
+                  { value: "last_14",  label: "Last 14 days" },
+                  { value: "this_month",label: "This month" },
+                ]}
+              />
+              <QuickFilterSelect
+                prefix="Balance:"
                 value={qfBalance}
-                onChange={e => { setQfBalance(e.target.value); setCurrentPage(1); }}
-                className={qfClass(qfBalance !== "all")}
-                style={qfStyle(qfBalance !== "all")}
-              >
-                <option value="all">Balance: All</option>
-                <option value="with_balance">With balance</option>
-              </select>
+                onChange={v => { setQfBalance(v); setCurrentPage(1); }}
+                options={[
+                  { value: "all",          label: "All" },
+                  { value: "with_balance", label: "With balance" },
+                ]}
+              />
               <div className="w-px h-5 bg-[#E5E7EB] mx-1" />
               <button
                 onClick={() => { setPendingFilters({ ...filterState }); setFilterPanelOpen(true); }}
