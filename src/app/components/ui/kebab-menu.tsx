@@ -58,6 +58,7 @@ export function KebabMenu({
 
 type KebabItemProps = {
   icon?: string; // material-icons name
+  iconNode?: React.ReactNode; // custom icon element; takes precedence over `icon`
   children: React.ReactNode;
   onSelect?: (e: Event) => void;
   onClick?: () => void;
@@ -68,6 +69,7 @@ type KebabItemProps = {
 
 export function KebabItem({
   icon,
+  iconNode,
   children,
   onSelect,
   onClick,
@@ -90,7 +92,16 @@ export function KebabItem({
       )}
       style={{ fontWeight: 500 }}
     >
-      {icon ? (
+      {iconNode ? (
+        <span
+          className={cn(
+            "flex-shrink-0 inline-flex items-center justify-center w-[18px] h-[18px]",
+            destructive ? "text-[#DC2626]" : "text-[#6B7280]"
+          )}
+        >
+          {iconNode}
+        </span>
+      ) : icon ? (
         <span
           className={cn(
             "material-icons flex-shrink-0",
