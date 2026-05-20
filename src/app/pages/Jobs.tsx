@@ -29,10 +29,10 @@ interface Job {
 }
 
 const mockJobs: Job[] = [
-  { id: 1, jobNumber: "29899-J01", title: "AC Estimate", client: "Travis Jones", clientId: "10", address: "4405 North Clark Avenue, Tampa, Florida 33614", schedule: "March 30, 2026", scheduleDateSort: "2026-03-30", status: "Scheduled", jobType: "One-off", total: 0.0 },
-  { id: 2, jobNumber: "29900-J01", title: "Tree Removal", client: "Sarah Johnson", clientId: "2", address: "1220 Elm Street, Orlando, Florida 32801", schedule: "April 10, 2026", scheduleDateSort: "2026-04-10", status: "In Progress", jobType: "One-off", total: 450.0 },
-  { id: 3, jobNumber: "29901-J03", title: "Monthly Lawn Care", client: "Mike Davis", clientId: "3", address: "890 Oak Drive, Miami, Florida 33101", schedule: "April 15, 2026", scheduleDateSort: "2026-04-15", status: "Scheduled", jobType: "Recurring", total: 120.0 },
-  { id: 4, jobNumber: "29902-J01", title: "Plumbing Repair", client: "Lisa Brown", clientId: "11", address: "567 Pine Road, Jacksonville, Florida 32099", schedule: "April 6, 2026", scheduleDateSort: "2026-04-06", status: "Completed", jobType: "One-off", total: 275.0 },
+  { id: 1, jobNumber: "10245-J01", title: "AC Estimate", client: "Travis Jones", clientId: "10245", address: "4405 North Clark Avenue, Tampa, Florida 33614", schedule: "March 30, 2026", scheduleDateSort: "2026-03-30", status: "Scheduled", jobType: "One-off", total: 0.0 },
+  { id: 2, jobNumber: "10246-J01", title: "Tree Removal", client: "Sarah Johnson", clientId: "10246", address: "1220 Elm Street, Orlando, Florida 32801", schedule: "April 10, 2026", scheduleDateSort: "2026-04-10", status: "In Progress", jobType: "One-off", total: 450.0 },
+  { id: 3, jobNumber: "10247-J03", title: "Monthly Lawn Care", client: "Mike Davis", clientId: "10247", address: "890 Oak Drive, Miami, Florida 33101", schedule: "April 15, 2026", scheduleDateSort: "2026-04-15", status: "Scheduled", jobType: "Recurring", total: 120.0 },
+  { id: 4, jobNumber: "10255-J01", title: "Plumbing Repair", client: "Lisa Brown", clientId: "10255", address: "567 Pine Road, Jacksonville, Florida 32099", schedule: "April 6, 2026", scheduleDateSort: "2026-04-06", status: "Completed", jobType: "One-off", total: 275.0 },
 ];
 
 const statusColors: Record<string, string> = {

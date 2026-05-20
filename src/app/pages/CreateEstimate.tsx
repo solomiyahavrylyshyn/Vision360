@@ -34,7 +34,7 @@ export function CreateEstimate() {
   const [client, setClient] = useState(searchParams.get("client") || "");
   const [serviceAddress, setServiceAddress] = useState("");
   const [estimateName, setEstimateName] = useState("");
-  const [estimateNumber] = useState("EST-010");
+  const [estimateNumber] = useState("10245-E03");
   const [dateCreated] = useState("2026-04-27");
   const [createdBy] = useState("Marek Stroz");
   const [expirationDate, setExpirationDate] = useState("");

@@ -83,9 +83,9 @@ const mockInvoices: Record<string, any> = {
     billingAddress: { line: "123 Main St", city: "Austin", county: "Travis", state: "TX", zip: "78701" },
     serviceAddress: { line: "123 Main St", city: "Austin", county: "Travis", state: "TX", zip: "78701" },
 
-    jobNumber: "10245",
+    jobNumber: "10245-J01",
     jobName: "Kitchen Renovation",
-    linkedEstimate: "EST-001",
+    linkedEstimate: "10245-E01",
     estimateStatus: "Approved",
     poNumber: "PO-77821",
     memo: "Final billing for kitchen reno",
@@ -141,7 +141,7 @@ const mockInvoices: Record<string, any> = {
     billingAddress: { line: "789 Oak Ave", city: "Dallas", county: "Dallas", state: "TX", zip: "75201" },
     serviceAddress: { line: "789 Oak Ave", city: "Dallas", county: "Dallas", state: "TX", zip: "75201" },
 
-    jobNumber: "10246",
+    jobNumber: "10246-J01",
     jobName: "Bathroom Remodel",
     linkedEstimate: "",
     estimateStatus: "Approved",
@@ -192,9 +192,9 @@ const mockInvoices: Record<string, any> = {
     billingAddress: { line: "321 Elm St", city: "Houston", county: "Harris", state: "TX", zip: "77001" },
     serviceAddress: { line: "321 Elm St", city: "Houston", county: "Harris", state: "TX", zip: "77001" },
 
-    jobNumber: "10248",
+    jobNumber: "10248-J01",
     jobName: "Electrical Work",
-    linkedEstimate: "EST-005",
+    linkedEstimate: "10248-E01",
     estimateStatus: "Approved",
     poNumber: "PO-66104",
     memo: "Progress invoice — phase 1",
@@ -584,7 +584,7 @@ export function InvoiceDetail() {
             <div className="flex flex-col gap-0.5">
               <div className="text-[11px] text-[#9CA3AF]">Linked Estimate #</div>
               {data.linkedEstimate ? (
-                <button onClick={() => navigate(`/estimates/${data.linkedEstimate.replace("EST-", "")}`)} className="text-[13px] text-[#4A6FA5] hover:underline text-left" style={{ fontWeight: 500 }}>
+                <button onClick={() => navigate(`/estimates/${data.linkedEstimate}`)} className="text-[13px] text-[#4A6FA5] hover:underline text-left" style={{ fontWeight: 500 }}>
                   {data.linkedEstimate}
                 </button>
               ) : (
@@ -763,7 +763,7 @@ export function InvoiceDetail() {
                 {data.linkedEstimate && (
                   <>
                     <div className="w-px h-4 bg-[#E5E7EB]" />
-                    <button onClick={() => navigate(`/estimates/${data.linkedEstimate.replace("EST-", "")}`)} className="flex items-center gap-1.5 px-3 text-[13px] text-[#4A6FA5] hover:underline">
+                    <button onClick={() => navigate(`/estimates/${data.linkedEstimate}`)} className="flex items-center gap-1.5 px-3 text-[13px] text-[#4A6FA5] hover:underline">
                       <span className="material-icons" style={{ fontSize: "14px" }}>request_quote</span>
                       {data.linkedEstimate}
                     </button>

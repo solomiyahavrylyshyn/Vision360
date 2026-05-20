@@ -50,11 +50,11 @@ const INITIAL_DOCS: DocFile[] = [
 
 const mockJobData: Record<string, any> = {
   "1": {
-    id: 1, title: "AC Estimate", client: "Travis Jones", clientId: "10", clientInitials: "TJ",
+    id: 1, title: "AC Estimate", client: "Travis Jones", clientId: "10245", clientInitials: "TJ",
     address: "4405 North Clark Avenue", city: "Tampa", state: "FL", zip: "33614",
     gateCode: "4821",
     phone: "(813) 612-5487", email: "ccj924@yahoo.com",
-    jobNumber: "29899-J01", jobType: "Estimate",
+    jobNumber: "10245-J01", jobType: "Estimate",
     assignedTo: "Peter Novak",
     startedOn: "Mar 30, 2026", endsOn: "Mar 30, 2026",
     startTime: "9:00 AM", endTime: "11:00 AM",
@@ -94,15 +94,15 @@ const mockJobData: Record<string, any> = {
     visits: [{ id: 1, dateTime: "Mar 30, 2026 — Anytime", title: "Travis Jones - AC Estimate", status: "Scheduled" }] as Visit[],
     // Per Marek's mock: Total Price 45,230 · Compensation 14,526.75 · All Expenses 8,547.52 · Margin 51.75%
     profitability: { totalPrice: 45230, lineItemCost: 7995.82, labor: 14526.75, expenses: 551.70, profit: 23407.93, margin: 51.75 },
-    linkedEstimate: { id: 1, title: "Estimate #1", status: "Draft" },
+    linkedEstimate: { id: 1, title: "Estimate #10245-E02", status: "Draft" },
     linkedInvoice: null,
   },
   "2": {
-    id: 2, title: "Tree Removal", client: "Sarah Johnson", clientId: "2", clientInitials: "SJ",
+    id: 2, title: "Tree Removal", client: "Sarah Johnson", clientId: "10246", clientInitials: "SJ",
     address: "1220 Elm Street", city: "Orlando", state: "FL", zip: "32801",
     gateCode: "",
     phone: "(407) 555-1234", email: "sarah.j@email.com",
-    jobNumber: "29900-J01", jobType: "Install",
+    jobNumber: "10246-J01", jobType: "Install",
     assignedTo: "Travis Webb",
     startedOn: "Apr 10, 2026", endsOn: "Apr 10, 2026",
     startTime: "9:00 AM", endTime: "1:00 PM",
@@ -121,7 +121,7 @@ const mockJobData: Record<string, any> = {
     visits: [{ id: 1, dateTime: "Apr 10, 2026 — 9:00 AM", title: "Sarah Johnson - Tree Removal", status: "In Progress" }] as Visit[],
     profitability: { totalPrice: 450, lineItemCost: 200, labor: 0, expenses: 0, profit: 250, margin: 55.6 },
     linkedEstimate: null,
-    linkedInvoice: { id: 1, title: "Invoice #1", status: "Draft" },
+    linkedInvoice: { id: 1, title: "Invoice #10246-I01", status: "Draft" },
   },
 };
 

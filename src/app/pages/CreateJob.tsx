@@ -32,7 +32,7 @@ export function CreateJob() {
   const [client, setClient] = useState("");
   const [clientSearch, setClientSearch] = useState("");
   const [clientPickerOpen, setClientPickerOpen] = useState(false);
-  const [jobNumber, setJobNumber] = useState("2");
+  const [jobNumber, setJobNumber] = useState("10245-J02");
   const [jobType, setJobType] = useState<"one-off" | "recurring">("one-off");
   const [jobCategory, setJobCategory] = useState("");
   const availableJobTypes = useSyncExternalStore(jobTypesStore.subscribe, jobTypesStore.getJobTypes);

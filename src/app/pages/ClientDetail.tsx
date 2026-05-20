@@ -452,7 +452,7 @@ export function ClientDetail() {
 
   const client = {
     name: "Mike Delgado",
-    customerId: "C-10245",
+    customerId: "10245",
     title: "Mr.",
     firstName: "Mike",
     middleInitial: "J",
@@ -972,7 +972,7 @@ export function ClientDetail() {
           {/* Customer number */}
           <div>
             <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Customer number</Label>
-            <Input placeholder="e.g. C-10245" value={editedClient.customerId} onChange={(e) => handleFieldChange("customerId", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
+            <Input placeholder="e.g. 10245" value={editedClient.customerId} onChange={(e) => handleFieldChange("customerId", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
           </div>
           {/* Name row */}
           <div>

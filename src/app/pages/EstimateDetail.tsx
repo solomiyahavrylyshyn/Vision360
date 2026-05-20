@@ -57,12 +57,12 @@ const otherStatuses: EstimateStatus[] = ["Archived"];
 // ─── Mock data ────────────────────────────────────────────────────────────────
 const mockEstimates: Record<string, EstimateData> = {
   "1": {
-    id: 1, estimateNumber: "1", estimateName: "", clientName: "Travis Jones",
+    id: 1, estimateNumber: "10245-E02", estimateName: "", clientName: "Travis Jones",
     clientEmail: "cerb04@yahoo.com", clientPhone: "(863) 225-3254",
     clientAddress: "8377 Standish Bend Dr Unit 1\nTampa, FL 33615",
     serviceAddress: "8377 Standish Bend Dr Unit 1\nTampa, FL 33615",
     dateCreated: "Mar 30, 2026", expirationDate: "Apr 30, 2026", sentDate: "Not Sent",
-    status: "Draft", teamMember: "Marek Stroz", job: "Job-1: AC Estimate", jobId: 1,
+    status: "Draft", teamMember: "Marek Stroz", job: "10245-J01: AC Estimate", jobId: 1,
     items: [], notes: "", internalNotes: "",
     taxRate: 0, depositRequired: false, depositType: "amount", depositValue: 0,
     activity: [
@@ -70,12 +70,12 @@ const mockEstimates: Record<string, EstimateData> = {
     ],
   },
   "5": {
-    id: 5, estimateNumber: "4-1", estimateName: "Option A", clientName: "John Doe",
+    id: 5, estimateNumber: "10246-E01", estimateName: "Option A", clientName: "John Doe",
     clientEmail: "john.doe@email.com", clientPhone: "(555) 123-4567",
     clientAddress: "1250 NW 24th St\nMiami, FL 33142",
     serviceAddress: "1250 NW 24th St\nMiami, FL 33142",
     dateCreated: "Mar 02, 2026", expirationDate: "Apr 02, 2026", sentDate: "Mar 03, 2026",
-    status: "Approved", teamMember: "Marek Stroz", job: "Job-4: Bathroom Remodel", jobId: 4,
+    status: "Approved", teamMember: "Marek Stroz", job: "10246-J01: Bathroom Remodel", jobId: 4,
     items: [
       { id: 1, name: "SEER Heat Pump Condenser Unit", description: "High efficiency outdoor unit", quantity: 1, price: 3200, cost: 1800, amount: 3200, taxable: true },
       { id: 2, name: "General Labor - Technician", description: "Technician labor (hourly)", quantity: 2, price: 95, cost: 45, amount: 190, taxable: false },
@@ -90,12 +90,12 @@ const mockEstimates: Record<string, EstimateData> = {
     ],
   },
   "6": {
-    id: 6, estimateNumber: "3-1", estimateName: "HVAC Replacement", clientName: "Sarah Williams",
+    id: 6, estimateNumber: "10248-E01", estimateName: "HVAC Replacement", clientName: "Sarah Williams",
     clientEmail: "sarah.w@gmail.com", clientPhone: "(407) 555-0198",
     clientAddress: "4521 Pine Grove Ln\nOrlando, FL 32801",
     serviceAddress: "4521 Pine Grove Ln\nOrlando, FL 32801",
     dateCreated: "Feb 28, 2026", expirationDate: "Mar 28, 2026", sentDate: "Mar 01, 2026",
-    status: "Approved", teamMember: "Marek Stroz", job: "Job-3: HVAC Replacement", jobId: 3,
+    status: "Approved", teamMember: "Marek Stroz", job: "10248-J01: HVAC Replacement", jobId: 3,
     items: [
       { id: 1, name: "SEER Heat Pump Condenser Premium", description: "Ultra high efficiency", quantity: 1, price: 4800, cost: 2900, amount: 4800, taxable: true },
       { id: 2, name: "Copper Piping Installation", description: "Per linear foot", quantity: 50, price: 18.50, cost: 6.75, amount: 925, taxable: true },
@@ -122,12 +122,12 @@ const mockEstimates: Record<string, EstimateData> = {
     ],
   },
   "7": {
-    id: 7, estimateNumber: "5-1", estimateName: "Plumbing Repair", clientName: "Mike Rodriguez",
+    id: 7, estimateNumber: "10247-E01", estimateName: "Plumbing Repair", clientName: "Mike Rodriguez",
     clientEmail: "mike.r@outlook.com", clientPhone: "(813) 555-0142",
     clientAddress: "1804 W North B St\nTampa, FL 33606",
     serviceAddress: "1804 W North B St\nTampa, FL 33606",
     dateCreated: "Feb 25, 2026", expirationDate: "Mar 27, 2026", sentDate: "Feb 26, 2026",
-    status: "Viewed", teamMember: "Marek Stroz", job: "Job-5: Plumbing Repair", jobId: 5,
+    status: "Viewed", teamMember: "Marek Stroz", job: "10247-J01: Plumbing Repair", jobId: 5,
     items: [
       { id: 1, name: "Drain Cleaning Service", description: "Clear main drain line", quantity: 1, price: 175, cost: 40, amount: 175, taxable: false },
       { id: 2, name: "Pipe Repair Labor", description: "Technician labor", quantity: 3, price: 95, cost: 45, amount: 285, taxable: false },

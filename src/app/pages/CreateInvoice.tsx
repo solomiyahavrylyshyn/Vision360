@@ -17,15 +17,15 @@ const mockCatalogItems: CatalogItem[] = [
 ];
 
 const mockClients = ["John Doe", "Travis Jones", "Sarah Williams", "Mike Rodriguez", "Alex Turner"];
-const mockJobs = ["JOB-003: Kitchen Renovation", "JOB-004: Bathroom Remodel", "JOB-005: Plumbing Fix", "JOB-006: Electrical Work", "JOB-008: HVAC Install"];
-const mockEstimates = ["EST-001: HVAC System Quote", "EST-003: Kitchen Quote", "EST-005: Electrical Quote"];
+const mockJobs = ["10245-J01: Kitchen Renovation", "10246-J01: Bathroom Remodel", "10247-J01: Plumbing Fix", "10248-J01: Electrical Work", "10250-J01: HVAC Install"];
+const mockEstimates = ["10245-E01: HVAC System Quote", "10246-E01: Kitchen Quote", "10248-E01: Electrical Quote"];
 
 export function CreateInvoice() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
   const [client, setClient] = useState(searchParams.get("client") || "");
-  const [invoiceNumber] = useState("INV-008");
+  const [invoiceNumber] = useState("10245-I02");
   const [invoiceDate, setInvoiceDate] = useState("2026-04-07");
   const [dueDate, setDueDate] = useState("2026-05-07");
   const [linkedJob, setLinkedJob] = useState(searchParams.get("job") || "");
