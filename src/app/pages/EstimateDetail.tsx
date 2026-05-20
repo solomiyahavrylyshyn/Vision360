@@ -1,63 +1,58 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate, useParams } from "react-router";
 import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
-import { DetailTabs } from "../components/ui/detail-tabs";
+import { DetailTabs, TabSettingsButton } from "../components/ui/detail-tabs";
 import { PlusIcon } from "../components/ui/plus-icon";
+import { DocumentPreview } from "../components/DocumentPreview";
+import installHeatingSystem1Photo from "../../assets/documents/33702-install-heating-system-1.jpg";
+import installHeatingSystemPhoto from "../../assets/documents/33702-install-heating-system.jpg";
+import installDuctsVentsPhoto from "../../assets/documents/33805-install-ducts-vents.jpg";
+import installAc33841Photo from "../../assets/documents/33841-install-ac.jpg";
+import cuPhoto from "../../assets/documents/33897-cu.jpg";
+import installWaterHeaterPhoto from "../../assets/documents/34285-install-water-heater.jpg";
+import outdoorElectricalPanelPhoto from "../../assets/documents/34610-install-outlet-outdoor-electrical-panel.jpg";
+import installAcPhoto from "../../assets/documents/34689-install-ac.jpg";
+import installWaterHeaterTanklessPhoto from "../../assets/documents/34689-install-water-heater-tankless.jpg";
+import job87970Photo from "../../assets/documents/87970-20241208-113711.png";
+import job44644Photo from "../../assets/documents/44644-img-20241210-123749.png";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
-type EstimateStatus = "Unsent" | "Pending" | "Approved" | "Declined" | "Won" | "Archived" | "Drafted" | "Accepted" | "Sent";
+type EstimateStatus =
+  | "Draft" | "Sent" | "Viewed" | "Approved" | "Rejected" | "Expired" | "Archived";
 
 interface LineItem {
-  id: number;
-  name: string;
-  description: string;
-  quantity: number;
-  price: number;
-  cost: number;
-  amount: number;
-  taxable: boolean;
-  optional?: boolean;
+  id: number; name: string; description: string;
+  quantity: number; price: number; cost: number; amount: number;
+  taxable: boolean; optional?: boolean;
 }
 
+interface MockPhoto { id: number; tag: "Before" | "After"; group: "A" | "B"; color: string; }
+
 interface EstimateData {
-  id: number;
-  estimateNumber: string;
-  estimateName: string;
-  clientName: string;
-  clientEmail: string;
-  clientPhone: string;
-  clientAddress: string;
-  serviceAddress: string;
-  dateCreated: string;
-  expirationDate: string;
-  sentDate: string;
-  status: EstimateStatus;
-  source: string;
-  teamMember: string;
-  job: string;
-  jobId: number | null;
-  items: LineItem[];
-  noteToClient: string;
-  internalNote: string;
-  terms: string;
-  taxRate: number;
-  depositAmount?: number;
+  id: number; estimateNumber: string; estimateName: string;
+  clientName: string; clientEmail: string; clientPhone: string;
+  clientAddress: string; serviceAddress: string;
+  dateCreated: string; expirationDate: string; sentDate: string;
+  status: EstimateStatus; teamMember: string; job: string; jobId: number | null;
+  items: LineItem[]; notes: string; taxRate: number;
+  depositRequired: boolean; depositType: "amount" | "percentage"; depositValue: number;
+  photos?: MockPhoto[];
   activity: { id: number; date: string; action: string; detail: string; icon: string }[];
 }
 
+// ─── Status colours ───────────────────────────────────────────────────────────
 const statusColors: Record<EstimateStatus, string> = {
-  Unsent: "#A855F7", Pending: "#F59E0B", Approved: "#3B82F6",
-  Declined: "#EF4444", Won: "#22C55E", Archived: "#9CA3AF",
-  Drafted: "#D97706", Accepted: "#15803D", Sent: "#1E40AF",
+  Draft: "#7C3AED", Sent: "#1E40AF", Viewed: "#92400E",
+  Approved: "#166534", Rejected: "#DC2626", Expired: "#6B7280", Archived: "#FFFFFF",
 };
 const statusBg: Record<EstimateStatus, string> = {
-  Unsent: "#F3E8FF", Pending: "#FEF3C7", Approved: "#DBEAFE",
-  Declined: "#FEE2E2", Won: "#DCFCE7", Archived: "#F3F4F6",
-  Drafted: "#FEF9C3", Accepted: "#D1FAE5", Sent: "#EFF6FF",
+  Draft: "#EDE9FE", Sent: "#DBEAFE", Viewed: "#FEF3C7",
+  Approved: "#DCFCE7", Rejected: "#FEE2E2", Expired: "#F3F4F6", Archived: "#1F2937",
 };
-
-const primaryStatuses: EstimateStatus[] = ["Unsent", "Pending", "Approved", "Declined", "Won", "Archived"];
-const otherStatuses: EstimateStatus[] = ["Drafted", "Accepted", "Sent"];
+const primaryStatuses: EstimateStatus[] = [
+  "Draft", "Sent", "Viewed", "Approved", "Rejected", "Expired",
+];
+const otherStatuses: EstimateStatus[] = ["Archived"];
 
 // ─── Mock data ────────────────────────────────────────────────────────────────
 const mockEstimates: Record<string, EstimateData> = {
@@ -66,13 +61,10 @@ const mockEstimates: Record<string, EstimateData> = {
     clientEmail: "cerb04@yahoo.com", clientPhone: "(863) 225-3254",
     clientAddress: "8377 Standish Bend Dr Unit 1\nTampa, FL 33615",
     serviceAddress: "8377 Standish Bend Dr Unit 1\nTampa, FL 33615",
-    dateCreated: "Mar 30, 2026", expirationDate: "Apr 30, 2026", sentDate: "—",
-    status: "Unsent", source: "Google Ads", teamMember: "Marek Stroz",
-    job: "Job-1: AC Estimate", jobId: 1,
-    items: [],
-    noteToClient: "Standard terms and conditions apply. Work will commence within 5 business days of estimate approval.",
-    internalNote: "", terms: "Payment is due upon completion unless otherwise agreed.",
-    taxRate: 0, depositAmount: 0,
+    dateCreated: "Mar 30, 2026", expirationDate: "Apr 30, 2026", sentDate: "Not Sent",
+    status: "Draft", teamMember: "Marek Stroz", job: "Job-1: AC Estimate", jobId: 1,
+    items: [], notes: "",
+    taxRate: 0, depositRequired: false, depositType: "amount", depositValue: 0,
     activity: [
       { id: 1, date: "Mar 30, 2026 09:00", action: "Estimate created", detail: "Created by Marek Stroz", icon: "add_circle" },
     ],
@@ -83,20 +75,18 @@ const mockEstimates: Record<string, EstimateData> = {
     clientAddress: "1250 NW 24th St\nMiami, FL 33142",
     serviceAddress: "1250 NW 24th St\nMiami, FL 33142",
     dateCreated: "Mar 02, 2026", expirationDate: "Apr 02, 2026", sentDate: "Mar 03, 2026",
-    status: "Won", source: "Referral", teamMember: "Marek Stroz",
-    job: "Job-4: Bathroom Remodel", jobId: 4,
+    status: "Approved", teamMember: "Marek Stroz", job: "Job-4: Bathroom Remodel", jobId: 4,
     items: [
       { id: 1, name: "SEER Heat Pump Condenser Unit", description: "High efficiency outdoor unit", quantity: 1, price: 3200, cost: 1800, amount: 3200, taxable: true },
       { id: 2, name: "General Labor - Technician", description: "Technician labor (hourly)", quantity: 2, price: 95, cost: 45, amount: 190, taxable: false },
       { id: 3, name: "Thermostat - Smart WiFi", description: "Smart WiFi Thermostat", quantity: 1, price: 110, cost: 65, amount: 110, taxable: true },
     ],
-    noteToClient: "Option A includes standard SEER unit with installation.",
-    internalNote: "Client prefers morning installation window.",
-    terms: "Payment is due within 15 days of approval.", taxRate: 7.5, depositAmount: 850,
+    notes: "Client prefers morning installation window.",
+    taxRate: 7.5, depositRequired: true, depositType: "amount", depositValue: 850,
     activity: [
       { id: 1, date: "Mar 02, 2026 08:30", action: "Estimate created", detail: "Created by Marek Stroz", icon: "add_circle" },
       { id: 2, date: "Mar 03, 2026 10:15", action: "Estimate sent", detail: "Sent to john.doe@email.com", icon: "send" },
-      { id: 3, date: "Mar 10, 2026 14:00", action: "Status changed", detail: "Marked as Won", icon: "check_circle" },
+      { id: 3, date: "Mar 10, 2026 14:00", action: "Estimate approved", detail: "Customer approved the estimate", icon: "check_circle" },
     ],
   },
   "6": {
@@ -105,8 +95,7 @@ const mockEstimates: Record<string, EstimateData> = {
     clientAddress: "4521 Pine Grove Ln\nOrlando, FL 32801",
     serviceAddress: "4521 Pine Grove Ln\nOrlando, FL 32801",
     dateCreated: "Feb 28, 2026", expirationDate: "Mar 28, 2026", sentDate: "Mar 01, 2026",
-    status: "Won", source: "Website", teamMember: "Marek Stroz",
-    job: "Job-3: HVAC Replacement", jobId: 3,
+    status: "Approved", teamMember: "Marek Stroz", job: "Job-3: HVAC Replacement", jobId: 3,
     items: [
       { id: 1, name: "SEER Heat Pump Condenser Premium", description: "Ultra high efficiency", quantity: 1, price: 4800, cost: 2900, amount: 4800, taxable: true },
       { id: 2, name: "Copper Piping Installation", description: "Per linear foot", quantity: 50, price: 18.50, cost: 6.75, amount: 925, taxable: true },
@@ -114,25 +103,65 @@ const mockEstimates: Record<string, EstimateData> = {
       { id: 4, name: "Thermostat - Smart WiFi", description: "Ecobee smart thermostat", quantity: 1, price: 450, cost: 180, amount: 450, taxable: true },
       { id: 5, name: "Electrical Panel Upgrade 200A", description: "Panel upgrade", quantity: 1, price: 2800, cost: 1100, amount: 2800, taxable: true },
     ],
-    noteToClient: "Full HVAC replacement with premium unit. Includes electrical panel upgrade for compatibility.",
-    internalNote: "Coordinate with electrical team for panel upgrade timing.",
-    terms: "50% deposit required upon approval. Remainder due on completion.", taxRate: 7.5, depositAmount: 5247.50,
+    notes: "Coordinate with electrical team for panel upgrade timing.",
+    taxRate: 7.5, depositRequired: true, depositType: "percentage", depositValue: 50,
+    photos: [
+      { id: 1, tag: "Before", group: "A", color: "#CBD5E1" },
+      { id: 2, tag: "Before", group: "A", color: "#94A3B8" },
+      { id: 3, tag: "Before", group: "A", color: "#CBD5E1" },
+      { id: 4, tag: "Before", group: "A", color: "#94A3B8" },
+      { id: 5, tag: "After",  group: "B", color: "#86EFAC" },
+      { id: 6, tag: "After",  group: "B", color: "#4ADE80" },
+      { id: 7, tag: "After",  group: "B", color: "#86EFAC" },
+      { id: 8, tag: "After",  group: "B", color: "#4ADE80" },
+    ],
     activity: [
       { id: 1, date: "Feb 28, 2026 09:00", action: "Estimate created", detail: "Created by Marek Stroz", icon: "add_circle" },
       { id: 2, date: "Mar 01, 2026 11:30", action: "Estimate sent", detail: "Sent to sarah.w@gmail.com", icon: "send" },
-      { id: 3, date: "Mar 15, 2026 16:00", action: "Status changed", detail: "Marked as Won", icon: "check_circle" },
+      { id: 3, date: "Mar 15, 2026 16:00", action: "Estimate approved", detail: "Customer approved the estimate", icon: "check_circle" },
+    ],
+  },
+  "7": {
+    id: 7, estimateNumber: "5-1", estimateName: "Plumbing Repair", clientName: "Mike Rodriguez",
+    clientEmail: "mike.r@outlook.com", clientPhone: "(813) 555-0142",
+    clientAddress: "1804 W North B St\nTampa, FL 33606",
+    serviceAddress: "1804 W North B St\nTampa, FL 33606",
+    dateCreated: "Feb 25, 2026", expirationDate: "Mar 27, 2026", sentDate: "Feb 26, 2026",
+    status: "Viewed", teamMember: "Marek Stroz", job: "Job-5: Plumbing Repair", jobId: 5,
+    items: [
+      { id: 1, name: "Drain Cleaning Service", description: "Clear main drain line", quantity: 1, price: 175, cost: 40, amount: 175, taxable: false },
+      { id: 2, name: "Pipe Repair Labor", description: "Technician labor", quantity: 3, price: 95, cost: 45, amount: 285, taxable: false },
+      { id: 3, name: "PVC Repair Materials", description: "Pipe, fittings, primer, cement", quantity: 1, price: 390, cost: 140, amount: 390, taxable: true },
+    ],
+    notes: "Do not walk on the right side — citrus tree planted. Dog on the right side.",
+    taxRate: 7.5, depositRequired: false, depositType: "amount", depositValue: 0,
+    activity: [
+      { id: 1, date: "Feb 25, 2026 09:18", action: "Estimate created", detail: "Created from Job-5 by Marek Stroz", icon: "add_circle" },
+      { id: 2, date: "Feb 25, 2026 09:18", action: "Technician assigned", detail: "Marek Stroz assigned as estimate technician", icon: "engineering" },
+      { id: 3, date: "Feb 26, 2026 10:04", action: "Estimate sent", detail: "Sent to mike.r@outlook.com", icon: "send" },
+      { id: 4, date: "Feb 26, 2026 18:42", action: "Customer viewed estimate", detail: "Mike Rodriguez opened the estimate from email link", icon: "visibility" },
+      { id: 5, date: "Mar 04, 2026 08:11", action: "Customer viewed estimate again", detail: "Estimate viewed 7 days after it was sent", icon: "visibility" },
+      { id: 6, date: "Mar 06, 2026 14:22", action: "Changes requested", detail: "Mike Rodriguez: \"Please add pipe insulation for the main line\"", icon: "edit_note" },
     ],
   },
 };
 
-type TabKey = "details" | "items" | "deposits" | "activity";
-type NotesTabKey = "client" | "internal";
-
+type TabKey = "details" | "deposit" | "notes" | "activity";
 const TABS: { key: TabKey; label: string }[] = [
   { key: "details", label: "Details" },
-  { key: "items", label: "Items" },
-  { key: "deposits", label: "Deposits" },
+  { key: "deposit", label: "Deposit" },
+  { key: "notes", label: "Notes" },
   { key: "activity", label: "Activity" },
+];
+
+const catalogItems = [
+  { id: 101, name: "Heat Pump Repair or Service", price: 285, cost: 120 },
+  { id: 102, name: "SEER Heat Pump Condenser Unit", price: 3200, cost: 1800 },
+  { id: 103, name: "Copper Piping Installation", price: 18.50, cost: 6.75 },
+  { id: 104, name: "General Labor - Technician", price: 95, cost: 45 },
+  { id: 105, name: "Thermostat - Smart WiFi", price: 450, cost: 180 },
+  { id: 106, name: "Drain Cleaning Service", price: 175, cost: 40 },
+  { id: 107, name: "Electrical Panel Upgrade 200A", price: 2800, cost: 1100 },
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -142,15 +171,46 @@ export function EstimateDetail() {
   const initial = mockEstimates[id || ""] || mockEstimates["1"];
   const [estimate, setEstimate] = useState<EstimateData>({ ...initial });
   const [activeTab, setActiveTab] = useState<TabKey>("details");
-  const [notesTab, setNotesTab] = useState<NotesTabKey>("client");
   const [statusOpen, setStatusOpen] = useState(false);
+  const [editMenuOpen, setEditMenuOpen] = useState(false);
   const [addItemOpen, setAddItemOpen] = useState(false);
+  const [customerPreviewOpen, setCustomerPreviewOpen] = useState(false);
+  interface DocFile { id: string; name: string; size: string; date: string; icon: string; iconColor: string; isImage?: boolean; previewUrl?: string; previewGradient?: string; uploadedBy?: string; category?: string; }
+  const [documents, setDocuments] = useState<DocFile[]>([
+    { id: "photo-34610", name: "Copy of 34610 Install outlet outdoor electrical panel.jpg", size: "3.4 MB", date: "May 19, 2026", icon: "image", iconColor: "#F59E0B", isImage: true, previewUrl: outdoorElectricalPanelPhoto, uploadedBy: "Field Crew", category: "Photos" },
+    { id: "photo-33841", name: "Copy of 33841 Install AC.jpg", size: "2.4 MB", date: "May 19, 2026", icon: "image", iconColor: "#F59E0B", isImage: true, previewUrl: installAc33841Photo, uploadedBy: "Field Crew", category: "Photos" },
+    { id: "photo-34689-tankless", name: "Copy of 34689 Install Water Heater Tankless.jpg", size: "1.8 MB", date: "May 19, 2026", icon: "image", iconColor: "#F59E0B", isImage: true, previewUrl: installWaterHeaterTanklessPhoto, uploadedBy: "Field Crew", category: "Photos" },
+    { id: "photo-34689-ac", name: "Copy of 34689 Install AC.jpg", size: "2.7 MB", date: "May 19, 2026", icon: "image", iconColor: "#F59E0B", isImage: true, previewUrl: installAcPhoto, uploadedBy: "Field Crew", category: "Photos" },
+    { id: "photo-34285", name: "Copy of 34285 Install Water Heater.jpg", size: "1.8 MB", date: "May 19, 2026", icon: "image", iconColor: "#F59E0B", isImage: true, previewUrl: installWaterHeaterPhoto, uploadedBy: "Field Crew", category: "Photos" },
+    { id: "photo-33897", name: "Copy of 33897 cu.jpg", size: "2.8 MB", date: "May 19, 2026", icon: "image", iconColor: "#F59E0B", isImage: true, previewUrl: cuPhoto, uploadedBy: "Field Crew", category: "Photos" },
+    { id: "photo-33805", name: "Copy of 33805 Install ducts & vents.jpg", size: "2.8 MB", date: "May 19, 2026", icon: "image", iconColor: "#F59E0B", isImage: true, previewUrl: installDuctsVentsPhoto, uploadedBy: "Field Crew", category: "Photos" },
+    { id: "photo-33702-1", name: "Copy of 33702 Install heating system (1).jpg", size: "1.6 MB", date: "May 19, 2026", icon: "image", iconColor: "#F59E0B", isImage: true, previewUrl: installHeatingSystem1Photo, uploadedBy: "Field Crew", category: "Photos" },
+    { id: "photo-33702", name: "Copy of 33702 Install heating system.jpg", size: "1.6 MB", date: "May 19, 2026", icon: "image", iconColor: "#F59E0B", isImage: true, previewUrl: installHeatingSystemPhoto, uploadedBy: "Field Crew", category: "Photos" },
+    { id: "photo-87970", name: "87970_20241208_113711.png", size: "10.0 MB", date: "May 19, 2026", icon: "image", iconColor: "#F59E0B", isImage: true, previewUrl: job87970Photo, uploadedBy: "Field Crew", category: "Photos" },
+    { id: "photo-44644", name: "44644_IMG_20241210_123749.png", size: "9.5 MB", date: "May 19, 2026", icon: "image", iconColor: "#F59E0B", isImage: true, previewUrl: job44644Photo, uploadedBy: "Field Crew", category: "Photos" },
+  ]);
+  const [previewFileId, setPreviewFileId] = useState<string | null>(null);
+  const previewFile = documents.find(d => d.id === previewFileId) ?? null;
+  const [selectedDocs, setSelectedDocs] = useState<Set<string>>(new Set());
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const toggleDocSelected = (docId: string) => setSelectedDocs(prev => { const n = new Set(prev); n.has(docId) ? n.delete(docId) : n.add(docId); return n; });
+  const handleFilesAdded = (files: FileList | null) => {
+    if (!files) return;
+    Array.from(files).forEach(file => {
+      const isImg = file.type.startsWith("image/");
+      const newDoc: DocFile = { id: `upload-${Date.now()}-${file.name}`, name: file.name, size: file.size > 1048576 ? `${(file.size/1048576).toFixed(1)} MB` : `${Math.round(file.size/1024)} KB`, date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }), icon: isImg ? "image" : "insert_drive_file", iconColor: isImg ? "#F59E0B" : "#6B7280", isImage: isImg, uploadedBy: "You", category: isImg ? "Photos" : "Documents" };
+      if (isImg) { const reader = new FileReader(); reader.onload = e => setDocuments(prev => prev.map(d => d.id === newDoc.id ? { ...d, previewUrl: e.target?.result as string } : d)); reader.readAsDataURL(file); }
+      setDocuments(prev => [newDoc, ...prev]);
+    });
+  };
 
   const statusRef = useRef<HTMLDivElement>(null);
+  const editMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (statusRef.current && !statusRef.current.contains(e.target as Node)) setStatusOpen(false);
+      if (editMenuRef.current && !editMenuRef.current.contains(e.target as Node)) setEditMenuOpen(false);
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
@@ -161,202 +221,107 @@ export function EstimateDetail() {
   const taxableAmount = estimate.items.filter(i => i.taxable).reduce((s, i) => s + i.amount, 0);
   const taxAmount = taxableAmount * (estimate.taxRate / 100);
   const total = subtotal + taxAmount;
+  const depositAmount = estimate.depositRequired
+    ? estimate.depositType === "percentage" ? total * (estimate.depositValue / 100) : estimate.depositValue
+    : 0;
 
   const removeItem = (itemId: number) => setEstimate(prev => ({ ...prev, items: prev.items.filter(i => i.id !== itemId) }));
+  const photos = estimate.photos || [];
+  const totalDocCount = photos.length;
 
-  const catalogItems = [
-    { id: 101, name: "Heat Pump Repair or Service", price: 285, cost: 120 },
-    { id: 102, name: "SEER Heat Pump Condenser Unit", price: 3200, cost: 1800 },
-    { id: 103, name: "Copper Piping Installation", price: 18.50, cost: 6.75 },
-    { id: 104, name: "General Labor - Technician", price: 95, cost: 45 },
-    { id: 105, name: "Thermostat - Smart WiFi", price: 450, cost: 180 },
-    { id: 106, name: "Drain Cleaning Service", price: 175, cost: 40 },
-    { id: 107, name: "Electrical Panel Upgrade 200A", price: 2800, cost: 1100 },
-  ];
-
-  // ── Renderers ────────────────────────────────────────────────────────────────
-
-  const renderDetailsTab = () => (
-    <div className="flex gap-4 items-start">
-      {/* Main content */}
-      <div className="flex-1 min-w-0 flex flex-col gap-4">
-        {/* Row 1: Client Info | Estimate Details */}
-        <div className="grid grid-cols-2 gap-4">
-          {/* Client Info */}
-          <div className="bg-white border border-[#E5E7EB] rounded-lg p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Client</h3>
-              <button className="text-[#9CA3AF] hover:text-[#6B7280]">
-                <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
-              </button>
+  // ── Customer preview ─────────────────────────────────────────────────────────
+  const renderCustomerPreview = () => (
+    <div className="fixed inset-0 z-50 bg-black/45 backdrop-blur-[2px] flex items-start justify-center overflow-y-auto px-6 py-8" onClick={() => setCustomerPreviewOpen(false)}>
+      <div className="relative" onClick={(e) => e.stopPropagation()}>
+        <div className="mb-3 flex items-center justify-end gap-2">
+          <button type="button" onClick={() => window.print()}
+            className="h-9 px-3 rounded-md bg-white border border-[#D8DEE8] text-[13px] text-[#1A2332] hover:bg-[#F5F7FA] inline-flex items-center gap-1.5" style={{ fontWeight: 600 }}>
+            <span className="material-icons" style={{ fontSize: "16px" }}>print</span> Print
+          </button>
+          <button type="button" onClick={() => setCustomerPreviewOpen(false)}
+            className="h-9 w-9 rounded-md bg-white border border-[#D8DEE8] text-[#546478] hover:bg-[#F5F7FA] inline-flex items-center justify-center">
+            <span className="material-icons" style={{ fontSize: "18px" }}>close</span>
+          </button>
+        </div>
+        <div className="bg-white text-[#5F6670] shadow-2xl border border-[#D7DCE3]" style={{ width: 760, minHeight: 980, padding: "32px 28px 44px", fontFamily: "Arial, sans-serif" }}>
+          <div className="flex items-start justify-between mb-9">
+            <div className="text-[12px] leading-[18px]">
+              <div style={{ fontWeight: 700 }}>Service Vision</div>
+              <div>8377 Standish Bend Dr Tampa FL 33615</div>
+              <div className="text-[#4A6FA5]">jaamsflying@gmail.com</div>
+              <div>(813) 263-0691</div>
             </div>
-            <div className="space-y-2">
-              <button onClick={() => navigate("/clients/1")} className="text-[14px] text-[#4A6FA5] hover:underline text-left" style={{ fontWeight: 600 }}>
-                {estimate.clientName}
-              </button>
-              <div className="flex flex-col gap-1.5 text-[13px] text-[#374151]">
-                <div className="flex items-center gap-2">
-                  <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "15px" }}>mail</span>
-                  <a href={`mailto:${estimate.clientEmail}`} className="text-[#4A6FA5] hover:underline">{estimate.clientEmail}</a>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "15px" }}>phone</span>
-                  <span>{estimate.clientPhone}</span>
-                </div>
-                <div className="flex items-start gap-2 mt-1">
-                  <span className="material-icons text-[#9CA3AF] mt-0.5" style={{ fontSize: "15px" }}>location_on</span>
-                  <span className="whitespace-pre-line leading-relaxed">{estimate.clientAddress}</span>
-                </div>
+            <div className="text-right">
+              <div className="text-[31px] leading-none tracking-wide text-[#4F5660]" style={{ fontWeight: 800 }}>ESTIMATE</div>
+              <div className="grid grid-cols-[100px_120px] gap-x-6 gap-y-1 text-[12px] mt-11">
+                <div className="text-right" style={{ fontWeight: 700 }}>Estimate #</div>
+                <div className="text-right text-[#7C6A9D]">{estimate.estimateNumber}</div>
+                <div className="text-right" style={{ fontWeight: 700 }}>Date</div>
+                <div className="text-right text-[#7C6A9D]">{estimate.dateCreated}</div>
+                <div className="text-right" style={{ fontWeight: 700 }}>Total</div>
+                <div className="text-right text-[#7C6A9D]">${fmt(total)}</div>
               </div>
             </div>
           </div>
-
-          {/* Estimate Details */}
-          <div className="bg-white border border-[#E5E7EB] rounded-lg p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Estimate Details</h3>
-              <button className="text-[#9CA3AF] hover:text-[#6B7280]">
-                <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
-              </button>
+          <div className="grid grid-cols-2 gap-14 text-[12px] leading-[18px] mb-6">
+            <div>
+              <div className="mb-1" style={{ fontWeight: 700 }}>Prepared For:</div>
+              <div>{estimate.clientName}</div>
+              <div className="whitespace-pre-line">{estimate.clientAddress}</div>
+              <div>{estimate.clientPhone}</div>
+              <div className="text-[#4A6FA5]">{estimate.clientEmail}</div>
             </div>
-            <div className="grid grid-cols-2 gap-x-6 gap-y-3">
-              {[
-                { label: "Estimate #", value: estimate.estimateNumber },
-                { label: "Name", value: estimate.estimateName || "—" },
-                { label: "Date Created", value: estimate.dateCreated },
-                { label: "Expiration", value: estimate.expirationDate },
-                { label: "Sent Date", value: estimate.sentDate },
-                { label: "Team Member", value: estimate.teamMember || "—" },
-                { label: "Source", value: estimate.source || "—" },
-              ].map(({ label, value }) => (
-                <div key={label} className="flex flex-col gap-0.5">
-                  <div className="text-[11px] text-[#9CA3AF]">{label}</div>
-                  <div className="text-[13px] text-[#374151]" style={{ fontWeight: 500 }}>{value}</div>
-                </div>
+            <div>
+              <div className="mb-1" style={{ fontWeight: 700 }}>Service Location:</div>
+              <div className="whitespace-pre-line">{estimate.serviceAddress}</div>
+            </div>
+          </div>
+          <table className="w-full border-collapse text-[12px]">
+            <thead>
+              <tr className="border-y-[3px] border-[#4F5660]">
+                <th className="text-left py-3 px-2" style={{ fontWeight: 700 }}>Description</th>
+                <th className="text-left py-3 px-2 w-[84px]" style={{ fontWeight: 700 }}>QTY</th>
+                <th className="text-left py-3 px-2 w-[102px]" style={{ fontWeight: 700 }}>Price</th>
+                <th className="text-left py-3 px-2 w-[102px]" style={{ fontWeight: 700 }}>Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {estimate.items.map(item => (
+                <tr key={item.id} className="border-b border-[#E0E3E7]">
+                  <td className="py-3 px-2"><div style={{ fontWeight: 700 }}>{item.name}</div>{item.description && <div>{item.description}</div>}</td>
+                  <td className="py-3 px-2 text-[#6F6A93]">{item.quantity}</td>
+                  <td className="py-3 px-2 text-[#6F6A93]">${fmt(item.price)}</td>
+                  <td className="py-3 px-2 text-[#6F6A93]">${fmt(item.amount)}</td>
+                </tr>
               ))}
+            </tbody>
+          </table>
+          <div className="flex justify-end border-t border-[#E0E3E7] mb-16">
+            <div className="grid grid-cols-[90px_110px] text-[12px]">
+              <div className="py-2 px-2" style={{ fontWeight: 700 }}>Subtotal</div><div className="py-2 px-2 text-right text-[#6F6A93]">${fmt(subtotal)}</div>
+              {taxAmount > 0 && <><div className="py-1 px-2" style={{ fontWeight: 700 }}>Tax</div><div className="py-1 px-2 text-right text-[#6F6A93]">${fmt(taxAmount)}</div></>}
+              <div className="py-2 px-2" style={{ fontWeight: 700 }}>Total</div><div className="py-2 px-2 text-right text-[#6F6A93]">${fmt(total)}</div>
             </div>
           </div>
-        </div>
-
-        {/* Row 2: Service Address | Linked Job */}
-        <div className="grid grid-cols-2 gap-4">
-          {/* Service Address */}
-          <div className="bg-white border border-[#E5E7EB] rounded-lg p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Service Address</h3>
-              <button className="text-[#9CA3AF] hover:text-[#6B7280]">
-                <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
-              </button>
-            </div>
-            <div className="flex items-start gap-2 text-[13px] text-[#374151]">
-              <span className="material-icons text-[#6B7280] mt-0.5" style={{ fontSize: "16px" }}>location_on</span>
-              <span className="whitespace-pre-line leading-relaxed">{estimate.serviceAddress}</span>
-            </div>
-          </div>
-
-          {/* Linked Job */}
-          <div className="bg-white border border-[#E5E7EB] rounded-lg p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Linked Job</h3>
-              <button className="text-[#9CA3AF] hover:text-[#6B7280]">
-                <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
-              </button>
-            </div>
-            {estimate.job ? (
-              <button
-                onClick={() => estimate.jobId && navigate(`/jobs/${estimate.jobId}`)}
-                className="flex items-center gap-2 text-[13px] text-[#4A6FA5] hover:underline text-left"
-                style={{ fontWeight: 500 }}
-              >
-                <span className="material-icons" style={{ fontSize: "16px" }}>work</span>
-                {estimate.job}
-              </button>
-            ) : (
-              <button className="text-[13px] text-[#4A6FA5] hover:underline" style={{ fontWeight: 500 }}>
-                + Link to job
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* ── Notes rail ── */}
-      <div className="w-[260px] shrink-0 flex flex-col gap-4">
-        {/* Notes panel with sub-tabs */}
-        <div className="bg-white border border-[#E5E7EB] rounded-lg flex flex-col overflow-hidden">
-          <div className="flex border-b border-[#E5E7EB]">
-            {([["client", "Note to Client"], ["internal", "Internal"]] as [NotesTabKey, string][]).map(([key, label]) => (
-              <button
-                key={key}
-                onClick={() => setNotesTab(key)}
-                className={`flex-1 px-3 py-3 text-[12px] transition-colors ${
-                  notesTab === key
-                    ? "text-[#4A6FA5] border-b-2 border-[#4A6FA5] bg-white"
-                    : "text-[#546478] hover:text-[#1A2332] hover:bg-[#F9FAFB]"
-                }`}
-                style={{ fontWeight: notesTab === key ? 600 : 500 }}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-          <div className="p-4 flex-1">
-            {notesTab === "client" ? (
-              <>
-                <textarea
-                  value={estimate.noteToClient}
-                  onChange={(e) => setEstimate(prev => ({ ...prev, noteToClient: e.target.value }))}
-                  className="w-full text-[13px] text-[#374151] leading-relaxed resize-none border-none focus:outline-none min-h-[100px]"
-                  placeholder="Note visible to client..."
-                />
-                <button className="text-[12px] text-[#4A6FA5] hover:underline mt-1" style={{ fontWeight: 500 }}>+ Add note</button>
-              </>
-            ) : (
-              <>
-                <textarea
-                  value={estimate.internalNote}
-                  onChange={(e) => setEstimate(prev => ({ ...prev, internalNote: e.target.value }))}
-                  className="w-full text-[13px] text-[#374151] leading-relaxed resize-none border-none focus:outline-none min-h-[100px]"
-                  placeholder="Internal note (not visible to client)..."
-                />
-                <button className="text-[12px] text-[#4A6FA5] hover:underline mt-1" style={{ fontWeight: 500 }}>+ Add note</button>
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* Terms & Conditions */}
-        <div className="bg-white border border-[#E5E7EB] rounded-lg flex flex-col overflow-hidden">
-          <div className="px-4 py-3 border-b border-[#E5E7EB]">
-            <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>Terms & Conditions</span>
-          </div>
-          <div className="p-4">
-            <textarea
-              value={estimate.terms}
-              onChange={(e) => setEstimate(prev => ({ ...prev, terms: e.target.value }))}
-              className="w-full text-[13px] text-[#374151] leading-relaxed resize-none border-none focus:outline-none min-h-[80px]"
-              placeholder="Terms and conditions..."
-            />
-            <button className="text-[12px] text-[#4A6FA5] hover:underline mt-1" style={{ fontWeight: 500 }}>Edit terms</button>
-          </div>
+          {estimate.notes && <div className="text-[12px]"><div style={{ fontWeight: 700 }}>Notes:</div><div>{estimate.notes}</div></div>}
+          <div className="mt-4 text-[11px] text-[#9CA3AF]">Terms &amp; Conditions apply.</div>
+          <div className="mt-12 text-center text-[23px] text-[#111827]" style={{ fontWeight: 800 }}>Thank you for your business</div>
         </div>
       </div>
     </div>
   );
 
-  const renderItemsTab = () => (
-    <div className="flex flex-col gap-4">
-      {/* Line Items */}
-      <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
+  // ── Details tab ──────────────────────────────────────────────────────────────
+  const renderDetailsTab = () => (
+    <div className="grid grid-cols-2 gap-4 items-start">
+
+      {/* ── Left: Line Items ── */}
+      <div className="flex flex-col gap-0 bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
         <div className="flex items-center justify-between px-5 py-4 border-b border-[#E5E7EB]">
           <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Line Items</h3>
-          <button
-            onClick={() => setAddItemOpen(true)}
-            className="px-4 py-2 bg-[#4A6FA5] text-white rounded-lg text-[13px] hover:bg-[#3d5a85] flex items-center gap-1.5"
-            style={{ fontWeight: 600 }}
-          >
-            <PlusIcon className="h-4 w-4" />
-            Add Item
+          <button onClick={() => setAddItemOpen(true)}
+            className="px-4 py-2 bg-[#4A6FA5] text-white rounded-lg text-[13px] hover:bg-[#3d5a85] flex items-center gap-1.5" style={{ fontWeight: 600 }}>
+            <PlusIcon className="h-4 w-4" /> Add Item
           </button>
         </div>
 
@@ -366,9 +331,7 @@ export function EstimateDetail() {
               <span className="material-icons text-[#C8D5E8]" style={{ fontSize: "28px" }}>receipt_long</span>
             </div>
             <div className="text-[14px] text-[#546478]" style={{ fontWeight: 500 }}>No items added yet</div>
-            <button onClick={() => setAddItemOpen(true)} className="text-[13px] text-[#4A6FA5] hover:underline mt-1 block mx-auto" style={{ fontWeight: 500 }}>
-              + Add item
-            </button>
+            <button onClick={() => setAddItemOpen(true)} className="text-[13px] text-[#4A6FA5] hover:underline mt-1 block mx-auto" style={{ fontWeight: 500 }}>+ Add item</button>
           </div>
         ) : (
           <>
@@ -376,8 +339,8 @@ export function EstimateDetail() {
               <table className="w-full">
                 <thead>
                   <tr className="bg-[#F9FAFB] border-b border-[#E5E7EB]">
-                    {["Item", "Qty", "Unit Price", "Cost", "Amount", "Taxable", ""].map(h => (
-                      <th key={h} className={`px-4 py-3 text-left text-[11px] uppercase tracking-wider text-[#546478] ${h === "" ? "w-[50px]" : ""}`} style={{ fontWeight: 600 }}>{h}</th>
+                    {["Item", "Unit Price", "QTY", "Amount", "Taxable", ""].map(h => (
+                      <th key={h} className={`px-4 py-3 text-left text-[11px] uppercase tracking-wider text-[#546478] ${h === "" ? "w-[44px]" : ""}`} style={{ fontWeight: 600 }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -385,17 +348,23 @@ export function EstimateDetail() {
                   {estimate.items.map((item) => (
                     <tr key={item.id} className="border-b border-[#E5E7EB] hover:bg-[#F9FAFB]">
                       <td className="px-4 py-3">
-                        <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{item.name}</div>
-                        {item.description && <div className="text-[12px] text-[#8899AA]">{item.description}</div>}
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-md bg-[#F0F4FA] flex items-center justify-center shrink-0">
+                            <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "16px" }}>build</span>
+                          </div>
+                          <div>
+                            <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{item.name}</div>
+                            {item.description && <div className="text-[12px] text-[#8899AA]">{item.description}</div>}
+                          </div>
+                        </div>
                       </td>
-                      <td className="px-4 py-3 text-[13px] text-[#546478]" style={{ fontVariantNumeric: "tabular-nums" }}>{item.quantity}</td>
                       <td className="px-4 py-3 text-[13px] text-[#546478]" style={{ fontVariantNumeric: "tabular-nums" }}>${fmt(item.price)}</td>
-                      <td className="px-4 py-3 text-[13px] text-[#9CA3AF]" style={{ fontVariantNumeric: "tabular-nums" }}>${fmt(item.cost)}</td>
+                      <td className="px-4 py-3 text-[13px] text-[#546478]">{item.quantity}</td>
                       <td className="px-4 py-3 text-[13px] text-[#1A2332]" style={{ fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>${fmt(item.amount)}</td>
                       <td className="px-4 py-3 text-[13px] text-[#546478]">{item.taxable ? "Yes" : "No"}</td>
                       <td className="px-4 py-3">
                         <button onClick={() => removeItem(item.id)} className="w-7 h-7 flex items-center justify-center rounded hover:bg-[#FEE2E2]">
-                          <span className="material-icons text-[#DC2626]" style={{ fontSize: "16px" }}>close</span>
+                          <span className="material-icons text-[#DC2626]" style={{ fontSize: "16px" }}>delete</span>
                         </button>
                       </td>
                     </tr>
@@ -403,103 +372,328 @@ export function EstimateDetail() {
                 </tbody>
               </table>
             </div>
-
             {/* Totals */}
             <div className="border-t border-[#E5E7EB] px-5 py-4 bg-[#FAFBFC]">
               <div className="flex justify-end">
-                <div className="space-y-2 min-w-[280px]">
-                  <div className="flex items-center justify-between text-[13px]">
-                    <span className="text-[#546478]">Subtotal:</span>
-                    <span className="text-[#1A2332]" style={{ fontVariantNumeric: "tabular-nums" }}>${fmt(subtotal)}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-[13px]">
-                    <span className="text-[#546478]">Taxable:</span>
-                    <span className="text-[#1A2332]" style={{ fontVariantNumeric: "tabular-nums" }}>${fmt(taxableAmount)}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-[13px]">
-                    <span className="text-[#546478]">Tax ({estimate.taxRate}%):</span>
-                    <span className="text-[#1A2332]" style={{ fontVariantNumeric: "tabular-nums" }}>${fmt(taxAmount)}</span>
-                  </div>
+                <div className="space-y-1.5 min-w-[260px]">
+                  {[
+                    { label: "Subtotal:", value: fmt(subtotal) },
+                    { label: "Taxable:", value: fmt(taxableAmount) },
+                    { label: `Tax (${estimate.taxRate}%):`, value: fmt(taxAmount) },
+                  ].map(({ label, value }) => (
+                    <div key={label} className="flex items-center justify-between text-[13px]">
+                      <span className="text-[#546478]">{label}</span>
+                      <span className="text-[#1A2332]" style={{ fontVariantNumeric: "tabular-nums" }}>${value}</span>
+                    </div>
+                  ))}
                   <div className="flex items-center justify-between pt-2 border-t border-[#E5E7EB]">
                     <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Total:</span>
-                    <span className="text-[18px] text-[#1A2332]" style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>${fmt(total)}</span>
+                    <span className="text-[18px] text-[#4A6FA5]" style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>${fmt(total)}</span>
                   </div>
                 </div>
               </div>
             </div>
+            {/* Deposit Required toggle (quick view) */}
+            <div className="border-t border-[#E5E7EB] px-5 py-3 flex items-center gap-3 bg-white">
+              <button
+                type="button"
+                onClick={() => { setEstimate(prev => ({ ...prev, depositRequired: !prev.depositRequired })); setActiveTab("deposit"); }}
+                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 ${estimate.depositRequired ? "bg-[#22C55E]" : "bg-[#D1D5DB]"}`}
+              >
+                <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow-sm transform transition-transform duration-200 ${estimate.depositRequired ? "translate-x-4" : "translate-x-0.5"}`} />
+              </button>
+              <span className="text-[13px] text-[#546478]">
+                Deposit Required
+                {estimate.depositRequired && <span className="ml-2 text-[#22C55E]" style={{ fontWeight: 500 }}>— ${fmt(depositAmount)}</span>}
+              </span>
+            </div>
           </>
         )}
       </div>
 
-      {/* Attachments + Signatures */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="bg-white border border-[#E5E7EB] rounded-lg">
-          <div className="flex items-center justify-between px-5 py-4 border-b border-[#E5E7EB]">
-            <div className="flex items-center gap-2">
-              <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>attach_file</span>
-              <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Attachments</h3>
-            </div>
-            <button className="px-3 py-1.5 bg-[#4A6FA5] text-white text-[13px] rounded-lg hover:bg-[#3d5a85] flex items-center gap-1.5" style={{ fontWeight: 600 }}>
-              <span className="material-icons" style={{ fontSize: "16px" }}>cloud_upload</span>
+      {/* ── Right: Documents + Estimate Notes ── */}
+      <div className="flex flex-col gap-4">
+
+        {/* Documents */}
+        <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
+          {/* Toolbar */}
+          <div className="px-4 py-3 border-b border-[#E5E7EB] flex items-center gap-2.5 flex-wrap">
+            <h3 className="text-[14px] text-[#1A2332] mr-1" style={{ fontWeight: 600 }}>
+              Documents {documents.length > 0 && <span className="text-[#9CA3AF]">({documents.length})</span>}
+            </h3>
+            <div className="flex-1" />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="h-8 px-3 flex items-center gap-1.5 bg-[#4A6FA5] hover:bg-[#3d5a85] text-white rounded-lg text-[13px] transition-colors"
+              style={{ fontWeight: 500 }}
+            >
+              <span className="material-icons" style={{ fontSize: "16px" }}>upload</span>
               Upload
             </button>
           </div>
-          <div className="px-5 py-8 flex flex-col items-center justify-center">
-            <div className="w-12 h-12 rounded-full bg-[#F5F7FA] flex items-center justify-center mb-2">
-              <span className="material-icons text-[#C8D5E8]" style={{ fontSize: "24px" }}>cloud_upload</span>
+
+          <input ref={fileInputRef} type="file" multiple className="hidden" onChange={e => handleFilesAdded(e.target.files)} />
+
+          {documents.length === 0 ? (
+            <div className="py-10 flex flex-col items-center justify-center">
+              <span className="material-icons text-[#D1D5DB] mb-2" style={{ fontSize: "40px" }}>folder_open</span>
+              <div className="text-[13px] text-[#9CA3AF]">No documents yet</div>
+              <button onClick={() => fileInputRef.current?.click()} className="text-[13px] text-[#4A6FA5] hover:underline mt-1" style={{ fontWeight: 500 }}>+ Upload files</button>
             </div>
-            <button className="text-[13px] text-[#4A6FA5] hover:underline" style={{ fontWeight: 500 }}>+ Upload files</button>
-          </div>
+          ) : (
+            <div className="p-3">
+              {selectedDocs.size > 0 && (
+                <div className="bg-[#EEF3FA] border border-[#C5D5EC] rounded-lg px-4 py-2 flex items-center gap-3 mb-3">
+                  <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{selectedDocs.size} selected</span>
+                  <button onClick={() => setSelectedDocs(new Set())} className="text-[12px] text-[#6B7280] hover:underline" style={{ fontWeight: 500 }}>Clear</button>
+                  <div className="flex-1" />
+                  <button
+                    onClick={() => { setDocuments(prev => prev.filter(d => !selectedDocs.has(d.id))); setSelectedDocs(new Set()); }}
+                    className="h-7 px-2.5 flex items-center gap-1 border border-[#FCA5A5] bg-white hover:bg-[#FEF2F2] rounded text-[12px] text-[#DC2626] transition-colors"
+                    style={{ fontWeight: 500 }}
+                  >
+                    <span className="material-icons" style={{ fontSize: "14px" }}>delete_outline</span>
+                    Delete
+                  </button>
+                </div>
+              )}
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                {documents.map(file => {
+                  const isSelected = selectedDocs.has(file.id);
+                  return (
+                    <div
+                      key={file.id}
+                      onClick={e => e.metaKey || e.ctrlKey || selectedDocs.size > 0 ? toggleDocSelected(file.id) : setPreviewFileId(file.id)}
+                      className={`flex flex-col items-center text-center group relative cursor-pointer rounded-lg p-2 transition-colors ${isSelected ? "bg-[#DBE7F7] ring-2 ring-[#4A6FA5]" : "hover:bg-[#EEF3FA]"}`}
+                      title={`${file.name}\n${file.size} · ${file.date}`}
+                    >
+                      <label onClick={e => e.stopPropagation()} className={`absolute top-1 left-1 z-10 ${isSelected || selectedDocs.size > 0 ? "opacity-100" : "opacity-0 group-hover:opacity-100"} transition-opacity`}>
+                        <input type="checkbox" checked={isSelected} onChange={() => toggleDocSelected(file.id)} className="w-4 h-4 accent-[#4A6FA5] cursor-pointer" />
+                      </label>
+                      <div className="w-full aspect-[4/3] rounded-md border border-[#E5E7EB] overflow-hidden bg-white">
+                        {file.isImage && file.previewUrl ? (
+                          <img src={file.previewUrl} alt={file.name} className="w-full h-full object-cover" />
+                        ) : file.isImage ? (
+                          <div className="w-full h-full flex items-center justify-center" style={{ background: file.previewGradient ?? "linear-gradient(135deg,#fde68a,#f59e0b)" }}>
+                            <span className="material-icons text-white/70" style={{ fontSize: "32px" }}>image</span>
+                          </div>
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: file.iconColor + "12" }}>
+                            <span className="material-icons" style={{ fontSize: "40px", color: file.iconColor, opacity: 0.85 }}>{file.icon}</span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="mt-1.5 text-[11px] text-[#1A2332] leading-[15px] w-full px-0.5"
+                        style={{ fontWeight: 500, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", wordBreak: "break-word" }}>
+                        {file.name}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
 
-        <div className="bg-white border border-[#E5E7EB] rounded-lg">
+        <DocumentPreview
+          file={previewFile}
+          onClose={() => setPreviewFileId(null)}
+          onRename={(id, newName) => setDocuments(prev => prev.map(d => d.id === id ? { ...d, name: newName } : d))}
+          onDelete={(id) => setDocuments(prev => prev.filter(d => d.id !== id))}
+        />
+
+        {/* Estimate Notes */}
+        <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
           <div className="flex items-center justify-between px-5 py-4 border-b border-[#E5E7EB]">
-            <div className="flex items-center gap-2">
-              <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>draw</span>
-              <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Signatures</h3>
+            <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Estimate Notes</h3>
+            <button className="text-[13px] text-[#4A6FA5] hover:underline" style={{ fontWeight: 500 }}>+ Add Note</button>
+          </div>
+          {estimate.notes ? (
+            <div className="px-5 py-4 text-[13px] text-[#374151] leading-relaxed">{estimate.notes}</div>
+          ) : (
+            <div className="px-5 py-8 flex flex-col items-center justify-center text-center">
+              <div className="w-12 h-12 rounded-full bg-[#F5F7FA] flex items-center justify-center mb-3">
+                <span className="material-icons text-[#C8D5E8]" style={{ fontSize: "22px" }}>edit_note</span>
+              </div>
+              <div className="text-[13px] text-[#1A2332] mb-0.5" style={{ fontWeight: 500 }}>No notes added yet.</div>
+              <div className="text-[12px] text-[#9CA3AF]">Notes about this estimate will appear here.</div>
             </div>
-            <button className="px-3 py-1.5 bg-[#4A6FA5] text-white text-[13px] rounded-lg hover:bg-[#3d5a85] flex items-center gap-1.5" style={{ fontWeight: 600 }}>
-              <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
-              Sign
-            </button>
+          )}
+        </div>
+
+      </div>
+    </div>
+  );
+
+  // ── Deposit tab ───────────────────────────────────────────────────────────────
+  const renderDepositTab = () => (
+    <div className="flex gap-4 items-start">
+      <div className="flex-1 min-w-0 flex flex-col gap-4">
+        <div className="bg-white border border-[#E5E7EB] rounded-lg p-5">
+          <div className="flex items-center justify-between mb-1">
+            <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Deposit Settings</h3>
+            <div className="flex items-center gap-2.5">
+              <span className="text-[13px] text-[#546478]">Deposit Required</span>
+              <button type="button"
+                onClick={() => setEstimate(prev => ({ ...prev, depositRequired: !prev.depositRequired }))}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ${estimate.depositRequired ? "bg-[#22C55E]" : "bg-[#D1D5DB]"}`}>
+                <span className={`inline-block h-4 w-4 rounded-full bg-white shadow-sm transform transition-transform duration-200 ${estimate.depositRequired ? "translate-x-6" : "translate-x-1"}`} />
+              </button>
+            </div>
           </div>
-          <div className="px-5 py-8 flex items-center justify-center">
-            <div className="text-[13px] text-[#9CA3AF]">No signatures found</div>
+          {estimate.depositRequired ? (
+            <>
+              <p className="text-[13px] text-[#546478] mb-5">A deposit is required to secure your project and schedule the work.</p>
+              <div className="mb-4">
+                <label className="block text-[11px] uppercase tracking-wider text-[#546478] mb-1.5" style={{ fontWeight: 600 }}>Deposit Type</label>
+                <select value={estimate.depositType}
+                  onChange={(e) => setEstimate(prev => ({ ...prev, depositType: e.target.value as "amount" | "percentage" }))}
+                  className="w-full px-3 py-2.5 border border-[#E5E7EB] rounded-md text-[13px] text-[#1A2332] focus:outline-none focus:border-[#4A6FA5] bg-white">
+                  <option value="percentage">Percentage of Total</option>
+                  <option value="amount">Fixed Dollar Amount</option>
+                </select>
+              </div>
+              {estimate.depositType === "percentage" ? (
+                <div className="grid grid-cols-2 gap-4 mb-1">
+                  <div>
+                    <label className="block text-[11px] uppercase tracking-wider text-[#546478] mb-1.5" style={{ fontWeight: 600 }}>Deposit Percentage</label>
+                    <div className="relative">
+                      <input type="number" min="0" max="100" step="0.01" value={estimate.depositValue}
+                        onChange={(e) => setEstimate(prev => ({ ...prev, depositValue: Number(e.target.value) || 0 }))}
+                        className="w-full pl-4 pr-8 py-2.5 border border-[#E5E7EB] rounded-md text-[13px] text-[#1A2332] focus:outline-none focus:border-[#4A6FA5]" />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#546478] text-[13px]">%</span>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] uppercase tracking-wider text-[#546478] mb-1.5" style={{ fontWeight: 600 }}>Deposit Amount</label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#546478] text-[13px]">$</span>
+                      <input type="text" readOnly value={fmt(depositAmount)}
+                        className="w-full pl-7 pr-4 py-2.5 border border-[#E5E7EB] rounded-md text-[13px] text-[#1A2332] bg-[#F9FAFB] cursor-not-allowed" />
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="mb-1">
+                  <label className="block text-[11px] uppercase tracking-wider text-[#546478] mb-1.5" style={{ fontWeight: 600 }}>Deposit Amount</label>
+                  <div className="relative w-[200px]">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#546478] text-[13px]">$</span>
+                    <input type="number" min="0" step="0.01" value={estimate.depositValue}
+                      onChange={(e) => setEstimate(prev => ({ ...prev, depositValue: Number(e.target.value) || 0 }))}
+                      className="w-full pl-7 pr-4 py-2.5 border border-[#E5E7EB] rounded-md text-[13px] text-[#1A2332] focus:outline-none focus:border-[#4A6FA5]" />
+                  </div>
+                </div>
+              )}
+              {estimate.depositType === "percentage" && total > 0 && (
+                <div className="text-[12px] text-[#9CA3AF] mb-5">{estimate.depositValue}% of Total (${fmt(total)})</div>
+              )}
+              <div className="mb-5">
+                <label className="block text-[11px] uppercase tracking-wider text-[#546478] mb-1.5" style={{ fontWeight: 600 }}>Due Upon</label>
+                <select className="w-full px-3 py-2.5 border border-[#E5E7EB] rounded-md text-[13px] text-[#1A2332] focus:outline-none focus:border-[#4A6FA5] bg-white">
+                  <option>Approval</option>
+                  <option>Scheduling</option>
+                  <option>Start of Work</option>
+                </select>
+              </div>
+              <div className="rounded-md bg-[#EFF6FF] border border-[#BFDBFE] px-4 py-3 flex gap-3">
+                <span className="material-icons text-[#3B82F6] mt-0.5 shrink-0" style={{ fontSize: "18px" }}>info</span>
+                <div>
+                  <div className="text-[13px] text-[#1E40AF] mb-1" style={{ fontWeight: 600 }}>How it works</div>
+                  <div className="text-[12px] text-[#1E40AF] leading-relaxed">
+                    When this estimate is approved, the deposit will be recorded and applied to your total balance.
+                    The remaining balance will be due upon completion unless otherwise agreed.
+                  </div>
+                </div>
+              </div>
+            </>
+          ) : (
+            <p className="text-[13px] text-[#9CA3AF] mt-3">Enable "Deposit Required" to request a deposit before work begins.</p>
+          )}
+        </div>
+      </div>
+
+      <div className="w-[280px] shrink-0">
+        <div className="bg-white border border-[#E5E7EB] rounded-lg overflow-hidden">
+          <div className="px-5 py-4 border-b border-[#E5E7EB]">
+            <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Deposit Summary</h3>
           </div>
+          {estimate.depositRequired ? (
+            <>
+              <div className="mx-4 mt-4 mb-4 rounded-md bg-[#F0FDF4] border border-[#BBF7D0] px-4 py-3">
+                <div className="text-[12px] text-[#15803D] mb-0.5" style={{ fontWeight: 600 }}>Deposit Due Now</div>
+                <div className="text-[12px] text-[#15803D] mb-1">({estimate.depositType === "percentage" ? `${estimate.depositValue}%` : "Fixed"} of Total)</div>
+                <div className="text-[22px] text-[#15803D]" style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>${fmt(depositAmount)}</div>
+              </div>
+              <div className="px-5 pb-4 space-y-2 border-b border-[#E5E7EB]">
+                {[
+                  { label: "Subtotal", value: `$${fmt(subtotal)}` },
+                  { label: "Taxable", value: `$${fmt(taxableAmount)}` },
+                  { label: `Tax (${estimate.taxRate}%)`, value: `$${fmt(taxAmount)}` },
+                ].map(({ label, value }) => (
+                  <div key={label} className="flex items-center justify-between text-[13px]">
+                    <span className="text-[#546478]">{label}</span>
+                    <span style={{ fontVariantNumeric: "tabular-nums" }}>{value}</span>
+                  </div>
+                ))}
+                <div className="flex items-center justify-between pt-2 border-t border-[#E5E7EB]">
+                  <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>Total</span>
+                  <span className="text-[15px] text-[#4A6FA5]" style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>${fmt(total)}</span>
+                </div>
+              </div>
+              <div className="px-5 py-4 space-y-3 border-b border-[#E5E7EB]">
+                {[
+                  { icon: "task_alt", color: "#22C55E", title: "Secure Your Project", desc: "Your project is scheduled once the deposit is received." },
+                  { icon: "account_balance_wallet", color: "#3B82F6", title: "Applied to Balance", desc: "Your deposit will be applied to your total balance." },
+                  { icon: "tune", color: "#A855F7", title: "Flexible Terms", desc: "Final payment due upon completion unless otherwise agreed." },
+                ].map(({ icon, color, title, desc }) => (
+                  <div key={title} className="flex gap-3">
+                    <span className="material-icons mt-0.5 shrink-0" style={{ fontSize: "16px", color }}>{icon}</span>
+                    <div>
+                      <div className="text-[12px] text-[#1A2332]" style={{ fontWeight: 600 }}>{title}</div>
+                      <div className="text-[11px] text-[#9CA3AF] leading-relaxed">{desc}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="px-5 py-4">
+                <button className="w-full py-2.5 bg-[#22C55E] hover:bg-[#16A34A] text-white rounded-md text-[14px] transition-colors" style={{ fontWeight: 600 }}>
+                  Record Deposit
+                </button>
+                <div className="text-center text-[11px] text-[#9CA3AF] mt-2">This deposit will be applied to your total balance.</div>
+              </div>
+            </>
+          ) : (
+            <div className="px-5 py-10 flex flex-col items-center text-center">
+              <div className="w-12 h-12 rounded-full bg-[#F5F7FA] flex items-center justify-center mb-3">
+                <span className="material-icons text-[#C8D5E8]" style={{ fontSize: "24px" }}>account_balance_wallet</span>
+              </div>
+              <div className="text-[13px] text-[#9CA3AF]">Enable deposit to see summary</div>
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
 
-  const renderDepositsTab = () => (
-    <div className="bg-white border border-[#E5E7EB] rounded-lg">
+  // ── Notes tab ─────────────────────────────────────────────────────────────────
+  const renderNotesTab = () => (
+    <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
       <div className="flex items-center justify-between px-5 py-4 border-b border-[#E5E7EB]">
-        <div className="flex items-center gap-2">
-          <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>account_balance_wallet</span>
-          <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Deposits</h3>
-        </div>
-        <button className="px-3 py-1.5 border border-[#E5E7EB] text-[13px] text-[#1A2332] rounded-lg hover:bg-[#F5F7FA]" style={{ fontWeight: 500 }}>
-          Add payment
-        </button>
+        <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Internal Notes</h3>
+        <span className="text-[12px] text-[#9CA3AF]">Not visible to client</span>
       </div>
-      <div className="px-5 py-10 flex flex-col items-center justify-center">
-        {(estimate.depositAmount ?? 0) > 0 ? (
-          <div className="text-center">
-            <div className="text-[28px] text-[#1A2332] mb-1" style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>${fmt(estimate.depositAmount ?? 0)}</div>
-            <div className="text-[13px] text-[#546478]">Deposit received</div>
-          </div>
-        ) : (
-          <>
-            <div className="w-14 h-14 rounded-full bg-[#F5F7FA] flex items-center justify-center mb-3">
-              <span className="material-icons text-[#C8D5E8]" style={{ fontSize: "28px" }}>payments</span>
-            </div>
-            <button className="text-[13px] text-[#4A6FA5] hover:underline" style={{ fontWeight: 500 }}>+ Add payment</button>
-          </>
-        )}
+      <div className="p-5">
+        <textarea
+          value={estimate.notes}
+          onChange={(e) => setEstimate(prev => ({ ...prev, notes: e.target.value }))}
+          className="w-full text-[13px] text-[#374151] leading-relaxed resize-none border border-[#E5E7EB] rounded-md focus:outline-none focus:border-[#4A6FA5] p-3 min-h-[160px]"
+          placeholder="Notes for your team — e.g. 'Do not walk on right side, dog in yard'..."
+        />
       </div>
     </div>
   );
 
+  // ── Activity tab ──────────────────────────────────────────────────────────────
   const renderActivityTab = () => (
     <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
       <div className="px-5 py-4 border-b border-[#E5E7EB]">
@@ -525,109 +719,197 @@ export function EstimateDetail() {
   // ── Main render ──────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-[#F5F7FA]">
-      {/* ── PAGE HEADER (back arrow + actions on gray, outside the white card) ── */}
-      <div className="px-6 pt-6 pb-4 flex items-center justify-between gap-3">
-        <button
-          onClick={() => navigate("/estimates")}
-          className="inline-flex items-center gap-1.5 text-[13px] text-[#4A6FA5] hover:text-[#3d5a85] transition-colors"
-          style={{ fontWeight: 500 }}
-        >
-          <span className="material-icons" style={{ fontSize: "18px" }}>arrow_back</span>
+      {/* Breadcrumb */}
+      <div className="px-6 pt-6 pb-4 flex items-center gap-2 text-[13px] text-[#546478]">
+        <button onClick={() => navigate("/estimates")}
+          className="inline-flex items-center gap-1 text-[#4A6FA5] hover:text-[#3d5a85] transition-colors" style={{ fontWeight: 500 }}>
+          <span className="material-icons" style={{ fontSize: "16px" }}>arrow_back</span>
           Back to Estimates
         </button>
-        <KebabMenu triggerClassName="w-9 h-9 border border-[#E5E7EB] rounded-md bg-white flex items-center justify-center hover:bg-[#F5F7FA]">
-          <KebabItem icon="send">Send</KebabItem>
-          <KebabItem icon="visibility">Preview</KebabItem>
-          <KebabItem icon="download">Download PDF</KebabItem>
-          <KebabSeparator />
-          <KebabItem icon="content_copy">Duplicate</KebabItem>
-          <KebabItem icon="receipt">Copy to Invoice</KebabItem>
-          <KebabItem icon="work">Copy to Job</KebabItem>
-          <KebabSeparator />
-          <KebabItem icon="block" destructive>Inactivate</KebabItem>
-          <KebabItem icon="print">Print</KebabItem>
-        </KebabMenu>
+        <span className="text-[#D1D5DB]">/</span>
+        <span className="text-[#1A2332]" style={{ fontWeight: 500 }}>#{estimate.estimateNumber}</span>
       </div>
 
-      {/* ── ONE BIG WHITE CARD CONTAINING EVERYTHING ── */}
-      <div className="mx-6 mb-6 bg-white border border-[#E5E7EB] rounded-xl p-4">
+      {/* White card */}
+      <div className="mx-6 mb-6 bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
 
-        {/* Identity row: estimate # + status pill + client + job */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3 flex-wrap">
-          <h2 className="text-[20px] text-[#1A2332] leading-[27px]" style={{ fontWeight: 600 }}>
-            #{estimate.estimateNumber}{estimate.estimateName ? ` · ${estimate.estimateName}` : ""}
-          </h2>
-          {/* Status pill with dropdown */}
-          <div ref={statusRef} className="relative">
-            <button
-              onClick={() => setStatusOpen(!statusOpen)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] transition-opacity hover:opacity-80"
-              style={{ fontWeight: 600, color: statusColors[estimate.status], backgroundColor: statusBg[estimate.status] }}
-            >
-              {estimate.status}
-              <span className="material-icons" style={{ fontSize: "14px" }}>expand_more</span>
-            </button>
-            {statusOpen && (
-              <div className="absolute left-0 top-[calc(100%+4px)] w-[190px] bg-white border border-[#E5E7EB] rounded-xl shadow-lg z-40 py-1.5">
-                {primaryStatuses.map(s => (
-                  <button key={s} onClick={() => { setEstimate(prev => ({ ...prev, status: s })); setStatusOpen(false); }}
-                    className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-[13px] transition-colors ${s === estimate.status ? "bg-[#EEF3FA]" : "hover:bg-[#F5F7FA]"}`}
-                    style={{ fontWeight: s === estimate.status ? 600 : 400, color: s === estimate.status ? "#4A6FA5" : "#1A2332" }}>
-                    <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: statusColors[s] }} />
-                    {s}
-                    {s === estimate.status && <span className="material-icons ml-auto" style={{ fontSize: "16px", color: "#4A6FA5" }}>check</span>}
-                  </button>
-                ))}
-                <div className="mx-3 my-1 border-t border-[#F3F4F6]" />
-                <div className="px-3.5 pb-1">
-                  <span className="text-[10px] uppercase tracking-wider text-[#9CA3AF]" style={{ fontWeight: 600 }}>Other</span>
-                </div>
-                {otherStatuses.map(s => (
-                  <button key={s} onClick={() => { setEstimate(prev => ({ ...prev, status: s })); setStatusOpen(false); }}
-                    className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-[13px] transition-colors ${s === estimate.status ? "bg-[#EEF3FA]" : "hover:bg-[#F5F7FA]"}`}
-                    style={{ fontWeight: s === estimate.status ? 600 : 400, color: s === estimate.status ? "#4A6FA5" : "#1A2332" }}>
-                    <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: statusColors[s] }} />
-                    {s}
-                    {s === estimate.status && <span className="material-icons ml-auto" style={{ fontSize: "16px", color: "#4A6FA5" }}>check</span>}
-                  </button>
-                ))}
+        {/* ── Header info bar ── */}
+        <div className="grid grid-cols-[minmax(0,220px)_1fr_minmax(0,210px)_minmax(0,170px)] border-b border-[#E5E7EB]">
+
+          {/* 1. Client */}
+          <div className="px-5 py-4 border-r border-[#E5E7EB] flex items-start gap-3">
+            <div className="w-9 h-9 rounded-full bg-[#EEF3FA] flex items-center justify-center shrink-0 mt-0.5">
+              <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "20px" }}>person</span>
+            </div>
+            <div className="min-w-0">
+              <button onClick={() => navigate("/clients/1")}
+                className="text-[13px] text-[#1A2332] hover:underline text-left leading-tight flex items-center gap-1 flex-wrap" style={{ fontWeight: 600 }}>
+                {estimate.clientName}
+                <span className="text-[11px] text-[#9CA3AF]" style={{ fontWeight: 400 }}>(ID-{String(estimate.id).padStart(5, "0")})</span>
+                <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "14px" }}>phone</span>
+              </button>
+              <div className="flex items-start gap-1 text-[12px] text-[#546478] mt-1.5">
+                <span className="material-icons text-[#9CA3AF] mt-0.5 shrink-0" style={{ fontSize: "13px" }}>location_on</span>
+                <span className="leading-snug">{estimate.clientAddress.replace("\n", ", ")}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* 2. Estimate name + service address + job */}
+          <div className="px-5 py-4 border-r border-[#E5E7EB]">
+            <div className="text-[14px] text-[#1A2332] mb-2 leading-snug" style={{ fontWeight: 600 }}>
+              {estimate.estimateName || `Estimate #${estimate.estimateNumber}`}
+            </div>
+            <div className="flex items-start gap-1 text-[12px] text-[#546478]">
+              <span className="material-icons text-[#9CA3AF] mt-0.5 shrink-0" style={{ fontSize: "13px" }}>location_on</span>
+              <span className="leading-snug">{estimate.serviceAddress.replace("\n", ", ")}</span>
+            </div>
+            {estimate.job && (
+              <div className="mt-1.5 text-[12px] text-[#546478]">
+                Job #:{" "}
+                <button onClick={() => estimate.jobId && navigate(`/jobs/${estimate.jobId}`)}
+                  className="text-[#4A6FA5] hover:underline" style={{ fontWeight: 500 }}>
+                  {estimate.job}
+                </button>
               </div>
             )}
           </div>
 
-          <span className="text-[#E5E7EB]">·</span>
-          <span className="text-[13px] text-[#546478]">{estimate.clientName}</span>
-          {estimate.job && (
-            <>
-              <span className="text-[#E5E7EB]">·</span>
-              <button onClick={() => estimate.jobId && navigate(`/jobs/${estimate.jobId}`)} className="text-[13px] text-[#4A6FA5] hover:underline" style={{ fontWeight: 500 }}>
-                {estimate.job}
-              </button>
-            </>
-          )}
+          {/* 3. Metadata grid */}
+          <div className="px-5 py-4 border-r border-[#E5E7EB] grid grid-cols-2 gap-x-4 gap-y-3 content-center">
+            {[
+              { label: "Date Created", value: estimate.dateCreated },
+              { label: "Expiration", value: estimate.expirationDate || "—" },
+              { label: "Created By", value: estimate.teamMember || "—", icon: "person" },
+              { label: "Sent On", value: estimate.sentDate, icon: "mail" },
+            ].map(({ label, value, icon }) => (
+              <div key={label}>
+                <div className="text-[10px] text-[#9CA3AF] uppercase tracking-wide mb-0.5" style={{ fontWeight: 600 }}>{label}</div>
+                <div className="text-[12px] text-[#374151] flex items-center gap-1" style={{ fontWeight: 500 }}>
+                  {icon && <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "12px" }}>{icon}</span>}
+                  {value}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* 4. Total + status + kebab */}
+          <div className="px-5 py-4 flex flex-col justify-between">
+            <div>
+              <div className="text-[10px] text-[#9CA3AF] uppercase tracking-wide mb-0.5" style={{ fontWeight: 600 }}>Total (USD)</div>
+              <div className="text-[24px] text-[#1A2332] leading-tight" style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
+                ${fmt(total)}
+              </div>
+            </div>
+            <div className="flex items-center gap-2 mt-3">
+              {/* Status pill */}
+              <div ref={statusRef} className="relative">
+                <button onClick={() => setStatusOpen(!statusOpen)}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[12px] hover:opacity-80 transition-opacity"
+                  style={{ fontWeight: 600, color: statusColors[estimate.status], backgroundColor: statusBg[estimate.status] }}>
+                  {estimate.status}
+                  <span className="material-icons" style={{ fontSize: "13px" }}>expand_more</span>
+                </button>
+                {statusOpen && (
+                  <div className="absolute left-0 top-[calc(100%+4px)] w-[200px] bg-white border border-[#E5E7EB] rounded-xl shadow-lg z-40 py-1.5">
+                    {primaryStatuses.map(s => (
+                      <button key={s} onClick={() => { setEstimate(prev => ({ ...prev, status: s })); setStatusOpen(false); }}
+                        className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-[13px] transition-colors ${s === estimate.status ? "bg-[#EEF3FA]" : "hover:bg-[#F5F7FA]"}`}
+                        style={{ fontWeight: s === estimate.status ? 600 : 400, color: s === estimate.status ? "#4A6FA5" : "#1A2332" }}>
+                        <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: statusColors[s] }} />
+                        {s}
+                        {s === estimate.status && <span className="material-icons ml-auto" style={{ fontSize: "16px", color: "#4A6FA5" }}>check</span>}
+                      </button>
+                    ))}
+                    <div className="mx-3 my-1 border-t border-[#F3F4F6]" />
+                    <div className="px-3.5 pb-1">
+                      <span className="text-[10px] uppercase tracking-wider text-[#9CA3AF]" style={{ fontWeight: 600 }}>Other</span>
+                    </div>
+                    {otherStatuses.map(s => (
+                      <button key={s} onClick={() => { setEstimate(prev => ({ ...prev, status: s })); setStatusOpen(false); }}
+                        className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-[13px] transition-colors ${s === estimate.status ? "bg-[#EEF3FA]" : "hover:bg-[#F5F7FA]"}`}
+                        style={{ fontWeight: s === estimate.status ? 600 : 400, color: s === estimate.status ? "#4A6FA5" : "#1A2332" }}>
+                        <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: statusColors[s] }} />
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <KebabMenu triggerClassName="w-8 h-8 border border-[#E5E7EB] rounded-md bg-white flex items-center justify-center hover:bg-[#F5F7FA]">
+                <KebabItem icon="receipt">Make Invoice</KebabItem>
+                <KebabItem icon="link">Get Link</KebabItem>
+                <KebabItem icon="print" onClick={() => setCustomerPreviewOpen(true)}>Print</KebabItem>
+                <KebabSeparator />
+                <KebabItem icon="content_copy">Duplicate</KebabItem>
+                <KebabSeparator />
+                <KebabItem icon="delete" destructive>Delete</KebabItem>
+              </KebabMenu>
+            </div>
           </div>
         </div>
 
-        {/* Unified tab bar */}
-        <DetailTabs
-          tabs={TABS.map(t => ({
-            ...t,
-            count: t.key === "items" ? estimate.items.length : undefined,
-          }))}
-          activeTab={activeTab}
-          onChange={setActiveTab}
-          className="mt-2"
-        />
+        {/* ── Tabs + action buttons ── */}
+        <div className="flex items-center justify-between px-4 border-b border-[#E5E7EB]">
+          <DetailTabs
+            tabs={TABS}
+            activeTab={activeTab}
+            onChange={setActiveTab}
+            trailing={<TabSettingsButton />}
+          />
+          <div className="flex items-center gap-2 py-2 shrink-0">
+            <button onClick={() => setCustomerPreviewOpen(true)}
+              className="h-9 px-3.5 rounded-md border border-[#E5E7EB] bg-white text-[13px] text-[#1A2332] hover:bg-[#F5F7FA] inline-flex items-center gap-1.5" style={{ fontWeight: 500 }}>
+              <span className="material-icons" style={{ fontSize: "16px" }}>visibility</span>
+              Preview
+            </button>
+            <button className="h-9 px-3.5 rounded-md border border-[#4A6FA5] text-[#4A6FA5] bg-white text-[13px] hover:bg-[#EEF3FA] inline-flex items-center gap-1.5" style={{ fontWeight: 600 }}>
+              <span className="material-icons" style={{ fontSize: "16px" }}>send</span>
+              Send
+            </button>
+            {/* Edit Estimate split button */}
+            <div ref={editMenuRef} className="relative flex">
+              <button onClick={() => navigate(`/estimates/${id}/edit`)}
+                className="h-9 pl-3.5 pr-2 rounded-l-md bg-[#4A6FA5] text-white text-[13px] hover:bg-[#3d5a85] inline-flex items-center gap-1.5" style={{ fontWeight: 600 }}>
+                <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
+                Edit Estimate
+              </button>
+              <button onClick={() => setEditMenuOpen(!editMenuOpen)}
+                className="h-9 px-1.5 rounded-r-md bg-[#4A6FA5] text-white hover:bg-[#3d5a85] border-l border-[#3d5a85] inline-flex items-center">
+                <span className="material-icons" style={{ fontSize: "18px" }}>expand_more</span>
+              </button>
+              {editMenuOpen && (
+                <div className="absolute right-0 top-[calc(100%+4px)] w-[170px] bg-white border border-[#E5E7EB] rounded-xl shadow-lg z-40 py-1.5">
+                  <button onClick={() => { navigate(`/estimates/${id}/edit`); setEditMenuOpen(false); }}
+                    className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[13px] text-[#1A2332] hover:bg-[#F5F7FA]">
+                    <span className="material-icons" style={{ fontSize: "16px" }}>edit</span> Edit
+                  </button>
+                  <button className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[13px] text-[#1A2332] hover:bg-[#F5F7FA]">
+                    <span className="material-icons" style={{ fontSize: "16px" }}>content_copy</span> Duplicate
+                  </button>
+                  <button className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[13px] text-[#1A2332] hover:bg-[#F5F7FA]">
+                    <span className="material-icons" style={{ fontSize: "16px" }}>print</span> Print
+                  </button>
+                  <div className="mx-3 my-1 border-t border-[#F3F4F6]" />
+                  <button className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[13px] text-[#EF4444] hover:bg-[#FEF2F2]">
+                    <span className="material-icons" style={{ fontSize: "16px" }}>delete</span> Delete
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
 
         {/* Tab content */}
-        <div className="mt-4">
+        <div className="p-4">
           {activeTab === "details" && renderDetailsTab()}
-          {activeTab === "items" && renderItemsTab()}
-          {activeTab === "deposits" && renderDepositsTab()}
+          {activeTab === "deposit" && renderDepositTab()}
+          {activeTab === "notes" && renderNotesTab()}
           {activeTab === "activity" && renderActivityTab()}
         </div>
       </div>
+
+      {customerPreviewOpen && renderCustomerPreview()}
 
       {/* Add Item Modal */}
       {addItemOpen && (
@@ -642,19 +924,13 @@ export function EstimateDetail() {
             </div>
             <div className="flex-1 overflow-y-auto divide-y divide-[#F3F4F6]">
               {catalogItems.map(item => (
-                <button
-                  key={item.id}
+                <button key={item.id}
                   onClick={() => {
-                    const newItem: LineItem = {
-                      id: Math.max(...estimate.items.map(i => i.id), 0) + 1,
-                      name: item.name, description: "", quantity: 1,
-                      price: item.price, cost: item.cost, amount: item.price, taxable: true,
-                    };
+                    const newItem: LineItem = { id: Math.max(...estimate.items.map(i => i.id), 0) + 1, name: item.name, description: "", quantity: 1, price: item.price, cost: item.cost, amount: item.price, taxable: true };
                     setEstimate(prev => ({ ...prev, items: [...prev.items, newItem] }));
                     setAddItemOpen(false);
                   }}
-                  className="w-full flex items-center justify-between px-6 py-4 hover:bg-[#F9FAFB] text-left"
-                >
+                  className="w-full flex items-center justify-between px-6 py-4 hover:bg-[#F9FAFB] text-left">
                   <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{item.name}</div>
                   <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>${fmt(item.price)}</div>
                 </button>

@@ -1,4 +1,5 @@
 import * as React from "react";
+import { ColumnSettingsIcon } from "./column-settings-icon";
 
 export interface DetailTab<K extends string = string> {
   key: K;
@@ -10,7 +11,7 @@ interface DetailTabsProps<K extends string = string> {
   tabs: DetailTab<K>[];
   activeTab: K;
   onChange: (key: K) => void;
-  /** Optional trailing slot rendered to the right (e.g. settings gear). */
+  /** Optional trailing slot rendered directly after the tabs. */
   trailing?: React.ReactNode;
   className?: string;
 }
@@ -28,7 +29,7 @@ export function DetailTabs<K extends string = string>({
   className,
 }: DetailTabsProps<K>) {
   return (
-    <div className={`flex items-center justify-between gap-2 ${className ?? ""}`}>
+    <div className={`flex items-center gap-1.5 ${className ?? ""}`}>
       <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide">
         {tabs.map(({ key, label, count }) => {
           const isActive = activeTab === key;
@@ -63,5 +64,25 @@ export function DetailTabs<K extends string = string>({
       </div>
       {trailing}
     </div>
+  );
+}
+
+export function TabSettingsButton({
+  onClick,
+  title = "Customize tabs",
+}: {
+  onClick?: () => void;
+  title?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={title}
+      aria-label={title}
+      className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#F5F7FA] text-[#9CA3AF] hover:text-[#1A2332] transition-colors shrink-0"
+    >
+      <ColumnSettingsIcon className="h-[18px] w-[18px]" />
+    </button>
   );
 }

@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { useNavigate, useParams } from "react-router";
 import { KebabMenu, KebabItem } from "../components/ui/kebab-menu";
-import { DetailTabs } from "../components/ui/detail-tabs";
+import { DetailTabs, TabSettingsButton } from "../components/ui/detail-tabs";
 import { PlusIcon } from "../components/ui/plus-icon";
 import { DocumentPreview } from "../components/DocumentPreview";
 
@@ -1081,24 +1081,24 @@ export function JobDetail() {
           <span className="material-icons" style={{ fontSize: "18px" }}>arrow_back</span>
           <span>Back to Jobs</span>
         </button>
-        <div className="flex items-center gap-2">
+      </div>
+
+      {/* ── ONE BIG WHITE CARD CONTAINING EVERYTHING ── */}
+      <div className="relative mx-6 mb-6 bg-white border border-[#E5E7EB] rounded-xl p-4">
+        <div className="absolute right-4 top-4 flex items-center gap-2">
           <button
             onClick={() => navigate(`/jobs/${id}/edit`)}
-            className="border border-[#E5E7EB] text-[#546478] hover:bg-[#EDF0F5] h-9 px-2.5 rounded-md flex items-center justify-center"
+            className="border border-[#E5E7EB] text-[#546478] hover:bg-[#EDF0F5] h-9 px-2.5 rounded-md flex items-center justify-center bg-white"
           >
             <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
           </button>
-          <KebabMenu triggerClassName="h-9 w-9 border border-[#E5E7EB] rounded-md hover:bg-[#EDF0F5] flex items-center justify-center">
+          <KebabMenu triggerClassName="h-9 w-9 border border-[#E5E7EB] rounded-md hover:bg-[#EDF0F5] flex items-center justify-center bg-white">
             <KebabItem icon="tab_unselected" onClick={() => setShowTabSettings(true)}>Edit Tabs</KebabItem>
             <KebabItem icon="edit" onClick={() => navigate(`/jobs/${id}/edit`)}>Edit Job</KebabItem>
             <KebabItem icon="content_copy">Duplicate Job</KebabItem>
             <KebabItem icon="block" destructive>Inactivate Job</KebabItem>
           </KebabMenu>
         </div>
-      </div>
-
-      {/* ── ONE BIG WHITE CARD CONTAINING EVERYTHING ── */}
-      <div className="mx-6 mb-6 bg-white border border-[#E5E7EB] rounded-xl p-4">
 
         {/* Summary content */}
         <div>
@@ -1242,9 +1242,6 @@ export function JobDetail() {
               </div>
             </div>
 
-            {/* Vertical divider before KPI tiles — separates customer-quick-data from financial KPIs */}
-            <div className="w-px bg-[#E5E7EB] self-stretch mx-2" />
-
             {/* Financial KPI cards — 4 distinct stat cards per Marek's reference screenshot.
                 Colors set via inline style to be immune from Tailwind class-ordering surprises
                 (the user reported Compensation rendering red — explicit inline color fixes that). */}
@@ -1294,6 +1291,7 @@ export function JobDetail() {
           tabs={visibleTabs}
           activeTab={activeTab}
           onChange={setActiveTab}
+          trailing={<TabSettingsButton onClick={() => setShowTabSettings(true)} />}
           className="mt-6"
         />
 

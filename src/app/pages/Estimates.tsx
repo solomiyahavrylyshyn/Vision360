@@ -3,13 +3,12 @@ import { useNavigate } from "react-router";
 import { Card } from "../components/ui/card";
 import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
 import { PageHeader } from "../components/ui/page-header";
-import { ManageFieldsIcon } from "../components/ui/manage-fields-icon";
 import { SelectionBar } from "../components/ui/selection-bar";
 import { CreateActionButton } from "../components/ui/create-action-button";
 import { StatCard } from "../components/ui/stat-card";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
-type EstimateStatus = "Unsent" | "Pending" | "Approved" | "Declined" | "Won" | "Archived" | "Drafted" | "Accepted" | "Sent";
+type EstimateStatus = "Draft" | "Sent" | "Viewed" | "Approved" | "Rejected" | "Expired" | "Archived";
 
 interface Estimate {
   id: number;
@@ -39,31 +38,27 @@ interface Client {
   address: string;
 }
 
-const primaryStatuses: EstimateStatus[] = ["Unsent", "Pending", "Approved", "Declined", "Won", "Archived"];
-const otherStatuses: EstimateStatus[] = ["Drafted", "Accepted", "Sent"];
+const primaryStatuses: EstimateStatus[] = ["Draft", "Sent", "Viewed", "Approved", "Rejected", "Expired"];
+const otherStatuses: EstimateStatus[] = ["Archived"];
 
 const statusColors: Record<EstimateStatus, string> = {
-  Unsent: "#A855F7",
-  Pending: "#F59E0B",
-  Approved: "#3B82F6",
-  Declined: "#EF4444",
-  Won: "#22C55E",
-  Archived: "#9CA3AF",
-  Drafted: "#D97706",
-  Accepted: "#15803D",
+  Draft: "#7C3AED",
   Sent: "#1E40AF",
+  Viewed: "#92400E",
+  Approved: "#166534",
+  Rejected: "#DC2626",
+  Expired: "#6B7280",
+  Archived: "#FFFFFF",
 };
 
 const statusBg: Record<EstimateStatus, string> = {
-  Unsent: "#F3E8FF",
-  Pending: "#FEF3C7",
-  Approved: "#DBEAFE",
-  Declined: "#FEE2E2",
-  Won: "#DCFCE7",
-  Archived: "#F3F4F6",
-  Drafted: "#FEF9C3",
-  Accepted: "#D1FAE5",
-  Sent: "#EFF6FF",
+  Draft: "#EDE9FE",
+  Sent: "#DBEAFE",
+  Viewed: "#FEF3C7",
+  Approved: "#DCFCE7",
+  Rejected: "#FEE2E2",
+  Expired: "#F3F4F6",
+  Archived: "#1F2937",
 };
 
 const avatarColors = ["#4A6FA5", "#3B82F6", "#8B5CF6", "#D97706", "#10B981", "#DC2626"];
@@ -90,15 +85,15 @@ const mockClients: Client[] = [
 ];
 
 const initialEstimates: Estimate[] = [
-  { id: 1, estimateNumber: "1", estimateName: "", clientName: "Travis Jones", clientEmail: "cerb04@yahoo.com", createdDate: "Mon Mar 30, 2026", addedBy: "Marek Ste", option: "", amount: 0, status: "Unsent", job: "", sentDate: "", expirationDate: "", teamMember: "Marek Stroz", source: "", depositDue: 0 },
-  { id: 2, estimateNumber: "8-1", estimateName: "Estimate 1", clientName: "John Doe", clientEmail: "cerb04@yahoo.com", createdDate: "Fri Mar 13, 2026", addedBy: "Marek Fie", option: "1", amount: 0, status: "Unsent", job: "Job - 8", sentDate: "", expirationDate: "Apr 13, 2026", teamMember: "Marek Stroz", source: "Job - 8", depositDue: 0 },
-  { id: 3, estimateNumber: "4-3", estimateName: "Option C", clientName: "John Doe", clientEmail: "cerb04@yahoo.com", createdDate: "Mon Mar 02, 2026", addedBy: "Marek Fie", option: "C", amount: 0, status: "Unsent", job: "Job - 4", sentDate: "Mar 03, 2026", expirationDate: "Apr 02, 2026", teamMember: "Marek Stroz", source: "Job - 4", depositDue: 0 },
-  { id: 4, estimateNumber: "4-2", estimateName: "Option B", clientName: "John Doe", clientEmail: "cerb04@yahoo.com", createdDate: "Mon Mar 02, 2026", addedBy: "Marek Fie", option: "B", amount: 0, status: "Unsent", job: "Job - 4", sentDate: "Mar 03, 2026", expirationDate: "Apr 02, 2026", teamMember: "Marek Stroz", source: "Job - 4", depositDue: 0 },
-  { id: 5, estimateNumber: "4-1", estimateName: "Option A", clientName: "John Doe", clientEmail: "cerb04@yahoo.com", createdDate: "Mon Mar 02, 2026", addedBy: "Marek Fie", option: "A", amount: 3500, status: "Won", job: "Job - 4", sentDate: "Mar 03, 2026", expirationDate: "Apr 02, 2026", teamMember: "Marek Stroz", source: "Job - 4", depositDue: 0, updatedDate: "Mar 02, 2026" },
-  { id: 6, estimateNumber: "3-1", estimateName: "HVAC Replacement", clientName: "Sarah Williams", clientEmail: "sarah.w@gmail.com", createdDate: "Sat Feb 28, 2026", addedBy: "Marek Fie", option: "1", amount: 10502, status: "Won", job: "Job - 3", sentDate: "Mar 01, 2026", expirationDate: "Mar 31, 2026", teamMember: "Marek Stroz", source: "Job - 3", depositDue: 500 },
-  { id: 7, estimateNumber: "5-1", estimateName: "Plumbing Repair", clientName: "Mike Rodriguez", clientEmail: "mike.r@outlook.com", createdDate: "Wed Feb 25, 2026", addedBy: "Marek Fie", option: "1", amount: 850, status: "Pending", job: "Job - 5", sentDate: "Feb 26, 2026", expirationDate: "Mar 27, 2026", teamMember: "Marek Stroz", source: "Job - 5", depositDue: 0 },
+  { id: 1, estimateNumber: "1", estimateName: "", clientName: "Travis Jones", clientEmail: "cerb04@yahoo.com", createdDate: "Mon Mar 30, 2026", addedBy: "Marek Ste", option: "", amount: 0, status: "Draft", job: "", sentDate: "", expirationDate: "", teamMember: "Marek Stroz", source: "", depositDue: 0 },
+  { id: 2, estimateNumber: "8-1", estimateName: "Estimate 1", clientName: "John Doe", clientEmail: "cerb04@yahoo.com", createdDate: "Fri Mar 13, 2026", addedBy: "Marek Fie", option: "1", amount: 0, status: "Viewed", job: "Job - 8", sentDate: "Mar 13, 2026", expirationDate: "Jun 13, 2026", teamMember: "Marek Stroz", source: "Job - 8", depositDue: 0 },
+  { id: 3, estimateNumber: "4-3", estimateName: "Option C", clientName: "John Doe", clientEmail: "cerb04@yahoo.com", createdDate: "Mon Mar 02, 2026", addedBy: "Marek Fie", option: "C", amount: 0, status: "Expired", job: "Job - 4", sentDate: "Mar 03, 2026", expirationDate: "Apr 02, 2026", teamMember: "Marek Stroz", source: "Job - 4", depositDue: 0 },
+  { id: 4, estimateNumber: "4-2", estimateName: "Option B", clientName: "John Doe", clientEmail: "cerb04@yahoo.com", createdDate: "Mon Mar 02, 2026", addedBy: "Marek Fie", option: "B", amount: 0, status: "Sent", job: "Job - 4", sentDate: "Mar 03, 2026", expirationDate: "", teamMember: "Marek Stroz", source: "Job - 4", depositDue: 0 },
+  { id: 5, estimateNumber: "4-1", estimateName: "Option A", clientName: "John Doe", clientEmail: "cerb04@yahoo.com", createdDate: "Mon Mar 02, 2026", addedBy: "Marek Fie", option: "A", amount: 3500, status: "Approved", job: "Job - 4", sentDate: "Mar 03, 2026", expirationDate: "Apr 02, 2026", teamMember: "Marek Stroz", source: "Job - 4", depositDue: 0, updatedDate: "Mar 02, 2026" },
+  { id: 6, estimateNumber: "3-1", estimateName: "HVAC Replacement", clientName: "Sarah Williams", clientEmail: "sarah.w@gmail.com", createdDate: "Sat Feb 28, 2026", addedBy: "Marek Fie", option: "1", amount: 10502, status: "Approved", job: "Job - 3", sentDate: "Mar 01, 2026", expirationDate: "Mar 31, 2026", teamMember: "Marek Stroz", source: "Job - 3", depositDue: 500 },
+  { id: 7, estimateNumber: "5-1", estimateName: "Plumbing Repair", clientName: "Mike Rodriguez", clientEmail: "mike.r@outlook.com", createdDate: "Wed Feb 25, 2026", addedBy: "Marek Fie", option: "1", amount: 850, status: "Viewed", job: "Job - 5", sentDate: "Feb 26, 2026", expirationDate: "Mar 27, 2026", teamMember: "Marek Stroz", source: "Job - 5", depositDue: 0 },
   { id: 8, estimateNumber: "6-1", estimateName: "Electrical Upgrade", clientName: "Travis Jones", clientEmail: "cerb04@yahoo.com", createdDate: "Mon Feb 23, 2026", addedBy: "Marek Fie", option: "1", amount: 2200, status: "Approved", job: "Job - 6", sentDate: "Feb 24, 2026", expirationDate: "Mar 26, 2026", teamMember: "Marek Stroz", source: "Job - 6", depositDue: 200 },
-  { id: 9, estimateNumber: "7-1", estimateName: "Roof Inspection", clientName: "Sarah Williams", clientEmail: "sarah.w@gmail.com", createdDate: "Fri Feb 20, 2026", addedBy: "Marek Ste", option: "1", amount: 350, status: "Declined", job: "Job - 7", sentDate: "Feb 21, 2026", expirationDate: "Mar 23, 2026", teamMember: "Marek Stroz", source: "Job - 7", depositDue: 0 },
+  { id: 9, estimateNumber: "7-1", estimateName: "Roof Inspection", clientName: "Sarah Williams", clientEmail: "sarah.w@gmail.com", createdDate: "Fri Feb 20, 2026", addedBy: "Marek Ste", option: "1", amount: 350, status: "Rejected", job: "Job - 7", sentDate: "Feb 21, 2026", expirationDate: "Mar 23, 2026", teamMember: "Marek Stroz", source: "Job - 7", depositDue: 0 },
 ];
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -173,7 +168,6 @@ export function Estimates() {
   // Quick filters
   const [qfStatus, setQfStatus] = useState<"All" | EstimateStatus>("All");
   const [qfDate, setQfDate] = useState("All time");
-  const [qfSource, setQfSource] = useState("All");
 
   const [search, setSearch] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
@@ -209,16 +203,10 @@ export function Estimates() {
     }));
   }, [estimates]);
 
-  const uniqueSources = useMemo(() =>
-    ["All", ...Array.from(new Set(estimates.filter(e => e.source).map(e => e.source)))],
-    [estimates]
-  );
-
   // Filtered
   const filtered = useMemo(() => {
     let result = [...estimates];
     if (qfStatus !== "All") result = result.filter(e => e.status === qfStatus);
-    if (qfSource !== "All") result = result.filter(e => e.source === qfSource);
     if (search) {
       const q = search.toLowerCase();
       result = result.filter(e =>
@@ -229,7 +217,7 @@ export function Estimates() {
       );
     }
     return result;
-  }, [estimates, qfStatus, qfSource, search]);
+  }, [estimates, qfStatus, search]);
 
   const sorted = useMemo(() => {
     return [...filtered].sort((a, b) => {
@@ -280,8 +268,8 @@ export function Estimates() {
       <div className="grid grid-cols-4 gap-4 mb-6">
         {(() => {
           const total       = estimates.length;
-          const pending     = estimates.filter(e => e.status === "Pending").length;
-          const won         = estimates.filter(e => e.status === "Won");
+          const pending     = estimates.filter(e => e.status === "Viewed").length;
+          const won         = estimates.filter(e => e.status === "Approved");
           const wonCount    = won.length;
           const wonValue    = won.reduce((sum, e) => sum + e.amount, 0);
           const conversion  = total > 0 ? Math.round((wonCount / total) * 100) : 0;
@@ -298,7 +286,7 @@ export function Estimates() {
               />
               <StatCard
                 value={String(pending)}
-                label="Pending"
+                label="Awaiting approval"
                 sub="awaiting response"
                 change="+5%"
                 changeUp
@@ -318,7 +306,7 @@ export function Estimates() {
               />
               <StatCard
                 value={`$${wonValue.toLocaleString("en-US")}`}
-                label="Won value"
+                label="Approved value"
                 sub="this month"
                 change="+18%"
                 changeUp
@@ -349,9 +337,6 @@ export function Estimates() {
           <select value={qfDate} onChange={e => setQfDate(e.target.value)} className={qfClass(qfDate !== "All time")}>
             {timeFilters.map(t => <option key={t} value={t}>{t}</option>)}
           </select>
-          <select value={qfSource} onChange={e => { setQfSource(e.target.value); setPage(1); }} className={qfClass(qfSource !== "All")}>
-            {uniqueSources.map(s => <option key={s} value={s}>{s === "All" ? "All sources" : s}</option>)}
-          </select>
           <div className="w-px h-5 bg-[#E5E7EB] mx-1" />
           <button className="h-8 px-3 border border-[#E5E7EB] rounded-lg text-[13px] text-[#546478] hover:bg-[#F5F7FA] flex items-center gap-1.5 bg-white" style={{ fontWeight: 500 }}>
             <span className="material-icons" style={{ fontSize: "16px" }}>filter_alt</span>
@@ -359,7 +344,7 @@ export function Estimates() {
           </button>
           <div className="ml-auto">
             <KebabMenu triggerClassName="w-10 h-10 border border-[#D8DEE8] rounded-xl bg-white">
-              <KebabItem iconNode={<ManageFieldsIcon size={16} />}>Edit Columns</KebabItem>
+              <KebabItem icon="view_column">Edit Columns</KebabItem>
               <KebabItem icon="swap_horiz">Change Status</KebabItem>
               <KebabItem icon="content_copy">Manage Duplicates</KebabItem>
               <KebabSeparator />
@@ -410,7 +395,7 @@ export function Estimates() {
                 <th className="px-4 py-3 text-left text-[14px] text-[#1A2332] cursor-pointer select-none whitespace-nowrap" style={{ fontWeight: 600 }} onClick={() => toggleSort("status")}>
                   <div className="flex items-center">Status <SortIcon field="status" /></div>
                 </th>
-                {["Job", "Sent Date", "Expiration Date", "Team Member", "Source", "Deposit due"].map(h => (
+                {["Job", "Sent Date", "Expiration Date", "Technician", "Deposit due"].map(h => (
                   <th key={h} className="px-4 py-3 text-left text-[14px] text-[#1A2332] whitespace-nowrap" style={{ fontWeight: 600 }}>{h}</th>
                 ))}
                 <th className="px-4 py-3 w-10" />
@@ -472,17 +457,20 @@ export function Estimates() {
                   <td className="px-4 py-4 text-[13px] text-[#546478] whitespace-nowrap" onClick={() => navigate(`/estimates/${est.id}`)}>{est.sentDate || <span className="text-[#D1D5DB]">—</span>}</td>
                   <td className="px-4 py-4 text-[13px] text-[#546478] whitespace-nowrap" onClick={() => navigate(`/estimates/${est.id}`)}>{est.expirationDate || <span className="text-[#D1D5DB]">—</span>}</td>
                   <td className="px-4 py-4 text-[13px] text-[#546478] whitespace-nowrap" onClick={() => navigate(`/estimates/${est.id}`)}>{est.teamMember || <span className="text-[#D1D5DB]">—</span>}</td>
-                  <td className="px-4 py-4 text-[13px] text-[#546478]" onClick={() => navigate(`/estimates/${est.id}`)}>{est.source || <span className="text-[#D1D5DB]">—</span>}</td>
                   <td className="px-4 py-4 text-[13px] text-right whitespace-nowrap" onClick={() => navigate(`/estimates/${est.id}`)}>
                     <span style={{ fontVariantNumeric: "tabular-nums", color: est.depositDue > 0 ? "#1A2332" : "#D1D5DB" }}>${fmt(est.depositDue)}</span>
                   </td>
                   <td className="px-4 py-4" onClick={(e) => e.stopPropagation()}>
                     <KebabMenu>
                       <KebabItem icon="edit" onClick={() => navigate(`/estimates/${est.id}`)}>Edit</KebabItem>
-                      <KebabItem icon="content_copy">Duplicate</KebabItem>
                       <KebabItem icon="send">Send to Client</KebabItem>
+                      <KebabItem icon="receipt">Make Invoice</KebabItem>
+                      <KebabItem icon="link">Get Link</KebabItem>
+                      <KebabItem icon="print">Print</KebabItem>
                       <KebabSeparator />
-                      <KebabItem icon="block" destructive>Inactivate</KebabItem>
+                      <KebabItem icon="content_copy">Duplicate</KebabItem>
+                      <KebabSeparator />
+                      <KebabItem icon="delete" destructive>Delete</KebabItem>
                     </KebabMenu>
                   </td>
                 </tr>

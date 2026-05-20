@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
-import { DetailTabs } from "../components/ui/detail-tabs";
+import { DetailTabs, TabSettingsButton } from "../components/ui/detail-tabs";
 import { PlusIcon } from "../components/ui/plus-icon";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -711,11 +711,15 @@ export function InvoiceDetail() {
           <span className="material-icons" style={{ fontSize: "18px" }}>arrow_back</span>
           Back to Invoices
         </button>
-        <div className="flex items-center gap-2">
-          <button className="border border-[#E5E7EB] text-[#546478] hover:bg-[#EDF0F5] h-9 px-2.5 rounded-md flex items-center justify-center" title="Edit">
+      </div>
+
+      {/* ── ONE BIG WHITE CARD CONTAINING EVERYTHING ── */}
+      <div className="relative mx-6 mb-6 bg-white border border-[#E5E7EB] rounded-xl p-4">
+        <div className="absolute right-4 top-4 flex items-center gap-2">
+          <button className="border border-[#E5E7EB] text-[#546478] hover:bg-[#EDF0F5] h-9 px-2.5 rounded-md flex items-center justify-center bg-white" title="Edit">
             <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
           </button>
-          <KebabMenu triggerClassName="h-9 w-9 border border-[#E5E7EB] rounded-md hover:bg-[#EDF0F5] flex items-center justify-center">
+          <KebabMenu triggerClassName="h-9 w-9 border border-[#E5E7EB] rounded-md hover:bg-[#EDF0F5] flex items-center justify-center bg-white">
             <KebabItem icon="picture_as_pdf">Download PDF</KebabItem>
             <KebabItem icon="send">Send to Customer</KebabItem>
             {!isPaid && status !== "Void" && (
@@ -726,10 +730,6 @@ export function InvoiceDetail() {
             <KebabItem icon="block" destructive onClick={() => setVoidConfirm(true)}>Void Invoice</KebabItem>
           </KebabMenu>
         </div>
-      </div>
-
-      {/* ── ONE BIG WHITE CARD CONTAINING EVERYTHING ── */}
-      <div className="mx-6 mb-6 bg-white border border-[#E5E7EB] rounded-xl p-4">
 
         {/* Summary content */}
         <div>
@@ -845,6 +845,7 @@ export function InvoiceDetail() {
           }))}
           activeTab={activeTab}
           onChange={setActiveTab}
+          trailing={<TabSettingsButton />}
           className="mt-6"
         />
 

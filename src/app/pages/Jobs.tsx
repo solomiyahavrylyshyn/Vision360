@@ -4,7 +4,6 @@ import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
 import { PageHeader } from "../components/ui/page-header";
-import { ManageFieldsIcon } from "../components/ui/manage-fields-icon";
 import { SelectionBar } from "../components/ui/selection-bar";
 import { useDraggableColumns, DraggableTh } from "../components/ui/draggable-columns";
 import {
@@ -269,7 +268,7 @@ export function Jobs() {
           </div>
           <div className="ml-auto">
             <KebabMenu triggerClassName="w-10 h-10 border border-[#D8DEE8] rounded-xl bg-white">
-              <KebabItem iconNode={<ManageFieldsIcon size={16} />}>Edit Columns</KebabItem>
+              <KebabItem icon="view_column">Edit Columns</KebabItem>
               <KebabItem icon="swap_horiz">Change Status</KebabItem>
               <KebabItem icon="content_copy">Manage Duplicates</KebabItem>
               <KebabSeparator />

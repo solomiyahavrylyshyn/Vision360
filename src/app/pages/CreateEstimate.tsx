@@ -17,25 +17,30 @@ const mockCatalogItems: CatalogItem[] = [
 
 const mockClients = ["John Doe", "Travis Jones", "Sarah Williams", "Mike Rodriguez", "Alex Turner"];
 const mockJobs = ["Job-3: HVAC Replacement", "Job-4: Bathroom Remodel", "Job-5: Plumbing Fix", "Job-6: Electrical Work", "Job-8: HVAC Install"];
-const mockSources = ["Google Ads", "Referral", "Website", "Social Media", "Cold Call", "Other"];
 const mockTeamMembers = ["Marek Stroz", "John Smith", "Sarah Johnson", "Alex Turner"];
+
+const mockClientProperties: Record<string, string[]> = {
+  "John Doe": ["1250 NW 24th St, Miami, FL 33142"],
+  "Travis Jones": ["8377 Standish Bend Dr Unit 1, Tampa, FL 33615", "4200 Bay Shore Blvd, Tampa, FL 33611"],
+  "Sarah Williams": ["4521 Pine Grove Ln, Orlando, FL 32801"],
+  "Mike Rodriguez": ["1804 W North B St, Tampa, FL 33606", "3210 Cypress Way, Tampa, FL 33629", "910 E Sligh Ave, Tampa, FL 33604"],
+  "Alex Turner": ["220 S Dale Mabry Hwy, Tampa, FL 33609"],
+};
 
 export function CreateEstimate() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
   const [client, setClient] = useState(searchParams.get("client") || "");
+  const [serviceAddress, setServiceAddress] = useState("");
   const [estimateName, setEstimateName] = useState("");
   const [estimateNumber] = useState("EST-010");
-  const [dateCreated, setDateCreated] = useState("2026-04-27");
+  const [dateCreated] = useState("2026-04-27");
   const [expirationDate, setExpirationDate] = useState("");
   const [linkedJob, setLinkedJob] = useState(searchParams.get("job") || "");
-  const [source, setSource] = useState("");
   const [teamMember, setTeamMember] = useState("");
   const [lineItems, setLineItems] = useState<SelectedLineItem[]>([]);
-  const [noteToClient, setNoteToClient] = useState("");
   const [internalNote, setInternalNote] = useState("");
-  const [terms, setTerms] = useState("Payment is due within 15 days of estimate approval.");
   const [taxRate] = useState(7.5);
   const [itemPickerOpen, setItemPickerOpen] = useState(false);
 
@@ -92,11 +97,29 @@ export function CreateEstimate() {
         {/* Client */}
         <div className="mb-5">
           <label className={labelClass}>Client</label>
-          <select value={client} onChange={(e) => setClient(e.target.value)} className={fieldClass}>
+          <select value={client} onChange={(e) => { setClient(e.target.value); setServiceAddress(""); }} className={fieldClass}>
             <option value="">Select a client</option>
             {mockClients.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
         </div>
+
+        {/* Service Address — shown after client selected */}
+        {client && (
+          <div className="mb-5">
+            <label className={labelClass}>Service Address</label>
+            <select value={serviceAddress} onChange={(e) => setServiceAddress(e.target.value)} className={fieldClass}>
+              <option value="">Select address</option>
+              {(mockClientProperties[client] || []).map(addr => (
+                <option key={addr} value={addr}>{addr}</option>
+              ))}
+            </select>
+            {(mockClientProperties[client] || []).length > 1 && (
+              <div className="mt-1.5 text-[12px] text-[#9CA3AF]">
+                {client} has {(mockClientProperties[client] || []).length} properties
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Estimate Name */}
         <div className="mb-5">
@@ -105,7 +128,7 @@ export function CreateEstimate() {
             type="text"
             value={estimateName}
             onChange={(e) => setEstimateName(e.target.value)}
-            placeholder="e.g. Option A — HVAC Replacement"
+            placeholder="e.g. fix the plumbing, cut the trees, install the fence"
             className={fieldClass}
           />
         </div>
@@ -113,40 +136,36 @@ export function CreateEstimate() {
         {/* Dates */}
         <div className="grid grid-cols-2 gap-4 mb-5">
           <div>
-            <label className={labelClass}>Date Created</label>
-            <input type="date" value={dateCreated} onChange={(e) => setDateCreated(e.target.value)} className={fieldClass} />
+            <label className={labelClass}>Created</label>
+            <input
+              type="date"
+              value={dateCreated}
+              readOnly
+              className={`${fieldClass} bg-[#F9FAFB] text-[#6B7280] cursor-not-allowed`}
+            />
           </div>
           <div>
-            <label className={labelClass}>Expiration Date</label>
+            <label className={labelClass}>Expiration Date <span className="text-[#9CA3AF]" style={{ fontWeight: 400 }}>(optional)</span></label>
             <input type="date" value={expirationDate} onChange={(e) => setExpirationDate(e.target.value)} className={fieldClass} />
           </div>
         </div>
 
         {/* Linked Job */}
         <div className="mb-5">
-          <label className={labelClass}>Linked Job</label>
+          <label className={labelClass}>Job</label>
           <select value={linkedJob} onChange={(e) => setLinkedJob(e.target.value)} className={fieldClass}>
             <option value="">None</option>
             {mockJobs.map(j => <option key={j} value={j}>{j}</option>)}
           </select>
         </div>
 
-        {/* Source + Team Member */}
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          <div>
-            <label className={labelClass}>Source</label>
-            <select value={source} onChange={(e) => setSource(e.target.value)} className={fieldClass}>
-              <option value="">Select source</option>
-              {mockSources.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className={labelClass}>Team Member</label>
-            <select value={teamMember} onChange={(e) => setTeamMember(e.target.value)} className={fieldClass}>
-              <option value="">Assign</option>
-              {mockTeamMembers.map(m => <option key={m} value={m}>{m}</option>)}
-            </select>
-          </div>
+        {/* Assigned Technician */}
+        <div className="mb-6">
+          <label className={labelClass}>Assigned Technician</label>
+          <select value={teamMember} onChange={(e) => setTeamMember(e.target.value)} className={fieldClass}>
+            <option value="">Assign technician</option>
+            {mockTeamMembers.map(m => <option key={m} value={m}>{m}</option>)}
+          </select>
         </div>
 
         {/* Line Items */}
@@ -238,38 +257,32 @@ export function CreateEstimate() {
           )}
         </div>
 
-        {/* Notes & Terms */}
-        <div className="mb-8">
-          <h3 className="text-[16px] text-[#1A2332] mb-3" style={{ fontWeight: 700 }}>Notes & Terms</h3>
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            <div>
-              <label className={labelClass}>Note to Client</label>
-              <textarea
-                value={noteToClient}
-                onChange={(e) => setNoteToClient(e.target.value)}
-                className="w-full px-3 py-2.5 border border-[#E5E7EB] rounded-md text-[13px] text-[#1A2332] focus:outline-none focus:border-[#4A6FA5] min-h-[90px] resize-y"
-                placeholder="Visible to client on the estimate..."
-              />
-            </div>
-            <div>
-              <label className={labelClass}>Internal Notes</label>
-              <textarea
-                value={internalNote}
-                onChange={(e) => setInternalNote(e.target.value)}
-                className="w-full px-3 py-2.5 border border-[#E5E7EB] rounded-md text-[13px] text-[#1A2332] focus:outline-none focus:border-[#4A6FA5] min-h-[90px] resize-y"
-                placeholder="Visible only to your team..."
-              />
-            </div>
-          </div>
+        {/* Notes */}
+        <div className="mb-6">
+          <h3 className="text-[16px] text-[#1A2332] mb-3" style={{ fontWeight: 700 }}>Notes</h3>
           <div>
-            <label className={labelClass}>Terms & Conditions</label>
+            <label className={labelClass}>
+              Internal Notes
+              <span className="ml-1.5 text-[11px] text-[#9CA3AF] normal-case tracking-normal" style={{ fontWeight: 400 }}>(not visible to client)</span>
+            </label>
             <textarea
-              value={terms}
-              onChange={(e) => setTerms(e.target.value)}
-              className="w-full px-3 py-2.5 border border-[#E5E7EB] rounded-md text-[13px] text-[#1A2332] focus:outline-none focus:border-[#4A6FA5] min-h-[70px] resize-y"
-              placeholder="Terms and conditions..."
+              value={internalNote}
+              onChange={(e) => setInternalNote(e.target.value)}
+              className="w-full px-3 py-2.5 border border-[#E5E7EB] rounded-md text-[13px] text-[#1A2332] focus:outline-none focus:border-[#4A6FA5] min-h-[90px] resize-y"
+              placeholder="Notes for your team — e.g. 'Do not walk on right side, dog in yard'..."
             />
           </div>
+        </div>
+
+        {/* Terms & Conditions */}
+        <div className="mb-8 px-4 py-3 bg-[#F9FAFB] border border-[#E5E7EB] rounded-md flex items-center justify-between">
+          <div className="flex items-center gap-2 text-[13px] text-[#546478]">
+            <span className="material-icons" style={{ fontSize: "16px" }}>gavel</span>
+            Terms &amp; Conditions apply to this estimate
+          </div>
+          <button className="text-[13px] text-[#4A6FA5] hover:underline" style={{ fontWeight: 500 }}>
+            See all terms and conditions →
+          </button>
         </div>
 
         {/* Actions */}

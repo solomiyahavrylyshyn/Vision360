@@ -4,7 +4,6 @@ import { Input } from "../components/ui/input";
 import { useNavigate } from "react-router";
 import { Card } from "../components/ui/card";
 import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
-import { ManageFieldsIcon } from "../components/ui/manage-fields-icon";
 import { PageHeader } from "../components/ui/page-header";
 import { SelectionBar } from "../components/ui/selection-bar";
 import { DndProvider } from "react-dnd";
@@ -712,7 +711,7 @@ export function Clients() {
                     Preview empty state
                   </KebabItem>
                 )}
-                <KebabItem iconNode={<ManageFieldsIcon size={16} />} onSelect={e => { e.preventDefault(); setPendingColumns(new Set(visibleColumns)); setEditColumnsOpen(true); }}>Edit Columns</KebabItem>
+                <KebabItem icon="view_column" onSelect={e => { e.preventDefault(); setPendingColumns(new Set(visibleColumns)); setEditColumnsOpen(true); }}>Edit Columns</KebabItem>
                 <KebabItem icon="content_copy" onSelect={() => navigate("/clients/duplicates")}>Manage Duplicates</KebabItem>
                 <KebabSeparator />
                 <KebabItem icon="file_upload">{showEmptyStatePreview ? "Import Contacts" : "Import"}</KebabItem>
