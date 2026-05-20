@@ -460,213 +460,200 @@ export function InvoiceDetail() {
   );
 
   const renderDetailsTab = () => (
-    <div className="flex gap-4 items-start">
-      {/* ── Main content ── */}
-      <div className="flex-1 min-w-0 flex flex-col gap-4">
+    <div className="flex flex-col lg:flex-row gap-4 items-start">
 
-        {/* Row 1: Bill To + Service Address */}
-        <div className="grid grid-cols-2 gap-4">
-          <Card title="Bill To" onEdit={() => {}}>
-            <div className="flex flex-col gap-3">
-              <button onClick={() => navigate("/clients/1")} className="text-[14px] text-[#4A6FA5] hover:underline text-left self-start" style={{ fontWeight: 600 }}>{data.client.name}</button>
-              <div className="grid grid-cols-2 gap-x-6 gap-y-3">
-                <Field label="Customer Email" value={data.client.email} />
-                <Field label="Phone" value={data.client.phone} />
-              </div>
-              <div className="pt-1">
-                <div className="text-[11px] text-[#9CA3AF] leading-[16px] mb-1">Billing Address</div>
-                <div className="text-[13px] text-[#374151] leading-[20px]">
-                  {data.billingAddress.line}<br />
-                  {data.billingAddress.city}, {data.billingAddress.state} {data.billingAddress.zip}
-                  {data.billingAddress.county && <span className="text-[#9CA3AF]"> · {data.billingAddress.county} County</span>}
-                </div>
-              </div>
-            </div>
-          </Card>
-
-          <Card title="Service Address" onEdit={() => {}}>
-            <div className="flex flex-col gap-3">
-              <div className="text-[13px] text-[#374151] leading-[20px]">
-                {data.serviceAddress.line}<br />
-                {data.serviceAddress.city}, {data.serviceAddress.state} {data.serviceAddress.zip}
-              </div>
-              <div className="grid grid-cols-2 gap-x-6 gap-y-3">
-                <Field label="County" value={data.serviceAddress.county} />
-                <Field label="State" value={data.serviceAddress.state} />
-              </div>
-            </div>
-          </Card>
+      {/* ── Left/main: Items list with totals ── */}
+      <div className="flex-1 min-w-0 w-full bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
+        <div className="px-5 py-3.5 border-b border-[#E5E7EB] flex items-center justify-between">
+          <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Items list</h3>
+          <button
+            onClick={() => {}}
+            className="h-8 px-3 gap-1.5 text-[13px] bg-[#4A6FA5] hover:bg-[#3d5a85] text-white rounded-md inline-flex items-center justify-center transition-colors"
+            style={{ fontWeight: 600 }}
+          >
+            <PlusIcon className="h-4 w-4" />
+            Add Item
+          </button>
         </div>
 
-        {/* Row 3: Invoice Details (slimmed) */}
-        <Card title="Invoice Details" onEdit={() => {}}>
-          <div className="grid grid-cols-4 gap-x-6 gap-y-4">
-            <Field label="Invoice #" value={data.number} />
-            <Field label="Date Created" value={fmtDate(data.dateCreated)} />
-            <Field label="Date Sent" value={fmtDate(data.dateSent)} />
-            <Field label="Due Date" value={fmtDate(data.dueDate)} accent={overdueDays > 0 ? "#DC2626" : undefined} />
-            <Field label="Created By" value={data.createdBy} />
-            <Field label="PO #" value={data.poNumber || "—"} />
-            <div className="col-span-2">
-              <Field label="Memo" value={data.memo} />
-            </div>
-          </div>
-        </Card>
-
-        {/* Row 4: Job & References */}
-        <Card title="Job & References" onEdit={() => {}}>
-          <div className="grid grid-cols-2 gap-x-6 gap-y-4">
-            <Field
-              label="Job"
-              value={data.jobNumber ? `Job-${data.jobNumber}: ${data.jobName}` : null}
-              link={data.jobNumber ? `/jobs/${data.jobNumber}` : undefined}
-            />
-            <Field
-              label="Linked Estimate #"
-              value={data.linkedEstimate}
-              link={data.linkedEstimate ? `/estimates/${data.linkedEstimate.replace("EST-", "")}` : undefined}
-            />
-            <Field label="Estimate Status" value={data.estimateStatus} />
-          </div>
-        </Card>
-
-        {/* Row 5: Line Items + Totals */}
-        <Card title="Line Items">
+        <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-[#E5E7EB]">
-                {["Item", "Qty", "Unit Price", "Amount"].map(h => (
-                  <th key={h} className={`pb-2.5 text-[11px] uppercase tracking-wider text-[#9CA3AF] ${h === "Item" ? "text-left" : "text-right"}`} style={{ fontWeight: 600 }}>{h}</th>
-                ))}
+              <tr className="border-b border-[#E5E7EB] bg-[#F9FAFB]">
+                <th className="px-5 py-2.5 text-left text-[11px] uppercase tracking-wider text-[#9CA3AF]" style={{ fontWeight: 600 }}>Item</th>
+                <th className="px-3 py-2.5 text-right text-[11px] uppercase tracking-wider text-[#9CA3AF] w-[80px]" style={{ fontWeight: 600 }}>Qty</th>
+                <th className="px-3 py-2.5 text-right text-[11px] uppercase tracking-wider text-[#9CA3AF] w-[120px]" style={{ fontWeight: 600 }}>Unit Price</th>
+                <th className="px-3 py-2.5 text-right text-[11px] uppercase tracking-wider text-[#9CA3AF] w-[120px]" style={{ fontWeight: 600 }}>Amount</th>
+                <th className="px-3 py-2.5 w-[48px]" />
               </tr>
             </thead>
             <tbody>
               {data.items.map((item: any, idx: number) => (
-                <tr key={idx} className="border-b border-[#F3F4F6] last:border-b-0">
-                  <td className="py-3">
+                <tr key={idx} className="border-b border-[#F3F4F6] last:border-b-0 hover:bg-[#FAFBFC]">
+                  <td className="px-5 py-3">
                     <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{item.name}</div>
-                    <div className="text-[12px] text-[#9CA3AF]">{item.description}</div>
-                    {item.taxable && <span className="text-[11px] px-1.5 py-0.5 rounded bg-[#D1FAE5] text-[#16A34A] mt-1 inline-block" style={{ fontWeight: 600 }}>Taxable</span>}
+                    <div className="text-[12px] text-[#9CA3AF] mt-0.5">{item.description}</div>
+                    {item.taxable && (
+                      <span className="text-[11px] px-1.5 py-0.5 rounded bg-[#D1FAE5] text-[#16A34A] mt-1 inline-block" style={{ fontWeight: 600 }}>
+                        Taxable
+                      </span>
+                    )}
                   </td>
-                  <td className="py-3 text-[13px] text-[#374151] text-right" style={{ fontVariantNumeric: "tabular-nums" }}>{item.qty}</td>
-                  <td className="py-3 text-[13px] text-[#374151] text-right" style={{ fontVariantNumeric: "tabular-nums" }}>${fmt(item.unitPrice)}</td>
-                  <td className="py-3 text-[13px] text-[#1A2332] text-right" style={{ fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>${fmt(item.qty * item.unitPrice)}</td>
+                  <td className="px-3 py-3 text-[13px] text-[#374151] text-right" style={{ fontVariantNumeric: "tabular-nums" }}>{item.qty}</td>
+                  <td className="px-3 py-3 text-[13px] text-[#374151] text-right" style={{ fontVariantNumeric: "tabular-nums" }}>${fmt(item.unitPrice)}</td>
+                  <td className="px-3 py-3 text-[13px] text-[#1A2332] text-right" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>${fmt(item.qty * item.unitPrice)}</td>
+                  <td className="px-3 py-3 text-right">
+                    <button className="w-7 h-7 rounded text-[#DC2626] hover:bg-[#FEE2E2] inline-flex items-center justify-center transition-colors" title="Remove item">
+                      <span className="material-icons" style={{ fontSize: "16px" }}>delete_outline</span>
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
+        </div>
 
-          {/* Totals */}
-          <div className="mt-5 flex justify-end">
-            <div className="w-[320px]">
-              <div className="flex justify-between py-1.5 text-[13px]">
-                <span className="text-[#6B7280]">Subtotal</span>
-                <span className="text-[#374151]" style={{ fontVariantNumeric: "tabular-nums" }}>${fmt(subtotal)}</span>
+        {/* Totals */}
+        <div className="border-t border-[#E5E7EB] bg-[#FAFBFC] px-5 py-4 flex justify-end">
+          <div className="w-full max-w-[360px]">
+            <div className="flex justify-between py-1 text-[13px]">
+              <span className="text-[#6B7280]">Subtotal</span>
+              <span className="text-[#374151]" style={{ fontVariantNumeric: "tabular-nums" }}>${fmt(subtotal)}</span>
+            </div>
+            <div className="flex justify-between py-1 text-[13px]">
+              <span className="text-[#6B7280]">Taxable amount</span>
+              <span className="text-[#374151]" style={{ fontVariantNumeric: "tabular-nums" }}>${fmt(taxableAmount)}</span>
+            </div>
+            <div className="flex justify-between py-1 text-[13px]">
+              <span className="text-[#6B7280]">Tax ({data.taxRate}%)</span>
+              <span className="text-[#374151]" style={{ fontVariantNumeric: "tabular-nums" }}>${fmt(taxAmount)}</span>
+            </div>
+            <div className="flex justify-between py-2 mt-1 border-t border-[#E5E7EB] text-[14px]">
+              <span className="text-[#1A2332]" style={{ fontWeight: 600 }}>Total</span>
+              <span className="text-[#1A2332]" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>${fmt(total)}</span>
+            </div>
+            {totalPayments > 0 && (
+              <div className="flex justify-between py-1 text-[13px]">
+                <span className="text-[#16A34A]">Payments received</span>
+                <span className="text-[#16A34A]" style={{ fontVariantNumeric: "tabular-nums" }}>−${fmt(totalPayments)}</span>
               </div>
-              <div className="flex justify-between py-1.5 text-[13px]">
-                <span className="text-[#6B7280]">Taxable amount</span>
-                <span className="text-[#374151]" style={{ fontVariantNumeric: "tabular-nums" }}>${fmt(taxableAmount)}</span>
-              </div>
-              <div className="flex justify-between py-1.5 text-[13px] border-b border-[#E5E7EB]">
-                <span className="text-[#6B7280]">Tax ({data.taxRate}%)</span>
-                <span className="text-[#374151]" style={{ fontVariantNumeric: "tabular-nums" }}>${fmt(taxAmount)}</span>
-              </div>
-              <div className="flex justify-between py-2 text-[14px]">
-                <span className="text-[#1A2332]" style={{ fontWeight: 600 }}>Total</span>
-                <span className="text-[#1A2332]" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>${fmt(total)}</span>
-              </div>
-              {totalPayments > 0 && (
-                <div className="flex justify-between py-1.5 text-[13px] border-b border-[#E5E7EB]">
-                  <span className="text-[#16A34A]">Payments received</span>
-                  <span className="text-[#16A34A]" style={{ fontVariantNumeric: "tabular-nums" }}>−${fmt(totalPayments)}</span>
-                </div>
-              )}
-              <div className="flex justify-between pt-2.5">
-                <span className="text-[15px] text-[#1A2332]" style={{ fontWeight: 600 }}>Balance Due</span>
-                <span className="text-[18px] text-[#4A6FA5]" style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
-                  ${fmt(Math.max(0, balance))}
-                </span>
-              </div>
+            )}
+            <div className="flex justify-between items-baseline pt-3 mt-1 border-t border-[#E5E7EB]">
+              <span className="text-[15px] text-[#1A2332]" style={{ fontWeight: 700 }}>Balance Due</span>
+              <span className="text-[20px]" style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums", color: balance > 0 ? "#DC2626" : "#16A34A" }}>
+                ${fmt(Math.max(0, balance))}
+              </span>
             </div>
           </div>
-        </Card>
-
+        </div>
       </div>
 
-      {/* ── Notes rail (right) ── */}
-      <div className="w-[260px] shrink-0 flex flex-col gap-4">
-      <div className="bg-white border border-[#E5E7EB] rounded-lg flex flex-col overflow-hidden">
-        {/* Sub-tabs */}
-        <div className="flex border-b border-[#E5E7EB]">
-          {([
-            { key: "customer" as NotesTabKey, label: "Note to Client" },
-            { key: "internal" as NotesTabKey, label: "Internal" },
-          ]).map(({ key, label }) => (
-            <button
-              key={key}
-              onClick={() => setNotesTab(key)}
-              className={`flex-1 py-2.5 text-[11px] transition-colors ${
-                notesTab === key ? "text-[#4A6FA5] border-b-2 border-[#4A6FA5]" : "text-[#6B7280] hover:text-[#374151]"
-              }`}
-              style={{ fontWeight: notesTab === key ? 600 : 500 }}
-            >
-              {label}
+      {/* ── Right column: Job Details + Note to Client ── */}
+      <div className="w-full lg:w-[320px] shrink-0 flex flex-col gap-4">
+
+        {/* Job Details */}
+        <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
+          <div className="px-4 py-3 border-b border-[#E5E7EB] flex items-center justify-between">
+            <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Job Details</h3>
+            <button onClick={() => navigate(`/invoices/${id}/edit`)} className="w-7 h-7 rounded text-[#9CA3AF] hover:text-[#4A6FA5] hover:bg-[#F5F7FA] flex items-center justify-center transition-colors" title="Edit job details">
+              <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
             </button>
-          ))}
+          </div>
+          <div className="p-4 grid grid-cols-2 gap-x-4 gap-y-3">
+            <div className="flex flex-col gap-0.5">
+              <div className="text-[11px] text-[#9CA3AF]">Job Number</div>
+              {data.jobNumber ? (
+                <button onClick={() => navigate(`/jobs/${data.jobNumber}`)} className="text-[13px] text-[#4A6FA5] hover:underline text-left" style={{ fontWeight: 500 }}>
+                  {data.jobNumber}
+                </button>
+              ) : (
+                <span className="text-[13px] text-[#9CA3AF]">—</span>
+              )}
+            </div>
+            <div className="flex flex-col gap-0.5">
+              <div className="text-[11px] text-[#9CA3AF]">Job Name</div>
+              <span className="text-[13px] text-[#374151]">{data.jobName || <span className="text-[#9CA3AF]">—</span>}</span>
+            </div>
+            <div className="flex flex-col gap-0.5 col-span-2">
+              <div className="text-[11px] text-[#9CA3AF]">Service Address</div>
+              <span className="text-[13px] text-[#374151] leading-[19px]">
+                {data.serviceAddress.line}<br />
+                {data.serviceAddress.city}, {data.serviceAddress.state} {data.serviceAddress.zip}
+              </span>
+            </div>
+            <div className="flex flex-col gap-0.5">
+              <div className="text-[11px] text-[#9CA3AF]">Linked Estimate #</div>
+              {data.linkedEstimate ? (
+                <button onClick={() => navigate(`/estimates/${data.linkedEstimate.replace("EST-", "")}`)} className="text-[13px] text-[#4A6FA5] hover:underline text-left" style={{ fontWeight: 500 }}>
+                  {data.linkedEstimate}
+                </button>
+              ) : (
+                <span className="text-[13px] text-[#9CA3AF]">—</span>
+              )}
+            </div>
+            <div className="flex flex-col gap-0.5">
+              <div className="text-[11px] text-[#9CA3AF]">Estimate Status</div>
+              <span className="text-[13px] text-[#374151]">{data.estimateStatus || <span className="text-[#9CA3AF]">—</span>}</span>
+            </div>
+            <div className="flex flex-col gap-0.5 col-span-2">
+              <div className="text-[11px] text-[#9CA3AF]">Memo</div>
+              <span className="text-[13px] text-[#374151] leading-[19px]">{data.memo || <span className="text-[#9CA3AF]">—</span>}</span>
+            </div>
+          </div>
         </div>
 
-        {/* Content */}
-        <div className="flex-1 p-3 flex flex-col gap-2">
-          {notesTab === "customer" && (
-            <>
-              {data.noteToCustomer ? (
-                <div className="p-2.5 bg-[#F9FAFB] rounded-md">
-                  <div className="text-[12px] text-[#1A2332] leading-[18px]">{data.noteToCustomer}</div>
-                </div>
-              ) : (
-                <div className="text-[12px] text-[#9CA3AF] text-center py-6">No note yet</div>
-              )}
-              <button className="mt-auto flex items-center gap-1 text-[12px] text-[#4A6FA5] hover:underline" style={{ fontWeight: 500 }}>
-                <span className="material-icons" style={{ fontSize: "14px" }}>{data.noteToCustomer ? "edit" : "add"}</span>
-                {data.noteToCustomer ? "Edit note" : "Add note"}
+        {/* Note to Client (with Internal sub-tab) */}
+        <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
+          <div className="flex border-b border-[#E5E7EB] px-4">
+            {([
+              { key: "customer" as NotesTabKey, label: "Note to Client" },
+              { key: "internal" as NotesTabKey, label: "Internal" },
+            ]).map(({ key, label }) => (
+              <button
+                key={key}
+                onClick={() => setNotesTab(key)}
+                className={`relative py-3 px-1 mr-4 text-[13px] transition-colors ${
+                  notesTab === key ? "text-[#4A6FA5]" : "text-[#6B7280] hover:text-[#374151]"
+                }`}
+                style={{ fontWeight: notesTab === key ? 600 : 500 }}
+              >
+                {label}
+                {notesTab === key && <span className="absolute left-0 right-0 -bottom-px h-0.5 bg-[#4A6FA5] rounded-full" />}
               </button>
-            </>
-          )}
-          {notesTab === "internal" && (
-            <>
-              {data.notes ? (
-                <div className="p-2.5 bg-[#F9FAFB] rounded-md">
-                  <div className="text-[12px] text-[#1A2332] leading-[18px]">{data.notes}</div>
-                </div>
-              ) : (
-                <div className="text-[12px] text-[#9CA3AF] text-center py-6">No notes yet</div>
-              )}
-              <button className="mt-auto flex items-center gap-1 text-[12px] text-[#4A6FA5] hover:underline" style={{ fontWeight: 500 }}>
-                <PlusIcon className="h-3.5 w-3.5" />
-                Add note
-              </button>
-            </>
-          )}
+            ))}
+          </div>
+          <div className="p-4 flex flex-col gap-2.5">
+            {notesTab === "customer" ? (
+              <>
+                {data.noteToCustomer ? (
+                  <div className="p-2.5 bg-[#F9FAFB] rounded-md text-[13px] text-[#1A2332] leading-[19px]">
+                    {data.noteToCustomer}
+                  </div>
+                ) : (
+                  <div className="text-[12px] text-[#9CA3AF] py-2">No note yet.</div>
+                )}
+                <button className="self-start inline-flex items-center gap-1 text-[12px] text-[#4A6FA5] hover:underline" style={{ fontWeight: 500 }}>
+                  <span className="material-icons" style={{ fontSize: "14px" }}>{data.noteToCustomer ? "edit" : "add"}</span>
+                  {data.noteToCustomer ? "Edit note" : "Add note"}
+                </button>
+              </>
+            ) : (
+              <>
+                {data.notes ? (
+                  <div className="p-2.5 bg-[#F9FAFB] rounded-md text-[13px] text-[#1A2332] leading-[19px]">
+                    {data.notes}
+                  </div>
+                ) : (
+                  <div className="text-[12px] text-[#9CA3AF] py-2">No internal note yet.</div>
+                )}
+                <button className="self-start inline-flex items-center gap-1 text-[12px] text-[#4A6FA5] hover:underline" style={{ fontWeight: 500 }}>
+                  <PlusIcon className="h-3.5 w-3.5" />
+                  Add note
+                </button>
+              </>
+            )}
+          </div>
         </div>
-      </div>
-
-      {/* Terms & Conditions card */}
-      <div className="bg-white border border-[#E5E7EB] rounded-lg flex flex-col overflow-hidden">
-        <div className="px-4 py-3 border-b border-[#E5E7EB]">
-          <h3 className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>Terms & Conditions</h3>
-        </div>
-        <div className="p-3 flex flex-col gap-2">
-          {data.terms ? (
-            <div className="p-2.5 bg-[#F9FAFB] rounded-md text-[12px] text-[#6B7280] leading-[18px]">{data.terms}</div>
-          ) : (
-            <div className="text-[12px] text-[#9CA3AF] text-center py-6">No terms set</div>
-          )}
-          <button className="mt-1 flex items-center gap-1 text-[12px] text-[#4A6FA5] hover:underline" style={{ fontWeight: 500 }}>
-            <span className="material-icons" style={{ fontSize: "14px" }}>{data.terms ? "edit" : "add"}</span>
-            {data.terms ? "Edit terms" : "Add terms"}
-          </button>
-        </div>
-      </div>
       </div>
     </div>
   );
