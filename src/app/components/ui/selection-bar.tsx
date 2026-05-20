@@ -11,33 +11,52 @@ type SelectionBarProps = {
   count: number;
   onDeselect: () => void;
   actions?: SelectionBarAction[];
+  /** Label for the dismiss button (default "Cancel"). */
+  cancelLabel?: string;
 };
 
-export function SelectionBar({ count, onDeselect, actions = [] }: SelectionBarProps) {
+/**
+ * Bulk-selection toolbar shown above the table when one or more rows are
+ * selected. Visual spec mirrors the Figma "Clients - bulk" macro:
+ * - 60px tall, white background, sits as the toolbar row inside the
+ *   bordered table card
+ * - "{N} selected" on the left in primary-accent color
+ * - Action buttons on the right (white surface with focus-ring shadow),
+ *   then a 1px vertical divider, then the dismiss "Cancel" button
+ */
+export function SelectionBar({
+  count,
+  onDeselect,
+  actions = [],
+  cancelLabel = "Cancel",
+}: SelectionBarProps) {
   if (count === 0) return null;
 
   return (
-    <div className="flex items-center px-4 py-2 bg-[#EBF0F8] border-b border-[#C8D5E8]">
-      <span className="text-[13px] text-[#4A6FA5]" style={{ fontWeight: 600 }}>
+    <div className="flex items-center gap-3 px-3 h-[60px] bg-white border-b border-[#E5E7EB]">
+      <span
+        className="text-[14px] text-[#4A6FA5]"
+        style={{ fontWeight: 600 }}
+      >
         {count} selected
       </span>
 
-      {actions.length > 0 && <div className="w-px h-4 bg-[#C8D5E8] mx-3" />}
+      <span className="text-[#9CA3AF] text-[14px] select-none">·</span>
 
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-2 flex-1">
         {actions.map((a, i) => (
           <button
             key={i}
+            type="button"
             onClick={a.onClick}
-            className={`flex items-center gap-1.5 h-7 px-2.5 rounded-md text-[12px] transition-colors ${
-              a.destructive
-                ? "text-[#DC2626] hover:bg-[#FEE2E2]"
-                : "text-[#1A2332] hover:bg-white"
-            }`}
+            className="inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-lg border border-[#E5E7EB] bg-white text-[13px] text-[#1A2332] hover:bg-[#F9FAFB] transition-colors"
             style={{ fontWeight: 500 }}
           >
             {a.icon && (
-              <span className="material-icons" style={{ fontSize: "14px" }}>
+              <span
+                className="material-icons"
+                style={{ fontSize: "15px" }}
+              >
                 {a.icon}
               </span>
             )}
@@ -46,12 +65,15 @@ export function SelectionBar({ count, onDeselect, actions = [] }: SelectionBarPr
         ))}
       </div>
 
+      <div className="w-px h-6 bg-[#E5E7EB]" />
+
       <button
+        type="button"
         onClick={onDeselect}
-        className="ml-auto text-[12px] text-[#4A6FA5] hover:underline"
+        className="inline-flex items-center justify-center h-9 px-4 rounded-lg text-[14px] text-[#1A2332] hover:bg-[#F9FAFB] transition-colors"
         style={{ fontWeight: 500 }}
       >
-        Deselect
+        {cancelLabel}
       </button>
     </div>
   );
