@@ -3121,21 +3121,21 @@ export function Settings() {
               </div>
 
               {pendingLegalMode && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1A2332]/10">
-                  <div className="w-[440px] rounded-xl border border-[#E5E7EB] bg-white p-6 shadow-[0_14px_32px_rgba(26,35,50,0.16)]">
-                    <h3 className="text-[18px] leading-6 text-[#1A2332]" style={{ fontWeight: 700 }}>
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#D3DEE8]/90">
+                  <div className="w-[360px] rounded-lg border border-[#E5E7EB] bg-white p-5 shadow-[0_10px_22px_rgba(26,35,50,0.18)]">
+                    <h3 className="text-[16px] leading-6 text-[#1A2332]" style={{ fontWeight: 700 }}>
                       {pendingLegalMode.mode === "text" ? "Replace file with text?" : "Replace text with a file?"}
                     </h3>
-                    <p className="mt-3 text-[13px] leading-5 text-[#6B7280]">
+                    <p className="mt-3 max-w-[285px] text-[12px] leading-4 text-[#6B7280]">
                       {pendingLegalMode.mode === "text"
                         ? "Your uploaded file will be removed. You can upload a new one at any time."
                         : "Your typed terms will be removed. You can type them again at any time."}
                     </p>
-                    <div className="mt-6 flex justify-end gap-2">
-                      <Button type="button" variant="outline" onClick={() => setPendingLegalMode(null)} className="h-9 border-[#E5E7EB] px-4 text-[#1A2332]">
+                    <div className="mt-5 flex justify-end gap-2">
+                      <Button type="button" variant="outline" onClick={() => setPendingLegalMode(null)} className="h-8 rounded-md border-[#E5E7EB] px-4 text-[12px] text-[#1A2332]">
                         Cancel
                       </Button>
-                      <Button type="button" onClick={confirmLegalMode} className="h-9 bg-[#4A6FA5] px-4 text-white hover:bg-[#3d5a85]">
+                      <Button type="button" onClick={confirmLegalMode} className="h-8 rounded-md bg-[#4A6FA5] px-4 text-[12px] text-white hover:bg-[#3d5a85]">
                         Confirm
                       </Button>
                     </div>
