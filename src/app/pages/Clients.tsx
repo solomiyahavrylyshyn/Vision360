@@ -135,7 +135,10 @@ export function Clients() {
     const matchesSearch = !searchQuery || client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       client.phone.includes(searchQuery) || client.address.toLowerCase().includes(searchQuery.toLowerCase());
 
-    const matchesQfBalance = qfBalance === "with_balance" ? client.totalBilled > 0 : true;
+    const matchesQfBalance =
+      qfBalance === "with_balance" ? client.totalBilled > 0 :
+      qfBalance === "without_balance" ? client.totalBilled === 0 :
+      true;
 
     // Advanced filters
     const matchesCustomerType = !filterState.customerType || (filterState.customerType === "residential" ? client.tags.includes("Residential") : client.tags.includes("Commercial"));
@@ -650,6 +653,7 @@ export function Clients() {
                 options={[
                   { value: "all",          label: "All" },
                   { value: "with_balance", label: "With balance" },
+                  { value: "without_balance", label: "Without balance" },
                 ]}
               />
               <div className="w-px h-5 bg-[#E5E7EB] mx-1" />
@@ -799,9 +803,7 @@ export function Clients() {
                   })}
                   <td className="px-4 py-4">
                     <KebabMenu>
-                      <KebabItem icon="edit" onSelect={e => { e.preventDefault(); navigate(`/clients/${client.id}`); }}>Edit</KebabItem>
-                      <KebabItem icon="content_copy" onSelect={e => { e.preventDefault(); }}>Duplicate</KebabItem>
-                      <KebabSeparator />
+                      <KebabItem icon="block" onSelect={e => { e.preventDefault(); setClients(prev => prev.filter(c => c.id !== client.id)); }}>Inactivate</KebabItem>
                       <KebabItem icon="open_in_new" onSelect={e => { e.preventDefault(); window.open(`/clients/${client.id}`, "_blank"); }}>Open in New Tab</KebabItem>
                     </KebabMenu>
                   </td>
