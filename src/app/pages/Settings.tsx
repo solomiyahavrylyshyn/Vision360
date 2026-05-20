@@ -1844,12 +1844,9 @@ export function Settings() {
   const [requireParentSig, setRequireParentSig] = useState(false);
   type JobNote = { id: string; title: string; body: string };
   const [jobNotes, setJobNotes] = useState<JobNote[]>([
-    { id: "jn1", title: "Service Agreement",
-      body: "By signing below, the customer agrees to the scope of work described in this job and to the terms of service published at vision360.com/terms." },
-    { id: "jn2", title: "Authorization to Proceed",
+    { id: "jn1", title: "Authorization to Proceed",
       body: "I authorize Omega Home Services to perform the work described above and accept full responsibility for the agreed amount." },
-    { id: "jn3", title: "Unforeseen Parts Disclaimer",
-      body: "Additional parts or labor discovered during the job may be billed separately at standard hourly rates after written approval from the customer." },
+    { id: "jn2", title: "New note", body: "" },
   ]);
   const [scheduleStartHour, setScheduleStartHour] = useState("7:00 AM");
   const [scheduleEndHour, setScheduleEndHour] = useState("7:00 PM");
@@ -1860,6 +1857,8 @@ export function Settings() {
     { id: "scheduled",  label: "Scheduled",   color: "#4A6FA5", bg: "#EBF0F8", icon: "event_note",   core: true },
     { id: "inProgress", label: "In Progress", color: "#B45309", bg: "#FEF3C7", icon: "play_circle",  core: true },
     { id: "completed",  label: "Completed",   color: "#15803D", bg: "#DCFCE7", icon: "check_circle", core: true },
+    { id: "cancelled",  label: "Cancelled",   color: "#DC2626", bg: "#FEE2E2", icon: "edit" },
+    { id: "paused",     label: "Paused",      color: "#A856F7", bg: "#F3E8FF", icon: "edit" },
   ]);
   // Palette for custom statuses
   const STATUS_PALETTE: { color: string; bg: string; icon: string }[] = [
@@ -3280,33 +3279,41 @@ export function Settings() {
 
           {(activeSection === "jobs" || activeSection === "estimates" || activeSection === "invoices" || activeSection === "items") && (
             <>
-              <SectionHeader
-                title={{
-                  jobs: "Jobs Preferences",
-                  estimates: "Estimate Preferences",
-                  invoices: "Invoice Preferences",
-                  items: "Item Preferences",
-                }[activeSection as "jobs" | "estimates" | "invoices" | "items"]}
-                description="System preference areas are intentionally simple and module-specific. Clients do not get a separate settings area in MVP."
-              />
-              <div className="space-y-4">
+              {activeSection === "jobs" ? (
+                <div className="mb-4 flex h-[52px] items-center justify-between">
+                  <h1 className="text-[24px] leading-8 text-[#1A2332]" style={{ fontWeight: 600 }}>Jobs</h1>
+                  <Button type="button" disabled className="h-9 rounded-lg bg-[#4A6FA5] px-4 text-[14px] text-white opacity-50" style={{ fontWeight: 500 }}>
+                    Save changes
+                  </Button>
+                </div>
+              ) : (
+                <SectionHeader
+                  title={{
+                    estimates: "Estimate Preferences",
+                    invoices: "Invoice Preferences",
+                    items: "Item Preferences",
+                  }[activeSection as "estimates" | "invoices" | "items"]}
+                  description="System preference areas are intentionally simple and module-specific. Clients do not get a separate settings area in MVP."
+                />
+              )}
+              <div className="space-y-4 pb-6">
                 {activeSection === "jobs" && (
                   <>
                     {/* Job Types */}
-                    <SectionCard title="Job Types" description="Types used when creating jobs. Helps categorize and filter work orders.">
-                      <div className="mb-3 flex gap-2">
+                    <SectionCard title="Job Types" description="Types used when creating jobs. Helps categorize and filter work orders." className="min-h-[172px]">
+                      <div className="mt-4 flex w-[422px] gap-3">
                         <Input
                           value={newJobTypeName}
                           onChange={e => setNewJobTypeName(e.target.value)}
-                          placeholder="New job type..."
-                          className="h-9 max-w-[320px] border-[#D8DEE8] text-[13px]"
+                          placeholder="Add role type"
+                          className="h-9 flex-1 border-[#E5E7EB] text-[14px] shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
                           onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addJobType(); } }}
                         />
-                        <Button className="h-9 bg-[#4A6FA5] px-4 text-[13px] hover:bg-[#3d5a85]" onClick={addJobType}>Add</Button>
+                        <Button disabled={!newJobTypeName.trim()} className="h-9 w-[59px] rounded-lg bg-[#4A6FA5] px-4 text-[14px] text-white opacity-50 hover:bg-[#4A6FA5]" onClick={addJobType}>Add</Button>
                       </div>
-                      <div className="flex flex-wrap gap-2">
+                      <div className="mt-4 flex flex-wrap gap-2">
                         {jobTypes.map(jt => (
-                          <span key={jt} className="flex items-center gap-1 rounded-full border border-[#E5E7EB] bg-[#F8FAFC] px-3 py-1.5 text-[13px] text-[#1A2332]">
+                          <span key={jt} className="flex h-6 items-center gap-1 rounded-lg border border-[#E5E7EB] bg-white px-2 text-[12px] leading-4 text-[#1A2332]" style={{ fontWeight: 500 }}>
                             {jt}
                             <button className="ml-1 text-[#9AA3AF] hover:text-[#DC2626]" onClick={() => { jobTypesStore.removeJobType(jt); toast.success("Job type removed"); }}>×</button>
                           </span>
