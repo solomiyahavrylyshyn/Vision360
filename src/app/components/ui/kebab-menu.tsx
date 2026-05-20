@@ -49,7 +49,14 @@ export function KebabMenu({
         align={align}
         side={side}
         sideOffset={6}
-        className={cn("min-w-[180px] py-1", contentClassName)}
+        className={cn(
+          "min-w-[185px] p-0.5 bg-white border border-[#E5E7EB] rounded-lg",
+          contentClassName
+        )}
+        style={{
+          boxShadow:
+            "0px 4px 6px -1px rgba(0,0,0,0.10), 0px 2px 4px -2px rgba(0,0,0,0.10)",
+        }}
       >
         {children}
       </DropdownMenuContent>
@@ -79,14 +86,14 @@ export function KebabItem({
   const iconNode = React.isValidElement(icon) ? (
     icon
   ) : icon === "view_column" || icon === "tab_unselected" ? (
-    <ColumnSettingsIcon className="h-[18px] w-[18px] text-[#1A2332]" />
+    <ColumnSettingsIcon className="h-5 w-5 text-[#6B7280]" />
   ) : icon ? (
     <span
       className={cn(
         "material-icons flex-shrink-0",
         destructive ? "text-[#DC2626]" : "text-[#6B7280]"
       )}
-      style={{ fontSize: "18px" }}
+      style={{ fontSize: "20px" }}
     >
       {icon}
     </span>
@@ -98,27 +105,44 @@ export function KebabItem({
       onSelect={onSelect}
       onClick={onClick}
       className={cn(
-        "flex items-center gap-2.5 px-3 h-9 text-[13px] cursor-pointer rounded-none",
+        "flex items-center gap-2 rounded-md cursor-pointer",
         destructive
           ? "text-[#DC2626] focus:bg-[#FEF2F2] focus:text-[#B91C1C]"
-          : "text-[#374151] focus:bg-[#F3F4F6] focus:text-[#1A2332]",
+          : "text-[#1A2332] focus:bg-[#F5F7FA] focus:text-[#1A2332]",
         disabled && "opacity-50 cursor-not-allowed",
         className
       )}
-      style={{ fontWeight: 500 }}
+      style={{
+        height: 32,
+        minHeight: 32,
+        paddingTop: 5.5,
+        paddingBottom: 5.5,
+        paddingLeft: 8,
+        paddingRight: 8,
+        fontFamily: "Geist, sans-serif",
+        fontWeight: 400,
+        fontSize: 14,
+        lineHeight: "20px",
+        borderRadius: 6,
+      }}
     >
       {iconNode ? (
-        <span className="h-[18px] w-[18px] flex-shrink-0 inline-flex items-center justify-center">
+        <span className="h-5 w-5 flex-shrink-0 inline-flex items-center justify-center">
           {iconNode}
         </span>
       ) : (
-        <span className="w-[18px] flex-shrink-0" aria-hidden="true" />
+        <span className="w-5 flex-shrink-0" aria-hidden="true" />
       )}
-      <span className="flex-1 leading-none">{children}</span>
+      <span className="flex-1 leading-[20px]">{children}</span>
     </DropdownMenuItem>
   );
 }
 
 export function KebabSeparator() {
-  return <DropdownMenuSeparator className="my-1 bg-[#E5E7EB]" />;
+  return (
+    <DropdownMenuSeparator
+      className="bg-[#E5E7EB] rounded-md"
+      style={{ height: 1, marginTop: 4, marginBottom: 4, marginLeft: 0, marginRight: 0 }}
+    />
+  );
 }
