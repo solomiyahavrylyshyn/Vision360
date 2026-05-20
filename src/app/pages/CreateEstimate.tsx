@@ -36,6 +36,7 @@ export function CreateEstimate() {
   const [estimateName, setEstimateName] = useState("");
   const [estimateNumber] = useState("EST-010");
   const [dateCreated] = useState("2026-04-27");
+  const [createdBy] = useState("Marek Stroz");
   const [expirationDate, setExpirationDate] = useState("");
   const [linkedJob, setLinkedJob] = useState(searchParams.get("job") || "");
   const [teamMember, setTeamMember] = useState("");
@@ -91,7 +92,12 @@ export function CreateEstimate() {
           title="Create Estimate"
           icon="description"
           className="mb-6"
-          actions={<span className="text-[14px] text-[#546478]">{estimateNumber}</span>}
+          actions={
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#F9FAFB] border border-[#E5E7EB] rounded-md text-[13px] text-[#6B7280]" title="Auto-assigned — not editable">
+              <span className="material-icons" style={{ fontSize: "14px" }}>lock</span>
+              {estimateNumber}
+            </div>
+          }
         />
 
         {/* Client */}
@@ -133,15 +139,32 @@ export function CreateEstimate() {
           />
         </div>
 
-        {/* Dates */}
-        <div className="grid grid-cols-2 gap-4 mb-5">
+        {/* Dates + Created By */}
+        <div className="grid grid-cols-3 gap-4 mb-5">
           <div>
-            <label className={labelClass}>Created</label>
+            <label className={labelClass}>
+              Created
+              <span className="ml-1.5 text-[#9CA3AF]" style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>(auto)</span>
+            </label>
             <input
               type="date"
               value={dateCreated}
               readOnly
               className={`${fieldClass} bg-[#F9FAFB] text-[#6B7280] cursor-not-allowed`}
+              title="Auto-assigned — not editable"
+            />
+          </div>
+          <div>
+            <label className={labelClass}>
+              Created By
+              <span className="ml-1.5 text-[#9CA3AF]" style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>(auto)</span>
+            </label>
+            <input
+              type="text"
+              value={createdBy}
+              readOnly
+              className={`${fieldClass} bg-[#F9FAFB] text-[#6B7280] cursor-not-allowed`}
+              title="Auto-assigned — not editable"
             />
           </div>
           <div>
