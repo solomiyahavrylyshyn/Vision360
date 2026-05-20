@@ -752,7 +752,7 @@ export function Calendar() {
                                     <div className="flex flex-col h-full px-2 py-1">
                                       <div className="flex items-center justify-between gap-2 text-[9px] text-[#9CA3AF] tabular-nums shrink-0">
                                         <span>{fmtHour(job.start)} – {fmtHour(job.end)}</span>
-                                        <span className="flex h-4 w-4 items-center justify-center rounded-full text-[9px] text-white" style={{ backgroundColor: job.border, fontWeight: 700 }}>
+                                        <span className="flex h-4 w-4 items-center justify-center rounded-full text-[9px] text-white" style={{ backgroundColor: "#4A6FA5", fontWeight: 700 }}>
                                           {routeNumber}
                                         </span>
                                       </div>
@@ -990,7 +990,7 @@ export function Calendar() {
                               <div className="flex flex-col h-full px-2 py-1">
                                 <div className="flex items-center justify-between gap-2 text-[9px] text-[#9CA3AF] tabular-nums shrink-0">
                                   <span>{fmtHour(job.start)} – {fmtHour(job.end)}</span>
-                                  <span className="flex h-4 w-4 items-center justify-center rounded-full text-[9px] text-white" style={{ backgroundColor: job.border, fontWeight: 700 }}>
+                                  <span className="flex h-4 w-4 items-center justify-center rounded-full text-[9px] text-white" style={{ backgroundColor: "#4A6FA5", fontWeight: 700 }}>
                                     {routeNumber}
                                   </span>
                                 </div>
