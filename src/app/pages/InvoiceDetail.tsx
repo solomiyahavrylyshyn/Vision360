@@ -263,10 +263,11 @@ function Card({ title, children, onEdit, action }: { title: string; children: Re
   );
 }
 
-type TabKey = "details" | "activity";
+type TabKey = "details" | "payments" | "activity";
 type NotesTabKey = "customer" | "internal";
 const TABS: { key: TabKey; label: string }[] = [
   { key: "details", label: "Details" },
+  { key: "payments", label: "Payments" },
   { key: "activity", label: "Activity" },
 ];
 
@@ -391,12 +392,9 @@ export function InvoiceDetail() {
     setPayNote("");
   };
 
-  const renderDetailsTab = () => (
+  const renderPaymentsTab = () => (
     <div className="flex gap-4 items-start">
-      {/* ── Main content ── */}
       <div className="flex-1 min-w-0 flex flex-col gap-4">
-
-        {/* Row 1: Payments (surfaced to top) */}
         <Card
           title={`Payments (${payments.length})`}
           action={
@@ -412,7 +410,7 @@ export function InvoiceDetail() {
             ) : null
           }
         >
-          {/* Payment terms strip — moved here from Sales & Payment */}
+          {/* Payment terms strip */}
           <div className="grid grid-cols-4 gap-x-6 gap-y-3 pb-4 mb-4 border-b border-[#F3F4F6]">
             <Field label="Payment Terms" value={data.paymentTerms} />
             <Field label="Payment Method" value={data.paymentMethod} />
@@ -457,8 +455,16 @@ export function InvoiceDetail() {
             </table>
           )}
         </Card>
+      </div>
+    </div>
+  );
 
-        {/* Row 2: Bill To + Service Address */}
+  const renderDetailsTab = () => (
+    <div className="flex gap-4 items-start">
+      {/* ── Main content ── */}
+      <div className="flex-1 min-w-0 flex flex-col gap-4">
+
+        {/* Row 1: Bill To + Service Address */}
         <div className="grid grid-cols-2 gap-4">
           <Card title="Bill To" onEdit={() => {}}>
             <div className="flex flex-col gap-3">
@@ -720,6 +726,16 @@ export function InvoiceDetail() {
                   <span className="material-icons" style={{ fontSize: "16px" }}>person</span>
                   {data.client.name}
                 </button>
+                {data.client.phone && (
+                  <a href={`tel:${data.client.phone}`} className="inline-flex items-center justify-center w-6 h-6 rounded hover:bg-[#F5F7FA] text-[#6B7280] hover:text-[#4A6FA5] transition-colors ml-0.5" title={data.client.phone}>
+                    <span className="material-icons" style={{ fontSize: "15px" }}>phone</span>
+                  </a>
+                )}
+                {data.client.email && (
+                  <a href={`mailto:${data.client.email}`} className="inline-flex items-center justify-center w-6 h-6 rounded hover:bg-[#F5F7FA] text-[#6B7280] hover:text-[#4A6FA5] transition-colors" title={data.client.email}>
+                    <span className="material-icons" style={{ fontSize: "15px" }}>mail</span>
+                  </a>
+                )}
                 <div className="w-px h-5 bg-[#E5E7EB] mx-1" />
                 <span className="flex items-center gap-1 text-[14px] text-[#374151]">
                   <span className="material-icons text-[#6B7280]" style={{ fontSize: "16px" }}>location_on</span>
@@ -766,6 +782,13 @@ export function InvoiceDetail() {
                     </button>
                   </>
                 )}
+                <button
+                  onClick={() => navigate(`/invoices/${id}/edit`)}
+                  className="ml-1.5 inline-flex items-center justify-center w-6 h-6 rounded text-[#6B7280] hover:text-[#4A6FA5] hover:bg-[#F5F7FA] transition-colors"
+                  title="Edit invoice details"
+                >
+                  <span className="material-icons" style={{ fontSize: "15px" }}>edit</span>
+                </button>
               </div>
             </div>
 
@@ -829,7 +852,7 @@ export function InvoiceDetail() {
           <DetailTabs
             tabs={TABS.map(t => ({
               ...t,
-              count: t.key === "activity" ? activity.length : undefined,
+              count: t.key === "activity" ? activity.length : t.key === "payments" ? payments.length : undefined,
             }))}
             activeTab={activeTab}
             onChange={setActiveTab}
@@ -858,19 +881,32 @@ export function InvoiceDetail() {
             </button>
             <button
               onClick={() => navigate(`/invoices/${id}/edit`)}
-              className="h-9 px-3.5 rounded-md bg-[#4A6FA5] hover:bg-[#3d5a85] text-white text-[13px] inline-flex items-center gap-1.5 transition-colors"
-              style={{ fontWeight: 600 }}
+              className="h-9 px-3.5 rounded-md border border-[#E5E7EB] bg-white text-[13px] text-[#1A2332] hover:bg-[#F5F7FA] inline-flex items-center gap-1.5 transition-colors"
+              style={{ fontWeight: 500 }}
               title="Edit invoice"
             >
               <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
-              Edit Invoice
+              Edit
             </button>
+            {!isPaid && status !== "Void" && (
+              <button
+                onClick={() => setPaymentModalOpen(true)}
+                className="h-9 px-3.5 rounded-md bg-[#4A6FA5] hover:bg-[#3d5a85] text-white text-[13px] inline-flex items-center gap-1.5 transition-colors"
+                style={{ fontWeight: 600 }}
+                title="Record a payment for this invoice"
+              >
+                <span className="material-icons" style={{ fontSize: "16px" }}>payments</span>
+                Collect Payment
+              </button>
+            )}
           </div>
         </div>
 
         {/* ── CONTENT ── */}
         <div className="p-4">
-          {activeTab === "details" ? renderDetailsTab() : renderActivityTab()}
+          {activeTab === "details" && renderDetailsTab()}
+          {activeTab === "payments" && renderPaymentsTab()}
+          {activeTab === "activity" && renderActivityTab()}
         </div>
       </div>
 
