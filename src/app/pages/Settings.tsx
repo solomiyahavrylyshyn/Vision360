@@ -154,9 +154,9 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-function SectionCard({ id, title, description, children, headerAction }: { id?: string; title: string; description?: string; children: React.ReactNode; headerAction?: React.ReactNode }) {
+function SectionCard({ id, title, description, children, headerAction, className = "" }: { id?: string; title: string; description?: string; children: React.ReactNode; headerAction?: React.ReactNode; className?: string }) {
   return (
-    <Card id={id} className="scroll-mt-4 border border-[#E1E6EF] bg-white px-5 pb-5 pt-4 shadow-[0_8px_22px_rgba(26,35,50,0.035)]">
+    <Card id={id} className={`scroll-mt-4 border border-[#E5E7EB] bg-white p-4 shadow-none ${className}`}>
       <div className="mb-0 flex items-start justify-between gap-4">
         <div>
           <h2 className="text-[16px] leading-6 text-[#1A2332]" style={{ fontWeight: 700 }}>{title}</h2>
@@ -1777,14 +1777,12 @@ function AddListSection({
 export function Settings() {
   const [searchParams] = useSearchParams();
   const location = useLocation();
-  // Land straight on Company Info — no more 4-tile home landing.
-  const [activeSection, setActiveSection] = useState<SettingsSection>("companyInfo");
+  // Land straight on General so /settings opens system preferences.
+  const [activeSection, setActiveSection] = useState<SettingsSection>("general");
   const [searchQuery, setSearchQuery] = useState("");
-  // Settings nav groups are collapsible accordions. Business Management is opened
-  // by default (it contains Company Info, the landing destination); the other
-  // groups stay collapsed until the user clicks to expand. While searching,
-  // every group is force-expanded so matches stay visible.
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set(["Business Management"]));
+  // Settings nav groups are collapsible accordions. System Preferences is opened
+  // by default because General is the landing destination.
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set(["System Preferences"]));
   const toggleGroupExpanded = (title: string) =>
     setExpandedGroups(prev => {
       const next = new Set(prev);
@@ -1955,8 +1953,8 @@ export function Settings() {
   };
 
   useEffect(() => {
-    const section = searchParams.get("section") as SettingsSection;
-    if (section) setActiveSection(normalizeSection(section));
+    const section = searchParams.get("section") as SettingsSection | null;
+    setActiveSection(section ? normalizeSection(section) : "general");
   }, [searchParams]);
 
   // Auto-expand the nav group that contains the currently active section so the
@@ -2981,7 +2979,7 @@ export function Settings() {
               </div>
 
               <div className="space-y-4 pb-6">
-                <SectionCard title="Industry" description="Helps Vision360 tailor defaults for your type of business.">
+                <SectionCard title="Industry" description="Helps Vision360 tailor defaults for your type of business." className="min-h-[200px]">
                   <div className="mt-4 grid grid-cols-4 gap-3">
                     {generalIndustryOptions.map(option => {
                       const selected = industry === option;
@@ -3002,7 +3000,7 @@ export function Settings() {
                   </div>
                 </SectionCard>
 
-                <SectionCard title="Custom Fields" description="Configure 2 custom fields per entity - clients, jobs, estimates, invoices, items, and team. Team custom fields show up as extra columns on the Users table.">
+                <SectionCard title="Custom Fields" description="Configure 2 custom fields per entity - clients, jobs, estimates, invoices, items, and team. Team custom fields show up as extra columns on the Users table." className="min-h-[367px]">
                   <div className="mt-4 flex w-fit items-center rounded-[10px] p-[3px]">
                     {customFieldEntities.map(entity => (
                       <button
@@ -3057,7 +3055,7 @@ export function Settings() {
                   const file = legalFiles[id];
                   const setFile = legalFileSetters[id];
                   return (
-                    <SectionCard key={id} title={title} description={description}>
+                    <SectionCard key={id} title={title} description={description} className={id === "policies" ? "min-h-[223px]" : "min-h-[291px]"}>
                       <div className="mt-2 flex items-center gap-2">
                         {(["file", "text"] as LegalMode[]).map(modeOption => (
                           <button
