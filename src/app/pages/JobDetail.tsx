@@ -574,8 +574,8 @@ export function JobDetail() {
         <h3 className="text-[15px] text-[#1A2332]" style={{ fontWeight: 600 }}>Estimates</h3>
         <button
           onClick={() => navigate("/estimates/create")}
-          className="text-[12px] text-[#4A6FA5] hover:underline flex items-center gap-1"
-          style={{ fontWeight: 500 }}
+          className="h-8 px-3 gap-1.5 text-[13px] bg-[#4A6FA5] hover:bg-[#3d5a85] text-white rounded-md inline-flex items-center justify-center transition-colors"
+          style={{ fontWeight: 600 }}
         >
           <PlusIcon className="h-4 w-4" />
           Create estimate
@@ -623,8 +623,8 @@ export function JobDetail() {
           <div className="text-[13px] text-[#9CA3AF]">No estimates yet</div>
           <button
             onClick={() => navigate("/estimates/create")}
-            className="mt-3 text-[12px] text-[#4A6FA5] hover:underline"
-            style={{ fontWeight: 500 }}
+            className="mt-3 h-8 px-3 gap-1.5 text-[13px] bg-[#4A6FA5] hover:bg-[#3d5a85] text-white rounded-md inline-flex items-center justify-center transition-colors"
+            style={{ fontWeight: 600 }}
           >
             Create the first estimate
           </button>
@@ -639,8 +639,8 @@ export function JobDetail() {
         <h3 className="text-[15px] text-[#1A2332]" style={{ fontWeight: 600 }}>Invoices</h3>
         <button
           onClick={() => navigate("/invoices/create")}
-          className="text-[12px] text-[#4A6FA5] hover:underline flex items-center gap-1"
-          style={{ fontWeight: 500 }}
+          className="h-8 px-3 gap-1.5 text-[13px] bg-[#4A6FA5] hover:bg-[#3d5a85] text-white rounded-md inline-flex items-center justify-center transition-colors"
+          style={{ fontWeight: 600 }}
         >
           <PlusIcon className="h-4 w-4" />
           Create invoice
@@ -688,8 +688,8 @@ export function JobDetail() {
           <div className="text-[13px] text-[#9CA3AF]">No invoices yet</div>
           <button
             onClick={() => navigate("/invoices/create")}
-            className="mt-3 text-[12px] text-[#4A6FA5] hover:underline"
-            style={{ fontWeight: 500 }}
+            className="mt-3 h-8 px-3 gap-1.5 text-[13px] bg-[#4A6FA5] hover:bg-[#3d5a85] text-white rounded-md inline-flex items-center justify-center transition-colors"
+            style={{ fontWeight: 600 }}
           >
             Create the first invoice
           </button>
@@ -702,7 +702,7 @@ export function JobDetail() {
     <>
       <div className="flex items-center justify-between mb-5">
         <h3 className="text-[15px] text-[#1A2332]" style={{ fontWeight: 600 }}>Products & Services</h3>
-        <button className="text-[12px] text-[#4A6FA5] hover:underline flex items-center gap-1" style={{ fontWeight: 500 }}>
+        <button className="h-8 px-3 gap-1.5 text-[13px] bg-[#4A6FA5] hover:bg-[#3d5a85] text-white rounded-md inline-flex items-center justify-center transition-colors" style={{ fontWeight: 600 }}>
           <PlusIcon className="h-4 w-4" />
           Add line item
         </button>
@@ -749,7 +749,7 @@ export function JobDetail() {
     <>
       <div className="flex items-center justify-between mb-5">
         <h3 className="text-[15px] text-[#1A2332]" style={{ fontWeight: 600 }}>Expenses</h3>
-        <button className="text-[12px] text-[#4A6FA5] hover:underline flex items-center gap-1" style={{ fontWeight: 500 }}>
+        <button className="h-8 px-3 gap-1.5 text-[13px] bg-[#4A6FA5] hover:bg-[#3d5a85] text-white rounded-md inline-flex items-center justify-center transition-colors" style={{ fontWeight: 600 }}>
           <PlusIcon className="h-4 w-4" />
           Add expense
         </button>
@@ -1093,7 +1093,6 @@ export function JobDetail() {
             <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
           </button>
           <KebabMenu triggerClassName="h-9 w-9 border border-[#E5E7EB] rounded-md hover:bg-[#EDF0F5] flex items-center justify-center bg-white">
-            <KebabItem icon="tab_unselected" onClick={() => setShowTabSettings(true)}>Edit Tabs</KebabItem>
             <KebabItem icon="edit" onClick={() => navigate(`/jobs/${id}/edit`)}>Edit Job</KebabItem>
             <KebabItem icon="content_copy">Duplicate Job</KebabItem>
             <KebabItem icon="block" destructive>Inactivate Job</KebabItem>

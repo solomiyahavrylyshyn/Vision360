@@ -34,7 +34,7 @@ interface EstimateData {
   clientAddress: string; serviceAddress: string;
   dateCreated: string; expirationDate: string; sentDate: string;
   status: EstimateStatus; teamMember: string; job: string; jobId: number | null;
-  items: LineItem[]; notes: string; taxRate: number;
+  items: LineItem[]; notes: string; internalNotes: string; taxRate: number;
   depositRequired: boolean; depositType: "amount" | "percentage"; depositValue: number;
   photos?: MockPhoto[];
   activity: { id: number; date: string; action: string; detail: string; icon: string }[];
@@ -63,7 +63,7 @@ const mockEstimates: Record<string, EstimateData> = {
     serviceAddress: "8377 Standish Bend Dr Unit 1\nTampa, FL 33615",
     dateCreated: "Mar 30, 2026", expirationDate: "Apr 30, 2026", sentDate: "Not Sent",
     status: "Draft", teamMember: "Marek Stroz", job: "Job-1: AC Estimate", jobId: 1,
-    items: [], notes: "",
+    items: [], notes: "", internalNotes: "",
     taxRate: 0, depositRequired: false, depositType: "amount", depositValue: 0,
     activity: [
       { id: 1, date: "Mar 30, 2026 09:00", action: "Estimate created", detail: "Created by Marek Stroz", icon: "add_circle" },
@@ -81,7 +81,7 @@ const mockEstimates: Record<string, EstimateData> = {
       { id: 2, name: "General Labor - Technician", description: "Technician labor (hourly)", quantity: 2, price: 95, cost: 45, amount: 190, taxable: false },
       { id: 3, name: "Thermostat - Smart WiFi", description: "Smart WiFi Thermostat", quantity: 1, price: 110, cost: 65, amount: 110, taxable: true },
     ],
-    notes: "Client prefers morning installation window.",
+    notes: "Client prefers morning installation window.", internalNotes: "",
     taxRate: 7.5, depositRequired: true, depositType: "amount", depositValue: 850,
     activity: [
       { id: 1, date: "Mar 02, 2026 08:30", action: "Estimate created", detail: "Created by Marek Stroz", icon: "add_circle" },
@@ -103,7 +103,7 @@ const mockEstimates: Record<string, EstimateData> = {
       { id: 4, name: "Thermostat - Smart WiFi", description: "Ecobee smart thermostat", quantity: 1, price: 450, cost: 180, amount: 450, taxable: true },
       { id: 5, name: "Electrical Panel Upgrade 200A", description: "Panel upgrade", quantity: 1, price: 2800, cost: 1100, amount: 2800, taxable: true },
     ],
-    notes: "Coordinate with electrical team for panel upgrade timing.",
+    notes: "Coordinate with electrical team for panel upgrade timing.", internalNotes: "",
     taxRate: 7.5, depositRequired: true, depositType: "percentage", depositValue: 50,
     photos: [
       { id: 1, tag: "Before", group: "A", color: "#CBD5E1" },
@@ -133,7 +133,7 @@ const mockEstimates: Record<string, EstimateData> = {
       { id: 2, name: "Pipe Repair Labor", description: "Technician labor", quantity: 3, price: 95, cost: 45, amount: 285, taxable: false },
       { id: 3, name: "PVC Repair Materials", description: "Pipe, fittings, primer, cement", quantity: 1, price: 390, cost: 140, amount: 390, taxable: true },
     ],
-    notes: "Do not walk on the right side — citrus tree planted. Dog on the right side.",
+    notes: "Do not walk on the right side — citrus tree planted. Dog on the right side.", internalNotes: "",
     taxRate: 7.5, depositRequired: false, depositType: "amount", depositValue: 0,
     activity: [
       { id: 1, date: "Feb 25, 2026 09:18", action: "Estimate created", detail: "Created from Job-5 by Marek Stroz", icon: "add_circle" },
@@ -146,11 +146,10 @@ const mockEstimates: Record<string, EstimateData> = {
   },
 };
 
-type TabKey = "details" | "deposit" | "notes" | "activity";
+type TabKey = "details" | "deposit" | "activity";
 const TABS: { key: TabKey; label: string }[] = [
   { key: "details", label: "Details" },
   { key: "deposit", label: "Deposit" },
-  { key: "notes", label: "Notes" },
   { key: "activity", label: "Activity" },
 ];
 
@@ -172,7 +171,6 @@ export function EstimateDetail() {
   const [estimate, setEstimate] = useState<EstimateData>({ ...initial });
   const [activeTab, setActiveTab] = useState<TabKey>("details");
   const [statusOpen, setStatusOpen] = useState(false);
-  const [editMenuOpen, setEditMenuOpen] = useState(false);
   const [addItemOpen, setAddItemOpen] = useState(false);
   const [customerPreviewOpen, setCustomerPreviewOpen] = useState(false);
   interface DocFile { id: string; name: string; size: string; date: string; icon: string; iconColor: string; isImage?: boolean; previewUrl?: string; previewGradient?: string; uploadedBy?: string; category?: string; }
@@ -205,12 +203,10 @@ export function EstimateDetail() {
   };
 
   const statusRef = useRef<HTMLDivElement>(null);
-  const editMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (statusRef.current && !statusRef.current.contains(e.target as Node)) setStatusOpen(false);
-      if (editMenuRef.current && !editMenuRef.current.contains(e.target as Node)) setEditMenuOpen(false);
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
@@ -502,10 +498,10 @@ export function EstimateDetail() {
           onDelete={(id) => setDocuments(prev => prev.filter(d => d.id !== id))}
         />
 
-        {/* Estimate Notes */}
+        {/* Notes to Client */}
         <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
           <div className="flex items-center justify-between px-5 py-4 border-b border-[#E5E7EB]">
-            <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Estimate Notes</h3>
+            <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Notes to Client</h3>
             <button className="text-[13px] text-[#4A6FA5] hover:underline" style={{ fontWeight: 500 }}>+ Add Note</button>
           </div>
           {estimate.notes ? (
@@ -519,6 +515,54 @@ export function EstimateDetail() {
               <div className="text-[12px] text-[#9CA3AF]">Notes about this estimate will appear here.</div>
             </div>
           )}
+        </div>
+
+        {/* Signature */}
+        <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#E5E7EB]">
+            <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Customer Signature</h3>
+            <span className="text-[12px] text-[#9CA3AF]">Display only</span>
+          </div>
+          {estimate.status === "Approved" ? (
+            <div className="px-5 py-4 flex flex-col items-center gap-2">
+              <div className="w-full h-[72px] rounded-lg border border-[#E5E7EB] bg-[#FAFAFA] flex items-center justify-center">
+                <span className="text-[22px] text-[#4A6FA5] italic" style={{ fontFamily: "cursive", opacity: 0.7 }}>
+                  {estimate.clientName.split(" ")[0]}
+                </span>
+              </div>
+              <div className="text-[11px] text-[#9CA3AF]">Signed by {estimate.clientName}</div>
+            </div>
+          ) : (
+            <div className="px-5 py-5 flex flex-col items-center gap-2">
+              <div className="w-full h-[72px] rounded-lg border border-dashed border-[#D1D5DB] bg-[#FAFAFA] flex items-center justify-center gap-2">
+                <span className="material-icons text-[#D1D5DB]" style={{ fontSize: "20px" }}>draw</span>
+                <span className="text-[13px] text-[#9CA3AF]">Awaiting signature</span>
+              </div>
+              <div className="text-[11px] text-[#9CA3AF]">Customer signs from their estimate link</div>
+            </div>
+          )}
+        </div>
+
+        {/* Internal Notes */}
+        <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#E5E7EB]">
+            <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Internal Notes</h3>
+            <span className="text-[12px] text-[#9CA3AF]">Not visible to client</span>
+          </div>
+          <div className="p-5">
+            <textarea
+              value={estimate.internalNotes}
+              onChange={(e) => setEstimate(prev => ({ ...prev, internalNotes: e.target.value }))}
+              className="w-full text-[13px] text-[#374151] leading-relaxed resize-none border border-[#E5E7EB] rounded-md focus:outline-none focus:border-[#4A6FA5] p-3 min-h-[100px]"
+              placeholder="Private notes for your team only — e.g. 'Do not walk on right side, dog in yard'..."
+            />
+            <p className="text-[12px] text-[#6B7280] mt-2">
+              Manage Terms, Disclaimers &amp; Signature defaults in{" "}
+              <span className="text-[#4A6FA5] cursor-pointer hover:underline" onClick={() => navigate("/settings?section=estimates")}>
+                Settings → Estimate Preferences
+              </span>
+            </p>
+          </div>
         </div>
 
       </div>
@@ -675,40 +719,21 @@ export function EstimateDetail() {
     </div>
   );
 
-  // ── Notes tab ─────────────────────────────────────────────────────────────────
-  const renderNotesTab = () => (
-    <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
-      <div className="flex items-center justify-between px-5 py-4 border-b border-[#E5E7EB]">
-        <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Internal Notes</h3>
-        <span className="text-[12px] text-[#9CA3AF]">Not visible to client</span>
-      </div>
-      <div className="p-5">
-        <textarea
-          value={estimate.notes}
-          onChange={(e) => setEstimate(prev => ({ ...prev, notes: e.target.value }))}
-          className="w-full text-[13px] text-[#374151] leading-relaxed resize-none border border-[#E5E7EB] rounded-md focus:outline-none focus:border-[#4A6FA5] p-3 min-h-[160px]"
-          placeholder="Notes for your team — e.g. 'Do not walk on right side, dog in yard'..."
-        />
-      </div>
-      <div className="px-5 pb-4 border-t border-[#F3F4F6] pt-3">
-        <p className="text-[12px] text-[#6B7280]">
-          Manage Terms, Disclaimers &amp; Signature defaults in{" "}
-          <span
-            className="text-[#4A6FA5] cursor-pointer hover:underline"
-            onClick={() => navigate("/settings?section=estimates")}
-          >
-            Settings → Estimate Preferences
-          </span>
-        </p>
-      </div>
-    </div>
-  );
-
   // ── Activity tab ──────────────────────────────────────────────────────────────
   const renderActivityTab = () => (
     <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
-      <div className="px-5 py-4 border-b border-[#E5E7EB]">
+      <div className="px-5 py-4 border-b border-[#E5E7EB] flex items-center justify-between">
         <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Activity</h3>
+        {estimate.status === "Approved" && (
+          <button
+            onClick={() => { navigate(`/invoices/new?fromEstimate=${estimate.id}`); }}
+            className="h-8 px-3 bg-[#4A6FA5] hover:bg-[#3d5a85] text-white rounded-lg text-[13px] inline-flex items-center gap-1.5 transition-colors"
+            style={{ fontWeight: 600 }}
+          >
+            <span className="material-icons" style={{ fontSize: "15px" }}>receipt</span>
+            Create Invoice
+          </button>
+        )}
       </div>
       <div className="divide-y divide-[#F3F4F6]">
         {estimate.activity.map(entry => (
@@ -744,118 +769,111 @@ export function EstimateDetail() {
       {/* White card */}
       <div className="mx-6 mb-6 bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
 
-        {/* ── Header info bar ── */}
-        <div className="grid grid-cols-[minmax(0,220px)_1fr_minmax(0,210px)_minmax(0,170px)] border-b border-[#E5E7EB]">
-
-          {/* 1. Client */}
-          <div className="px-5 py-4 border-r border-[#E5E7EB] flex items-start gap-3">
-            <div className="w-9 h-9 rounded-full bg-[#EEF3FA] flex items-center justify-center shrink-0 mt-0.5">
-              <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "20px" }}>person</span>
-            </div>
-            <div className="min-w-0">
-              <button onClick={() => navigate("/clients/1")}
-                className="text-[13px] text-[#1A2332] hover:underline text-left leading-tight flex items-center gap-1 flex-wrap" style={{ fontWeight: 600 }}>
-                {estimate.clientName}
-                <span className="text-[11px] text-[#9CA3AF]" style={{ fontWeight: 400 }}>(ID-{String(estimate.id).padStart(5, "0")})</span>
-                <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "14px" }}>phone</span>
-              </button>
-              <div className="flex items-start gap-1 text-[12px] text-[#546478] mt-1.5">
-                <span className="material-icons text-[#9CA3AF] mt-0.5 shrink-0" style={{ fontSize: "13px" }}>location_on</span>
-                <span className="leading-snug">{estimate.clientAddress.replace("\n", ", ")}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* 2. Estimate name + service address + job */}
-          <div className="px-5 py-4 border-r border-[#E5E7EB]">
-            <div className="text-[14px] text-[#1A2332] mb-2 leading-snug" style={{ fontWeight: 600 }}>
-              {estimate.estimateName || `Estimate #${estimate.estimateNumber}`}
-            </div>
-            <div className="flex items-start gap-1 text-[12px] text-[#546478]">
-              <span className="material-icons text-[#9CA3AF] mt-0.5 shrink-0" style={{ fontSize: "13px" }}>location_on</span>
-              <span className="leading-snug">{estimate.serviceAddress.replace("\n", ", ")}</span>
-            </div>
-            {estimate.job && (
-              <div className="mt-1.5 text-[12px] text-[#546478]">
-                Job #:{" "}
-                <button onClick={() => estimate.jobId && navigate(`/jobs/${estimate.jobId}`)}
-                  className="text-[#4A6FA5] hover:underline" style={{ fontWeight: 500 }}>
-                  {estimate.job}
+        {/* ── Header ── */}
+        <div className="px-6 pt-5 pb-4 border-b border-[#E5E7EB]">
+          <div className="flex items-start justify-between gap-6">
+            {/* Left: name + contact info */}
+            <div className="flex flex-col gap-1 min-w-0">
+              <h1 className="text-[20px] text-[#1A2332] leading-[27px]" style={{ fontWeight: 700 }}>
+                {estimate.estimateName || `Estimate #${estimate.estimateNumber}`}
+              </h1>
+              {/* Client + address + job inline row */}
+              <div className="flex items-center gap-0.5 flex-wrap">
+                <button onClick={() => navigate("/clients/1")} className="flex items-center gap-1.5 text-[14px] text-[#4A6FA5] hover:underline transition-colors" style={{ fontWeight: 500 }}>
+                  <span className="material-icons" style={{ fontSize: "16px" }}>person</span>
+                  {estimate.clientName}
                 </button>
-              </div>
-            )}
-          </div>
-
-          {/* 3. Metadata grid */}
-          <div className="px-5 py-4 border-r border-[#E5E7EB] grid grid-cols-2 gap-x-4 gap-y-3 content-center">
-            {[
-              { label: "Date Created", value: estimate.dateCreated },
-              { label: "Expiration", value: estimate.expirationDate || "—" },
-              { label: "Created By", value: estimate.teamMember || "—", icon: "person" },
-              { label: "Sent On", value: estimate.sentDate, icon: "mail" },
-            ].map(({ label, value, icon }) => (
-              <div key={label}>
-                <div className="text-[10px] text-[#9CA3AF] uppercase tracking-wide mb-0.5" style={{ fontWeight: 600 }}>{label}</div>
-                <div className="text-[12px] text-[#374151] flex items-center gap-1" style={{ fontWeight: 500 }}>
-                  {icon && <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "12px" }}>{icon}</span>}
-                  {value}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* 4. Total + status + kebab */}
-          <div className="px-5 py-4 flex flex-col justify-between">
-            <div>
-              <div className="text-[10px] text-[#9CA3AF] uppercase tracking-wide mb-0.5" style={{ fontWeight: 600 }}>Total (USD)</div>
-              <div className="text-[24px] text-[#1A2332] leading-tight" style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
-                ${fmt(total)}
-              </div>
-            </div>
-            <div className="flex items-center gap-2 mt-3">
-              {/* Status pill */}
-              <div ref={statusRef} className="relative">
-                <button onClick={() => setStatusOpen(!statusOpen)}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[12px] hover:opacity-80 transition-opacity"
-                  style={{ fontWeight: 600, color: statusColors[estimate.status], backgroundColor: statusBg[estimate.status] }}>
-                  {estimate.status}
-                  <span className="material-icons" style={{ fontSize: "13px" }}>expand_more</span>
-                </button>
-                {statusOpen && (
-                  <div className="absolute left-0 top-[calc(100%+4px)] w-[200px] bg-white border border-[#E5E7EB] rounded-xl shadow-lg z-40 py-1.5">
-                    {primaryStatuses.map(s => (
-                      <button key={s} onClick={() => { setEstimate(prev => ({ ...prev, status: s })); setStatusOpen(false); }}
-                        className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-[13px] transition-colors ${s === estimate.status ? "bg-[#EEF3FA]" : "hover:bg-[#F5F7FA]"}`}
-                        style={{ fontWeight: s === estimate.status ? 600 : 400, color: s === estimate.status ? "#4A6FA5" : "#1A2332" }}>
-                        <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: statusColors[s] }} />
-                        {s}
-                        {s === estimate.status && <span className="material-icons ml-auto" style={{ fontSize: "16px", color: "#4A6FA5" }}>check</span>}
-                      </button>
-                    ))}
-                    <div className="mx-3 my-1 border-t border-[#F3F4F6]" />
-                    <div className="px-3.5 pb-1">
-                      <span className="text-[10px] uppercase tracking-wider text-[#9CA3AF]" style={{ fontWeight: 600 }}>Other</span>
-                    </div>
-                    {otherStatuses.map(s => (
-                      <button key={s} onClick={() => { setEstimate(prev => ({ ...prev, status: s })); setStatusOpen(false); }}
-                        className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-[13px] transition-colors ${s === estimate.status ? "bg-[#EEF3FA]" : "hover:bg-[#F5F7FA]"}`}
-                        style={{ fontWeight: s === estimate.status ? 600 : 400, color: s === estimate.status ? "#4A6FA5" : "#1A2332" }}>
-                        <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: statusColors[s] }} />
-                        {s}
-                      </button>
-                    ))}
-                  </div>
+                <div className="w-px h-5 bg-[#E5E7EB] mx-1" />
+                <span className="flex items-center gap-1 text-[14px] text-[#374151]">
+                  <span className="material-icons text-[#6B7280]" style={{ fontSize: "16px" }}>location_on</span>
+                  {estimate.serviceAddress.replace("\n", ", ")}
+                </span>
+                {estimate.job && (
+                  <>
+                    <div className="w-px h-5 bg-[#E5E7EB] mx-1" />
+                    <button onClick={() => estimate.jobId && navigate(`/jobs/${estimate.jobId}`)} className="flex items-center gap-1.5 text-[14px] text-[#4A6FA5] hover:underline transition-colors" style={{ fontWeight: 500 }}>
+                      <span className="material-icons" style={{ fontSize: "16px" }}>work</span>
+                      {estimate.job}
+                    </button>
+                  </>
                 )}
               </div>
-              <KebabMenu triggerClassName="w-8 h-8 border border-[#E5E7EB] rounded-md bg-white flex items-center justify-center hover:bg-[#F5F7FA]">
-                <KebabItem icon="receipt">Make Invoice</KebabItem>
-                <KebabItem icon="link">Get Link</KebabItem>
-                <KebabItem icon="print" onClick={() => setCustomerPreviewOpen(true)}>Print</KebabItem>
-                <KebabSeparator />
-                <KebabItem icon="content_copy">Duplicate</KebabItem>
-                <KebabSeparator />
-                <KebabItem icon="delete" destructive>Delete</KebabItem>
-              </KebabMenu>
+              {/* Metadata strip */}
+              <div className="flex items-center gap-0.5 flex-wrap pt-2 mt-1 border-t border-[#F3F4F6]">
+                <div className="flex items-center gap-1.5 pr-3 text-[13px] text-[#6B7280]">
+                  <span className="material-icons" style={{ fontSize: "14px" }}>calendar_today</span>
+                  Created {estimate.dateCreated}
+                </div>
+                <div className="w-px h-4 bg-[#E5E7EB]" />
+                <div className="flex items-center gap-1.5 px-3 text-[13px] text-[#6B7280]">
+                  <span className="material-icons" style={{ fontSize: "14px" }}>schedule</span>
+                  Expires {estimate.expirationDate || "—"}
+                </div>
+                <div className="w-px h-4 bg-[#E5E7EB]" />
+                <div className="flex items-center gap-1.5 px-3 text-[13px] text-[#6B7280]">
+                  <span className="material-icons" style={{ fontSize: "14px" }}>person</span>
+                  {estimate.teamMember}
+                </div>
+                <div className="w-px h-4 bg-[#E5E7EB]" />
+                <div className="flex items-center gap-1.5 px-3 text-[13px] text-[#6B7280]">
+                  <span className="material-icons" style={{ fontSize: "14px" }}>mail</span>
+                  Sent {estimate.sentDate}
+                </div>
+              </div>
+            </div>
+
+            {/* Right: Total + Status + kebab */}
+            <div className="flex flex-col items-end gap-3 shrink-0">
+              <div className="text-right">
+                <div className="text-[11px] text-[#9CA3AF] uppercase tracking-wide mb-0.5" style={{ fontWeight: 600 }}>Total (USD)</div>
+                <div className="text-[28px] text-[#1A2332] leading-tight" style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>${fmt(total)}</div>
+              </div>
+              <div className="flex items-center gap-2">
+                <div ref={statusRef} className="relative">
+                  <button onClick={() => setStatusOpen(!statusOpen)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] hover:opacity-80 transition-opacity"
+                    style={{ fontWeight: 600, color: statusColors[estimate.status], backgroundColor: statusBg[estimate.status] }}>
+                    <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: statusColors[estimate.status] }} />
+                    {estimate.status}
+                    <span className="material-icons" style={{ fontSize: "15px" }}>expand_more</span>
+                  </button>
+                  {statusOpen && (
+                    <div className="absolute right-0 top-[calc(100%+4px)] w-[200px] bg-white border border-[#E5E7EB] rounded-xl shadow-lg z-40 py-1.5">
+                      {primaryStatuses.map(s => (
+                        <button key={s} onClick={() => { setEstimate(prev => ({ ...prev, status: s })); setStatusOpen(false); }}
+                          className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-[13px] transition-colors ${s === estimate.status ? "bg-[#EEF3FA]" : "hover:bg-[#F5F7FA]"}`}
+                          style={{ fontWeight: s === estimate.status ? 600 : 400, color: s === estimate.status ? "#4A6FA5" : "#1A2332" }}>
+                          <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: statusColors[s] }} />
+                          {s}
+                          {s === estimate.status && <span className="material-icons ml-auto" style={{ fontSize: "16px", color: "#4A6FA5" }}>check</span>}
+                        </button>
+                      ))}
+                      <div className="mx-3 my-1 border-t border-[#F3F4F6]" />
+                      <div className="px-3.5 pb-1">
+                        <span className="text-[10px] uppercase tracking-wider text-[#9CA3AF]" style={{ fontWeight: 600 }}>Other</span>
+                      </div>
+                      {otherStatuses.map(s => (
+                        <button key={s} onClick={() => { setEstimate(prev => ({ ...prev, status: s })); setStatusOpen(false); }}
+                          className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-[13px] transition-colors ${s === estimate.status ? "bg-[#EEF3FA]" : "hover:bg-[#F5F7FA]"}`}
+                          style={{ fontWeight: s === estimate.status ? 600 : 400, color: s === estimate.status ? "#4A6FA5" : "#1A2332" }}>
+                          <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: statusColors[s] }} />
+                          {s}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <KebabMenu triggerClassName="w-8 h-8 border border-[#E5E7EB] rounded-md bg-white flex items-center justify-center hover:bg-[#F5F7FA]">
+                  <KebabItem icon="send">Send to Client</KebabItem>
+                  <KebabItem icon="receipt">Make Invoice</KebabItem>
+                  <KebabItem icon="link">Get Link</KebabItem>
+                  <KebabItem icon="print" onClick={() => setCustomerPreviewOpen(true)}>Print</KebabItem>
+                  <KebabSeparator />
+                  <KebabItem icon="content_copy">Duplicate</KebabItem>
+                  <KebabSeparator />
+                  <KebabItem icon="delete" destructive>Delete</KebabItem>
+                </KebabMenu>
+              </div>
             </div>
           </div>
         </div>
@@ -869,45 +887,29 @@ export function EstimateDetail() {
             trailing={<TabSettingsButton />}
           />
           <div className="flex items-center gap-2 py-2 shrink-0">
-            <button onClick={() => setCustomerPreviewOpen(true)}
-              className="h-9 px-3.5 rounded-md border border-[#E5E7EB] bg-white text-[13px] text-[#1A2332] hover:bg-[#F5F7FA] inline-flex items-center gap-1.5" style={{ fontWeight: 500 }}>
+            <button
+              onClick={() => setCustomerPreviewOpen(true)}
+              className="h-9 px-3.5 rounded-md border border-[#E5E7EB] bg-white text-[13px] text-[#546478] hover:bg-[#F5F7FA] inline-flex items-center gap-1.5 transition-colors"
+              style={{ fontWeight: 500 }}
+            >
               <span className="material-icons" style={{ fontSize: "16px" }}>visibility</span>
               Preview
             </button>
-            <button className="h-9 px-3.5 rounded-md border border-[#4A6FA5] text-[#4A6FA5] bg-white text-[13px] hover:bg-[#EEF3FA] inline-flex items-center gap-1.5" style={{ fontWeight: 600 }}>
+            <button
+              className="h-9 px-3.5 rounded-md bg-[#4A6FA5] hover:bg-[#3d5a85] text-white text-[13px] inline-flex items-center gap-1.5 transition-colors"
+              style={{ fontWeight: 600 }}
+            >
               <span className="material-icons" style={{ fontSize: "16px" }}>send</span>
               Send
             </button>
-            {/* Edit Estimate split button */}
-            <div ref={editMenuRef} className="relative flex">
-              <button onClick={() => navigate(`/estimates/${id}/edit`)}
-                className="h-9 pl-3.5 pr-2 rounded-l-md bg-[#4A6FA5] text-white text-[13px] hover:bg-[#3d5a85] inline-flex items-center gap-1.5" style={{ fontWeight: 600 }}>
-                <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
-                Edit Estimate
-              </button>
-              <button onClick={() => setEditMenuOpen(!editMenuOpen)}
-                className="h-9 px-1.5 rounded-r-md bg-[#4A6FA5] text-white hover:bg-[#3d5a85] border-l border-[#3d5a85] inline-flex items-center">
-                <span className="material-icons" style={{ fontSize: "18px" }}>expand_more</span>
-              </button>
-              {editMenuOpen && (
-                <div className="absolute right-0 top-[calc(100%+4px)] w-[170px] bg-white border border-[#E5E7EB] rounded-xl shadow-lg z-40 py-1.5">
-                  <button onClick={() => { navigate(`/estimates/${id}/edit`); setEditMenuOpen(false); }}
-                    className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[13px] text-[#1A2332] hover:bg-[#F5F7FA]">
-                    <span className="material-icons" style={{ fontSize: "16px" }}>edit</span> Edit
-                  </button>
-                  <button className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[13px] text-[#1A2332] hover:bg-[#F5F7FA]">
-                    <span className="material-icons" style={{ fontSize: "16px" }}>content_copy</span> Duplicate
-                  </button>
-                  <button className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[13px] text-[#1A2332] hover:bg-[#F5F7FA]">
-                    <span className="material-icons" style={{ fontSize: "16px" }}>print</span> Print
-                  </button>
-                  <div className="mx-3 my-1 border-t border-[#F3F4F6]" />
-                  <button className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[13px] text-[#EF4444] hover:bg-[#FEF2F2]">
-                    <span className="material-icons" style={{ fontSize: "16px" }}>delete</span> Delete
-                  </button>
-                </div>
-              )}
-            </div>
+            <button
+              onClick={() => navigate(`/estimates/${id}/edit`)}
+              className="h-9 px-3.5 rounded-md border border-[#E5E7EB] bg-white text-[13px] text-[#1A2332] hover:bg-[#F5F7FA] inline-flex items-center gap-1.5 transition-colors"
+              style={{ fontWeight: 500 }}
+            >
+              <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
+              Edit Estimate
+            </button>
           </div>
         </div>
 
@@ -915,7 +917,6 @@ export function EstimateDetail() {
         <div className="p-4">
           {activeTab === "details" && renderDetailsTab()}
           {activeTab === "deposit" && renderDepositTab()}
-          {activeTab === "notes" && renderNotesTab()}
           {activeTab === "activity" && renderActivityTab()}
         </div>
       </div>

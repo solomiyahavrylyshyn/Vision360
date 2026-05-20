@@ -1677,6 +1677,12 @@ export function ClientDetail() {
                 </div>
               ))}
             </div>
+            <p className="text-[12px] text-[#6B7280] mt-4">
+              Edit note templates in{" "}
+              <span className="text-[#4A6FA5] cursor-pointer hover:underline" onClick={() => navigate("/settings?section=clients")}>
+                Settings → Client Preferences
+              </span>
+            </p>
           </>
         );
 
