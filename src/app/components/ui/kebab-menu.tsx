@@ -7,7 +7,7 @@ import {
   DropdownMenuSeparator,
 } from "./dropdown-menu";
 import { ColumnSettingsIcon } from "./column-settings-icon";
-import { FileUpIcon, FileDownIcon } from "./file-icons";
+import { FileUpIcon, FileDownIcon, CopyIcon } from "./file-icons";
 import { cn } from "./utils";
 
 type KebabMenuProps = {
@@ -92,6 +92,8 @@ export function KebabItem({
     <FileUpIcon className="h-5 w-5 text-[#6B7280]" />
   ) : icon === "file_download" ? (
     <FileDownIcon className="h-5 w-5 text-[#6B7280]" />
+  ) : icon === "content_copy" ? (
+    <CopyIcon className="h-5 w-5 text-[#6B7280]" />
   ) : icon ? (
     <span
       className={cn(

@@ -24,6 +24,32 @@ export function FileUpIcon({ className }: { className?: string }) {
   );
 }
 
+/**
+ * Two overlapping document sheets — used for Copy/Duplicate (content_copy).
+ * Derived from Figma "copy" vectors:
+ *   back sheet:  (1.67, 1.67) → (13.33, 13.33)  [left=8.33%, top=8.33%, right=33.33%, bottom=33.33%]
+ *   front sheet: (6.67, 6.67) → (18.33, 18.33)  [left=33.33%, top=33.33%, right=8.33%, bottom=8.33%]
+ */
+export function CopyIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 20 20"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+    >
+      {/* back sheet (top-left) — white fill so front sheet clips it cleanly */}
+      <rect x="1.667" y="1.667" width="11.667" height="11.667" rx="1.5"
+        fill="white" stroke="currentColor" strokeWidth="1.2" />
+      {/* front sheet (bottom-right) — white fill covers back sheet's interior */}
+      <rect x="6.667" y="6.667" width="11.667" height="11.667" rx="1.5"
+        fill="white" stroke="currentColor" strokeWidth="1.2" />
+    </svg>
+  );
+}
+
 /** File with downward arrow — used for Export (file_download) */
 export function FileDownIcon({ className }: { className?: string }) {
   return (
