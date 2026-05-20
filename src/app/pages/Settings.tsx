@@ -810,16 +810,16 @@ function BillingAndPlanSection() {
           </div>
 
           {/* Payment history card */}
-          <div className="flex flex-col gap-4 rounded-xl border border-[#E5E7EB] bg-white p-4 flex-1">
+          <div className="flex h-[317px] min-h-[317px] max-h-[317px] flex-col gap-4 overflow-hidden rounded-xl border border-[#E5E7EB] bg-white p-4 flex-1">
             <div className="flex flex-col gap-1">
               <span className="text-[16px] leading-6 text-[#1A2332]" style={{ fontWeight: 600 }}>Payment history</span>
               <span className="text-[14px] leading-5 text-[#6B7280]">Last invoices for your subscription.</span>
             </div>
-            <div className="relative">
-              <div className="flex flex-col gap-2 rounded-lg border border-[#E5E7EB] p-3">
+            <div className="relative min-h-0 flex-1">
+              <div className="flex h-full flex-col gap-2 overflow-hidden rounded-lg border border-[#E5E7EB] p-3 isolate">
                 {history.map(row => (
-                  <div key={row.id} className="flex items-center gap-4 rounded-lg border border-[#E5E7EB] p-4">
-                    <div className="flex flex-col gap-1 flex-1">
+                  <div key={row.id} className="flex h-[76px] shrink-0 items-center gap-4 rounded-lg border border-[#E5E7EB] p-4">
+                    <div className="flex min-w-0 flex-1 flex-col gap-1">
                       <div className="flex items-center gap-2">
                         <span className="text-[14px] leading-5 text-[#1A2332]" style={{ fontWeight: 500 }}>{row.label}</span>
                         <span className="inline-flex items-center rounded-lg px-2 py-0.5 text-[12px] leading-4 text-[#16A34A]" style={{ fontWeight: 500, background: "rgba(22,163,74,0.15)" }}>{row.status}</span>
@@ -833,7 +833,11 @@ function BillingAndPlanSection() {
                       className="w-9 h-9 flex items-center justify-center rounded-lg text-[#1A2332] hover:bg-[#F5F7FA] transition-colors shrink-0"
                       title="Download receipt"
                     >
-                      <span className="material-icons" style={{ fontSize: "16px" }}>file_download</span>
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                        <path d="M8 2V8" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+                        <path d="M4.7 6.7L8 10L11.3 6.7" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+                        <path d="M2 11.5V14H14V11.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
                     </button>
                   </div>
                 ))}
