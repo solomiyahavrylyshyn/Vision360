@@ -61,7 +61,13 @@ export function PaymentDetail() {
           />
           <Field label="Client" value={
             <>
-              <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>{payment.clientName}</div>
+              <button
+                onClick={() => navigate(`/clients/${payment.clientId || 1}`)}
+                className="text-[14px] text-[#4A6FA5] hover:underline text-left"
+                style={{ fontWeight: 500 }}
+              >
+                {payment.clientName}
+              </button>
               <div className="text-[12px] text-[#8899AA]">{payment.clientEmail}</div>
             </>
           } />

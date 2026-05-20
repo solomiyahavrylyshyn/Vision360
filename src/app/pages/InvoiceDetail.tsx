@@ -395,11 +395,74 @@ export function InvoiceDetail() {
     <div className="flex gap-4 items-start">
       {/* ── Main content ── */}
       <div className="flex-1 min-w-0 flex flex-col gap-4">
-        {/* Row 1: Bill To + Service Address */}
+
+        {/* Row 1: Payments (surfaced to top) */}
+        <Card
+          title={`Payments (${payments.length})`}
+          action={
+            !isPaid && status !== "Void" ? (
+              <button
+                onClick={() => setPaymentModalOpen(true)}
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-[12px] bg-[#4A6FA5] text-white hover:bg-[#3d5a85]"
+                style={{ fontWeight: 500 }}
+              >
+                <PlusIcon className="h-3.5 w-3.5" />
+                Record
+              </button>
+            ) : null
+          }
+        >
+          {/* Payment terms strip — moved here from Sales & Payment */}
+          <div className="grid grid-cols-4 gap-x-6 gap-y-3 pb-4 mb-4 border-b border-[#F3F4F6]">
+            <Field label="Payment Terms" value={data.paymentTerms} />
+            <Field label="Payment Method" value={data.paymentMethod} />
+            <Field label="Check #" value={data.checkNumber} />
+            <div className="flex items-end">
+              <label className="inline-flex items-center gap-2 text-[13px] text-[#374151] cursor-pointer">
+                <input type="checkbox" defaultChecked className="h-4 w-4 rounded border-[#D1D5DB] text-[#4A6FA5] focus:ring-[#4A6FA5]" />
+                Accept partial payments
+              </label>
+            </div>
+          </div>
+
+          {payments.length === 0 ? (
+            <div className="py-6 text-center">
+              <span className="material-icons text-[#D1D5DB]" style={{ fontSize: "32px" }}>account_balance_wallet</span>
+              <div className="text-[13px] text-[#9CA3AF] mt-1">No payments recorded</div>
+            </div>
+          ) : (
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-[#E5E7EB]">
+                  {["Date", "Method", "Check #", "Note", "Amount"].map(h => (
+                    <th key={h} className={`pb-2.5 text-[11px] uppercase tracking-wider text-[#9CA3AF] ${h === "Amount" ? "text-right" : "text-left"}`} style={{ fontWeight: 600 }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {payments.map(p => (
+                  <tr key={p.id} className="border-b border-[#F3F4F6] last:border-b-0">
+                    <td className="py-3 text-[13px] text-[#374151]">{fmtDate(p.date)}</td>
+                    <td className="py-3"><span className="text-[12px] px-2 py-0.5 rounded bg-[#F3F4F6] text-[#374151]" style={{ fontWeight: 500 }}>{p.method}</span></td>
+                    <td className="py-3 text-[13px] text-[#374151]">{p.checkNumber || <span className="text-[#9CA3AF]">—</span>}</td>
+                    <td className="py-3 text-[13px] text-[#9CA3AF]">{p.note || "—"}</td>
+                    <td className="py-3 text-[13px] text-[#1A2332] text-right" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>${fmt(p.amount)}</td>
+                  </tr>
+                ))}
+                <tr>
+                  <td colSpan={4} className="pt-3 text-[13px] text-[#374151] text-right" style={{ fontWeight: 500 }}>Total paid</td>
+                  <td className="pt-3 text-[14px] text-[#16A34A] text-right" style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>${fmt(totalPayments)}</td>
+                </tr>
+              </tbody>
+            </table>
+          )}
+        </Card>
+
+        {/* Row 2: Bill To + Service Address */}
         <div className="grid grid-cols-2 gap-4">
           <Card title="Bill To" onEdit={() => {}}>
             <div className="flex flex-col gap-3">
-              <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>{data.client.name}</div>
+              <button onClick={() => navigate("/clients/1")} className="text-[14px] text-[#4A6FA5] hover:underline text-left self-start" style={{ fontWeight: 600 }}>{data.client.name}</button>
               <div className="grid grid-cols-2 gap-x-6 gap-y-3">
                 <Field label="Customer Email" value={data.client.email} />
                 <Field label="Phone" value={data.client.phone} />
@@ -429,63 +492,37 @@ export function InvoiceDetail() {
           </Card>
         </div>
 
-        {/* Row 2: Invoice Details */}
+        {/* Row 3: Invoice Details (slimmed) */}
         <Card title="Invoice Details" onEdit={() => {}}>
           <div className="grid grid-cols-4 gap-x-6 gap-y-4">
             <Field label="Invoice #" value={data.number} />
-            <Field label="Type" value={data.type} />
-            <Field label="Date" value={fmtDate(data.date)} />
-            <Field label="Due Date" value={fmtDate(data.dueDate)} accent={overdueDays > 0 ? "#DC2626" : undefined} />
-            <Field label="Date Sent" value={fmtDate(data.dateSent)} />
             <Field label="Date Created" value={fmtDate(data.dateCreated)} />
+            <Field label="Date Sent" value={fmtDate(data.dateSent)} />
+            <Field label="Due Date" value={fmtDate(data.dueDate)} accent={overdueDays > 0 ? "#DC2626" : undefined} />
             <Field label="Created By" value={data.createdBy} />
-            <Field label="Stage" value={data.stage} />
-            <Field label="Department" value={data.department} />
-            <Field label="To Be Printed" value={data.toBePrinted ? "Yes" : "No"} />
-            <Field label="PO #" value={data.poNumber} />
-            <Field label="Memo" value={data.memo} />
+            <Field label="PO #" value={data.poNumber || "—"} />
+            <div className="col-span-2">
+              <Field label="Memo" value={data.memo} />
+            </div>
           </div>
         </Card>
 
-        {/* Row 3: Job & References + Sales & Payment */}
-        <div className="grid grid-cols-2 gap-4">
-          <Card title="Job & References" onEdit={() => {}}>
-            <div className="grid grid-cols-2 gap-x-6 gap-y-4">
-              <Field
-                label="Job Number"
-                value={data.jobNumber ? `${data.jobNumber}: ${data.jobName}` : null}
-                link={data.jobNumber ? `/jobs/${data.jobNumber}` : undefined}
-              />
-              <Field label="Job Name" value={data.jobName} />
-              <Field
-                label="Linked Estimate #"
-                value={data.linkedEstimate}
-                link={data.linkedEstimate ? `/estimates/${data.linkedEstimate.replace("EST-", "")}` : undefined}
-              />
-              <Field label="Estimate Status" value={data.estimateStatus} />
-            </div>
-          </Card>
-
-          <Card title="Sales & Payment" onEdit={() => {}}>
-            <div className="grid grid-cols-2 gap-x-6 gap-y-4">
-              <Field label="Lead Source" value={data.leadSource} />
-              <Field label="Sales Rep" value={data.salesRep} />
-              <Field label="Payment Terms" value={data.paymentTerms} />
-              <Field label="Payment Method" value={data.paymentMethod} />
-              <Field label="Check #" value={data.checkNumber} />
-            </div>
-          </Card>
-        </div>
-
-        {/* Row 4: Custom Fields (only if any) */}
-        {(data.customField1 || data.customField2) && (
-          <Card title="Custom Fields" onEdit={() => {}}>
-            <div className="grid grid-cols-2 gap-x-6 gap-y-4">
-              <Field label="Custom Field 1" value={data.customField1} />
-              <Field label="Custom Field 2" value={data.customField2} />
-            </div>
-          </Card>
-        )}
+        {/* Row 4: Job & References */}
+        <Card title="Job & References" onEdit={() => {}}>
+          <div className="grid grid-cols-2 gap-x-6 gap-y-4">
+            <Field
+              label="Job"
+              value={data.jobNumber ? `Job-${data.jobNumber}: ${data.jobName}` : null}
+              link={data.jobNumber ? `/jobs/${data.jobNumber}` : undefined}
+            />
+            <Field
+              label="Linked Estimate #"
+              value={data.linkedEstimate}
+              link={data.linkedEstimate ? `/estimates/${data.linkedEstimate.replace("EST-", "")}` : undefined}
+            />
+            <Field label="Estimate Status" value={data.estimateStatus} />
+          </div>
+        </Card>
 
         {/* Row 5: Line Items + Totals */}
         <Card title="Line Items">
@@ -548,54 +585,6 @@ export function InvoiceDetail() {
           </div>
         </Card>
 
-        {/* Row 6: Payments */}
-        <Card
-          title={`Payments (${payments.length})`}
-          action={
-            !isPaid && status !== "Void" ? (
-              <button
-                onClick={() => setPaymentModalOpen(true)}
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-[12px] bg-[#4A6FA5] text-white hover:bg-[#3d5a85]"
-                style={{ fontWeight: 500 }}
-              >
-                <PlusIcon className="h-3.5 w-3.5" />
-                Record
-              </button>
-            ) : null
-          }
-        >
-          {payments.length === 0 ? (
-            <div className="py-6 text-center">
-              <span className="material-icons text-[#D1D5DB]" style={{ fontSize: "32px" }}>account_balance_wallet</span>
-              <div className="text-[13px] text-[#9CA3AF] mt-1">No payments recorded</div>
-            </div>
-          ) : (
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-[#E5E7EB]">
-                  {["Date", "Method", "Check #", "Note", "Amount"].map(h => (
-                    <th key={h} className={`pb-2.5 text-[11px] uppercase tracking-wider text-[#9CA3AF] ${h === "Amount" ? "text-right" : "text-left"}`} style={{ fontWeight: 600 }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {payments.map(p => (
-                  <tr key={p.id} className="border-b border-[#F3F4F6] last:border-b-0">
-                    <td className="py-3 text-[13px] text-[#374151]">{fmtDate(p.date)}</td>
-                    <td className="py-3"><span className="text-[12px] px-2 py-0.5 rounded bg-[#F3F4F6] text-[#374151]" style={{ fontWeight: 500 }}>{p.method}</span></td>
-                    <td className="py-3 text-[13px] text-[#374151]">{p.checkNumber || <span className="text-[#9CA3AF]">—</span>}</td>
-                    <td className="py-3 text-[13px] text-[#9CA3AF]">{p.note || "—"}</td>
-                    <td className="py-3 text-[13px] text-[#1A2332] text-right" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>${fmt(p.amount)}</td>
-                  </tr>
-                ))}
-                <tr>
-                  <td colSpan={4} className="pt-3 text-[13px] text-[#374151] text-right" style={{ fontWeight: 500 }}>Total paid</td>
-                  <td className="pt-3 text-[14px] text-[#16A34A] text-right" style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>${fmt(totalPayments)}</td>
-                </tr>
-              </tbody>
-            </table>
-          )}
-        </Card>
       </div>
 
       {/* ── Notes rail (right) ── */}
@@ -713,144 +702,174 @@ export function InvoiceDetail() {
         </button>
       </div>
 
-      {/* ── ONE BIG WHITE CARD CONTAINING EVERYTHING ── */}
-      <div className="relative mx-6 mb-6 bg-white border border-[#E5E7EB] rounded-xl p-4">
-        <div className="absolute right-4 top-4 flex items-center gap-2">
-          <button className="border border-[#E5E7EB] text-[#546478] hover:bg-[#EDF0F5] h-9 px-2.5 rounded-md flex items-center justify-center bg-white" title="Edit">
-            <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
-          </button>
-          <KebabMenu triggerClassName="h-9 w-9 border border-[#E5E7EB] rounded-md hover:bg-[#EDF0F5] flex items-center justify-center bg-white">
-            <KebabItem icon="picture_as_pdf">Download PDF</KebabItem>
-            <KebabItem icon="send">Send to Customer</KebabItem>
-            {!isPaid && status !== "Void" && (
-              <KebabItem icon="payments" onClick={() => setPaymentModalOpen(true)}>Record Payment</KebabItem>
-            )}
-            <KebabSeparator />
-            <KebabItem icon="content_copy">Duplicate Invoice</KebabItem>
-            <KebabItem icon="block" destructive onClick={() => setVoidConfirm(true)}>Void Invoice</KebabItem>
-          </KebabMenu>
-        </div>
+      {/* ── White card containing header + tabs + content ── */}
+      <div className="relative mx-6 mb-6 bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
 
-        {/* Summary content */}
-        <div>
-          <div className="flex items-start gap-10">
-            {/* Left: Identity + status */}
-            <div className="flex flex-col gap-4 min-w-[270px]">
-              <div className="flex items-baseline gap-2">
-                <h1 className="text-[22px] text-[#1A2332] leading-none" style={{ fontWeight: 600 }}>
-                  {data.number}
-                </h1>
-                <span className="text-[13px] text-[#9CA3AF]">{data.type}</span>
+        {/* ── Header ── */}
+        <div className="px-6 pt-5 pb-4 border-b border-[#E5E7EB]">
+          <div className="flex items-start justify-between gap-6">
+            {/* Left: name + contact info */}
+            <div className="flex flex-col gap-1 min-w-0">
+              <h1 className="text-[20px] text-[#1A2332] leading-[27px]" style={{ fontWeight: 700 }}>
+                Invoice #{data.number}
+              </h1>
+
+              {/* Client + address + job inline row */}
+              <div className="flex items-center gap-0.5 flex-wrap">
+                <button onClick={() => navigate("/clients/1")} className="flex items-center gap-1.5 text-[14px] text-[#4A6FA5] hover:underline transition-colors" style={{ fontWeight: 500 }}>
+                  <span className="material-icons" style={{ fontSize: "16px" }}>person</span>
+                  {data.client.name}
+                </button>
+                <div className="w-px h-5 bg-[#E5E7EB] mx-1" />
+                <span className="flex items-center gap-1 text-[14px] text-[#374151]">
+                  <span className="material-icons text-[#6B7280]" style={{ fontSize: "16px" }}>location_on</span>
+                  {data.billingAddress.line}, {data.billingAddress.city}, {data.billingAddress.state} {data.billingAddress.zip}
+                </span>
+                {data.jobNumber && (
+                  <>
+                    <div className="w-px h-5 bg-[#E5E7EB] mx-1" />
+                    <button onClick={() => navigate(`/jobs/${data.jobNumber}`)} className="flex items-center gap-1.5 text-[14px] text-[#4A6FA5] hover:underline transition-colors" style={{ fontWeight: 500 }}>
+                      <span className="material-icons" style={{ fontSize: "16px" }}>work</span>
+                      Job-{data.jobNumber}: {data.jobName}
+                    </button>
+                  </>
+                )}
               </div>
 
-              {/* Client */}
-              <div className="flex items-start gap-1.5">
-                <span className="material-icons text-[#6B7280] mt-0.5" style={{ fontSize: "14px" }}>person</span>
-                <div className="text-[13px] text-[#374151] leading-[19px]">
-                  {data.client.name}
-                  <br />
-                  <span className="text-[#6B7280]">{data.client.email}</span>
+              {/* Metadata strip */}
+              <div className="flex items-center gap-0.5 flex-wrap pt-2 mt-1 border-t border-[#F3F4F6]">
+                <div className="flex items-center gap-1.5 pr-3 text-[13px] text-[#6B7280]">
+                  <span className="material-icons" style={{ fontSize: "14px" }}>calendar_today</span>
+                  Created {fmtDate(data.dateCreated)}
+                </div>
+                <div className="w-px h-4 bg-[#E5E7EB]" />
+                <div className="flex items-center gap-1.5 px-3 text-[13px]" style={{ color: overdueDays > 0 ? "#DC2626" : "#6B7280", fontWeight: overdueDays > 0 ? 500 : 400 }}>
+                  <span className="material-icons" style={{ fontSize: "14px" }}>schedule</span>
+                  Due {fmtDate(data.dueDate)}{overdueDays > 0 ? ` · ${overdueDays}d past` : ""}
+                </div>
+                <div className="w-px h-4 bg-[#E5E7EB]" />
+                <div className="flex items-center gap-1.5 px-3 text-[13px] text-[#6B7280]">
+                  <span className="material-icons" style={{ fontSize: "14px" }}>person</span>
+                  {data.createdBy}
+                </div>
+                <div className="w-px h-4 bg-[#E5E7EB]" />
+                <div className="flex items-center gap-1.5 px-3 text-[13px] text-[#6B7280]">
+                  <span className="material-icons" style={{ fontSize: "14px" }}>mail</span>
+                  Sent {fmtDate(data.dateSent)}
+                </div>
+                {data.linkedEstimate && (
+                  <>
+                    <div className="w-px h-4 bg-[#E5E7EB]" />
+                    <button onClick={() => navigate(`/estimates/${data.linkedEstimate.replace("EST-", "")}`)} className="flex items-center gap-1.5 px-3 text-[13px] text-[#4A6FA5] hover:underline">
+                      <span className="material-icons" style={{ fontSize: "14px" }}>request_quote</span>
+                      {data.linkedEstimate}
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Right: Total + Balance + Status + Kebab */}
+            <div className="flex flex-col items-end gap-3 shrink-0">
+              <div className="text-right">
+                <div className="text-[11px] text-[#9CA3AF] uppercase tracking-wide mb-0.5" style={{ fontWeight: 600 }}>Total (USD)</div>
+                <div className="text-[28px] text-[#1A2332] leading-tight" style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>${fmt(total)}</div>
+                <div className="text-[12px] text-[#6B7280] mt-1">
+                  Balance Due:{" "}
+                  <span style={{ fontWeight: 600, color: balance > 0 ? "#DC2626" : "#16A34A", fontVariantNumeric: "tabular-nums" }}>
+                    ${fmt(Math.max(0, balance))}
+                  </span>
                 </div>
               </div>
-
-              {/* Status */}
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
                 <div className="relative">
                   <button
                     onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-[11px] transition-colors cursor-pointer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] hover:opacity-80 transition-opacity"
                     style={{ fontWeight: 600, backgroundColor: statusColors[status].bg, color: statusColors[status].text }}
                   >
+                    <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: statusColors[status].text }} />
                     {status}
-                    <span className="material-icons" style={{ fontSize: "14px" }}>arrow_drop_down</span>
+                    <span className="material-icons" style={{ fontSize: "15px" }}>expand_more</span>
                   </button>
                   {statusDropdownOpen && (
-                    <div className="absolute left-0 top-full mt-1 bg-white border border-[#E5E7EB] rounded-md shadow-lg z-50 w-[200px] py-1">
+                    <div className="absolute right-0 top-[calc(100%+4px)] w-[220px] bg-white border border-[#E5E7EB] rounded-xl shadow-lg z-40 py-1.5">
                       {allStatuses.map(s => (
                         <button
                           key={s}
                           onClick={() => handleStatusChange(s)}
-                          className={`w-full text-left px-3 py-2 text-[13px] hover:bg-[#F3F4F6] flex items-center gap-2 ${s === status ? "bg-[#F3F4F6]" : ""}`}
+                          className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-[13px] transition-colors ${s === status ? "bg-[#EEF3FA]" : "hover:bg-[#F5F7FA]"}`}
+                          style={{ fontWeight: s === status ? 600 : 400, color: s === status ? "#4A6FA5" : "#1A2332" }}
                         >
-                          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: statusColors[s].text }} />
-                          <span style={{ color: statusColors[s].text, fontWeight: 500 }}>{s}</span>
+                          <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: statusColors[s].text }} />
+                          {s}
+                          {s === status && <span className="material-icons ml-auto" style={{ fontSize: "16px", color: "#4A6FA5" }}>check</span>}
                         </button>
                       ))}
                     </div>
                   )}
                 </div>
-                {overdueDays > 0 && (
-                  <span className="text-[12px] text-[#DC2626]" style={{ fontWeight: 500 }}>Past due {overdueDays} days</span>
-                )}
-              </div>
-            </div>
-
-            {/* Middle: Job + Dates */}
-            <div className="grid grid-cols-3 gap-6 flex-1 border-l border-[#E5E7EB] pl-10">
-              <div className="flex flex-col gap-4">
-                <Field
-                  label="Job"
-                  value={data.jobNumber ? `${data.jobNumber}: ${data.jobName}` : null}
-                  link={data.jobNumber ? `/jobs/${data.jobNumber}` : undefined}
-                />
-                <Field label="Sales Rep" value={data.salesRep} />
-              </div>
-              <div className="flex flex-col gap-4">
-                <Field label="Invoice Date" value={fmtDate(data.date)} />
-                <Field label="Due Date" value={fmtDate(data.dueDate)} accent={overdueDays > 0 ? "#DC2626" : undefined} />
-              </div>
-              <div className="flex flex-col gap-4">
-                <Field label="Date Sent" value={fmtDate(data.dateSent)} />
-                <Field label="Payment Terms" value={data.paymentTerms} />
-              </div>
-            </div>
-
-            {/* Right: Financial summary */}
-            <div className="border-l border-[#E5E7EB] pl-8" style={{ width: "280px" }}>
-              <div className="grid grid-cols-2 gap-x-6 gap-y-4 w-[255px]">
-                <div className="flex flex-col gap-1">
-                  <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Total</div>
-                  <div className="text-[18px] text-[#1A2332] leading-[28px]" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
-                    ${fmt(total)}
-                  </div>
-                </div>
-                <div className="flex flex-col gap-1">
-                  <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Balance Due</div>
-                  <div className="text-[18px] leading-[28px]" style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums", color: balance > 0 ? "#DC2626" : "#16A34A" }}>
-                    ${fmt(Math.max(0, balance))}
-                  </div>
-                </div>
-                <div className="flex flex-col gap-1">
-                  <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Paid</div>
-                  <div className="text-[18px] text-[#16A34A] leading-[28px]" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
-                    ${fmt(totalPayments)}
-                  </div>
-                </div>
-                <div className="flex flex-col gap-1">
-                  <div className="text-[11px] text-[#9CA3AF] leading-[16px]">PO #</div>
-                  <div className="text-[14px] text-[#374151] leading-[28px]" style={{ fontWeight: 500 }}>
-                    {data.poNumber || <span className="text-[#9CA3AF]">—</span>}
-                  </div>
-                </div>
+                <KebabMenu triggerClassName="w-8 h-8 border border-[#E5E7EB] rounded-md bg-white flex items-center justify-center hover:bg-[#F5F7FA]">
+                  <KebabItem icon="picture_as_pdf">Download PDF</KebabItem>
+                  {!isPaid && status !== "Void" && (
+                    <KebabItem icon="payments" onClick={() => setPaymentModalOpen(true)}>Record Payment</KebabItem>
+                  )}
+                  <KebabSeparator />
+                  <KebabItem icon="content_copy">Duplicate Invoice</KebabItem>
+                  <KebabSeparator />
+                  <KebabItem icon="block" destructive onClick={() => setVoidConfirm(true)}>Void Invoice</KebabItem>
+                </KebabMenu>
               </div>
             </div>
           </div>
         </div>
 
-        {/* ── UNIFIED TAB BAR ── */}
-        <DetailTabs
-          tabs={TABS.map(t => ({
-            ...t,
-            count: t.key === "activity" ? activity.length : undefined,
-          }))}
-          activeTab={activeTab}
-          onChange={setActiveTab}
-          trailing={<TabSettingsButton />}
-          className="mt-6"
-        />
+        {/* ── Tabs + action buttons row ── */}
+        <div className="flex items-center justify-between px-4 border-b border-[#E5E7EB]">
+          <DetailTabs
+            tabs={TABS.map(t => ({
+              ...t,
+              count: t.key === "activity" ? activity.length : undefined,
+            }))}
+            activeTab={activeTab}
+            onChange={setActiveTab}
+            trailing={<TabSettingsButton />}
+          />
+          <div className="flex items-center gap-2 py-2 shrink-0">
+            <button
+              className="h-9 px-3.5 rounded-md border border-[#E5E7EB] bg-white text-[13px] text-[#546478] hover:bg-[#F5F7FA] inline-flex items-center gap-1.5 transition-colors"
+              style={{ fontWeight: 500 }}
+              title="Preview invoice"
+            >
+              <span className="material-icons" style={{ fontSize: "16px" }}>visibility</span>
+              Preview
+            </button>
+            <button
+              className="h-9 w-9 rounded-md border border-[#E5E7EB] bg-white text-[#546478] hover:bg-[#F5F7FA] inline-flex items-center justify-center transition-colors"
+              title="Send by email"
+            >
+              <span className="material-icons" style={{ fontSize: "18px" }}>mail</span>
+            </button>
+            <button
+              className="h-9 w-9 rounded-md border border-[#E5E7EB] bg-white text-[#546478] hover:bg-[#F5F7FA] inline-flex items-center justify-center transition-colors"
+              title="Send by SMS"
+            >
+              <span className="material-icons" style={{ fontSize: "18px" }}>sms</span>
+            </button>
+            <button
+              onClick={() => navigate(`/invoices/${id}/edit`)}
+              className="h-9 px-3.5 rounded-md bg-[#4A6FA5] hover:bg-[#3d5a85] text-white text-[13px] inline-flex items-center gap-1.5 transition-colors"
+              style={{ fontWeight: 600 }}
+              title="Edit invoice"
+            >
+              <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
+              Edit Invoice
+            </button>
+          </div>
+        </div>
 
         {/* ── CONTENT ── */}
-        <div className="mt-4">
+        <div className="p-4">
           {activeTab === "details" ? renderDetailsTab() : renderActivityTab()}
         </div>
       </div>

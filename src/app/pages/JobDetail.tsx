@@ -638,7 +638,7 @@ export function JobDetail() {
       <div className="flex items-center justify-between mb-5">
         <h3 className="text-[15px] text-[#1A2332]" style={{ fontWeight: 600 }}>Invoices</h3>
         <button
-          onClick={() => navigate("/invoices/create")}
+          onClick={() => navigate(`/invoices/create?job=${encodeURIComponent(job.jobNumber)}&client=${encodeURIComponent(job.client || "")}`)}
           className="h-8 px-3 gap-1.5 text-[13px] bg-[#4A6FA5] hover:bg-[#3d5a85] text-white rounded-md inline-flex items-center justify-center transition-colors"
           style={{ fontWeight: 600 }}
         >
