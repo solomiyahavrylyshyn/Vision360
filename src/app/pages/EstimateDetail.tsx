@@ -188,6 +188,9 @@ export function EstimateDetail() {
     { id: "photo-44644", name: "44644_IMG_20241210_123749.png", size: "9.5 MB", date: "May 19, 2026", icon: "image", iconColor: "#F59E0B", isImage: true, previewUrl: job44644Photo, uploadedBy: "Field Crew", category: "Photos" },
   ]);
   const [previewFileId, setPreviewFileId] = useState<string | null>(null);
+  const [docsPage, setDocsPage] = useState(0);
+  const [createMenuOpen, setCreateMenuOpen] = useState(false);
+  const DOCS_PER_PAGE = 8; // 4 cols × 2 rows
   const previewFile = documents.find(d => d.id === previewFileId) ?? null;
   const [selectedDocs, setSelectedDocs] = useState<Set<string>>(new Set());
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -407,96 +410,8 @@ export function EstimateDetail() {
         )}
       </div>
 
-      {/* ── Right: Documents + Estimate Notes ── */}
+      {/* ── Right: Notes (kept above the fold) + Signature ── */}
       <div className="flex flex-col gap-4">
-
-        {/* Documents */}
-        <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
-          {/* Toolbar */}
-          <div className="px-4 py-3 border-b border-[#E5E7EB] flex items-center gap-2.5 flex-wrap">
-            <h3 className="text-[14px] text-[#1A2332] mr-1" style={{ fontWeight: 600 }}>
-              Documents {documents.length > 0 && <span className="text-[#9CA3AF]">({documents.length})</span>}
-            </h3>
-            <div className="flex-1" />
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="h-8 px-3 flex items-center gap-1.5 bg-[#4A6FA5] hover:bg-[#3d5a85] text-white rounded-lg text-[13px] transition-colors"
-              style={{ fontWeight: 500 }}
-            >
-              <span className="material-icons" style={{ fontSize: "16px" }}>upload</span>
-              Upload
-            </button>
-          </div>
-
-          <input ref={fileInputRef} type="file" multiple className="hidden" onChange={e => handleFilesAdded(e.target.files)} />
-
-          {documents.length === 0 ? (
-            <div className="py-10 flex flex-col items-center justify-center">
-              <span className="material-icons text-[#D1D5DB] mb-2" style={{ fontSize: "40px" }}>folder_open</span>
-              <div className="text-[13px] text-[#9CA3AF]">No documents yet</div>
-              <button onClick={() => fileInputRef.current?.click()} className="text-[13px] text-[#4A6FA5] hover:underline mt-1" style={{ fontWeight: 500 }}>+ Upload files</button>
-            </div>
-          ) : (
-            <div className="p-3">
-              {selectedDocs.size > 0 && (
-                <div className="bg-[#EEF3FA] border border-[#C5D5EC] rounded-lg px-4 py-2 flex items-center gap-3 mb-3">
-                  <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{selectedDocs.size} selected</span>
-                  <button onClick={() => setSelectedDocs(new Set())} className="text-[12px] text-[#6B7280] hover:underline" style={{ fontWeight: 500 }}>Clear</button>
-                  <div className="flex-1" />
-                  <button
-                    onClick={() => { setDocuments(prev => prev.filter(d => !selectedDocs.has(d.id))); setSelectedDocs(new Set()); }}
-                    className="h-7 px-2.5 flex items-center gap-1 border border-[#FCA5A5] bg-white hover:bg-[#FEF2F2] rounded text-[12px] text-[#DC2626] transition-colors"
-                    style={{ fontWeight: 500 }}
-                  >
-                    <span className="material-icons" style={{ fontSize: "14px" }}>delete_outline</span>
-                    Delete
-                  </button>
-                </div>
-              )}
-              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                {documents.map(file => {
-                  const isSelected = selectedDocs.has(file.id);
-                  return (
-                    <div
-                      key={file.id}
-                      onClick={e => e.metaKey || e.ctrlKey || selectedDocs.size > 0 ? toggleDocSelected(file.id) : setPreviewFileId(file.id)}
-                      className={`flex flex-col items-center text-center group relative cursor-pointer rounded-lg p-2 transition-colors ${isSelected ? "bg-[#DBE7F7] ring-2 ring-[#4A6FA5]" : "hover:bg-[#EEF3FA]"}`}
-                      title={`${file.name}\n${file.size} · ${file.date}`}
-                    >
-                      <label onClick={e => e.stopPropagation()} className={`absolute top-1 left-1 z-10 ${isSelected || selectedDocs.size > 0 ? "opacity-100" : "opacity-0 group-hover:opacity-100"} transition-opacity`}>
-                        <input type="checkbox" checked={isSelected} onChange={() => toggleDocSelected(file.id)} className="w-4 h-4 accent-[#4A6FA5] cursor-pointer" />
-                      </label>
-                      <div className="w-full aspect-[4/3] rounded-md border border-[#E5E7EB] overflow-hidden bg-white">
-                        {file.isImage && file.previewUrl ? (
-                          <img src={file.previewUrl} alt={file.name} className="w-full h-full object-cover" />
-                        ) : file.isImage ? (
-                          <div className="w-full h-full flex items-center justify-center" style={{ background: file.previewGradient ?? "linear-gradient(135deg,#fde68a,#f59e0b)" }}>
-                            <span className="material-icons text-white/70" style={{ fontSize: "32px" }}>image</span>
-                          </div>
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: file.iconColor + "12" }}>
-                            <span className="material-icons" style={{ fontSize: "40px", color: file.iconColor, opacity: 0.85 }}>{file.icon}</span>
-                          </div>
-                        )}
-                      </div>
-                      <div className="mt-1.5 text-[11px] text-[#1A2332] leading-[15px] w-full px-0.5"
-                        style={{ fontWeight: 500, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", wordBreak: "break-word" }}>
-                        {file.name}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </div>
-
-        <DocumentPreview
-          file={previewFile}
-          onClose={() => setPreviewFileId(null)}
-          onRename={(id, newName) => setDocuments(prev => prev.map(d => d.id === id ? { ...d, name: newName } : d))}
-          onDelete={(id) => setDocuments(prev => prev.filter(d => d.id !== id))}
-        />
 
         {/* Notes to Client */}
         <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
@@ -512,9 +427,31 @@ export function EstimateDetail() {
                 <span className="material-icons text-[#C8D5E8]" style={{ fontSize: "22px" }}>edit_note</span>
               </div>
               <div className="text-[13px] text-[#1A2332] mb-0.5" style={{ fontWeight: 500 }}>No notes added yet.</div>
-              <div className="text-[12px] text-[#9CA3AF]">Notes about this estimate will appear here.</div>
+              <div className="text-[12px] text-[#9CA3AF]">Per-estimate notes only. Defaults like "Thank you" live in Settings.</div>
             </div>
           )}
+        </div>
+
+        {/* Internal Notes */}
+        <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#E5E7EB]">
+            <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Internal Notes</h3>
+            <span className="text-[12px] text-[#9CA3AF]">Not visible to client</span>
+          </div>
+          <div className="p-5">
+            <textarea
+              value={estimate.internalNotes}
+              onChange={(e) => setEstimate(prev => ({ ...prev, internalNotes: e.target.value }))}
+              className="w-full text-[13px] text-[#374151] leading-relaxed resize-none border border-[#E5E7EB] rounded-md focus:outline-none focus:border-[#4A6FA5] p-3 min-h-[100px]"
+              placeholder="Private notes for your team only — e.g. 'Do not walk on right side, dog in yard'..."
+            />
+            <p className="text-[12px] text-[#6B7280] mt-2">
+              Manage Terms, Disclaimers &amp; Signature defaults in{" "}
+              <span className="text-[#4A6FA5] cursor-pointer hover:underline" onClick={() => navigate("/settings?section=estimates")}>
+                Settings → Estimate Preferences
+              </span>
+            </p>
+          </div>
         </div>
 
         {/* Signature */}
@@ -543,29 +480,117 @@ export function EstimateDetail() {
           )}
         </div>
 
-        {/* Internal Notes */}
-        <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#E5E7EB]">
-            <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Internal Notes</h3>
-            <span className="text-[12px] text-[#9CA3AF]">Not visible to client</span>
-          </div>
-          <div className="p-5">
-            <textarea
-              value={estimate.internalNotes}
-              onChange={(e) => setEstimate(prev => ({ ...prev, internalNotes: e.target.value }))}
-              className="w-full text-[13px] text-[#374151] leading-relaxed resize-none border border-[#E5E7EB] rounded-md focus:outline-none focus:border-[#4A6FA5] p-3 min-h-[100px]"
-              placeholder="Private notes for your team only — e.g. 'Do not walk on right side, dog in yard'..."
-            />
-            <p className="text-[12px] text-[#6B7280] mt-2">
-              Manage Terms, Disclaimers &amp; Signature defaults in{" "}
-              <span className="text-[#4A6FA5] cursor-pointer hover:underline" onClick={() => navigate("/settings?section=estimates")}>
-                Settings → Estimate Preferences
+      </div>
+
+      {/* ── Bottom row: Documents gallery (full width, 2 rows visible + prev/next) ── */}
+      <div className="col-span-2 bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
+        <div className="px-4 py-3 border-b border-[#E5E7EB] flex items-center gap-2.5 flex-wrap">
+          <h3 className="text-[14px] text-[#1A2332] mr-1" style={{ fontWeight: 600 }}>
+            Documents {documents.length > 0 && <span className="text-[#9CA3AF]">({documents.length})</span>}
+          </h3>
+          <div className="flex-1" />
+          {documents.length > DOCS_PER_PAGE && (
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setDocsPage(p => Math.max(0, p - 1))}
+                disabled={docsPage === 0}
+                className="h-8 w-8 rounded-md border border-[#E5E7EB] bg-white hover:bg-[#F5F7FA] disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center transition-colors"
+                title="Previous"
+              >
+                <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>chevron_left</span>
+              </button>
+              <span className="text-[12px] text-[#6B7280] px-2 tabular-nums">
+                {docsPage + 1} / {Math.ceil(documents.length / DOCS_PER_PAGE)}
               </span>
-            </p>
-          </div>
+              <button
+                onClick={() => setDocsPage(p => Math.min(Math.ceil(documents.length / DOCS_PER_PAGE) - 1, p + 1))}
+                disabled={docsPage >= Math.ceil(documents.length / DOCS_PER_PAGE) - 1}
+                className="h-8 w-8 rounded-md border border-[#E5E7EB] bg-white hover:bg-[#F5F7FA] disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center transition-colors"
+                title="Next"
+              >
+                <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>chevron_right</span>
+              </button>
+            </div>
+          )}
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="h-8 px-3 flex items-center gap-1.5 bg-[#4A6FA5] hover:bg-[#3d5a85] text-white rounded-lg text-[13px] transition-colors"
+            style={{ fontWeight: 500 }}
+          >
+            <span className="material-icons" style={{ fontSize: "16px" }}>upload</span>
+            Upload
+          </button>
         </div>
 
+        <input ref={fileInputRef} type="file" multiple className="hidden" onChange={e => handleFilesAdded(e.target.files)} />
+
+        {documents.length === 0 ? (
+          <div className="py-10 flex flex-col items-center justify-center">
+            <span className="material-icons text-[#D1D5DB] mb-2" style={{ fontSize: "40px" }}>folder_open</span>
+            <div className="text-[13px] text-[#9CA3AF]">No documents yet</div>
+            <button onClick={() => fileInputRef.current?.click()} className="text-[13px] text-[#4A6FA5] hover:underline mt-1" style={{ fontWeight: 500 }}>+ Upload files</button>
+          </div>
+        ) : (
+          <div className="p-3">
+            {selectedDocs.size > 0 && (
+              <div className="bg-[#EEF3FA] border border-[#C5D5EC] rounded-lg px-4 py-2 flex items-center gap-3 mb-3">
+                <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{selectedDocs.size} selected</span>
+                <button onClick={() => setSelectedDocs(new Set())} className="text-[12px] text-[#6B7280] hover:underline" style={{ fontWeight: 500 }}>Clear</button>
+                <div className="flex-1" />
+                <button
+                  onClick={() => { setDocuments(prev => prev.filter(d => !selectedDocs.has(d.id))); setSelectedDocs(new Set()); }}
+                  className="h-7 px-2.5 flex items-center gap-1 border border-[#FCA5A5] bg-white hover:bg-[#FEF2F2] rounded text-[12px] text-[#DC2626] transition-colors"
+                  style={{ fontWeight: 500 }}
+                >
+                  <span className="material-icons" style={{ fontSize: "14px" }}>delete_outline</span>
+                  Delete
+                </button>
+              </div>
+            )}
+            <div className="grid grid-cols-4 gap-2">
+              {documents.slice(docsPage * DOCS_PER_PAGE, (docsPage + 1) * DOCS_PER_PAGE).map(file => {
+                const isSelected = selectedDocs.has(file.id);
+                return (
+                  <div
+                    key={file.id}
+                    onClick={e => e.metaKey || e.ctrlKey || selectedDocs.size > 0 ? toggleDocSelected(file.id) : setPreviewFileId(file.id)}
+                    className={`flex flex-col items-center text-center group relative cursor-pointer rounded-lg p-2 transition-colors ${isSelected ? "bg-[#DBE7F7] ring-2 ring-[#4A6FA5]" : "hover:bg-[#EEF3FA]"}`}
+                    title={`${file.name}\n${file.size} · ${file.date}`}
+                  >
+                    <label onClick={e => e.stopPropagation()} className={`absolute top-1 left-1 z-10 ${isSelected || selectedDocs.size > 0 ? "opacity-100" : "opacity-0 group-hover:opacity-100"} transition-opacity`}>
+                      <input type="checkbox" checked={isSelected} onChange={() => toggleDocSelected(file.id)} className="w-4 h-4 accent-[#4A6FA5] cursor-pointer" />
+                    </label>
+                    <div className="w-full aspect-[4/3] rounded-md border border-[#E5E7EB] overflow-hidden bg-white">
+                      {file.isImage && file.previewUrl ? (
+                        <img src={file.previewUrl} alt={file.name} className="w-full h-full object-cover" />
+                      ) : file.isImage ? (
+                        <div className="w-full h-full flex items-center justify-center" style={{ background: file.previewGradient ?? "linear-gradient(135deg,#fde68a,#f59e0b)" }}>
+                          <span className="material-icons text-white/70" style={{ fontSize: "32px" }}>image</span>
+                        </div>
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: file.iconColor + "12" }}>
+                          <span className="material-icons" style={{ fontSize: "40px", color: file.iconColor, opacity: 0.85 }}>{file.icon}</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="mt-1.5 text-[11px] text-[#1A2332] leading-[15px] w-full px-0.5"
+                      style={{ fontWeight: 500, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", wordBreak: "break-word" }}>
+                      {file.name}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
+
+      <DocumentPreview
+        file={previewFile}
+        onClose={() => setPreviewFileId(null)}
+        onRename={(id, newName) => setDocuments(prev => prev.map(d => d.id === id ? { ...d, name: newName } : d))}
+        onDelete={(id) => setDocuments(prev => prev.filter(d => d.id !== id))}
+      />
     </div>
   );
 
@@ -895,21 +920,47 @@ export function EstimateDetail() {
               <span className="material-icons" style={{ fontSize: "16px" }}>visibility</span>
               Preview
             </button>
-            <button
-              className="h-9 px-3.5 rounded-md bg-[#4A6FA5] hover:bg-[#3d5a85] text-white text-[13px] inline-flex items-center gap-1.5 transition-colors"
-              style={{ fontWeight: 600 }}
-            >
-              <span className="material-icons" style={{ fontSize: "16px" }}>send</span>
-              Send
-            </button>
-            <button
-              onClick={() => navigate(`/estimates/${id}/edit`)}
-              className="h-9 px-3.5 rounded-md border border-[#E5E7EB] bg-white text-[13px] text-[#1A2332] hover:bg-[#F5F7FA] inline-flex items-center gap-1.5 transition-colors"
-              style={{ fontWeight: 500 }}
-            >
-              <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
-              Edit Estimate
-            </button>
+            {estimate.status === "Approved" ? (
+              <div className="relative">
+                <button
+                  onClick={() => setCreateMenuOpen(!createMenuOpen)}
+                  className="h-9 px-3.5 rounded-md bg-[#4A6FA5] hover:bg-[#3d5a85] text-white text-[13px] inline-flex items-center gap-1.5 transition-colors"
+                  style={{ fontWeight: 600 }}
+                >
+                  <span className="material-icons" style={{ fontSize: "16px" }}>add</span>
+                  Create
+                  <span className="material-icons" style={{ fontSize: "16px" }}>expand_more</span>
+                </button>
+                {createMenuOpen && (
+                  <div className="absolute right-0 top-[calc(100%+4px)] w-[200px] bg-white border border-[#E5E7EB] rounded-xl shadow-lg z-40 py-1.5">
+                    <button
+                      onClick={() => { setCreateMenuOpen(false); navigate(`/jobs/create?estimate=${id}&client=${encodeURIComponent(estimate.clientName)}`); }}
+                      className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[13px] hover:bg-[#F5F7FA] transition-colors text-left"
+                      style={{ fontWeight: 500, color: "#1A2332" }}
+                    >
+                      <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "18px" }}>work</span>
+                      Create Job
+                    </button>
+                    <button
+                      onClick={() => { setCreateMenuOpen(false); navigate(`/invoices/create?estimate=${id}&client=${encodeURIComponent(estimate.clientName)}`); }}
+                      className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[13px] hover:bg-[#F5F7FA] transition-colors text-left"
+                      style={{ fontWeight: 500, color: "#1A2332" }}
+                    >
+                      <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "18px" }}>receipt</span>
+                      Create Invoice
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <button
+                className="h-9 px-3.5 rounded-md bg-[#4A6FA5] hover:bg-[#3d5a85] text-white text-[13px] inline-flex items-center gap-1.5 transition-colors"
+                style={{ fontWeight: 600 }}
+              >
+                <span className="material-icons" style={{ fontSize: "16px" }}>send</span>
+                Send
+              </button>
+            )}
           </div>
         </div>
 
