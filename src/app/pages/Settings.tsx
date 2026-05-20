@@ -9,7 +9,7 @@ import { Switch } from "../components/ui/switch";
 import { ColumnSettingsIcon } from "../components/ui/column-settings-icon";
 import { companyStore } from "../stores/companyStore";
 import { countiesStore } from "../stores/countiesStore";
-import { customFieldsStore, type CfEntity } from "../stores/customFieldsStore";
+import { customFieldsStore, type CfEntity, type CfFieldType } from "../stores/customFieldsStore";
 import { jobTypesStore } from "../stores/jobTypesStore";
 import { marketingSourcesStore } from "../stores/marketingSourcesStore";
 import { tagsStore } from "../stores/tagsStore";
@@ -107,6 +107,27 @@ const templateCards = [
   { title: "Compact", description: "Good for short estimates and invoices." },
   { title: "Detailed", description: "Best for item-heavy proposals." },
 ];
+
+const generalIndustryOptions = [
+  "Home services",
+  "HVAC",
+  "Plumbing",
+  "Electrical",
+  "Landscaping",
+  "Cleaning",
+  "General contracting",
+  "Other",
+];
+
+const customFieldEntities: CfEntity[] = ["clients", "jobs", "estimates", "invoices", "items", "team"];
+const customFieldEntityLabels: Record<CfEntity, string> = {
+  clients: "Clients",
+  jobs: "Jobs",
+  estimates: "Estimates",
+  invoices: "Invoices",
+  items: "Items",
+  team: "Team",
+};
 
 function normalizeSection(section: SettingsSection): SettingsSection {
   return sectionAliases[section] ?? section;
@@ -1883,7 +1904,52 @@ export function Settings() {
   const [tcFile, setTcFile] = useState<string | null>(null);
   const [policiesFile, setPoliciesFile] = useState<string | null>(null);
   const [privacyFile, setPrivacyFile] = useState<string | null>(null);
+  type LegalDocId = "terms" | "policies" | "privacy";
+  type LegalMode = "file" | "text";
+  const [industry, setIndustry] = useState("Other");
+  const [legalModes, setLegalModes] = useState<Record<LegalDocId, LegalMode>>({
+    terms: "file",
+    policies: "text",
+    privacy: "file",
+  });
+  const [legalText, setLegalText] = useState<Record<LegalDocId, string>>({
+    terms: "",
+    policies: "",
+    privacy: "",
+  });
+  const [pendingLegalMode, setPendingLegalMode] = useState<{ id: LegalDocId; mode: LegalMode } | null>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
+
+  const legalFiles: Record<LegalDocId, string | null> = {
+    terms: tcFile,
+    policies: policiesFile,
+    privacy: privacyFile,
+  };
+  const legalFileSetters: Record<LegalDocId, (value: string | null) => void> = {
+    terms: setTcFile,
+    policies: setPoliciesFile,
+    privacy: setPrivacyFile,
+  };
+
+  const requestLegalMode = (id: LegalDocId, mode: LegalMode) => {
+    if (legalModes[id] === mode) return;
+    const hasFile = Boolean(legalFiles[id]);
+    const hasText = legalText[id].trim().length > 0;
+    if ((legalModes[id] === "file" && hasFile) || (legalModes[id] === "text" && hasText)) {
+      setPendingLegalMode({ id, mode });
+      return;
+    }
+    setLegalModes(prev => ({ ...prev, [id]: mode }));
+  };
+
+  const confirmLegalMode = () => {
+    if (!pendingLegalMode) return;
+    const { id, mode } = pendingLegalMode;
+    if (mode === "text") legalFileSetters[id](null);
+    else setLegalText(prev => ({ ...prev, [id]: "" }));
+    setLegalModes(prev => ({ ...prev, [id]: mode }));
+    setPendingLegalMode(null);
+  };
 
   useEffect(() => {
     const section = searchParams.get("section") as SettingsSection;
@@ -1919,9 +1985,9 @@ export function Settings() {
   })).filter(group => group.items.length > 0);
 
   const navItemClass = (section: SettingsSection) => (
-    `w-full rounded-lg px-3 py-2 text-left transition-colors ${
+    `w-full rounded-lg px-6 py-2 text-left transition-colors ${
       activeSection === section
-        ? "bg-[#EBF0F8] text-[#4A6FA5]"
+        ? "bg-[#F0F4FB] text-[#4A6FA5]"
         : "text-[#546478] hover:bg-[#F5F7FA] hover:text-[#1A2332]"
     }`
   );
@@ -1979,36 +2045,35 @@ export function Settings() {
   };
 
   return (
-    <div className="flex h-full bg-[#F2F4F7]" style={{ height: "calc(100vh - 64px)" }}>
-      <aside className="flex w-[280px] shrink-0 flex-col border-r border-[#E1E6EF] bg-white">
-        <div className="border-b border-[#E5E7EB] px-4 py-4">
-          <div className="text-[12px] uppercase tracking-[0.12em] text-[#546478]" style={{ fontWeight: 800 }}>Settings</div>
-          <div className="relative mt-3">
+    <div className="flex h-full bg-[#F5F7FA]" style={{ height: "calc(100vh - 64px)" }}>
+      <aside className="flex w-[300px] shrink-0 flex-col border-r border-[#E5E7EB] bg-white px-4 py-6">
+        <div className="pb-4">
+          <div className="relative">
             <span className="material-icons absolute left-2.5 top-1/2 -translate-y-1/2 text-[#9AA3AF]" style={{ fontSize: "16px" }}>search</span>
             <Input
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              placeholder="Search settings..."
-              className="h-9 border-[#D8DEE8] bg-[#F8FAFC] pl-8 text-[13px]"
+              placeholder="Search..."
+              className="h-9 border-[#E5E7EB] bg-white pl-8 text-[13px] shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
             />
           </div>
         </div>
 
-        <nav className="flex-1 overflow-y-auto px-3 py-3">
+        <nav className="flex-1 overflow-y-auto">
           {filteredNavGroups.map(group => {
             // When the user is searching, force-expand so matches are visible.
             const isSearching = searchQuery.trim().length > 0;
             const expanded = isSearching || expandedGroups.has(group.title);
             return (
-              <div key={group.title} className="mt-4">
+              <div key={group.title} className="mb-3">
                 <button
                   type="button"
                   onClick={() => toggleGroupExpanded(group.title)}
-                  className="mb-1 flex w-full items-center gap-2 px-3 text-[12px] tracking-wide text-[#7A8799] hover:text-[#1A2332] transition-colors"
-                  style={{ fontWeight: 800 }}
+                  className="mb-1 flex h-8 w-full items-center gap-2 px-0 text-[14px] text-[#1A2332] hover:text-[#4A6FA5] transition-colors"
+                  style={{ fontWeight: 600 }}
                   aria-expanded={expanded}
                 >
-                  <span className="material-icons" style={{ fontSize: "15px" }}>{group.icon}</span>
+                  <span className="material-icons" style={{ fontSize: "16px" }}>{group.icon}</span>
                   <span className="flex-1 text-left">{group.title}</span>
                   <span
                     className="material-icons text-[#9CA3AF] transition-transform"
@@ -2021,8 +2086,8 @@ export function Settings() {
                   <div className="space-y-1">
                     {group.items.map(item => (
                       <button key={item.id} onClick={() => setActiveSection(item.id)} className={navItemClass(item.id)}>
-                        <div className="text-[13px]" style={{ fontWeight: activeSection === item.id ? 700 : 600 }}>{item.label}</div>
-                        {item.description && <div className="mt-0.5 truncate text-[11px] text-[#8899AA]">{item.description}</div>}
+                        <div className="text-[14px]" style={{ fontWeight: activeSection === item.id ? 500 : 500 }}>{item.label}</div>
+                        {item.description && <div className="mt-1 truncate text-[12px] leading-4 text-[#6B7280]">{item.description}</div>}
                       </button>
                     ))}
                   </div>
@@ -2034,7 +2099,7 @@ export function Settings() {
       </aside>
 
       <main className="flex-1 overflow-y-auto">
-        <div className="max-w-[1120px] px-8 py-7">
+        <div className="w-full max-w-[900px] px-4 py-6">
           {activeSection === "companyInfo" && (
             <>
               <SectionHeader title="Company info" />
@@ -2904,6 +2969,182 @@ export function Settings() {
           )}
 
           {activeSection === "general" && (
+            <>
+              <div className="mb-4 flex h-[52px] items-center justify-between">
+                <h1 className="text-[24px] leading-8 text-[#1A2332]" style={{ fontWeight: 600 }}>General</h1>
+                <Button type="button" disabled className="h-9 rounded-lg bg-[#4A6FA5] px-4 text-[14px] text-white opacity-50" style={{ fontWeight: 500 }}>
+                  Save changes
+                </Button>
+              </div>
+
+              <div className="space-y-4 pb-6">
+                <SectionCard title="Industry" description="Helps Vision360 tailor defaults for your type of business.">
+                  <div className="mt-4 grid grid-cols-4 gap-3">
+                    {generalIndustryOptions.map(option => {
+                      const selected = industry === option;
+                      return (
+                        <button
+                          key={option}
+                          type="button"
+                          onClick={() => setIndustry(option)}
+                          className={`flex h-11 items-center gap-3 rounded-[10px] border px-3 text-left transition-colors ${selected ? "border-[#4A6FA5] bg-white" : "border-[#E5E7EB] bg-white hover:border-[#B8C3D5]"}`}
+                        >
+                          <span className={`flex h-4 w-4 items-center justify-center rounded-full border ${selected ? "border-[#4A6FA5]" : "border-[#E5E7EB]"}`}>
+                            {selected && <span className="h-2 w-2 rounded-full bg-[#4A6FA5]" />}
+                          </span>
+                          <span className="truncate text-[14px] leading-5 text-[#1A2332]">{option}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </SectionCard>
+
+                <SectionCard title="Custom Fields" description="Configure 2 custom fields per entity - clients, jobs, estimates, invoices, items, and team. Team custom fields show up as extra columns on the Users table.">
+                  <div className="mt-4 flex w-fit items-center rounded-[10px] p-[3px]">
+                    {customFieldEntities.map(entity => (
+                      <button
+                        key={entity}
+                        type="button"
+                        onClick={() => setCfEntity(entity)}
+                        className={`h-[29px] rounded-lg px-2 text-[14px] leading-5 transition-colors ${cfEntity === entity ? "bg-[#4A6FA5] text-white shadow-[0_1px_3px_rgba(0,0,0,0.1)]" : "text-[#6B7280] hover:bg-[#F5F7FA] hover:text-[#1A2332]"}`}
+                        style={{ fontWeight: 500 }}
+                      >
+                        {customFieldEntityLabels[entity]}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="mt-3 space-y-3">
+                    {customFields[cfEntity].map((field, idx) => (
+                      <div key={idx} className="rounded-lg border border-[#E5E7EB] p-4">
+                        <div className="grid grid-cols-[1fr_237px] items-end gap-4">
+                          <Field label="Field 1">
+                            <Input
+                              value={field.label}
+                              onChange={e => customFieldsStore.updateField(cfEntity, idx, { label: e.target.value })}
+                              placeholder="Field label"
+                              className="h-9 border-[#E5E7EB] text-[14px] shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
+                            />
+                          </Field>
+                          <Field label="Type">
+                            <select
+                              value={field.type}
+                              onChange={e => customFieldsStore.updateField(cfEntity, idx, { type: e.target.value as CfFieldType })}
+                              className="h-9 w-full rounded-lg border border-[#E5E7EB] bg-white px-3 text-[14px] text-[#1A2332] shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
+                            >
+                              <option value="checkbox">Checkbox</option>
+                              <option value="text">Text</option>
+                              <option value="number">Number</option>
+                              <option value="date">Date</option>
+                              <option value="dropdown">Dropdown</option>
+                            </select>
+                          </Field>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </SectionCard>
+
+                {([
+                  { id: "terms" as LegalDocId, title: "Terms & Conditions", description: "Default terms attached to estimates and invoices sent to clients.", placeholder: "Paste or type your terms and conditions here..." },
+                  { id: "policies" as LegalDocId, title: "Policies", description: "Internal company policies visible to team members.", placeholder: "Paste or type your company policies here..." },
+                  { id: "privacy" as LegalDocId, title: "Privacy Policy", description: "Your company's privacy policy shown on the Client Hub and customer-facing pages.", placeholder: "Paste or type your privacy policy here..." },
+                ]).map(({ id, title, description, placeholder }) => {
+                  const mode = legalModes[id];
+                  const file = legalFiles[id];
+                  const setFile = legalFileSetters[id];
+                  return (
+                    <SectionCard key={id} title={title} description={description}>
+                      <div className="mt-4 flex items-center gap-2">
+                        {(["file", "text"] as LegalMode[]).map(modeOption => (
+                          <button
+                            key={modeOption}
+                            type="button"
+                            onClick={() => requestLegalMode(id, modeOption)}
+                            className={`h-[29px] rounded-lg px-2 text-[14px] leading-5 transition-colors ${mode === modeOption ? "bg-[#4A6FA5] text-white shadow-[0_1px_3px_rgba(0,0,0,0.1)]" : "text-[#6B7280] hover:bg-[#F5F7FA]"}`}
+                            style={{ fontWeight: 500 }}
+                          >
+                            {modeOption === "file" ? "File upload" : "Free text"}
+                          </button>
+                        ))}
+                      </div>
+
+                      {mode === "file" ? (
+                        <div className="mt-3">
+                          {file ? (
+                            <div className="flex h-14 items-center gap-3 rounded-lg border border-[#E5E7EB] bg-[#F5F7FA] px-4">
+                              <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "18px" }}>description</span>
+                              <span className="flex-1 truncate text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{file}</span>
+                              <button type="button" onClick={() => setFile(null)} className="text-[#9CA3AF] hover:text-[#DC2626]">
+                                <span className="material-icons" style={{ fontSize: "18px" }}>close</span>
+                              </button>
+                            </div>
+                          ) : (
+                            <label className="flex h-36 cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-[#E5E7EB] bg-white hover:border-[#B8C3D5]">
+                              <span className="flex h-10 w-10 items-center justify-center rounded-full border border-[#E5E7EB]">
+                                <span className="material-icons text-[#1A2332]" style={{ fontSize: "16px" }}>upload</span>
+                              </span>
+                              <span className="text-center text-[14px] leading-5 text-[#1A2332]">
+                                Drop your file here, or <span className="text-[#4A6FA5] underline">click to browse</span>
+                              </span>
+                              <span className="text-[12px] leading-4 text-[#6B7280]">PDF or DOCX</span>
+                              <input
+                                type="file"
+                                accept=".pdf,.doc,.docx"
+                                className="hidden"
+                                onChange={e => {
+                                  const uploaded = e.target.files?.[0];
+                                  if (uploaded) setFile(uploaded.name);
+                                }}
+                              />
+                            </label>
+                          )}
+                        </div>
+                      ) : (
+                        <textarea
+                          value={legalText[id]}
+                          onChange={e => setLegalText(prev => ({ ...prev, [id]: e.target.value }))}
+                          placeholder={placeholder}
+                          className="mt-3 h-[76px] w-full resize-y rounded-lg border border-[#E5E7EB] bg-white px-3 py-2 text-[14px] leading-5 text-[#1A2332] shadow-[0_1px_2px_rgba(0,0,0,0.05)] outline-none placeholder:text-[#6B7280] focus:border-[#4A6FA5] focus:ring-2 focus:ring-[#4A6FA5]/20"
+                        />
+                      )}
+                    </SectionCard>
+                  );
+                })}
+
+                <div className="flex h-9 justify-end">
+                  <Button type="button" disabled className="h-9 rounded-lg bg-[#4A6FA5] px-4 text-[14px] text-white opacity-50" style={{ fontWeight: 500 }}>
+                    Save changes
+                  </Button>
+                </div>
+              </div>
+
+              {pendingLegalMode && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1A2332]/10">
+                  <div className="w-[440px] rounded-xl border border-[#E5E7EB] bg-white p-6 shadow-[0_14px_32px_rgba(26,35,50,0.16)]">
+                    <h3 className="text-[18px] leading-6 text-[#1A2332]" style={{ fontWeight: 700 }}>
+                      {pendingLegalMode.mode === "text" ? "Replace file with text?" : "Replace text with a file?"}
+                    </h3>
+                    <p className="mt-3 text-[13px] leading-5 text-[#6B7280]">
+                      {pendingLegalMode.mode === "text"
+                        ? "Your uploaded file will be removed. You can upload a new one at any time."
+                        : "Your typed terms will be removed. You can type them again at any time."}
+                    </p>
+                    <div className="mt-6 flex justify-end gap-2">
+                      <Button type="button" variant="outline" onClick={() => setPendingLegalMode(null)} className="h-9 border-[#E5E7EB] px-4 text-[#1A2332]">
+                        Cancel
+                      </Button>
+                      <Button type="button" onClick={confirmLegalMode} className="h-9 bg-[#4A6FA5] px-4 text-white hover:bg-[#3d5a85]">
+                        Confirm
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+          {false && activeSection === "general" && (
             <>
               <SectionHeader
                 title="General"
