@@ -43,7 +43,9 @@ export function SelectionBar({
 
       <span className="text-[#9CA3AF] text-[14px] select-none">·</span>
 
-      <div className="flex items-center gap-2 flex-1">
+      <div className="flex-1" />
+
+      <div className="flex items-center gap-2">
         {actions.map((a, i) => (
           <button
             key={i}

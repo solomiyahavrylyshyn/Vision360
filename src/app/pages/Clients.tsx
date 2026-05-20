@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useId, useSyncExternalStore } from "react";
+import { useState, useRef, useEffect, useId, useSyncExternalStore, useCallback } from "react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { useNavigate } from "react-router";
@@ -188,6 +188,13 @@ export function Clients() {
   const paginatedClients = displayedClients.slice(startIndex, endIndex);
 
   const allSelected = paginatedClients.length > 0 && paginatedClients.every(c => selectedClients.has(c.id));
+  const someSelected = selectedClients.size > 0 && !allSelected;
+  const headerCheckboxRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (headerCheckboxRef.current) {
+      headerCheckboxRef.current.indeterminate = someSelected;
+    }
+  }, [someSelected]);
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) setSelectedClients(new Set(displayedClients.map(c => c.id)));
@@ -634,8 +641,8 @@ export function Clients() {
 
         {/* ── Table ── */}
         <div className={showEmptyStatePreview ? "bg-white border border-[#E1E6EF] rounded-xl overflow-hidden shadow-[0_8px_22px_rgba(26,35,50,0.035)]" : "bg-white border border-[#E5E7EB] rounded-xl overflow-hidden"}>
-          {/* Filter Bar */}
-          <div className={showEmptyStatePreview ? "flex items-center gap-2 px-4 py-2.5 bg-white border-b border-[#E5E7EB]" : "flex items-center gap-2 px-4 py-3 bg-white border-b border-[#E5E7EB]"}>
+          {/* Filter Bar — hidden when the selection bar is active so it takes its place per Figma */}
+          <div className={`${selectedClients.size > 0 ? "hidden " : ""}${showEmptyStatePreview ? "flex items-center gap-2 px-4 py-2.5 bg-white border-b border-[#E5E7EB]" : "flex items-center gap-2 px-4 py-3 bg-white border-b border-[#E5E7EB]"}`}>
             <div className="relative">
               <span className="material-icons absolute left-2.5 top-1/2 -translate-y-1/2 text-[#9AA3AF]" style={{ fontSize: "16px" }}>search</span>
               <Input type="text" placeholder="Search clients..." value={searchQuery}
@@ -723,14 +730,22 @@ export function Clients() {
             count={selectedClients.size}
             onDeselect={() => setSelectedClients(new Set())}
             actions={[
-              { label: "Export", icon: "file_download", onClick: () => {} },
+              {
+                label: "Inactivate",
+                icon: "block",
+                onClick: () => {
+                  setClients(prev => prev.filter(c => !selectedClients.has(c.id)));
+                  setSelectedClients(new Set());
+                },
+              },
+              { label: "Export selected", icon: "file_download", onClick: () => {} },
             ]}
           />
           <table className="w-full">
             <thead className="bg-[#F5F7FA]">
               <tr>
                 <th className="px-4 py-3 text-left w-10">
-                  <input type="checkbox" checked={allSelected} onChange={e => handleSelectAll(e.target.checked)} className="cursor-pointer w-4 h-4 rounded border-[#E5E7EB]" />
+                  <input ref={headerCheckboxRef} type="checkbox" checked={allSelected} onChange={e => handleSelectAll(e.target.checked)} className="cursor-pointer w-4 h-4 rounded accent-[#4A6FA5]" />
                 </th>
                 {clientCols.map(col => (
                   <DraggableTh
@@ -775,7 +790,7 @@ export function Clients() {
                     <input type="checkbox" checked={selectedClients.has(client.id)}
                       onChange={e => handleSelectClient(client.id, e.target.checked)}
                       onClick={e => e.stopPropagation()}
-                      className="cursor-pointer w-4 h-4 rounded border-[#E5E7EB]" />
+                      className="cursor-pointer w-4 h-4 rounded accent-[#4A6FA5]" />
                   </td>
                   {clientCols.map(col => {
                     switch (col.key) {
