@@ -3058,7 +3058,7 @@ export function Settings() {
                   const setFile = legalFileSetters[id];
                   return (
                     <SectionCard key={id} title={title} description={description}>
-                      <div className="mt-4 flex items-center gap-2">
+                      <div className="mt-2 flex items-center gap-2">
                         {(["file", "text"] as LegalMode[]).map(modeOption => (
                           <button
                             key={modeOption}
