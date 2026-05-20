@@ -881,12 +881,22 @@ export function EstimateDetail() {
               <h1 className="text-[20px] text-[#1A2332] leading-[27px]" style={{ fontWeight: 700 }}>
                 {estimate.estimateName || `Estimate #${estimate.estimateNumber}`}
               </h1>
-              {/* Client + address + job inline row */}
+              {/* Client + phone + email + address + job inline row */}
               <div className="flex items-center gap-0.5 flex-wrap">
                 <button onClick={() => navigate("/clients/1")} className="flex items-center gap-1.5 text-[14px] text-[#4A6FA5] hover:underline transition-colors" style={{ fontWeight: 500 }}>
                   <span className="material-icons" style={{ fontSize: "16px" }}>person</span>
                   {estimate.clientName}
                 </button>
+                {estimate.clientPhone && (
+                  <a href={`tel:${estimate.clientPhone}`} className="inline-flex items-center justify-center w-6 h-6 rounded hover:bg-[#F5F7FA] text-[#6B7280] hover:text-[#4A6FA5] transition-colors ml-0.5" title={estimate.clientPhone}>
+                    <span className="material-icons" style={{ fontSize: "15px" }}>phone</span>
+                  </a>
+                )}
+                {estimate.clientEmail && (
+                  <a href={`mailto:${estimate.clientEmail}`} className="inline-flex items-center justify-center w-6 h-6 rounded hover:bg-[#F5F7FA] text-[#6B7280] hover:text-[#4A6FA5] transition-colors" title={estimate.clientEmail}>
+                    <span className="material-icons" style={{ fontSize: "15px" }}>mail</span>
+                  </a>
+                )}
                 <div className="w-px h-5 bg-[#E5E7EB] mx-1" />
                 <span className="flex items-center gap-1 text-[14px] text-[#374151]">
                   <span className="material-icons text-[#6B7280]" style={{ fontSize: "16px" }}>location_on</span>
@@ -902,7 +912,7 @@ export function EstimateDetail() {
                   </>
                 )}
               </div>
-              {/* Metadata strip */}
+              {/* Metadata strip — all estimate metadata + edit pencil at the end */}
               <div className="flex items-center gap-0.5 flex-wrap pt-2 mt-1 border-t border-[#F3F4F6]">
                 <div className="flex items-center gap-1.5 pr-3 text-[13px] text-[#6B7280]">
                   <span className="material-icons" style={{ fontSize: "14px" }}>calendar_today</span>
@@ -914,6 +924,11 @@ export function EstimateDetail() {
                   Expires {estimate.expirationDate || "—"}
                 </div>
                 <div className="w-px h-4 bg-[#E5E7EB]" />
+                <div className="flex items-center gap-1.5 px-3 text-[13px] text-[#6B7280]" title="Estimate number">
+                  <span className="material-icons" style={{ fontSize: "14px" }}>description</span>
+                  #{estimate.estimateNumber}
+                </div>
+                <div className="w-px h-4 bg-[#E5E7EB]" />
                 <div className="flex items-center gap-1.5 px-3 text-[13px] text-[#6B7280]">
                   <span className="material-icons" style={{ fontSize: "14px" }}>person</span>
                   {estimate.teamMember}
@@ -923,6 +938,13 @@ export function EstimateDetail() {
                   <span className="material-icons" style={{ fontSize: "14px" }}>mail</span>
                   Sent {estimate.sentDate}
                 </div>
+                <button
+                  onClick={() => navigate(`/estimates/${id}/edit`)}
+                  className="ml-1.5 inline-flex items-center justify-center w-6 h-6 rounded text-[#6B7280] hover:text-[#4A6FA5] hover:bg-[#F5F7FA] transition-colors"
+                  title="Edit estimate details"
+                >
+                  <span className="material-icons" style={{ fontSize: "15px" }}>edit</span>
+                </button>
               </div>
             </div>
 
