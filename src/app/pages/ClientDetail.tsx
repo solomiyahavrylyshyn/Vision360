@@ -1,4 +1,4 @@
-import { useState, useSyncExternalStore, useCallback, useRef } from "react";
+import { useState, useSyncExternalStore, useCallback, useRef, type ReactNode } from "react";
 import { DocumentPreview } from "../components/DocumentPreview";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
@@ -341,11 +341,14 @@ export function ClientDetail() {
   // Selected file for the right-side preview panel (rename / download / delete)
   const [previewFileId, setPreviewFileId] = useState<string | null>(null);
   const previewFile = documents.find(d => d.id === previewFileId) ?? null;
-  // Visible tabs with live counts overlaid (Documents reflects documents.length,
-  // matching how Properties and Jobs show their counts).
+  // Visible tabs with live counts overlaid, matching how Properties and Jobs show their counts.
   const visibleTabs = tabs
     .filter(t => !hiddenTabs.has(t.key))
-    .map(t => t.key === "documents" ? { ...t, count: documents.length } : t);
+    .map(t => {
+      if (t.key === "documents") return { ...t, count: documents.length };
+      if (t.key === "payments") return { ...t, count: paymentRows.length };
+      return t;
+    });
   // Batch selection state
   const [selectedDocs, setSelectedDocs] = useState<Set<string>>(new Set());
   const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
@@ -559,14 +562,10 @@ export function ClientDetail() {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-[200px]">
         {[
-          { label: "Appointment",       icon: "event",       path: "/appointments/new" },
           { label: "Estimate",          icon: "description", path: "/estimates/new" },
           { label: "Job",               icon: "work",        path: "/jobs/new" },
           { label: "Invoice",           icon: "receipt",     path: "/invoices/new" },
           { label: "Payment",           icon: "credit_card", path: "/payments/new" },
-          { label: "Message",           icon: "message",     path: null },
-          { label: "Property",          icon: "home",        path: "/properties/new" },
-          { label: "Service Agreement", icon: "assignment",  path: "/service-agreements/new" },
           { label: "Contact",           icon: "person_add",  path: "/clients/new" },
         ].map(({ label, icon, path }) => (
           <DropdownMenuItem
@@ -1197,6 +1196,30 @@ export function ClientDetail() {
   /* ──────────────────────────────────────────
      TAB CONTENT ROUTER
   ────────────────────────────────────────── */
+  const TabActionButton = ({
+    children,
+    onClick,
+    icon = "plus",
+  }: {
+    children: ReactNode;
+    onClick: () => void;
+    icon?: "plus" | "upload";
+  }) => (
+    <button
+      type="button"
+      onClick={onClick}
+      className="h-8 px-3 gap-1.5 text-[13px] bg-[#4A6FA5] hover:bg-[#3d5a85] text-white rounded-md inline-flex items-center justify-center transition-colors"
+      style={{ fontWeight: 600 }}
+    >
+      {icon === "plus" ? (
+        <PlusIcon className="h-4 w-4" />
+      ) : (
+        <span className="material-icons" style={{ fontSize: "16px" }}>upload</span>
+      )}
+      {children}
+    </button>
+  );
+
   const renderContent = () => {
     switch (activeTab) {
       case "details":
@@ -1216,9 +1239,7 @@ export function ClientDetail() {
           <>
             <div className="flex items-center justify-between mb-5">
               <h3 className="text-[15px] text-[#1A2332]" style={{ fontWeight: 600 }}>Jobs</h3>
-              <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-[#F5F7FA]" onClick={() => navigate("/jobs/new")}>
-                <PlusIcon className="h-5 w-5 text-[#546478]" />
-              </Button>
+              <TabActionButton onClick={() => navigate("/jobs/new")}>Create job</TabActionButton>
             </div>
             <WorkTable items={jobItems} emptyIcon="work" emptyLabel="No jobs yet for this client." />
           </>
@@ -1229,9 +1250,7 @@ export function ClientDetail() {
           <>
             <div className="flex items-center justify-between mb-5">
               <h3 className="text-[15px] text-[#1A2332]" style={{ fontWeight: 600 }}>Estimates</h3>
-              <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-[#F5F7FA]" onClick={() => navigate("/estimates/new")}>
-                <PlusIcon className="h-5 w-5 text-[#546478]" />
-              </Button>
+              <TabActionButton onClick={() => navigate("/estimates/new")}>Create estimate</TabActionButton>
             </div>
             <WorkTable items={estimateItems} emptyIcon="request_quote" emptyLabel="No estimates yet for this client." />
           </>
@@ -1245,9 +1264,7 @@ export function ClientDetail() {
                 <h3 className="text-[15px] text-[#1A2332]" style={{ fontWeight: 600 }}>Invoices</h3>
                 <span className="text-[12px] text-[#6B7280]">{invoiceRows.length} invoices</span>
               </div>
-              <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-[#F5F7FA]" onClick={() => navigate("/invoices/new")}>
-                <PlusIcon className="h-5 w-5 text-[#546478]" />
-              </Button>
+              <TabActionButton onClick={() => navigate("/invoices/new")}>Create invoice</TabActionButton>
             </div>
             <div className="overflow-x-auto">
               <InvoiceTable />
@@ -1263,10 +1280,7 @@ export function ClientDetail() {
                 <h3 className="text-[15px] text-[#1A2332]" style={{ fontWeight: 600 }}>Payments</h3>
                 <span className="text-[12px] text-[#6B7280]">{paymentRows.length} payments</span>
               </div>
-              <Button className="h-8 px-3 gap-1.5 text-[13px] bg-[#4A6FA5] hover:bg-[#3d5a85] text-white" onClick={() => navigate(`/payments/new?client=${encodeURIComponent(client.name)}&clientId=${encodeURIComponent(client.customerId)}&amount=${client.openBalance}`)}>
-                <PlusIcon className="h-4 w-4" />
-                Collect payment
-              </Button>
+              <TabActionButton onClick={() => navigate(`/payments/new?client=${encodeURIComponent(client.name)}&clientId=${encodeURIComponent(client.customerId)}&amount=${client.openBalance}`)}>Collect payment</TabActionButton>
             </div>
             <div className="overflow-x-auto">
               <PaymentTable />
@@ -1280,15 +1294,7 @@ export function ClientDetail() {
             {/* Header */}
             <div className="flex items-center justify-between mb-1">
               <h3 className="text-[15px] text-[#1A2332]" style={{ fontWeight: 600 }}>Service Addresses</h3>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 px-3 gap-1.5 text-[13px] text-[#4A6FA5] hover:bg-[#EEF2F8]"
-                onClick={() => { setShowAddAddress(true); setNewAddr({ street: "", unit: "", city: "", state: "", zip: "", county: "", notes: "" }); }}
-              >
-                <PlusIcon className="h-4 w-4" />
-                Add address
-              </Button>
+              <TabActionButton onClick={() => { setShowAddAddress(true); setNewAddr({ street: "", unit: "", city: "", state: "", zip: "", county: "", notes: "" }); }}>Add address</TabActionButton>
             </div>
 
             {/* Address cards */}
@@ -1465,9 +1471,10 @@ export function ClientDetail() {
                 </DropdownMenuContent>
               </DropdownMenu>
               <div className="flex-1" />
-              <Button
-                size="sm"
-                className="h-8 px-3 gap-1.5 text-[13px] bg-[#4A6FA5] hover:bg-[#3d5a85] text-white shrink-0"
+              <button
+                type="button"
+                className="h-8 px-3 gap-1.5 text-[13px] bg-[#4A6FA5] hover:bg-[#3d5a85] text-white rounded-md inline-flex items-center justify-center transition-colors shrink-0"
+                style={{ fontWeight: 600 }}
                 onClick={() => fileInputRef.current?.click()}
                 onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
                 onDragLeave={() => setIsDragOver(false)}
@@ -1475,7 +1482,7 @@ export function ClientDetail() {
               >
                 <span className="material-icons" style={{ fontSize: "16px" }}>upload</span>
                 Upload
-              </Button>
+              </button>
             </div>
 
             {/* Hidden file input */}
@@ -1657,9 +1664,7 @@ export function ClientDetail() {
           <>
             <div className="flex items-center justify-between mb-5">
               <h3 className="text-[15px] text-[#1A2332]" style={{ fontWeight: 600 }}>Notes</h3>
-              <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-[#F5F7FA]" onClick={() => toast.info("Add note coming soon")}>
-                <PlusIcon className="h-5 w-5 text-[#546478]" />
-              </Button>
+              <TabActionButton onClick={() => toast.info("Add note coming soon")}>Add note</TabActionButton>
             </div>
             <div className="space-y-4">
               {client.notesArray.map((note) => (

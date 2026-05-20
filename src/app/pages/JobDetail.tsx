@@ -1105,19 +1105,16 @@ export function JobDetail() {
           <div className="flex flex-col gap-4">
             {/* Main info section */}
             <div className="flex flex-col gap-4">
-              {/* Left: Name + Address + Icons + Status */}
-              <div className="flex flex-col gap-4 min-w-[270px]">
-                <div className="flex items-baseline gap-2">
+              <div className="flex flex-col gap-1 min-w-[270px]">
+                <div className="flex items-center gap-2 flex-wrap">
                   <button
                     onClick={() => navigate(`/clients/${job.clientId}`)}
-                    className="text-[22px] text-[#1A2332] leading-none hover:text-[#4A6FA5] hover:underline transition-colors text-left"
+                    className="text-[22px] text-[#1A2332] leading-[28px] hover:text-[#4A6FA5] hover:underline transition-colors text-left"
                     style={{ fontWeight: 600 }}
                   >
                     {job.client}
                   </button>
-                  <span className="text-[13px] text-[#9CA3AF]">
-                    {job.jobNumber}
-                  </span>
+                  <span className="text-[14px] text-[#6B7280] leading-[20px]">({job.jobNumber})</span>
                 </div>
 
                 {/* Address */}
