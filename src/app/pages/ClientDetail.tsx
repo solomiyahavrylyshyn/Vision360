@@ -585,7 +585,7 @@ export function ClientDetail() {
           </DropdownMenuItem>
         </DropdownMenuSubContent>
       </DropdownMenuSub>
-      <KebabItem icon="payments" onClick={() => { setActiveTab("payments"); setHiddenTabs(prev => { const next = new Set(prev); next.delete("payments"); return next; }); }}>Collect Payment</KebabItem>
+      <KebabItem icon="payments" onClick={() => navigate(`/payments/new?client=${encodeURIComponent(client.name)}&clientId=${encodeURIComponent(client.customerId)}&amount=${client.openBalance}`)}>Collect Payment</KebabItem>
     </KebabMenuShared>
   );
 
@@ -1240,7 +1240,7 @@ export function ClientDetail() {
                 <h3 className="text-[15px] text-[#1A2332]" style={{ fontWeight: 600 }}>Payments</h3>
                 <span className="text-[12px] text-[#6B7280]">{paymentRows.length} payments</span>
               </div>
-              <Button className="h-8 px-3 gap-1.5 text-[13px] bg-[#4A6FA5] hover:bg-[#3d5a85] text-white" onClick={() => toast.info("Collect payment coming soon")}>
+              <Button className="h-8 px-3 gap-1.5 text-[13px] bg-[#4A6FA5] hover:bg-[#3d5a85] text-white" onClick={() => navigate(`/payments/new?client=${encodeURIComponent(client.name)}&clientId=${encodeURIComponent(client.customerId)}&amount=${client.openBalance}`)}>
                 <PlusIcon className="h-4 w-4" />
                 Collect payment
               </Button>

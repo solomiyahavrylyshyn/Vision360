@@ -30,6 +30,7 @@ export function CreateJob() {
   const navigate = useNavigate();
   const [title, setTitle] = useState("");
   const [client, setClient] = useState("");
+  const [clientSearch, setClientSearch] = useState("");
   const [clientPickerOpen, setClientPickerOpen] = useState(false);
   const [jobNumber, setJobNumber] = useState("2");
   const [jobType, setJobType] = useState<"one-off" | "recurring">("one-off");
@@ -86,6 +87,11 @@ export function CreateJob() {
   const taxableAmount = lineItems.filter(li => li.taxable).reduce((sum, li) => sum + li.total, 0);
   const taxAmount = taxableAmount * (taxRate / 100);
   const total = subtotal + taxAmount;
+  const filteredClients = mockClients.filter((mockClient) => {
+    const query = clientSearch.trim().toLowerCase();
+    if (!query) return true;
+    return mockClient.name.toLowerCase().includes(query) || mockClient.address.toLowerCase().includes(query);
+  });
 
   const fmt = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -136,23 +142,45 @@ export function CreateJob() {
                 <div>
                   <label className="text-[11px] text-[#9CA3AF] mb-1 block">Customer</label>
                   <div className="relative">
+                    <input
+                      type="text"
+                      value={clientPickerOpen ? clientSearch : client}
+                      onFocus={() => {
+                        setClientSearch(client);
+                        setClientPickerOpen(true);
+                      }}
+                      onClick={() => setClientPickerOpen(true)}
+                      onChange={(e) => {
+                        setClientSearch(e.target.value);
+                        setClient(e.target.value);
+                        setClientPickerOpen(true);
+                      }}
+                      placeholder="Select a client"
+                      className="w-full h-10 px-3 pr-9 border border-[#E5E7EB] rounded-md text-[13px] text-[#1A2332] placeholder:text-[#9CA3AF] focus:outline-none focus:border-[#4A6FA5] bg-white"
+                    />
                     <button
                       type="button"
-                      onClick={() => setClientPickerOpen(open => !open)}
-                      className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] text-left focus:outline-none focus:border-[#4A6FA5] flex items-center justify-between bg-white"
+                      onClick={() => {
+                        setClientSearch(client);
+                        setClientPickerOpen(open => !open);
+                      }}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center rounded hover:bg-[#F5F7FA]"
+                      aria-label="Open client list"
                     >
-                      <span className={client ? "text-[#1A2332]" : "text-[#9CA3AF]"}>{client || "Select a client"}</span>
                       <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "18px" }}>expand_more</span>
                     </button>
                     {clientPickerOpen && (
                       <div className="absolute left-0 right-0 top-[calc(100%+4px)] z-50 rounded-lg border border-[#E5E7EB] bg-white shadow-lg overflow-hidden">
                         <div className="max-h-[220px] overflow-y-auto py-1">
-                          {mockClients.map((mockClient) => (
+                          {filteredClients.length === 0 ? (
+                            <div className="px-3 py-3 text-[12px] text-[#8899AA]">No clients found</div>
+                          ) : filteredClients.map((mockClient) => (
                             <button
                               key={mockClient.id}
                               type="button"
                               onClick={() => {
                                 setClient(mockClient.name);
+                                setClientSearch(mockClient.name);
                                 setClientPickerOpen(false);
                               }}
                               className="w-full px-3 py-2.5 text-left hover:bg-[#F5F7FA]"
