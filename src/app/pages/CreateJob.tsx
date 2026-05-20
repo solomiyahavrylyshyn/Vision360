@@ -17,21 +17,39 @@ const mockCatalogItems: CatalogItem[] = [
   { id: 1007, name: "Thermostat - Smart WiFi", itemDescription: "Smart thermostat with WiFi connectivity", salesDescription: "Smart WiFi Thermostat — professional installation included", brand: "Ecobee", modelNumber: "EB-STATE5-01", rate: 450, cost: 180, taxable: true, category: "HVAC", type: "Product" },
 ];
 
+const mockClients = [
+  { id: "1", name: "John Smith", address: "123 Main St, Austin, TX 78701" },
+  { id: "2", name: "Sarah Johnson", address: "456 Oak Ave, Dallas, TX 75201" },
+  { id: "3", name: "Mike Davis", address: "789 Pine Rd, Houston, TX 77001" },
+  { id: "4", name: "Robert Lee", address: "321 Elm St, San Antonio, TX 78201" },
+  { id: "5", name: "Emily Parker", address: "654 Maple Dr, Fort Worth, TX 76101" },
+  { id: "6", name: "Tom Carter", address: "987 Cedar Ln, Plano, TX 75023" },
+];
+
 export function CreateJob() {
   const navigate = useNavigate();
   const [title, setTitle] = useState("");
   const [client, setClient] = useState("");
+  const [clientPickerOpen, setClientPickerOpen] = useState(false);
   const [jobNumber, setJobNumber] = useState("2");
   const [jobType, setJobType] = useState<"one-off" | "recurring">("one-off");
   const [jobCategory, setJobCategory] = useState("");
   const availableJobTypes = useSyncExternalStore(jobTypesStore.subscribe, jobTypesStore.getJobTypes);
+  const fieldEmployees = ["Peter Novak", "Travis Webb", "Ernesto Reyes", "Alex Kim"];
+  const [serviceStreet, setServiceStreet] = useState("");
+  const [serviceCity, setServiceCity] = useState("");
+  const [serviceState, setServiceState] = useState("");
+  const [serviceZip, setServiceZip] = useState("");
+  const [gateCode, setGateCode] = useState("");
   const [startDate, setStartDate] = useState("2026-04-06");
+  const [endDate, setEndDate] = useState("2026-04-06");
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
-  const [visitInstructions, setVisitInstructions] = useState("");
-  const [remindInvoice, setRemindInvoice] = useState(true);
+  const [assignedTo, setAssignedTo] = useState("");
   const [lineItems, setLineItems] = useState<SelectedLineItem[]>([]);
   const [notes, setNotes] = useState("");
+  const [fieldNotes, setFieldNotes] = useState("");
+  const [privateNotes, setPrivateNotes] = useState("");
   const [itemPickerOpen, setItemPickerOpen] = useState(false);
   const [taxRate, setTaxRate] = useState(7.5);
 
@@ -79,7 +97,7 @@ export function CreateJob() {
     <div className="min-h-full bg-white">
       <div className="h-1 bg-[#4A6FA5]" />
 
-      <div className="max-w-[800px] mx-auto py-8 px-6">
+      <div className="max-w-[1180px] mx-auto py-8 px-6">
         <button
           onClick={() => navigate("/jobs")}
           className="inline-flex items-center gap-1.5 text-[13px] text-[#4A6FA5] hover:text-[#3d5a85] transition-colors mb-6"
@@ -91,139 +109,140 @@ export function CreateJob() {
         {/* Header */}
         <PageHeader title="Create Job" icon="work" className="mb-6" />
 
-        {/* Title & Client */}
-        <div className="space-y-4 mb-6">
-          <input
-            type="text"
-            placeholder="Job Title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="w-full px-4 py-3 border border-[#E5E7EB] rounded-md text-sm focus:outline-none focus:border-[#4A6FA5]"
-          />
-          <div className="grid grid-cols-[1fr_auto] gap-4">
-            <input
-              type="text"
-              placeholder="Select a client"
-              value={client}
-              onChange={(e) => setClient(e.target.value)}
-              className="px-4 py-3 border border-[#E5E7EB] rounded-md text-sm focus:outline-none focus:border-[#4A6FA5]"
-            />
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-[#546478]">Job #</span>
-              <input
-                type="text"
-                value={jobNumber}
-                onChange={(e) => setJobNumber(e.target.value)}
-                className="w-24 px-3 py-3 border border-[#E5E7EB] rounded-md text-sm focus:outline-none focus:border-[#4A6FA5]"
-              />
-            </div>
-          </div>
-          <div />
-        </div>
-
-        {/* Job Type & Schedule */}
-        <div className="border border-[#E5E7EB] rounded-lg p-6 mb-6">
-          <h3 className="text-[16px] text-[#1A2332] mb-5" style={{ fontWeight: 700 }}>Job Details</h3>
-          <div className="grid grid-cols-2 gap-4 mb-6">
-            {/* Schedule type: One-off / Recurring */}
-            <div>
-              <label className="text-[13px] text-[#546478] mb-1.5 block" style={{ fontWeight: 500 }}>Schedule type</label>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setJobType("one-off")}
-                  className={`px-4 py-1.5 rounded-md text-sm border ${
-                    jobType === "one-off" ? "border-[#1A2332] bg-white text-[#1A2332]" : "border-[#E5E7EB] text-[#546478]"
-                  }`}
-                  style={{ fontWeight: jobType === "one-off" ? 600 : 400 }}
-                >
-                  One-off
-                </button>
-                <button
-                  onClick={() => setJobType("recurring")}
-                  className={`px-4 py-1.5 rounded-md text-sm border ${
-                    jobType === "recurring" ? "border-[#1A2332] bg-white text-[#1A2332]" : "border-[#E5E7EB] text-[#546478]"
-                  }`}
-                  style={{ fontWeight: jobType === "recurring" ? 600 : 400 }}
-                >
-                  Recurring
-                </button>
+        {/* Job details layout mirrors the Job Details page */}
+        <div className="grid grid-cols-[minmax(0,1fr)_420px] gap-4 mb-6">
+          <div className="border border-[#E5E7EB] rounded-lg p-5 flex flex-col gap-5">
+            <section className="flex flex-col gap-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Job Overview</h3>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => setJobType("one-off")} className={`h-8 px-3 rounded-md text-[12px] border ${jobType === "one-off" ? "border-[#1A2332] text-[#1A2332]" : "border-[#E5E7EB] text-[#546478]"}`} style={{ fontWeight: jobType === "one-off" ? 600 : 500 }}>One-off</button>
+                  <button onClick={() => setJobType("recurring")} className={`h-8 px-3 rounded-md text-[12px] border ${jobType === "recurring" ? "border-[#1A2332] text-[#1A2332]" : "border-[#E5E7EB] text-[#546478]"}`} style={{ fontWeight: jobType === "recurring" ? 600 : 500 }}>Recurring</button>
+                </div>
               </div>
-            </div>
 
-            {/* Job type dropdown */}
-            <div>
-              <label className="text-[13px] text-[#546478] mb-1.5 block" style={{ fontWeight: 500 }}>Job type</label>
-              <select
-                value={jobCategory}
-                onChange={e => setJobCategory(e.target.value)}
-                className="w-full h-[34px] px-3 border border-[#E5E7EB] rounded-md text-[13px] text-[#1A2332] bg-white focus:outline-none focus:border-[#4A6FA5]"
-              >
-                <option value="">Select job type</option>
-                {availableJobTypes.map(t => (
-                  <option key={t} value={t}>{t}</option>
-                ))}
-              </select>
-              <p className="text-[12px] text-[#6B7280] mt-1">
-                Manage job types in <span className="text-[#4A6FA5] cursor-pointer hover:underline" onClick={() => navigate("/settings?section=jobTypes")}>Settings → Job Types</span>
-              </p>
-            </div>
-          </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[11px] text-[#9CA3AF] mb-1 block">Job Title</label>
+                  <input type="text" placeholder="AC Estimate" value={title} onChange={(e) => setTitle(e.target.value)} className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] focus:outline-none focus:border-[#4A6FA5]" />
+                </div>
+                <div>
+                  <label className="text-[11px] text-[#9CA3AF] mb-1 block">Job Type</label>
+                  <select value={jobCategory} onChange={e => setJobCategory(e.target.value)} className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] text-[#1A2332] bg-white focus:outline-none focus:border-[#4A6FA5]">
+                    <option value="">Select job type</option>
+                    {availableJobTypes.map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[11px] text-[#9CA3AF] mb-1 block">Customer</label>
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setClientPickerOpen(open => !open)}
+                      className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] text-left focus:outline-none focus:border-[#4A6FA5] flex items-center justify-between bg-white"
+                    >
+                      <span className={client ? "text-[#1A2332]" : "text-[#9CA3AF]"}>{client || "Select a client"}</span>
+                      <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "18px" }}>expand_more</span>
+                    </button>
+                    {clientPickerOpen && (
+                      <div className="absolute left-0 right-0 top-[calc(100%+4px)] z-50 rounded-lg border border-[#E5E7EB] bg-white shadow-lg overflow-hidden">
+                        <div className="max-h-[220px] overflow-y-auto py-1">
+                          {mockClients.map((mockClient) => (
+                            <button
+                              key={mockClient.id}
+                              type="button"
+                              onClick={() => {
+                                setClient(mockClient.name);
+                                setClientPickerOpen(false);
+                              }}
+                              className="w-full px-3 py-2.5 text-left hover:bg-[#F5F7FA]"
+                            >
+                              <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{mockClient.name}</div>
+                              <div className="text-[11px] text-[#8899AA]">{mockClient.address}</div>
+                            </button>
+                          ))}
+                        </div>
+                        <div className="border-t border-[#E5E7EB] p-1">
+                          <button
+                            type="button"
+                            onClick={() => navigate("/clients/new")}
+                            className="w-full px-3 py-2 text-left text-[13px] text-[#4A6FA5] hover:bg-[#EEF3FA] rounded-md flex items-center gap-2"
+                            style={{ fontWeight: 600 }}
+                          >
+                            <PlusIcon className="h-4 w-4" />
+                            Create new client
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-[11px] text-[#9CA3AF] mb-1 block">Job #</label>
+                  <input type="text" value={jobNumber} onChange={(e) => setJobNumber(e.target.value)} className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] focus:outline-none focus:border-[#4A6FA5]" />
+                </div>
+              </div>
 
-          {/* Schedule */}
-          <div>
-            <h3 className="text-[16px] text-[#1A2332] mb-3" style={{ fontWeight: 700 }}>Schedule</h3>
-
-            <div className="grid grid-cols-3 gap-3 mb-4">
               <div>
-                <label className="text-xs text-[#546478] mb-1 block">Start date</label>
-                <input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="w-full px-3 py-2 border border-[#E5E7EB] rounded-md text-sm focus:outline-none focus:border-[#4A6FA5]"
-                />
+                <label className="text-[11px] text-[#9CA3AF] mb-1 block">Service Address</label>
+                <input type="text" placeholder="Street address" value={serviceStreet} onChange={(e) => setServiceStreet(e.target.value)} className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] focus:outline-none focus:border-[#4A6FA5] mb-2" />
+                <div className="grid grid-cols-[1fr_90px_110px_120px] gap-2">
+                  <input type="text" placeholder="City" value={serviceCity} onChange={(e) => setServiceCity(e.target.value)} className="h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] focus:outline-none focus:border-[#4A6FA5]" />
+                  <input type="text" placeholder="State" value={serviceState} onChange={(e) => setServiceState(e.target.value)} className="h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] focus:outline-none focus:border-[#4A6FA5]" />
+                  <input type="text" placeholder="Zip" value={serviceZip} onChange={(e) => setServiceZip(e.target.value)} className="h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] focus:outline-none focus:border-[#4A6FA5]" />
+                  <input type="text" placeholder="Gate code" value={gateCode} onChange={(e) => setGateCode(e.target.value)} className="h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] focus:outline-none focus:border-[#4A6FA5]" />
+                </div>
               </div>
-              <div>
-                <label className="text-xs text-[#546478] mb-1 block">Start time</label>
-                <input
-                  type="time"
-                  value={startTime}
-                  onChange={(e) => setStartTime(e.target.value)}
-                  className="w-full px-3 py-2 border border-[#E5E7EB] rounded-md text-sm focus:outline-none focus:border-[#4A6FA5]"
-                />
-              </div>
-              <div>
-                <label className="text-xs text-[#546478] mb-1 block">End time</label>
-                <input
-                  type="time"
-                  value={endTime}
-                  onChange={(e) => setEndTime(e.target.value)}
-                  className="w-full px-3 py-2 border border-[#E5E7EB] rounded-md text-sm focus:outline-none focus:border-[#4A6FA5]"
-                />
-              </div>
-            </div>
+            </section>
 
-            <textarea
-              placeholder="Visit instructions"
-              value={visitInstructions}
-              onChange={(e) => setVisitInstructions(e.target.value)}
-              className="w-full px-3 py-2 border border-[#E5E7EB] rounded-md text-sm focus:outline-none focus:border-[#4A6FA5] min-h-[80px] resize-y"
-            />
+            <div className="h-px bg-[#E5E7EB]" />
+
+            <section className="flex flex-col gap-4">
+              <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Job Date & Time</h3>
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="text-[11px] text-[#9CA3AF] mb-1 block">Start Date</label>
+                  <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] focus:outline-none focus:border-[#4A6FA5]" />
+                </div>
+                <div>
+                  <label className="text-[11px] text-[#9CA3AF] mb-1 block">End Date</label>
+                  <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] focus:outline-none focus:border-[#4A6FA5]" />
+                </div>
+                <div>
+                  <label className="text-[11px] text-[#9CA3AF] mb-1 block">Assigned To</label>
+                  <select value={assignedTo} onChange={(e) => setAssignedTo(e.target.value)} className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5]">
+                    <option value="">Unassigned</option>
+                    {fieldEmployees.map((name) => <option key={name} value={name}>{name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[11px] text-[#9CA3AF] mb-1 block">Start Time</label>
+                  <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] focus:outline-none focus:border-[#4A6FA5]" />
+                </div>
+                <div>
+                  <label className="text-[11px] text-[#9CA3AF] mb-1 block">End Time</label>
+                  <input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] focus:outline-none focus:border-[#4A6FA5]" />
+                </div>
+              </div>
+            </section>
           </div>
-        </div>
 
-        {/* Billing */}
-        <div className="border border-[#E5E7EB] rounded-lg p-6 mb-6">
-          <h3 className="text-[16px] text-[#1A2332] mb-4" style={{ fontWeight: 700 }}>Billing</h3>
-          <label className="flex items-center gap-2 text-sm text-[#546478] cursor-pointer">
-            <input
-              type="checkbox"
-              checked={remindInvoice}
-              onChange={(e) => setRemindInvoice(e.target.checked)}
-              className="rounded accent-[#4A6FA5]"
-            />
-            Remind me to create an invoice when this job is completed
-          </label>
+          <div className="grid grid-cols-1 gap-4">
+            {[
+              { title: "Job Notes", value: notes, setValue: setNotes, placeholder: "Notes visible on the job..." },
+              { title: "Field Notes", value: fieldNotes, setValue: setFieldNotes, placeholder: "Technician notes..." },
+              { title: "Private Notes", value: privateNotes, setValue: setPrivateNotes, placeholder: "Internal private notes..." },
+            ].map((note) => (
+              <div key={note.title} className="border border-[#E5E7EB] rounded-lg bg-white">
+                <div className="px-4 py-3 border-b border-[#E5E7EB]">
+                  <h3 className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>{note.title}</h3>
+                </div>
+                <div className="p-4">
+                  <textarea value={note.value} onChange={(e) => note.setValue(e.target.value)} placeholder={note.placeholder} className="w-full min-h-[84px] resize-y border-none p-0 text-[13px] leading-[20px] text-[#374151] focus:outline-none" />
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Line Items */}
@@ -318,25 +337,6 @@ export function CreateJob() {
               </div>
             </>
           )}
-        </div>
-
-        {/* Notes */}
-        <div className="mb-8">
-          <h3 className="text-[16px] text-[#1A2332] mb-3" style={{ fontWeight: 700 }}>Notes</h3>
-          <div className="border border-[#E5E7EB] rounded-lg p-6">
-            {!notes && (
-              <div className="flex flex-col items-center justify-center mb-4">
-                <span className="material-icons text-[#C8D5E8] mb-2" style={{ fontSize: "28px" }}>edit_note</span>
-                <p className="text-sm text-[#8899AA] text-center">Leave an internal note for yourself or a team member</p>
-              </div>
-            )}
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              className="w-full px-3 py-2 border border-[#E5E7EB] rounded-md text-sm focus:outline-none focus:border-[#4A6FA5] min-h-[80px] resize-y"
-              placeholder="Type a note..."
-            />
-          </div>
         </div>
 
         {/* Actions */}
