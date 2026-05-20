@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { getStoredBrandLogo, BRAND_LOGO_EVENT } from "../utils/brandTheme";
 import { useNavigate, useParams } from "react-router";
 import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
 import { DetailTabs, TabSettingsButton } from "../components/ui/detail-tabs";
@@ -173,6 +174,14 @@ export function EstimateDetail() {
   const [statusOpen, setStatusOpen] = useState(false);
   const [addItemOpen, setAddItemOpen] = useState(false);
   const [customerPreviewOpen, setCustomerPreviewOpen] = useState(false);
+  const [brandLogo, setBrandLogoState] = useState(() => getStoredBrandLogo());
+  const handleBrandLogoChange = useCallback((e: Event) => {
+    setBrandLogoState((e as CustomEvent<string>).detail ?? "");
+  }, []);
+  useEffect(() => {
+    window.addEventListener(BRAND_LOGO_EVENT, handleBrandLogoChange);
+    return () => window.removeEventListener(BRAND_LOGO_EVENT, handleBrandLogoChange);
+  }, [handleBrandLogoChange]);
   interface DocFile { id: string; name: string; size: string; date: string; icon: string; iconColor: string; isImage?: boolean; previewUrl?: string; previewGradient?: string; uploadedBy?: string; category?: string; }
   const [documents, setDocuments] = useState<DocFile[]>([
     { id: "photo-34610", name: "Copy of 34610 Install outlet outdoor electrical panel.jpg", size: "3.4 MB", date: "May 19, 2026", icon: "image", iconColor: "#F59E0B", isImage: true, previewUrl: outdoorElectricalPanelPhoto, uploadedBy: "Field Crew", category: "Photos" },
@@ -248,9 +257,12 @@ export function EstimateDetail() {
         <div className="bg-white text-[#5F6670] shadow-2xl border border-[#D7DCE3]" style={{ width: 760, minHeight: 980, padding: "32px 28px 44px", fontFamily: "Arial, sans-serif" }}>
           <div className="flex items-start justify-between mb-9">
             <div className="text-[12px] leading-[18px]">
-              <div style={{ fontWeight: 700 }}>Service Vision</div>
+              {brandLogo
+                ? <img src={brandLogo} alt="Company logo" className="max-h-[48px] max-w-[160px] object-contain mb-1" />
+                : <div style={{ fontWeight: 700 }}>Service Vision</div>
+              }
               <div>8377 Standish Bend Dr Tampa FL 33615</div>
-              <div className="text-[#4A6FA5]">jaamsflying@gmail.com</div>
+              <div style={{ color: "var(--brand-primary, #4A6FA5)" }}>jaamsflying@gmail.com</div>
               <div>(813) 263-0691</div>
             </div>
             <div className="text-right">
@@ -271,7 +283,7 @@ export function EstimateDetail() {
               <div>{estimate.clientName}</div>
               <div className="whitespace-pre-line">{estimate.clientAddress}</div>
               <div>{estimate.clientPhone}</div>
-              <div className="text-[#4A6FA5]">{estimate.clientEmail}</div>
+              <div style={{ color: "var(--brand-primary, #4A6FA5)" }}>{estimate.clientEmail}</div>
             </div>
             <div>
               <div className="mb-1" style={{ fontWeight: 700 }}>Service Location:</div>

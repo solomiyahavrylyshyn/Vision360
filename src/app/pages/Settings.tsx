@@ -112,11 +112,14 @@ function normalizeSection(section: SettingsSection): SettingsSection {
   return sectionAliases[section] ?? section;
 }
 
-function SectionHeader({ title, description }: { title: string; description: string }) {
+function SectionHeader({ title, description, action }: { title: string; description: string; action?: React.ReactNode }) {
   return (
-    <div className="mb-5">
-      <h1 className="text-[26px] leading-8 text-[#1A2332]" style={{ fontWeight: 750 }}>{title}</h1>
-      <p className="mt-1.5 max-w-[740px] text-[14px] leading-5 text-[#546478]">{description}</p>
+    <div className="mb-5 flex items-start justify-between gap-4">
+      <div>
+        <h1 className="text-[26px] leading-8 text-[#1A2332]" style={{ fontWeight: 750 }}>{title}</h1>
+        <p className="mt-1.5 max-w-[740px] text-[14px] leading-5 text-[#546478]">{description}</p>
+      </div>
+      {action && <div className="shrink-0 pt-1">{action}</div>}
     </div>
   );
 }
@@ -130,12 +133,15 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-function SectionCard({ id, title, description, children }: { id?: string; title: string; description?: string; children: React.ReactNode }) {
+function SectionCard({ id, title, description, children, headerAction }: { id?: string; title: string; description?: string; children: React.ReactNode; headerAction?: React.ReactNode }) {
   return (
-    <Card id={id} className="scroll-mt-4 border border-[#E1E6EF] bg-white p-5 shadow-[0_8px_22px_rgba(26,35,50,0.035)]">
-      <div className="mb-4">
-        <h2 className="text-[16px] leading-6 text-[#1A2332]" style={{ fontWeight: 700 }}>{title}</h2>
-        {description && <p className="mt-0.5 text-[13px] leading-5 text-[#6B7280]">{description}</p>}
+    <Card id={id} className="scroll-mt-4 border border-[#E1E6EF] bg-white px-5 pb-5 pt-4 shadow-[0_8px_22px_rgba(26,35,50,0.035)]">
+      <div className="mb-0 flex items-start justify-between gap-4">
+        <div>
+          <h2 className="text-[16px] leading-6 text-[#1A2332]" style={{ fontWeight: 700 }}>{title}</h2>
+          {description && <p className="mt-0.5 text-[13px] leading-5 text-[#6B7280]">{description}</p>}
+        </div>
+        {headerAction && <div className="shrink-0">{headerAction}</div>}
       </div>
       {children}
     </Card>
@@ -208,212 +214,234 @@ function DocSection({ label, defaultValue }: { label: string; defaultValue: stri
   );
 }
 
-// Marek-style Tax settings: Tax ID inputs at top, "Default" group of tax rates,
-// then tax groups that combine rates. Radio selects the default rate/group.
 type TaxRateRow = { id: string; name: string; rate: string; description: string };
 type TaxGroupRow = { id: string; name: string; description: string; rateIds: string[] };
 
 function TaxSettingsCard() {
-  const [taxIdName, setTaxIdName] = useState("");
-  const [taxIdNumber, setTaxIdNumber] = useState("");
+  const [taxIdName, setTaxIdName] = useState("GST");
+  const [taxIdNumber, setTaxIdNumber] = useState("123456789");
   const [rates, setRates] = useState<TaxRateRow[]>([
-    { id: "r1", name: "Flor",           rate: "6.0",  description: "Sales Tax" },
-    { id: "r2", name: "Lviw Airport Tax", rate: "0.5",  description: "" },
-    { id: "r3", name: "Lviw Sales Tax",   rate: "23.0", description: "" },
-    { id: "r4", name: "Tampa Tax",        rate: "0.5",  description: "City of Tampa" },
+    { id: "r1", name: "Flor",      rate: "6.0", description: "Sales Tax" },
+    { id: "r2", name: "Flor",      rate: "6.0", description: "Sales Tax" },
+    { id: "r3", name: "Tampa Tax", rate: "0.5", description: "Sales Tax" },
   ]);
   const [groups, setGroups] = useState<TaxGroupRow[]>([
-    { id: "g1", name: "Hillsborough County",      description: "Tpa+G=Hilld", rateIds: ["r1", "r4"] },
-    { id: "g2", name: "Lviv Airport Tax Profile", description: "",            rateIds: ["r2", "r3"] },
+    { id: "g1", name: "Hillsborough County", description: "Tpa+G=Hilld", rateIds: ["r1", "r3"] },
+    { id: "g2", name: "Hillsborough County", description: "Tpa+G=Hilld", rateIds: ["r1", "r3"] },
   ]);
-  const [defaultId, setDefaultId] = useState<string>("g1");
-  const [pickerOpenFor, setPickerOpenFor] = useState<string | null>(null);
+  const [defaultId, setDefaultId] = useState<string>("r1");
+  const [editingGroup, setEditingGroup] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState<string[]>([]);
 
   const sumGroupRate = (rateIds: string[]) =>
     rateIds.reduce((acc, rid) => acc + (parseFloat(rates.find(r => r.id === rid)?.rate || "0") || 0), 0);
 
   const addRate = () => {
     const id = `r${Date.now()}`;
-    setRates([...rates, { id, name: "", rate: "", description: "" }]);
+    setRates(prev => [...prev, { id, name: "", rate: "", description: "" }]);
   };
   const addGroup = () => {
     const id = `g${Date.now()}`;
-    setGroups([...groups, { id, name: "", description: "", rateIds: [] }]);
+    setGroups(prev => [...prev, { id, name: "", description: "", rateIds: [] }]);
   };
   const removeRate = (id: string) => {
-    setRates(rates.filter(r => r.id !== id));
-    setGroups(groups.map(g => ({ ...g, rateIds: g.rateIds.filter(x => x !== id) })));
+    setRates(prev => prev.filter(r => r.id !== id));
+    setGroups(prev => prev.map(g => ({ ...g, rateIds: g.rateIds.filter(x => x !== id) })));
     if (defaultId === id) setDefaultId(rates.find(r => r.id !== id)?.id ?? groups[0]?.id ?? "");
   };
   const removeGroup = (id: string) => {
-    setGroups(groups.filter(g => g.id !== id));
+    setGroups(prev => prev.filter(g => g.id !== id));
     if (defaultId === id) setDefaultId(rates[0]?.id ?? "");
   };
   const updateRate = (id: string, patch: Partial<TaxRateRow>) =>
-    setRates(rates.map(r => r.id === id ? { ...r, ...patch } : r));
+    setRates(prev => prev.map(r => r.id === id ? { ...r, ...patch } : r));
   const updateGroup = (id: string, patch: Partial<TaxGroupRow>) =>
-    setGroups(groups.map(g => g.id === id ? { ...g, ...patch } : g));
-  const toggleRateInGroup = (groupId: string, rateId: string) => {
-    setGroups(groups.map(g => g.id === groupId
-      ? { ...g, rateIds: g.rateIds.includes(rateId) ? g.rateIds.filter(x => x !== rateId) : [...g.rateIds, rateId] }
-      : g));
+    setGroups(prev => prev.map(g => g.id === id ? { ...g, ...patch } : g));
+
+  const openEditModal = (group: TaxGroupRow) => {
+    setEditingGroup(group.id);
+    setEditDraft([...group.rateIds]);
+  };
+  const saveEditModal = () => {
+    if (editingGroup) updateGroup(editingGroup, { rateIds: editDraft });
+    setEditingGroup(null);
   };
 
+  const inputCls = "h-9 w-full rounded-lg border border-[#E5E7EB] bg-white px-3 text-[14px] text-[#1A2332] outline-none focus:border-[#4A6FA5] shadow-[0_1px_2px_rgba(0,0,0,0.05)]";
+
   return (
-    <Card className="border border-[#E1E6EF] bg-white p-6 shadow-[0_8px_22px_rgba(26,35,50,0.035)]">
-      {/* Header row */}
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-[18px] leading-6 text-[#1A2332]" style={{ fontWeight: 700 }}>Tax settings</h2>
+    <Card className="border border-[#E1E6EF] bg-white shadow-[0_8px_22px_rgba(26,35,50,0.035)]" style={{ padding: 16 }}>
+      <div className="flex flex-col gap-4">
+
+        {/* Title */}
+        <div className="flex items-center gap-1">
+          <span className="text-[16px] text-[#1A2332]" style={{ fontWeight: 600 }}>Tax settings</span>
+        </div>
+
+        {/* Tax ID inputs */}
+        <div className="flex flex-col gap-2">
+          <div className="flex gap-4">
+            <div className="flex flex-col gap-1 flex-1">
+              <label className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Tax ID name (ex: GST)</label>
+              <input value={taxIdName} onChange={e => setTaxIdName(e.target.value)} className={inputCls} />
+            </div>
+            <div className="flex flex-col gap-1 flex-1">
+              <label className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Tax ID number</label>
+              <input value={taxIdNumber} onChange={e => setTaxIdNumber(e.target.value)} className={inputCls} />
+            </div>
+          </div>
+          <span className="text-[12px] text-[#6B7280]" style={{ fontWeight: 500 }}>Tax ID name and number will appear on invoices</span>
+        </div>
+
+        {/* Divider */}
+        <div className="h-px bg-[#E5E7EB]" />
+
+        {/* Default + ? */}
         <div className="flex items-center gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={addGroup}
-            className="h-8 border-[#C8D5E8] bg-white px-3 text-[12px] text-[#4A6FA5] hover:bg-[#EBF0F8]"
-            style={{ fontWeight: 600 }}
-          >
-            + Create Tax Group
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={addRate}
-            className="h-8 border-[#C8D5E8] bg-white px-3 text-[12px] text-[#4A6FA5] hover:bg-[#EBF0F8]"
-            style={{ fontWeight: 600 }}
-          >
-            + Create Tax Rate
-          </Button>
-        </div>
-      </div>
-
-      {/* Tax ID block */}
-      <div>
-        <div className="grid grid-cols-2 gap-0 rounded-xl border border-[#E5E7EB] overflow-hidden">
-          <label className="flex flex-col px-3 py-2 border-r border-[#E5E7EB]">
-            <span className="text-[11px] text-[#6B7280]">Tax ID name (ex: GST)</span>
-            <input
-              value={taxIdName}
-              onChange={e => setTaxIdName(e.target.value)}
-              className="bg-transparent text-[13px] text-[#1A2332] outline-none mt-0.5"
-            />
-          </label>
-          <label className="flex flex-col px-3 py-2">
-            <span className="text-[11px] text-[#6B7280]">Tax ID number</span>
-            <input
-              value={taxIdNumber}
-              onChange={e => setTaxIdNumber(e.target.value)}
-              className="bg-transparent text-[13px] text-[#1A2332] outline-none mt-0.5"
-            />
-          </label>
-        </div>
-        <div className="text-[12px] text-[#6B7280] leading-tight pt-0.5 pl-3">Tax ID name and number will appear on invoices</div>
-      </div>
-
-      {/* Divider + Default label */}
-      <div className="mt-0.5 border-t border-[#E5E7EB] pt-1.5 flex items-center gap-1.5 pl-3">
-        <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>Default</span>
-        <span className="relative group">
-          <span className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-[#9CA3AF] text-[10px] text-[#9CA3AF] cursor-help">
-            ?
+          <span className="text-[14px] text-[#1A2332]">Default</span>
+          <span className="relative group inline-flex">
+            <span className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-[#9CA3AF] text-[10px] text-[#9CA3AF] cursor-help">?</span>
+            <span className="invisible group-hover:visible absolute left-1/2 -translate-x-1/2 top-6 z-20 w-[260px] rounded-lg bg-[#1A2332] text-white text-[12px] leading-snug px-3 py-2 shadow-lg">
+              Select the radio button next to a tax rate or group to make it the default applied to new invoices and jobs.
+              <span className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-[#1A2332] rotate-45" />
+            </span>
           </span>
-          <span className="invisible group-hover:visible absolute left-1/2 -translate-x-1/2 top-6 z-20 w-[260px] rounded-lg bg-[#1A2332] text-white text-[12px] leading-snug px-3 py-2 shadow-lg">
-            Select the radio button next to a tax rate or group to make it the default applied to new invoices and jobs.
-            <span className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-[#1A2332] rotate-45" />
-          </span>
-        </span>
-      </div>
+        </div>
 
-      {/* Rate rows */}
-      <div className="mt-0 space-y-2">
-        {rates.map(rate => (
-          <TaxRow
-            key={rate.id}
-            kind="rate"
-            checked={defaultId === rate.id}
-            onCheck={() => setDefaultId(rate.id)}
-            onRemove={() => removeRate(rate.id)}
-            nameLabel="Tax name"
-            rateLabel="Tax rate (%)"
-            name={rate.name}
-            rateValue={rate.rate}
-            description={rate.description}
-            onNameChange={v => updateRate(rate.id, { name: v })}
-            onRateChange={v => updateRate(rate.id, { rate: v })}
-            onDescriptionChange={v => updateRate(rate.id, { description: v })}
-          />
-        ))}
-      </div>
+        {/* Tax rates sub-section */}
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between">
+            <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Tax rates</span>
+            <button
+              type="button"
+              onClick={addRate}
+              className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg bg-[#4A6FA5] text-white text-[14px] hover:bg-[#3d5a85]"
+              style={{ fontWeight: 500 }}
+            >
+              <span className="material-icons" style={{ fontSize: "16px" }}>add_circle_outline</span>
+              Create Tax Rate
+            </button>
+          </div>
+          {rates.map(rate => (
+            <TaxRow
+              key={rate.id}
+              kind="rate"
+              checked={defaultId === rate.id}
+              onCheck={() => setDefaultId(rate.id)}
+              onRemove={() => removeRate(rate.id)}
+              nameLabel="Tax name"
+              rateLabel="Tax rate (%)"
+              name={rate.name}
+              rateValue={rate.rate}
+              description={rate.description}
+              onNameChange={v => updateRate(rate.id, { name: v })}
+              onRateChange={v => updateRate(rate.id, { rate: v })}
+              onDescriptionChange={v => updateRate(rate.id, { description: v })}
+            />
+          ))}
+        </div>
 
-      {/* Divider before groups */}
-      {groups.length > 0 && <div className="mt-0 border-t border-[#E5E7EB] pt-0" />}
+        {/* Divider */}
+        <div className="h-px bg-[#E5E7EB]" />
 
-      {/* Group rows */}
-      <div className="space-y-3">
-        {groups.map(group => {
-          const computed = sumGroupRate(group.rateIds).toFixed(1);
-          const composition = group.rateIds
-            .map(rid => {
-              const r = rates.find(x => x.id === rid);
-              return r ? `${r.name} (${r.rate}%)` : null;
-            })
-            .filter(Boolean)
-            .join(" + ");
-          return (
-            <div key={group.id}>
-              <TaxRow
-                kind="group"
-                checked={defaultId === group.id}
-                onCheck={() => setDefaultId(group.id)}
-                onRemove={() => removeGroup(group.id)}
-                nameLabel="Tax group name"
-                rateLabel="Tax group rate (%)"
-                name={group.name}
-                rateValue={computed}
-                rateLocked
-                description={group.description}
-                onNameChange={v => updateGroup(group.id, { name: v })}
-                onDescriptionChange={v => updateGroup(group.id, { description: v })}
-              />
-              <div className="mt-1.5 ml-10 flex items-center gap-3 relative">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setPickerOpenFor(pickerOpenFor === group.id ? null : group.id)}
-                  className="h-7 border-[#C8D5E8] bg-white px-3 text-[12px] text-[#4A6FA5] hover:bg-[#EBF0F8]"
-                  style={{ fontWeight: 600 }}
-                >
-                  Select Tax Rates
-                </Button>
-                <span className="text-[12px] text-[#6B7280]">{composition || "No rates selected"}</span>
-                {pickerOpenFor === group.id && (
-                  <div
-                    className="absolute top-9 left-0 z-10 w-[260px] rounded-lg border border-[#E5E7EB] bg-white p-2 shadow-lg"
+        {/* Tax groups sub-section */}
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between">
+            <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Tax groups</span>
+            <button
+              type="button"
+              onClick={addGroup}
+              className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg bg-[#4A6FA5] text-white text-[14px] hover:bg-[#3d5a85]"
+              style={{ fontWeight: 500 }}
+            >
+              <span className="material-icons" style={{ fontSize: "16px" }}>add_circle_outline</span>
+              Create Tax Group
+            </button>
+          </div>
+          {groups.map(group => {
+            const computed = sumGroupRate(group.rateIds).toFixed(1);
+            const rateItems = group.rateIds.map(rid => rates.find(r => r.id === rid)).filter(Boolean) as TaxRateRow[];
+            return (
+              <div key={group.id} className="flex flex-col gap-0">
+                <TaxRow
+                  kind="group"
+                  checked={defaultId === group.id}
+                  onCheck={() => setDefaultId(group.id)}
+                  onRemove={() => removeGroup(group.id)}
+                  nameLabel="Tax group name"
+                  rateLabel="Tax group rate (%)"
+                  name={group.name}
+                  rateValue={computed}
+                  rateLocked
+                  description={group.description}
+                  onNameChange={v => updateGroup(group.id, { name: v })}
+                  onDescriptionChange={v => updateGroup(group.id, { description: v })}
+                />
+                <div className="flex items-center gap-2 pl-8 min-h-[36px]">
+                  <span className="text-[14px] text-[#6B7280]">Tax rates:</span>
+                  {rateItems.length === 0
+                    ? <span className="text-[14px] text-[#9CA3AF]">None selected</span>
+                    : rateItems.map((r, i) => (
+                        <span key={r.id} className="flex items-center gap-2">
+                          {i > 0 && <span className="w-px self-stretch bg-[#E5E7EB]" />}
+                          <span className="text-[14px] text-[#1A2332]">{r.name} ({r.rate}%)</span>
+                        </span>
+                      ))
+                  }
+                  <button
+                    type="button"
+                    onClick={() => openEditModal(group)}
+                    className="inline-flex items-center justify-center h-9 w-9 rounded-lg text-[#1A2332] hover:bg-[#F5F7FA] transition-colors"
+                    title="Edit tax rates"
                   >
-                    {rates.map(r => (
-                      <label key={r.id} className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#F5F7FA] cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={group.rateIds.includes(r.id)}
-                          onChange={() => toggleRateInGroup(group.id, r.id)}
-                          className="h-4 w-4 accent-[#4A6FA5]"
-                        />
-                        <span className="flex-1 text-[13px] text-[#1A2332]">{r.name || "(unnamed)"}</span>
-                        <span className="text-[12px] text-[#6B7280]">{r.rate}%</span>
-                      </label>
-                    ))}
-                    <button
-                      onClick={() => setPickerOpenFor(null)}
-                      className="mt-1 w-full text-[12px] text-[#4A6FA5] hover:underline"
+                    <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Edit tax rates modal */}
+      {editingGroup && (() => {
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setEditingGroup(null)}>
+            <div className="bg-white rounded-xl border border-[#E5E7EB] shadow-2xl w-[380px] p-6" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-5">
+                <span className="text-[16px] text-[#1A2332]" style={{ fontWeight: 600 }}>Edit tax rates</span>
+                <button onClick={() => setEditingGroup(null)} className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-[#F5F7FA] text-[#6B7280]">
+                  <span className="material-icons" style={{ fontSize: "18px" }}>close</span>
+                </button>
+              </div>
+              <div className="grid grid-cols-2 gap-3 mb-5">
+                {rates.map(rate => {
+                  const checked = editDraft.includes(rate.id);
+                  return (
+                    <label
+                      key={rate.id}
+                      className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${checked ? "border-[#4A6FA5] bg-[#F0F5FF]" : "border-[#E5E7EB] hover:border-[#C8D5E8]"}`}
+                      onClick={() => setEditDraft(checked ? editDraft.filter(id => id !== rate.id) : [...editDraft, rate.id])}
                     >
-                      Done
-                    </button>
-                  </div>
-                )}
+                      <div className={`mt-0.5 h-4 w-4 shrink-0 rounded border flex items-center justify-center transition-colors ${checked ? "border-[#4A6FA5] bg-[#4A6FA5]" : "border-[#E5E7EB] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.05)]"}`}>
+                        {checked && <span className="material-icons text-white" style={{ fontSize: "11px" }}>check</span>}
+                      </div>
+                      <div>
+                        <div className="text-[14px] text-[#1A2332]">{rate.name || "(unnamed)"}</div>
+                        <div className="text-[14px] text-[#6B7280]">{rate.rate}%</div>
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+              <div className="flex items-center justify-end gap-2">
+                <Button variant="outline" className="h-9 border-[#E5E7EB] px-4 text-[14px] text-[#1A2332]" onClick={() => setEditingGroup(null)}>Cancel</Button>
+                <Button className="h-9 bg-[#4A6FA5] hover:bg-[#3d5a85] text-white px-4 text-[14px]" onClick={saveEditModal}>Save</Button>
               </div>
             </div>
-          );
-        })}
-      </div>
+          </div>
+        );
+      })()}
     </Card>
   );
 }
@@ -437,140 +465,123 @@ function TaxRow({
   onRateChange?: (v: string) => void;
   onDescriptionChange: (v: string) => void;
 }) {
+  const inputCls = "h-9 w-full rounded-lg border border-[#E5E7EB] bg-white px-3 text-[14px] text-[#1A2332] outline-none focus:border-[#4A6FA5] shadow-[0_1px_2px_rgba(0,0,0,0.05)]";
   return (
-    <div className="flex items-stretch gap-2">
+    <div className="flex items-start gap-4 rounded-lg border border-[#E5E7EB] p-4">
+      {/* Square radio */}
       <button
         type="button"
         onClick={onCheck}
         aria-pressed={checked}
-        className={`mt-3 h-4 w-4 shrink-0 rounded-full border ${checked ? "border-[#4A6FA5] bg-[#4A6FA5]" : "border-[#9CA3AF] bg-white"} flex items-center justify-center`}
+        className={`mt-[22px] h-4 w-4 shrink-0 rounded border flex items-center justify-center transition-colors ${checked ? "border-[#4A6FA5] bg-white" : "border-[#E5E7EB] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.05)]"}`}
       >
-        {checked && <span className="h-1.5 w-1.5 rounded-full bg-white" />}
+        {checked && <span className="h-2 w-2 rounded-[2px] bg-[#4A6FA5]" />}
       </button>
 
-      {/* Name */}
-      <label className="flex flex-col rounded-xl border border-[#E5E7EB] bg-white px-3 py-1.5 w-[170px]">
-        <span className="text-[11px] text-[#6B7280]">{nameLabel}</span>
-        <input
-          value={name}
-          onChange={e => onNameChange(e.target.value)}
-          className="bg-transparent text-[13px] text-[#1A2332] outline-none mt-0.5"
-        />
-      </label>
-
-      {/* Rate */}
-      <label className={`flex flex-col rounded-xl border border-[#E5E7EB] px-3 py-1.5 w-[115px] ${rateLocked ? "bg-[#F3F4F6]" : "bg-white"}`}>
-        <span className="text-[11px] text-[#6B7280]">{rateLabel}</span>
-        <input
-          value={rateValue}
-          readOnly={rateLocked}
-          onChange={e => onRateChange?.(e.target.value)}
-          className="bg-transparent text-[13px] text-[#1A2332] outline-none mt-0.5"
-        />
-      </label>
-
-      {/* Description */}
-      <label className="flex flex-col rounded-xl border border-[#E5E7EB] bg-white px-3 py-1.5 flex-1">
-        <span className="text-[11px] text-[#6B7280]">Internal tax description</span>
-        <input
-          value={description}
-          onChange={e => onDescriptionChange(e.target.value)}
-          className="bg-transparent text-[13px] text-[#1A2332] outline-none mt-0.5"
-        />
-      </label>
-
-      <button
-        type="button"
-        onClick={onRemove}
-        className={`shrink-0 mt-1 self-start h-9 px-4 rounded-lg text-[13px] ${kind === "group" ? "bg-white border border-[#FEE2E2] text-[#DC2626] hover:bg-[#FEF2F2]" : "bg-[#F3F4F6] text-[#9CA3AF] cursor-not-allowed"}`}
-        style={{ fontWeight: 600 }}
-        disabled={kind === "rate"}
-      >
-        Remove
-      </button>
+      {/* Fields */}
+      <div className="flex flex-1 items-end gap-4">
+        <div className="flex flex-col gap-1" style={{ width: 246 }}>
+          <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>{nameLabel}</span>
+          <input value={name} onChange={e => onNameChange(e.target.value)} className={inputCls} />
+        </div>
+        <div className="flex flex-col gap-1" style={{ width: 118 }}>
+          <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>{rateLabel}</span>
+          <input
+            value={rateValue}
+            readOnly={rateLocked}
+            onChange={e => onRateChange?.(e.target.value)}
+            className={`${inputCls} ${rateLocked ? "bg-[#F9FAFB]" : ""}`}
+          />
+        </div>
+        <div className="flex flex-col gap-1 flex-1">
+          <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Internal tax description</span>
+          <input value={description} onChange={e => onDescriptionChange(e.target.value)} className={inputCls} />
+        </div>
+        <button
+          type="button"
+          onClick={onRemove}
+          className="h-9 w-9 flex items-center justify-center rounded-lg text-[#1A2332] hover:bg-[#F5F7FA] transition-colors"
+          style={{ opacity: checked ? 0.5 : 1 }}
+          title="Remove"
+        >
+          <span className="material-icons" style={{ fontSize: "16px" }}>delete_outline</span>
+        </button>
+      </div>
     </div>
   );
 }
 
-// Big-row regional dropdowns: Country / Timezone / Date format / Time format / First day
+// Regional settings dropdowns: Country / Timezone / Date format / Time format / First day
 function RegionalSettingsCard() {
-  const wrapper =
-    "h-12 w-full rounded-xl border border-[#D8DEE8] bg-white px-4 text-[14px] text-[#1A2332] outline-none focus:border-[#4A6FA5] focus:ring-2 focus:ring-[#4A6FA5]/20 appearance-none cursor-pointer";
-  const labelClass = "block text-[13px] text-[#1A2332] mb-1.5";
-  return (
-    <Card className="border border-[#E1E6EF] bg-white p-6 shadow-[0_8px_22px_rgba(26,35,50,0.035)]">
-      <h2 className="text-[18px] leading-6 text-[#1A2332] mb-4" style={{ fontWeight: 700 }}>Regional settings</h2>
-      <div className="space-y-4">
-        <label className="block">
-          <span className={labelClass} style={{ fontWeight: 600 }}>Country</span>
-          <div className="relative">
-            <select className={wrapper} defaultValue="United States">
-              <option>United States</option>
-              <option>Ukraine</option>
-              <option>Canada</option>
-              <option>Cyprus</option>
-            </select>
-            <span className="material-icons pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: "20px" }}>expand_more</span>
-          </div>
-        </label>
+  const selectCls =
+    "h-9 w-full rounded-lg border border-[#E5E7EB] bg-white pl-3 pr-8 text-[14px] text-[#1A2332] outline-none focus:border-[#4A6FA5] shadow-[0_1px_2px_rgba(0,0,0,0.05)] appearance-none cursor-pointer";
+  const labelCls = "block text-[14px] text-[#1A2332] mb-1" as const;
 
-        <label className="block">
-          <span className={labelClass} style={{ fontWeight: 600 }}>Timezone</span>
-          <div className="relative">
-            <select className={wrapper} defaultValue="(GMT-05:00) America/New_York">
+  function SelectField({ label, defaultValue, children }: { label: string; defaultValue: string; children: React.ReactNode }) {
+    return (
+      <div className="flex flex-col gap-1">
+        <span className={labelCls} style={{ fontWeight: 500 }}>{label}</span>
+        <div className="relative">
+          <select className={selectCls} defaultValue={defaultValue}>{children}</select>
+          <span className="material-icons pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[#6B7280]" style={{ fontSize: "16px" }}>expand_more</span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-4 rounded-xl border border-[#E5E7EB] bg-white p-4">
+      <span className="text-[16px] leading-6 text-[#1A2332]" style={{ fontWeight: 600 }}>Regional settings</span>
+      <div className="flex flex-col gap-4">
+        <SelectField label="Country" defaultValue="United States">
+          <option>United States</option>
+          <option>Ukraine</option>
+          <option>Canada</option>
+          <option>Cyprus</option>
+        </SelectField>
+
+        <div className="flex gap-4">
+          <div className="flex-1">
+            <SelectField label="Timezone" defaultValue="(GMT-05:00) America/New_York">
               <option>(GMT-05:00) America/New_York</option>
               <option>(GMT-06:00) America/Chicago</option>
               <option>(GMT-07:00) America/Denver</option>
               <option>(GMT-08:00) America/Los_Angeles</option>
               <option>(GMT+02:00) Europe/Kyiv</option>
-            </select>
-            <span className="material-icons pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: "20px" }}>expand_more</span>
+            </SelectField>
           </div>
-        </label>
-
-        <label className="block">
-          <span className={labelClass} style={{ fontWeight: 600 }}>Date format</span>
-          <div className="relative">
-            <select className={wrapper} defaultValue="Jan 31, 2026">
+          <div className="flex-1">
+            <SelectField label="Date format" defaultValue="Jan 31, 2026">
               <option>Jan 31, 2026</option>
               <option>31 Jan 2026</option>
               <option>01/31/2026</option>
               <option>31/01/2026</option>
               <option>2026-01-31</option>
-            </select>
-            <span className="material-icons pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: "20px" }}>expand_more</span>
+            </SelectField>
           </div>
-        </label>
+        </div>
 
-        <label className="block">
-          <span className={labelClass} style={{ fontWeight: 600 }}>Time format</span>
-          <div className="relative">
-            <select className={wrapper} defaultValue="12 Hour (1:30PM)">
-              <option>12 Hour (1:30PM)</option>
+        <div className="flex gap-4">
+          <div className="flex-1">
+            <SelectField label="Time format" defaultValue="12 Hour (1:30 PM)">
+              <option>12 Hour (1:30 PM)</option>
               <option>24 Hour (13:30)</option>
-            </select>
-            <span className="material-icons pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: "20px" }}>expand_more</span>
+            </SelectField>
           </div>
-        </label>
-
-        <label className="block">
-          <span className={labelClass} style={{ fontWeight: 600 }}>First day of the week</span>
-          <div className="relative">
-            <select className={wrapper} defaultValue="Sunday">
+          <div className="flex-1">
+            <SelectField label="First day of the week" defaultValue="Sunday">
               <option>Sunday</option>
               <option>Monday</option>
-            </select>
-            <span className="material-icons pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: "20px" }}>expand_more</span>
+            </SelectField>
           </div>
-        </label>
+        </div>
       </div>
-    </Card>
+    </div>
   );
 }
 
-// Business hours — day list (Sunday Closed, Mon-Fri 9-5, etc.) with inline Edit
+// Business hours — day rows with checkbox + time inputs
 function BusinessHoursCard({ footer }: { footer?: React.ReactNode }) {
-  const [editing, setEditing] = useState(false);
   type Row = { day: string; open: boolean; from: string; to: string };
   const [rows, setRows] = useState<Row[]>([
     { day: "Sunday",    open: false, from: "9:00 am", to: "5:00 pm" },
@@ -584,263 +595,272 @@ function BusinessHoursCard({ footer }: { footer?: React.ReactNode }) {
   const updateRow = (i: number, patch: Partial<Row>) =>
     setRows(rows.map((r, idx) => idx === i ? { ...r, ...patch } : r));
 
+  const inputCls = "h-9 w-[90px] rounded-lg border border-[#E5E7EB] bg-white px-3 text-[14px] text-[#1A2332] outline-none focus:border-[#4A6FA5] shadow-[0_1px_2px_rgba(0,0,0,0.05)]";
+
   return (
-    <Card className="border border-[#E1E6EF] bg-white p-6 shadow-[0_8px_22px_rgba(26,35,50,0.035)]">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h2 className="text-[18px] leading-6 text-[#1A2332] mb-1" style={{ fontWeight: 700 }}>Business hours</h2>
-          <p className="text-[13px] text-[#6B7280]">
-            Business hours set your default availability for{" "}
-            <a className="text-[#4A6FA5] hover:underline" href="#online-booking">online booking</a>, team members, and{" "}
-            <a className="text-[#4A6FA5] hover:underline" href="#request">request</a> forms.
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={() => setEditing(!editing)}
-          className="shrink-0 text-[13px] text-[#4A6FA5] hover:underline"
-          style={{ fontWeight: 600 }}
-        >
-          {editing ? "Done" : "Edit"}
-        </button>
+    <div className="flex flex-col gap-4 rounded-xl border border-[#E5E7EB] bg-white p-4">
+      {/* Header */}
+      <div className="flex flex-col gap-1">
+        <span className="text-[16px] leading-6 text-[#1A2332]" style={{ fontWeight: 600 }}>Business hours</span>
+        <p className="text-[14px] leading-5 text-[#6B7280]">
+          Business hours set your default availability for{" "}
+          <a className="text-[#4A6FA5] hover:underline" href="#online-booking">online booking</a>, team members, and{" "}
+          <a className="text-[#4A6FA5] hover:underline" href="#request">request forms</a>.
+        </p>
       </div>
 
-      <div className="mt-4 divide-y divide-[#E5E7EB]">
-        {rows.map((r, i) => (
-          <div key={r.day} className="grid grid-cols-[140px_1fr] items-center py-3">
-            <div className="text-[14px] text-[#1A2332]">{r.day}</div>
-            {editing ? (
-              <div className="flex items-center gap-2">
-                <label className="flex items-center gap-2 text-[13px] text-[#1A2332]">
-                  <input
-                    type="checkbox"
-                    checked={r.open}
-                    onChange={e => updateRow(i, { open: e.target.checked })}
-                    className="h-4 w-4 accent-[#4A6FA5]"
-                  />
-                  Open
-                </label>
-                {r.open && (
-                  <>
-                    <input
-                      value={r.from}
-                      onChange={e => updateRow(i, { from: e.target.value })}
-                      className="h-8 w-24 rounded-lg border border-[#D8DEE8] bg-white px-2 text-[13px] text-[#1A2332]"
-                    />
-                    <span className="text-[13px] text-[#6B7280]">–</span>
-                    <input
-                      value={r.to}
-                      onChange={e => updateRow(i, { to: e.target.value })}
-                      className="h-8 w-24 rounded-lg border border-[#D8DEE8] bg-white px-2 text-[13px] text-[#1A2332]"
-                    />
-                  </>
-                )}
-              </div>
-            ) : (
-              <div className="text-[14px] text-[#1A2332]">
-                {r.open ? `${r.from} – ${r.to}` : <span className="text-[#6B7280]">Closed</span>}
-              </div>
-            )}
+      {/* Day rows */}
+      {rows.map((r, i) => (
+        <div key={r.day} className="flex items-center gap-4 rounded-lg border border-[#E5E7EB] p-4">
+          {/* Day name */}
+          <span className="shrink-0 text-[14px] text-[#1A2332]" style={{ width: 80, fontWeight: 600 }}>{r.day}</span>
+          {/* Divider */}
+          <div className="shrink-0 w-px h-6 bg-[#E5E7EB]" />
+          {/* Checkbox + label */}
+          <div className="flex flex-1 items-center gap-3">
+            <button
+              type="button"
+              onClick={() => updateRow(i, { open: !r.open })}
+              className="shrink-0 h-4 w-4 rounded flex items-center justify-center transition-colors"
+              style={{
+                background: r.open ? "#4A6FA5" : "#FFFFFF",
+                border: `1px solid ${r.open ? "#4A6FA5" : "#E5E7EB"}`,
+                boxShadow: r.open ? "none" : "0px 1px 2px rgba(0,0,0,0.05)",
+                borderRadius: 4,
+              }}
+              aria-pressed={r.open}
+            >
+              {r.open && (
+                <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                  <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              )}
+            </button>
+            <span className="text-[14px] text-[#1A2332]">Open</span>
           </div>
-        ))}
-      </div>
+          {/* Time inputs */}
+          <div className="flex items-center gap-3" style={{ opacity: r.open ? 1 : 0.5 }}>
+            <input
+              value={r.from}
+              onChange={e => updateRow(i, { from: e.target.value })}
+              disabled={!r.open}
+              className={inputCls}
+            />
+            <span className="text-[14px] text-[#1A2332]">-</span>
+            <input
+              value={r.to}
+              onChange={e => updateRow(i, { to: e.target.value })}
+              disabled={!r.open}
+              className={inputCls}
+            />
+          </div>
+        </div>
+      ))}
+
+      {/* Footer */}
       {footer && (
-        <div className="mt-5 -mx-6 -mb-6 px-5 py-4 border-t border-[#E1E6EF] flex items-center justify-end gap-3 bg-white rounded-b-xl">
+        <div className="pt-3 border-t border-[#E5E7EB] flex items-center justify-end gap-3">
           {footer}
         </div>
       )}
-    </Card>
+    </div>
   );
 }
 
-// Billing & Plan — Marek's MVP spec
 function BillingAndPlanSection() {
   const BASE_PRICE = 49;
   const PER_USER = 15;
-  const userCount = 3; // owner + 2 employees for MVP example
+  const userCount = 3;
   const monthly = BASE_PRICE + PER_USER * userCount;
 
-  // Payment method (edit modal)
   const [card, setCard] = useState({ brand: "Visa", last4: "4242", expiry: "12/2026", holder: "Peter Novak" });
   const [editCardOpen, setEditCardOpen] = useState(false);
   const [draftCard, setDraftCard] = useState(card);
 
   const history = [
-    { id: "INV-2026-05", label: "May 2026",   amount: 94, status: "Paid", date: "May 1, 2026"   },
-    { id: "INV-2026-04", label: "April 2026", amount: 94, status: "Paid", date: "Apr 1, 2026"   },
-    { id: "INV-2026-03", label: "March 2026", amount: 94, status: "Paid", date: "Mar 1, 2026"   },
-    { id: "INV-2026-02", label: "February 2026", amount: 79, status: "Paid", date: "Feb 1, 2026" },
+    { id: "INV-2026-05", label: "May 2026",      amount: 94, status: "Paid", date: "May 1, 2026"  },
+    { id: "INV-2026-04", label: "April 2026",    amount: 94, status: "Paid", date: "Apr 1, 2026"  },
+    { id: "INV-2026-03", label: "March 2026",    amount: 94, status: "Paid", date: "Mar 1, 2026"  },
+    { id: "INV-2026-02", label: "February 2026", amount: 79, status: "Paid", date: "Feb 1, 2026"  },
   ];
 
   return (
-    <>
-      <SectionHeader
-        title="Billing & Plan"
-        description="Your subscription, payment method, history, and direct line to your account manager."
-      />
+    <div className="flex flex-col gap-4">
+      {/* Page header */}
+      <h2 className="text-[24px] leading-[135%] text-[#1A2332]" style={{ fontWeight: 600 }}>Billing & plan</h2>
 
-      {/* Plan details + price breakdown */}
-      <div className="grid grid-cols-[minmax(0,1fr)_340px] gap-4">
-        <Card className="border border-[#E1E6EF] bg-white p-6 shadow-[0_8px_22px_rgba(26,35,50,0.035)]">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <h2 className="text-[20px] leading-7 text-[#1A2332]" style={{ fontWeight: 800 }}>Vision360 Core</h2>
-                <span className="rounded-full bg-[#DCFCE7] px-2 py-0.5 text-[11px] text-[#15803D]" style={{ fontWeight: 700 }}>Active</span>
+      {/* 2-column layout */}
+      <div className="grid grid-cols-2 gap-4">
+        {/* Left column */}
+        <div className="flex flex-col gap-4">
+          {/* Plan card */}
+          <div className="flex flex-col gap-4 rounded-xl border border-[#E5E7EB] bg-white p-4">
+            <div className="flex items-start justify-between gap-6">
+              <div className="flex flex-col gap-1 flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-[16px] leading-6 text-[#1A2332]" style={{ fontWeight: 600 }}>Vision360 Core</span>
+                  <span className="inline-flex items-center rounded-lg px-2 py-0.5 text-[12px] leading-4 text-[#16A34A]" style={{ fontWeight: 500, background: "rgba(22,163,74,0.15)" }}>Active</span>
+                </div>
+                <span className="text-[14px] leading-5 text-[#6B7280]">Core module — schedule, clients, jobs, estimates, invoices, payments, expenses, items.</span>
+                <span className="text-[14px] leading-5 text-[#6B7280]">MVP ships with one plan only. Plan switching opens up when Pro and Enterprise launch.</span>
               </div>
-              <p className="text-[13px] text-[#546478]">
-                Core module — schedule, clients, jobs, estimates, invoices, payments, expenses, items.
-              </p>
-              <p className="mt-2 text-[12px] text-[#6B7280]">
-                MVP ships with one plan only. Plan switching opens up when Pro and Enterprise launch.
-              </p>
+              <div className="flex flex-col items-start gap-0.5 shrink-0">
+                <span className="text-[28px] leading-[120%] text-[#1A2332]" style={{ fontWeight: 600 }}>${monthly}</span>
+                <span className="text-[12px] leading-4 text-[#6B7280]">per month</span>
+              </div>
             </div>
-            <div className="text-right shrink-0">
-              <div className="text-[32px] leading-9 text-[#1A2332]" style={{ fontWeight: 800 }}>${monthly}</div>
-              <div className="text-[13px] text-[#546478]">per month</div>
-            </div>
-          </div>
-
-          {/* Price breakdown */}
-          <div className="mt-5 rounded-xl border border-[#E5E7EB] bg-[#FAFBFC] p-4">
-            <div className="text-[13px] text-[#1A2332] mb-2" style={{ fontWeight: 600 }}>What's included</div>
-            <div className="space-y-1.5 text-[13px]">
+            {/* What's included inner card */}
+            <div className="flex flex-col gap-2 rounded-lg border border-[#E5E7EB] p-4">
+              <span className="text-[14px] leading-5 text-[#1A2332]" style={{ fontWeight: 500 }}>What's included</span>
               <div className="flex items-center justify-between">
-                <span className="text-[#546478]">Base subscription</span>
-                <span className="text-[#1A2332]" style={{ fontWeight: 600 }}>${BASE_PRICE}.00</span>
+                <span className="text-[12px] leading-4 text-[#6B7280]" style={{ fontWeight: 500 }}>Base subscription</span>
+                <span className="text-[12px] leading-4 text-[#1A2332]" style={{ fontWeight: 600 }}>${BASE_PRICE}.00</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-[#546478]">{userCount} users × ${PER_USER} / user</span>
-                <span className="text-[#1A2332]" style={{ fontWeight: 600 }}>${PER_USER * userCount}.00</span>
+                <span className="text-[12px] leading-4 text-[#6B7280]" style={{ fontWeight: 500 }}>{userCount} users × ${PER_USER} / user</span>
+                <span className="text-[12px] leading-4 text-[#1A2332]" style={{ fontWeight: 600 }}>${PER_USER * userCount}.00</span>
               </div>
-              <div className="flex items-center justify-between border-t border-[#E5E7EB] pt-1.5 mt-1">
-                <span className="text-[#1A2332]" style={{ fontWeight: 700 }}>Total monthly</span>
-                <span className="text-[#1A2332]" style={{ fontWeight: 800 }}>${monthly}.00</span>
+              <div className="h-px bg-[#E5E7EB]" />
+              <div className="flex items-center justify-between">
+                <span className="text-[14px] leading-5 text-[#1A2332]" style={{ fontWeight: 500 }}>Total monthly</span>
+                <span className="text-[14px] leading-5 text-[#1A2332]" style={{ fontWeight: 600 }}>${monthly}.00</span>
               </div>
-            </div>
-            <p className="mt-2 text-[12px] text-[#6B7280]">
-              Adding or removing users in Manage Team prorates this total on the next billing cycle.
-            </p>
-          </div>
-        </Card>
-
-        {/* Account manager */}
-        <Card className="border border-[#E1E6EF] bg-white p-6 shadow-[0_8px_22px_rgba(26,35,50,0.035)]">
-          <h2 className="text-[16px] leading-6 text-[#1A2332] mb-3" style={{ fontWeight: 700 }}>Your account manager</h2>
-          <div className="flex items-center gap-3">
-            <div className="h-12 w-12 rounded-full bg-[#4A6FA5] text-white flex items-center justify-center text-[16px]" style={{ fontWeight: 700 }}>SH</div>
-            <div>
-              <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 700 }}>Solomiia Havrylyshyn</div>
-              <div className="text-[12px] text-[#6B7280]">solomiia@vision360.com</div>
+              <p className="text-[12px] leading-4 text-[#6B7280]">Adding or removing users in Manage Team prorates this total on the next billing cycle.</p>
             </div>
           </div>
-          <p className="mt-3 text-[13px] leading-5 text-[#546478]">
-            Direct email support for MVP customers — Solomiia answers personally. A full support center launches with Pro.
-          </p>
-          <div className="mt-4 flex flex-col gap-2">
-            <Button
-              onClick={() => window.location.href = "mailto:solomiia@vision360.com?subject=Vision360%20support"}
-              className="h-10 bg-[#4A6FA5] hover:bg-[#3d5a85] text-white"
-              style={{ fontWeight: 600 }}
-            >
-              <span className="material-icons mr-1.5" style={{ fontSize: "16px" }}>mail</span>
-              Email Solomiia
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => toast.info("Schedule-a-call coming soon")}
-              className="h-9 border-[#E5E7EB] text-[#546478] hover:bg-[#EDF0F5]"
-            >
-              Schedule a call
-            </Button>
-          </div>
-        </Card>
-      </div>
 
-      {/* Payment method + Payment history */}
-      <div className="mt-4 grid grid-cols-2 gap-4">
-        <SectionCard title="Subscription payment method" description="Card we charge each month for Vision360.">
-          <div className="flex items-center justify-between rounded-xl border border-[#E5E7EB] p-4">
+          {/* Payment method card */}
+          <div className="flex flex-col gap-4 rounded-xl border border-[#E5E7EB] bg-white p-4">
+            <div className="flex flex-col gap-1">
+              <span className="text-[16px] leading-6 text-[#1A2332]" style={{ fontWeight: 600 }}>Subscription payment method</span>
+              <span className="text-[14px] leading-5 text-[#6B7280]">Card we charge each month for Vision360.</span>
+            </div>
+            <div className="flex items-center gap-4 rounded-lg border border-[#E5E7EB] p-4">
+              <div className="flex items-center justify-center rounded-lg shrink-0" style={{ width: 80, height: 48, background: "#1C2B3A" }}>
+                <span className="text-white text-[13px]" style={{ fontWeight: 800, letterSpacing: "0.08em" }}>VISA</span>
+              </div>
+              <div className="flex flex-col gap-1 flex-1">
+                <span className="text-[14px] leading-5 text-[#1A2332]" style={{ fontWeight: 500 }}>•••• •••• •••• {card.last4}</span>
+                <span className="text-[14px] leading-5 text-[#6B7280]">{card.holder} · Expires {card.expiry}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => { setDraftCard(card); setEditCardOpen(true); }}
+                className="w-9 h-9 flex items-center justify-center rounded-lg text-[#1A2332] hover:bg-[#F5F7FA] transition-colors shrink-0"
+              >
+                <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
+              </button>
+            </div>
+            <p className="text-[12px] leading-4 text-[#6B7280]">All charges appear on your statement as "Vision360 FSM".</p>
+          </div>
+        </div>
+
+        {/* Right column */}
+        <div className="flex flex-col gap-4">
+          {/* Account manager card */}
+          <div className="flex flex-col gap-4 rounded-xl border border-[#E5E7EB] bg-white p-4">
+            <span className="text-[16px] leading-6 text-[#1A2332]" style={{ fontWeight: 600 }}>Your account manager</span>
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-14 items-center justify-center rounded-lg bg-[#1A2332] text-white text-[11px]" style={{ fontWeight: 800 }}>{card.brand.toUpperCase()}</div>
-              <div>
-                <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 700 }}>•••• •••• •••• {card.last4}</div>
-                <div className="text-[13px] text-[#546478]">{card.holder} · Expires {card.expiry}</div>
+              <div className="w-12 h-12 rounded-full bg-[#4A6FA5] text-white flex items-center justify-center text-[14px] shrink-0" style={{ fontWeight: 600 }}>SH</div>
+              <div className="flex flex-col gap-1">
+                <span className="text-[14px] leading-5 text-[#1A2332]" style={{ fontWeight: 500 }}>Solomiia Havrylyshyn</span>
+                <span className="text-[12px] leading-4 text-[#6B7280]" style={{ fontWeight: 500 }}>solomiia@vision360.com</span>
               </div>
             </div>
-            <Button
-              variant="outline"
-              className="h-9 border-[#E5E7EB] text-[#546478] hover:bg-[#EDF0F5]"
-              onClick={() => { setDraftCard(card); setEditCardOpen(true); }}
-            >
-              Edit
-            </Button>
+            <p className="text-[14px] leading-5 text-[#6B7280]">Direct email support for MVP customers — Solomiia answers personally. A full support center launches with Pro.</p>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => toast.info("Schedule-a-call coming soon")}
+                className="h-9 flex-1 rounded-lg border border-[#E5E7EB] bg-white text-[14px] text-[#1A2332] hover:bg-[#F5F7FA] transition-colors"
+                style={{ fontWeight: 500 }}
+              >
+                Schedule a call
+              </button>
+              <button
+                type="button"
+                onClick={() => { window.location.href = "mailto:solomiia@vision360.com?subject=Vision360%20support"; }}
+                className="h-9 flex-1 rounded-lg bg-[#4A6FA5] hover:bg-[#3d5a85] text-white text-[14px] transition-colors"
+                style={{ fontWeight: 500 }}
+              >
+                Email Solomiia
+              </button>
+            </div>
           </div>
-          <p className="mt-2 text-[12px] text-[#6B7280]">All charges appear on your statement as "Vision360 FSM".</p>
-        </SectionCard>
 
-        <SectionCard title="Payment history" description="Last invoices for your subscription.">
-          <div className="space-y-2">
-            {history.map(row => (
-              <div key={row.id} className="flex items-center justify-between rounded-lg border border-[#E5E7EB] px-3 py-2 text-[13px]">
-                <div>
-                  <div className="text-[#1A2332]" style={{ fontWeight: 600 }}>{row.label}</div>
-                  <div className="text-[11px] text-[#6B7280]">{row.date} · {row.id}</div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-[#1A2332]" style={{ fontWeight: 600 }}>${row.amount}.00</span>
-                  <span className="rounded-full bg-[#DCFCE7] px-2 py-0.5 text-[11px] text-[#15803D]" style={{ fontWeight: 700 }}>{row.status}</span>
-                  <button
-                    onClick={() => toast.success(`Receipt ${row.id} downloaded`)}
-                    className="text-[#4A6FA5] hover:text-[#3d5a85]"
-                    title="Download receipt"
-                  >
-                    <span className="material-icons" style={{ fontSize: "18px" }}>file_download</span>
-                  </button>
-                </div>
+          {/* Payment history card */}
+          <div className="flex flex-col gap-4 rounded-xl border border-[#E5E7EB] bg-white p-4 flex-1">
+            <div className="flex flex-col gap-1">
+              <span className="text-[16px] leading-6 text-[#1A2332]" style={{ fontWeight: 600 }}>Payment history</span>
+              <span className="text-[14px] leading-5 text-[#6B7280]">Last invoices for your subscription.</span>
+            </div>
+            <div className="relative">
+              <div className="flex flex-col gap-2 rounded-lg border border-[#E5E7EB] p-3">
+                {history.map(row => (
+                  <div key={row.id} className="flex items-center gap-4 rounded-lg border border-[#E5E7EB] p-4">
+                    <div className="flex flex-col gap-1 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[14px] leading-5 text-[#1A2332]" style={{ fontWeight: 500 }}>{row.label}</span>
+                        <span className="inline-flex items-center rounded-lg px-2 py-0.5 text-[12px] leading-4 text-[#16A34A]" style={{ fontWeight: 500, background: "rgba(22,163,74,0.15)" }}>{row.status}</span>
+                      </div>
+                      <span className="text-[14px] leading-5 text-[#6B7280]">{row.date} · {row.id}</span>
+                    </div>
+                    <span className="text-[14px] leading-5 text-[#1A2332]" style={{ fontWeight: 600 }}>${row.amount}.00</span>
+                    <button
+                      type="button"
+                      onClick={() => toast.success(`Receipt ${row.id} downloaded`)}
+                      className="w-9 h-9 flex items-center justify-center rounded-lg text-[#1A2332] hover:bg-[#F5F7FA] transition-colors shrink-0"
+                      title="Download receipt"
+                    >
+                      <span className="material-icons" style={{ fontSize: "16px" }}>file_download</span>
+                    </button>
+                  </div>
+                ))}
               </div>
-            ))}
+              {/* Gradient fade overlay */}
+              <div
+                className="absolute bottom-0 left-0 right-0 pointer-events-none rounded-b-lg"
+                style={{ height: 65, background: "linear-gradient(180deg, rgba(255,255,255,0) 0%, #FFFFFF 100%)" }}
+              />
+            </div>
           </div>
-        </SectionCard>
+        </div>
       </div>
 
-      {/* Coming soon plans */}
-      <div className="mt-4">
-        <Card className="border border-[#D8E3F4] bg-gradient-to-br from-[#F8FBFF] to-white p-6 shadow-[0_8px_22px_rgba(26,35,50,0.035)]">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "20px" }}>rocket_launch</span>
-            <h2 className="text-[16px] leading-6 text-[#1A2332]" style={{ fontWeight: 700 }}>Advanced plans coming soon</h2>
-          </div>
-          <p className="text-[13px] leading-5 text-[#546478] mb-4">
-            Vision360 Pro and Enterprise are on the roadmap. They add route optimization, dispatching, advanced reporting, multi-location and white-label.
-          </p>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-xl border border-[#E5E7EB] bg-white p-4">
-              <div className="flex items-center justify-between mb-1">
-                <div className="text-[15px] text-[#1A2332]" style={{ fontWeight: 700 }}>Vision360 Pro</div>
-                <span className="rounded-full bg-[#FEF3C7] px-2 py-0.5 text-[11px] text-[#B45309]" style={{ fontWeight: 700 }}>Coming soon</span>
-              </div>
-              <p className="text-[12px] text-[#6B7280] leading-snug">Route optimization, dispatch board, call tracking, conversion analytics.</p>
+      {/* Advanced plans coming soon — full width */}
+      <div className="flex flex-col gap-4 rounded-xl border border-[#E5E7EB] bg-white p-4">
+        <div className="flex flex-col gap-1">
+          <span className="text-[16px] leading-6 text-[#1A2332]" style={{ fontWeight: 600 }}>Advanced plans coming soon</span>
+          <span className="text-[14px] leading-5 text-[#6B7280]">Vision360 Pro and Enterprise are on the roadmap. They add route optimization, dispatching, advanced reporting, multi-location and white-label.</span>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          {/* Enterprise card */}
+          <div className="flex items-start gap-4 rounded-lg border border-[#E5E7EB] p-4">
+            <div className="flex flex-col gap-1 flex-1">
+              <span className="text-[14px] leading-5 text-[#4A6FA5]" style={{ fontWeight: 500 }}>Vision360 Enterprise</span>
+              <p className="text-[14px] leading-5 text-[#1A2332]">Multi-location, custom permissions, white-label, dedicated success manager.</p>
             </div>
-            <div className="rounded-xl border border-[#E5E7EB] bg-white p-4">
-              <div className="flex items-center justify-between mb-1">
-                <div className="text-[15px] text-[#1A2332]" style={{ fontWeight: 700 }}>Vision360 Enterprise</div>
-                <span className="rounded-full bg-[#FEF3C7] px-2 py-0.5 text-[11px] text-[#B45309]" style={{ fontWeight: 700 }}>Coming soon</span>
-              </div>
-              <p className="text-[12px] text-[#6B7280] leading-snug">Multi-location, custom permissions, white-label, dedicated success manager.</p>
+            <span className="inline-flex items-center shrink-0 rounded-lg px-2 py-0.5 text-[12px] leading-4 text-[#BD800E]" style={{ fontWeight: 500, background: "rgba(189,128,14,0.15)" }}>Coming soon</span>
+          </div>
+          {/* Pro card */}
+          <div className="flex items-start gap-4 rounded-lg border border-[#E5E7EB] p-4">
+            <div className="flex flex-col gap-1 flex-1">
+              <span className="text-[14px] leading-5 text-[#4A6FA5]" style={{ fontWeight: 500 }}>Vision360 Pro</span>
+              <p className="text-[14px] leading-5 text-[#1A2332]">Route optimization, dispatch board, call tracking, conversion analytics.</p>
             </div>
+            <span className="inline-flex items-center shrink-0 rounded-lg px-2 py-0.5 text-[12px] leading-4 text-[#BD800E]" style={{ fontWeight: 500, background: "rgba(189,128,14,0.15)" }}>Coming soon</span>
           </div>
-          <div className="mt-4 flex items-center gap-3">
-            <Button
-              variant="outline"
-              onClick={() => toast.success("You'll be notified when Pro launches")}
-              className="h-9 border-[#C8D5E8] text-[#4A6FA5] hover:bg-[#EBF0F8]"
-              style={{ fontWeight: 600 }}
-            >
-              Notify me about Pro
-            </Button>
-          </div>
-        </Card>
+        </div>
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={() => toast.success("You'll be notified when Pro launches")}
+            className="h-9 px-4 rounded-lg bg-[#4A6FA5] hover:bg-[#3d5a85] text-white text-[14px] transition-colors"
+            style={{ fontWeight: 500 }}
+          >
+            Notify me about Pro
+          </button>
+        </div>
       </div>
 
       {/* Edit card modal */}
@@ -853,78 +873,45 @@ function BillingAndPlanSection() {
             className="w-[440px] bg-white rounded-xl border border-[#E5E7EB] shadow-2xl overflow-hidden"
             onClick={e => e.stopPropagation()}
           >
-            <div className="px-6 py-4 border-b border-[#E5E7EB] flex items-center justify-between">
-              <h3 className="text-[16px] text-[#1A2332]" style={{ fontWeight: 700 }}>Edit payment method</h3>
-              <button onClick={() => setEditCardOpen(false)} className="text-[#9CA3AF] hover:text-[#1A2332]">
+            <div className="px-5 py-4 border-b border-[#E5E7EB] flex items-center justify-between">
+              <span className="text-[16px] text-[#1A2332]" style={{ fontWeight: 600 }}>Edit payment method</span>
+              <button type="button" onClick={() => setEditCardOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-md text-[#9CA3AF] hover:bg-[#F5F7FA] hover:text-[#1A2332] transition-colors">
                 <span className="material-icons" style={{ fontSize: "20px" }}>close</span>
               </button>
             </div>
-            <div className="p-6 space-y-4">
-              <div>
-                <label className="block text-[13px] text-[#1A2332] mb-1.5" style={{ fontWeight: 600 }}>Cardholder name</label>
-                <Input
-                  value={draftCard.holder}
-                  onChange={e => setDraftCard({ ...draftCard, holder: e.target.value })}
-                  className="h-10 border-[#D8DEE8]"
-                />
+            <div className="p-5 flex flex-col gap-4">
+              <div className="flex flex-col gap-1">
+                <label className="text-[13px] leading-4 text-[#1A2332]" style={{ fontWeight: 500 }}>Cardholder name</label>
+                <Input value={draftCard.holder} onChange={e => setDraftCard({ ...draftCard, holder: e.target.value })} className="h-9 border-[#E5E7EB] shadow-[0_1px_2px_rgba(0,0,0,0.05)]" />
               </div>
-              <div>
-                <label className="block text-[13px] text-[#1A2332] mb-1.5" style={{ fontWeight: 600 }}>Card number (last 4)</label>
-                <Input
-                  value={draftCard.last4}
-                  onChange={e => setDraftCard({ ...draftCard, last4: e.target.value.replace(/\D/g, "").slice(0, 4) })}
-                  placeholder="4242"
-                  className="h-10 border-[#D8DEE8]"
-                />
+              <div className="flex flex-col gap-1">
+                <label className="text-[13px] leading-4 text-[#1A2332]" style={{ fontWeight: 500 }}>Card number (last 4)</label>
+                <Input value={draftCard.last4} onChange={e => setDraftCard({ ...draftCard, last4: e.target.value.replace(/\D/g, "").slice(0, 4) })} placeholder="4242" className="h-9 border-[#E5E7EB] shadow-[0_1px_2px_rgba(0,0,0,0.05)]" />
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[13px] text-[#1A2332] mb-1.5" style={{ fontWeight: 600 }}>Brand</label>
-                  <select
-                    value={draftCard.brand}
-                    onChange={e => setDraftCard({ ...draftCard, brand: e.target.value })}
-                    className="h-10 w-full rounded-lg border border-[#D8DEE8] bg-white px-3 text-[14px] text-[#1A2332]"
-                  >
-                    {["Visa", "Mastercard", "Amex", "Discover"].map(b => <option key={b} value={b}>{b}</option>)}
-                  </select>
+                <div className="flex flex-col gap-1">
+                  <label className="text-[13px] leading-4 text-[#1A2332]" style={{ fontWeight: 500 }}>Brand</label>
+                  <div className="relative">
+                    <select value={draftCard.brand} onChange={e => setDraftCard({ ...draftCard, brand: e.target.value })} className="h-9 w-full appearance-none rounded-lg border border-[#E5E7EB] bg-white pl-3 pr-8 text-[14px] text-[#1A2332] shadow-[0_1px_2px_rgba(0,0,0,0.05)] outline-none focus:border-[#4A6FA5]">
+                      {["Visa", "Mastercard", "Amex", "Discover"].map(b => <option key={b} value={b}>{b}</option>)}
+                    </select>
+                    <span className="material-icons pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: "18px" }}>expand_more</span>
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-[13px] text-[#1A2332] mb-1.5" style={{ fontWeight: 600 }}>Expiry (MM/YYYY)</label>
-                  <Input
-                    value={draftCard.expiry}
-                    onChange={e => setDraftCard({ ...draftCard, expiry: e.target.value })}
-                    placeholder="12/2026"
-                    className="h-10 border-[#D8DEE8]"
-                  />
+                <div className="flex flex-col gap-1">
+                  <label className="text-[13px] leading-4 text-[#1A2332]" style={{ fontWeight: 500 }}>Expiry (MM/YYYY)</label>
+                  <Input value={draftCard.expiry} onChange={e => setDraftCard({ ...draftCard, expiry: e.target.value })} placeholder="12/2026" className="h-9 border-[#E5E7EB] shadow-[0_1px_2px_rgba(0,0,0,0.05)]" />
                 </div>
               </div>
             </div>
-            <div className="px-6 py-4 border-t border-[#E5E7EB] flex items-center justify-end gap-3 bg-[#FAFBFC]">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setEditCardOpen(false)}
-                className="border-[#E5E7EB] text-[#546478] hover:bg-[#EDF0F5] h-10 px-6"
-              >
-                Cancel
-              </Button>
-              <Button
-                type="button"
-                onClick={() => {
-                  setCard(draftCard);
-                  setEditCardOpen(false);
-                  toast.success("Payment method updated");
-                }}
-                className="bg-[#4A6FA5] hover:bg-[#3d5a85] text-white h-10 px-6"
-                style={{ fontWeight: 600 }}
-              >
-                Save card
-              </Button>
+            <div className="px-5 py-3 border-t border-[#E5E7EB] flex items-center justify-end gap-2">
+              <button type="button" onClick={() => setEditCardOpen(false)} className="h-9 px-4 rounded-lg border border-[#D8DEE8] text-[#546478] hover:bg-[#F5F7FA] text-[14px] transition-colors" style={{ fontWeight: 500 }}>Cancel</button>
+              <button type="button" onClick={() => { setCard(draftCard); setEditCardOpen(false); toast.success("Payment method updated"); }} className="h-9 px-4 rounded-lg bg-[#4A6FA5] hover:bg-[#3d5a85] text-white text-[14px] transition-colors" style={{ fontWeight: 500 }}>Save card</button>
             </div>
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }
 
@@ -1806,6 +1793,7 @@ export function Settings() {
   const [team, setTeam] = useState(teamMembers);
   const [teamSearch, setTeamSearch] = useState("");
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [teamRowMenu, setTeamRowMenu] = useState<string | null>(null);
   const emptyInvite = { name: "", email: "", role: "Employee" as "Owner" | "Employee", title: "", rate: "" };
   const [invite, setInvite] = useState(emptyInvite);
   // ── Login security & 2FA ──
@@ -1891,6 +1879,7 @@ export function Settings() {
   const [brandPrimary, setBrandPrimary] = useState(() => getStoredBrandTheme().primary);
   const [brandAccent, setBrandAccent] = useState(() => getStoredBrandTheme().accent);
   const [brandLogoPreview, setBrandLogoPreview] = useState(() => getStoredBrandLogo());
+  const [resetBrandDialogOpen, setResetBrandDialogOpen] = useState(false);
   const [tcFile, setTcFile] = useState<string | null>(null);
   const [policiesFile, setPoliciesFile] = useState<string | null>(null);
   const [privacyFile, setPrivacyFile] = useState<string | null>(null);
@@ -1968,9 +1957,13 @@ export function Settings() {
   const handleLogoUpload = (file: File | undefined) => {
     if (!file) return;
 
-    const supportedTypes = ["image/png", "image/svg+xml"];
+    const supportedTypes = ["image/png", "image/svg+xml", "image/jpeg", "image/gif"];
     if (!supportedTypes.includes(file.type)) {
-      toast.error("Upload a PNG or SVG logo");
+      toast.error("Upload a PNG, SVG, JPG, or GIF logo");
+      return;
+    }
+    if (file.size > 3 * 1024 * 1024) {
+      toast.error("Logo must be under 3 MB");
       return;
     }
 
@@ -2078,22 +2071,45 @@ export function Settings() {
               <SectionHeader
                 title="Company Profile"
                 description="About your business, branding, social links, taxes, and regional settings."
+                action={
+                  <Button
+                    className="h-9 bg-[#4A6FA5] hover:bg-[#3d5a85] text-white px-4 text-[13px]"
+                    style={{ fontWeight: 600 }}
+                    onClick={() => toast.success("Changes saved")}
+                  >
+                    Save changes
+                  </Button>
+                }
               />
               <div className="space-y-4">
 
-                <SectionCard id="branding" title="Brand assets" description="Your company branding is shown in Client Hub, email messages, and on all PDFs.">
+                <SectionCard
+                  id="branding"
+                  title="Brand assets"
+                  description="Your company branding is shown in Client Hub, email messages, and on all PDFs."
+                  headerAction={
+                    <Button
+                      variant="outline"
+                      className="h-8 rounded-lg border-[#D8DEE8] px-3 text-[12px] text-[#546478] hover:bg-[#F5F7FA]"
+                      style={{ fontWeight: 600 }}
+                      onClick={() => setResetBrandDialogOpen(true)}
+                    >
+                      Reset to default
+                    </Button>
+                  }
+                >
                   <div className="grid grid-cols-2 divide-x divide-[#E1E6EF]">
 
                     {/* Brand Colors */}
                     <div className="pr-6">
-                      <div className="mb-3 text-[13px] text-[#7A8799]" style={{ fontWeight: 600 }}>Brand Colors</div>
-                      <div className="space-y-2.5">
-                        <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] px-3 py-3 transition-colors hover:border-[#C8D5E8] hover:bg-[#EBF3FF]">
-                          <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-lg shadow-sm" style={{ backgroundColor: brandPrimary }}>
+                      <div className="mb-3 text-[13px] text-[#7A8799]" style={{ fontWeight: 600 }}>Brand colors</div>
+                      <div className="space-y-3">
+                        <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-[#E5E7EB] px-3 py-2.5 hover:border-[#C8D5E8]">
+                          <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-lg" style={{ backgroundColor: brandPrimary }}>
                             <input
                               type="color"
                               value={/^#[0-9a-f]{6}$/i.test(brandPrimary) ? brandPrimary : "#4A6FA5"}
-                              onChange={e => setBrandPrimary(e.target.value)}
+                              onChange={e => { setBrandPrimary(e.target.value); applyBrandTheme({ primary: e.target.value, accent: brandAccent }); }}
                               className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
                             />
                           </div>
@@ -2101,14 +2117,14 @@ export function Settings() {
                             <div className="text-[11px] text-[#9AA3AF]" style={{ fontWeight: 600 }}>Main brand color</div>
                             <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 700 }}>{brandPrimary.toUpperCase()}</div>
                           </div>
-                          <span className="material-icons ml-auto text-[#C8D5E8]" style={{ fontSize: "16px" }}>colorize</span>
+                          <span className="material-icons ml-auto text-[#C8D5E8] hover:text-[#546478]" style={{ fontSize: "16px" }}>edit</span>
                         </label>
-                        <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] px-3 py-3 transition-colors hover:border-[#C8D5E8] hover:bg-[#EBF3FF]">
-                          <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-lg shadow-sm" style={{ backgroundColor: brandAccent }}>
+                        <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-[#E5E7EB] px-3 py-2.5 hover:border-[#C8D5E8]">
+                          <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-lg" style={{ backgroundColor: brandAccent }}>
                             <input
                               type="color"
                               value={/^#[0-9a-f]{6}$/i.test(brandAccent) ? brandAccent : "#F97316"}
-                              onChange={e => setBrandAccent(e.target.value)}
+                              onChange={e => { setBrandAccent(e.target.value); applyBrandTheme({ primary: brandPrimary, accent: e.target.value }); }}
                               className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
                             />
                           </div>
@@ -2116,33 +2132,8 @@ export function Settings() {
                             <div className="text-[11px] text-[#9AA3AF]" style={{ fontWeight: 600 }}>Accent color</div>
                             <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 700 }}>{brandAccent.toUpperCase()}</div>
                           </div>
-                          <span className="material-icons ml-auto text-[#C8D5E8]" style={{ fontSize: "16px" }}>colorize</span>
+                          <span className="material-icons ml-auto text-[#C8D5E8] hover:text-[#546478]" style={{ fontSize: "16px" }}>edit</span>
                         </label>
-                      </div>
-                      <div className="mt-4 flex gap-2">
-                        <Button
-                          className="h-8 rounded-lg bg-[#4A6FA5] px-4 text-[12px] hover:bg-[#3d5a85]"
-                          style={{ fontWeight: 700 }}
-                          onClick={() => {
-                            applyBrandTheme({ primary: brandPrimary, accent: brandAccent });
-                            toast.success("Brand colors updated successfully");
-                          }}
-                        >
-                          Save
-                        </Button>
-                        <Button
-                          variant="outline"
-                          className="h-8 rounded-lg border-[#D8DEE8] px-3 text-[12px] text-[#546478] hover:bg-[#F5F7FA]"
-                          style={{ fontWeight: 600 }}
-                          onClick={() => {
-                            resetBrandTheme();
-                            setBrandPrimary(DEFAULT_BRAND_THEME.primary);
-                            setBrandAccent(DEFAULT_BRAND_THEME.accent);
-                            toast.success("Default theme restored");
-                          }}
-                        >
-                          Get back to default
-                        </Button>
                       </div>
                     </div>
 
@@ -2152,35 +2143,42 @@ export function Settings() {
                       <input
                         ref={logoInputRef}
                         type="file"
-                        accept="image/png,image/svg+xml"
+                        accept="image/png,image/svg+xml,image/jpeg,image/gif"
                         className="hidden"
                         onChange={e => handleLogoUpload(e.target.files?.[0])}
                       />
                       <div
-                        className="group flex h-[130px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-[#C8D5E8] bg-[#F8FAFC] transition-colors hover:border-[#4A6FA5] hover:bg-[#EBF3FF]"
-                        onClick={() => !brandLogoPreview && logoInputRef.current?.click()}
+                        className="group flex h-[130px] cursor-pointer flex-col items-center justify-center rounded-xl border border-[#E5E7EB] bg-white transition-colors hover:border-[#C8D5E8]"
+                        onClick={() => logoInputRef.current?.click()}
+                        onDragOver={e => e.preventDefault()}
+                        onDrop={e => {
+                          e.preventDefault();
+                          handleLogoUpload(e.dataTransfer.files?.[0]);
+                        }}
                       >
                         {brandLogoPreview ? (
                           <img src={brandLogoPreview} alt="Company logo" className="max-h-[110px] max-w-full object-contain p-3" />
                         ) : (
                           <>
-                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-[#E1E6EF] group-hover:ring-[#4A6FA5]">
-                              <span className="material-icons text-[#9AA3AF] group-hover:text-[#4A6FA5]" style={{ fontSize: "20px" }}>upload</span>
-                            </div>
-                            <span className="mt-2 text-[12px] text-[#9AA3AF] group-hover:text-[#4A6FA5]">No logo</span>
+                            <span className="material-icons text-[#9AA3AF] group-hover:text-[#4A6FA5]" style={{ fontSize: "24px" }}>upload</span>
+                            <p className="mt-1.5 text-[12px] text-[#546478] text-center leading-[18px]">
+                              Drop your files here, or{" "}
+                              <span className="text-[#4A6FA5] underline underline-offset-2" style={{ fontWeight: 600 }}>click to browse</span>
+                            </p>
+                            <p className="mt-0.5 text-[11px] text-[#9AA3AF]">SVG, PNG, JPG or GIF (max. 3MB)</p>
                           </>
                         )}
                       </div>
-                      <div className="mt-3 flex gap-2">
-                        <Button
-                          variant="outline"
-                          className="h-8 rounded-lg border-[#C8D5E8] px-4 text-[12px] text-[#4A6FA5] hover:bg-[#EBF3FF]"
-                          style={{ fontWeight: 700 }}
-                          onClick={() => logoInputRef.current?.click()}
-                        >
-                          {brandLogoPreview ? "Change logo" : "Add logo"}
-                        </Button>
-                        {brandLogoPreview && (
+                      {brandLogoPreview && (
+                        <div className="mt-3 flex gap-2">
+                          <Button
+                            variant="outline"
+                            className="h-8 rounded-lg border-[#C8D5E8] px-4 text-[12px] text-[#4A6FA5] hover:bg-[#EBF3FF]"
+                            style={{ fontWeight: 700 }}
+                            onClick={() => logoInputRef.current?.click()}
+                          >
+                            Change logo
+                          </Button>
                           <Button
                             variant="outline"
                             className="h-8 rounded-lg border-[#FECACA] px-3 text-[12px] text-[#DC2626] hover:bg-[#FEF2F2]"
@@ -2194,8 +2192,8 @@ export function Settings() {
                           >
                             Remove
                           </Button>
-                        )}
-                      </div>
+                        </div>
+                      )}
                     </div>
 
                   </div>
@@ -2267,58 +2265,147 @@ export function Settings() {
           )}
 
           {activeSection === "team" && (
-            <>
-              <SectionHeader
-                title="Manage Team"
-                description="MVP keeps permissions simple: Owner/Admin and Employee. Employees should not access billing or system preference changes."
-              />
-              <div className="mb-4 flex items-center justify-between">
-                <Input
-                  placeholder="Search users..."
-                  value={teamSearch}
-                  onChange={e => setTeamSearch(e.target.value)}
-                  className="h-9 max-w-[360px] border-[#D8DEE8]"
-                />
-                <Button
-                  className="h-9 bg-[#4A6FA5] px-4 text-[14px] hover:bg-[#3d5a85]"
-                  onClick={() => setInviteOpen(true)}
+            <div className="flex flex-col gap-4" onClick={() => setTeamRowMenu(null)}>
+
+              {/* Page header */}
+              <div className="flex items-center justify-between gap-3">
+                <h2 className="text-[20px] text-[#1A2332]" style={{ fontWeight: 600 }}>Manage team</h2>
+                <button
+                  type="button"
+                  onClick={e => { e.stopPropagation(); toast.success("Team settings saved"); }}
+                  className="h-9 px-4 rounded-lg bg-[#4A6FA5] hover:bg-[#3d5a85] text-white text-[14px] transition-colors"
+                  style={{ fontWeight: 500 }}
                 >
-                  <span className="material-icons mr-1.5" style={{ fontSize: "16px" }}>person_add</span>
-                  Invite user
-                </Button>
+                  Save changes
+                </button>
               </div>
-              <div className="overflow-hidden rounded-xl border border-[#E5E7EB] bg-white">
+
+              {/* Users table card */}
+              <div className="flex flex-col rounded-xl border border-[#E5E7EB] bg-white overflow-hidden">
+                {/* Toolbar */}
+                <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-[#E5E7EB]">
+                  <div className="relative w-[300px]">
+                    <span className="material-icons absolute left-2.5 top-1/2 -translate-y-1/2 text-[#9CA3AF] pointer-events-none" style={{ fontSize: "16px" }}>search</span>
+                    <input
+                      placeholder="Search users"
+                      value={teamSearch}
+                      onChange={e => setTeamSearch(e.target.value)}
+                      className="h-9 w-full rounded-lg border border-[#E5E7EB] bg-white pl-8 pr-3 text-[14px] text-[#1A2332] outline-none focus:border-[#4A6FA5] shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={e => { e.stopPropagation(); setInviteOpen(true); }}
+                    className="h-9 px-4 flex items-center gap-1.5 rounded-lg bg-[#4A6FA5] hover:bg-[#3d5a85] text-white text-[14px] transition-colors shrink-0"
+                    style={{ fontWeight: 500 }}
+                  >
+                    <span className="material-icons" style={{ fontSize: "16px" }}>person_add</span>
+                    Invite User
+                  </button>
+                </div>
+
+                {/* Table */}
                 <table className="w-full">
-                  <thead className="bg-[#F5F7FA]">
-                    <tr>
-                      {["Name", "Email", "Role", "User role title", "Pay rate", "Status"].map(label => (
-                        <th key={label} className="px-4 py-3 text-left text-[11px] uppercase tracking-wide text-[#546478]" style={{ fontWeight: 800 }}>{label}</th>
+                  <thead>
+                    <tr className="bg-[#F5F7FA]">
+                      {["Name", "Email", "Role", "User role title", "Pay rate", "Status", ""].map((h, i) => (
+                        <th
+                          key={i}
+                          className="px-4 text-left text-[12px] text-[#6B7280] border-b border-[#E5E7EB]"
+                          style={{ fontWeight: 500, height: 36, whiteSpace: "nowrap" }}
+                        >
+                          {h}
+                        </th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {filteredTeam.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="px-4 py-8 text-center text-[13px] text-[#9CA3AF]">
+                        <td colSpan={7} className="px-4 py-8 text-center text-[13px] text-[#9CA3AF]">
                           No users match "{teamSearch}".
                         </td>
                       </tr>
-                    ) : filteredTeam.map(member => (
-                      <tr key={member.email} className="border-t border-[#E5E7EB]">
-                        <td className="px-4 py-3 text-[14px] text-[#1A2332]" style={{ fontWeight: 700 }}>{member.name}</td>
-                        <td className="px-4 py-3 text-[14px] text-[#546478]">{member.email}</td>
-                        <td className="px-4 py-3 text-[14px] text-[#1A2332]">{member.role}</td>
-                        <td className="px-4 py-3 text-[14px] text-[#546478]">{member.title}</td>
-                        <td className="px-4 py-3 text-[14px] text-[#546478]">{member.rate}</td>
-                        <td className="px-4 py-3">
-                          <span className={`rounded-full px-2 py-0.5 text-[12px] ${member.status === "Active" ? "bg-[#DCFCE7] text-[#15803D]" : "bg-[#FEF3C7] text-[#B45309]"}`} style={{ fontWeight: 700 }}>
-                            {member.status}
-                          </span>
+                    ) : filteredTeam.map((member, idx) => (
+                      <tr key={member.email} className={idx > 0 ? "border-t border-[#E5E7EB]" : ""}>
+                        <td className="px-4 text-[14px] text-[#1A2332]" style={{ height: 36, fontWeight: 500 }}>{member.name}</td>
+                        <td className="px-4 text-[14px] text-[#6B7280]" style={{ height: 36 }}>{member.email}</td>
+                        <td className="px-4 text-[14px] text-[#1A2332]" style={{ height: 36 }}>{member.role}</td>
+                        <td className="px-4 text-[14px] text-[#6B7280]" style={{ height: 36 }}>{member.title}</td>
+                        <td className="px-4 text-[14px] text-[#6B7280]" style={{ height: 36 }}>{member.rate}</td>
+                        <td className="px-4" style={{ height: 36 }}>
+                          {member.status === "Active" ? (
+                            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[12px]" style={{ fontWeight: 500, background: "rgba(22,163,74,0.15)", color: "#16A34A" }}>Active</span>
+                          ) : member.status === "Pending" || member.status === "Invited" ? (
+                            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[12px]" style={{ fontWeight: 500, background: "rgba(189,128,14,0.15)", color: "#BD800E" }}>{member.status}</span>
+                          ) : (
+                            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[12px]" style={{ fontWeight: 500, background: "rgba(107,114,128,0.15)", color: "#6B7280" }}>{member.status}</span>
+                          )}
+                        </td>
+                        <td className="px-2 relative" style={{ height: 36, width: 40 }}>
+                          <button
+                            type="button"
+                            onClick={e => { e.stopPropagation(); setTeamRowMenu(teamRowMenu === member.email ? null : member.email); }}
+                            className="w-8 h-8 flex items-center justify-center rounded-md text-[#9CA3AF] hover:bg-[#F5F7FA] hover:text-[#374151] transition-colors"
+                          >
+                            <span className="material-icons" style={{ fontSize: "18px" }}>more_vert</span>
+                          </button>
+                          {teamRowMenu === member.email && (
+                            <div
+                              className="absolute right-0 top-8 z-20 w-[120px] rounded-lg border border-[#E5E7EB] bg-white shadow-lg overflow-hidden"
+                              onClick={e => e.stopPropagation()}
+                            >
+                              <button
+                                type="button"
+                                onClick={() => { setTeamRowMenu(null); toast.info(`Edit ${member.name}`); }}
+                                className="flex w-full items-center gap-2 px-3 py-2 text-[13px] text-[#374151] hover:bg-[#F5F7FA] transition-colors"
+                                style={{ fontWeight: 500 }}
+                              >
+                                <span className="material-icons text-[#6B7280]" style={{ fontSize: "16px" }}>edit</span>
+                                Edit
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => { setTeamRowMenu(null); toast.error(`${member.name} removed`); }}
+                                className="flex w-full items-center gap-2 px-3 py-2 text-[13px] text-[#DC2626] hover:bg-[#FEF2F2] transition-colors"
+                                style={{ fontWeight: 500 }}
+                              >
+                                <span className="material-icons" style={{ fontSize: "16px" }}>delete_outline</span>
+                                Delete
+                              </button>
+                            </div>
+                          )}
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
+
+                {/* Pagination footer */}
+                <div className="flex items-center justify-between gap-3 px-4 py-2 border-t border-[#E5E7EB]">
+                  <div className="flex items-center gap-2 text-[14px] text-[#6B7280]">
+                    <span>Rows per page:</span>
+                    <div className="relative">
+                      <select className="h-8 rounded-md border border-[#E5E7EB] bg-white pl-2 pr-6 text-[14px] text-[#1A2332] outline-none appearance-none cursor-pointer">
+                        <option>5</option>
+                        <option>10</option>
+                        <option>25</option>
+                      </select>
+                      <span className="material-icons pointer-events-none absolute right-1 top-1/2 -translate-y-1/2 text-[#6B7280]" style={{ fontSize: "14px" }}>expand_more</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 text-[14px] text-[#6B7280]">
+                    <span>1–{filteredTeam.length} of {filteredTeam.length}</span>
+                    <div className="flex items-center gap-1">
+                      <button type="button" className="w-8 h-8 flex items-center justify-center rounded-md text-[#9CA3AF] hover:bg-[#F5F7FA] disabled:opacity-40" disabled>
+                        <span className="material-icons" style={{ fontSize: "18px" }}>chevron_left</span>
+                      </button>
+                      <button type="button" className="w-8 h-8 flex items-center justify-center rounded-md text-[#9CA3AF] hover:bg-[#F5F7FA] disabled:opacity-40" disabled>
+                        <span className="material-icons" style={{ fontSize: "18px" }}>chevron_right</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {/* Invite user modal */}
@@ -2332,411 +2419,484 @@ export function Settings() {
                     onClick={e => e.stopPropagation()}
                   >
                     <div className="px-6 py-4 border-b border-[#E5E7EB] flex items-center justify-between">
-                      <h3 className="text-[16px] text-[#1A2332]" style={{ fontWeight: 700 }}>Invite user</h3>
+                      <h3 className="text-[16px] text-[#1A2332]" style={{ fontWeight: 600 }}>Invite user</h3>
                       <button
                         onClick={() => setInviteOpen(false)}
-                        className="text-[#9CA3AF] hover:text-[#1A2332]"
+                        className="w-8 h-8 flex items-center justify-center rounded-md text-[#9CA3AF] hover:bg-[#F5F7FA] hover:text-[#374151] transition-colors"
                       >
                         <span className="material-icons" style={{ fontSize: "20px" }}>close</span>
                       </button>
                     </div>
-                    <div className="p-6 space-y-4">
+                    <div className="p-6 flex flex-col gap-4">
                       <div>
-                        <label className="block text-[13px] text-[#1A2332] mb-1.5" style={{ fontWeight: 600 }}>Name</label>
-                        <Input
+                        <label className="block text-[14px] text-[#1A2332] mb-1" style={{ fontWeight: 500 }}>Name</label>
+                        <input
                           value={invite.name}
                           onChange={e => setInvite({ ...invite, name: e.target.value })}
                           placeholder="Full name"
-                          className="h-10 border-[#D8DEE8]"
+                          className="h-9 w-full rounded-lg border border-[#E5E7EB] bg-white px-3 text-[14px] text-[#1A2332] outline-none focus:border-[#4A6FA5] shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
                           autoFocus
                         />
                       </div>
                       <div>
-                        <label className="block text-[13px] text-[#1A2332] mb-1.5" style={{ fontWeight: 600 }}>Email</label>
-                        <Input
+                        <label className="block text-[14px] text-[#1A2332] mb-1" style={{ fontWeight: 500 }}>Email</label>
+                        <input
                           type="email"
                           value={invite.email}
                           onChange={e => setInvite({ ...invite, email: e.target.value })}
                           placeholder="name@company.com"
-                          className="h-10 border-[#D8DEE8]"
+                          className="h-9 w-full rounded-lg border border-[#E5E7EB] bg-white px-3 text-[14px] text-[#1A2332] outline-none focus:border-[#4A6FA5] shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
                         />
                       </div>
                       <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <label className="block text-[13px] text-[#1A2332] mb-1.5" style={{ fontWeight: 600 }}>Role</label>
-                          <select
-                            value={invite.role}
-                            onChange={e => setInvite({ ...invite, role: e.target.value as "Owner" | "Employee" })}
-                            className="h-10 w-full rounded-lg border border-[#D8DEE8] bg-white px-3 text-[14px] text-[#1A2332]"
-                          >
-                            <option value="Employee">Employee</option>
-                            <option value="Owner">Owner / Admin</option>
-                          </select>
+                          <label className="block text-[14px] text-[#1A2332] mb-1" style={{ fontWeight: 500 }}>Role</label>
+                          <div className="relative">
+                            <select
+                              value={invite.role}
+                              onChange={e => setInvite({ ...invite, role: e.target.value as "Owner" | "Employee" })}
+                              className="h-9 w-full rounded-lg border border-[#E5E7EB] bg-white pl-3 pr-8 text-[14px] text-[#1A2332] outline-none focus:border-[#4A6FA5] shadow-[0_1px_2px_rgba(0,0,0,0.05)] appearance-none cursor-pointer"
+                            >
+                              <option value="Employee">Employee</option>
+                              <option value="Owner">Owner / Admin</option>
+                            </select>
+                            <span className="material-icons pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[#6B7280]" style={{ fontSize: "16px" }}>expand_more</span>
+                          </div>
                         </div>
                         <div>
-                          <label className="block text-[13px] text-[#1A2332] mb-1.5" style={{ fontWeight: 600 }}>Pay rate</label>
-                          <Input
+                          <label className="block text-[14px] text-[#1A2332] mb-1" style={{ fontWeight: 500 }}>Pay rate</label>
+                          <input
                             value={invite.rate}
                             onChange={e => setInvite({ ...invite, rate: e.target.value })}
                             placeholder="25"
-                            className="h-10 border-[#D8DEE8]"
+                            className="h-9 w-full rounded-lg border border-[#E5E7EB] bg-white px-3 text-[14px] text-[#1A2332] outline-none focus:border-[#4A6FA5] shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
                           />
                         </div>
                       </div>
                       <div>
-                        <label className="block text-[13px] text-[#1A2332] mb-1.5" style={{ fontWeight: 600 }}>User role title</label>
-                        <Input
+                        <label className="block text-[14px] text-[#1A2332] mb-1" style={{ fontWeight: 500 }}>User role title</label>
+                        <input
                           value={invite.title}
                           onChange={e => setInvite({ ...invite, title: e.target.value })}
                           placeholder="Technician, Office Staff, Installer…"
-                          className="h-10 border-[#D8DEE8]"
+                          className="h-9 w-full rounded-lg border border-[#E5E7EB] bg-white px-3 text-[14px] text-[#1A2332] outline-none focus:border-[#4A6FA5] shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
                         />
                       </div>
                     </div>
-                    <div className="px-6 py-4 border-t border-[#E5E7EB] flex items-center justify-end gap-3 bg-[#FAFBFC]">
-                      <Button
+                    <div className="px-6 py-4 border-t border-[#E5E7EB] flex items-center justify-end gap-2">
+                      <button
                         type="button"
-                        variant="outline"
                         onClick={() => { setInvite(emptyInvite); setInviteOpen(false); }}
-                        className="border-[#E5E7EB] text-[#546478] hover:bg-[#EDF0F5] h-10 px-6"
+                        className="h-9 px-4 rounded-lg border border-[#E5E7EB] bg-white hover:bg-[#F5F7FA] text-[14px] text-[#374151] transition-colors"
+                        style={{ fontWeight: 500 }}
                       >
                         Cancel
-                      </Button>
-                      <Button
+                      </button>
+                      <button
                         type="button"
                         onClick={submitInvite}
-                        className="bg-[#4A6FA5] hover:bg-[#3d5a85] text-white h-10 px-6"
-                        style={{ fontWeight: 600 }}
+                        className="h-9 px-4 rounded-lg bg-[#4A6FA5] hover:bg-[#3d5a85] text-white text-[14px] transition-colors"
+                        style={{ fontWeight: 500 }}
                       >
                         Send invite
-                      </Button>
+                      </button>
                     </div>
                   </div>
                 </div>
               )}
-              <div className="mt-4 space-y-4">
 
-                {/* Login Security & Password */}
-                <SectionCard title="Login Security & Password" description="How invitations and password resets work for users you add.">
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between gap-4">
-                      <div>
-                        <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Send temporary password link on invite</div>
-                        <div className="text-[13px] text-[#546478]">Owner receives a one-time link by email instead of typing a password manually.</div>
-                      </div>
-                      <Switch checked={tempPasswordLink} onCheckedChange={setTempPasswordLink} />
-                    </div>
-                    <div className="flex items-center justify-between gap-4">
-                      <div>
-                        <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Require password change on first login</div>
-                        <div className="text-[13px] text-[#546478]">User must set their own password after using the temporary link.</div>
-                      </div>
-                      <Switch checked={forceChangeOnLogin} onCheckedChange={setForceChangeOnLogin} />
-                    </div>
-                    <div className="pt-2 border-t border-[#E5E7EB] flex items-center justify-between gap-4">
-                      <div>
-                        <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Send password reset link</div>
-                        <div className="text-[13px] text-[#546478]">Trigger a manual reset email for a chosen user.</div>
-                      </div>
-                      <Button variant="outline" className="h-9 border-[#E5E7EB] text-[#546478] hover:bg-[#EDF0F5] px-4"
-                        onClick={() => toast.success("Password reset link sent")}>
-                        Send reset link
-                      </Button>
-                    </div>
+              {/* Login Security & Password */}
+              <div className="flex flex-col gap-4 rounded-xl border border-[#E5E7EB] bg-white p-4">
+                <span className="text-[16px] leading-6 text-[#1A2332]" style={{ fontWeight: 600 }}>Login Security &amp; Password</span>
+                <div className="flex items-center justify-between gap-4 rounded-lg border border-[#E5E7EB] p-4">
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Send temporary password link on invite</span>
+                    <span className="text-[14px] text-[#6B7280]">Owner receives a one-time link by email instead of typing a password manually.</span>
                   </div>
-                </SectionCard>
+                  <Switch checked={tempPasswordLink} onCheckedChange={setTempPasswordLink} />
+                </div>
+                <div className="flex items-center justify-between gap-4 rounded-lg border border-[#E5E7EB] p-4">
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Require password change on first login</span>
+                    <span className="text-[14px] text-[#6B7280]">User must set their own password after using the temporary link.</span>
+                  </div>
+                  <Switch checked={forceChangeOnLogin} onCheckedChange={setForceChangeOnLogin} />
+                </div>
+                <div className="pt-1 border-t border-[#E5E7EB]" />
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Send password reset link</span>
+                    <span className="text-[14px] text-[#6B7280]">Trigger a manual reset email for a chosen user.</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => toast.success("Password reset link sent")}
+                    className="h-9 px-4 rounded-lg border border-[#E5E7EB] bg-white hover:bg-[#F5F7FA] text-[14px] text-[#374151] transition-colors shrink-0"
+                    style={{ fontWeight: 500 }}
+                  >
+                    Send reset link
+                  </button>
+                </div>
+              </div>
 
-                {/* Two-Factor Authentication */}
-                <SectionCard title="Two-Factor Authentication" description="Add a second step to login using email or phone code.">
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between gap-4">
-                      <div>
-                        <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Enable 2FA for the workspace</div>
-                        <div className="text-[13px] text-[#546478]">When on, all users must complete a second step on every new device.</div>
-                      </div>
-                      <Switch checked={twoFactorEnabled} onCheckedChange={setTwoFactorEnabled} />
+              {/* Two-Factor Authentication */}
+              <div className="flex flex-col gap-4 rounded-xl border border-[#E5E7EB] bg-white p-4">
+                {/* Title + description */}
+                <div className="flex flex-col gap-1">
+                  <span className="text-[16px] leading-6 text-[#1A2332]" style={{ fontWeight: 600 }}>Two-Factor Authentication</span>
+                  <span className="text-[14px] leading-5 text-[#6B7280]">Add a second step to login using email or phone code.</span>
+                </div>
+
+                {/* Inner bordered item */}
+                <div className="flex flex-col gap-4 rounded-lg border border-[#E5E7EB] p-4">
+                  {/* Toggle row */}
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex flex-col gap-1">
+                      <span className="text-[14px] leading-5 text-[#1A2332]" style={{ fontWeight: 500 }}>Enable 2FA for the workspace</span>
+                      <span className="text-[12px] leading-4 text-[#6B7280]" style={{ fontWeight: 500 }}>When on, all users must complete a second step on every new device.</span>
                     </div>
-                    {twoFactorEnabled && (
-                      <div>
-                        <div className="text-[13px] text-[#1A2332] mb-2" style={{ fontWeight: 600 }}>Delivery method</div>
-                        <div className="grid grid-cols-3 gap-2">
-                          {([
-                            { id: "email",  label: "Email",          desc: "Send 6-digit code to user's email." },
-                            { id: "phone",  label: "Phone (SMS)",    desc: "Send code via SMS, requires phone on user profile." },
-                            { id: "either", label: "Either",         desc: "Let the user choose at login." },
-                          ] as const).map(opt => (
-                            <button
-                              key={opt.id}
-                              type="button"
-                              onClick={() => setTwoFactorMethod(opt.id)}
-                              className={`text-left rounded-lg border p-3 transition-colors ${
-                                twoFactorMethod === opt.id
-                                  ? "border-[#4A6FA5] bg-[#EBF0F8]"
-                                  : "border-[#E5E7EB] hover:bg-[#F5F7FA]"
-                              }`}
-                            >
-                              <div className="text-[13px] text-[#1A2332] mb-0.5" style={{ fontWeight: 600 }}>{opt.label}</div>
-                              <div className="text-[11px] text-[#6B7280] leading-snug">{opt.desc}</div>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+                    <Switch checked={twoFactorEnabled} onCheckedChange={setTwoFactorEnabled} />
                   </div>
-                </SectionCard>
 
-                {/* User Profile defaults */}
-                <SectionCard title="User Profile defaults" description="Fields every user record carries. Marek's MVP set: username, full name, and a pay rate.">
-                  <div className="grid grid-cols-3 gap-3">
-                    {[
-                      { label: "Username", hint: "Auto-derived from email, editable." },
-                      { label: "Full name", hint: "Display name across the app." },
-                      { label: "Phone",     hint: "Required when 2FA uses SMS." },
-                      { label: "User role", hint: "Owner / Admin or Employee." },
-                      { label: "Role title", hint: "Free-form: Technician, Office Staff, …" },
-                      { label: "Pay rate",  hint: "Hourly, daily, or salary — set per user." },
-                    ].map(f => (
-                      <div key={f.label} className="rounded-lg border border-[#E5E7EB] bg-[#FAFBFC] px-3 py-2">
-                        <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>{f.label}</div>
-                        <div className="text-[11px] text-[#6B7280] leading-snug">{f.hint}</div>
-                      </div>
-                    ))}
-                  </div>
-                </SectionCard>
+                  {/* Horizontal radio options */}
+                  {twoFactorEnabled && (
+                    <div className="flex gap-4">
+                      {([
+                        { id: "email",   label: "Email",        desc: "Send 6-digit code to user's email." },
+                        { id: "phone",   label: "Phone (SMS)",   desc: "Send code via SMS." },
+                        { id: "either",  label: "Either",        desc: "Let the user choose at login." },
+                      ] as const).map(opt => {
+                        const selected = twoFactorMethod === opt.id;
+                        return (
+                          <button
+                            key={opt.id}
+                            type="button"
+                            onClick={() => setTwoFactorMethod(opt.id)}
+                            className="flex flex-1 items-start gap-3 rounded-[10px] border p-3 text-left transition-colors"
+                            style={{ borderColor: selected ? "#4A6FA5" : "#E5E7EB", background: "#FFFFFF" }}
+                          >
+                            {/* Square radio */}
+                            <span className="mt-[2.5px] shrink-0 relative flex items-center justify-center" style={{ width: 16, height: 16 }}>
+                              <span
+                                className="absolute inset-0 flex items-center justify-center"
+                                style={{
+                                  border: `1px solid ${selected ? "#4A6FA5" : "#E5E7EB"}`,
+                                  borderRadius: 3,
+                                  background: "#FFFFFF",
+                                  boxShadow: selected ? "none" : "0px 1px 2px rgba(0,0,0,0.05)",
+                                }}
+                              >
+                                {selected && (
+                                  <span style={{ width: 8, height: 8, background: "#4A6FA5", borderRadius: 2, display: "block" }} />
+                                )}
+                              </span>
+                            </span>
+                            <span className="flex flex-col gap-1.5">
+                              <span className="text-[14px] leading-5 text-[#1A2332]">{opt.label}</span>
+                              <span className="text-[12px] leading-4 text-[#6B7280]">{opt.desc}</span>
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
 
-                {/* Pay Rates */}
-                <SectionCard title="Pay Rates" description="How the company tracks compensation. Affects commission and reporting later.">
-                  <div className="flex items-center gap-2">
-                    {([
-                      { id: "hourly", label: "Hourly" },
-                      { id: "daily",  label: "Per day" },
-                      { id: "salary", label: "Salary" },
-                    ] as const).map(opt => (
+              {/* User Profile defaults */}
+              <div className="flex flex-col gap-4 rounded-xl border border-[#E5E7EB] bg-white p-4">
+                <div className="flex flex-col gap-1">
+                  <span className="text-[16px] leading-6 text-[#1A2332]" style={{ fontWeight: 600 }}>User Profile defaults</span>
+                  <span className="text-[14px] leading-5 text-[#6B7280]">Fields every user record carries. Marek's MVP set: username, full name, and a pay rate.</span>
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  {([
+                    { label: "Username",   desc: "Auto-derived from email, editable." },
+                    { label: "Full name",  desc: "Display name across the app." },
+                    { label: "Phone",      desc: "Required when 2FA uses SMS." },
+                    { label: "User role",  desc: "Owner / Admin or Employee." },
+                    { label: "Role title", desc: "Free-form: Technician, Office Staff, …" },
+                    { label: "Pay rate",   desc: "Hourly, daily, or salary — set per user." },
+                  ]).map(f => (
+                    <div key={f.label} className="flex flex-col gap-1 rounded-lg border border-[#E5E7EB] bg-white px-3 py-2.5">
+                      <span className="text-[13px] leading-5 text-[#1A2332]" style={{ fontWeight: 600 }}>{f.label}</span>
+                      <span className="text-[12px] leading-4 text-[#6B7280]">{f.desc}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Pay rates */}
+              <div className="flex flex-col gap-4 rounded-xl border border-[#E5E7EB] bg-white p-4">
+                <div className="flex flex-col gap-1">
+                  <span className="text-[16px] leading-6 text-[#1A2332]" style={{ fontWeight: 600 }}>Pay rates</span>
+                  <span className="text-[14px] leading-5 text-[#6B7280]">How the company tracks compensation. Affects commission and reporting later.</span>
+                </div>
+                <div className="flex gap-4">
+                  {([
+                    { id: "hourly", label: "Hourly"  },
+                    { id: "daily",  label: "Per day" },
+                    { id: "salary", label: "Salary"  },
+                  ] as const).map(opt => {
+                    const selected = defaultPayType === opt.id;
+                    return (
                       <button
                         key={opt.id}
                         type="button"
                         onClick={() => setDefaultPayType(opt.id)}
-                        className={`h-9 px-4 rounded-lg text-[13px] border transition-colors ${
-                          defaultPayType === opt.id
-                            ? "border-[#4A6FA5] bg-[#EBF0F8] text-[#4A6FA5]"
-                            : "border-[#E5E7EB] text-[#546478] hover:bg-[#F5F7FA]"
-                        }`}
-                        style={{ fontWeight: 600 }}
+                        className="flex flex-1 items-center gap-3 rounded-[10px] border p-3 text-left transition-colors"
+                        style={{ borderColor: selected ? "#4A6FA5" : "#E5E7EB", background: "#FFFFFF" }}
                       >
-                        {opt.label}
+                        {/* Square radio */}
+                        <span className="shrink-0 mt-[2.5px] relative flex items-center justify-center" style={{ width: 16, height: 16 }}>
+                          <span
+                            className="absolute inset-0 flex items-center justify-center"
+                            style={{
+                              border: `1px solid ${selected ? "#4A6FA5" : "#E5E7EB"}`,
+                              borderRadius: 3,
+                              background: "#FFFFFF",
+                              boxShadow: selected ? "none" : "0px 1px 2px rgba(0,0,0,0.05)",
+                            }}
+                          >
+                            {selected && (
+                              <span style={{ width: 8, height: 8, background: "#4A6FA5", borderRadius: 2, display: "block" }} />
+                            )}
+                          </span>
+                        </span>
+                        <span className="text-[14px] leading-5 text-[#1A2332]">{opt.label}</span>
                       </button>
-                    ))}
-                  </div>
-                  <p className="mt-3 text-[12px] text-[#6B7280]">
-                    Individual users can override this default from their profile (e.g., Lead Installer paid hourly while Salesperson is on commission).
-                  </p>
-                </SectionCard>
+                    );
+                  })}
+                </div>
+                <p className="text-[12px] leading-4 text-[#6B7280]">
+                  Individual users can override this default from their profile (e.g., Lead Installer paid hourly while Salesperson is on commission).
+                </p>
+              </div>
 
-                {/* Roles & Permissions matrix */}
-                <SectionCard title="Roles & Permissions" description="MVP ships with two roles only — Owner / Admin and Employee. Owner has the full key; Employee is restricted from billing, system preferences, and sensitive fields.">
-                  <div className="overflow-hidden rounded-xl border border-[#E5E7EB]">
-                    <table className="w-full text-[13px]">
-                      <thead className="bg-[#F5F7FA] text-[11px] uppercase tracking-wide text-[#546478]">
-                        <tr>
-                          <th className="px-4 py-2 text-left" style={{ fontWeight: 800 }}>Capability</th>
-                          <th className="px-4 py-2 text-center w-[120px]" style={{ fontWeight: 800 }}>Owner / Admin</th>
-                          <th className="px-4 py-2 text-center w-[120px]" style={{ fontWeight: 800 }}>Employee</th>
+              {/* Roles & permissions */}
+              <div className="flex flex-col gap-4 rounded-xl border border-[#E5E7EB] bg-white p-4">
+                <span className="text-[16px] leading-6 text-[#1A2332]" style={{ fontWeight: 600 }}>Roles &amp; permissions</span>
+                <div className="overflow-hidden rounded-xl border border-[#E5E7EB]">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="bg-[#F5F7FA]">
+                        <th className="px-4 text-left text-[12px] text-[#6B7280] border-b border-[#E5E7EB]" style={{ fontWeight: 500, height: 36 }}>Feature</th>
+                        <th className="px-4 text-right text-[12px] text-[#6B7280] border-b border-[#E5E7EB] w-[100px]" style={{ fontWeight: 500, height: 36 }}>Owner / Admin</th>
+                        <th className="px-4 text-right text-[12px] text-[#6B7280] border-b border-[#E5E7EB] w-[100px]" style={{ fontWeight: 500, height: 36 }}>Employee</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {([
+                        ["Create / edit clients, jobs, estimates, invoices",     true,  true],
+                        ["Add notes, photos, signatures to jobs",                 true,  true],
+                        ["View own schedule and assigned jobs",                   true,  true],
+                        ["Mark job In Progress / Completed",                      true,  true],
+                        ["Send invoices to customers",                            true,  true],
+                        ["View company-wide reports and revenue",                 true,  false],
+                        ["Manage team (invite / deactivate users)",               true,  false],
+                        ["Change billing & subscription plan",                    true,  false],
+                        ["Change company info, branding, tax settings",           true,  false],
+                        ["Change system preferences (custom fields, job types)",  true,  false],
+                        ["Edit bank / payout details",                            true,  false],
+                      ] as [string, boolean, boolean][]).map(([label, admin, emp], i) => (
+                        <tr key={i} className={i > 0 ? "border-t border-[#E5E7EB]" : ""}>
+                          <td className="px-4 text-[14px] text-[#1A2332]" style={{ height: 36 }}>{label}</td>
+                          <td className="px-4 text-right" style={{ height: 36, width: 100 }}>
+                            {admin ? (
+                              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full" style={{ background: "rgba(22,163,74,0.15)" }}>
+                                <span className="material-icons" style={{ fontSize: "13px", color: "#16A34A" }}>check</span>
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full" style={{ background: "rgba(107,114,128,0.15)" }}>
+                                <span className="material-icons" style={{ fontSize: "13px", color: "#6B7280" }}>block</span>
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-4 text-right" style={{ height: 36, width: 100 }}>
+                            {emp ? (
+                              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full" style={{ background: "rgba(22,163,74,0.15)" }}>
+                                <span className="material-icons" style={{ fontSize: "13px", color: "#16A34A" }}>check</span>
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full" style={{ background: "rgba(107,114,128,0.15)" }}>
+                                <span className="material-icons" style={{ fontSize: "13px", color: "#6B7280" }}>block</span>
+                              </span>
+                            )}
+                          </td>
                         </tr>
-                      </thead>
-                      <tbody>
-                        {[
-                          ["Create / edit clients, jobs, estimates, invoices",      true, true],
-                          ["Add notes, photos, signatures to jobs",                  true, true],
-                          ["View own schedule and assigned jobs",                    true, true],
-                          ["Mark job In Progress / Completed",                       true, true],
-                          ["Send invoices to customers",                             true, true],
-                          ["View company-wide reports and revenue",                  true, false],
-                          ["Manage team (invite / deactivate users)",                true, false],
-                          ["Change billing & subscription plan",                     true, false],
-                          ["Change company info, branding, tax settings",            true, false],
-                          ["Change system preferences (custom fields, job types)",   true, false],
-                          ["Edit bank / payout details",                             true, false],
-                        ].map(([label, admin, emp], i) => (
-                          <tr key={i} className="border-t border-[#E5E7EB]">
-                            <td className="px-4 py-2 text-[#1A2332]">{label as string}</td>
-                            <td className="px-4 py-2 text-center">
-                              {admin ? (
-                                <span className="material-icons text-[#16A34A]" style={{ fontSize: "18px" }}>check_circle</span>
-                              ) : (
-                                <span className="material-icons text-[#D1D5DB]" style={{ fontSize: "18px" }}>remove_circle_outline</span>
-                              )}
-                            </td>
-                            <td className="px-4 py-2 text-center">
-                              {emp ? (
-                                <span className="material-icons text-[#16A34A]" style={{ fontSize: "18px" }}>check_circle</span>
-                              ) : (
-                                <span className="material-icons text-[#D1D5DB]" style={{ fontSize: "18px" }}>remove_circle_outline</span>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                  <p className="mt-3 text-[12px] text-[#6B7280]">
-                    A free-form <em>Role title</em> (Technician, Installer, Office Staff, …) can be added per user without creating a new permission set. Custom permission matrices stay out of MVP.
-                  </p>
-                </SectionCard>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
 
-                {/* User Role Titles */}
-                <SectionCard title="User Role Titles" description="Free-form titles used on user profiles. Affect display and commission rules later, not permissions.">
+              {/* User role titles */}
+              <div className="flex flex-col gap-4 rounded-xl border border-[#E5E7EB] bg-white p-4">
+                <div className="flex flex-col gap-1">
+                  <span className="text-[16px] leading-6 text-[#1A2332]" style={{ fontWeight: 600 }}>User role titles</span>
+                  <span className="text-[14px] leading-5 text-[#6B7280]">Free-form titles used on user profiles. Affect display and commission rules later, not permissions.</span>
+                </div>
+                <div className="flex gap-3" style={{ width: 422 }}>
+                  <input
+                    placeholder="Add role title (e.g. Lead Technician)"
+                    value={newRoleTitle}
+                    onChange={e => setNewRoleTitle(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === "Enter") {
+                        const v = newRoleTitle.trim();
+                        if (!v) return;
+                        if (userRoleTitles.some(t => t.toLowerCase() === v.toLowerCase())) { toast.error("That title already exists"); return; }
+                        setUserRoleTitles([...userRoleTitles, v]);
+                        setNewRoleTitle("");
+                      }
+                    }}
+                    className="h-9 flex-1 rounded-lg border border-[#E5E7EB] bg-white px-3 text-[14px] text-[#6B7280] outline-none focus:border-[#4A6FA5] focus:text-[#1A2332] shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const v = newRoleTitle.trim();
+                      if (!v) return;
+                      if (userRoleTitles.some(t => t.toLowerCase() === v.toLowerCase())) { toast.error("That title already exists"); return; }
+                      setUserRoleTitles([...userRoleTitles, v]);
+                      setNewRoleTitle("");
+                    }}
+                    className="h-9 px-4 rounded-lg bg-[#4A6FA5] text-white text-[14px] transition-colors shrink-0"
+                    style={{ fontWeight: 500, opacity: newRoleTitle.trim() ? 1 : 0.5 }}
+                  >
+                    Add
+                  </button>
+                </div>
+                {userRoleTitles.length > 0 && (
                   <div className="flex flex-wrap gap-2">
                     {userRoleTitles.map(t => (
-                      <span key={t} className="flex items-center gap-1 rounded-full border border-[#E5E7EB] bg-[#F8FAFC] px-3 py-1 text-[12px] text-[#546478]">
-                        {t}
+                      <span
+                        key={t}
+                        className="inline-flex items-center gap-1 rounded-lg border border-[#E5E7EB] bg-white px-2 py-1"
+                        style={{ height: 24 }}
+                      >
+                        <span className="text-[12px] leading-4 text-[#1A2332]" style={{ fontWeight: 500 }}>{t}</span>
                         <button
+                          type="button"
                           onClick={() => setUserRoleTitles(userRoleTitles.filter(x => x !== t))}
-                          className="ml-1 text-[#9AA3AF] hover:text-[#DC2626]"
+                          className="flex items-center justify-center shrink-0 transition-opacity hover:opacity-60"
+                          style={{ width: 12, height: 12 }}
                           title={`Remove ${t}`}
-                        >×</button>
+                        >
+                          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                            <path d="M9 3L3 9M3 3l6 6" stroke="#1A2332" strokeWidth="1.2" strokeLinecap="round"/>
+                          </svg>
+                        </button>
                       </span>
                     ))}
                   </div>
-                  <div className="mt-3 flex gap-2">
-                    <Input
-                      placeholder="Add role title (e.g. Lead Technician)"
-                      value={newRoleTitle}
-                      onChange={e => setNewRoleTitle(e.target.value)}
-                      className="h-9 max-w-[320px] border-[#D8DEE8] text-[13px]"
-                    />
-                    <Button
-                      className="h-9 bg-[#4A6FA5] px-4 text-[13px] hover:bg-[#3d5a85]"
-                      onClick={() => {
-                        const v = newRoleTitle.trim();
-                        if (!v) return;
-                        if (userRoleTitles.some(t => t.toLowerCase() === v.toLowerCase())) {
-                          toast.error("That title already exists");
-                          return;
-                        }
-                        setUserRoleTitles([...userRoleTitles, v]);
-                        setNewRoleTitle("");
-                      }}
-                    >
-                      Add
-                    </Button>
-                  </div>
-                </SectionCard>
+                )}
+              </div>
 
-                {/* User Custom Fields */}
-                <SectionCard title="User Custom Fields" description="Extra fields you want on every user (e.g., Office / Field flag, who they report to).">
-                  <div className="space-y-2">
-                    {userCustomFields.length === 0 && (
-                      <div className="rounded-lg border border-dashed border-[#E5E7EB] px-3 py-6 text-center text-[13px] text-[#9CA3AF]">
-                        No custom fields yet. Add one below.
-                      </div>
-                    )}
+              {/* User Custom Fields */}
+              <div className="flex flex-col gap-4 rounded-xl border border-[#E5E7EB] bg-white p-4">
+                {/* Header row */}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[16px] leading-6 text-[#1A2332]" style={{ fontWeight: 600 }}>User Custom Fields</span>
+                    <span className="text-[14px] leading-5 text-[#6B7280]">Extra fields you want on every user (e.g., Office / Field flag, who they report to).</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setUserCustomFields([...userCustomFields, { id: `ucf${Date.now()}`, label: "", type: "Text" }])}
+                    className="h-8 px-3 flex items-center gap-1.5 rounded-lg bg-[#4A6FA5] hover:bg-[#3d5a85] text-white text-[14px] transition-colors shrink-0"
+                    style={{ fontWeight: 500 }}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                      <path d="M8 2v12M2 8h12" stroke="#FFFFFF" strokeWidth="1.2" strokeLinecap="round"/>
+                    </svg>
+                    Add field
+                  </button>
+                </div>
+
+                {userCustomFields.length === 0 ? (
+                  <div className="rounded-lg border border-dashed border-[#E5E7EB] px-3 py-6 text-center text-[14px] text-[#9CA3AF]">
+                    No custom fields yet. Click "Add field" to create one.
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-3">
                     {userCustomFields.map(cf => {
                       const update = (patch: Partial<UserCF>) =>
                         setUserCustomFields(userCustomFields.map(x => x.id === cf.id ? { ...x, ...patch } : x));
+                      const isDropdown = cf.type === "Dropdown";
                       return (
-                        <div key={cf.id} className="flex items-stretch gap-2">
-                          {/* Label */}
-                          <label className="flex flex-col rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5 flex-1 min-w-0">
-                            <span className="text-[11px] text-[#6B7280]">Field label</span>
-                            <input
-                              value={cf.label}
-                              onChange={e => update({ label: e.target.value })}
-                              placeholder="e.g. Reports to"
-                              className="bg-transparent text-[13px] text-[#1A2332] outline-none mt-0.5"
-                            />
-                          </label>
-                          {/* Type */}
-                          <label className="flex flex-col rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5 w-[140px]">
-                            <span className="text-[11px] text-[#6B7280]">Type</span>
-                            <select
-                              value={cf.type}
-                              onChange={e => {
-                                const newType = e.target.value as "Text" | "Dropdown";
-                                update({ type: newType, options: newType === "Dropdown" ? (cf.options ?? "") : undefined });
-                              }}
-                              className="bg-transparent text-[13px] text-[#1A2332] outline-none mt-0.5 -ml-0.5"
-                            >
-                              <option value="Text">Text</option>
-                              <option value="Dropdown">Dropdown</option>
-                            </select>
-                          </label>
-                          {/* Options (Dropdown only) */}
-                          {cf.type === "Dropdown" ? (
-                            <label className="flex flex-col rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5 flex-1 min-w-0">
-                              <span className="text-[11px] text-[#6B7280]">Options (comma-separated)</span>
+                        <div key={cf.id} className="rounded-lg border border-[#E5E7EB] p-4">
+                          <div className="flex items-end gap-4">
+                            {/* Field label column */}
+                            <div className="flex flex-col gap-1" style={{ flex: "0 0 246px" }}>
+                              <span className="text-[14px] leading-5 text-[#1A2332]" style={{ fontWeight: 500 }}>Field label</span>
+                              <input
+                                value={cf.label}
+                                onChange={e => update({ label: e.target.value })}
+                                placeholder="e.g. Office / Field user"
+                                className="h-9 w-full rounded-lg border border-[#E5E7EB] bg-white px-3 text-[14px] text-[#1A2332] outline-none focus:border-[#4A6FA5] shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
+                              />
+                            </div>
+                            {/* Type column */}
+                            <div className="flex flex-col gap-1 flex-1">
+                              <span className="text-[14px] leading-5 text-[#1A2332]" style={{ fontWeight: 500 }}>Type</span>
+                              <div className="relative">
+                                <select
+                                  value={cf.type}
+                                  onChange={e => {
+                                    const newType = e.target.value as "Text" | "Dropdown";
+                                    update({ type: newType, options: newType === "Dropdown" ? (cf.options ?? "") : undefined });
+                                  }}
+                                  className="h-9 w-full rounded-lg border border-[#E5E7EB] bg-white pl-3 pr-8 text-[14px] text-[#1A2332] outline-none focus:border-[#4A6FA5] shadow-[0_1px_2px_rgba(0,0,0,0.05)] appearance-none cursor-pointer"
+                                >
+                                  <option value="Text">Text</option>
+                                  <option value="Dropdown">Dropdown</option>
+                                </select>
+                                <span className="material-icons pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[#6B7280]" style={{ fontSize: "16px" }}>expand_more</span>
+                              </div>
+                            </div>
+                            {/* Options column — always rendered, invisible when Text */}
+                            <div className="flex flex-col gap-1 flex-1" style={{ opacity: isDropdown ? 1 : 0, pointerEvents: isDropdown ? "auto" : "none" }}>
+                              <span className="text-[14px] leading-5 text-[#1A2332]" style={{ fontWeight: 500 }}>Options (comma-separated)</span>
                               <input
                                 value={cf.options ?? ""}
                                 onChange={e => update({ options: e.target.value })}
                                 placeholder="Office, Field"
-                                className="bg-transparent text-[13px] text-[#1A2332] outline-none mt-0.5"
+                                className="h-9 w-full rounded-lg border border-[#E5E7EB] bg-white px-3 text-[14px] text-[#1A2332] outline-none focus:border-[#4A6FA5] shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
                               />
-                            </label>
-                          ) : (
-                            <div className="flex flex-1 min-w-0 items-center px-3 text-[12px] text-[#9CA3AF]">Free-form text input</div>
-                          )}
-                          {/* Remove */}
-                          <button
-                            type="button"
-                            onClick={() => setUserCustomFields(userCustomFields.filter(x => x.id !== cf.id))}
-                            className="shrink-0 self-start mt-1 h-9 w-9 rounded-lg border border-[#E5E7EB] bg-white text-[#9CA3AF] hover:bg-[#FEF2F2] hover:border-[#FECACA] hover:text-[#DC2626] flex items-center justify-center transition-colors"
-                            title="Remove field"
-                          >
-                            <span className="material-icons" style={{ fontSize: "18px" }}>delete_outline</span>
-                          </button>
+                            </div>
+                            {/* Delete button */}
+                            <button
+                              type="button"
+                              onClick={() => setUserCustomFields(userCustomFields.filter(x => x.id !== cf.id))}
+                              className="shrink-0 w-9 h-9 flex items-center justify-center rounded-lg text-[#1A2332] hover:bg-[#FEF2F2] hover:text-[#DC2626] transition-colors"
+                              title="Remove field"
+                            >
+                              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                <path d="M2.5 4h11M5.5 4V2.5h5V4M6.5 7v5M9.5 7v5M3.5 4l.5 9.5h8l.5-9.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+                              </svg>
+                            </button>
+                          </div>
                         </div>
                       );
                     })}
                   </div>
-                  <div className="mt-3 flex gap-2">
-                    <Input
-                      placeholder="Add field label (e.g. Reports to)"
-                      value={newUserCfLabel}
-                      onChange={e => setNewUserCfLabel(e.target.value)}
-                      onKeyDown={e => {
-                        if (e.key === "Enter") {
-                          const v = newUserCfLabel.trim();
-                          if (!v) return;
-                          setUserCustomFields([...userCustomFields, { id: `ucf${Date.now()}`, label: v, type: "Text" }]);
-                          setNewUserCfLabel("");
-                        }
-                      }}
-                      className="h-9 max-w-[320px] border-[#D8DEE8] text-[13px]"
-                    />
-                    <Button
-                      className="h-9 bg-[#4A6FA5] px-4 text-[13px] hover:bg-[#3d5a85]"
-                      onClick={() => {
-                        const v = newUserCfLabel.trim();
-                        if (!v) return;
-                        setUserCustomFields([...userCustomFields, { id: `ucf${Date.now()}`, label: v, type: "Text" }]);
-                        setNewUserCfLabel("");
-                      }}
-                    >
-                      + Add field
-                    </Button>
-                  </div>
+                )}
 
-                  {/* Footer — Save / Cancel attached to the last card */}
-                  <div className="mt-5 -mx-5 -mb-5 px-5 py-4 border-t border-[#E1E6EF] flex items-center justify-end gap-3 bg-white rounded-b-xl">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => toast.info("Changes discarded")}
-                      className="border-[#E5E7EB] text-[#546478] hover:bg-[#EDF0F5] h-10 px-6"
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      type="button"
-                      onClick={() => toast.success("Team settings saved")}
-                      className="bg-[#4A6FA5] hover:bg-[#3d5a85] text-white h-10 px-6"
-                      style={{ fontWeight: 600 }}
-                    >
-                      Save changes
-                    </Button>
-                  </div>
-                </SectionCard>
+                {/* Footer */}
+                <div className="pt-3 border-t border-[#E5E7EB] flex items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => toast.success("Team settings saved")}
+                    className="h-9 px-4 rounded-lg bg-[#4A6FA5] hover:bg-[#3d5a85] text-white text-[14px] transition-colors"
+                    style={{ fontWeight: 500 }}
+                  >
+                    Save changes
+                  </button>
+                </div>
               </div>
-            </>
+
+            </div>
           )}
 
           {activeSection === "billing" && (
@@ -3220,6 +3380,52 @@ export function Settings() {
 
         </div>
       </main>
+
+      {/* Reset brand assets confirmation dialog */}
+      {resetBrandDialogOpen && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center"
+          role="alertdialog"
+          aria-modal="true"
+          aria-labelledby="reset-brand-title"
+        >
+          <div className="absolute inset-0 bg-black/40" onClick={() => setResetBrandDialogOpen(false)} />
+          <div className="relative bg-white rounded-xl shadow-2xl w-[440px] max-w-[90vw] p-6">
+            <h3 id="reset-brand-title" className="text-[16px] text-[#1A2332] mb-2" style={{ fontWeight: 700 }}>
+              Reset brand assets?
+            </h3>
+            <p className="text-[13px] text-[#6B7280] leading-[18px] mb-5">
+              This will restore the default Vision360 brand colors and logo. Your custom brand colors and uploaded logo will be removed.
+            </p>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                className="h-9 border-[#D8DEE8] px-4 text-[13px] text-[#546478] hover:bg-[#F5F7FA]"
+                style={{ fontWeight: 500 }}
+                onClick={() => setResetBrandDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="h-9 bg-[#4A6FA5] hover:bg-[#3d5a85] text-white px-4 text-[13px]"
+                style={{ fontWeight: 600 }}
+                onClick={() => {
+                  resetBrandTheme();
+                  resetBrandLogo();
+                  setBrandPrimary(DEFAULT_BRAND_THEME.primary);
+                  setBrandAccent(DEFAULT_BRAND_THEME.accent);
+                  setBrandLogoPreview("");
+                  if (logoInputRef.current) logoInputRef.current.value = "";
+                  setResetBrandDialogOpen(false);
+                  toast.success("Brand assets restored to default");
+                }}
+              >
+                Reset to default
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

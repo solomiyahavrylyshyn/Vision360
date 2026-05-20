@@ -3,7 +3,17 @@
     "allow": [
       "Bash(xargs grep -l \"Terms and Conditions\\\\|Disclaimer\\\\|Customer Acknowledgement\")",
       "Bash(git add *)",
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\mykha\\\\Documents\\\\Vision360\" -Recurse -Name)",
+      "Bash(Select-Object -First 100)",
+      "Bash(grep -E \"\\\\.\\(tsx|ts\\)$\")",
+      "Bash(xargs grep -l \"PDF\\\\|pdf\\\\|jsPDF\\\\|react-pdf\")",
+      "Bash(xargs grep -l \"Email\\\\|email\\\\|template\")",
+      "Bash(xargs grep -l \"Client\")",
+      "Bash(xargs grep -l \"email\\\\|Email\\\\|template\\\\|Template\")",
+      "Bash(xargs grep -l \"Preview\\\\|preview\")",
+      "Bash(xargs grep -l \"createContext\\\\|Provider\\\\|useContext\")",
+      "Bash(grep -v \"^ui$\")"
     ]
   }
 }
