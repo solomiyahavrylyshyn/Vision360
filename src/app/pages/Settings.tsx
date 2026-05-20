@@ -702,7 +702,6 @@ function BillingAndPlanSection() {
     { id: "INV-2026-05", label: "May 2026",      amount: 94, status: "Paid", date: "May 1, 2026"  },
     { id: "INV-2026-04", label: "April 2026",    amount: 94, status: "Paid", date: "Apr 1, 2026"  },
     { id: "INV-2026-03", label: "March 2026",    amount: 94, status: "Paid", date: "Mar 1, 2026"  },
-    { id: "INV-2026-02", label: "February 2026", amount: 79, status: "Paid", date: "Feb 1, 2026"  },
   ];
 
   return (
