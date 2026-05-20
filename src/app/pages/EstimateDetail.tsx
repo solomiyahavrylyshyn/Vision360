@@ -18,8 +18,7 @@ import job44644Photo from "../../assets/documents/44644-img-20241210-123749.png"
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type EstimateStatus =
-  | "Draft" | "Sent" | "Viewed by Customer" | "Changes Requested"
-  | "Updated" | "Approved" | "Rejected" | "Expired" | "Archived";
+  | "Draft" | "Sent" | "Viewed" | "Approved" | "Rejected" | "Expired" | "Archived";
 
 interface LineItem {
   id: number; name: string; description: string;
@@ -43,17 +42,15 @@ interface EstimateData {
 
 // ─── Status colours ───────────────────────────────────────────────────────────
 const statusColors: Record<EstimateStatus, string> = {
-  Draft: "#A855F7", Sent: "#1E40AF", "Viewed by Customer": "#0EA5E9",
-  "Changes Requested": "#D97706", Updated: "#0D9488",
-  Approved: "#22C55E", Rejected: "#EF4444", Expired: "#6B7280", Archived: "#9CA3AF",
+  Draft: "#7C3AED", Sent: "#1E40AF", Viewed: "#92400E",
+  Approved: "#166534", Rejected: "#DC2626", Expired: "#6B7280", Archived: "#FFFFFF",
 };
 const statusBg: Record<EstimateStatus, string> = {
-  Draft: "#F3E8FF", Sent: "#EFF6FF", "Viewed by Customer": "#E0F2FE",
-  "Changes Requested": "#FEF3C7", Updated: "#CCFBF1",
-  Approved: "#DCFCE7", Rejected: "#FEE2E2", Expired: "#F3F4F6", Archived: "#F3F4F6",
+  Draft: "#EDE9FE", Sent: "#DBEAFE", Viewed: "#FEF3C7",
+  Approved: "#DCFCE7", Rejected: "#FEE2E2", Expired: "#F3F4F6", Archived: "#1F2937",
 };
 const primaryStatuses: EstimateStatus[] = [
-  "Draft", "Sent", "Viewed by Customer", "Changes Requested", "Updated", "Approved", "Rejected", "Expired",
+  "Draft", "Sent", "Viewed", "Approved", "Rejected", "Expired",
 ];
 const otherStatuses: EstimateStatus[] = ["Archived"];
 
@@ -130,7 +127,7 @@ const mockEstimates: Record<string, EstimateData> = {
     clientAddress: "1804 W North B St\nTampa, FL 33606",
     serviceAddress: "1804 W North B St\nTampa, FL 33606",
     dateCreated: "Feb 25, 2026", expirationDate: "Mar 27, 2026", sentDate: "Feb 26, 2026",
-    status: "Changes Requested", teamMember: "Marek Stroz", job: "Job-5: Plumbing Repair", jobId: 5,
+    status: "Viewed", teamMember: "Marek Stroz", job: "Job-5: Plumbing Repair", jobId: 5,
     items: [
       { id: 1, name: "Drain Cleaning Service", description: "Clear main drain line", quantity: 1, price: 175, cost: 40, amount: 175, taxable: false },
       { id: 2, name: "Pipe Repair Labor", description: "Technician labor", quantity: 3, price: 95, cost: 45, amount: 285, taxable: false },
