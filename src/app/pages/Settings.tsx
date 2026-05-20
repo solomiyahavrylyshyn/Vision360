@@ -142,6 +142,72 @@ function SectionCard({ id, title, description, children }: { id?: string; title:
   );
 }
 
+function DocSection({ label, defaultValue }: { label: string; defaultValue: string }) {
+  const [showLink, setShowLink] = useState(false);
+  const [link, setLink] = useState("");
+  const [fileName, setFileName] = useState("");
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  return (
+    <div className="flex flex-col gap-2">
+      <label className="block text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>{label}</label>
+      <textarea defaultValue={defaultValue} className="min-h-[80px] w-full rounded-lg border border-[#D8DEE8] px-3 py-2 text-[13px] text-[#374151] leading-relaxed outline-none focus:border-[#4A6FA5] focus:ring-2 focus:ring-[#4A6FA5]/20 resize-y" />
+
+      {/* Attachment row */}
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => fileRef.current?.click()}
+          className="flex items-center gap-1.5 text-[12px] text-[#546478] hover:text-[#1A2332] transition-colors"
+        >
+          <span className="material-icons" style={{ fontSize: "15px" }}>upload_file</span>
+          {fileName ? "Replace file" : "Upload file"}
+        </button>
+        <div className="w-px h-3.5 bg-[#E5E7EB]" />
+        <button
+          type="button"
+          onClick={() => { setShowLink(v => !v); if (showLink) setLink(""); }}
+          className="flex items-center gap-1.5 text-[12px] text-[#546478] hover:text-[#1A2332] transition-colors"
+        >
+          <span className="material-icons" style={{ fontSize: "15px" }}>link</span>
+          {showLink ? "Remove link" : "Add link"}
+        </button>
+        <input ref={fileRef} type="file" className="hidden" accept=".pdf,.doc,.docx"
+          onChange={e => { const f = e.target.files?.[0]; if (f) setFileName(f.name); }} />
+      </div>
+
+      {/* Uploaded file chip */}
+      {fileName && (
+        <div className="flex items-center gap-2 rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] px-3 py-2">
+          <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "16px" }}>description</span>
+          <span className="flex-1 text-[13px] text-[#374151] truncate">{fileName}</span>
+          <button type="button" onClick={() => setFileName("")} className="text-[#9CA3AF] hover:text-[#374151] transition-colors">
+            <span className="material-icons" style={{ fontSize: "14px" }}>close</span>
+          </button>
+        </div>
+      )}
+
+      {/* Link input */}
+      {showLink && (
+        <div className="flex items-center gap-2 rounded-lg border border-[#D8DEE8] px-3 py-2 focus-within:border-[#4A6FA5] focus-within:ring-2 focus-within:ring-[#4A6FA5]/20 transition-all">
+          <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "16px" }}>link</span>
+          <input
+            value={link}
+            onChange={e => setLink(e.target.value)}
+            placeholder="https://yourdomain.com/terms"
+            className="flex-1 text-[13px] text-[#374151] outline-none bg-transparent placeholder:text-[#9CA3AF]"
+          />
+          {link && (
+            <button type="button" onClick={() => setLink("")} className="text-[#9CA3AF] hover:text-[#374151] transition-colors">
+              <span className="material-icons" style={{ fontSize: "14px" }}>close</span>
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Marek-style Tax settings: Tax ID inputs at top, "Default" group of tax rates,
 // then tax groups that combine rates. Radio selects the default rate/group.
 type TaxRateRow = { id: string; name: string; rate: string; description: string };
@@ -3102,6 +3168,19 @@ export function Settings() {
                       <div className="grid grid-cols-4 gap-3">{templateCards.map(card => <div key={card.title} className="rounded-xl border border-[#E5E7EB] p-3"><div className="mb-2 h-24 rounded-lg bg-[#F5F7FA]" /><div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 700 }}>{card.title}</div><p className="mt-1 text-[12px] leading-4 text-[#546478]">{card.description}</p></div>)}</div>
                     </SectionCard>
                     <SectionCard title="Estimate rules"><div className="grid grid-cols-2 gap-4"><div className="flex items-center justify-between rounded-lg border border-[#E5E7EB] p-3"><span className="text-[14px] text-[#1A2332]">Require client signature before proceeding</span><Switch defaultChecked /></div><Field label="Payment terms"><Input defaultValue="Payment is due within 15 days of approval." className="h-9 border-[#D8DEE8]" /></Field></div></SectionCard>
+                    <SectionCard title="Document sections" description="Default text shown on every estimate. Edit to match your company's language.">
+                      <div className="flex flex-col gap-6">
+                        <DocSection label="Terms and Conditions" defaultValue={"This estimate is valid for 30 days from the date above. Work will commence within 5 business days of estimate approval and receipt of the required deposit.\n\nPayment is due upon completion unless otherwise agreed in writing. A finance charge of 1.5% per month (18% APR) will be applied to all past due balances.\n\nAll materials are guaranteed to be as specified. All work is completed in a workmanlike manner according to standard industry practices."} />
+                        <DocSection label="Disclaimer" defaultValue="This estimate is based on accessible areas at the time of inspection. Additional charges may apply if unforeseen conditions are discovered once work begins." />
+                        <DocSection label="Customer Acknowledgement" defaultValue="By signing below, you acknowledge that you have read, understand, and agree to the terms and conditions, disclaimer, and privacy policy outlined in this estimate." />
+                        <DocSection label="Privacy Policy" defaultValue="We respect your privacy. Your information will be used only for the purpose of completing this project and providing you with exceptional service." />
+                        <DocSection label="Exclusions" defaultValue="This estimate does not include: patching or painting, permit fees, structural work, or any items not specifically listed in the line items." />
+                      </div>
+                      <div className="mt-5 -mx-5 -mb-5 px-5 py-4 border-t border-[#E1E6EF] flex items-center justify-end gap-3 bg-white rounded-b-xl">
+                        <Button type="button" variant="outline" onClick={() => toast.info("Changes discarded")} className="border-[#E5E7EB] text-[#546478] hover:bg-[#EDF0F5] h-10 px-6">Cancel</Button>
+                        <Button type="button" onClick={() => toast.success("Estimate preferences saved")} className="bg-[#4A6FA5] hover:bg-[#3d5a85] text-white h-10 px-6" style={{ fontWeight: 600 }}>Save changes</Button>
+                      </div>
+                    </SectionCard>
                   </>
                 )}
                 {activeSection === "invoices" && <InvoicesPreferences templateCards={templateCards} />}

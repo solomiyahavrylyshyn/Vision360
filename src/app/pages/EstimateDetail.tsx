@@ -690,6 +690,17 @@ export function EstimateDetail() {
           placeholder="Notes for your team — e.g. 'Do not walk on right side, dog in yard'..."
         />
       </div>
+      <div className="px-5 pb-4 border-t border-[#F3F4F6] pt-3">
+        <p className="text-[12px] text-[#6B7280]">
+          Manage Terms, Disclaimers &amp; Signature defaults in{" "}
+          <span
+            className="text-[#4A6FA5] cursor-pointer hover:underline"
+            onClick={() => navigate("/settings?section=estimates")}
+          >
+            Settings → Estimate Preferences
+          </span>
+        </p>
+      </div>
     </div>
   );
 

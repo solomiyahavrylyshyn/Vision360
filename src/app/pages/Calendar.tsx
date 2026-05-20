@@ -138,9 +138,9 @@ interface DropPreview {
 // piece of the calendar (day view rows, week view sub-rows, route numbers)
 // derives from it.
 const TEAM: { id: string; name: string; initial: string; color: string }[] = [
-  { id: "peter", name: "Peter", initial: "P", color: "#4A6FA5" },
-  { id: "travis", name: "Travis", initial: "T", color: "#16A34A" },
-  { id: "maria", name: "Maria", initial: "M", color: "#D97706" },
+  { id: "peter", name: "Peter Novak", initial: "PN", color: "#4A6FA5" },
+  { id: "travis", name: "Travis Brown", initial: "TB", color: "#16A34A" },
+  { id: "maria", name: "Maria Garcia", initial: "MG", color: "#D97706" },
 ];
 
 const DAY_JOBS: DayJob[] = [
