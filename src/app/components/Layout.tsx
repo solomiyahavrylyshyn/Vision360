@@ -315,8 +315,23 @@ export function Layout() {
         </div>
       </aside>
 
-      {/* Main area: header + content */}
+      {/* Main area: trial banner + header + content */}
       <main className="flex-1 flex flex-col overflow-hidden">
+        {/* Trial banner — 7-day free trial, no credit card */}
+        <div className="bg-[#FFF8E6] border-b border-[#F5D87A] flex items-center justify-between px-6 py-2 flex-shrink-0">
+          <div className="flex items-center gap-2">
+            <span className="material-icons text-[#B45309]" style={{ fontSize: "16px" }}>schedule</span>
+            <span className="text-sm text-[#92400E]">
+              <span className="font-semibold">Free trial — 5 days remaining.</span>
+            </span>
+          </div>
+          <button
+            onClick={() => navigate("/account")}
+            className="text-xs font-semibold text-[#B45309] border border-[#F5D87A] rounded-md px-3 py-1 hover:bg-[#FEF3C7] transition-colors whitespace-nowrap"
+          >
+            Subscribe now
+          </button>
+        </div>
         {/* Header */}
         <header className="h-[68px] bg-white border-b border-[#E5E7EB] flex items-center gap-6 px-4 flex-shrink-0">
 

@@ -1777,12 +1777,12 @@ function AddListSection({
 export function Settings() {
   const [searchParams] = useSearchParams();
   const location = useLocation();
-  // Land straight on General so /settings opens system preferences.
-  const [activeSection, setActiveSection] = useState<SettingsSection>("general");
+  // Land straight on Company Info when /settings opens.
+  const [activeSection, setActiveSection] = useState<SettingsSection>("companyInfo");
   const [searchQuery, setSearchQuery] = useState("");
-  // Settings nav groups are collapsible accordions. System Preferences is opened
-  // by default because General is the landing destination.
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set(["System Preferences"]));
+  // Settings nav groups are collapsible accordions. Business Management is opened
+  // by default because Company Info is the landing destination.
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set(["Business Management"]));
   const toggleGroupExpanded = (title: string) =>
     setExpandedGroups(prev => {
       const next = new Set(prev);
@@ -1953,7 +1953,7 @@ export function Settings() {
 
   useEffect(() => {
     const section = searchParams.get("section") as SettingsSection | null;
-    setActiveSection(section ? normalizeSection(section) : "general");
+    setActiveSection(section ? normalizeSection(section) : "companyInfo");
   }, [searchParams]);
 
   // Auto-expand the nav group that contains the currently active section so the
