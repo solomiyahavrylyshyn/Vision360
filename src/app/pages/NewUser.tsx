@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type BuiltInPreset = "admin" | "employee" | "custom";
@@ -16,6 +17,59 @@ interface CustomPreset {
 }
 
 const CUSTOM_PRESETS_KEY = "vision360.customPresets";
+
+// ─── Address option lists ────────────────────────────────────────────────────
+const COUNTRIES = [
+  "United States",
+  "Canada",
+  "Mexico",
+  "United Kingdom",
+  "Australia",
+  "Germany",
+  "France",
+  "Spain",
+  "Italy",
+  "Other",
+];
+
+const US_STATES: Array<[string, string]> = [
+  ["AL", "Alabama"], ["AK", "Alaska"], ["AZ", "Arizona"], ["AR", "Arkansas"],
+  ["CA", "California"], ["CO", "Colorado"], ["CT", "Connecticut"], ["DE", "Delaware"],
+  ["FL", "Florida"], ["GA", "Georgia"], ["HI", "Hawaii"], ["ID", "Idaho"],
+  ["IL", "Illinois"], ["IN", "Indiana"], ["IA", "Iowa"], ["KS", "Kansas"],
+  ["KY", "Kentucky"], ["LA", "Louisiana"], ["ME", "Maine"], ["MD", "Maryland"],
+  ["MA", "Massachusetts"], ["MI", "Michigan"], ["MN", "Minnesota"], ["MS", "Mississippi"],
+  ["MO", "Missouri"], ["MT", "Montana"], ["NE", "Nebraska"], ["NV", "Nevada"],
+  ["NH", "New Hampshire"], ["NJ", "New Jersey"], ["NM", "New Mexico"], ["NY", "New York"],
+  ["NC", "North Carolina"], ["ND", "North Dakota"], ["OH", "Ohio"], ["OK", "Oklahoma"],
+  ["OR", "Oregon"], ["PA", "Pennsylvania"], ["RI", "Rhode Island"], ["SC", "South Carolina"],
+  ["SD", "South Dakota"], ["TN", "Tennessee"], ["TX", "Texas"], ["UT", "Utah"],
+  ["VT", "Vermont"], ["VA", "Virginia"], ["WA", "Washington"], ["WV", "West Virginia"],
+  ["WI", "Wisconsin"], ["WY", "Wyoming"],
+];
+
+const CA_PROVINCES: Array<[string, string]> = [
+  ["AB", "Alberta"], ["BC", "British Columbia"], ["MB", "Manitoba"],
+  ["NB", "New Brunswick"], ["NL", "Newfoundland and Labrador"],
+  ["NS", "Nova Scotia"], ["ON", "Ontario"], ["PE", "Prince Edward Island"],
+  ["QC", "Quebec"], ["SK", "Saskatchewan"],
+  ["NT", "Northwest Territories"], ["NU", "Nunavut"], ["YT", "Yukon"],
+];
+
+// Common cities — searchable via Radix typeahead.
+const COMMON_CITIES = [
+  "Tampa", "Orlando", "Miami", "Jacksonville", "St. Petersburg",
+  "Atlanta", "Charlotte", "Raleigh", "Nashville", "Memphis",
+  "Houston", "Dallas", "Austin", "San Antonio", "Fort Worth",
+  "Los Angeles", "San Diego", "San Francisco", "San Jose", "Sacramento",
+  "Phoenix", "Tucson", "Las Vegas", "Denver", "Salt Lake City",
+  "Seattle", "Portland", "Boise",
+  "New York", "Brooklyn", "Queens", "Buffalo", "Boston",
+  "Philadelphia", "Pittsburgh", "Washington", "Baltimore",
+  "Chicago", "Detroit", "Minneapolis", "Milwaukee", "Indianapolis", "Columbus", "Cleveland",
+  "New Orleans", "Oklahoma City",
+  "Toronto", "Vancouver", "Montreal", "Calgary", "Ottawa",
+];
 
 const loadCustomPresets = (): CustomPreset[] => {
   if (typeof window === "undefined") return [];
@@ -351,21 +405,29 @@ export function NewUser() {
                     </div>
                     <div>
                       <Label className="text-[13px] text-[#374151] mb-1.5 block" style={{ fontWeight: 500 }}>City</Label>
-                      <Input
-                        value={city}
-                        onChange={e => setCity(e.target.value)}
-                        placeholder="City"
-                        className="border-[#E5E7EB] bg-white h-10 text-[14px]"
-                      />
+                      <Select value={city || undefined} onValueChange={setCity}>
+                        <SelectTrigger className="border-[#E5E7EB] bg-white h-10 text-[14px] w-full">
+                          <SelectValue placeholder="Select city" />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-[280px]">
+                          {COMMON_CITIES.map(c => (
+                            <SelectItem key={c} value={c}>{c}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div>
                       <Label className="text-[13px] text-[#374151] mb-1.5 block" style={{ fontWeight: 500 }}>State / Province</Label>
-                      <Input
-                        value={state}
-                        onChange={e => setState(e.target.value)}
-                        placeholder="State"
-                        className="border-[#E5E7EB] bg-white h-10 text-[14px]"
-                      />
+                      <Select value={state || undefined} onValueChange={setState}>
+                        <SelectTrigger className="border-[#E5E7EB] bg-white h-10 text-[14px] w-full">
+                          <SelectValue placeholder={country === "Canada" ? "Select province" : "Select state"} />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-[280px]">
+                          {(country === "Canada" ? CA_PROVINCES : US_STATES).map(([code, name]) => (
+                            <SelectItem key={code} value={code}>{name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
@@ -379,11 +441,16 @@ export function NewUser() {
                       </div>
                       <div>
                         <Label className="text-[13px] text-[#374151] mb-1.5 block" style={{ fontWeight: 500 }}>Country</Label>
-                        <Input
-                          value={country}
-                          onChange={e => setCountry(e.target.value)}
-                          className="border-[#E5E7EB] bg-white h-10 text-[14px]"
-                        />
+                        <Select value={country} onValueChange={v => { setCountry(v); setState(""); }}>
+                          <SelectTrigger className="border-[#E5E7EB] bg-white h-10 text-[14px] w-full">
+                            <SelectValue placeholder="Select country" />
+                          </SelectTrigger>
+                          <SelectContent className="max-h-[280px]">
+                            {COUNTRIES.map(c => (
+                              <SelectItem key={c} value={c}>{c}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
                   </div>
