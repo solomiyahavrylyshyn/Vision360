@@ -383,27 +383,8 @@ export function NewUser() {
               <section className="border border-[#E5E7EB] rounded-xl p-6">
                 <h2 className="text-[18px] text-[#1A2332] mb-5" style={{ fontWeight: 700 }}>Permissions</h2>
 
-                {/* Make administrator */}
-                <label className="flex items-start gap-3 pb-5 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={perms.isAdmin}
-                    onChange={e => {
-                      if (e.target.checked) applyPreset("admin");
-                      else editPerms(p => ({ ...p, isAdmin: false }));
-                    }}
-                    className="mt-0.5 w-4 h-4 accent-[#4A6FA5] cursor-pointer"
-                  />
-                  <div>
-                    <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Make administrator</div>
-                    <div className="text-[12px] text-[#6B7280] leading-relaxed mt-0.5">
-                      This allows them access to everything within the account — including billing, reports, client list, editing all user permissions, etc.
-                    </div>
-                  </div>
-                </label>
-
                 {/* Preset roles */}
-                <div className="border-t border-[#E5E7EB] py-5">
+                <div className="pb-5">
                   <h3 className="text-[14px] text-[#1A2332] mb-1" style={{ fontWeight: 600 }}>Preset permission levels</h3>
                   <p className="text-[12px] text-[#6B7280] mb-3">Start with a preset permission level, and customize further as needed.</p>
                   <div className="flex flex-col gap-2">
