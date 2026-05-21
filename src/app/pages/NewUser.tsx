@@ -11,9 +11,10 @@ type Preset = "admin" | "employee" | "custom";
 type ScheduleLevel = "viewOwn" | "viewCompleteOwn" | "editOwn" | "editAll" | "editDeleteAll";
 type TimeLevel = "viewRecordOwn" | "viewRecordEditOwn" | "viewRecordEditAll";
 type NotesLevel = "viewJobsOnly" | "viewAll" | "viewEditAll" | "viewEditDeleteAll";
-type ExpensesLevel = "viewRecordEditOwn" | "viewRecordEditAll";
+type ExpensesLevel = "viewOwn" | "recordOwn" | "viewRecordEditOwn" | "viewRecordEditAll";
 type ClientsLevel = "nameAddressOnly" | "viewFull" | "viewEditFull" | "viewEditDeleteFull";
-type JobsLevel = "viewOnly" | "viewCreateEdit" | "viewCreateEditDelete";
+type DocLevel = "viewOnly" | "viewCreateEdit" | "viewCreateEditDelete";
+type PaymentsScope = "estimatesOnly" | "invoicesOnly" | "both";
 
 interface PermissionsState {
   isAdmin: boolean;
@@ -24,10 +25,10 @@ interface PermissionsState {
   showPricing: boolean;
   jobCosting: boolean;
   clients: { enabled: boolean; level: ClientsLevel; showOnMenu: boolean };
-  estimates: boolean;
-  jobs: { enabled: boolean; level: JobsLevel; showOnMenu: boolean };
-  invoices: boolean;
-  payments: boolean;
+  estimates: { enabled: boolean; level: DocLevel; showOnMenu: boolean };
+  jobs: { enabled: boolean; level: DocLevel; showOnMenu: boolean };
+  invoices: { enabled: boolean; level: DocLevel; showOnMenu: boolean };
+  payments: { enabled: boolean; scope: PaymentsScope };
   clientCommunications: boolean;
   reports: boolean;
 }
@@ -38,14 +39,14 @@ const employeePreset: PermissionsState = {
   schedule: { enabled: true, level: "viewCompleteOwn" },
   timeTracking: { enabled: true, level: "viewRecordOwn" },
   notes: { enabled: true, level: "viewEditAll" },
-  expenses: { enabled: true, level: "viewRecordEditOwn" },
+  expenses: { enabled: true, level: "recordOwn" },
   showPricing: false,
   jobCosting: false,
   clients: { enabled: true, level: "viewFull", showOnMenu: false },
-  estimates: false,
+  estimates: { enabled: false, level: "viewOnly", showOnMenu: false },
   jobs: { enabled: true, level: "viewOnly", showOnMenu: false },
-  invoices: false,
-  payments: false,
+  invoices: { enabled: false, level: "viewOnly", showOnMenu: false },
+  payments: { enabled: false, scope: "both" },
   clientCommunications: false,
   reports: false,
 };
@@ -59,10 +60,10 @@ const adminPreset: PermissionsState = {
   showPricing: true,
   jobCosting: true,
   clients: { enabled: true, level: "viewEditDeleteFull", showOnMenu: true },
-  estimates: true,
+  estimates: { enabled: true, level: "viewCreateEditDelete", showOnMenu: true },
   jobs: { enabled: true, level: "viewCreateEditDelete", showOnMenu: true },
-  invoices: true,
-  payments: true,
+  invoices: { enabled: true, level: "viewCreateEditDelete", showOnMenu: true },
+  payments: { enabled: true, scope: "both" },
   clientCommunications: true,
   reports: true,
 };
@@ -179,7 +180,6 @@ export function NewUser() {
   const [perms, setPerms] = useState<PermissionsState>(employeePreset);
 
   // Communications
-  const [receiveSurveys, setReceiveSurveys] = useState(true);
   const [language, setLanguage] = useState<"english" | "spanish">("english");
 
   const applyPreset = (next: Preset) => {
@@ -214,11 +214,13 @@ export function NewUser() {
   };
 
   // ── Validation helpers for Payments dependencies ──
-  const paymentsReady =
-    perms.showPricing &&
+  const docHasEdit = (d: { enabled: boolean; level: DocLevel }) =>
+    d.enabled && (d.level === "viewCreateEdit" || d.level === "viewCreateEditDelete");
+  const clientsHasEdit =
     perms.clients.enabled &&
-    (perms.clients.level === "viewEditFull" || perms.clients.level === "viewEditDeleteFull") &&
-    (perms.estimates || perms.invoices);
+    (perms.clients.level === "viewEditFull" || perms.clients.level === "viewEditDeleteFull");
+  const docsHasEdit = docHasEdit(perms.estimates) || docHasEdit(perms.invoices);
+  const paymentsReady = perms.showPricing && clientsHasEdit && docsHasEdit;
 
   return (
     <div className="min-h-screen bg-[#F5F7FA]">
@@ -496,12 +498,14 @@ export function NewUser() {
                   enabled={perms.expenses.enabled}
                   onToggle={v => editPerms(p => ({ ...p, expenses: { ...p.expenses, enabled: v } }))}
                 >
-                  {(["viewRecordEditOwn", "viewRecordEditAll"] as ExpensesLevel[]).map(level => (
+                  {(["viewOwn", "recordOwn", "viewRecordEditOwn", "viewRecordEditAll"] as ExpensesLevel[]).map(level => (
                     <Radio
                       key={level}
                       checked={perms.expenses.level === level}
                       onClick={() => editPerms(p => ({ ...p, expenses: { ...p.expenses, level } }))}
                       label={{
+                        viewOwn: "View their own expenses only",
+                        recordOwn: "View and record their own",
                         viewRecordEditOwn: "View, record, and edit their own",
                         viewRecordEditAll: "View, record, and edit everyone's",
                       }[level]}
@@ -563,9 +567,31 @@ export function NewUser() {
                 {/* Estimates */}
                 <FeatureSection
                   title="Estimates"
-                  enabled={perms.estimates}
-                  onToggle={v => editPerms(p => ({ ...p, estimates: v }))}
-                />
+                  enabled={perms.estimates.enabled}
+                  onToggle={v => editPerms(p => ({ ...p, estimates: { ...p.estimates, enabled: v } }))}
+                >
+                  {(["viewOnly", "viewCreateEdit", "viewCreateEditDelete"] as DocLevel[]).map(level => (
+                    <Radio
+                      key={level}
+                      checked={perms.estimates.level === level}
+                      onClick={() => editPerms(p => ({ ...p, estimates: { ...p.estimates, level } }))}
+                      label={{
+                        viewOnly: "View only",
+                        viewCreateEdit: "View, create, and edit estimates; view and apply estimate templates",
+                        viewCreateEditDelete: "View, create, edit, and delete estimates; view and apply estimate templates",
+                      }[level]}
+                    />
+                  ))}
+                  <label className="flex items-center gap-2 mt-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={perms.estimates.showOnMenu}
+                      onChange={e => editPerms(p => ({ ...p, estimates: { ...p.estimates, showOnMenu: e.target.checked } }))}
+                      className="w-4 h-4 accent-[#4A6FA5]"
+                    />
+                    <span className="text-[13px] text-[#374151]">Show estimates on their Vision360 menu</span>
+                  </label>
+                </FeatureSection>
 
                 {/* Jobs */}
                 <FeatureSection
@@ -573,7 +599,7 @@ export function NewUser() {
                   enabled={perms.jobs.enabled}
                   onToggle={v => editPerms(p => ({ ...p, jobs: { ...p.jobs, enabled: v } }))}
                 >
-                  {(["viewOnly", "viewCreateEdit", "viewCreateEditDelete"] as JobsLevel[]).map(level => (
+                  {(["viewOnly", "viewCreateEdit", "viewCreateEditDelete"] as DocLevel[]).map(level => (
                     <Radio
                       key={level}
                       checked={perms.jobs.level === level}
@@ -603,18 +629,40 @@ export function NewUser() {
                 {/* Invoices */}
                 <FeatureSection
                   title="Invoices"
-                  enabled={perms.invoices}
-                  onToggle={v => editPerms(p => ({ ...p, invoices: v }))}
-                />
+                  enabled={perms.invoices.enabled}
+                  onToggle={v => editPerms(p => ({ ...p, invoices: { ...p.invoices, enabled: v } }))}
+                >
+                  {(["viewOnly", "viewCreateEdit", "viewCreateEditDelete"] as DocLevel[]).map(level => (
+                    <Radio
+                      key={level}
+                      checked={perms.invoices.level === level}
+                      onClick={() => editPerms(p => ({ ...p, invoices: { ...p.invoices, level } }))}
+                      label={{
+                        viewOnly: "View only",
+                        viewCreateEdit: "View, create, and edit",
+                        viewCreateEditDelete: "View, create, edit, and delete",
+                      }[level]}
+                    />
+                  ))}
+                  <label className="flex items-center gap-2 mt-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={perms.invoices.showOnMenu}
+                      onChange={e => editPerms(p => ({ ...p, invoices: { ...p.invoices, showOnMenu: e.target.checked } }))}
+                      className="w-4 h-4 accent-[#4A6FA5]"
+                    />
+                    <span className="text-[13px] text-[#374151]">Show invoices on their Vision360 menu</span>
+                  </label>
+                </FeatureSection>
 
                 {/* Payments */}
                 <FeatureSection
                   title="Payments"
                   description="Allow payment collection on estimates and invoices. Turning this on will apply the required permissions below. If any of them are removed, payments will also be removed automatically."
-                  enabled={perms.payments}
-                  onToggle={v => editPerms(p => ({ ...p, payments: v && paymentsReady }))}
+                  enabled={perms.payments.enabled}
+                  onToggle={v => editPerms(p => ({ ...p, payments: { ...p.payments, enabled: v && paymentsReady } }))}
                 >
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-[#6B7280] mt-1">
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-[#6B7280] mb-3">
                     <span style={{ fontWeight: 500 }}>Required permissions:</span>
                     <span className="inline-flex items-center gap-1">
                       <span className="material-icons" style={{ fontSize: "14px", color: perms.showPricing ? "#16A34A" : "#DC2626" }}>
@@ -623,18 +671,31 @@ export function NewUser() {
                       Show pricing
                     </span>
                     <span className="inline-flex items-center gap-1">
-                      <span className="material-icons" style={{ fontSize: "14px", color: (perms.clients.enabled && (perms.clients.level === "viewEditFull" || perms.clients.level === "viewEditDeleteFull")) ? "#16A34A" : "#DC2626" }}>
-                        {(perms.clients.enabled && (perms.clients.level === "viewEditFull" || perms.clients.level === "viewEditDeleteFull")) ? "check" : "close"}
+                      <span className="material-icons" style={{ fontSize: "14px", color: clientsHasEdit ? "#16A34A" : "#DC2626" }}>
+                        {clientsHasEdit ? "check" : "close"}
                       </span>
                       Clients and Properties: Edit access
                     </span>
                     <span className="inline-flex items-center gap-1">
-                      <span className="material-icons" style={{ fontSize: "14px", color: (perms.estimates || perms.invoices) ? "#16A34A" : "#DC2626" }}>
-                        {(perms.estimates || perms.invoices) ? "check" : "close"}
+                      <span className="material-icons" style={{ fontSize: "14px", color: docsHasEdit ? "#16A34A" : "#DC2626" }}>
+                        {docsHasEdit ? "check" : "close"}
                       </span>
                       Estimates and/or Invoices: Edit access
                     </span>
                   </div>
+                  {(["estimatesOnly", "invoicesOnly", "both"] as PaymentsScope[]).map(scope => (
+                    <Radio
+                      key={scope}
+                      checked={perms.payments.scope === scope}
+                      onClick={() => editPerms(p => ({ ...p, payments: { ...p.payments, scope } }))}
+                      label={{
+                        estimatesOnly: "Collect on estimates only",
+                        invoicesOnly: "Collect on invoices only",
+                        both: "Collect on both",
+                      }[scope]}
+                      disabled={scope === "estimatesOnly" ? !docHasEdit(perms.estimates) : scope === "invoicesOnly" ? !docHasEdit(perms.invoices) : !docsHasEdit}
+                    />
+                  ))}
                 </FeatureSection>
 
                 {/* Client communications */}
@@ -658,23 +719,7 @@ export function NewUser() {
               <section className="border border-[#E5E7EB] rounded-xl p-6">
                 <h2 className="text-[18px] text-[#1A2332] mb-5" style={{ fontWeight: 700 }}>Communications</h2>
 
-                <div className="mb-6">
-                  <h3 className="text-[14px] text-[#1A2332] mb-3" style={{ fontWeight: 600 }}>Email subscriptions</h3>
-                  <label className="flex items-start gap-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={receiveSurveys}
-                      onChange={e => setReceiveSurveys(e.target.checked)}
-                      className="mt-0.5 w-4 h-4 accent-[#4A6FA5] cursor-pointer"
-                    />
-                    <div>
-                      <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Surveys</div>
-                      <div className="text-[12px] text-[#6B7280] mt-0.5">Receive occasional surveys to tell us how we're doing</div>
-                    </div>
-                  </label>
-                </div>
-
-                <div className="border-t border-[#E5E7EB] pt-5">
+                <div>
                   <h3 className="text-[14px] text-[#1A2332] mb-1" style={{ fontWeight: 600 }}>Invitation language</h3>
                   <p className="text-[12px] text-[#6B7280] mb-3">
                     The chosen language <span style={{ fontWeight: 600 }}>only applies to the invitation and cannot be changed once sent.</span>
