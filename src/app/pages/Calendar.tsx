@@ -168,11 +168,15 @@ type ViewMode = "month" | "week" | "day";
 type SlotPointerEvent = DragEvent<HTMLDivElement> | MouseEvent<HTMLDivElement>;
 
 export function Calendar() {
-  const navigate = useNavigate();
+  const scheduleSettings = useSyncExternalStore(scheduleSettingsStore.subscribe, scheduleSettingsStore.getSnapshot);
+  const GANTT_START_HOUR = scheduleSettings.startHour;
+  const GANTT_END_HOUR = scheduleSettings.endHour;
+  const SLOT_HOURS = scheduleSettings.slotMinutes / 60;
   const [currentDate, setCurrentDate] = useState(new Date(2026, 3, 12));
   const [viewMode, setViewMode] = useState<ViewMode>("day");
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [selectedDispatchJob, setSelectedDispatchJob] = useState<DispatchJob | null>(null);
+  const [selectedDayJob, setSelectedDayJob] = useState<DayJob | null>(null);
   const [hoveredDay, setHoveredDay] = useState<Date | null>(null);
   const [weekJobs, setWeekJobs] = useState<DispatchJob[]>(dispatchJobs);
   const [dayJobs, setDayJobs] = useState<DayJob[]>(DAY_JOBS);
@@ -203,9 +207,6 @@ export function Calendar() {
     const start = startOfWeek(currentDate);
     return eachDayOfInterval({ start, end: addDays(start, 6) });
   }, [currentDate]);
-
-  const hours = Array.from({ length: 12 }, (_, i) => i + 7);
-  const GRID_H = hours.length * 64;
 
   const getEventsForDay = (day: Date) => mockEvents.filter(e => isSameDay(e.date, day));
   const getC = (color: string) => COLORS[color as keyof typeof COLORS] || COLORS.blue;
@@ -247,8 +248,8 @@ export function Calendar() {
   const hourFromPointer = (event: SlotPointerEvent) => {
     const rect = event.currentTarget.getBoundingClientRect();
     const x = Math.max(0, Math.min(event.clientX - rect.left, ganttTotalWidth - 1));
-    const halfHour = Math.round((x / HOUR_WIDTH) * 2) / 2;
-    return Math.max(GANTT_START_HOUR, Math.min(GANTT_END_HOUR - 0.5, GANTT_START_HOUR + halfHour));
+    const snappedOffset = Math.round((x / HOUR_WIDTH) / SLOT_HOURS) * SLOT_HOURS;
+    return Math.max(GANTT_START_HOUR, Math.min(GANTT_END_HOUR - SLOT_HOURS, GANTT_START_HOUR + snappedOffset));
   };
 
   const hasOverlap = (start: number, end: number, otherStart: number, otherEnd: number) => start < otherEnd && end > otherStart;
@@ -261,6 +262,7 @@ export function Calendar() {
 
   const updateDayStatus = (jobId: number, status: JobStatus) => {
     setDayJobs((jobs) => jobs.map((job) => job.id === jobId ? { ...job, status } : job));
+    setSelectedDayJob((job) => job?.id === jobId ? { ...job, status } : job);
   };
 
   const updateWeekStatus = (jobId: number, status: JobStatus) => {
@@ -269,7 +271,7 @@ export function Calendar() {
   };
 
   const openQuickCreate = (view: "day" | "week", date: Date, startHour: number, technicianId: string, dayIdx?: number) => {
-    const start = Math.max(GANTT_START_HOUR, Math.min(GANTT_END_HOUR - 0.5, startHour));
+    const start = Math.max(GANTT_START_HOUR, Math.min(GANTT_END_HOUR - SLOT_HOURS, startHour));
     setConflictMessage(null);
     setQuickJobDraft({
       view,
@@ -277,7 +279,7 @@ export function Calendar() {
       dayIdx,
       technicianId,
       start,
-      end: Math.min(GANTT_END_HOUR, start + 1),
+      end: Math.min(GANTT_END_HOUR, start + Math.max(1, SLOT_HOURS)),
       client: "",
       service: "Service Call",
       address: "",
@@ -312,7 +314,9 @@ export function Calendar() {
         return;
       }
       const nextId = Math.max(0, ...dayJobs.map((job) => job.id)) + 1;
-      setDayJobs((jobs) => [...jobs, { id: nextId, ...base }]);
+      const newJob = { id: nextId, ...base };
+      setDayJobs((jobs) => [...jobs, newJob]);
+      setSelectedDayJob(newJob);
       setSelectedMapJobId(nextId);
     } else {
       const dayIdx = quickJobDraft.dayIdx ?? 0;
@@ -353,10 +357,13 @@ export function Calendar() {
         return jobs;
       }
       setConflictMessage(null);
-      return jobs.map((job) => {
+      const nextJobs = jobs.map((job) => {
         if (job.id !== jobId) return job;
         return { ...job, dayIdx, technicianId, start: dropStart, end: dropEnd };
       });
+      const movedJob = nextJobs.find((job) => job.id === jobId) ?? null;
+      setSelectedDispatchJob(movedJob);
+      return nextJobs;
     });
   };
 
@@ -382,10 +389,13 @@ export function Calendar() {
         return jobs;
       }
       setConflictMessage(null);
-      return jobs.map((job) => {
+      const nextJobs = jobs.map((job) => {
         if (job.id !== jobId) return job;
         return { ...job, technicianId, start: dropStart, end: dropEnd };
       });
+      const movedJob = nextJobs.find((job) => job.id === jobId) ?? null;
+      setSelectedDayJob(movedJob);
+      return nextJobs;
     });
   };
 
@@ -404,17 +414,25 @@ export function Calendar() {
     openQuickCreate("day", currentDate, hourFromPointer(event), technicianId);
   };
 
+  const openHeaderQuickCreate = () => {
+    if (viewMode === "week") {
+      openQuickCreate("week", weekDays[0], GANTT_START_HOUR, TEAM[0].id, 0);
+      return;
+    }
+    openQuickCreate("day", currentDate, GANTT_START_HOUR, TEAM[0].id);
+  };
+
   const selectedMapJob = dayJobs.find((job) => job.id === selectedMapJobId) ?? dayJobs[0];
 
   const EventPopover = ({ event, onClose }: { event: CalendarEvent; onClose: () => void }) => {
     const c = getC(event.color);
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={onClose}>
+      <div className="fixed inset-0 z-50 flex justify-end" onClick={onClose}>
         <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
-        <div className="relative bg-white rounded-xl shadow-2xl w-[400px] overflow-hidden border border-[#E5E7EB]" onClick={e => e.stopPropagation()}>
+        <div className="relative bg-white shadow-2xl w-[380px] h-full overflow-hidden border-l border-[#E5E7EB] flex flex-col" onClick={e => e.stopPropagation()}>
           <div className="h-1" style={{ backgroundColor: c.border }} />
-          <div className="p-5">
-            <div className="flex items-start justify-between mb-4">
+          <div className="p-5 flex-1 overflow-y-auto">
+            <div className="flex items-start justify-between mb-4 pb-4 border-b border-[#E5E7EB]">
               <div>
                 <div className="text-[10px] uppercase tracking-wider text-[#9CA3AF] mb-1" style={{ fontWeight: 600 }}>{event.status}</div>
                 <h3 className="text-[18px] text-[#1A2332]" style={{ fontWeight: 700 }}>{event.title}</h3>
@@ -492,7 +510,7 @@ export function Calendar() {
                 </button>
               ))}
             </div>
-            <CreateActionButton onClick={() => navigate("/jobs/new")}>
+            <CreateActionButton onClick={openHeaderQuickCreate}>
               Create Job
             </CreateActionButton>
           </>
@@ -636,7 +654,7 @@ export function Calendar() {
                   const labelBg = isToday ? "#DDE8F5" : isWeekend ? "#ECEEF3" : "#F8F9FB";
                   // Per Marek: shorter schedule rows so the map below gets more space
                   // (only 3 techs in MVP — wasted vertical space under each lane).
-                  const ROW_H = 52;
+                  const ROW_H = 72;
 
                   return (
                     <div key={dayI}>
@@ -756,8 +774,8 @@ export function Calendar() {
                                     style={{
                                       left,
                                       width: Math.max(width, 70),
-                                      top: 8,
-                                      height: 58,
+                                      top: 10,
+                                      height: 52,
                                       backgroundColor: job.bg,
                                       borderLeft: `3px solid ${job.border}`,
                                       boxShadow: isSelected ? `0 0 0 2px ${job.border}` : "none",
@@ -1002,6 +1020,10 @@ export function Calendar() {
                                 borderLeft: `3px solid ${job.border}`,
                               }}
                               onDragStart={(event) => event.dataTransfer.setData("text/plain", `day:${job.id}`)}
+                              onClick={() => {
+                                setSelectedDayJob(job);
+                                setSelectedMapJobId(job.id);
+                              }}
                               onDoubleClick={(event) => event.stopPropagation()}
                             >
                               <div className="flex flex-col h-full px-2 py-1">
@@ -1041,6 +1063,54 @@ export function Calendar() {
               </div>
             </div>
 
+            {selectedDayJob ? (
+              <div className="w-[300px] shrink-0 flex flex-col overflow-hidden border-l border-[#E5E7EB] bg-white">
+                <div className="flex items-center justify-between px-4 py-3.5 border-b border-[#E5E7EB] shrink-0">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-[14px] text-[#1A2332] truncate" style={{ fontWeight: 700 }}>Job #{selectedDayJob.id}</span>
+                    <span
+                      className="px-2 py-0.5 rounded-full text-[10px] shrink-0"
+                      style={{ fontWeight: 600, backgroundColor: STATUS_STYLES[selectedDayJob.status].bg, color: STATUS_STYLES[selectedDayJob.status].color }}
+                    >
+                      {selectedDayJob.status}
+                    </span>
+                  </div>
+                  <button onClick={() => setSelectedDayJob(null)} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-[#F5F7FA]">
+                    <span className="material-icons text-[#8899AA]" style={{ fontSize: "18px" }}>close</span>
+                  </button>
+                </div>
+                <div className="flex-1 overflow-y-auto bg-[#FAFBFC] p-3">
+                  <div className="rounded-xl bg-white border border-[#E5E7EB] p-4">
+                    <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 700 }}>{selectedDayJob.client}</div>
+                    <div className="text-[12px] text-[#546478] mt-0.5">{selectedDayJob.service}</div>
+                    <div className="text-[11px] text-[#8899AA] mt-1">{selectedDayJob.address}</div>
+                    <div className="border-t border-[#E5E7EB] pt-3 mt-3">
+                      {[
+                        { icon: "engineering", label: "Person", value: TEAM.find((member) => member.id === selectedDayJob.technicianId)?.name ?? "Unassigned" },
+                        { icon: "event", label: "Time", value: `${fmtHour(selectedDayJob.start)} - ${fmtHour(selectedDayJob.end)}` },
+                        { icon: "attach_money", label: "Amount", value: `$${selectedDayJob.amount.toLocaleString("en-US")}` },
+                      ].map((field) => (
+                        <div key={field.label} className="flex items-center gap-2.5 py-2 border-b border-[#F5F7FA] last:border-0">
+                          <span className="material-icons text-[#9CA3AF] shrink-0" style={{ fontSize: "16px" }}>{field.icon}</span>
+                          <span className="text-[11px] text-[#8899AA] w-[58px] shrink-0">{field.label}</span>
+                          <span className="text-[12px] text-[#1A2332] flex-1" style={{ fontWeight: 500 }}>{field.value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                <div className="p-4 border-t border-[#E5E7EB] shrink-0 bg-white">
+                  <button
+                    onClick={() => updateDayStatus(selectedDayJob.id, selectedDayJob.status === "Completed" ? "Scheduled" : nextStatus(selectedDayJob.status))}
+                    className="w-full py-2.5 bg-[#4A6FA5] text-white rounded-lg text-[13px] hover:bg-[#3d5a85] transition-colors"
+                    style={{ fontWeight: 600 }}
+                  >
+                    {selectedDayJob.status === "Scheduled" ? "Start Job" : selectedDayJob.status === "In Progress" ? "Complete Job" : "Reopen Job"}
+                  </button>
+                </div>
+              </div>
+            ) : null}
+
           </div>
         )}
       </div>
@@ -1074,7 +1144,10 @@ export function Calendar() {
                 key={job.id}
                 className="absolute h-8 w-8 rounded-full text-white text-[12px] shadow-md border-2 border-white hover:scale-105 transition-transform"
                 style={{ left: `${left}%`, top: `${top}%`, backgroundColor: member.color, fontWeight: 800 }}
-                onClick={() => setSelectedMapJobId(job.id)}
+                onClick={() => {
+                  setSelectedMapJobId(job.id);
+                  setSelectedDayJob(job);
+                }}
                 title={`${member.name}: ${job.client}`}
               >
                 {routeNumber}
@@ -1181,8 +1254,8 @@ export function Calendar() {
                   <input
                     type="number"
                     min={GANTT_START_HOUR}
-                    max={GANTT_END_HOUR - 0.5}
-                    step={0.5}
+                    max={GANTT_END_HOUR - SLOT_HOURS}
+                    step={SLOT_HOURS}
                     value={quickJobDraft.start}
                     onChange={(event) => setQuickJobDraft({ ...quickJobDraft, start: Number(event.target.value) })}
                     className="w-full h-10 rounded-lg border border-[#D8DCE6] px-3 text-[13px] outline-none focus:border-[#4A6FA5]"
@@ -1192,9 +1265,9 @@ export function Calendar() {
                   <span className="block text-[11px] text-[#8899AA] mb-1" style={{ fontWeight: 700 }}>End</span>
                   <input
                     type="number"
-                    min={GANTT_START_HOUR + 0.5}
+                    min={GANTT_START_HOUR + SLOT_HOURS}
                     max={GANTT_END_HOUR}
-                    step={0.5}
+                    step={SLOT_HOURS}
                     value={quickJobDraft.end}
                     onChange={(event) => setQuickJobDraft({ ...quickJobDraft, end: Number(event.target.value) })}
                     className="w-full h-10 rounded-lg border border-[#D8DCE6] px-3 text-[13px] outline-none focus:border-[#4A6FA5]"

@@ -1040,47 +1040,44 @@ export function EstimateDetail() {
               <span className="material-icons" style={{ fontSize: "16px" }}>visibility</span>
               Preview
             </button>
-            {estimate.status === "Approved" ? (
-              <div className="relative">
-                <button
-                  onClick={() => setCreateMenuOpen(!createMenuOpen)}
-                  className="h-9 px-3.5 rounded-md bg-[#4A6FA5] hover:bg-[#3d5a85] text-white text-[13px] inline-flex items-center gap-1.5 transition-colors"
-                  style={{ fontWeight: 600 }}
-                >
-                  <span className="material-icons" style={{ fontSize: "16px" }}>add</span>
-                  Create
-                  <span className="material-icons" style={{ fontSize: "16px" }}>expand_more</span>
-                </button>
-                {createMenuOpen && (
-                  <div className="absolute right-0 top-[calc(100%+4px)] w-[200px] bg-white border border-[#E5E7EB] rounded-xl shadow-lg z-40 py-1.5">
-                    <button
-                      onClick={() => { setCreateMenuOpen(false); navigate(`/jobs/create?estimate=${id}&client=${encodeURIComponent(estimate.clientName)}`); }}
-                      className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[13px] hover:bg-[#F5F7FA] transition-colors text-left"
-                      style={{ fontWeight: 500, color: "#1A2332" }}
-                    >
-                      <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "18px" }}>work</span>
-                      Create Job
-                    </button>
-                    <button
-                      onClick={() => { setCreateMenuOpen(false); navigate(`/invoices/create?estimate=${id}&client=${encodeURIComponent(estimate.clientName)}`); }}
-                      className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[13px] hover:bg-[#F5F7FA] transition-colors text-left"
-                      style={{ fontWeight: 500, color: "#1A2332" }}
-                    >
-                      <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "18px" }}>receipt</span>
-                      Create Invoice
-                    </button>
-                  </div>
-                )}
-              </div>
-            ) : (
+            <button
+              className="h-9 px-3.5 rounded-md border border-[#C8D5E8] bg-white hover:bg-[#F5F7FA] text-[#4A6FA5] text-[13px] inline-flex items-center gap-1.5 transition-colors"
+              style={{ fontWeight: 600 }}
+            >
+              <span className="material-icons" style={{ fontSize: "16px" }}>send</span>
+              Send
+            </button>
+            <div className="relative">
               <button
+                onClick={() => setCreateMenuOpen(!createMenuOpen)}
                 className="h-9 px-3.5 rounded-md bg-[#4A6FA5] hover:bg-[#3d5a85] text-white text-[13px] inline-flex items-center gap-1.5 transition-colors"
                 style={{ fontWeight: 600 }}
               >
-                <span className="material-icons" style={{ fontSize: "16px" }}>send</span>
-                Send
+                <span className="material-icons" style={{ fontSize: "16px" }}>add</span>
+                Create
+                <span className="material-icons" style={{ fontSize: "16px" }}>expand_more</span>
               </button>
-            )}
+              {createMenuOpen && (
+                <div className="absolute right-0 top-[calc(100%+4px)] w-[200px] bg-white border border-[#E5E7EB] rounded-xl shadow-lg z-40 py-1.5">
+                  <button
+                    onClick={() => { setCreateMenuOpen(false); navigate(`/jobs/new?fromEstimate=${estimate.id}&client=${encodeURIComponent(estimate.clientName)}`); }}
+                    className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[13px] hover:bg-[#F5F7FA] transition-colors text-left"
+                    style={{ fontWeight: 500, color: "#1A2332" }}
+                  >
+                    <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "18px" }}>work</span>
+                    Create Job
+                  </button>
+                  <button
+                    onClick={() => { setCreateMenuOpen(false); navigate(`/invoices/new?fromEstimate=${estimate.id}&client=${encodeURIComponent(estimate.clientName)}`); }}
+                    className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[13px] hover:bg-[#F5F7FA] transition-colors text-left"
+                    style={{ fontWeight: 500, color: "#1A2332" }}
+                  >
+                    <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "18px" }}>receipt</span>
+                    Create Invoice
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
