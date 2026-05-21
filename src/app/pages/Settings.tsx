@@ -95,10 +95,63 @@ const taxProfiles = [
   { name: "Florida Standard", rates: "Florida State Tax", total: "6%", default: false },
 ];
 
-const teamMembers = [
-  { name: "Peter Novak", email: "peter@omega-home.com", role: "Owner", title: "Business Owner", rate: "$0/hr", status: "Active" },
+type AppRole = "Admin" | "Employee";
+type PermissionLevel = "FULL" | "READ" | "OWN" | "FIELD" | "NONE";
+
+const teamMembers: Array<{ name: string; email: string; role: AppRole; title: string; rate: string; status: string }> = [
+  { name: "Peter Novak", email: "peter@omega-home.com", role: "Admin", title: "Business Owner", rate: "$0/hr", status: "Active" },
   { name: "Ivan Petrenko", email: "ivan@omega-home.com", role: "Employee", title: "Technician", rate: "$32/hr", status: "Invited" },
   { name: "Sarah Lee", email: "sarah@omega-home.com", role: "Employee", title: "Office Staff", rate: "$28/hr", status: "Active" },
+];
+
+const permissionBadgeStyles: Record<PermissionLevel, { label: string; bg: string; color: string }> = {
+  FULL: { label: "Full", bg: "rgba(22,163,74,0.15)", color: "#16A34A" },
+  READ: { label: "Read", bg: "rgba(74,111,165,0.15)", color: "#4A6FA5" },
+  OWN: { label: "Own", bg: "rgba(189,128,14,0.15)", color: "#BD800E" },
+  FIELD: { label: "Field", bg: "rgba(8,145,178,0.15)", color: "#0891B2" },
+  NONE: { label: "None", bg: "rgba(107,114,128,0.15)", color: "#6B7280" },
+};
+
+const rbacPermissions: Array<{ area: string; feature: string; admin: PermissionLevel; employee: PermissionLevel }> = [
+  { area: "Business Management", feature: "Company Info (legal entity, address, business hours)", admin: "FULL", employee: "NONE" },
+  { area: "Business Management", feature: "Company Profile (about, industry, branding, notifications)", admin: "FULL", employee: "NONE" },
+  { area: "Business Management", feature: "Manage Team (invite, edit, remove users, role titles)", admin: "FULL", employee: "NONE" },
+  { area: "Business Management", feature: "Billing and Plan (credit card, plan, payment history)", admin: "FULL", employee: "NONE" },
+  { area: "System Preferences", feature: "Industry selection", admin: "FULL", employee: "NONE" },
+  { area: "System Preferences", feature: "Custom Fields configuration", admin: "FULL", employee: "NONE" },
+  { area: "System Preferences", feature: "Schedule settings", admin: "FULL", employee: "NONE" },
+  { area: "System Preferences", feature: "Job statuses, job types, job type colors", admin: "FULL", employee: "NONE" },
+  { area: "System Preferences", feature: "Estimate templates, signature settings, terms and conditions", admin: "FULL", employee: "READ" },
+  { area: "System Preferences", feature: "Invoice templates, payment terms, receipt notes", admin: "FULL", employee: "READ" },
+  { area: "System Preferences", feature: "Items / Price book settings", admin: "FULL", employee: "READ" },
+  { area: "Finance Center", feature: "Bank account information", admin: "FULL", employee: "NONE" },
+  { area: "Finance Center", feature: "Payment gateway / Stripe connection", admin: "FULL", employee: "NONE" },
+  { area: "Finance Center", feature: "Expense tracking configuration", admin: "FULL", employee: "NONE" },
+  { area: "Finance Center", feature: "Financing options / lenders", admin: "FULL", employee: "NONE" },
+  { area: "Integrations", feature: "QuickBooks, Zapier, Mailchimp, and other connected apps", admin: "FULL", employee: "NONE" },
+  { area: "Clients", feature: "View clients list", admin: "FULL", employee: "FULL" },
+  { area: "Clients", feature: "Create, edit, and deactivate clients", admin: "FULL", employee: "FULL" },
+  { area: "Clients", feature: "Tax profile assignment to a client", admin: "FULL", employee: "READ" },
+  { area: "Jobs", feature: "View jobs list and job details", admin: "FULL", employee: "FULL" },
+  { area: "Jobs", feature: "Create and edit jobs", admin: "FULL", employee: "FULL" },
+  { area: "Jobs", feature: "Appear in Assigned to dropdown for field jobs", admin: "FIELD", employee: "FIELD" },
+  { area: "Items", feature: "View item list / price book", admin: "FULL", employee: "FULL" },
+  { area: "Estimates", feature: "Create estimates", admin: "FULL", employee: "FULL" },
+  { area: "Estimates", feature: "Edit own estimates", admin: "FULL", employee: "FULL" },
+  { area: "Estimates", feature: "Send estimate to client", admin: "FULL", employee: "FULL" },
+  { area: "Estimates", feature: "Approve, archive, or mark as won", admin: "FULL", employee: "FULL" },
+  { area: "Estimates", feature: "Edit terms and conditions on a specific estimate", admin: "NONE", employee: "NONE" },
+  { area: "Estimates", feature: "Edit internal / private notes", admin: "FULL", employee: "FULL" },
+  { area: "Estimates", feature: "Edit notes to the client", admin: "FULL", employee: "FULL" },
+  { area: "Invoices", feature: "View, create, and edit invoices", admin: "FULL", employee: "FULL" },
+  { area: "Invoices", feature: "Send invoice by email or SMS", admin: "FULL", employee: "FULL" },
+  { area: "Payments", feature: "Collect payment from client", admin: "FULL", employee: "FULL" },
+  { area: "Expenses", feature: "Create, edit, and categorize expenses", admin: "FULL", employee: "OWN" },
+  { area: "Schedule", feature: "View schedule board", admin: "FULL", employee: "FULL" },
+  { area: "Documents", feature: "Upload photos / PDFs to clients and jobs", admin: "FULL", employee: "FULL" },
+  { area: "Reports / Home", feature: "Profit margin and compensation on job overview", admin: "FULL", employee: "NONE" },
+  { area: "Support", feature: "Account Manager contact", admin: "FULL", employee: "FULL" },
+  { area: "Help Center", feature: "Help / FAQ links", admin: "FULL", employee: "FULL" },
 ];
 
 const templateCards = [
@@ -1250,7 +1303,7 @@ function ItemsPreferences() {
           <div className="flex items-center justify-between gap-4">
             <div>
               <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Low-stock alerts</div>
-              <div className="text-[13px] text-[#546478]">Notify Owner / Admin when a tracked item drops below its reorder threshold.</div>
+              <div className="text-[13px] text-[#546478]">Notify Admin when a tracked item drops below its reorder threshold.</div>
             </div>
             <Switch checked={lowStockAlerts} onCheckedChange={setLowStockAlerts} />
           </div>
@@ -1816,7 +1869,7 @@ export function Settings() {
   const [teamSearch, setTeamSearch] = useState("");
   const [inviteOpen, setInviteOpen] = useState(false);
   const [teamRowMenu, setTeamRowMenu] = useState<string | null>(null);
-  const emptyInvite = { name: "", email: "", role: "Employee" as "Owner" | "Employee", title: "", rate: "" };
+  const emptyInvite = { name: "", email: "", role: "Employee" as AppRole, title: "", rate: "" };
   const [invite, setInvite] = useState(emptyInvite);
   // ── Login security & 2FA ──
   const [tempPasswordLink, setTempPasswordLink] = useState(true);
@@ -2519,11 +2572,11 @@ export function Settings() {
                           <div className="relative">
                             <select
                               value={invite.role}
-                              onChange={e => setInvite({ ...invite, role: e.target.value as "Owner" | "Employee" })}
+                              onChange={e => setInvite({ ...invite, role: e.target.value as AppRole })}
                               className="h-9 w-full rounded-lg border border-[#E5E7EB] bg-white pl-3 pr-8 text-[14px] text-[#1A2332] outline-none focus:border-[#4A6FA5] shadow-[0_1px_2px_rgba(0,0,0,0.05)] appearance-none cursor-pointer"
                             >
                               <option value="Employee">Employee</option>
-                              <option value="Owner">Owner / Admin</option>
+                              <option value="Admin">Admin</option>
                             </select>
                             <span className="material-icons pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[#6B7280]" style={{ fontSize: "16px" }}>expand_more</span>
                           </div>
@@ -2576,7 +2629,7 @@ export function Settings() {
                 <div className="flex items-center justify-between gap-4 rounded-lg border border-[#E5E7EB] p-4">
                   <div className="flex flex-col gap-0.5">
                     <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Send temporary password link on invite</span>
-                    <span className="text-[14px] text-[#6B7280]">Owner receives a one-time link by email instead of typing a password manually.</span>
+                    <span className="text-[14px] text-[#6B7280]">Admin receives a one-time link by email instead of typing a password manually.</span>
                   </div>
                   <Switch checked={tempPasswordLink} onCheckedChange={setTempPasswordLink} />
                 </div>
@@ -2679,7 +2732,7 @@ export function Settings() {
                     { label: "Username",   desc: "Auto-derived from email, editable." },
                     { label: "Full name",  desc: "Display name across the app." },
                     { label: "Phone",      desc: "Required when 2FA uses SMS." },
-                    { label: "User role",  desc: "Owner / Admin or Employee." },
+                    { label: "User role",  desc: "Admin or Employee." },
                     { label: "Role title", desc: "Free-form: Technician, Office Staff, …" },
                     { label: "Pay rate",   desc: "Hourly, daily, or salary — set per user." },
                   ]).map(f => (
@@ -2745,51 +2798,33 @@ export function Settings() {
                   <table className="w-full">
                     <thead>
                       <tr className="bg-[#F5F7FA]">
+                        <th className="px-4 text-left text-[12px] text-[#6B7280] border-b border-[#E5E7EB] w-[170px]" style={{ fontWeight: 500, height: 36 }}>Area</th>
                         <th className="px-4 text-left text-[12px] text-[#6B7280] border-b border-[#E5E7EB]" style={{ fontWeight: 500, height: 36 }}>Feature</th>
-                        <th className="px-4 text-right text-[12px] text-[#6B7280] border-b border-[#E5E7EB] w-[100px]" style={{ fontWeight: 500, height: 36 }}>Owner / Admin</th>
-                        <th className="px-4 text-right text-[12px] text-[#6B7280] border-b border-[#E5E7EB] w-[100px]" style={{ fontWeight: 500, height: 36 }}>Employee</th>
+                        <th className="px-4 text-right text-[12px] text-[#6B7280] border-b border-[#E5E7EB] w-[92px]" style={{ fontWeight: 500, height: 36 }}>Admin</th>
+                        <th className="px-4 text-right text-[12px] text-[#6B7280] border-b border-[#E5E7EB] w-[92px]" style={{ fontWeight: 500, height: 36 }}>Employee</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {([
-                        ["Create / edit clients, jobs, estimates, invoices",     true,  true],
-                        ["Add notes, photos, signatures to jobs",                 true,  true],
-                        ["View own schedule and assigned jobs",                   true,  true],
-                        ["Mark job In Progress / Completed",                      true,  true],
-                        ["Send invoices to customers",                            true,  true],
-                        ["View company-wide reports and revenue",                 true,  false],
-                        ["Manage team (invite / deactivate users)",               true,  false],
-                        ["Change billing & subscription plan",                    true,  false],
-                        ["Change company info, branding, tax settings",           true,  false],
-                        ["Change system preferences (custom fields, job types)",  true,  false],
-                        ["Edit bank / payout details",                            true,  false],
-                      ] as [string, boolean, boolean][]).map(([label, admin, emp], i) => (
-                        <tr key={i} className={i > 0 ? "border-t border-[#E5E7EB]" : ""}>
-                          <td className="px-4 text-[14px] text-[#1A2332]" style={{ height: 36 }}>{label}</td>
-                          <td className="px-4 text-right" style={{ height: 36, width: 100 }}>
-                            {admin ? (
-                              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full" style={{ background: "rgba(22,163,74,0.15)" }}>
-                                <span className="material-icons" style={{ fontSize: "13px", color: "#16A34A" }}>check</span>
+                      {rbacPermissions.map((permission, i) => {
+                        const adminStyle = permissionBadgeStyles[permission.admin];
+                        const employeeStyle = permissionBadgeStyles[permission.employee];
+                        return (
+                          <tr key={`${permission.area}-${permission.feature}`} className={i > 0 ? "border-t border-[#E5E7EB]" : ""}>
+                            <td className="px-4 py-2 text-[12px] leading-4 text-[#6B7280] align-top" style={{ fontWeight: 500 }}>{permission.area}</td>
+                            <td className="px-4 py-2 text-[14px] leading-5 text-[#1A2332] align-top">{permission.feature}</td>
+                            <td className="px-4 py-2 text-right align-top" style={{ width: 92 }}>
+                              <span className="inline-flex h-6 min-w-[54px] items-center justify-center rounded-lg px-2 text-[12px]" style={{ fontWeight: 500, background: adminStyle.bg, color: adminStyle.color }}>
+                                {adminStyle.label}
                               </span>
-                            ) : (
-                              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full" style={{ background: "rgba(107,114,128,0.15)" }}>
-                                <span className="material-icons" style={{ fontSize: "13px", color: "#6B7280" }}>block</span>
+                            </td>
+                            <td className="px-4 py-2 text-right align-top" style={{ width: 92 }}>
+                              <span className="inline-flex h-6 min-w-[54px] items-center justify-center rounded-lg px-2 text-[12px]" style={{ fontWeight: 500, background: employeeStyle.bg, color: employeeStyle.color }}>
+                                {employeeStyle.label}
                               </span>
-                            )}
-                          </td>
-                          <td className="px-4 text-right" style={{ height: 36, width: 100 }}>
-                            {emp ? (
-                              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full" style={{ background: "rgba(22,163,74,0.15)" }}>
-                                <span className="material-icons" style={{ fontSize: "13px", color: "#16A34A" }}>check</span>
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full" style={{ background: "rgba(107,114,128,0.15)" }}>
-                                <span className="material-icons" style={{ fontSize: "13px", color: "#6B7280" }}>block</span>
-                              </span>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
