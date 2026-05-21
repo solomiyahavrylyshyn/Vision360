@@ -863,25 +863,14 @@ export function InvoiceDetail() {
               Send
             </button>
             <button
-              onClick={() => navigate(`/invoices/${id}/edit`)}
-              className="h-9 px-3.5 rounded-md border border-[#E5E7EB] bg-white text-[13px] text-[#1A2332] hover:bg-[#F5F7FA] inline-flex items-center gap-1.5 transition-colors"
-              style={{ fontWeight: 500 }}
-              title="Edit invoice"
+              onClick={() => setPaymentModalOpen(true)}
+              className="h-9 px-3.5 rounded-md bg-[#4A6FA5] hover:bg-[#3d5a85] text-white text-[13px] inline-flex items-center gap-1.5 transition-colors"
+              style={{ fontWeight: 600 }}
+              title="Record a payment for this invoice"
             >
-              <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
-              Edit
+              <span className="material-icons" style={{ fontSize: "16px" }}>payments</span>
+              Collect Payment
             </button>
-            {!isPaid && status !== "Void" && (
-              <button
-                onClick={() => setPaymentModalOpen(true)}
-                className="h-9 px-3.5 rounded-md bg-[#4A6FA5] hover:bg-[#3d5a85] text-white text-[13px] inline-flex items-center gap-1.5 transition-colors"
-                style={{ fontWeight: 600 }}
-                title="Record a payment for this invoice"
-              >
-                <span className="material-icons" style={{ fontSize: "16px" }}>payments</span>
-                Collect Payment
-              </button>
-            )}
           </div>
         </div>
 
