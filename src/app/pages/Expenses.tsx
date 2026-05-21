@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
+import { DndProvider } from "react-dnd";
+import { HTML5Backend } from "react-dnd-html5-backend";
+import { Card } from "../components/ui/card";
 import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
+import { useDraggableColumns, DraggableTh } from "../components/ui/draggable-columns";
 import { PageHeader } from "../components/ui/page-header";
 import { SelectionBar } from "../components/ui/selection-bar";
 import { CreateActionButton } from "../components/ui/create-action-button";
-import { CategoryPill, expenseCategoryStyles } from "../components/ui/category-pill";
-import { StatCard } from "../components/ui/stat-card";
 
 export interface Expense {
   id: string;
@@ -30,11 +32,32 @@ export const mockExpenses: Expense[] = [
   { id: "7", date: "Mar 31, 2026", category: "Materials", merchant: "Ferguson Plumbing", amount: 723.45, jobId: "J-1235", jobTitle: "Service Call", invoiceId: "INV-0043", notes: "PVC pipes and fittings", receipts: 2 },
 ];
 
-export const expenseCategoryColors: Record<string, string> = Object.fromEntries(
-  Object.entries(expenseCategoryStyles).map(([category, style]) => [category, style.text])
-);
+export const expenseCategoryColors: Record<string, string> = {
+  Materials: "#4A6FA5",
+  Fuel: "#059669",
+  Tools: "#D97706",
+  Software: "#7C3AED",
+  Meals: "#DC2626",
+  Travel: "#0891B2",
+  Subcontractor: "#6D28D9",
+  "Office Supplies": "#2563EB",
+  "Equipment Rental": "#EA580C",
+  Other: "#8899AA",
+};
+const categoryColors = expenseCategoryColors;
 
 const categoryFilterOptions = ["All", "Materials", "Fuel", "Tools", "Software", "Meals", "Travel"];
+
+const EXPENSES_COLS = [
+  { key: "date", label: "Date" },
+  { key: "category", label: "Category" },
+  { key: "merchant", label: "Merchant" },
+  { key: "amount", label: "Amount" },
+  { key: "jobId", label: "Job #" },
+  { key: "invoiceId", label: "Invoice #" },
+  { key: "notes", label: "Notes" },
+  { key: "receipts", label: "Receipts" },
+] as const;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function qfClass(active: boolean) {
@@ -45,6 +68,7 @@ function qfClass(active: boolean) {
 
 export function Expenses() {
   const navigate = useNavigate();
+  const [cols, moveCol] = useDraggableColumns([...EXPENSES_COLS]);
   const [expenses, setExpenses] = useState(mockExpenses);
 
   // Quick filters
@@ -72,15 +96,11 @@ export function Expenses() {
   });
 
   const totalAmount = filtered.reduce((s, e) => s + e.amount, 0);
-  const linkedExpenses = filtered.filter((e) => e.jobId);
-  const linkedAmount = linkedExpenses.reduce((s, e) => s + e.amount, 0);
-  const receiptCount = filtered.reduce((s, e) => s + e.receipts, 0);
-  const avgExpense = filtered.length > 0 ? totalAmount / filtered.length : 0;
   const uniqueJobs = Array.from(new Set(expenses.filter((e) => e.jobId).map((e) => e.jobId!)));
   const allSelected = filtered.length > 0 && filtered.every(e => selectedIds.has(e.id));
-  const fmtMoney = (n: number) => `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   return (
+    <DndProvider backend={HTML5Backend}>
     <div className="p-8 bg-[#F5F7FA] min-h-full">
       {/* Header */}
       <PageHeader
@@ -93,48 +113,25 @@ export function Expenses() {
         }
       />
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-4 gap-4 mb-6">
-        <StatCard
-          value={fmtMoney(totalAmount)}
-          label="Total expenses"
-          sub={`${filtered.length} records`}
-          change="+9%"
-          changeUp={false}
-          period="vs prev. period"
-          data={[4, 5, 4, 6, 7, 6, 8]}
-          sparklineColor="#DC2626"
-        />
-        <StatCard
-          value={fmtMoney(linkedAmount)}
-          label="Job-linked"
-          sub={`${linkedExpenses.length} assigned to jobs`}
-          change="+14%"
-          changeUp
-          period="recoverable spend"
-          data={[2, 3, 3, 4, 5, 4, 6]}
-          sparklineColor="#4A6FA5"
-        />
-        <StatCard
-          value={String(receiptCount)}
-          label="Receipts"
-          sub={`${filtered.filter((e) => e.receipts > 0).length} expenses attached`}
-          change="+6%"
-          changeUp
-          period="vs prev. period"
-          data={[1, 2, 2, 3, 3, 4, 5]}
-          sparklineColor="#16A34A"
-        />
-        <StatCard
-          value={fmtMoney(avgExpense)}
-          label="Average"
-          sub="per expense"
-          change="-4%"
-          changeUp={false}
-          period="vs prev. period"
-          data={[7, 6, 6, 5, 5, 4, 4]}
-          sparklineColor="#D97706"
-        />
+      {/* Summary Card */}
+      <div className="grid grid-cols-4 gap-5 mb-8">
+        <Card className="p-5 border border-[#E5E7EB] bg-white hover:shadow-sm transition-shadow">
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full shrink-0" style={{ background: "#DC2626" }} />
+                <span className="text-[12px] text-[#546478]" style={{ fontWeight: 600 }}>Total Expenses</span>
+              </div>
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: "#FEF2F2" }}>
+                <span className="material-icons" style={{ fontSize: "16px", color: "#DC2626" }}>receipt_long</span>
+              </div>
+            </div>
+            <div className="text-[26px] leading-none mb-1" style={{ fontWeight: 700, color: "#1A2332", fontVariantNumeric: "tabular-nums" }}>
+              ${totalAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+            </div>
+            <div className="text-[12px] text-[#9CA3AF]">{filtered.length} records</div>
+          </div>
+        </Card>
       </div>
 
       {/* Table */}
@@ -211,8 +208,13 @@ export function Expenses() {
                     className="w-4 h-4 rounded border-[#E5E7EB] cursor-pointer accent-[#4A6FA5]"
                   />
                 </th>
-                {["Date", "Category", "Merchant", "Amount", "Job #", "Invoice #", "Notes", "Receipts"].map((h) => (
-                  <th key={h} className="px-4 py-3 text-left text-xs text-[#546478] uppercase tracking-wide" style={{ fontWeight: 600 }}>{h}</th>
+                {cols.map(col => (
+                  <DraggableTh key={col.key} colKey={col.key} onMove={moveCol}
+                    className="px-4 py-3 text-left text-xs text-[#546478] uppercase tracking-wide"
+                    style={{ fontWeight: 600 }}
+                  >
+                    {col.label}
+                  </DraggableTh>
                 ))}
                 <th className="px-3 py-3 w-10" />
               </tr>
@@ -232,7 +234,7 @@ export function Expenses() {
                     onClick={() => navigate(`/expenses/${expense.id}`)}
                     className={`border-t border-[#E5E7EB] hover:bg-[#F5F7FA] cursor-pointer transition-colors ${selectedIds.has(expense.id) ? "bg-[#EBF0F8]" : ""}`}
                   >
-                    <td className="px-3 py-3" onClick={e => e.stopPropagation()}>
+                    <td className="px-3 py-4" onClick={e => e.stopPropagation()}>
                       <input type="checkbox" checked={selectedIds.has(expense.id)}
                         onChange={(e) => {
                           const s = new Set(selectedIds);
@@ -242,60 +244,84 @@ export function Expenses() {
                         className="w-4 h-4 rounded border-[#E5E7EB] cursor-pointer accent-[#4A6FA5]"
                       />
                     </td>
-                    <td className="px-4 py-3">
-                      <span className="text-[13px] text-[#546478]">{expense.date}</span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <CategoryPill category={expense.category} />
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="text-[13px] text-[#1A2332]">{expense.merchant}</span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>
-                        ${expense.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      {expense.jobId ? (
-                        <span
-                          className="text-[13px] text-[#4A6FA5] hover:underline"
-                          style={{ fontWeight: 500 }}
-                          onClick={(e) => { e.stopPropagation(); navigate(`/jobs/${expense.jobId!.replace("J-", "")}`); }}
-                        >
-                          #{expense.jobId}
-                        </span>
-                      ) : (
-                        <span className="text-[13px] text-[#8899AA]">—</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      {expense.invoiceId ? (
-                        <span
-                          className="text-[13px] text-[#4A6FA5] hover:underline"
-                          style={{ fontWeight: 500 }}
-                          onClick={(e) => { e.stopPropagation(); navigate(`/invoices/${expense.invoiceId!.replace("INV-", "")}`); }}
-                        >
-                          #{expense.invoiceId}
-                        </span>
-                      ) : (
-                        <span className="text-[13px] text-[#8899AA]">—</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="text-[13px] text-[#546478] max-w-[200px] truncate block">{expense.notes || "—"}</span>
-                    </td>
-                    <td className="px-4 py-3">
-                      {expense.receipts > 0 ? (
-                        <div className="flex items-center gap-1">
-                          <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "16px" }}>attach_file</span>
-                          <span className="text-[13px] text-[#546478]">{expense.receipts}</span>
-                        </div>
-                      ) : (
-                        <span className="text-[13px] text-[#8899AA]">—</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
+                    {cols.map(col => {
+                      switch (col.key) {
+                        case "date": return (
+                          <td key={col.key} className="px-4 py-4">
+                            <span className="text-[13px] text-[#546478]">{expense.date}</span>
+                          </td>
+                        );
+                        case "category": return (
+                          <td key={col.key} className="px-4 py-4">
+                            <div className="flex items-center gap-2">
+                              <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: categoryColors[expense.category] || "#8899AA" }} />
+                              <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{expense.category}</span>
+                            </div>
+                          </td>
+                        );
+                        case "merchant": return (
+                          <td key={col.key} className="px-4 py-4">
+                            <span className="text-[13px] text-[#1A2332]">{expense.merchant}</span>
+                          </td>
+                        );
+                        case "amount": return (
+                          <td key={col.key} className="px-4 py-4">
+                            <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>
+                              ${expense.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                            </span>
+                          </td>
+                        );
+                        case "jobId": return (
+                          <td key={col.key} className="px-4 py-4">
+                            {expense.jobId ? (
+                              <span
+                                className="text-[13px] text-[#4A6FA5] hover:underline"
+                                style={{ fontWeight: 500 }}
+                                onClick={(e) => { e.stopPropagation(); navigate(`/jobs/${expense.jobId!.replace("J-", "")}`); }}
+                              >
+                                #{expense.jobId}
+                              </span>
+                            ) : (
+                              <span className="text-[13px] text-[#8899AA]">—</span>
+                            )}
+                          </td>
+                        );
+                        case "invoiceId": return (
+                          <td key={col.key} className="px-4 py-4">
+                            {expense.invoiceId ? (
+                              <span
+                                className="text-[13px] text-[#4A6FA5] hover:underline"
+                                style={{ fontWeight: 500 }}
+                                onClick={(e) => { e.stopPropagation(); navigate(`/invoices/${expense.invoiceId!.replace("INV-", "")}`); }}
+                              >
+                                #{expense.invoiceId}
+                              </span>
+                            ) : (
+                              <span className="text-[13px] text-[#8899AA]">—</span>
+                            )}
+                          </td>
+                        );
+                        case "notes": return (
+                          <td key={col.key} className="px-4 py-4">
+                            <span className="text-[13px] text-[#546478] max-w-[200px] truncate block">{expense.notes || "—"}</span>
+                          </td>
+                        );
+                        case "receipts": return (
+                          <td key={col.key} className="px-4 py-4">
+                            {expense.receipts > 0 ? (
+                              <div className="flex items-center gap-1">
+                                <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "16px" }}>attach_file</span>
+                                <span className="text-[13px] text-[#546478]">{expense.receipts}</span>
+                              </div>
+                            ) : (
+                              <span className="text-[13px] text-[#8899AA]">—</span>
+                            )}
+                          </td>
+                        );
+                        default: return null;
+                      }
+                    })}
+                    <td className="px-4 py-4" onClick={e => e.stopPropagation()}>
                       <KebabMenu>
                         <KebabItem icon="visibility" onSelect={() => navigate(`/expenses/${expense.id}`)}>View details</KebabItem>
                         {expense.invoiceId && (
@@ -333,5 +359,6 @@ export function Expenses() {
       </div>
 
     </div>
+    </DndProvider>
   );
 }

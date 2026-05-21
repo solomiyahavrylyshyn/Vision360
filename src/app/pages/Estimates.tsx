@@ -1,11 +1,14 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { useNavigate } from "react-router";
+import { DndProvider } from "react-dnd";
+import { HTML5Backend } from "react-dnd-html5-backend";
 import { Card } from "../components/ui/card";
 import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
 import { PageHeader } from "../components/ui/page-header";
 import { SelectionBar } from "../components/ui/selection-bar";
 import { CreateActionButton } from "../components/ui/create-action-button";
 import { StatCard } from "../components/ui/stat-card";
+import { useDraggableColumns, DraggableTh } from "../components/ui/draggable-columns";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type EstimateStatus = "Draft" | "Sent" | "Viewed" | "Approved" | "Rejected" | "Expired" | "Archived";
@@ -68,6 +71,20 @@ function getInitials(name: string) {
 function getAvatarColor(name: string) {
   return avatarColors[name.charCodeAt(0) % avatarColors.length];
 }
+
+const ESTIMATES_COLS = [
+  { key: "estimate", label: "Estimate", sortable: true },
+  { key: "client", label: "Client", sortable: true },
+  { key: "created", label: "Created", sortable: true },
+  { key: "option", label: "Option" },
+  { key: "amount", label: "Amount", sortable: true },
+  { key: "status", label: "Status", sortable: true },
+  { key: "job", label: "Job" },
+  { key: "sentDate", label: "Sent Date" },
+  { key: "expirationDate", label: "Expiration Date" },
+  { key: "technician", label: "Technician" },
+  { key: "depositDue", label: "Deposit due" },
+] as const;
 
 const timeFilters = [
   "All time", "Custom", "Today", "Yesterday", "Last 7 days", "Last 14 days",
@@ -163,6 +180,7 @@ function InlineStatusSelect({ status, onChange }: { status: EstimateStatus; onCh
 // ═══════════════════════════════════════════════════════════════════════════════
 export function Estimates() {
   const navigate = useNavigate();
+  const [cols, moveCol] = useDraggableColumns([...ESTIMATES_COLS]);
   const [estimates, setEstimates] = useState<Estimate[]>(initialEstimates);
 
   // Quick filters
@@ -252,6 +270,7 @@ export function Estimates() {
   const fmt = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   return (
+    <DndProvider backend={HTML5Backend}>
     <div className="p-8 bg-[#F5F7FA] min-h-full">
       {/* Header */}
       <PageHeader
@@ -379,25 +398,28 @@ export function Estimates() {
                     className="w-4 h-4 rounded border-[#E5E7EB] cursor-pointer accent-[#4A6FA5]"
                   />
                 </th>
-                <th className="px-4 py-3 text-left text-[14px] text-[#1A2332] cursor-pointer select-none whitespace-nowrap" style={{ fontWeight: 600 }} onClick={() => toggleSort("estimateNumber")}>
-                  <div className="flex items-center">Estimate <SortIcon field="estimateNumber" /></div>
-                </th>
-                <th className="px-4 py-3 text-left text-[14px] text-[#1A2332] cursor-pointer select-none whitespace-nowrap" style={{ fontWeight: 600 }} onClick={() => toggleSort("clientName")}>
-                  <div className="flex items-center">Client <SortIcon field="clientName" /></div>
-                </th>
-                <th className="px-4 py-3 text-left text-[14px] text-[#1A2332] cursor-pointer select-none whitespace-nowrap" style={{ fontWeight: 600 }} onClick={() => toggleSort("createdDate")}>
-                  <div className="flex items-center">Created <SortIcon field="createdDate" /></div>
-                </th>
-                <th className="px-4 py-3 text-center text-[14px] text-[#1A2332] whitespace-nowrap" style={{ fontWeight: 600 }}>Option</th>
-                <th className="px-4 py-3 text-right text-[14px] text-[#1A2332] cursor-pointer select-none whitespace-nowrap" style={{ fontWeight: 600 }} onClick={() => toggleSort("amount")}>
-                  <div className="flex items-center justify-end">Amount <SortIcon field="amount" /></div>
-                </th>
-                <th className="px-4 py-3 text-left text-[14px] text-[#1A2332] cursor-pointer select-none whitespace-nowrap" style={{ fontWeight: 600 }} onClick={() => toggleSort("status")}>
-                  <div className="flex items-center">Status <SortIcon field="status" /></div>
-                </th>
-                {["Job", "Sent Date", "Expiration Date", "Technician", "Deposit due"].map(h => (
-                  <th key={h} className="px-4 py-3 text-left text-[14px] text-[#1A2332] whitespace-nowrap" style={{ fontWeight: 600 }}>{h}</th>
-                ))}
+                {cols.map(col => {
+                  const sortFieldMap: Record<string, SortField> = { estimate: "estimateNumber", client: "clientName", created: "createdDate", amount: "amount", status: "status" };
+                  const sf = sortFieldMap[col.key];
+                  return (
+                    <DraggableTh
+                      key={col.key}
+                      colKey={col.key}
+                      onMove={moveCol}
+                      className={`px-4 py-3 text-left text-[14px] text-[#1A2332] whitespace-nowrap select-none`}
+                      style={{ fontWeight: 600 }}
+                      onClick={sf ? () => toggleSort(sf) : undefined}
+                    >
+                      {col.key === "amount" ? (
+                        <div className="flex items-center justify-end">{col.label}{sf && <SortIcon field={sf} />}</div>
+                      ) : col.key === "option" ? (
+                        <div className="text-center">{col.label}</div>
+                      ) : (
+                        <div className="flex items-center">{col.label}{sf && <SortIcon field={sf} />}</div>
+                      )}
+                    </DraggableTh>
+                  );
+                })}
                 <th className="px-4 py-3 w-10" />
               </tr>
             </thead>
@@ -427,39 +449,66 @@ export function Estimates() {
                       className="w-4 h-4 rounded border-[#E5E7EB] cursor-pointer accent-[#4A6FA5]"
                     />
                   </td>
-                  <td className="px-4 py-4" onClick={() => navigate(`/estimates/${est.id}`)}>
-                    <div className="text-[12px] text-[#8899AA] font-mono tabular-nums">#{est.estimateNumber}</div>
-                    <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{est.estimateName || <span className="text-[#9CA3AF]">—</span>}</div>
-                  </td>
-                  <td className="px-4 py-4" onClick={() => navigate(`/estimates/${est.id}`)}>
-                    <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{est.clientName}</div>
-                    <div className="text-[12px] text-[#8899AA]">{est.clientEmail}</div>
-                  </td>
-                  <td className="px-4 py-4 whitespace-nowrap" onClick={() => navigate(`/estimates/${est.id}`)}>
-                    <div className="text-[13px] text-[#374151]">{est.createdDate}</div>
-                    <div className="text-[12px] text-[#8899AA]">by {est.addedBy}</div>
-                  </td>
-                  <td className="px-4 py-4 text-[13px] text-center text-[#546478]" onClick={() => navigate(`/estimates/${est.id}`)}>
-                    {est.option ? (
-                      <span className="inline-flex items-center justify-center w-6 h-6 rounded bg-[#F3F4F6] text-[#374151] text-[12px]" style={{ fontWeight: 600 }}>{est.option}</span>
-                    ) : <span className="text-[#D1D5DB]">—</span>}
-                  </td>
-                  <td className="px-4 py-4 text-right whitespace-nowrap" onClick={() => navigate(`/estimates/${est.id}`)}>
-                    <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>${fmt(est.amount)}</div>
-                  </td>
-                  <td className="px-4 py-4" onClick={(e) => e.stopPropagation()}>
-                    <InlineStatusSelect status={est.status} onChange={(s) => handleStatusChange(est.id, s)} />
-                    {est.updatedDate && (
-                      <div className="text-[11px] text-[#8899AA] mt-1">Updated: {est.updatedDate}</div>
-                    )}
-                  </td>
-                  <td className="px-4 py-4 text-[13px] text-[#546478] whitespace-nowrap" onClick={() => navigate(`/estimates/${est.id}`)}>{est.job || <span className="text-[#D1D5DB]">—</span>}</td>
-                  <td className="px-4 py-4 text-[13px] text-[#546478] whitespace-nowrap" onClick={() => navigate(`/estimates/${est.id}`)}>{est.sentDate || <span className="text-[#D1D5DB]">—</span>}</td>
-                  <td className="px-4 py-4 text-[13px] text-[#546478] whitespace-nowrap" onClick={() => navigate(`/estimates/${est.id}`)}>{est.expirationDate || <span className="text-[#D1D5DB]">—</span>}</td>
-                  <td className="px-4 py-4 text-[13px] text-[#546478] whitespace-nowrap" onClick={() => navigate(`/estimates/${est.id}`)}>{est.teamMember || <span className="text-[#D1D5DB]">—</span>}</td>
-                  <td className="px-4 py-4 text-[13px] text-right whitespace-nowrap" onClick={() => navigate(`/estimates/${est.id}`)}>
-                    <span style={{ fontVariantNumeric: "tabular-nums", color: est.depositDue > 0 ? "#1A2332" : "#D1D5DB" }}>${fmt(est.depositDue)}</span>
-                  </td>
+                  {cols.map(col => {
+                    switch (col.key) {
+                      case "estimate": return (
+                        <td key={col.key} className="px-4 py-4" onClick={() => navigate(`/estimates/${est.id}`)}>
+                          <div className="text-[12px] text-[#8899AA] font-mono tabular-nums">#{est.estimateNumber}</div>
+                          <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{est.estimateName || <span className="text-[#9CA3AF]">—</span>}</div>
+                        </td>
+                      );
+                      case "client": return (
+                        <td key={col.key} className="px-4 py-4" onClick={() => navigate(`/estimates/${est.id}`)}>
+                          <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{est.clientName}</div>
+                          <div className="text-[12px] text-[#8899AA]">{est.clientEmail}</div>
+                        </td>
+                      );
+                      case "created": return (
+                        <td key={col.key} className="px-4 py-4 whitespace-nowrap" onClick={() => navigate(`/estimates/${est.id}`)}>
+                          <div className="text-[13px] text-[#374151]">{est.createdDate}</div>
+                          <div className="text-[12px] text-[#8899AA]">by {est.addedBy}</div>
+                        </td>
+                      );
+                      case "option": return (
+                        <td key={col.key} className="px-4 py-4 text-[13px] text-center text-[#546478]" onClick={() => navigate(`/estimates/${est.id}`)}>
+                          {est.option ? (
+                            <span className="inline-flex items-center justify-center w-6 h-6 rounded bg-[#F3F4F6] text-[#374151] text-[12px]" style={{ fontWeight: 600 }}>{est.option}</span>
+                          ) : <span className="text-[#D1D5DB]">—</span>}
+                        </td>
+                      );
+                      case "amount": return (
+                        <td key={col.key} className="px-4 py-4 text-right whitespace-nowrap" onClick={() => navigate(`/estimates/${est.id}`)}>
+                          <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>${fmt(est.amount)}</div>
+                        </td>
+                      );
+                      case "status": return (
+                        <td key={col.key} className="px-4 py-4" onClick={(e) => e.stopPropagation()}>
+                          <InlineStatusSelect status={est.status} onChange={(s) => handleStatusChange(est.id, s)} />
+                          {est.updatedDate && (
+                            <div className="text-[11px] text-[#8899AA] mt-1">Updated: {est.updatedDate}</div>
+                          )}
+                        </td>
+                      );
+                      case "job": return (
+                        <td key={col.key} className="px-4 py-4 text-[13px] text-[#546478] whitespace-nowrap" onClick={() => navigate(`/estimates/${est.id}`)}>{est.job || <span className="text-[#D1D5DB]">—</span>}</td>
+                      );
+                      case "sentDate": return (
+                        <td key={col.key} className="px-4 py-4 text-[13px] text-[#546478] whitespace-nowrap" onClick={() => navigate(`/estimates/${est.id}`)}>{est.sentDate || <span className="text-[#D1D5DB]">—</span>}</td>
+                      );
+                      case "expirationDate": return (
+                        <td key={col.key} className="px-4 py-4 text-[13px] text-[#546478] whitespace-nowrap" onClick={() => navigate(`/estimates/${est.id}`)}>{est.expirationDate || <span className="text-[#D1D5DB]">—</span>}</td>
+                      );
+                      case "technician": return (
+                        <td key={col.key} className="px-4 py-4 text-[13px] text-[#546478] whitespace-nowrap" onClick={() => navigate(`/estimates/${est.id}`)}>{est.teamMember || <span className="text-[#D1D5DB]">—</span>}</td>
+                      );
+                      case "depositDue": return (
+                        <td key={col.key} className="px-4 py-4 text-[13px] text-right whitespace-nowrap" onClick={() => navigate(`/estimates/${est.id}`)}>
+                          <span style={{ fontVariantNumeric: "tabular-nums", color: est.depositDue > 0 ? "#1A2332" : "#D1D5DB" }}>${fmt(est.depositDue)}</span>
+                        </td>
+                      );
+                      default: return null;
+                    }
+                  })}
                   <td className="px-4 py-4" onClick={(e) => e.stopPropagation()}>
                     <KebabMenu>
                       <KebabItem icon="edit" onClick={() => navigate(`/estimates/${est.id}`)}>Edit</KebabItem>
@@ -588,5 +637,6 @@ export function Estimates() {
         </ModalBackdrop>
       )}
     </div>
+    </DndProvider>
   );
 }

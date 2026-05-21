@@ -1,7 +1,10 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router";
+import { DndProvider } from "react-dnd";
+import { HTML5Backend } from "react-dnd-html5-backend";
 import { Card } from "../components/ui/card";
 import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
+import { useDraggableColumns, DraggableTh } from "../components/ui/draggable-columns";
 import { PageHeader } from "../components/ui/page-header";
 import { SelectionBar } from "../components/ui/selection-bar";
 import { CreateActionButton } from "../components/ui/create-action-button";
@@ -240,6 +243,19 @@ const initialInvoices: Invoice[] = [
   },
 ];
 
+const INVOICES_COLS = [
+  { key: "number", label: "Number" },
+  { key: "type", label: "Type" },
+  { key: "date", label: "Date" },
+  { key: "client", label: "Client" },
+  { key: "job", label: "Job" },
+  { key: "status", label: "Status" },
+  { key: "total", label: "Total" },
+  { key: "balance", label: "Balance" },
+  { key: "dueDate", label: "Due Date" },
+  { key: "memo", label: "Memo" },
+] as const;
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function qfClass(active: boolean) {
   return `h-8 pl-3 pr-6 border rounded-lg text-[13px] bg-white cursor-pointer focus:outline-none transition-colors ${
@@ -250,6 +266,7 @@ function qfClass(active: boolean) {
 // ═══════════════════════════════════════════════════════════════════════════════
 export function Invoices() {
   const navigate = useNavigate();
+  const [cols, moveCol] = useDraggableColumns([...INVOICES_COLS]);
   const [invoices, setInvoices] = useState<Invoice[]>(initialInvoices);
   const [search, setSearch] = useState("");
 
@@ -333,6 +350,7 @@ export function Invoices() {
   ];
 
   return (
+    <DndProvider backend={HTML5Backend}>
     <div className="p-8 bg-[#F5F7FA] min-h-full">
       {/* Header */}
       <PageHeader
@@ -454,8 +472,13 @@ export function Invoices() {
                     }}
                     className="w-4 h-4 rounded border-[#E5E7EB] cursor-pointer accent-[#4A6FA5]" />
                 </th>
-                {["Number", "Type", "Date", "Client", "Job", "Status", "Total", "Balance", "Due Date", "Memo"].map(h => (
-                  <th key={h} className="px-3 py-3 text-left text-[14px] text-[#1A2332] whitespace-nowrap" style={{ fontWeight: 500 }}>{h}</th>
+                {cols.map(col => (
+                  <DraggableTh key={col.key} colKey={col.key} onMove={moveCol}
+                    className="px-3 py-3 text-left text-[14px] text-[#1A2332] whitespace-nowrap"
+                    style={{ fontWeight: 500 }}
+                  >
+                    {col.label}
+                  </DraggableTh>
                 ))}
                 <th className="px-4 py-3 w-10" />
               </tr>
@@ -477,7 +500,7 @@ export function Invoices() {
                   className={`border-b border-[#EDF0F5] hover:bg-[#F9FBFD] transition-colors cursor-pointer ${selectedIds.has(inv.id) ? "bg-[#EBF0F8]" : idx % 2 === 1 ? "bg-[#FAFBFC]" : "bg-white"}`}
                   onClick={() => navigate(`/invoices/${inv.id}`)}
                 >
-                  <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
+                  <td className="px-3 py-4" onClick={(e) => e.stopPropagation()}>
                     <input type="checkbox" checked={selectedIds.has(inv.id)}
                       onChange={(e) => {
                         const s = new Set(selectedIds);
@@ -486,35 +509,50 @@ export function Invoices() {
                       }}
                       className="w-4 h-4 rounded border-[#E5E7EB] cursor-pointer accent-[#4A6FA5]" />
                   </td>
-                  <td className="px-3 py-3 text-[13px] text-[#4A6FA5] whitespace-nowrap" style={{ fontWeight: 600 }}>{inv.number}</td>
-                  <td className="px-3 py-3 text-[13px] text-[#546478] whitespace-nowrap">{inv.type}</td>
-                  <td className="px-3 py-3 text-[13px] text-[#546478] whitespace-nowrap">{fmtDate(inv.date)}</td>
-                  <td className="px-3 py-3">
-                    <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{inv.clientName}</div>
-                    <div className="text-[12px] text-[#8899AA]">{inv.customerEmail}</div>
-                  </td>
-                  <td className="px-3 py-3">
-                    <div className="text-[13px] text-[#4A6FA5]" style={{ fontWeight: 500 }}>{inv.jobNumber}</div>
-                    <div className="text-[12px] text-[#8899AA]">{inv.jobName}</div>
-                  </td>
-                  <td className="px-3 py-3 whitespace-nowrap" onClick={e => e.stopPropagation()}>
-                    <span className="px-2.5 py-1 rounded-full text-[12px]"
-                      style={{ fontWeight: 600, color: statusColors[inv.status].text, backgroundColor: statusColors[inv.status].bg }}>
-                      {inv.status}
-                    </span>
-                    {overdueDays > 0 && (
-                      <div className="text-[11px] text-[#EF4444] mt-0.5" style={{ fontWeight: 500 }}>Past due {overdueDays} days</div>
-                    )}
-                  </td>
-                  <td className="px-3 py-3 text-[13px] text-[#1A2332] whitespace-nowrap" style={{ fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>${fmt(inv.total)}</td>
-                  <td className="px-3 py-3 text-[13px] whitespace-nowrap" style={{ fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>
-                    <span className={inv.balance > 0 ? "text-[#EF4444]" : "text-[#22C55E]"}>${fmt(inv.balance)}</span>
-                  </td>
-                  <td className="px-3 py-3 text-[13px] text-[#546478] whitespace-nowrap">{fmtDate(inv.dueDate)}</td>
-                  <td className="px-3 py-3 text-[13px] text-[#546478] max-w-[220px] truncate" title={inv.memo}>
-                    {inv.memo || <span className="text-[#C8D5E8]">—</span>}
-                  </td>
-                  <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
+                  {cols.map(col => {
+                    switch (col.key) {
+                      case "number": return <td key={col.key} className="px-3 py-4 text-[13px] text-[#4A6FA5] whitespace-nowrap" style={{ fontWeight: 600 }}>{inv.number}</td>;
+                      case "type": return <td key={col.key} className="px-3 py-4 text-[13px] text-[#546478] whitespace-nowrap">{inv.type}</td>;
+                      case "date": return <td key={col.key} className="px-3 py-4 text-[13px] text-[#546478] whitespace-nowrap">{fmtDate(inv.date)}</td>;
+                      case "client": return (
+                        <td key={col.key} className="px-3 py-4">
+                          <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{inv.clientName}</div>
+                          <div className="text-[12px] text-[#8899AA]">{inv.customerEmail}</div>
+                        </td>
+                      );
+                      case "job": return (
+                        <td key={col.key} className="px-3 py-4">
+                          <div className="text-[13px] text-[#4A6FA5]" style={{ fontWeight: 500 }}>{inv.jobNumber}</div>
+                          <div className="text-[12px] text-[#8899AA]">{inv.jobName}</div>
+                        </td>
+                      );
+                      case "status": return (
+                        <td key={col.key} className="px-3 py-4 whitespace-nowrap" onClick={e => e.stopPropagation()}>
+                          <span className="px-2.5 py-1 rounded-full text-[12px]"
+                            style={{ fontWeight: 600, color: statusColors[inv.status].text, backgroundColor: statusColors[inv.status].bg }}>
+                            {inv.status}
+                          </span>
+                          {overdueDays > 0 && (
+                            <div className="text-[11px] text-[#EF4444] mt-0.5" style={{ fontWeight: 500 }}>Past due {overdueDays} days</div>
+                          )}
+                        </td>
+                      );
+                      case "total": return <td key={col.key} className="px-3 py-4 text-[13px] text-[#1A2332] whitespace-nowrap" style={{ fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>${fmt(inv.total)}</td>;
+                      case "balance": return (
+                        <td key={col.key} className="px-3 py-4 text-[13px] whitespace-nowrap" style={{ fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>
+                          <span className={inv.balance > 0 ? "text-[#EF4444]" : "text-[#22C55E]"}>${fmt(inv.balance)}</span>
+                        </td>
+                      );
+                      case "dueDate": return <td key={col.key} className="px-3 py-4 text-[13px] text-[#546478] whitespace-nowrap">{fmtDate(inv.dueDate)}</td>;
+                      case "memo": return (
+                        <td key={col.key} className="px-3 py-4 text-[13px] text-[#546478] max-w-[220px] truncate" title={inv.memo}>
+                          {inv.memo || <span className="text-[#C8D5E8]">—</span>}
+                        </td>
+                      );
+                      default: return null;
+                    }
+                  })}
+                  <td className="px-4 py-4" onClick={e => e.stopPropagation()}>
                     <KebabMenu>
                       <KebabItem icon="edit" onSelect={() => navigate(`/invoices/${inv.id}`)}>Edit</KebabItem>
                       <KebabItem icon="content_copy">Duplicate</KebabItem>
@@ -571,5 +609,6 @@ export function Invoices() {
         </div>
       )}
     </div>
+    </DndProvider>
   );
 }

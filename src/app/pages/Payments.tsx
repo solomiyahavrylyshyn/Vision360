@@ -1,6 +1,10 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router";
+import { DndProvider } from "react-dnd";
+import { HTML5Backend } from "react-dnd-html5-backend";
 import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
+import { useDraggableColumns, DraggableTh } from "../components/ui/draggable-columns";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { PageHeader } from "../components/ui/page-header";
 import { SelectionBar } from "../components/ui/selection-bar";
 import { CreateActionButton } from "../components/ui/create-action-button";
@@ -59,6 +63,16 @@ export const mockPayments: Payment[] = [
   { id: 7, date: "2026-04-03", amount: 2800.00, method: "Bank Transfer", status: "Completed", clientName: "John Doe", clientEmail: "john.d@email.com", invoiceId: 2, invoiceNumber: "10246-I01", jobId: "10246-J01", note: "Partial payment on overdue invoice", createdBy: "Marek Stroz", createdAt: "2026-04-03 11:00" },
 ];
 
+const PAYMENTS_COLS = [
+  { key: "date", label: "Date" },
+  { key: "client", label: "Client" },
+  { key: "invoice", label: "Invoice" },
+  { key: "amount", label: "Amount" },
+  { key: "method", label: "Method" },
+  { key: "status", label: "Status" },
+  { key: "note", label: "Note" },
+] as const;
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function qfClass(active: boolean) {
   return `h-8 pl-3 pr-6 border rounded-lg text-[13px] bg-white cursor-pointer focus:outline-none transition-colors ${
@@ -69,6 +83,7 @@ function qfClass(active: boolean) {
 // ═══════════════════════════════════════════════════════════════════════════════
 export function Payments() {
   const navigate = useNavigate();
+  const [cols, moveCol] = useDraggableColumns([...PAYMENTS_COLS]);
   const [payments, setPayments] = useState(mockPayments);
   const [search, setSearch] = useState("");
 
@@ -79,7 +94,7 @@ export function Payments() {
 
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [page, setPage] = useState(1);
-  const perPage = 10;
+  const [perPage, setPerPage] = useState(10);
 
 
 
@@ -135,6 +150,7 @@ export function Payments() {
   ];
 
   return (
+    <DndProvider backend={HTML5Backend}>
     <div className="p-8 bg-[#F5F7FA] min-h-full">
       {/* Header */}
       <PageHeader
@@ -261,8 +277,13 @@ export function Payments() {
                       }}
                       className="w-4 h-4 rounded border-[#E5E7EB] cursor-pointer accent-[#4A6FA5]" />
                   </th>
-                  {["Date", "Client", "Invoice", "Amount", "Method", "Status", "Note"].map(h => (
-                    <th key={h} className="px-4 py-3 text-left text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>{h}</th>
+                  {cols.map(col => (
+                    <DraggableTh key={col.key} colKey={col.key} onMove={moveCol}
+                      className="px-4 py-3 text-left text-[14px] text-[#1A2332]"
+                      style={{ fontWeight: 500 }}
+                    >
+                      {col.label}
+                    </DraggableTh>
                   ))}
                   <th className="px-3 py-3 w-10" />
                 </tr>
@@ -284,7 +305,7 @@ export function Payments() {
                       onClick={() => navigate(`/payments/${p.id}`)}
                       className={`border-b border-[#EDF0F5] hover:bg-[#F9FBFD] transition-colors cursor-pointer ${idx % 2 === 1 ? "bg-[#FAFBFC]" : "bg-white"}`}
                     >
-                      <td className="px-3 py-3" onClick={e => e.stopPropagation()}>
+                      <td className="px-3 py-4" onClick={e => e.stopPropagation()}>
                         <input type="checkbox" checked={selectedIds.has(p.id)}
                           onChange={(e) => {
                             const s = new Set(selectedIds);
@@ -293,38 +314,53 @@ export function Payments() {
                           }}
                           className="w-4 h-4 rounded border-[#E5E7EB] cursor-pointer accent-[#4A6FA5]" />
                       </td>
-                      <td className="px-4 py-3 text-[13px] text-[#546478]">{fmtDate(p.date)}</td>
-                      <td className="px-4 py-3">
-                        <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{p.clientName}</div>
-                        <div className="text-[12px] text-[#8899AA]">{p.clientEmail}</div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <button
-                          onClick={(e) => { e.stopPropagation(); navigate(`/invoices/${p.invoiceId}`); }}
-                          className="text-[13px] text-[#4A6FA5] hover:underline"
-                          style={{ fontWeight: 500 }}
-                        >
-                          {p.invoiceNumber}
-                        </button>
-                      </td>
-                      <td className="px-4 py-3 text-[13px]" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
-                        <span className={p.status === "Refunded" ? "text-[#8B5CF6]" : "text-[#1A2332]"}>
-                          {p.status === "Refunded" ? "−" : ""}${fmt(p.amount)}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-1.5">
-                          <span className="material-icons text-[#546478]" style={{ fontSize: "15px" }}>{methodIcons[p.method]}</span>
-                          <span className="text-[13px] text-[#546478]">{p.method}</span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className="px-2.5 py-1 rounded-full text-[12px]" style={{ fontWeight: 600, color: ss.text, backgroundColor: ss.bg }}>
-                          {p.status}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-[13px] text-[#546478] max-w-[160px] truncate">{p.note || "—"}</td>
-                      <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
+                      {cols.map(col => {
+                        switch (col.key) {
+                          case "date": return <td key={col.key} className="px-4 py-4 text-[13px] text-[#546478]">{fmtDate(p.date)}</td>;
+                          case "client": return (
+                            <td key={col.key} className="px-4 py-4">
+                              <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{p.clientName}</div>
+                              <div className="text-[12px] text-[#8899AA]">{p.clientEmail}</div>
+                            </td>
+                          );
+                          case "invoice": return (
+                            <td key={col.key} className="px-4 py-4">
+                              <button
+                                onClick={(e) => { e.stopPropagation(); navigate(`/invoices/${p.invoiceId}`); }}
+                                className="text-[13px] text-[#4A6FA5] hover:underline"
+                                style={{ fontWeight: 500 }}
+                              >
+                                {p.invoiceNumber}
+                              </button>
+                            </td>
+                          );
+                          case "amount": return (
+                            <td key={col.key} className="px-4 py-4 text-[13px]" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
+                              <span className={p.status === "Refunded" ? "text-[#8B5CF6]" : "text-[#1A2332]"}>
+                                {p.status === "Refunded" ? "−" : ""}${fmt(p.amount)}
+                              </span>
+                            </td>
+                          );
+                          case "method": return (
+                            <td key={col.key} className="px-4 py-4">
+                              <div className="flex items-center gap-1.5">
+                                <span className="material-icons text-[#546478]" style={{ fontSize: "15px" }}>{methodIcons[p.method]}</span>
+                                <span className="text-[13px] text-[#546478]">{p.method}</span>
+                              </div>
+                            </td>
+                          );
+                          case "status": return (
+                            <td key={col.key} className="px-4 py-4">
+                              <span className="px-2.5 py-1 rounded-full text-[12px]" style={{ fontWeight: 600, color: ss.text, backgroundColor: ss.bg }}>
+                                {p.status}
+                              </span>
+                            </td>
+                          );
+                          case "note": return <td key={col.key} className="px-4 py-4 text-[13px] text-[#546478] max-w-[160px] truncate">{p.note || "—"}</td>;
+                          default: return null;
+                        }
+                      })}
+                      <td className="px-4 py-4" onClick={e => e.stopPropagation()}>
                         <KebabMenu>
                           <KebabItem icon="visibility" onSelect={() => navigate(`/payments/${p.id}`)}>View details</KebabItem>
                           <KebabItem icon="receipt" onSelect={() => navigate(`/invoices/${p.invoiceId}`)}>Open invoice</KebabItem>
@@ -341,19 +377,35 @@ export function Payments() {
           </div>
 
           {/* Pagination */}
-          <div className="flex items-center justify-between px-4 py-3 border-t border-[#E5E7EB] bg-[#FAFBFC]">
-            <span className="text-[13px] text-[#546478]">
-              Showing {filtered.length === 0 ? 0 : (page - 1) * perPage + 1} to {Math.min(page * perPage, filtered.length)} of {filtered.length}
-            </span>
-            <div className="flex items-center gap-1">
-              <button onClick={() => setPage(Math.max(1, page - 1))} disabled={page <= 1}
-                className="w-8 h-8 flex items-center justify-center rounded hover:bg-[#EDF0F5] disabled:opacity-30">
-                <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>chevron_left</span>
+          <div className="flex items-center justify-between bg-white px-4 py-4 border-t border-[#E5E7EB]">
+            <div className="flex items-center gap-3">
+              <span className="text-[14px] text-[#6B7280]" style={{ fontWeight: 400 }}>Rows per page:</span>
+              <Select value={String(perPage)} onValueChange={v => { setPerPage(Number(v)); setPage(1); }}>
+                <SelectTrigger className="h-9 w-[59px] border-[#E5E7EB] text-[14px] text-[#1A2332]" style={{ fontWeight: 400, boxShadow: "0px 1px 2px rgba(0,0,0,0.05)" }}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {[10, 25, 50, 100].map(n => <SelectItem key={n} value={String(n)}>{n}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <span className="text-[14px] text-[#6B7280]" style={{ fontWeight: 400 }}>
+                {filtered.length === 0 ? "0-0" : `${(page - 1) * perPage + 1}-${Math.min(page * perPage, filtered.length)}`} of {filtered.length}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                className="w-9 h-9 flex items-center justify-center text-[#1A2332] hover:bg-[#F3F4F6] rounded-lg disabled:opacity-50 transition-colors"
+                disabled={page === 1}
+                onClick={() => setPage(page - 1)}
+              >
+                <span className="material-icons" style={{ fontSize: "16px" }}>chevron_left</span>
               </button>
-              <span className="text-[13px] text-[#1A2332] min-w-[80px] text-center" style={{ fontWeight: 500 }}>Page {page} of {totalPages}</span>
-              <button onClick={() => setPage(Math.min(totalPages, page + 1))} disabled={page >= totalPages}
-                className="w-8 h-8 flex items-center justify-center rounded hover:bg-[#EDF0F5] disabled:opacity-30">
-                <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>chevron_right</span>
+              <button
+                className="w-9 h-9 flex items-center justify-center text-[#1A2332] hover:bg-[#F3F4F6] rounded-lg disabled:opacity-50 transition-colors"
+                disabled={page === totalPages || totalPages === 0}
+                onClick={() => setPage(page + 1)}
+              >
+                <span className="material-icons" style={{ fontSize: "16px" }}>chevron_right</span>
               </button>
             </div>
           </div>
@@ -361,5 +413,6 @@ export function Payments() {
 
       </div>
     </div>
+    </DndProvider>
   );
 }
