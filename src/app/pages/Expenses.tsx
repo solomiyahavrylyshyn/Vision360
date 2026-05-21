@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
-import { Card } from "../components/ui/card";
 import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
 import { PageHeader } from "../components/ui/page-header";
 import { SelectionBar } from "../components/ui/selection-bar";
 import { CreateActionButton } from "../components/ui/create-action-button";
+import { CategoryPill, expenseCategoryStyles } from "../components/ui/category-pill";
+import { StatCard } from "../components/ui/stat-card";
 
 export interface Expense {
   id: string;
@@ -29,19 +30,9 @@ export const mockExpenses: Expense[] = [
   { id: "7", date: "Mar 31, 2026", category: "Materials", merchant: "Ferguson Plumbing", amount: 723.45, jobId: "J-1235", jobTitle: "Service Call", invoiceId: "INV-0043", notes: "PVC pipes and fittings", receipts: 2 },
 ];
 
-export const expenseCategoryColors: Record<string, string> = {
-  Materials: "#4A6FA5",
-  Fuel: "#059669",
-  Tools: "#D97706",
-  Software: "#7C3AED",
-  Meals: "#DC2626",
-  Travel: "#0891B2",
-  Subcontractor: "#6D28D9",
-  "Office Supplies": "#2563EB",
-  "Equipment Rental": "#EA580C",
-  Other: "#8899AA",
-};
-const categoryColors = expenseCategoryColors;
+export const expenseCategoryColors: Record<string, string> = Object.fromEntries(
+  Object.entries(expenseCategoryStyles).map(([category, style]) => [category, style.text])
+);
 
 const categoryFilterOptions = ["All", "Materials", "Fuel", "Tools", "Software", "Meals", "Travel"];
 
@@ -81,8 +72,13 @@ export function Expenses() {
   });
 
   const totalAmount = filtered.reduce((s, e) => s + e.amount, 0);
+  const linkedExpenses = filtered.filter((e) => e.jobId);
+  const linkedAmount = linkedExpenses.reduce((s, e) => s + e.amount, 0);
+  const receiptCount = filtered.reduce((s, e) => s + e.receipts, 0);
+  const avgExpense = filtered.length > 0 ? totalAmount / filtered.length : 0;
   const uniqueJobs = Array.from(new Set(expenses.filter((e) => e.jobId).map((e) => e.jobId!)));
   const allSelected = filtered.length > 0 && filtered.every(e => selectedIds.has(e.id));
+  const fmtMoney = (n: number) => `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   return (
     <div className="p-8 bg-[#F5F7FA] min-h-full">
@@ -97,25 +93,48 @@ export function Expenses() {
         }
       />
 
-      {/* Summary Card */}
-      <div className="grid grid-cols-4 gap-5 mb-8">
-        <Card className="p-5 border border-[#E5E7EB] bg-white hover:shadow-sm transition-shadow">
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full shrink-0" style={{ background: "#DC2626" }} />
-                <span className="text-[12px] text-[#546478]" style={{ fontWeight: 600 }}>Total Expenses</span>
-              </div>
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: "#FEF2F2" }}>
-                <span className="material-icons" style={{ fontSize: "16px", color: "#DC2626" }}>receipt_long</span>
-              </div>
-            </div>
-            <div className="text-[26px] leading-none mb-1" style={{ fontWeight: 700, color: "#1A2332", fontVariantNumeric: "tabular-nums" }}>
-              ${totalAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-            </div>
-            <div className="text-[12px] text-[#9CA3AF]">{filtered.length} records</div>
-          </div>
-        </Card>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-4 gap-4 mb-6">
+        <StatCard
+          value={fmtMoney(totalAmount)}
+          label="Total expenses"
+          sub={`${filtered.length} records`}
+          change="+9%"
+          changeUp={false}
+          period="vs prev. period"
+          data={[4, 5, 4, 6, 7, 6, 8]}
+          sparklineColor="#DC2626"
+        />
+        <StatCard
+          value={fmtMoney(linkedAmount)}
+          label="Job-linked"
+          sub={`${linkedExpenses.length} assigned to jobs`}
+          change="+14%"
+          changeUp
+          period="recoverable spend"
+          data={[2, 3, 3, 4, 5, 4, 6]}
+          sparklineColor="#4A6FA5"
+        />
+        <StatCard
+          value={String(receiptCount)}
+          label="Receipts"
+          sub={`${filtered.filter((e) => e.receipts > 0).length} expenses attached`}
+          change="+6%"
+          changeUp
+          period="vs prev. period"
+          data={[1, 2, 2, 3, 3, 4, 5]}
+          sparklineColor="#16A34A"
+        />
+        <StatCard
+          value={fmtMoney(avgExpense)}
+          label="Average"
+          sub="per expense"
+          change="-4%"
+          changeUp={false}
+          period="vs prev. period"
+          data={[7, 6, 6, 5, 5, 4, 4]}
+          sparklineColor="#D97706"
+        />
       </div>
 
       {/* Table */}
@@ -227,10 +246,7 @@ export function Expenses() {
                       <span className="text-[13px] text-[#546478]">{expense.date}</span>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: categoryColors[expense.category] || "#8899AA" }} />
-                        <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{expense.category}</span>
-                      </div>
+                      <CategoryPill category={expense.category} />
                     </td>
                     <td className="px-4 py-3">
                       <span className="text-[13px] text-[#1A2332]">{expense.merchant}</span>

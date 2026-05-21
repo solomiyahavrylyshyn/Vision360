@@ -2,7 +2,8 @@ import { useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
 import { DetailTabs, TabSettingsButton } from "../components/ui/detail-tabs";
-import { mockExpenses, expenseCategoryColors, type Expense } from "./Expenses";
+import { CategoryPill } from "../components/ui/category-pill";
+import { mockExpenses, type Expense } from "./Expenses";
 
 type TabKey = "details" | "receipts" | "activity";
 const TABS: { key: TabKey; label: string }[] = [
@@ -34,8 +35,6 @@ export function ExpenseDetail() {
     );
   }
 
-  const categoryColor = expenseCategoryColors[expense.category] || "#8899AA";
-
   const tabs = TABS.map(t => ({
     ...t,
     count: t.key === "receipts" ? expense.receipts : undefined,
@@ -48,12 +47,7 @@ export function ExpenseDetail() {
           <Field label="Date" value={expense.date} />
           <Field
             label="Category"
-            value={
-              <span className="inline-flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full" style={{ background: categoryColor }} />
-                {expense.category}
-              </span>
-            }
+            value={<CategoryPill category={expense.category} />}
           />
           <Field label="Merchant" value={expense.merchant} />
           <Field label="Amount" value={`$${expense.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}`} />
@@ -99,9 +93,8 @@ export function ExpenseDetail() {
         <div className="text-[32px] text-[#1A2332] leading-none" style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
           ${expense.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
         </div>
-        <div className="mt-3 inline-flex items-center gap-2 text-[13px] text-[#546478]">
-          <span className="w-2 h-2 rounded-full" style={{ background: categoryColor }} />
-          {expense.category}
+        <div className="mt-3">
+          <CategoryPill category={expense.category} />
         </div>
       </div>
     </div>
@@ -169,7 +162,8 @@ export function ExpenseDetail() {
           <h1 className="text-[20px] text-[#1A2332] leading-[27px]" style={{ fontWeight: 600 }}>
             {expense.merchant}
           </h1>
-          <span className="text-[13px] text-[#9CA3AF]">{expense.date} · {expense.category}</span>
+          <span className="text-[13px] text-[#9CA3AF]">{expense.date}</span>
+          <CategoryPill category={expense.category} className="py-0.5" />
         </div>
 
         {/* Unified tab bar */}

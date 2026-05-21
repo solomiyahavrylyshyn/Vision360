@@ -202,7 +202,7 @@ export function EstimateDetail() {
   const [docPreviewIdx, setDocPreviewIdx] = useState(0);
   const [docKind, setDocKind] = useState<"photos" | "files">("photos");
   const [noteTab, setNoteTab] = useState<"client" | "internal">("client");
-  const DOCS_PER_PAGE = 8; // 4 cols × 2 rows
+  const DOCS_PER_PAGE = 10; // 5 columns x 2 rows
   const previewFile = documents.find(d => d.id === previewFileId) ?? null;
   const [selectedDocs, setSelectedDocs] = useState<Set<string>>(new Set());
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -544,7 +544,7 @@ export function EstimateDetail() {
                 {/* Thumbnails strip (2 rows) */}
                 <div className="p-3 border-t border-[#F3F4F6]">
                   <div className="grid grid-cols-5 gap-1.5">
-                    {list.slice(docsPage * 10, docsPage * 10 + 10).map((file) => {
+                    {list.slice(docsPage * DOCS_PER_PAGE, docsPage * DOCS_PER_PAGE + DOCS_PER_PAGE).map((file) => {
                       const globalIdx = list.indexOf(file);
                       const isActive = globalIdx === safeIdx;
                       return (
@@ -570,22 +570,22 @@ export function EstimateDetail() {
                       );
                     })}
                   </div>
-                  {list.length > 10 && (
+                  {list.length > DOCS_PER_PAGE && (
                     <div className="mt-2.5 flex items-center justify-between text-[12px] text-[#6B7280]">
                       <button
                         onClick={() => setDocsPage(p => Math.max(0, p - 1))}
                         disabled={docsPage === 0}
                         className="px-2 py-1 disabled:opacity-40 hover:text-[#374151]"
                       >
-                        ← Prev
+                        Prev
                       </button>
-                      <span className="tabular-nums">{docsPage + 1} / {Math.ceil(list.length / 10)}</span>
+                      <span className="tabular-nums">{docsPage + 1} / {Math.ceil(list.length / DOCS_PER_PAGE)}</span>
                       <button
-                        onClick={() => setDocsPage(p => Math.min(Math.ceil(list.length / 10) - 1, p + 1))}
-                        disabled={docsPage >= Math.ceil(list.length / 10) - 1}
+                        onClick={() => setDocsPage(p => Math.min(Math.ceil(list.length / DOCS_PER_PAGE) - 1, p + 1))}
+                        disabled={docsPage >= Math.ceil(list.length / DOCS_PER_PAGE) - 1}
                         className="px-2 py-1 disabled:opacity-40 hover:text-[#374151]"
                       >
-                        Next →
+                        Next
                       </button>
                     </div>
                   )}
@@ -1019,7 +1019,14 @@ export function EstimateDetail() {
         {/* ── Tabs + action buttons ── */}
         <div className="flex items-center justify-between px-4 border-b border-[#E5E7EB]">
           <DetailTabs
-            tabs={TABS}
+            tabs={TABS.map(t => ({
+              ...t,
+              count: t.key === "deposit"
+                ? (estimate.depositRequired ? 1 : undefined)
+                : t.key === "activity"
+                ? estimate.activity.length
+                : undefined,
+            }))}
             activeTab={activeTab}
             onChange={setActiveTab}
             trailing={<TabSettingsButton />}

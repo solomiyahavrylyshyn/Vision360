@@ -733,7 +733,7 @@ export function InvoiceDetail() {
                     <div className="w-px h-5 bg-[#E5E7EB] mx-1" />
                     <button onClick={() => navigate(`/jobs/${data.jobNumber}`)} className="flex items-center gap-1.5 text-[14px] text-[#4A6FA5] hover:underline transition-colors" style={{ fontWeight: 500 }}>
                       <span className="material-icons" style={{ fontSize: "16px" }}>work</span>
-                      Job-{data.jobNumber}: {data.jobName}
+                      {data.jobName}
                     </button>
                   </>
                 )}

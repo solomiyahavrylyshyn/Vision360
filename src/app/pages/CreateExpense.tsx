@@ -2,6 +2,7 @@ import { useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router";
 import { ItemPicker, catalogItemToLineItem, type CatalogItem, type SelectedLineItem } from "../components/ItemPicker";
 import { PlusIcon } from "../components/ui/plus-icon";
+import { CategoryPill } from "../components/ui/category-pill";
 
 // Mock catalog items
 const mockCatalogItems: CatalogItem[] = [
@@ -23,19 +24,6 @@ const categories = [
   "Equipment Rental",
   "Other",
 ];
-
-const categoryIcons: Record<string, string> = {
-  Materials: "hardware",
-  Fuel: "local_gas_station",
-  Tools: "build",
-  Software: "terminal",
-  Meals: "restaurant",
-  Travel: "flight",
-  Subcontractor: "engineering",
-  "Office Supplies": "print",
-  "Equipment Rental": "forklift",
-  Other: "more_horiz",
-};
 
 const mockJobs = [
   { id: "J-1234", title: "HVAC Installation — 123 Main St" },
@@ -993,20 +981,7 @@ export function CreateExpense() {
                       <span className="text-[12px] text-[#546478]">
                         Category
                       </span>
-                      <span className="flex items-center gap-1.5">
-                        <span
-                          className="material-icons text-[#4A6FA5]"
-                          style={{ fontSize: "14px" }}
-                        >
-                          {categoryIcons[category] || "label"}
-                        </span>
-                        <span
-                          className="text-[13px] text-[#1A2332]"
-                          style={{ fontWeight: 500 }}
-                        >
-                          {category}
-                        </span>
-                      </span>
+                      <CategoryPill category={category} />
                     </div>
                   )}
                   {lineItems.length > 0 && (

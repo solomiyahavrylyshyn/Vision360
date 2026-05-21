@@ -224,6 +224,25 @@ export function Calendar() {
   const dayRevenue = dayJobs.reduce((sum, job) => sum + job.amount, 0);
   const topRevenue = viewMode === "month" ? monthRevenue : viewMode === "week" ? weekRevenue : dayRevenue;
   const topRevenueLabel = viewMode === "month" ? "Revenue this month" : viewMode === "week" ? "Revenue this week" : "Revenue today";
+  const scheduleJobCount = viewMode === "month" ? mockEvents.length : viewMode === "week" ? weekJobs.length : dayJobs.length;
+  const completedJobCount = viewMode === "month"
+    ? mockEvents.filter((event) => event.status === "Completed").length
+    : viewMode === "week"
+    ? weekJobs.filter((job) => job.status === "Completed").length
+    : dayJobs.filter((job) => job.status === "Completed").length;
+  const inProgressJobCount = viewMode === "month"
+    ? mockEvents.filter((event) => event.status === "In Progress").length
+    : viewMode === "week"
+    ? weekJobs.filter((job) => job.status === "In Progress").length
+    : dayJobs.filter((job) => job.status === "In Progress").length;
+  const completionRate = scheduleJobCount > 0 ? Math.round((completedJobCount / scheduleJobCount) * 100) : 0;
+  const scopedJobLabel = viewMode === "month" ? "Jobs this month" : viewMode === "week" ? "Jobs this week" : "Jobs today";
+  const scheduleKpis = [
+    { value: `$${topRevenue.toLocaleString("en-US")}`, label: topRevenueLabel, icon: "attach_money", color: "#16A34A", bg: "#D1FAE5" },
+    { value: String(scheduleJobCount), label: scopedJobLabel, icon: "event_available", color: "#4A6FA5", bg: "#EBF0F8" },
+    { value: String(inProgressJobCount), label: "In progress", icon: "pending_actions", color: "#D97706", bg: "#FEF3C7" },
+    { value: `${completionRate}%`, label: "Completion rate", icon: "task_alt", color: "#16A34A", bg: "#DCFCE7" },
+  ];
 
   const hourFromPointer = (event: SlotPointerEvent) => {
     const rect = event.currentTarget.getBoundingClientRect();
@@ -481,12 +500,10 @@ export function Calendar() {
       />
 
       {/* Stat cards */}
-      <div className="flex items-center gap-3 mb-4 overflow-x-auto pb-1">
-        {[
-          { value: `$${topRevenue.toLocaleString("en-US")}`, label: topRevenueLabel, icon: "attach_money", color: "#16A34A" },
-        ].map(s => (
-          <div key={s.label} className="flex items-center gap-3 bg-white border border-[#E5E7EB] rounded-xl px-4 py-3 shrink-0">
-            <span className="material-icons shrink-0" style={{ fontSize: "20px", color: s.color }}>{s.icon}</span>
+      <div className="grid grid-cols-4 gap-3 mb-4">
+        {scheduleKpis.map(s => (
+          <div key={s.label} className="flex items-center gap-3 bg-white border border-[#E5E7EB] rounded-xl px-4 py-3 min-w-0">
+            <span className="material-icons shrink-0 w-8 h-8 rounded-lg flex items-center justify-center" style={{ fontSize: "18px", color: s.color, backgroundColor: s.bg }}>{s.icon}</span>
             <div>
               <div className="text-[18px] text-[#1A2332] leading-none" style={{ fontWeight: 700 }}>{s.value}</div>
               <div className="text-[11px] text-[#546478] mt-0.5 whitespace-nowrap">{s.label}</div>
@@ -494,7 +511,7 @@ export function Calendar() {
           </div>
         ))}
         {conflictMessage && (
-          <div className="px-3 py-2 rounded-lg border border-[#FCA5A5] bg-[#FEF2F2] text-[12px] text-[#B91C1C]" style={{ fontWeight: 600 }}>
+          <div className="col-span-4 px-3 py-2 rounded-lg border border-[#FCA5A5] bg-[#FEF2F2] text-[12px] text-[#B91C1C]" style={{ fontWeight: 600 }}>
             {conflictMessage}
           </div>
         )}

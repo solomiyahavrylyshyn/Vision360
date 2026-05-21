@@ -112,10 +112,10 @@ export function ManageDuplicates() {
 
       {/* Page header */}
       <PageHeader
-        title="Manage duplicates"
+        title="Merge duplicates"
         subtitle={
           <p className="text-[14px] text-[#546478] mt-1 font-normal" style={{ fontWeight: 400 }}>
-            We've grouped possible duplicate client profiles below.
+            We've grouped possible duplicate client profiles below. Select matching profiles to merge; clients you no longer need can be deactivated from the client list.
           </p>
         }
       />

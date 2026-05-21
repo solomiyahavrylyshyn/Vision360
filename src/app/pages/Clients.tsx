@@ -36,6 +36,7 @@ interface Client {
   lastActivity: string;
   totalJobs: number;
   totalBilled: number;
+  status?: "Active" | "Inactive";
   pastDue?: number;
   daysOverdue?: number;
 }
@@ -70,6 +71,7 @@ export function Clients() {
   // Quick filters
   const [qfDate, setQfDate] = useState("all_time");
   const [qfBalance, setQfBalance] = useState("all");
+  const [qfStatus, setQfStatus] = useState<"Active" | "Inactive" | "All">("Active");
 
   const marketingSources = useSyncExternalStore(marketingSourcesStore.subscribe, marketingSourcesStore.getSources);
   const availableTags = useSyncExternalStore(tagsStore.subscribe, tagsStore.getTags);
@@ -116,7 +118,7 @@ export function Clients() {
     city: "", county: "",
     tags: [] as string[],
     paymentTerms: "", paymentMethod: "",
-    membership: "", taxable: "", hasCompany: "",
+    taxable: "", hasCompany: "",
   });
   const [pendingFilters, setPendingFilters] = useState({ ...filterState });
 
@@ -127,7 +129,7 @@ export function Clients() {
 
   const handleApplyFilters = () => { setFilterState({ ...pendingFilters }); setFilterPanelOpen(false); setCurrentPage(1); };
   const handleClearFilters = () => {
-    const empty = { dateAcquiredFrom: "", dateAcquiredTo: "", lastServiceFrom: "", lastServiceTo: "", lifetimeMin: "", lifetimeMax: "", leadSource: "", customerType: "", city: "", county: "", tags: [] as string[], paymentTerms: "", paymentMethod: "", membership: "", taxable: "", hasCompany: "" };
+    const empty = { dateAcquiredFrom: "", dateAcquiredTo: "", lastServiceFrom: "", lastServiceTo: "", lifetimeMin: "", lifetimeMax: "", leadSource: "", customerType: "", city: "", county: "", tags: [] as string[], paymentTerms: "", paymentMethod: "", taxable: "", hasCompany: "" };
     setPendingFilters(empty); setFilterState(empty); setFilterPanelOpen(false); setCurrentPage(1);
   };
 
@@ -139,19 +141,20 @@ export function Clients() {
       qfBalance === "with_balance" ? client.totalBilled > 0 :
       qfBalance === "without_balance" ? client.totalBilled === 0 :
       true;
+    const clientStatus = client.status ?? "Active";
+    const matchesStatus = qfStatus === "All" || clientStatus === qfStatus;
 
     // Advanced filters
     const matchesCustomerType = !filterState.customerType || (filterState.customerType === "residential" ? client.tags.includes("Residential") : client.tags.includes("Commercial"));
     const matchesTags = filterState.tags.length === 0 || filterState.tags.some(t => client.tags.includes(t));
     const matchesLeadSource = !filterState.leadSource || client.tags.includes(filterState.leadSource);
-    const matchesMembership = !filterState.membership || (filterState.membership === "has-membership" ? !!client.company : !client.company);
     const matchesHasCompany = !filterState.hasCompany || (filterState.hasCompany === "yes" ? !!client.company : !client.company);
     let matchesLifetime = true;
     if (filterState.lifetimeMin !== "") matchesLifetime = client.totalBilled >= Number(filterState.lifetimeMin);
     if (filterState.lifetimeMax !== "") matchesLifetime = matchesLifetime && client.totalBilled <= Number(filterState.lifetimeMax);
     const matchesCity = !filterState.city || client.address.toLowerCase().includes(filterState.city.toLowerCase());
 
-    return matchesSearch && matchesQfBalance && matchesCustomerType && matchesTags && matchesLeadSource && matchesMembership && matchesHasCompany && matchesLifetime && matchesCity;
+    return matchesSearch && matchesQfBalance && matchesStatus && matchesCustomerType && matchesTags && matchesLeadSource && matchesHasCompany && matchesLifetime && matchesCity;
   });
 
   // Sort
@@ -520,18 +523,6 @@ export function Clients() {
                   </select>
                 </div>
 
-                {/* Membership */}
-                <div>
-                  <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>Membership</label>
-                  <select value={pendingFilters.membership} onChange={e => setPendingFilters(p => ({ ...p, membership: e.target.value }))}
-                    className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] text-[#374151] bg-white focus:outline-none focus:border-[#4A6FA5]">
-                    <option value="">All</option>
-                    <option value="has-membership">Has Membership</option>
-                    <option value="no-membership">No Membership</option>
-                    {["Bronze", "Silver", "Gold", "Platinum"].map(m => <option key={m} value={m}>{m}</option>)}
-                  </select>
-                </div>
-
                 {/* Taxable */}
                 <div>
                   <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>Taxable</label>
@@ -635,6 +626,16 @@ export function Clients() {
             <div className="w-px h-5 bg-[#E5E7EB] mx-1" />
             <div className="flex items-center gap-2">
               <QuickFilterSelect
+                prefix="Status:"
+                value={qfStatus}
+                onChange={v => { setQfStatus(v as "Active" | "Inactive" | "All"); setSelectedClients(new Set()); setCurrentPage(1); }}
+                options={[
+                  { value: "Active", label: "Active" },
+                  { value: "Inactive", label: "Inactive" },
+                  { value: "All", label: "All" },
+                ]}
+              />
+              <QuickFilterSelect
                 prefix="Date:"
                 value={qfDate}
                 onChange={v => { setQfDate(v); setCurrentPage(1); }}
@@ -703,7 +704,7 @@ export function Clients() {
                   </KebabItem>
                 )}
                 <KebabItem icon="view_column" onSelect={e => { e.preventDefault(); setPendingColumns(new Set(visibleColumns)); setEditColumnsOpen(true); }}>Edit Columns</KebabItem>
-                <KebabItem icon="content_copy" onSelect={() => navigate("/clients/duplicates")}>Manage Duplicates</KebabItem>
+                <KebabItem icon="content_copy" onSelect={() => navigate("/clients/duplicates")}>Merge Duplicates</KebabItem>
                 <KebabSeparator />
                 <KebabItem icon="file_upload">{showEmptyStatePreview ? "Import Contacts" : "Import"}</KebabItem>
                 <KebabItem icon="file_download">Export</KebabItem>
@@ -715,10 +716,11 @@ export function Clients() {
             onDeselect={() => setSelectedClients(new Set())}
             actions={[
               {
-                label: "Inactivate",
-                icon: "block",
+                label: qfStatus === "Inactive" ? "Activate" : "Inactivate",
+                icon: qfStatus === "Inactive" ? "check_circle" : "block",
                 onClick: () => {
-                  setClients(prev => prev.filter(c => !selectedClients.has(c.id)));
+                  const nextStatus = qfStatus === "Inactive" ? "Active" : "Inactive";
+                  setClients(prev => prev.map(c => selectedClients.has(c.id) ? { ...c, status: nextStatus } : c));
                   setSelectedClients(new Set());
                 },
               },
@@ -803,7 +805,11 @@ export function Clients() {
                   })}
                   <td className="px-4 py-4">
                     <KebabMenu>
-                      <KebabItem icon="block" onSelect={e => { e.preventDefault(); setClients(prev => prev.filter(c => c.id !== client.id)); }}>Inactivate</KebabItem>
+                      {(client.status ?? "Active") === "Inactive" ? (
+                        <KebabItem icon="check_circle" onSelect={e => { e.preventDefault(); setClients(prev => prev.map(c => c.id === client.id ? { ...c, status: "Active" } : c)); }}>Activate</KebabItem>
+                      ) : (
+                        <KebabItem icon="block" onSelect={e => { e.preventDefault(); setClients(prev => prev.map(c => c.id === client.id ? { ...c, status: "Inactive" } : c)); }}>Inactivate</KebabItem>
+                      )}
                       <KebabItem icon="open_in_new" onSelect={e => { e.preventDefault(); window.open(`/clients/${client.id}`, "_blank"); }}>Open in New Tab</KebabItem>
                     </KebabMenu>
                   </td>

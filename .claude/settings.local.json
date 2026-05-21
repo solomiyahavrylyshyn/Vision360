@@ -19,7 +19,11 @@
       "Bash(extract-text \"C:\\\\Users\\\\mykha\\\\Downloads\\\\Vision360_Onboarding_UserStories.docx\")",
       "Read(//c/Users/mykha/AppData/Roaming/Claude/local-agent-mode-sessions/skills-plugin/dc6faeb3-e203-4b29-af86-497cbeb76bff/2e2058cc-da40-4631-8d28-62be2619b8dc/skills/docx/**)",
       "Bash(python scripts/office/unpack.py \"C:\\\\Users\\\\mykha\\\\Downloads\\\\Vision360_Onboarding_UserStories.docx\" \"C:\\\\Users\\\\mykha\\\\Downloads\\\\us_unpacked\")",
-      "mcp__Claude_Preview__preview_start"
+      "mcp__Claude_Preview__preview_start",
+      "mcp__61ad655d-f1b0-45c3-9297-e9c17a418d63__fireflies_search",
+      "mcp__61ad655d-f1b0-45c3-9297-e9c17a418d63__fireflies_get_transcripts",
+      "mcp__61ad655d-f1b0-45c3-9297-e9c17a418d63__fireflies_get_transcript",
+      "Bash(npx tsc *)"
     ]
   }
 }
