@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { useLocation, useSearchParams } from "react-router";
+import { useLocation, useNavigate, useSearchParams } from "react-router";
 import { toast } from "sonner";
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
@@ -1843,6 +1843,7 @@ function AddListSection({
 }
 
 export function Settings() {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const location = useLocation();
   // Land straight on Company Info when /settings opens.
@@ -2455,12 +2456,12 @@ export function Settings() {
                   </div>
                   <button
                     type="button"
-                    onClick={e => { e.stopPropagation(); setInviteOpen(true); }}
+                    onClick={e => { e.stopPropagation(); navigate("/settings/team/new"); }}
                     className="h-9 px-4 flex items-center gap-1.5 rounded-lg bg-[#4A6FA5] hover:bg-[#3d5a85] text-white text-[14px] transition-colors shrink-0"
                     style={{ fontWeight: 500 }}
                   >
                     <span className="material-icons" style={{ fontSize: "16px" }}>person_add</span>
-                    Invite User
+                    New User
                   </button>
                 </div>
 

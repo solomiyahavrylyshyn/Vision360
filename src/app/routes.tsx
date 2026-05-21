@@ -35,6 +35,7 @@ import { Accounting } from "./pages/Accounting";
 import { Marketing } from "./pages/Marketing";
 import { Reports } from "./pages/Reports";
 import { Settings } from "./pages/Settings";
+import { NewUser } from "./pages/NewUser";
 import { ManageDuplicates } from "./pages/ManageDuplicates";
 import { CreateEvent } from "./pages/CreateEvent";
 import { Properties } from "./pages/Properties";
@@ -115,6 +116,7 @@ export const router = createBrowserRouter([
       { path: "marketing", Component: Marketing },
       { path: "reports", Component: Reports },
       { path: "settings", Component: Settings },
+      { path: "settings/team/new", Component: NewUser },
       { path: "profile", Component: Profile },
       { path: "account", Component: Account },
     ],
