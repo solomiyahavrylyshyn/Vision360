@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import { Button } from "../components/ui/button";
@@ -6,7 +6,34 @@ import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
-type Preset = "admin" | "employee" | "custom";
+type BuiltInPreset = "admin" | "employee" | "custom";
+type PresetId = BuiltInPreset | string; // string for custom-saved preset ids
+
+interface CustomPreset {
+  id: string;
+  name: string;
+  permissions: PermissionsState;
+}
+
+const CUSTOM_PRESETS_KEY = "vision360.customPresets";
+
+const loadCustomPresets = (): CustomPreset[] => {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(CUSTOM_PRESETS_KEY);
+    return raw ? (JSON.parse(raw) as CustomPreset[]) : [];
+  } catch {
+    return [];
+  }
+};
+
+const saveCustomPresets = (presets: CustomPreset[]) => {
+  try {
+    window.localStorage.setItem(CUSTOM_PRESETS_KEY, JSON.stringify(presets));
+  } catch {
+    /* ignore quota errors */
+  }
+};
 
 type ScheduleLevel = "viewOwn" | "viewCompleteOwn" | "editOwn" | "editAll" | "editDeleteAll";
 type TimeLevel = "viewRecordOwn" | "viewRecordEditOwn" | "viewRecordEditAll";
@@ -174,16 +201,28 @@ export function NewUser() {
   const [laborCost, setLaborCost] = useState("0.00");
 
   // Permissions
-  const [preset, setPreset] = useState<Preset>("employee");
+  const [preset, setPreset] = useState<PresetId>("employee");
   const [perms, setPerms] = useState<PermissionsState>(employeePreset);
+  const [customPresets, setCustomPresets] = useState<CustomPreset[]>(() => loadCustomPresets());
+  const [showSavePresetInput, setShowSavePresetInput] = useState(false);
+  const [newPresetName, setNewPresetName] = useState("");
+
+  // Persist custom presets
+  useEffect(() => {
+    saveCustomPresets(customPresets);
+  }, [customPresets]);
 
   // Communications
   const [language, setLanguage] = useState<"english" | "spanish">("english");
 
-  const applyPreset = (next: Preset) => {
+  const applyPreset = (next: PresetId) => {
     setPreset(next);
     if (next === "admin") setPerms(adminPreset);
     else if (next === "employee") setPerms(employeePreset);
+    else if (next !== "custom") {
+      const found = customPresets.find(cp => cp.id === next);
+      if (found) setPerms(found.permissions);
+    }
     // "custom" keeps current state
   };
 
@@ -191,6 +230,35 @@ export function NewUser() {
   const editPerms = (updater: (prev: PermissionsState) => PermissionsState) => {
     setPerms(updater);
     setPreset("custom");
+  };
+
+  const saveAsCustomPreset = () => {
+    const name = newPresetName.trim();
+    if (!name) {
+      toast.error("Preset name required");
+      return;
+    }
+    if (customPresets.some(cp => cp.name.toLowerCase() === name.toLowerCase())) {
+      toast.error("A preset with that name already exists");
+      return;
+    }
+    const id = `custom-${Date.now()}`;
+    const next: CustomPreset = { id, name, permissions: perms };
+    setCustomPresets(prev => [...prev, next]);
+    setPreset(id);
+    setNewPresetName("");
+    setShowSavePresetInput(false);
+    toast.success(`Saved preset "${name}"`);
+  };
+
+  const deleteCustomPreset = (id: string) => {
+    const target = customPresets.find(cp => cp.id === id);
+    if (!target) return;
+    setCustomPresets(prev => prev.filter(cp => cp.id !== id));
+    if (preset === id) {
+      setPreset("custom");
+    }
+    toast.success(`Deleted preset "${target.name}"`);
   };
 
   const handleSave = (e: React.FormEvent) => {
@@ -370,6 +438,29 @@ export function NewUser() {
                       label="Employee"
                       description="View and complete their own schedule, track time, see assigned jobs and clients."
                     />
+
+                    {/* Saved custom presets */}
+                    {customPresets.map(cp => (
+                      <div key={cp.id} className="flex items-start justify-between gap-2 group">
+                        <div className="flex-1">
+                          <Radio
+                            checked={preset === cp.id}
+                            onClick={() => applyPreset(cp.id)}
+                            label={cp.name}
+                            description="Saved custom preset."
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => deleteCustomPreset(cp.id)}
+                          className="opacity-0 group-hover:opacity-100 text-[#9CA3AF] hover:text-[#DC2626] transition-opacity p-1"
+                          title={`Delete "${cp.name}"`}
+                        >
+                          <span className="material-icons" style={{ fontSize: "18px" }}>delete</span>
+                        </button>
+                      </div>
+                    ))}
+
                     <Radio
                       checked={preset === "custom"}
                       onClick={() => applyPreset("custom")}
@@ -377,6 +468,58 @@ export function NewUser() {
                       description="Fine-tune each permission below."
                     />
                   </div>
+
+                  {/* Save-as-preset inline form */}
+                  {preset === "custom" && (
+                    <div className="mt-3 pl-7">
+                      {showSavePresetInput ? (
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            autoFocus
+                            value={newPresetName}
+                            onChange={e => setNewPresetName(e.target.value)}
+                            onKeyDown={e => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                saveAsCustomPreset();
+                              } else if (e.key === "Escape") {
+                                setShowSavePresetInput(false);
+                                setNewPresetName("");
+                              }
+                            }}
+                            placeholder="e.g. Field Tech, Dispatcher"
+                            className="h-8 px-2.5 text-[13px] border border-[#E5E7EB] rounded-md outline-none focus:border-[#4A6FA5] w-[220px]"
+                          />
+                          <button
+                            type="button"
+                            onClick={saveAsCustomPreset}
+                            className="h-8 px-3 rounded-md bg-[#4A6FA5] hover:bg-[#3d5a85] text-white text-[12px]"
+                            style={{ fontWeight: 600 }}
+                          >
+                            Save
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => { setShowSavePresetInput(false); setNewPresetName(""); }}
+                            className="h-8 px-2 text-[#6B7280] hover:text-[#1A2332] text-[12px]"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setShowSavePresetInput(true)}
+                          className="inline-flex items-center gap-1 text-[13px] text-[#4A6FA5] hover:underline"
+                          style={{ fontWeight: 500 }}
+                        >
+                          <span className="material-icons" style={{ fontSize: "16px" }}>add</span>
+                          Save current settings as preset
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Schedule */}
