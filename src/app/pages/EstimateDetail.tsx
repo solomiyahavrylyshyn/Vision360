@@ -649,31 +649,6 @@ export function EstimateDetail() {
           )}
         </div>
 
-        {/* Signature */}
-        <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-2.5 border-b border-[#E5E7EB]">
-            <h3 className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>Customer Signature</h3>
-            <span className="text-[11px] text-[#9CA3AF]">Display only</span>
-          </div>
-          {estimate.status === "Approved" ? (
-            <div className="px-4 py-3 flex flex-col items-center gap-1.5">
-              <div className="w-full h-[60px] rounded-md border border-[#E5E7EB] bg-[#FAFAFA] flex items-center justify-center">
-                <span className="text-[20px] text-[#4A6FA5] italic" style={{ fontFamily: "cursive", opacity: 0.7 }}>
-                  {estimate.clientName.split(" ")[0]}
-                </span>
-              </div>
-              <div className="text-[10px] text-[#9CA3AF]">Signed by {estimate.clientName}</div>
-            </div>
-          ) : (
-            <div className="px-4 py-4 flex flex-col items-center gap-1.5">
-              <div className="w-full h-[60px] rounded-md border border-dashed border-[#D1D5DB] bg-[#FAFAFA] flex items-center justify-center gap-1.5">
-                <span className="material-icons text-[#D1D5DB]" style={{ fontSize: "18px" }}>draw</span>
-                <span className="text-[12px] text-[#9CA3AF]">Awaiting signature</span>
-              </div>
-              <div className="text-[10px] text-[#9CA3AF] text-center">Customer signs from their estimate link</div>
-            </div>
-          )}
-        </div>
       </div>
 
       <DocumentPreview

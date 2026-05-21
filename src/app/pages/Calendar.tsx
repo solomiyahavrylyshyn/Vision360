@@ -520,11 +520,13 @@ export function Calendar() {
       {/* Stat cards */}
       <div className="grid grid-cols-4 gap-3 mb-4">
         {scheduleKpis.map(s => (
-          <div key={s.label} className="flex items-center gap-3 bg-white border border-[#E5E7EB] rounded-xl px-4 py-3 min-w-0">
-            <span className="material-icons shrink-0 w-8 h-8 rounded-lg flex items-center justify-center" style={{ fontSize: "18px", color: s.color, backgroundColor: s.bg }}>{s.icon}</span>
-            <div>
-              <div className="text-[18px] text-[#1A2332] leading-none" style={{ fontWeight: 700 }}>{s.value}</div>
+          <div key={s.label} className="flex items-center justify-between gap-3 bg-white border border-[#E5E7EB] rounded-xl px-4 py-3 min-w-0" style={{ minHeight: 56 }}>
+            <div className="flex flex-col justify-center">
+              <div className="text-[18px] text-[#1A2332] leading-tight" style={{ fontWeight: 700 }}>{s.value}</div>
               <div className="text-[11px] text-[#546478] mt-0.5 whitespace-nowrap">{s.label}</div>
+            </div>
+            <div className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center" style={{ fontSize: "18px", color: s.color, backgroundColor: s.bg }}>
+              <span className="material-icons" style={{ fontSize: "18px" }}>{s.icon}</span>
             </div>
           </div>
         ))}

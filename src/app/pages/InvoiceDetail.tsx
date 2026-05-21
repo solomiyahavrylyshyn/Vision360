@@ -855,16 +855,12 @@ export function InvoiceDetail() {
               Preview
             </button>
             <button
-              className="h-9 w-9 rounded-md border border-[#E5E7EB] bg-white text-[#546478] hover:bg-[#F5F7FA] inline-flex items-center justify-center transition-colors"
-              title="Send by email"
+              className="h-9 px-3.5 rounded-md border border-[#C8D5E8] bg-white hover:bg-[#F5F7FA] text-[#4A6FA5] text-[13px] inline-flex items-center gap-1.5 transition-colors"
+              style={{ fontWeight: 600 }}
+              title="Send invoice"
             >
-              <span className="material-icons" style={{ fontSize: "18px" }}>mail</span>
-            </button>
-            <button
-              className="h-9 w-9 rounded-md border border-[#E5E7EB] bg-white text-[#546478] hover:bg-[#F5F7FA] inline-flex items-center justify-center transition-colors"
-              title="Send by SMS"
-            >
-              <span className="material-icons" style={{ fontSize: "18px" }}>sms</span>
+              <span className="material-icons" style={{ fontSize: "16px" }}>send</span>
+              Send
             </button>
             <button
               onClick={() => navigate(`/invoices/${id}/edit`)}
