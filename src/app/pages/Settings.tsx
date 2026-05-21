@@ -12,6 +12,7 @@ import { countiesStore } from "../stores/countiesStore";
 import { customFieldsStore, type CfEntity, type CfFieldType } from "../stores/customFieldsStore";
 import { jobTypesStore } from "../stores/jobTypesStore";
 import { marketingSourcesStore } from "../stores/marketingSourcesStore";
+import { formatScheduleHour, parseScheduleHour, scheduleSettingsStore } from "../stores/scheduleSettingsStore";
 import { tagsStore } from "../stores/tagsStore";
 import { applyBrandTheme, DEFAULT_BRAND_THEME, getStoredBrandLogo, getStoredBrandTheme, resetBrandLogo, resetBrandTheme, setBrandLogo } from "../utils/brandTheme";
 
@@ -1864,6 +1865,7 @@ export function Settings() {
   const counties = useSyncExternalStore(countiesStore.subscribe, countiesStore.getCounties);
   const jobTypes = useSyncExternalStore(jobTypesStore.subscribe, jobTypesStore.getJobTypes);
   const customFields = useSyncExternalStore(customFieldsStore.subscribe, customFieldsStore.getFields);
+  const scheduleSettings = useSyncExternalStore(scheduleSettingsStore.subscribe, scheduleSettingsStore.getSnapshot);
 
   const [newSourceName, setNewSourceName] = useState("");
   const [editingSource, setEditingSource] = useState<string | null>(null);
@@ -1913,9 +1915,9 @@ export function Settings() {
       body: "I authorize Omega Home Services to perform the work described above and accept full responsibility for the agreed amount." },
     { id: "jn2", title: "New note", body: "" },
   ]);
-  const [scheduleStartHour, setScheduleStartHour] = useState("7:00 AM");
-  const [scheduleEndHour, setScheduleEndHour] = useState("7:00 PM");
-  const [scheduleSlot, setScheduleSlot] = useState("30");
+  const scheduleStartHour = formatScheduleHour(scheduleSettings.startHour);
+  const scheduleEndHour = formatScheduleHour(scheduleSettings.endHour);
+  const scheduleSlot = String(scheduleSettings.slotMinutes);
   // Job statuses — MVP starts with three core; additional ones can be added
   type JobStatus = { id: string; label: string; color: string; bg: string; icon: string; core?: boolean };
   const [jobStatuses, setJobStatuses] = useState<JobStatus[]>([
@@ -3568,7 +3570,7 @@ export function Settings() {
                           <label className="block text-[13px] text-[#1A2332] mb-1.5" style={{ fontWeight: 600 }}>Day starts at</label>
                           <select
                             value={scheduleStartHour}
-                            onChange={e => setScheduleStartHour(e.target.value)}
+                            onChange={e => scheduleSettingsStore.setStartHour(parseScheduleHour(e.target.value))}
                             className="h-9 w-full rounded-lg border border-[#D8DEE8] bg-white px-3 text-[14px] text-[#1A2332]"
                           >
                             {["5:00 AM", "6:00 AM", "7:00 AM", "8:00 AM", "9:00 AM"].map(h => <option key={h}>{h}</option>)}
@@ -3578,7 +3580,7 @@ export function Settings() {
                           <label className="block text-[13px] text-[#1A2332] mb-1.5" style={{ fontWeight: 600 }}>Day ends at</label>
                           <select
                             value={scheduleEndHour}
-                            onChange={e => setScheduleEndHour(e.target.value)}
+                            onChange={e => scheduleSettingsStore.setEndHour(parseScheduleHour(e.target.value))}
                             className="h-9 w-full rounded-lg border border-[#D8DEE8] bg-white px-3 text-[14px] text-[#1A2332]"
                           >
                             {["5:00 PM", "6:00 PM", "7:00 PM", "8:00 PM", "9:00 PM", "10:00 PM"].map(h => <option key={h}>{h}</option>)}
@@ -3588,7 +3590,7 @@ export function Settings() {
                           <label className="block text-[13px] text-[#1A2332] mb-1.5" style={{ fontWeight: 600 }}>Slot duration</label>
                           <select
                             value={scheduleSlot}
-                            onChange={e => setScheduleSlot(e.target.value)}
+                            onChange={e => scheduleSettingsStore.setSlotMinutes(Number(e.target.value))}
                             className="h-9 w-full rounded-lg border border-[#D8DEE8] bg-white px-3 text-[14px] text-[#1A2332]"
                           >
                             <option value="15">15 minutes</option>

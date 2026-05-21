@@ -1,7 +1,7 @@
-import { useState, useMemo, type DragEvent, type FormEvent, type MouseEvent } from "react";
-import { useNavigate } from "react-router";
+import { useState, useMemo, useSyncExternalStore, type DragEvent, type FormEvent, type MouseEvent } from "react";
 import { PageHeader } from "../components/ui/page-header";
 import { CreateActionButton } from "../components/ui/create-action-button";
+import { scheduleSettingsStore } from "../stores/scheduleSettingsStore";
 import {
   format,
   startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek, endOfWeek,

@@ -547,6 +547,8 @@ export function Home() {
   const [dateRange, setDateRange] = useState<string>("This Month");
   const [dateOpen, setDateOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [tabOrder, setTabOrder] = useState<DashTab[]>([...ALL_TABS]);
+  const [draggingTab, setDraggingTab] = useState<DashTab | null>(null);
   const [visibleTabs, setVisibleTabs] = useState<Record<DashTab, boolean>>({
     "All Business":         true,
     "Sales Performance":    true,
@@ -554,7 +556,7 @@ export function Home() {
     "Reports":              true,
   });
 
-  const shownTabs = ALL_TABS.filter(t => visibleTabs[t]);
+  const shownTabs = tabOrder.filter(t => visibleTabs[t]);
 
   // If active tab gets hidden, fall back to first visible
   const safeTab = shownTabs.includes(activeTab) ? activeTab : shownTabs[0];
@@ -563,6 +565,19 @@ export function Home() {
     // Can't hide last visible tab
     if (visibleTabs[tab] && shownTabs.length === 1) return;
     setVisibleTabs(prev => ({ ...prev, [tab]: !prev[tab] }));
+  };
+
+  const moveTab = (source: DashTab, target: DashTab) => {
+    if (source === target) return;
+    setTabOrder(prev => {
+      const next = [...prev];
+      const from = next.indexOf(source);
+      const to = next.indexOf(target);
+      if (from === -1 || to === -1) return prev;
+      const [moved] = next.splice(from, 1);
+      next.splice(to, 0, moved);
+      return next;
+    });
   };
 
   return (
@@ -613,12 +628,31 @@ export function Home() {
             return (
               <button
                 key={tab}
+                draggable
                 onClick={() => setActiveTab(tab)}
-                className="h-[29px] px-2 rounded-lg text-[14px] transition-colors whitespace-nowrap inline-flex items-center justify-center"
+                onDragStart={(event: React.DragEvent<HTMLButtonElement>) => {
+                  setDraggingTab(tab);
+                  event.dataTransfer.effectAllowed = "move";
+                  event.dataTransfer.setData("text/plain", tab);
+                }}
+                onDragOver={(event: React.DragEvent<HTMLButtonElement>) => {
+                  event.preventDefault();
+                  event.dataTransfer.dropEffect = "move";
+                }}
+                onDrop={(event: React.DragEvent<HTMLButtonElement>) => {
+                  event.preventDefault();
+                  const source = (event.dataTransfer.getData("text/plain") || draggingTab) as DashTab | null;
+                  if (source) moveTab(source, tab);
+                  setDraggingTab(null);
+                }}
+                onDragEnd={() => setDraggingTab(null)}
+                aria-grabbed={draggingTab === tab}
+                className="h-[29px] px-2 rounded-lg text-[14px] transition-colors whitespace-nowrap inline-flex items-center justify-center cursor-grab active:cursor-grabbing"
                 style={{
                   fontWeight: 500,
                   background: isActive ? "#4A6FA5" : "transparent",
                   color: isActive ? "#FFFFFF" : "#6B7280",
+                  opacity: draggingTab === tab ? 0.6 : 1,
                   boxShadow: isActive
                     ? "0px 1px 3px rgba(0,0,0,0.1), 0px 1px 2px -1px rgba(0,0,0,0.1)"
                     : "none",
@@ -649,7 +683,7 @@ export function Home() {
                 <div className="text-[11px] text-[#9CA3AF] uppercase tracking-wide mb-2 px-1" style={{ fontWeight: 600 }}>
                   Show / hide tabs
                 </div>
-                {ALL_TABS.map(tab => {
+                {tabOrder.map(tab => {
                   const isVisible = visibleTabs[tab];
                   const isLast = shownTabs.length === 1 && isVisible;
                   return (
