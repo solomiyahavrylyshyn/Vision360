@@ -548,10 +548,9 @@ export function InvoiceDetail() {
         </div>
       </div>
 
-      {/* ── Right column: Job Details + Note to Client ── */}
-      <div className="w-full lg:w-[320px] shrink-0 flex flex-col gap-4">
-
-        {/* Job Details */}
+      {/* ── Right side: Job Details + Notes (side by side) ── */}
+      {/* Job Details */}
+      <div className="w-full lg:w-[300px] shrink-0">
         <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
           <div className="px-4 py-3 border-b border-[#E5E7EB] flex items-center justify-between">
             <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Job Details</h3>
@@ -601,8 +600,10 @@ export function InvoiceDetail() {
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Note to Client (with Internal sub-tab) */}
+      {/* Notes (Note to Client / Internal) */}
+      <div className="w-full lg:w-[300px] shrink-0">
         <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
           <div className="flex border-b border-[#E5E7EB] px-4">
             {([
