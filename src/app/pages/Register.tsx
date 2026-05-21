@@ -12,6 +12,8 @@ export function Register() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [acceptTerms, setAcceptTerms] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const calculatePasswordStrength = () => {
     if (!password) return { width: 0, label: "", color: "" };
@@ -143,14 +145,26 @@ export function Register() {
               <Label className="text-sm font-semibold text-[#1A2332]">
                 Password <span className="text-red-500">*</span>
               </Label>
-              <Input
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="h-11 border-[#E5E7EB] focus-visible:ring-[#4A6FA5] bg-[#F5F7FA] focus:bg-white transition-colors"
-                required
-              />
+              <div className="relative">
+                <Input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="h-11 border-[#E5E7EB] focus-visible:ring-[#4A6FA5] bg-[#F5F7FA] focus:bg-white transition-colors pr-11"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#546478] hover:text-[#1A2332] transition-colors"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  <span className="material-icons" style={{ fontSize: "20px" }}>
+                    {showPassword ? "visibility_off" : "visibility"}
+                  </span>
+                </button>
+              </div>
               {password && (
                 <div className="pt-2 animate-in fade-in slide-in-from-top-1 duration-200">
                   <div className="flex gap-1 h-1.5 w-full rounded-full overflow-hidden bg-[#EDF0F5]">
@@ -187,14 +201,26 @@ export function Register() {
               <Label className="text-sm font-semibold text-[#1A2332]">
                 Confirm Password <span className="text-red-500">*</span>
               </Label>
-              <Input
-                type="password"
-                placeholder="••••••••"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="h-11 border-[#E5E7EB] focus-visible:ring-[#4A6FA5] bg-[#F5F7FA] focus:bg-white transition-colors"
-                required
-              />
+              <div className="relative">
+                <Input
+                  type={showConfirmPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="h-11 border-[#E5E7EB] focus-visible:ring-[#4A6FA5] bg-[#F5F7FA] focus:bg-white transition-colors pr-11"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#546478] hover:text-[#1A2332] transition-colors"
+                  aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                >
+                  <span className="material-icons" style={{ fontSize: "20px" }}>
+                    {showConfirmPassword ? "visibility_off" : "visibility"}
+                  </span>
+                </button>
+              </div>
             </div>
 
             <div className="flex items-start gap-3 pt-2">

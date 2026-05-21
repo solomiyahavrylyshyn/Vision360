@@ -95,63 +95,77 @@ const taxProfiles = [
   { name: "Florida Standard", rates: "Florida State Tax", total: "6%", default: false },
 ];
 
-type AppRole = "Admin" | "Employee";
+type AppRole = string;
 type PermissionLevel = "FULL" | "READ" | "OWN" | "FIELD" | "NONE";
+type PermissionRole = { id: string; label: AppRole; locked?: boolean };
+type RbacPermission = { area: string; feature: string; access: Record<string, PermissionLevel> };
 
-const teamMembers: Array<{ name: string; email: string; role: AppRole; title: string; rate: string; status: string }> = [
-  { name: "Peter Novak", email: "peter@omega-home.com", role: "Admin", title: "Business Owner", rate: "$0/hr", status: "Active" },
-  { name: "Ivan Petrenko", email: "ivan@omega-home.com", role: "Employee", title: "Technician", rate: "$32/hr", status: "Invited" },
-  { name: "Sarah Lee", email: "sarah@omega-home.com", role: "Employee", title: "Office Staff", rate: "$28/hr", status: "Active" },
+const teamMembers: Array<{ name: string; email: string; role: AppRole; rate: string; status: string }> = [
+  { name: "Peter Novak", email: "peter@omega-home.com", role: "Admin", rate: "$0/hr", status: "Active" },
+  { name: "Ivan Petrenko", email: "ivan@omega-home.com", role: "Employee", rate: "$32/hr", status: "Invited" },
+  { name: "Sarah Lee", email: "sarah@omega-home.com", role: "Employee", rate: "$28/hr", status: "Active" },
 ];
 
-const permissionBadgeStyles: Record<PermissionLevel, { label: string; bg: string; color: string }> = {
-  FULL: { label: "Full", bg: "rgba(22,163,74,0.15)", color: "#16A34A" },
-  READ: { label: "Read", bg: "rgba(74,111,165,0.15)", color: "#4A6FA5" },
-  OWN: { label: "Own", bg: "rgba(189,128,14,0.15)", color: "#BD800E" },
-  FIELD: { label: "Field", bg: "rgba(8,145,178,0.15)", color: "#0891B2" },
-  NONE: { label: "None", bg: "rgba(107,114,128,0.15)", color: "#6B7280" },
+const defaultPermissionRoles: PermissionRole[] = [
+  { id: "admin", label: "Admin", locked: true },
+  { id: "employee", label: "Employee", locked: true },
+];
+
+const permissionLevelDefinitions: Record<PermissionLevel, { label: string; bg: string; color: string; description: string }> = {
+  FULL: { label: "Full", bg: "rgba(22,163,74,0.15)", color: "#16A34A", description: "Can view, create, edit, and manage this area." },
+  READ: { label: "Read", bg: "rgba(74,111,165,0.15)", color: "#4A6FA5", description: "Can open and view, but cannot change settings or records." },
+  OWN: { label: "Own", bg: "rgba(189,128,14,0.15)", color: "#BD800E", description: "Can work only with records they created or are assigned to." },
+  FIELD: { label: "Field", bg: "rgba(8,145,178,0.15)", color: "#0891B2", description: "Eligible only when marked as a field team member." },
+  NONE: { label: "None", bg: "rgba(107,114,128,0.15)", color: "#6B7280", description: "Cannot access this feature or screen." },
 };
 
-const rbacPermissions: Array<{ area: string; feature: string; admin: PermissionLevel; employee: PermissionLevel }> = [
-  { area: "Business Management", feature: "Company Info (legal entity, address, business hours)", admin: "FULL", employee: "NONE" },
-  { area: "Business Management", feature: "Company Profile (about, industry, branding, notifications)", admin: "FULL", employee: "NONE" },
-  { area: "Business Management", feature: "Manage Team (invite, edit, remove users, role titles)", admin: "FULL", employee: "NONE" },
-  { area: "Business Management", feature: "Billing and Plan (credit card, plan, payment history)", admin: "FULL", employee: "NONE" },
-  { area: "System Preferences", feature: "Industry selection", admin: "FULL", employee: "NONE" },
-  { area: "System Preferences", feature: "Custom Fields configuration", admin: "FULL", employee: "NONE" },
-  { area: "System Preferences", feature: "Schedule settings", admin: "FULL", employee: "NONE" },
-  { area: "System Preferences", feature: "Job statuses, job types, job type colors", admin: "FULL", employee: "NONE" },
-  { area: "System Preferences", feature: "Estimate templates, signature settings, terms and conditions", admin: "FULL", employee: "READ" },
-  { area: "System Preferences", feature: "Invoice templates, payment terms, receipt notes", admin: "FULL", employee: "READ" },
-  { area: "System Preferences", feature: "Items / Price book settings", admin: "FULL", employee: "READ" },
-  { area: "Finance Center", feature: "Bank account information", admin: "FULL", employee: "NONE" },
-  { area: "Finance Center", feature: "Payment gateway / Stripe connection", admin: "FULL", employee: "NONE" },
-  { area: "Finance Center", feature: "Expense tracking configuration", admin: "FULL", employee: "NONE" },
-  { area: "Finance Center", feature: "Financing options / lenders", admin: "FULL", employee: "NONE" },
-  { area: "Integrations", feature: "QuickBooks, Zapier, Mailchimp, and other connected apps", admin: "FULL", employee: "NONE" },
-  { area: "Clients", feature: "View clients list", admin: "FULL", employee: "FULL" },
-  { area: "Clients", feature: "Create, edit, and deactivate clients", admin: "FULL", employee: "FULL" },
-  { area: "Clients", feature: "Tax profile assignment to a client", admin: "FULL", employee: "READ" },
-  { area: "Jobs", feature: "View jobs list and job details", admin: "FULL", employee: "FULL" },
-  { area: "Jobs", feature: "Create and edit jobs", admin: "FULL", employee: "FULL" },
-  { area: "Jobs", feature: "Appear in Assigned to dropdown for field jobs", admin: "FIELD", employee: "FIELD" },
-  { area: "Items", feature: "View item list / price book", admin: "FULL", employee: "FULL" },
-  { area: "Estimates", feature: "Create estimates", admin: "FULL", employee: "FULL" },
-  { area: "Estimates", feature: "Edit own estimates", admin: "FULL", employee: "FULL" },
-  { area: "Estimates", feature: "Send estimate to client", admin: "FULL", employee: "FULL" },
-  { area: "Estimates", feature: "Approve, archive, or mark as won", admin: "FULL", employee: "FULL" },
-  { area: "Estimates", feature: "Edit terms and conditions on a specific estimate", admin: "NONE", employee: "NONE" },
-  { area: "Estimates", feature: "Edit internal / private notes", admin: "FULL", employee: "FULL" },
-  { area: "Estimates", feature: "Edit notes to the client", admin: "FULL", employee: "FULL" },
-  { area: "Invoices", feature: "View, create, and edit invoices", admin: "FULL", employee: "FULL" },
-  { area: "Invoices", feature: "Send invoice by email or SMS", admin: "FULL", employee: "FULL" },
-  { area: "Payments", feature: "Collect payment from client", admin: "FULL", employee: "FULL" },
-  { area: "Expenses", feature: "Create, edit, and categorize expenses", admin: "FULL", employee: "OWN" },
-  { area: "Schedule", feature: "View schedule board", admin: "FULL", employee: "FULL" },
-  { area: "Documents", feature: "Upload photos / PDFs to clients and jobs", admin: "FULL", employee: "FULL" },
-  { area: "Reports / Home", feature: "Profit margin and compensation on job overview", admin: "FULL", employee: "NONE" },
-  { area: "Support", feature: "Account Manager contact", admin: "FULL", employee: "FULL" },
-  { area: "Help Center", feature: "Help / FAQ links", admin: "FULL", employee: "FULL" },
+const permissionLevelOptions = Object.keys(permissionLevelDefinitions) as PermissionLevel[];
+
+const createAccess = (admin: PermissionLevel, employee: PermissionLevel): Record<string, PermissionLevel> => ({
+  Admin: admin,
+  Employee: employee,
+});
+
+const defaultRbacPermissions: RbacPermission[] = [
+  { area: "Business Management", feature: "Company Info (legal entity, address, business hours)", access: createAccess("FULL", "NONE") },
+  { area: "Business Management", feature: "Company Profile (about, industry, branding, notifications)", access: createAccess("FULL", "NONE") },
+  { area: "Business Management", feature: "Manage Team (invite, edit, remove users, role titles)", access: createAccess("FULL", "NONE") },
+  { area: "Business Management", feature: "Billing and Plan (credit card, plan, payment history)", access: createAccess("FULL", "NONE") },
+  { area: "System Preferences", feature: "Industry selection", access: createAccess("FULL", "NONE") },
+  { area: "System Preferences", feature: "Custom Fields configuration", access: createAccess("FULL", "NONE") },
+  { area: "System Preferences", feature: "Schedule settings", access: createAccess("FULL", "NONE") },
+  { area: "System Preferences", feature: "Job statuses, job types, job type colors", access: createAccess("FULL", "NONE") },
+  { area: "System Preferences", feature: "Estimate templates, signature settings, terms and conditions", access: createAccess("FULL", "READ") },
+  { area: "System Preferences", feature: "Invoice templates, payment terms, receipt notes", access: createAccess("FULL", "READ") },
+  { area: "System Preferences", feature: "Items / Price book settings", access: createAccess("FULL", "READ") },
+  { area: "Finance Center", feature: "Bank account information", access: createAccess("FULL", "NONE") },
+  { area: "Finance Center", feature: "Payment gateway / Stripe connection", access: createAccess("FULL", "NONE") },
+  { area: "Finance Center", feature: "Expense tracking configuration", access: createAccess("FULL", "NONE") },
+  { area: "Finance Center", feature: "Financing options / lenders", access: createAccess("FULL", "NONE") },
+  { area: "Integrations", feature: "QuickBooks, Zapier, Mailchimp, and other connected apps", access: createAccess("FULL", "NONE") },
+  { area: "Clients", feature: "View clients list", access: createAccess("FULL", "FULL") },
+  { area: "Clients", feature: "Create, edit, and deactivate clients", access: createAccess("FULL", "FULL") },
+  { area: "Clients", feature: "Tax profile assignment to a client", access: createAccess("FULL", "READ") },
+  { area: "Jobs", feature: "View jobs list and job details", access: createAccess("FULL", "FULL") },
+  { area: "Jobs", feature: "Create and edit jobs", access: createAccess("FULL", "FULL") },
+  { area: "Jobs", feature: "Appear in Assigned to dropdown for field jobs", access: createAccess("FIELD", "FIELD") },
+  { area: "Items", feature: "View item list / price book", access: createAccess("FULL", "FULL") },
+  { area: "Estimates", feature: "Create estimates", access: createAccess("FULL", "FULL") },
+  { area: "Estimates", feature: "Edit own estimates", access: createAccess("FULL", "FULL") },
+  { area: "Estimates", feature: "Send estimate to client", access: createAccess("FULL", "FULL") },
+  { area: "Estimates", feature: "Approve, archive, or mark as won", access: createAccess("FULL", "FULL") },
+  { area: "Estimates", feature: "Edit terms and conditions on a specific estimate", access: createAccess("NONE", "NONE") },
+  { area: "Estimates", feature: "Edit internal / private notes", access: createAccess("FULL", "FULL") },
+  { area: "Estimates", feature: "Edit notes to the client", access: createAccess("FULL", "FULL") },
+  { area: "Invoices", feature: "View, create, and edit invoices", access: createAccess("FULL", "FULL") },
+  { area: "Invoices", feature: "Send invoice by email or SMS", access: createAccess("FULL", "FULL") },
+  { area: "Payments", feature: "Collect payment from client", access: createAccess("FULL", "FULL") },
+  { area: "Expenses", feature: "Create, edit, and categorize expenses", access: createAccess("FULL", "OWN") },
+  { area: "Schedule", feature: "View schedule board", access: createAccess("FULL", "FULL") },
+  { area: "Documents", feature: "Upload photos / PDFs to clients and jobs", access: createAccess("FULL", "FULL") },
+  { area: "Reports / Home", feature: "Profit margin and compensation on job overview", access: createAccess("FULL", "NONE") },
+  { area: "Support", feature: "Account Manager contact", access: createAccess("FULL", "FULL") },
+  { area: "Help Center", feature: "Help / FAQ links", access: createAccess("FULL", "FULL") },
 ];
 
 const templateCards = [
@@ -1869,18 +1883,16 @@ export function Settings() {
   const [teamSearch, setTeamSearch] = useState("");
   const [inviteOpen, setInviteOpen] = useState(false);
   const [teamRowMenu, setTeamRowMenu] = useState<string | null>(null);
-  const emptyInvite = { name: "", email: "", role: "Employee" as AppRole, title: "", rate: "" };
+  const [permissionRoles, setPermissionRoles] = useState<PermissionRole[]>(defaultPermissionRoles);
+  const [newPermissionRole, setNewPermissionRole] = useState("");
+  const [rbacRows, setRbacRows] = useState<RbacPermission[]>(defaultRbacPermissions);
+  const emptyInvite = { name: "", email: "", role: "Employee" as AppRole, rate: "" };
   const [invite, setInvite] = useState(emptyInvite);
   // ── Login security & 2FA ──
   const [tempPasswordLink, setTempPasswordLink] = useState(true);
   const [forceChangeOnLogin, setForceChangeOnLogin] = useState(true);
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(true);
   const [twoFactorMethod, setTwoFactorMethod] = useState<"email" | "phone" | "either">("either");
-  // ── User role titles (Technician, Installer, etc.) ──
-  const [userRoleTitles, setUserRoleTitles] = useState<string[]>([
-    "Salesperson", "Office Staff", "Technician", "Installer", "Lead Installer", "Laborer",
-  ]);
-  const [newRoleTitle, setNewRoleTitle] = useState("");
   // ── Pay rate type per company default ──
   const [defaultPayType, setDefaultPayType] = useState<"hourly" | "daily" | "salary">("hourly");
   // ── User custom fields ──
@@ -1923,10 +1935,39 @@ export function Settings() {
     { color: "#0D9488", bg: "#CCFBF1", icon: "near_me"           },
   ];
   const [newStatusLabel, setNewStatusLabel] = useState("");
+  const updatePermissionAccess = (rowIndex: number, roleLabel: string, level: PermissionLevel) => {
+    setRbacRows(prev => prev.map((row, i) => (
+      i === rowIndex ? { ...row, access: { ...row.access, [roleLabel]: level } } : row
+    )));
+  };
+  const addPermissionRole = () => {
+    const label = newPermissionRole.trim();
+    if (!label) return;
+    if (permissionRoles.some(role => role.label.toLowerCase() === label.toLowerCase())) {
+      toast.error("That role already exists");
+      return;
+    }
+    const slug = label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "role";
+    const id = `${slug}-${Date.now()}`;
+    setPermissionRoles(prev => [...prev, { id, label }]);
+    setRbacRows(prev => prev.map(row => ({ ...row, access: { ...row.access, [label]: "NONE" } })));
+    setNewPermissionRole("");
+  };
+  const removePermissionRole = (roleLabel: string) => {
+    const role = permissionRoles.find(item => item.label === roleLabel);
+    if (!role || role.locked) return;
+    setPermissionRoles(prev => prev.filter(item => item.label !== roleLabel));
+    setRbacRows(prev => prev.map(row => {
+      const { [roleLabel]: _removed, ...access } = row.access;
+      return { ...row, access };
+    }));
+    setTeam(prev => prev.map(member => member.role === roleLabel ? { ...member, role: "Employee" } : member));
+    setInvite(prev => prev.role === roleLabel ? { ...prev, role: "Employee" } : prev);
+  };
   const filteredTeam = team.filter(m => {
     const q = teamSearch.trim().toLowerCase();
     if (!q) return true;
-    return m.name.toLowerCase().includes(q) || m.email.toLowerCase().includes(q) || m.title.toLowerCase().includes(q);
+    return m.name.toLowerCase().includes(q) || m.email.toLowerCase().includes(q) || m.role.toLowerCase().includes(q);
   });
   const submitInvite = () => {
     if (!invite.name.trim() || !invite.email.trim()) {
@@ -1939,7 +1980,6 @@ export function Settings() {
         name: invite.name.trim(),
         email: invite.email.trim(),
         role: invite.role,
-        title: invite.title.trim() || "—",
         rate: invite.rate.trim() ? (invite.rate.includes("/") ? invite.rate : `$${invite.rate}/hr`) : "$0/hr",
         status: "Invited",
       },
@@ -2426,7 +2466,7 @@ export function Settings() {
                 <table className="w-full">
                   <thead>
                     <tr className="bg-[#F5F7FA]">
-                      {["Name", "Email", "Role", "User role title", "Pay rate", "Status", ""].map((h, i) => (
+                      {["Name", "Email", "Role", "Pay rate", "Status", ""].map((h, i) => (
                         <th
                           key={i}
                           className="px-4 text-left text-[12px] text-[#6B7280] border-b border-[#E5E7EB]"
@@ -2440,7 +2480,7 @@ export function Settings() {
                   <tbody>
                     {filteredTeam.length === 0 ? (
                       <tr>
-                        <td colSpan={7} className="px-4 py-8 text-center text-[13px] text-[#9CA3AF]">
+                        <td colSpan={6} className="px-4 py-8 text-center text-[13px] text-[#9CA3AF]">
                           No users match "{teamSearch}".
                         </td>
                       </tr>
@@ -2449,7 +2489,6 @@ export function Settings() {
                         <td className="px-4 text-[14px] text-[#1A2332]" style={{ height: 36, fontWeight: 500 }}>{member.name}</td>
                         <td className="px-4 text-[14px] text-[#6B7280]" style={{ height: 36 }}>{member.email}</td>
                         <td className="px-4 text-[14px] text-[#1A2332]" style={{ height: 36 }}>{member.role}</td>
-                        <td className="px-4 text-[14px] text-[#6B7280]" style={{ height: 36 }}>{member.title}</td>
                         <td className="px-4 text-[14px] text-[#6B7280]" style={{ height: 36 }}>{member.rate}</td>
                         <td className="px-4" style={{ height: 36 }}>
                           {member.status === "Active" ? (
@@ -2575,8 +2614,9 @@ export function Settings() {
                               onChange={e => setInvite({ ...invite, role: e.target.value as AppRole })}
                               className="h-9 w-full rounded-lg border border-[#E5E7EB] bg-white pl-3 pr-8 text-[14px] text-[#1A2332] outline-none focus:border-[#4A6FA5] shadow-[0_1px_2px_rgba(0,0,0,0.05)] appearance-none cursor-pointer"
                             >
-                              <option value="Employee">Employee</option>
-                              <option value="Admin">Admin</option>
+                              {permissionRoles.map(role => (
+                                <option key={role.id} value={role.label}>{role.label}</option>
+                              ))}
                             </select>
                             <span className="material-icons pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[#6B7280]" style={{ fontSize: "16px" }}>expand_more</span>
                           </div>
@@ -2590,15 +2630,6 @@ export function Settings() {
                             className="h-9 w-full rounded-lg border border-[#E5E7EB] bg-white px-3 text-[14px] text-[#1A2332] outline-none focus:border-[#4A6FA5] shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
                           />
                         </div>
-                      </div>
-                      <div>
-                        <label className="block text-[14px] text-[#1A2332] mb-1" style={{ fontWeight: 500 }}>User role title</label>
-                        <input
-                          value={invite.title}
-                          onChange={e => setInvite({ ...invite, title: e.target.value })}
-                          placeholder="Technician, Office Staff, Installer…"
-                          className="h-9 w-full rounded-lg border border-[#E5E7EB] bg-white px-3 text-[14px] text-[#1A2332] outline-none focus:border-[#4A6FA5] shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
-                        />
                       </div>
                     </div>
                     <div className="px-6 py-4 border-t border-[#E5E7EB] flex items-center justify-end gap-2">
@@ -2732,8 +2763,7 @@ export function Settings() {
                     { label: "Username",   desc: "Auto-derived from email, editable." },
                     { label: "Full name",  desc: "Display name across the app." },
                     { label: "Phone",      desc: "Required when 2FA uses SMS." },
-                    { label: "User role",  desc: "Admin or Employee." },
-                    { label: "Role title", desc: "Free-form: Technician, Office Staff, …" },
+                    { label: "User role",  desc: "Admin, Employee, or custom permission role." },
                     { label: "Pay rate",   desc: "Hourly, daily, or salary — set per user." },
                   ]).map(f => (
                     <div key={f.label} className="flex flex-col gap-1 rounded-lg border border-[#E5E7EB] bg-white px-3 py-2.5">
@@ -2793,104 +2823,111 @@ export function Settings() {
 
               {/* Roles & permissions */}
               <div className="flex flex-col gap-4 rounded-xl border border-[#E5E7EB] bg-white p-4">
-                <span className="text-[16px] leading-6 text-[#1A2332]" style={{ fontWeight: 600 }}>Roles &amp; permissions</span>
-                <div className="overflow-hidden rounded-xl border border-[#E5E7EB]">
-                  <table className="w-full">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[16px] leading-6 text-[#1A2332]" style={{ fontWeight: 600 }}>Roles &amp; permissions</span>
+                    <span className="text-[14px] leading-5 text-[#6B7280]">Add permission roles, then tune their access in the matrix.</span>
+                  </div>
+                  <div className="flex gap-3" style={{ width: 360 }}>
+                    <input
+                      placeholder="Add role (e.g. Office Manager)"
+                      value={newPermissionRole}
+                      onChange={e => setNewPermissionRole(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === "Enter") addPermissionRole();
+                      }}
+                      className="h-9 flex-1 rounded-lg border border-[#E5E7EB] bg-white px-3 text-[14px] text-[#1A2332] outline-none focus:border-[#4A6FA5] shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
+                    />
+                    <button
+                      type="button"
+                      onClick={addPermissionRole}
+                      className="h-9 px-4 rounded-lg bg-[#4A6FA5] text-white text-[14px] transition-colors shrink-0"
+                      style={{ fontWeight: 500, opacity: newPermissionRole.trim() ? 1 : 0.5 }}
+                    >
+                      Add
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  {permissionRoles.map(role => (
+                    <span
+                      key={role.id}
+                      className="inline-flex h-7 items-center gap-1 rounded-lg border border-[#E5E7EB] bg-white px-2"
+                    >
+                      <span className="text-[12px] leading-4 text-[#1A2332]" style={{ fontWeight: 500 }}>{role.label}</span>
+                      {!role.locked && (
+                        <button
+                          type="button"
+                          onClick={() => removePermissionRole(role.label)}
+                          className="flex h-4 w-4 items-center justify-center rounded text-[#6B7280] hover:bg-[#F5F7FA] hover:text-[#1A2332]"
+                          title={`Remove ${role.label}`}
+                        >
+                          <span className="material-icons" style={{ fontSize: "14px" }}>close</span>
+                        </button>
+                      )}
+                    </span>
+                  ))}
+                </div>
+
+                <div className="grid grid-cols-5 gap-2">
+                  {permissionLevelOptions.map(level => {
+                    const style = permissionLevelDefinitions[level];
+                    return (
+                      <div key={level} className="rounded-lg border border-[#E5E7EB] bg-white p-3">
+                        <span className="inline-flex h-6 min-w-[54px] items-center justify-center rounded-lg px-2 text-[12px]" style={{ fontWeight: 600, background: style.bg, color: style.color }}>
+                          {style.label}
+                        </span>
+                        <p className="mt-2 text-[12px] leading-4 text-[#6B7280]">{style.description}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="overflow-x-auto rounded-xl border border-[#E5E7EB]">
+                  <table className="w-full min-w-[760px]">
                     <thead>
                       <tr className="bg-[#F5F7FA]">
                         <th className="px-4 text-left text-[12px] text-[#6B7280] border-b border-[#E5E7EB] w-[170px]" style={{ fontWeight: 500, height: 36 }}>Area</th>
                         <th className="px-4 text-left text-[12px] text-[#6B7280] border-b border-[#E5E7EB]" style={{ fontWeight: 500, height: 36 }}>Feature</th>
-                        <th className="px-4 text-right text-[12px] text-[#6B7280] border-b border-[#E5E7EB] w-[92px]" style={{ fontWeight: 500, height: 36 }}>Admin</th>
-                        <th className="px-4 text-right text-[12px] text-[#6B7280] border-b border-[#E5E7EB] w-[92px]" style={{ fontWeight: 500, height: 36 }}>Employee</th>
+                        {permissionRoles.map(role => (
+                          <th key={role.id} className="px-4 text-right text-[12px] text-[#6B7280] border-b border-[#E5E7EB] w-[118px]" style={{ fontWeight: 500, height: 36 }}>
+                            {role.label}
+                          </th>
+                        ))}
                       </tr>
                     </thead>
                     <tbody>
-                      {rbacPermissions.map((permission, i) => {
-                        const adminStyle = permissionBadgeStyles[permission.admin];
-                        const employeeStyle = permissionBadgeStyles[permission.employee];
-                        return (
-                          <tr key={`${permission.area}-${permission.feature}`} className={i > 0 ? "border-t border-[#E5E7EB]" : ""}>
-                            <td className="px-4 py-2 text-[12px] leading-4 text-[#6B7280] align-top" style={{ fontWeight: 500 }}>{permission.area}</td>
-                            <td className="px-4 py-2 text-[14px] leading-5 text-[#1A2332] align-top">{permission.feature}</td>
-                            <td className="px-4 py-2 text-right align-top" style={{ width: 92 }}>
-                              <span className="inline-flex h-6 min-w-[54px] items-center justify-center rounded-lg px-2 text-[12px]" style={{ fontWeight: 500, background: adminStyle.bg, color: adminStyle.color }}>
-                                {adminStyle.label}
-                              </span>
-                            </td>
-                            <td className="px-4 py-2 text-right align-top" style={{ width: 92 }}>
-                              <span className="inline-flex h-6 min-w-[54px] items-center justify-center rounded-lg px-2 text-[12px]" style={{ fontWeight: 500, background: employeeStyle.bg, color: employeeStyle.color }}>
-                                {employeeStyle.label}
-                              </span>
-                            </td>
-                          </tr>
-                        );
-                      })}
+                      {rbacRows.map((permission, i) => (
+                        <tr key={`${permission.area}-${permission.feature}`} className={i > 0 ? "border-t border-[#E5E7EB]" : ""}>
+                          <td className="px-4 py-2 text-[12px] leading-4 text-[#6B7280] align-top" style={{ fontWeight: 500 }}>{permission.area}</td>
+                          <td className="px-4 py-2 text-[14px] leading-5 text-[#1A2332] align-top">{permission.feature}</td>
+                          {permissionRoles.map(role => {
+                            const level = permission.access[role.label] ?? "NONE";
+                            const style = permissionLevelDefinitions[level];
+                            return (
+                              <td key={role.id} className="px-4 py-2 text-right align-top" style={{ width: 118 }}>
+                                <div className="relative inline-flex">
+                                  <select
+                                    value={level}
+                                    onChange={e => updatePermissionAccess(i, role.label, e.target.value as PermissionLevel)}
+                                    className="h-7 min-w-[86px] appearance-none rounded-lg border border-transparent px-2 pr-6 text-[12px] outline-none cursor-pointer"
+                                    style={{ fontWeight: 600, background: style.bg, color: style.color }}
+                                  >
+                                    {permissionLevelOptions.map(option => (
+                                      <option key={option} value={option}>{permissionLevelDefinitions[option].label}</option>
+                                    ))}
+                                  </select>
+                                  <span className="material-icons pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2" style={{ fontSize: "14px", color: style.color }}>expand_more</span>
+                                </div>
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      ))}
                     </tbody>
                   </table>
                 </div>
-              </div>
-
-              {/* User role titles */}
-              <div className="flex flex-col gap-4 rounded-xl border border-[#E5E7EB] bg-white p-4">
-                <div className="flex flex-col gap-1">
-                  <span className="text-[16px] leading-6 text-[#1A2332]" style={{ fontWeight: 600 }}>User role titles</span>
-                  <span className="text-[14px] leading-5 text-[#6B7280]">Free-form titles used on user profiles. Affect display and commission rules later, not permissions.</span>
-                </div>
-                <div className="flex gap-3" style={{ width: 422 }}>
-                  <input
-                    placeholder="Add role title (e.g. Lead Technician)"
-                    value={newRoleTitle}
-                    onChange={e => setNewRoleTitle(e.target.value)}
-                    onKeyDown={e => {
-                      if (e.key === "Enter") {
-                        const v = newRoleTitle.trim();
-                        if (!v) return;
-                        if (userRoleTitles.some(t => t.toLowerCase() === v.toLowerCase())) { toast.error("That title already exists"); return; }
-                        setUserRoleTitles([...userRoleTitles, v]);
-                        setNewRoleTitle("");
-                      }
-                    }}
-                    className="h-9 flex-1 rounded-lg border border-[#E5E7EB] bg-white px-3 text-[14px] text-[#6B7280] outline-none focus:border-[#4A6FA5] focus:text-[#1A2332] shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const v = newRoleTitle.trim();
-                      if (!v) return;
-                      if (userRoleTitles.some(t => t.toLowerCase() === v.toLowerCase())) { toast.error("That title already exists"); return; }
-                      setUserRoleTitles([...userRoleTitles, v]);
-                      setNewRoleTitle("");
-                    }}
-                    className="h-9 px-4 rounded-lg bg-[#4A6FA5] text-white text-[14px] transition-colors shrink-0"
-                    style={{ fontWeight: 500, opacity: newRoleTitle.trim() ? 1 : 0.5 }}
-                  >
-                    Add
-                  </button>
-                </div>
-                {userRoleTitles.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {userRoleTitles.map(t => (
-                      <span
-                        key={t}
-                        className="inline-flex items-center gap-1 rounded-lg border border-[#E5E7EB] bg-white px-2 py-1"
-                        style={{ height: 24 }}
-                      >
-                        <span className="text-[12px] leading-4 text-[#1A2332]" style={{ fontWeight: 500 }}>{t}</span>
-                        <button
-                          type="button"
-                          onClick={() => setUserRoleTitles(userRoleTitles.filter(x => x !== t))}
-                          className="flex items-center justify-center shrink-0 transition-opacity hover:opacity-60"
-                          style={{ width: 12, height: 12 }}
-                          title={`Remove ${t}`}
-                        >
-                          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                            <path d="M9 3L3 9M3 3l6 6" stroke="#1A2332" strokeWidth="1.2" strokeLinecap="round"/>
-                          </svg>
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                )}
               </div>
 
               {/* User Custom Fields */}

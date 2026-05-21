@@ -4,6 +4,7 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import logoImg from "figma:asset/58956be46c544ae8676a6fc4c67137e1d450e75f.png";
+import { companyStore } from "../stores/companyStore";
 
 export function CompanySetup() {
   const navigate = useNavigate();
@@ -16,6 +17,7 @@ export function CompanySetup() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (companyName.trim()) companyStore.setCompanyName(companyName.trim());
     navigate("/welcome");
   };
 
@@ -172,6 +174,8 @@ export function CompanySetup() {
                 <option value="electrical">Electrical</option>
                 <option value="cleaning">Cleaning</option>
                 <option value="landscaping">Landscaping</option>
+                <option value="roofing">Roofing</option>
+                <option value="pool">Pool Service</option>
                 <option value="general">General Contracting</option>
                 <option value="other">Other</option>
               </select>
@@ -185,11 +189,9 @@ export function CompanySetup() {
                 className="w-full h-11 px-3 border border-[#E5E7EB] rounded-md bg-[#F5F7FA] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#4A6FA5] transition-colors text-sm"
               >
                 <option value="">Select team size</option>
-                <option value="1">Just me</option>
-                <option value="2-5">2 - 5</option>
-                <option value="6-15">6 - 15</option>
-                <option value="16-50">16 - 50</option>
-                <option value="50+">50+</option>
+                <option value="1">Just me (solo operator)</option>
+                <option value="2">Me + 1 employee</option>
+                <option value="3">Me + 2 employees</option>
               </select>
             </div>
 

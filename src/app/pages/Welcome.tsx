@@ -131,24 +131,26 @@ export function Welcome() {
             </button>
           </div>
 
-          {/* Tip */}
-          <div className="w-full bg-[#EEF3FA] border border-[#C8D8EE] rounded-xl px-5 py-4 flex items-start gap-3 mb-8">
+          {/* Sample Company card */}
+          <div className="w-full bg-[#EEF3FA] border border-[#C8D8EE] rounded-xl px-5 py-4 flex items-start gap-3 mb-6">
             <span className="material-icons text-[#4A6FA5] shrink-0 mt-0.5" style={{ fontSize: "18px" }}>
-              lightbulb
+              store
             </span>
-            <p className="text-sm text-[#546478]">
-              <span className="font-semibold text-[#1A2332]">Tip: </span>
-              Don't forget to add your customers first — it'll make creating jobs and estimates much faster.
-            </p>
+            <div>
+              <p className="text-sm font-semibold text-[#1A2332] mb-0.5">Explore the Sample Company</p>
+              <p className="text-xs text-[#546478]">
+                See a fully populated demo — schedule, jobs, clients, and invoices — to get inspired before entering your own data.
+              </p>
+            </div>
           </div>
 
-          {/* Skip */}
-          <button
+          {/* Primary CTA */}
+          <Button
             onClick={() => navigate("/")}
-            className="w-full text-sm text-[#A0B0C4] font-medium hover:text-[#546478] transition-colors text-center"
+            className="w-full h-12 text-base font-semibold bg-[#4A6FA5] hover:bg-[#3d5a85] text-white transition-colors"
           >
             Go to Dashboard
-          </button>
+          </Button>
 
         </div>
       </div>

@@ -120,9 +120,9 @@ export function Verify2FA() {
               </div>
             </div>
 
-            <h2 className="text-3xl font-bold text-[#1A2332] mb-3">Verify your identity</h2>
+            <h2 className="text-3xl font-bold text-[#1A2332] mb-3">Check your email</h2>
             <p className="text-[#546478] text-[15px]">
-              Enter the 6-digit code sent to your email.
+              We sent a 6-digit confirmation code to your email address. Enter it below to continue — this is not your password.
             </p>
           </div>
 
