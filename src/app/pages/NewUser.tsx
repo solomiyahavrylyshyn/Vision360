@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import { Button } from "../components/ui/button";
@@ -161,10 +161,8 @@ const FeatureSection = ({
 // ─── Component ───────────────────────────────────────────────────────────────
 export function NewUser() {
   const navigate = useNavigate();
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Personal info
-  const [avatar, setAvatar] = useState<string>("");
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [mobile, setMobile] = useState("");
@@ -193,14 +191,6 @@ export function NewUser() {
   const editPerms = (updater: (prev: PermissionsState) => PermissionsState) => {
     setPerms(updater);
     setPreset("custom");
-  };
-
-  const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = ev => setAvatar(ev.target?.result as string);
-    reader.readAsDataURL(file);
   };
 
   const handleSave = (e: React.FormEvent) => {
@@ -246,26 +236,6 @@ export function NewUser() {
               {/* ── Personal Info ─────────────────────────────────── */}
               <section className="border border-[#E5E7EB] rounded-xl p-6">
                 <h2 className="text-[18px] text-[#1A2332] mb-5" style={{ fontWeight: 700 }}>Personal info</h2>
-
-                {/* Avatar */}
-                <div className="flex items-center gap-4 mb-6">
-                  <div className="w-16 h-16 rounded-full bg-[#1A2332] flex items-center justify-center overflow-hidden flex-shrink-0">
-                    {avatar ? (
-                      <img src={avatar} alt="" className="w-full h-full object-cover" />
-                    ) : (
-                      <span className="material-icons text-white" style={{ fontSize: "32px" }}>person</span>
-                    )}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="px-3.5 py-1.5 text-[13px] text-[#16A34A] border border-[#16A34A] rounded-md hover:bg-[#F0FDF4] transition-colors"
-                    style={{ fontWeight: 600 }}
-                  >
-                    Upload Image
-                  </button>
-                  <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
-                </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
                   {/* Left column: contact */}
