@@ -11,7 +11,7 @@ type Preset = "admin" | "employee" | "custom";
 type ScheduleLevel = "viewOwn" | "viewCompleteOwn" | "editOwn" | "editAll" | "editDeleteAll";
 type TimeLevel = "viewRecordOwn" | "viewRecordEditOwn" | "viewRecordEditAll";
 type NotesLevel = "viewJobsOnly" | "viewAll" | "viewEditAll" | "viewEditDeleteAll";
-type ExpensesLevel = "viewOwn" | "recordOwn" | "viewRecordEditOwn" | "viewRecordEditAll";
+type ExpensesLevel = "viewRecordEditOwn" | "viewRecordEditAll";
 type ClientsLevel = "nameAddressOnly" | "viewFull" | "viewEditFull" | "viewEditDeleteFull";
 type DocLevel = "viewOnly" | "viewCreateEdit" | "viewCreateEditDelete";
 type PaymentsScope = "estimatesOnly" | "invoicesOnly" | "both";
@@ -39,7 +39,7 @@ const employeePreset: PermissionsState = {
   schedule: { enabled: true, level: "viewCompleteOwn" },
   timeTracking: { enabled: true, level: "viewRecordOwn" },
   notes: { enabled: true, level: "viewEditAll" },
-  expenses: { enabled: true, level: "recordOwn" },
+  expenses: { enabled: true, level: "viewRecordEditOwn" },
   showPricing: false,
   jobCosting: false,
   clients: { enabled: true, level: "viewFull", showOnMenu: false },
@@ -498,14 +498,12 @@ export function NewUser() {
                   enabled={perms.expenses.enabled}
                   onToggle={v => editPerms(p => ({ ...p, expenses: { ...p.expenses, enabled: v } }))}
                 >
-                  {(["viewOwn", "recordOwn", "viewRecordEditOwn", "viewRecordEditAll"] as ExpensesLevel[]).map(level => (
+                  {(["viewRecordEditOwn", "viewRecordEditAll"] as ExpensesLevel[]).map(level => (
                     <Radio
                       key={level}
                       checked={perms.expenses.level === level}
                       onClick={() => editPerms(p => ({ ...p, expenses: { ...p.expenses, level } }))}
                       label={{
-                        viewOwn: "View their own expenses only",
-                        recordOwn: "View and record their own",
                         viewRecordEditOwn: "View, record, and edit their own",
                         viewRecordEditAll: "View, record, and edit everyone's",
                       }[level]}
