@@ -26,60 +26,36 @@ export function Reports() {
       <PageHeader title="Reports & Analytics" />
 
       {/* KPIs */}
-      <div className="grid grid-cols-4 gap-5 mb-8">
-        <Card className="px-4 py-3 border border-[#E5E7EB] bg-white hover:shadow-sm transition-shadow h-[110.5px]">
+      <div className="mb-4 grid grid-cols-4 gap-3">
+        <Card className="flex min-h-[56px] min-w-0 items-center justify-between gap-3 rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 shadow-[0_1px_2px_rgba(0,0,0,0.05)]" title="+18% vs last period">
           <div className="flex items-center justify-between">
-            <div>
-              <div className="text-[24px] mb-0.5 leading-none" style={{ fontWeight: 700, color: "#1A2332", fontVariantNumeric: "tabular-nums" }}>$109,800</div>
-              <div className="text-[12px] mb-0.5" style={{ fontWeight: 500, color: "#546478" }}>Total Revenue</div>
-              <div className="flex items-center gap-1 mt-1">
-                <span className="text-[11px] text-[#16A34A] flex items-center gap-1" style={{ fontWeight: 500 }}>
-                  <span className="material-icons leading-none" style={{ fontSize: "14px" }}>trending_up</span>+18%
-                </span>
-                <span className="text-[11px] text-[#546478]">vs last period</span>
-              </div>
+            <div className="flex min-w-0 flex-col justify-center">
+              <div className="truncate text-[18px] leading-tight text-[#1A2332]" style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>$109,800</div>
+              <div className="mt-0.5 truncate text-[11px] text-[#546478]">Total Revenue</div>
             </div>
           </div>
         </Card>
-        <Card className="px-4 py-3 border border-[#E5E7EB] bg-white hover:shadow-sm transition-shadow h-[110.5px]">
+        <Card className="flex min-h-[56px] min-w-0 items-center justify-between gap-3 rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 shadow-[0_1px_2px_rgba(0,0,0,0.05)]" title="+12% vs last period">
           <div className="flex items-center justify-between">
-            <div>
-              <div className="text-[24px] mb-0.5 leading-none" style={{ fontWeight: 700, color: "#1A2332", fontVariantNumeric: "tabular-nums" }}>$61,300</div>
-              <div className="text-[12px] mb-0.5" style={{ fontWeight: 500, color: "#546478" }}>Total Expenses</div>
-              <div className="flex items-center gap-1 mt-1">
-                <span className="text-[11px] text-[#DC2626] flex items-center gap-1" style={{ fontWeight: 500 }}>
-                  <span className="material-icons leading-none" style={{ fontSize: "14px" }}>trending_up</span>+12%
-                </span>
-                <span className="text-[11px] text-[#546478]">vs last period</span>
-              </div>
+            <div className="flex min-w-0 flex-col justify-center">
+              <div className="truncate text-[18px] leading-tight text-[#1A2332]" style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>$61,300</div>
+              <div className="mt-0.5 truncate text-[11px] text-[#546478]">Total Expenses</div>
             </div>
           </div>
         </Card>
-        <Card className="px-4 py-3 border border-[#E5E7EB] bg-white hover:shadow-sm transition-shadow h-[110.5px]">
+        <Card className="flex min-h-[56px] min-w-0 items-center justify-between gap-3 rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 shadow-[0_1px_2px_rgba(0,0,0,0.05)]" title="+24% vs last period">
           <div className="flex items-center justify-between">
-            <div>
-              <div className="text-[24px] mb-0.5 leading-none" style={{ fontWeight: 700, color: "#1A2332", fontVariantNumeric: "tabular-nums" }}>$48,500</div>
-              <div className="text-[12px] mb-0.5" style={{ fontWeight: 500, color: "#546478" }}>Net Profit</div>
-              <div className="flex items-center gap-1 mt-1">
-                <span className="text-[11px] text-[#16A34A] flex items-center gap-1" style={{ fontWeight: 500 }}>
-                  <span className="material-icons leading-none" style={{ fontSize: "14px" }}>trending_up</span>+24%
-                </span>
-                <span className="text-[11px] text-[#546478]">vs last period</span>
-              </div>
+            <div className="flex min-w-0 flex-col justify-center">
+              <div className="truncate text-[18px] leading-tight text-[#1A2332]" style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>$48,500</div>
+              <div className="mt-0.5 truncate text-[11px] text-[#546478]">Net Profit</div>
             </div>
           </div>
         </Card>
-        <Card className="px-4 py-3 border border-[#E5E7EB] bg-white hover:shadow-sm transition-shadow h-[110.5px]">
+        <Card className="flex min-h-[56px] min-w-0 items-center justify-between gap-3 rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 shadow-[0_1px_2px_rgba(0,0,0,0.05)]" title="+5% vs last period">
           <div className="flex items-center justify-between">
-            <div>
-              <div className="text-[24px] mb-0.5 leading-none" style={{ fontWeight: 700, color: "#1A2332" }}>44.2%</div>
-              <div className="text-[12px] mb-0.5" style={{ fontWeight: 500, color: "#546478" }}>Profit Margin</div>
-              <div className="flex items-center gap-1 mt-1">
-                <span className="text-[11px] text-[#16A34A] flex items-center gap-1" style={{ fontWeight: 500 }}>
-                  <span className="material-icons leading-none" style={{ fontSize: "14px" }}>trending_up</span>+5%
-                </span>
-                <span className="text-[11px] text-[#546478]">vs last period</span>
-              </div>
+            <div className="flex min-w-0 flex-col justify-center">
+              <div className="truncate text-[18px] leading-tight text-[#1A2332]" style={{ fontWeight: 700 }}>44.2%</div>
+              <div className="mt-0.5 truncate text-[11px] text-[#546478]">Profit Margin</div>
             </div>
           </div>
         </Card>

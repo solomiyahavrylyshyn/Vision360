@@ -284,7 +284,7 @@ export function Estimates() {
       />
 
       {/* ── Stats Cards (Clients-template style) ── */}
-      <div className="grid grid-cols-4 gap-4 mb-6">
+      <div className="mb-4 grid grid-cols-4 gap-3">
         {(() => {
           const total       = estimates.length;
           const pending     = estimates.filter(e => e.status === "Viewed").length;

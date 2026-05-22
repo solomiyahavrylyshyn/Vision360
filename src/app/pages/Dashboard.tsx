@@ -91,41 +91,30 @@ export function Dashboard() {
       </div>
 
       {/* Quick Stat Cards */}
-      <div className="grid grid-cols-3 gap-5 mb-8">
-        <Card className="px-4 py-3 border border-[#E5E7EB] bg-white hover:shadow-sm transition-shadow h-[110.5px]">
+      <div className="mb-4 grid grid-cols-3 gap-3">
+        <Card className="flex min-h-[56px] min-w-0 items-center justify-between gap-3 rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 shadow-[0_1px_2px_rgba(0,0,0,0.05)]" title={`${inProgressCount} in progress`}>
           <div className="flex items-center justify-between">
-            <div>
-              <div className="text-[24px] mb-0.5 leading-none" style={{ fontWeight: 700, color: "#1A2332" }}>{jobCount}</div>
-              <div className="text-[12px] mb-0.5" style={{ fontWeight: 500, color: "#546478" }}>Jobs Today</div>
-              {inProgressCount > 0 && (
-                <div className="text-[11px] text-[#546478]">{inProgressCount} in progress</div>
-              )}
+            <div className="flex min-w-0 flex-col justify-center">
+              <div className="truncate text-[18px] leading-tight text-[#1A2332]" style={{ fontWeight: 700 }}>{jobCount}</div>
+              <div className="mt-0.5 truncate text-[11px] text-[#546478]">Jobs Today</div>
             </div>
           </div>
         </Card>
 
-        <Card className="px-4 py-3 border border-[#E5E7EB] bg-white hover:shadow-sm transition-shadow h-[110.5px]">
+        <Card className="flex min-h-[56px] min-w-0 items-center justify-between gap-3 rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 shadow-[0_1px_2px_rgba(0,0,0,0.05)]" title="4 unpaid">
           <div className="flex items-center justify-between">
-            <div>
-              <div className="text-[24px] mb-0.5 leading-none" style={{ fontWeight: 700, color: "#1A2332", fontVariantNumeric: "tabular-nums" }}>$3,480</div>
-              <div className="text-[12px] mb-0.5" style={{ fontWeight: 500, color: "#546478" }}>Outstanding Invoices</div>
-              <div className="text-[11px] text-[#546478]">4 unpaid</div>
+            <div className="flex min-w-0 flex-col justify-center">
+              <div className="truncate text-[18px] leading-tight text-[#1A2332]" style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>$3,480</div>
+              <div className="mt-0.5 truncate text-[11px] text-[#546478]">Outstanding Invoices</div>
             </div>
           </div>
         </Card>
 
-        <Card className="px-4 py-3 border border-[#E5E7EB] bg-white hover:shadow-sm transition-shadow h-[110.5px]">
+        <Card className="flex min-h-[56px] min-w-0 items-center justify-between gap-3 rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 shadow-[0_1px_2px_rgba(0,0,0,0.05)]" title="+12% vs last week">
           <div className="flex items-center justify-between">
-            <div>
-              <div className="text-[24px] mb-0.5 leading-none" style={{ fontWeight: 700, color: "#1A2332", fontVariantNumeric: "tabular-nums" }}>$6,240</div>
-              <div className="text-[12px] mb-0.5" style={{ fontWeight: 500, color: "#546478" }}>This Week's Earnings</div>
-              <div className="text-[11px] text-[#546478]">vs last week</div>
-              <div className="flex items-center gap-1 mt-1">
-                <span className="text-[11px] text-[#16A34A] flex items-center gap-1" style={{ fontWeight: 500 }}>
-                  <span className="material-icons leading-none" style={{ fontSize: "14px" }}>trending_up</span>+12%
-                </span>
-                <span className="text-[11px] text-[#546478]">vs last week</span>
-              </div>
+            <div className="flex min-w-0 flex-col justify-center">
+              <div className="truncate text-[18px] leading-tight text-[#1A2332]" style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>$6,240</div>
+              <div className="mt-0.5 truncate text-[11px] text-[#546478]">This Week's Earnings</div>
             </div>
           </div>
         </Card>

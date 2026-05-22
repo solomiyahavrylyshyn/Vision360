@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useId, useSyncExternalStore, useCallback } from "react";
+import { useState, useRef, useEffect, useSyncExternalStore, useCallback } from "react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { useNavigate } from "react-router";
@@ -22,6 +22,7 @@ import { tagsStore } from "../stores/tagsStore";
 import { countiesStore } from "../stores/countiesStore";
 import { PlusIcon } from "../components/ui/plus-icon";
 import { CreateActionButton } from "../components/ui/create-action-button";
+import { StatCard } from "../components/ui/stat-card";
 
 interface Client {
   id: string;
@@ -198,31 +199,6 @@ export function Clients() {
     </span>
   );
 
-  const Sparkline = ({ data, color = "#4A6FA5" }: { data: number[]; color?: string }) => {
-    const gradientId = useId();
-    const w = 64, h = 32, pad = 1.28;
-    const min = Math.min(...data), max = Math.max(...data), range = max - min || 1;
-    const pts = data.map((v, i) => `${pad + (i / (data.length - 1)) * (w - pad * 2)},${h - pad - ((v - min) / range) * (h - pad * 2)}`).join(" ");
-    const area = `M${pts.split(" ")[0]} L${pts} L${w - pad},${h} L${pad},${h} Z`;
-    return (
-      <svg width={w} height={h} viewBox="0 0 64 32" fill="none" aria-hidden="true">
-        <g clipPath={`url(#${gradientId}-clip)`}>
-          <path d={area} fill={`url(#${gradientId}-gradient)`} />
-          <path d={`M${pts}`} stroke={color} strokeWidth="1.5" strokeLinejoin="round" />
-        </g>
-        <defs>
-          <linearGradient id={`${gradientId}-gradient`} x1="32" y1="1.33334" x2="32" y2="32" gradientUnits="userSpaceOnUse">
-            <stop stopColor={color} />
-            <stop offset="1" stopColor={color} stopOpacity="0" />
-          </linearGradient>
-          <clipPath id={`${gradientId}-clip`}>
-            <rect width="64" height="32" fill="white" />
-          </clipPath>
-        </defs>
-      </svg>
-    );
-  };
-
   const summaryCards = showEmptyStatePreview
     ? [
         { icon: "groups", value: "0", label: "Clients", detail: "Add your first client", color: "#4A6FA5", bg: "#EEF3FA" },
@@ -305,58 +281,35 @@ export function Clients() {
 
         {/* ── Stats Cards ── */}
         {showEmptyStatePreview ? (
-          <div className="mb-4 grid grid-cols-4 gap-4">
+          <div className="mb-4 grid grid-cols-4 gap-3">
             {summaryCards.map(card => (
-            <Card key={card.label} className={showEmptyStatePreview ? "border border-[#E1E6EF] bg-white p-4 shadow-[0_8px_22px_rgba(26,35,50,0.035)]" : "border border-[#E1E6EF] bg-white p-5 shadow-[0_8px_22px_rgba(26,35,50,0.04)]"}>
-              <div className={showEmptyStatePreview ? "flex items-center gap-4" : "flex items-center gap-5"}>
-                <div className={showEmptyStatePreview ? "flex h-12 w-12 items-center justify-center rounded-full" : "flex h-14 w-14 items-center justify-center rounded-full"} style={{ backgroundColor: card.bg, color: card.color }}>
-                  <span className="material-icons" style={{ fontSize: showEmptyStatePreview ? "24px" : "28px" }}>{card.icon}</span>
+              <div
+                key={card.label}
+                className="flex min-h-[56px] min-w-0 items-center justify-between gap-3 rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
+                title={`${card.label}: ${card.value}. ${card.detail}`}
+              >
+                <div className="flex min-w-0 flex-col justify-center">
+                  <div className="truncate text-[18px] leading-tight text-[#1A2332]" style={{ fontWeight: 700 }}>{card.value}</div>
+                  <div className="mt-0.5 truncate text-[11px] text-[#546478]">{card.label}</div>
                 </div>
-                <div>
-                  <div className={showEmptyStatePreview ? "text-[24px] leading-7 text-[#111827]" : "text-[27px] leading-8 text-[#111827]"} style={{ fontWeight: 760 }}>{card.value}</div>
-                  <div className="mt-0.5 text-[13px] text-[#546478]" style={{ fontWeight: 600 }}>{card.label}</div>
-                  <div className="mt-0.5 text-[12px] text-[#7A8799]">{card.detail}</div>
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: card.bg, color: card.color }}>
+                  <span className="material-icons" style={{ fontSize: "18px" }}>{card.icon}</span>
                 </div>
               </div>
-            </Card>
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-4 gap-4 mb-6">
+          <div className="mb-4 grid grid-cols-4 gap-3">
             {[
               { value: "4", label: "New prospects",  sub: "last 30 days", change: "+100%", changeUp: true, period: "vs prev. period", data: [2, 3, 2, 4, 3, 5, 4] },
               { value: "1", label: "New contacts",   sub: "last 30 days", change: "+25%",  changeUp: true, period: "vs prev. period", data: [0, 1, 0, 1, 1, 0, 1] },
               { value: "6", label: "Total contacts", sub: "year to date", change: "+50%",  changeUp: true, period: "vs prev. year",   data: [3, 4, 4, 5, 5, 6, 6] },
-            ].map(c => (
-              <div
-                key={c.label}
-                className="bg-white border border-[#E5E7EB] rounded-lg p-4 flex items-start gap-2"
-                style={{ boxShadow: "0px 1px 2px rgba(0,0,0,0.05)", height: 130 }}
-              >
-                <div className="flex flex-col gap-1 flex-1 min-w-0">
-                  <div className="text-[24px] text-[#1A2332]" style={{ fontWeight: 600, lineHeight: "135%" }}>{c.value}</div>
-                  <div className="flex flex-col gap-0.5">
-                    <div className="text-[16px] text-[#6B7280]" style={{ fontWeight: 600, lineHeight: "24px" }}>{c.label}</div>
-                    <div className="text-[12px] text-[#6B7280]" style={{ fontWeight: 400, lineHeight: "16px" }}>{c.sub}</div>
-                  </div>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <span className={`flex items-center gap-1 text-[12px] ${c.changeUp ? "text-[#16A34A]" : "text-[#DC2626]"}`} style={{ fontWeight: 400, lineHeight: "16px" }}>
-                      <span className="material-icons" style={{ fontSize: "14px" }}>{c.changeUp ? "trending_up" : "trending_down"}</span>
-                      {c.change}
-                    </span>
-                    <span className="text-[12px] text-[#6B7280]" style={{ fontWeight: 400, lineHeight: "16px" }}>{c.period}</span>
-                  </div>
-                </div>
-                <div className="shrink-0">
-                  <Sparkline data={c.data} color="#4A6FA5" />
-                </div>
-              </div>
-            ))}
+            ].map(c => <StatCard key={c.label} {...c} />)}
 
             {/* What's New — QuickBooks integration tile */}
             <div
-              className="relative overflow-hidden rounded-lg border border-[#E5E7EB] cursor-pointer group"
-              style={{ background: "#1C2B3A", height: 130, boxShadow: "0px 1px 2px rgba(0,0,0,0.05)" }}
+              className="group relative flex min-h-[56px] min-w-0 items-center justify-between gap-3 overflow-hidden rounded-xl border border-[#E5E7EB] px-4 py-3"
+              style={{ background: "#1C2B3A", boxShadow: "0px 1px 2px rgba(0,0,0,0.05)" }}
             >
               {/* Blur glow ellipses */}
               <div
@@ -380,26 +333,21 @@ export function Clients() {
                 }}
               />
 
-              <div className="relative flex flex-col h-full px-4 py-4 gap-1">
+              <div className="relative flex min-w-0 flex-col justify-center">
                 {/* What's New header */}
-                <div className="flex items-center gap-1.5 self-stretch">
-                  <span className="material-icons text-[#81B4F3]" style={{ fontSize: "12px" }}>auto_awesome</span>
-                  <span className="text-[12px] text-[#81B4F3]" style={{ fontWeight: 600, lineHeight: "16px" }}>What's New</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="material-icons text-[#81B4F3]" style={{ fontSize: "14px" }}>auto_awesome</span>
+                  <span className="truncate text-[18px] leading-tight text-white" style={{ fontWeight: 700 }}>QuickBooks</span>
                 </div>
 
                 {/* Title + description */}
-                <div className="flex-1 flex flex-col gap-0.5 self-stretch">
-                  <div className="text-[12px] text-white" style={{ fontWeight: 600, lineHeight: "16px" }}>
-                    Integration with QuickBooks Online
-                  </div>
-                  <p className="text-[12px] text-[#ADB7C7]" style={{ fontWeight: 400, lineHeight: "16px" }}>
-                    Sync your clients, invoices, and payments automatically.
-                  </p>
-                </div>
+                <div className="mt-0.5 truncate text-[11px] text-[#ADB7C7]">Integration available</div>
 
                 {/* Learn more button — right-aligned per Figma (align-items: flex-end on column) */}
+              </div>
+              <div className="relative shrink-0">
                 <button
-                  className="self-end inline-flex items-center justify-center bg-[#4A6FA5] hover:bg-[#3d5a85] rounded-lg text-white transition-colors"
+                  className="inline-flex items-center justify-center rounded-lg bg-[#4A6FA5] text-white transition-colors hover:bg-[#3d5a85]"
                   style={{ width: 80, height: 24, minHeight: 24, padding: "3px 8px", fontSize: 12, fontWeight: 500, lineHeight: "16px" }}
                 >
                   Learn more

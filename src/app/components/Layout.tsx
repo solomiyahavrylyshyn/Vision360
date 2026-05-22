@@ -23,7 +23,6 @@ const navItems = [
 export function Layout() {
   const navigate = useNavigate();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [notifMenuOpen, setNotifMenuOpen] = useState(false);
   const [createMenuOpen, setCreateMenuOpen] = useState(false);
   const [globalSearchOpen, setGlobalSearchOpen] = useState(false);
@@ -50,8 +49,6 @@ export function Layout() {
     window.addEventListener(BRAND_LOGO_EVENT, handleLogoChange);
     return () => window.removeEventListener(BRAND_LOGO_EVENT, handleLogoChange);
   }, []);
-  const userMenuRef = useRef<HTMLDivElement>(null);
-  const userAvatarRef = useRef<HTMLButtonElement>(null);
   const notifMenuRef = useRef<HTMLDivElement>(null);
   const notifBtnRef = useRef<HTMLButtonElement>(null);
   const createMenuRef = useRef<HTMLDivElement>(null);
@@ -117,10 +114,6 @@ export function Layout() {
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (userMenuOpen && userMenuRef.current && !userMenuRef.current.contains(event.target as Node) &&
-          userAvatarRef.current && !userAvatarRef.current.contains(event.target as Node)) {
-        setUserMenuOpen(false);
-      }
       if (notifMenuOpen && notifMenuRef.current && !notifMenuRef.current.contains(event.target as Node) &&
           notifBtnRef.current && !notifBtnRef.current.contains(event.target as Node)) {
         setNotifMenuOpen(false);
@@ -136,7 +129,7 @@ export function Layout() {
     }
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [userMenuOpen, notifMenuOpen, createMenuOpen, globalSearchOpen]);
+  }, [notifMenuOpen, createMenuOpen, globalSearchOpen]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -579,7 +572,7 @@ export function Layout() {
 
           {/* Icon action buttons (transparent, 36×36 with 8px padding, radius 8) */}
           <div className="flex items-center gap-1">
-            <button ref={notifBtnRef} title="Notifications" onClick={() => { setNotifMenuOpen(!notifMenuOpen); setUserMenuOpen(false); }}
+            <button ref={notifBtnRef} title="Notifications" onClick={() => setNotifMenuOpen(!notifMenuOpen)}
               className="relative w-9 h-9 p-2 rounded-lg flex items-center justify-center text-[#1A2332] hover:bg-[#F5F7FA] transition-colors">
               <span className="material-icons-outlined" style={{ fontSize: "20px" }}>notifications</span>
               <span className="absolute top-1.5 right-1.5 w-[7px] h-[7px] rounded-full bg-[#DC2626] border border-white" />
@@ -597,16 +590,16 @@ export function Layout() {
           {/* Separator */}
           <div className="w-px h-6 bg-[#E5E7EB] flex-shrink-0" />
 
-          {/* User section: avatar + chevron only */}
+          {/* User section */}
           <button
-            ref={userAvatarRef}
-            onClick={() => setUserMenuOpen(!userMenuOpen)}
-            className="flex items-center gap-2 hover:bg-[#F5F7FA] rounded-lg pr-1 transition-colors"
+            type="button"
+            title="Profile"
+            onClick={() => navigate("/profile")}
+            className="flex h-9 items-center justify-center rounded-lg transition-colors hover:bg-[#F5F7FA]"
           >
             <div className="w-8 h-8 bg-[#4A6FA5] rounded-full flex items-center justify-center text-white text-[14px] flex-shrink-0" style={{ fontWeight: 600 }}>
               JD
             </div>
-            <span className="material-icons text-[#1A2332]" style={{ fontSize: "16px" }}>keyboard_arrow_down</span>
           </button>
         </div>
         </header>
@@ -667,38 +660,6 @@ export function Layout() {
             </div>
             <span style={{ fontWeight: 500 }}>Item</span>
           </button>
-        </div>
-      </div>
-
-      {/* User Menu Dropdown */}
-      <div
-        ref={userMenuRef}
-        className={`fixed w-[240px] bg-white border border-[#E5E7EB] rounded-lg shadow-[0_4px_6px_-1px_rgba(0,0,0,0.1),0_2px_4px_-2px_rgba(0,0,0,0.1)] z-[1100] transition-all duration-150 ease-out overflow-hidden ${
-          userMenuOpen ? "opacity-100 scale-100 pointer-events-auto" : "opacity-0 scale-[0.98] pointer-events-none"
-        }`}
-        style={{ right: "16px", top: "68px", transformOrigin: "top right" }}
-      >
-        <div className="p-0.5">
-
-          {/* Profile / Account */}
-          <button onClick={() => { setUserMenuOpen(false); navigate("/profile"); }} className="w-full flex items-center gap-2 px-2 py-[5.5px] rounded-[6px] hover:bg-[#F5F7FA] transition-colors">
-            <span className="material-icons text-[#6B7280] flex-shrink-0 w-5 h-5 flex items-center justify-center" style={{ fontSize: "16px" }}>person</span>
-            <span className="flex-1 text-[14px] text-[#1A2332] text-left">Profile</span>
-          </button>
-          <button onClick={() => { setUserMenuOpen(false); navigate("/account"); }} className="w-full flex items-center gap-2 px-2 py-[5.5px] rounded-[6px] hover:bg-[#F5F7FA] transition-colors">
-            <span className="material-icons text-[#6B7280] flex-shrink-0 w-5 h-5 flex items-center justify-center" style={{ fontSize: "16px" }}>manage_accounts</span>
-            <span className="flex-1 text-[14px] text-[#1A2332] text-left">Account</span>
-          </button>
-
-          {/* Separator */}
-          <div className="flex items-center px-2 py-1"><div className="h-px w-full bg-[#E5E7EB]" /></div>
-
-          {/* Log out */}
-          <button onClick={() => { setUserMenuOpen(false); navigate("/login"); }} className="w-full flex items-center gap-2 px-2 py-[5.5px] rounded-[6px] hover:bg-[#FEF2F2] transition-colors">
-            <span className="material-icons flex-shrink-0 w-5 h-5 flex items-center justify-center" style={{ fontSize: "16px", color: "#DC2626" }}>logout</span>
-            <span className="flex-1 text-[14px] text-[#DC2626] text-left">Log out</span>
-          </button>
-
         </div>
       </div>
 

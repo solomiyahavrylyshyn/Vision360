@@ -114,22 +114,16 @@ export function Expenses() {
       />
 
       {/* Summary Card */}
-      <div className="grid grid-cols-4 gap-5 mb-8">
-        <Card className="p-5 border border-[#E5E7EB] bg-white hover:shadow-sm transition-shadow">
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full shrink-0" style={{ background: "#DC2626" }} />
-                <span className="text-[12px] text-[#546478]" style={{ fontWeight: 600 }}>Total Expenses</span>
-              </div>
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: "#FEF2F2" }}>
-                <span className="material-icons" style={{ fontSize: "16px", color: "#DC2626" }}>receipt_long</span>
-              </div>
-            </div>
-            <div className="text-[26px] leading-none mb-1" style={{ fontWeight: 700, color: "#1A2332", fontVariantNumeric: "tabular-nums" }}>
+      <div className="mb-4 grid grid-cols-4 gap-3">
+        <Card className="flex min-h-[56px] min-w-0 items-center justify-between gap-3 rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
+          <div className="flex min-w-0 flex-col justify-center">
+            <div className="truncate text-[18px] leading-tight text-[#1A2332]" style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
               ${totalAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
             </div>
-            <div className="text-[12px] text-[#9CA3AF]">{filtered.length} records</div>
+            <div className="mt-0.5 truncate text-[11px] text-[#546478]">Total Expenses</div>
+          </div>
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg" style={{ background: "#FEF2F2" }}>
+            <span className="material-icons" style={{ fontSize: "18px", color: "#DC2626" }}>receipt_long</span>
           </div>
         </Card>
       </div>

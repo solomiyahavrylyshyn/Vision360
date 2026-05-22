@@ -365,6 +365,10 @@ export function ClientDetail() {
   const [docUploader, setDocUploader] = useState("all");
   const [docSortField, setDocSortField] = useState<"name" | "date" | "type" | "size" | "uploadedBy">("name");
   const [docSortDir, setDocSortDir] = useState<"asc" | "desc">("asc");
+  // Inline preview-pane state (mirrors the EstimateDetail Documents UX)
+  const [docPreviewIdx, setDocPreviewIdx] = useState(0);
+  const [docsPage, setDocsPage] = useState(0);
+  const DOCS_PER_PAGE = 10; // 5 columns x 2 rows of miniature thumbnails
   const uploaderOptions = Array.from(new Set(documents.map(d => d.uploadedBy).filter(Boolean) as string[]));
   const filteredDocuments = documents.filter(d => {
     if (docSearch && !d.name.toLowerCase().includes(docSearch.toLowerCase())) return false;
@@ -1494,7 +1498,7 @@ export function ClientDetail() {
               onChange={(e) => handleFilesAdded(e.target.files)}
             />
 
-            {/* Files grid */}
+            {/* Files: Estimate-style inline preview pane + miniature thumbnails strip */}
             {sortedDocuments.length === 0 ? (
               <div className="bg-white border border-[#E5E7EB] rounded-xl py-12 text-center">
                 <span className="material-icons text-[#D1D5DB] mb-2 block" style={{ fontSize: "40px" }}>folder_open</span>
@@ -1504,112 +1508,201 @@ export function ClientDetail() {
                     : "No documents yet"}
                 </div>
               </div>
-            ) : (
-              // Windows File Explorer medium-icons style: dense grid, image-first, name below.
-              // Tooltip on hover shows full filename + metadata so we don't clutter the tile.
-              <>
-              {/* Batch selection action bar */}
-              {selectedDocs.size > 0 && (
-                <div className="bg-[#EEF3FA] border border-[#C5D5EC] rounded-lg px-4 py-2 flex items-center gap-3 mb-3">
-                  <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>
-                    {selectedDocs.size} selected
-                  </span>
-                  <button
-                    onClick={() => setSelectedDocs(new Set(sortedDocuments.map(f => f.id)))}
-                    className="text-[12px] text-[#4A6FA5] hover:underline"
-                    style={{ fontWeight: 500 }}
-                  >Select all</button>
-                  <button
-                    onClick={() => setSelectedDocs(new Set())}
-                    className="text-[12px] text-[#6B7280] hover:underline"
-                    style={{ fontWeight: 500 }}
-                  >Clear</button>
-                  <div className="flex-1" />
-                  <button
-                    onClick={() => setConfirmBulkDelete(true)}
-                    className="h-8 px-3 flex items-center gap-1.5 border border-[#FCA5A5] bg-white hover:bg-[#FEF2F2] rounded-md text-[13px] text-[#DC2626] transition-colors"
-                    style={{ fontWeight: 500 }}
-                  >
-                    <span className="material-icons" style={{ fontSize: "16px" }}>delete_outline</span>
-                    Delete selected
-                  </button>
-                </div>
-              )}
-
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7 gap-3">
-                {sortedDocuments.map((file) => {
-                  const isSelected = selectedDocs.has(file.id);
-                  return (
-                  <div
-                    key={file.id}
-                    onClick={(e) => {
-                      if (e.metaKey || e.ctrlKey || e.shiftKey || selectedDocs.size > 0) {
-                        toggleSelected(file.id);
-                      } else {
-                        setPreviewFileId(file.id);
-                      }
-                    }}
-                    className={`flex flex-col items-center text-center group relative cursor-pointer rounded-lg p-2 transition-colors ${
-                      isSelected ? "bg-[#DBE7F7] ring-2 ring-[#4A6FA5]" : "hover:bg-[#EEF3FA]"
-                    }`}
-                    title={`${file.name}\n${file.size} · ${file.date}${file.uploadedBy ? ` · ${file.uploadedBy}` : ""}`}
-                  >
-                    {/* Hover/selected checkbox */}
-                    <label
-                      onClick={(e) => e.stopPropagation()}
-                      className={`absolute top-1 left-1 z-10 ${isSelected || selectedDocs.size > 0 ? "opacity-100" : "opacity-0 group-hover:opacity-100"} transition-opacity`}
+            ) : (() => {
+              const safeIdx = Math.min(docPreviewIdx, Math.max(0, sortedDocuments.length - 1));
+              const current = sortedDocuments[safeIdx];
+              const totalPages = Math.ceil(sortedDocuments.length / DOCS_PER_PAGE);
+              const safePage = Math.min(docsPage, Math.max(0, totalPages - 1));
+              return (
+                <>
+                {/* Batch selection action bar */}
+                {selectedDocs.size > 0 && (
+                  <div className="bg-[#EEF3FA] border border-[#C5D5EC] rounded-lg px-4 py-2 flex items-center gap-3 mb-3">
+                    <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>
+                      {selectedDocs.size} selected
+                    </span>
+                    <button
+                      onClick={() => setSelectedDocs(new Set(sortedDocuments.map(f => f.id)))}
+                      className="text-[12px] text-[#4A6FA5] hover:underline"
+                      style={{ fontWeight: 500 }}
+                    >Select all</button>
+                    <button
+                      onClick={() => setSelectedDocs(new Set())}
+                      className="text-[12px] text-[#6B7280] hover:underline"
+                      style={{ fontWeight: 500 }}
+                    >Clear</button>
+                    <div className="flex-1" />
+                    <button
+                      onClick={() => setConfirmBulkDelete(true)}
+                      className="h-8 px-3 flex items-center gap-1.5 border border-[#FCA5A5] bg-white hover:bg-[#FEF2F2] rounded-md text-[13px] text-[#DC2626] transition-colors"
+                      style={{ fontWeight: 500 }}
                     >
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        onChange={() => toggleSelected(file.id)}
-                        className="w-4 h-4 accent-[#4A6FA5] cursor-pointer"
-                        aria-label={`Select ${file.name}`}
-                      />
-                    </label>
-                    {/* Thumbnail */}
-                    <div className="w-full aspect-[4/3] rounded-md border border-[#E5E7EB] overflow-hidden bg-white">
-                      {file.isImage ? (
-                        file.previewUrl ? (
-                          <img src={file.previewUrl} alt={file.name} className="w-full h-full object-cover" />
-                        ) : (
-                          <div
-                            className="w-full h-full flex items-center justify-center"
-                            style={{ background: file.previewGradient ?? "linear-gradient(135deg,#fde68a,#f59e0b)" }}
-                          >
-                            <span className="material-icons text-white/70" style={{ fontSize: "32px" }}>image</span>
-                          </div>
-                        )
-                      ) : (
+                      <span className="material-icons" style={{ fontSize: "16px" }}>delete_outline</span>
+                      Delete selected
+                    </button>
+                  </div>
+                )}
+
+                <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden flex flex-col">
+                  {/* Inline preview pane */}
+                  <div className="relative bg-[#FAFBFC] p-4 flex items-center justify-center" style={{ minHeight: "320px" }}>
+                    {/* prev arrow */}
+                    <button
+                      onClick={() => setDocPreviewIdx(i => (i - 1 + sortedDocuments.length) % sortedDocuments.length)}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 z-10 h-9 w-9 rounded-full bg-white border border-[#E5E7EB] shadow-sm hover:bg-[#F5F7FA] flex items-center justify-center transition-colors"
+                      title="Previous"
+                    >
+                      <span className="material-icons text-[#546478]" style={{ fontSize: "20px" }}>chevron_left</span>
+                    </button>
+
+                    {/* main image / file */}
+                    <div className="relative w-full max-w-[560px] aspect-[4/3] rounded-lg overflow-hidden bg-white border border-[#E5E7EB] flex items-center justify-center">
+                      {current?.isImage && current.previewUrl ? (
+                        <img src={current.previewUrl} alt={current.name} className="w-full h-full object-cover" />
+                      ) : current?.isImage ? (
                         <div
                           className="w-full h-full flex items-center justify-center"
-                          style={{ backgroundColor: file.iconColor + "12" }}
+                          style={{ background: current.previewGradient ?? "linear-gradient(135deg,#fde68a,#f59e0b)" }}
                         >
-                          <span className="material-icons" style={{ fontSize: "40px", color: file.iconColor, opacity: 0.85 }}>{file.icon}</span>
+                          <span className="material-icons text-white/70" style={{ fontSize: "64px" }}>image</span>
                         </div>
+                      ) : current ? (
+                        <div className="flex flex-col items-center gap-2 text-center px-6">
+                          <span className="material-icons" style={{ fontSize: "64px", color: current.iconColor, opacity: 0.85 }}>{current.icon}</span>
+                          <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{current.name}</div>
+                          <div className="text-[12px] text-[#9CA3AF]">{current.size} · {current.date}</div>
+                        </div>
+                      ) : null}
+
+                      {/* expand button */}
+                      {current && (
+                        <button
+                          onClick={() => setPreviewFileId(current.id)}
+                          className="absolute top-2 right-2 h-8 w-8 rounded-md bg-white/90 hover:bg-white border border-[#E5E7EB] flex items-center justify-center transition-colors"
+                          title="Open full preview"
+                        >
+                          <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>open_in_full</span>
+                        </button>
                       )}
+
+                      {/* category tag overlay */}
+                      {current?.category && (
+                        <span className="absolute left-2 bottom-2 px-2 py-0.5 rounded-md text-[11px] text-white bg-[#16A34A]" style={{ fontWeight: 600 }}>
+                          {current.category}
+                        </span>
+                      )}
+                      {/* page counter */}
+                      <span className="absolute right-2 bottom-2 px-2 py-0.5 rounded-md text-[11px] text-white bg-black/60" style={{ fontWeight: 500 }}>
+                        {safeIdx + 1} / {sortedDocuments.length}
+                      </span>
                     </div>
 
-                    {/* Filename (2 lines max) */}
-                    <div
-                      className="mt-2 text-[12px] text-[#1A2332] leading-[16px] w-full px-0.5"
-                      style={{
-                        fontWeight: 500,
-                        display: "-webkit-box",
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: "vertical",
-                        overflow: "hidden",
-                        wordBreak: "break-word",
-                      }}
+                    {/* next arrow */}
+                    <button
+                      onClick={() => setDocPreviewIdx(i => (i + 1) % sortedDocuments.length)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 z-10 h-9 w-9 rounded-full bg-white border border-[#E5E7EB] shadow-sm hover:bg-[#F5F7FA] flex items-center justify-center transition-colors"
+                      title="Next"
                     >
-                      {file.name}
-                    </div>
+                      <span className="material-icons text-[#546478]" style={{ fontSize: "20px" }}>chevron_right</span>
+                    </button>
                   </div>
-                  );
-                })}
-              </div>
-              </>
-            )}
+
+                  {/* Caption */}
+                  {current && (
+                    <div className="px-4 py-2 border-t border-[#F3F4F6] text-[12px] text-[#6B7280] truncate" title={current.name}>
+                      {current.name}
+                    </div>
+                  )}
+
+                  {/* Miniature thumbnails strip (5 cols × 2 rows per page) */}
+                  <div className="p-3 border-t border-[#F3F4F6]">
+                    <div className="grid grid-cols-5 gap-1.5">
+                      {sortedDocuments.slice(safePage * DOCS_PER_PAGE, safePage * DOCS_PER_PAGE + DOCS_PER_PAGE).map((file) => {
+                        const globalIdx = sortedDocuments.indexOf(file);
+                        const isActive = globalIdx === safeIdx;
+                        const isSelected = selectedDocs.has(file.id);
+                        return (
+                          <button
+                            key={file.id}
+                            onClick={(e) => {
+                              if (e.metaKey || e.ctrlKey || e.shiftKey || selectedDocs.size > 0) {
+                                toggleSelected(file.id);
+                              } else {
+                                setDocPreviewIdx(globalIdx);
+                              }
+                            }}
+                            className={`group relative aspect-[4/3] rounded-md overflow-hidden border transition-all ${
+                              isActive
+                                ? "border-[#4A6FA5] ring-2 ring-[#4A6FA5]/40"
+                                : isSelected
+                                  ? "border-[#4A6FA5] ring-2 ring-[#4A6FA5]/30"
+                                  : "border-[#E5E7EB] hover:border-[#C5D5EC]"
+                            }`}
+                            title={`${file.name}\n${file.size} · ${file.date}${file.uploadedBy ? ` · ${file.uploadedBy}` : ""}`}
+                          >
+                            {file.isImage && file.previewUrl ? (
+                              <img src={file.previewUrl} alt={file.name} className="w-full h-full object-cover" />
+                            ) : file.isImage ? (
+                              <div
+                                className="w-full h-full flex items-center justify-center"
+                                style={{ background: file.previewGradient ?? "linear-gradient(135deg,#fde68a,#f59e0b)" }}
+                              >
+                                <span className="material-icons text-white/70" style={{ fontSize: "22px" }}>image</span>
+                              </div>
+                            ) : (
+                              <div
+                                className="w-full h-full flex items-center justify-center"
+                                style={{ backgroundColor: file.iconColor + "12" }}
+                              >
+                                <span className="material-icons" style={{ fontSize: "22px", color: file.iconColor }}>{file.icon}</span>
+                              </div>
+                            )}
+                            {file.category && (
+                              <span className="absolute left-1 bottom-1 px-1 rounded text-[9px] text-white bg-[#16A34A]/80" style={{ fontWeight: 600 }}>
+                                {file.category.charAt(0)}
+                              </span>
+                            )}
+                            <span
+                              onClick={(e) => { e.stopPropagation(); toggleSelected(file.id); }}
+                              className={`absolute top-1 left-1 ${isSelected || selectedDocs.size > 0 ? "opacity-100" : "opacity-0 group-hover:opacity-100"} transition-opacity`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={() => toggleSelected(file.id)}
+                                onClick={(e) => e.stopPropagation()}
+                                className="w-3.5 h-3.5 accent-[#4A6FA5] cursor-pointer"
+                                aria-label={`Select ${file.name}`}
+                              />
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {totalPages > 1 && (
+                      <div className="mt-2.5 flex items-center justify-between text-[12px] text-[#6B7280]">
+                        <button
+                          onClick={() => setDocsPage(p => Math.max(0, p - 1))}
+                          disabled={safePage === 0}
+                          className="px-2 py-1 disabled:opacity-40 hover:text-[#374151]"
+                        >
+                          Prev
+                        </button>
+                        <span className="tabular-nums">{safePage + 1} / {totalPages}</span>
+                        <button
+                          onClick={() => setDocsPage(p => Math.min(totalPages - 1, p + 1))}
+                          disabled={safePage >= totalPages - 1}
+                          className="px-2 py-1 disabled:opacity-40 hover:text-[#374151]"
+                        >
+                          Next
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                </>
+              );
+            })()}
 
             {/* Right-side preview panel */}
             <DocumentPreview
@@ -1784,23 +1877,23 @@ export function ClientDetail() {
         </div>
 
         {/* KPI tiles row (4 cards spanning full width, BELOW the name row per Figma) */}
-        <div className="flex gap-4 mt-4">
+        <div className="mt-4 flex gap-3">
           {[
             { label: "Total revenue", value: `$${client.totalRevenue.toLocaleString("en-US", { minimumFractionDigits: 0 })}`, icon: "trending_up", iconColor: "#16A34A" },
             { label: "Balance",       value: `$${client.openBalance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, icon: "paid",        iconColor: "#4A6FA5" },
             { label: "Past Due",      value: `$${client.pastDueBalance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, icon: "schedule",    iconColor: "#DC2626" },
             { label: "Open Jobs",     value: "3", icon: "work", iconColor: "#6B7280" },
           ].map(({ label, value, icon, iconColor }) => (
-            <div key={label} className="flex-1 bg-white border border-[#E5E7EB] rounded-lg p-4 flex items-center gap-2" style={{ boxShadow: "0px 1px 2px rgba(0,0,0,0.05)" }}>
-              <div className="flex-1 flex flex-col gap-1">
-                <div className="text-[14px] leading-[20px]" style={{ fontWeight: 600, color: "#6B7280" }}>{label}</div>
-                <div className="text-[22px] tabular-nums leading-[28px]" style={{ fontWeight: 600, color: "#1A2332", letterSpacing: "-0.01em" }}>{value}</div>
+            <div key={label} className="flex min-w-0 flex-1 items-center justify-between gap-3 rounded-xl border border-[#E5E7EB] bg-white px-4 py-3" style={{ minHeight: 56 }}>
+              <div className="flex min-w-0 flex-col justify-center">
+                <div className="truncate text-[18px] leading-tight tabular-nums text-[#1A2332]" style={{ fontWeight: 700 }}>{value}</div>
+                <div className="mt-0.5 truncate text-[11px] text-[#546478]">{label}</div>
               </div>
               <div
-                className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
                 style={{ backgroundColor: `${iconColor}26` }}
               >
-                <span className="material-icons" style={{ fontSize: "22px", color: iconColor }}>{icon}</span>
+                <span className="material-icons" style={{ fontSize: "18px", color: iconColor }}>{icon}</span>
               </div>
             </div>
           ))}

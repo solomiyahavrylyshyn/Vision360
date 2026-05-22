@@ -106,19 +106,21 @@ function CustomBarTooltip({ active, payload, label }: any) {
 // ── Shared mini-card ──────────────────────────────────────────────────────────
 
 function StatCard({ icon, iconBg, iconColor, label, value, change, changeUp }: typeof allStatCards[0]) {
+  const description = `${label}: ${value}, ${changeUp ? "up" : "down"} ${change} vs last period`;
+
   return (
-    <div className="bg-white border border-[#E5E7EB] rounded-lg p-4 flex items-start gap-2" style={{ boxShadow: "0px 1px 2px rgba(0,0,0,0.05)" }}>
-      <div className="flex flex-col gap-1 flex-1">
-        <div className="text-[24px] text-[#1A2332]" style={{ fontWeight: 600, lineHeight: "135%" }}>{value}</div>
-        <div className="text-[16px] text-[#6B7280]" style={{ fontWeight: 600, lineHeight: "24px" }}>{label}</div>
-        <div className={`flex items-center gap-1 text-[12px] ${changeUp ? "text-[#16A34A]" : "text-[#DC2626]"}`} style={{ fontWeight: 400, lineHeight: "16px" }}>
-          <span className="material-icons" style={{ fontSize: "14px" }}>{changeUp ? "trending_up" : "trending_down"}</span>
-          {change}
-          <span className="text-[#6B7280] font-normal ml-1">vs last period</span>
-        </div>
+    <div
+      className="flex min-h-[56px] min-w-0 items-center justify-between gap-3 rounded-xl border border-[#E5E7EB] bg-white px-4 py-3"
+      style={{ boxShadow: "0px 1px 2px rgba(0,0,0,0.05)" }}
+      aria-label={description}
+      title={description}
+    >
+      <div className="flex min-w-0 flex-col justify-center">
+        <div className="truncate text-[18px] leading-tight text-[#1A2332]" style={{ fontWeight: 700 }}>{value}</div>
+        <div className="mt-0.5 truncate text-[11px] text-[#546478]">{label}</div>
       </div>
-      <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style={{ background: iconBg }}>
-        <span className="material-icons" style={{ fontSize: "24px", color: iconColor }}>{icon}</span>
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg" style={{ background: iconBg }}>
+        <span className="material-icons" style={{ fontSize: "18px", color: iconColor }}>{icon}</span>
       </div>
     </div>
   );
@@ -131,7 +133,7 @@ function AllBusinessTab() {
   return (
     <div className="space-y-5">
       {/* Stat cards */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-4 gap-3">
         {allStatCards.map(c => <StatCard key={c.label} {...c} />)}
       </div>
 
@@ -229,7 +231,7 @@ function SalesPerformanceTab() {
   return (
     <div className="space-y-6">
       {/* ── KPI row (per Figma) ─────────────────────────────── */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-4 gap-3">
         {[
           { icon: "schedule",     iconBg: "rgba(74,111,165,0.15)",  iconColor: "#4A6FA5", label: "Estimates sent",  value: "128",   change: "+14%", changeUp: true  },
           { icon: "percent",      iconBg: "rgba(22,163,74,0.15)",   iconColor: "#16A34A", label: "Conversion rate", value: "76.6%", change: "+5%",  changeUp: true  },
@@ -343,7 +345,7 @@ function FinancialPerformanceTab() {
   return (
     <div className="space-y-6">
       {/* ── KPI row (per Figma) ─────────────────────────────── */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-4 gap-3">
         {[
           { icon: "account_balance_wallet", iconBg: "rgba(22,163,74,0.15)",  iconColor: "#16A34A", label: "Total collected", value: "$14,628", change: "+11%", changeUp: true  },
           { icon: "star_border",            iconBg: "rgba(74,111,165,0.15)", iconColor: "#4A6FA5", label: "Outstanding",     value: "$9,389",  change: "+2%",  changeUp: false },
@@ -451,6 +453,19 @@ function FinancialPerformanceTab() {
 }
 
 function ReportsTab() {
+  type ReportItem = { type: "PDF" | "CSV"; title: string; desc: string };
+  type ReportFormat = "Report default" | "PDF" | "CSV";
+  type GeneratedReport = {
+    title: string;
+    format: string;
+    fromDate: string;
+    toDate: string;
+    user: string;
+    status: string;
+    detail: string;
+    generatedAt: string;
+  };
+
   // PDF / CSV file-shape icon
   const FileIcon = ({ type }: { type: "PDF" | "CSV" }) => {
     const color = type === "PDF" ? "#DC2626" : "#16A34A";
@@ -472,32 +487,75 @@ function ReportsTab() {
     );
   };
 
-  const reportItems: { type: "PDF" | "CSV"; title: string; desc: string }[] = [
-    { type: "PDF", title: "Revenue report",           desc: "Monthly revenue breakdown by client and job type" },
-    { type: "PDF", title: "Invoice summary",          desc: "Paid, unpaid, and overdue invoice totals" },
-    { type: "PDF", title: "Profit & loss statement",  desc: "Net profit summary with expense categories" },
-    { type: "CSV", title: "Client report",            desc: "Top clients by revenue and job count" },
-    { type: "CSV", title: "Jobs report",              desc: "Completed, scheduled, and in-progress jobs" },
-    { type: "CSV", title: "Expense report",           desc: "All expenses by category and time period" },
+  const reportItems: ReportItem[] = [
+    { type: "PDF", title: "Revenue Report",                         desc: "Revenue totals by period, client, job type, and technician" },
+    { type: "PDF", title: "Profit & loss statement",                desc: "Income, expenses, gross profit, and net profit summary" },
+    { type: "CSV", title: "Jobs report",                            desc: "Scheduled, in-progress, completed, and cancelled job activity" },
+    { type: "PDF", title: "Job Costing Summary",                    desc: "Labor, materials, expenses, revenue, and margin by job" },
+    { type: "PDF", title: "Invoice summary (Accounts Receivable)",  desc: "Open, overdue, paid, and partially paid invoice balances" },
+    { type: "CSV", title: "Expense report",                         desc: "Expenses by date, category, merchant, job, and reimbursable status" },
+    { type: "CSV", title: "Client report",                          desc: "Client list, activity, revenue, open balances, and lifetime value" },
+    { type: "CSV", title: "Team report",                            desc: "Team workload, completed jobs, hours, and productivity metrics" },
+    { type: "PDF", title: "Sales Tax Report",                       desc: "Taxable sales, collected tax, tax profiles, and jurisdiction totals" },
+    { type: "CSV", title: "Items Report (Items Usage Report)",      desc: "Item usage, quantities, revenue, cost, and profitability" },
+    { type: "CSV", title: "Payments Report",                        desc: "Payments collected by method, invoice, client, and deposit status" },
+    { type: "CSV", title: "Estimates Report",                       desc: "Estimate totals, statuses, sent dates, and client response activity" },
+    { type: "PDF", title: "Estimate Conversion Report",             desc: "Won, lost, pending, and expired estimates with conversion rate" },
+    { type: "CSV", title: "Revenue by Technician",                  desc: "Revenue, completed jobs, and average job value by technician" },
   ];
+  const userOptions = ["All users", "Peter Novak", "Travis Brown", "Maria Garcia", "Emily Parker", "Office staff"];
+  const statusOptions = ["All statuses", "Scheduled", "In Progress", "Completed", "Paid", "Unpaid", "Overdue"];
+  const detailOptions = ["Summary", "Detailed", "Line item detail"];
+  const [reportParams, setReportParams] = useState({
+    fromDate: "2026-05-01",
+    toDate: "2026-05-31",
+    user: "All users",
+    status: "All statuses",
+    format: "Report default" as ReportFormat,
+    detail: "Summary",
+  });
+  const [generatedReport, setGeneratedReport] = useState<GeneratedReport | null>(null);
+  const controlCls = "h-9 w-full rounded-lg border border-[#E5E7EB] bg-white px-3 text-[13px] text-[#1A2332] outline-none focus:border-[#4A6FA5] shadow-[0_1px_2px_rgba(0,0,0,0.05)]";
+  const selectCls = `${controlCls} pr-8 appearance-none cursor-pointer`;
+  const labelCls = "mb-1 block text-[12px] text-[#6B7280]";
+  const formatDate = (value: string) =>
+    new Date(`${value}T00:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  const generateReport = (report?: ReportItem) => {
+    const title = report?.title ?? "All reports package";
+    const format = reportParams.format === "Report default" ? (report?.type ?? "ZIP") : reportParams.format;
+    setGeneratedReport({
+      title,
+      format,
+      fromDate: reportParams.fromDate,
+      toDate: reportParams.toDate,
+      user: reportParams.user,
+      status: reportParams.status,
+      detail: reportParams.detail,
+      generatedAt: "Just now",
+    });
+  };
 
   return (
     <div className="space-y-6">
       {/* ── Summary row (per Figma) ─────────────────────────── */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-3 gap-3">
         {[
-          { value: "45",         label: "Reports generated", sub: "this month",            icon: "sync",            iconBg: "rgba(74,111,165,0.15)",  iconColor: "#4A6FA5" },
-          { value: "2 days ago", label: "Last export",        sub: "Revenue report (PDF)",  icon: "file_download",   iconBg: "rgba(22,163,74,0.15)",   iconColor: "#16A34A" },
+          { value: "14",         label: "Reports available", sub: "ready to generate",     icon: "sync",            iconBg: "rgba(74,111,165,0.15)",  iconColor: "#4A6FA5" },
+          { value: "2 days ago", label: "Last export",        sub: "Revenue Report (PDF)",  icon: "file_download",   iconBg: "rgba(22,163,74,0.15)",   iconColor: "#16A34A" },
           { value: "3",          label: "Scheduled reports",  sub: "Next run in 5 days",   icon: "schedule",        iconBg: "rgba(245,158,11,0.15)",  iconColor: "#F59E0B" },
         ].map(c => (
-          <div key={c.label} className="bg-white border border-[#E5E7EB] rounded-lg p-4 flex items-start gap-2" style={{ boxShadow: "0px 1px 2px rgba(0,0,0,0.05)" }}>
-            <div className="flex flex-col gap-1 flex-1">
-              <div className="text-[24px] text-[#1A2332]" style={{ fontWeight: 600, lineHeight: "135%" }}>{c.value}</div>
-              <div className="text-[16px] text-[#6B7280]" style={{ fontWeight: 600, lineHeight: "24px" }}>{c.label}</div>
-              <div className="text-[12px] text-[#6B7280]" style={{ fontWeight: 400, lineHeight: "16px" }}>{c.sub}</div>
+          <div
+            key={c.label}
+            className="flex min-h-[56px] min-w-0 items-center justify-between gap-3 rounded-xl border border-[#E5E7EB] bg-white px-4 py-3"
+            style={{ boxShadow: "0px 1px 2px rgba(0,0,0,0.05)" }}
+            title={`${c.label}: ${c.value}. ${c.sub}`}
+          >
+            <div className="flex min-w-0 flex-col justify-center">
+              <div className="truncate text-[18px] leading-tight text-[#1A2332]" style={{ fontWeight: 700 }}>{c.value}</div>
+              <div className="mt-0.5 truncate text-[11px] text-[#546478]">{c.label}</div>
             </div>
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style={{ background: c.iconBg }}>
-              <span className="material-icons" style={{ fontSize: "24px", color: c.iconColor }}>{c.icon}</span>
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg" style={{ background: c.iconBg }}>
+              <span className="material-icons" style={{ fontSize: "18px", color: c.iconColor }}>{c.icon}</span>
             </div>
           </div>
         ))}
@@ -508,9 +566,14 @@ function ReportsTab() {
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3.5">
           <h2 className="text-[16px] text-[#1A2332]" style={{ fontWeight: 600, lineHeight: "24px" }}>Available reports</h2>
-          <button className="h-8 px-3 flex items-center justify-center gap-1.5 bg-[#4A6FA5] hover:bg-[#3d5a85] rounded-lg text-white text-[14px] transition-colors" style={{ fontWeight: 500 }}>
-            <span className="material-icons" style={{ fontSize: "16px" }}>file_download</span>
-            Export all
+          <button
+            type="button"
+            onClick={() => generateReport()}
+            className="h-8 px-3 flex items-center justify-center gap-1.5 bg-[#4A6FA5] hover:bg-[#3d5a85] rounded-lg text-white text-[14px] transition-colors"
+            style={{ fontWeight: 500 }}
+          >
+            <span className="material-icons" style={{ fontSize: "16px" }}>play_arrow</span>
+            Generate all
           </button>
         </div>
 

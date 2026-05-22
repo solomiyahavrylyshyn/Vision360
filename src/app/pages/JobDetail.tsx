@@ -1217,48 +1217,51 @@ export function JobDetail() {
             {/* Financial KPI cards — 4 distinct stat cards per Marek's reference screenshot.
                 Colors set via inline style to be immune from Tailwind class-ordering surprises
                 (the user reported Compensation rendering red — explicit inline color fixes that). */}
-            <div className="grid grid-cols-4 gap-4">
+            <div className="grid grid-cols-4 gap-3">
               {/* Total Price (green) */}
-              <div className="bg-white border border-[#E5E7EB] rounded-lg p-4 flex items-center gap-3 min-h-[86px]" style={{ boxShadow: "0px 1px 2px rgba(0,0,0,0.05)" }}>
-                <div className="flex-1 min-w-0">
-                <div className="text-[11px] leading-[16px]" style={{ fontWeight: 500, color: "#9CA3AF" }}>Total Price</div>
-                <div className="text-[18px] leading-[24px]" style={{ fontWeight: 600, color: "#16A34A" }}>
+              <div className="flex min-h-[56px] min-w-0 items-center justify-between gap-3 rounded-xl border border-[#E5E7EB] bg-white px-4 py-3" style={{ boxShadow: "0px 1px 2px rgba(0,0,0,0.05)" }}>
+                <div className="min-w-0">
+                <div className="truncate text-[18px] leading-tight" style={{ fontWeight: 700, color: "#16A34A" }}>
                   ${job.profitability.totalPrice.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
+                <div className="mt-0.5 truncate text-[11px]" style={{ color: "#546478" }}>Total Price</div>
                 </div>
-                <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: "#16A34A26" }}>
-                  <span className="material-icons" style={{ fontSize: "22px", color: "#16A34A" }}>trending_up</span>
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: "#16A34A26" }}>
+                  <span className="material-icons" style={{ fontSize: "18px", color: "#16A34A" }}>trending_up</span>
                 </div>
               </div>
               {/* Compensation (red — expenses-style cost) */}
-              <div className="bg-white border border-[#E5E7EB] rounded-lg p-4 flex items-center gap-3 min-h-[86px]" style={{ boxShadow: "0px 1px 2px rgba(0,0,0,0.05)" }}>
-                <div className="flex-1 min-w-0">
-                <div className="text-[11px] leading-[16px]" style={{ fontWeight: 500, color: "#9CA3AF" }}>Compensation</div>
-                <div className="text-[18px] leading-[24px]" style={{ fontWeight: 600, color: "#DC2626" }}>
+              <div className="flex min-h-[56px] min-w-0 items-center justify-between gap-3 rounded-xl border border-[#E5E7EB] bg-white px-4 py-3" style={{ boxShadow: "0px 1px 2px rgba(0,0,0,0.05)" }}>
+                <div className="min-w-0">
+                <div className="truncate text-[18px] leading-tight" style={{ fontWeight: 700, color: "#DC2626" }}>
                   ${job.profitability.labor.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
+                <div className="mt-0.5 truncate text-[11px]" style={{ color: "#546478" }}>Compensation</div>
                 </div>
-                <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: "#DC262626" }}>
-                  <span className="material-icons" style={{ fontSize: "22px", color: "#DC2626" }}>payments</span>
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: "#DC262626" }}>
+                  <span className="material-icons" style={{ fontSize: "18px", color: "#DC2626" }}>payments</span>
                 </div>
               </div>
               {/* All Expenses (dark gray) */}
-              <div className="bg-white border border-[#E5E7EB] rounded-lg p-4 flex items-center gap-3 min-h-[86px]" style={{ boxShadow: "0px 1px 2px rgba(0,0,0,0.05)" }}>
-                <div className="flex-1 min-w-0">
-                <div className="text-[11px] leading-[16px]" style={{ fontWeight: 500, color: "#9CA3AF" }}>All Expenses</div>
-                <div className="text-[18px] leading-[24px]" style={{ fontWeight: 600, color: "#1A2332" }}>
+              <div className="flex min-h-[56px] min-w-0 items-center justify-between gap-3 rounded-xl border border-[#E5E7EB] bg-white px-4 py-3" style={{ boxShadow: "0px 1px 2px rgba(0,0,0,0.05)" }}>
+                <div className="min-w-0">
+                <div className="truncate text-[18px] leading-tight text-[#1A2332]" style={{ fontWeight: 700 }}>
                   ${(job.profitability.lineItemCost + job.profitability.expenses).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
+                <div className="mt-0.5 truncate text-[11px]" style={{ color: "#546478" }}>All Expenses</div>
                 </div>
-                <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: "#4A6FA526" }}>
-                  <span className="material-icons" style={{ fontSize: "22px", color: "#4A6FA5" }}>receipt_long</span>
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: "#4A6FA526" }}>
+                  <span className="material-icons" style={{ fontSize: "18px", color: "#4A6FA5" }}>receipt_long</span>
                 </div>
               </div>
               {/* Profit Margin (green if positive, red if negative) */}
-              <div className="bg-white border border-[#E5E7EB] rounded-lg p-4 flex items-center gap-3 min-h-[86px]" style={{ boxShadow: "0px 1px 2px rgba(0,0,0,0.05)" }}>
-                <div className="flex-1 min-w-0">
+              <div className="flex min-h-[56px] min-w-0 items-center justify-between gap-3 rounded-xl border border-[#E5E7EB] bg-white px-4 py-3" style={{ boxShadow: "0px 1px 2px rgba(0,0,0,0.05)" }}>
+                <div className="min-w-0">
+                <div className="truncate text-[18px] leading-tight" style={{ fontWeight: 700, color: job.profitability.margin < 0 ? "#DC2626" : "#16A34A" }}>
+                  {job.profitability.margin.toFixed(2)}%
+                </div>
                 <div className="flex items-center gap-1.5">
-                  <div className="text-[11px] leading-[16px]" style={{ fontWeight: 500, color: "#9CA3AF" }}>Profit Margin</div>
+                  <div className="mt-0.5 truncate text-[11px]" style={{ color: "#546478" }}>Profit Margin</div>
                   <div className="relative group">
                     <span className="material-icons cursor-help" style={{ fontSize: "13px", color: "#9CA3AF" }}>info</span>
                     <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden group-hover:block bg-white border border-[#E5E7EB] rounded-md shadow-lg px-3 py-2 z-50 whitespace-nowrap">
@@ -1266,12 +1269,9 @@ export function JobDetail() {
                     </div>
                   </div>
                 </div>
-                <div className="text-[18px] leading-[24px]" style={{ fontWeight: 600, color: job.profitability.margin < 0 ? "#DC2626" : "#16A34A" }}>
-                  {job.profitability.margin.toFixed(2)}%
                 </div>
-                </div>
-                <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: `${job.profitability.margin < 0 ? "#DC2626" : "#16A34A"}26` }}>
-                  <span className="material-icons" style={{ fontSize: "22px", color: job.profitability.margin < 0 ? "#DC2626" : "#16A34A" }}>query_stats</span>
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: `${job.profitability.margin < 0 ? "#DC2626" : "#16A34A"}26` }}>
+                  <span className="material-icons" style={{ fontSize: "18px", color: job.profitability.margin < 0 ? "#DC2626" : "#16A34A" }}>query_stats</span>
                 </div>
               </div>
             </div>

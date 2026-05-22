@@ -24,42 +24,26 @@ export function StatCard({
   data,
   sparklineColor = "#4A6FA5",
 }: StatCardProps) {
+  const trend = change ? (changeUp ? "up" : "down") : "";
+  const description = `${label}: ${value}${sub ? ` (${sub})` : ""}${change ? `, ${trend} ${change} ${period}` : ""}`;
+
   return (
     <div
-      className="bg-white border border-[#E5E7EB] rounded-lg p-4 flex items-start gap-2"
-      style={{ boxShadow: "0px 1px 2px rgba(0,0,0,0.05)", height: 130 }}
+      className="flex min-h-[56px] min-w-0 items-center justify-between gap-3 rounded-xl border border-[#E5E7EB] bg-white px-4 py-3"
+      style={{ boxShadow: "0px 1px 2px rgba(0,0,0,0.05)" }}
+      aria-label={description}
+      title={description}
     >
-      <div className="flex flex-col gap-1 flex-1 min-w-0">
-        <div className="text-[24px] text-[#1A2332]" style={{ fontWeight: 600, lineHeight: "135%" }}>
+      <div className="flex min-w-0 flex-col justify-center">
+        <div className="truncate text-[18px] leading-tight text-[#1A2332]" style={{ fontWeight: 700 }}>
           {value}
         </div>
-        <div className="flex flex-col gap-0.5">
-          <div className="text-[16px] text-[#6B7280]" style={{ fontWeight: 600, lineHeight: "24px" }}>
-            {label}
-          </div>
-          <div className="text-[12px] text-[#6B7280]" style={{ fontWeight: 400, lineHeight: "16px" }}>
-            {sub}
-          </div>
+        <div className="mt-0.5 truncate text-[11px] text-[#546478]">
+          {label}
         </div>
-        {change ? (
-          <div className="flex items-center gap-2 mt-0.5">
-            <span
-              className={`flex items-center gap-1 text-[12px] ${changeUp ? "text-[#16A34A]" : "text-[#DC2626]"}`}
-              style={{ fontWeight: 400, lineHeight: "16px" }}
-            >
-              <span className="material-icons" style={{ fontSize: "14px" }}>
-                {changeUp ? "trending_up" : "trending_down"}
-              </span>
-              {change}
-            </span>
-            <span className="text-[12px] text-[#6B7280]" style={{ fontWeight: 400, lineHeight: "16px" }}>
-              {period}
-            </span>
-          </div>
-        ) : null}
       </div>
       {data && data.length > 0 ? (
-        <div className="shrink-0">
+        <div className="shrink-0 opacity-90">
           <Sparkline data={data} color={sparklineColor} />
         </div>
       ) : null}

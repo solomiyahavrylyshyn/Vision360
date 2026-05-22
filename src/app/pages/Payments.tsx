@@ -164,7 +164,7 @@ export function Payments() {
       />
 
       {/* ── Stats Cards (Clients-template style) ── */}
-      <div className="grid grid-cols-4 gap-4 mb-6">
+      <div className="mb-4 grid grid-cols-4 gap-3">
         <StatCard
           value={`$${fmt(summary.totalCollected)}`}
           label="Collected"
