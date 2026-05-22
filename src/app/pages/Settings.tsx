@@ -49,17 +49,17 @@ const navGroups: Array<{
   items: Array<{ id: SettingsSection; label: string; description?: string }>;
 }> = [
   {
-    title: "Business Management",
+    title: "Business management",
     icon: "business",
     items: [
-      { id: "companyInfo", label: "Company Info", description: "Company name, address, contact details" },
-      { id: "companyProfile", label: "Company Profile", description: "About, branding, taxes, regional" },
-      { id: "team", label: "Manage Team", description: "Users, roles, employee access" },
-      { id: "billing", label: "Billing & Plan", description: "Core plan, users, subscription payments" },
+      { id: "companyInfo", label: "Company info", description: "Company name, address, contact details" },
+      { id: "companyProfile", label: "Company profile", description: "About, branding, taxes, regional" },
+      { id: "team", label: "Manage team", description: "Users, roles, employee access" },
+      { id: "billing", label: "Billing & plan", description: "Core plan, users, subscription payments" },
     ],
   },
   {
-    title: "System Preferences",
+    title: "System preferences",
     icon: "settings",
     items: [
       { id: "general", label: "General", description: "Industry, custom fields, legal texts" },
@@ -70,7 +70,7 @@ const navGroups: Array<{
     ],
   },
   {
-    title: "Finance Center",
+    title: "Finance center",
     icon: "account_balance",
     items: [
       { id: "finance", label: "Payments", description: "Payment gateway, payout bank, methods" },
@@ -80,7 +80,7 @@ const navGroups: Array<{
     title: "Integrations",
     icon: "extension",
     items: [
-      { id: "integrations", label: "Connected Apps", description: "QuickBooks, Zapier, Mailchimp, GoHighLevel" },
+      { id: "integrations", label: "Connected apps", description: "QuickBooks, Zapier, Mailchimp, GoHighLevel" },
     ],
   },
 ];
@@ -101,10 +101,12 @@ type PermissionLevel = "FULL" | "READ" | "OWN" | "FIELD" | "NONE";
 type PermissionRole = { id: string; label: AppRole; locked?: boolean };
 type RbacPermission = { area: string; feature: string; access: Record<string, PermissionLevel> };
 
-const teamMembers: Array<{ name: string; email: string; role: AppRole; rate: string; status: string }> = [
-  { name: "Peter Novak", email: "peter@omega-home.com", role: "Admin", rate: "$0/hr", status: "Active" },
-  { name: "Ivan Petrenko", email: "ivan@omega-home.com", role: "Employee", rate: "$32/hr", status: "Invited" },
-  { name: "Sarah Lee", email: "sarah@omega-home.com", role: "Employee", rate: "$28/hr", status: "Active" },
+const teamMembers: Array<{ name: string; username: string; phone: string; email: string; role: AppRole; rate: string; status: string }> = [
+  { name: "Emily Parker", username: "parker.emily", phone: "+1-234-234-5555", email: "parker.emily@email.com", role: "Owner", rate: "$0/hr", status: "Active" },
+  { name: "Emily Parker", username: "parker.emily", phone: "+1-234-234-5555", email: "parker.emily@email.com", role: "Owner", rate: "$0/hr", status: "Active" },
+  { name: "Emily Parker", username: "parker.emily", phone: "+1-234-234-5555", email: "parker.emily@email.com", role: "Owner", rate: "$0/hr", status: "Active" },
+  { name: "Emily Parker", username: "parker.emily", phone: "+1-234-234-5555", email: "parker.emily@email.com", role: "Owner", rate: "$0/hr", status: "Active" },
+  { name: "Emily Parker", username: "parker.emily", phone: "+1-234-234-5555", email: "parker.emily@email.com", role: "Owner", rate: "$0/hr", status: "Active" },
 ];
 
 const defaultPermissionRoles: PermissionRole[] = [
@@ -304,7 +306,7 @@ function DocSection({ label, defaultValue }: { label: string; defaultValue: stri
 }
 
 type TaxRateRow = { id: string; name: string; rate: string; description: string };
-type TaxGroupRow = { id: string; name: string; description: string; rateIds: string[] };
+type TaxProfileRow = { id: string; name: string; description: string; rateIds: string[] };
 
 function TaxSettingsCard() {
   const [taxIdName, setTaxIdName] = useState("GST");
@@ -314,46 +316,46 @@ function TaxSettingsCard() {
     { id: "r2", name: "Flor",      rate: "6.0", description: "Sales Tax" },
     { id: "r3", name: "Tampa Tax", rate: "0.5", description: "Sales Tax" },
   ]);
-  const [groups, setGroups] = useState<TaxGroupRow[]>([
+  const [profiles, setProfiles] = useState<TaxProfileRow[]>([
     { id: "g1", name: "Hillsborough County", description: "Tpa+G=Hilld", rateIds: ["r1", "r3"] },
     { id: "g2", name: "Hillsborough County", description: "Tpa+G=Hilld", rateIds: ["r1", "r3"] },
   ]);
   const [defaultId, setDefaultId] = useState<string>("r1");
-  const [editingGroup, setEditingGroup] = useState<string | null>(null);
+  const [editingProfile, setEditingProfile] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState<string[]>([]);
 
-  const sumGroupRate = (rateIds: string[]) =>
+  const sumProfileRate = (rateIds: string[]) =>
     rateIds.reduce((acc, rid) => acc + (parseFloat(rates.find(r => r.id === rid)?.rate || "0") || 0), 0);
 
   const addRate = () => {
     const id = `r${Date.now()}`;
     setRates(prev => [...prev, { id, name: "", rate: "", description: "" }]);
   };
-  const addGroup = () => {
+  const addProfile = () => {
     const id = `g${Date.now()}`;
-    setGroups(prev => [...prev, { id, name: "", description: "", rateIds: [] }]);
+    setProfiles(prev => [...prev, { id, name: "", description: "", rateIds: [] }]);
   };
   const removeRate = (id: string) => {
     setRates(prev => prev.filter(r => r.id !== id));
-    setGroups(prev => prev.map(g => ({ ...g, rateIds: g.rateIds.filter(x => x !== id) })));
-    if (defaultId === id) setDefaultId(rates.find(r => r.id !== id)?.id ?? groups[0]?.id ?? "");
+    setProfiles(prev => prev.map(profile => ({ ...profile, rateIds: profile.rateIds.filter(x => x !== id) })));
+    if (defaultId === id) setDefaultId(rates.find(r => r.id !== id)?.id ?? profiles[0]?.id ?? "");
   };
-  const removeGroup = (id: string) => {
-    setGroups(prev => prev.filter(g => g.id !== id));
+  const removeProfile = (id: string) => {
+    setProfiles(prev => prev.filter(profile => profile.id !== id));
     if (defaultId === id) setDefaultId(rates[0]?.id ?? "");
   };
   const updateRate = (id: string, patch: Partial<TaxRateRow>) =>
     setRates(prev => prev.map(r => r.id === id ? { ...r, ...patch } : r));
-  const updateGroup = (id: string, patch: Partial<TaxGroupRow>) =>
-    setGroups(prev => prev.map(g => g.id === id ? { ...g, ...patch } : g));
+  const updateProfile = (id: string, patch: Partial<TaxProfileRow>) =>
+    setProfiles(prev => prev.map(profile => profile.id === id ? { ...profile, ...patch } : profile));
 
-  const openEditModal = (group: TaxGroupRow) => {
-    setEditingGroup(group.id);
-    setEditDraft([...group.rateIds]);
+  const openEditModal = (profile: TaxProfileRow) => {
+    setEditingProfile(profile.id);
+    setEditDraft([...profile.rateIds]);
   };
   const saveEditModal = () => {
-    if (editingGroup) updateGroup(editingGroup, { rateIds: editDraft });
-    setEditingGroup(null);
+    if (editingProfile) updateProfile(editingProfile, { rateIds: editDraft });
+    setEditingProfile(null);
   };
 
   const inputCls = "h-9 w-full rounded-lg border border-[#E5E7EB] bg-white px-3 text-[14px] text-[#1A2332] outline-none focus:border-[#4A6FA5] shadow-[0_1px_2px_rgba(0,0,0,0.05)]";
@@ -391,7 +393,7 @@ function TaxSettingsCard() {
           <span className="relative group inline-flex">
             <span className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-[#9CA3AF] text-[10px] text-[#9CA3AF] cursor-help">?</span>
             <span className="invisible group-hover:visible absolute left-1/2 -translate-x-1/2 top-6 z-20 w-[260px] rounded-lg bg-[#1A2332] text-white text-[12px] leading-snug px-3 py-2 shadow-lg">
-              Select the radio button next to a tax rate or group to make it the default applied to new invoices and jobs.
+              Select the radio button next to a tax rate or tax profile to make it the default applied to new invoices and jobs.
               <span className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-[#1A2332] rotate-45" />
             </span>
           </span>
@@ -433,38 +435,38 @@ function TaxSettingsCard() {
         {/* Divider */}
         <div className="h-px bg-[#E5E7EB]" />
 
-        {/* Tax groups sub-section */}
+        {/* Tax profiles sub-section */}
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between">
-            <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Tax groups</span>
+            <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Tax profiles</span>
             <button
               type="button"
-              onClick={addGroup}
+              onClick={addProfile}
               className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg bg-[#4A6FA5] text-white text-[14px] hover:bg-[#3d5a85]"
               style={{ fontWeight: 500 }}
             >
               <span className="material-icons" style={{ fontSize: "16px" }}>add_circle_outline</span>
-              Create Tax Group
+              Create Tax Profile
             </button>
           </div>
-          {groups.map(group => {
-            const computed = sumGroupRate(group.rateIds).toFixed(1);
-            const rateItems = group.rateIds.map(rid => rates.find(r => r.id === rid)).filter(Boolean) as TaxRateRow[];
+          {profiles.map(profile => {
+            const computed = sumProfileRate(profile.rateIds).toFixed(1);
+            const rateItems = profile.rateIds.map(rid => rates.find(r => r.id === rid)).filter(Boolean) as TaxRateRow[];
             return (
-              <div key={group.id} className="flex flex-col gap-0">
+              <div key={profile.id} className="flex flex-col gap-0">
                 <TaxRow
-                  kind="group"
-                  checked={defaultId === group.id}
-                  onCheck={() => setDefaultId(group.id)}
-                  onRemove={() => removeGroup(group.id)}
-                  nameLabel="Tax group name"
-                  rateLabel="Tax group rate (%)"
-                  name={group.name}
+                  kind="profile"
+                  checked={defaultId === profile.id}
+                  onCheck={() => setDefaultId(profile.id)}
+                  onRemove={() => removeProfile(profile.id)}
+                  nameLabel="Tax profile name"
+                  rateLabel="Tax profile rate (%)"
+                  name={profile.name}
                   rateValue={computed}
                   rateLocked
-                  description={group.description}
-                  onNameChange={v => updateGroup(group.id, { name: v })}
-                  onDescriptionChange={v => updateGroup(group.id, { description: v })}
+                  description={profile.description}
+                  onNameChange={v => updateProfile(profile.id, { name: v })}
+                  onDescriptionChange={v => updateProfile(profile.id, { description: v })}
                 />
                 <div className="flex items-center gap-2 pl-8 min-h-[36px]">
                   <span className="text-[14px] text-[#6B7280]">Tax rates:</span>
@@ -479,9 +481,9 @@ function TaxSettingsCard() {
                   }
                   <button
                     type="button"
-                    onClick={() => openEditModal(group)}
+                    onClick={() => openEditModal(profile)}
                     className="inline-flex items-center justify-center h-9 w-9 rounded-lg text-[#1A2332] hover:bg-[#F5F7FA] transition-colors"
-                    title="Edit tax rates"
+                    title="Edit tax profile rates"
                   >
                     <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
                   </button>
@@ -492,14 +494,14 @@ function TaxSettingsCard() {
         </div>
       </div>
 
-      {/* Edit tax rates modal */}
-      {editingGroup && (() => {
+      {/* Edit tax profile rates modal */}
+      {editingProfile && (() => {
         return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setEditingGroup(null)}>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setEditingProfile(null)}>
             <div className="bg-white rounded-xl border border-[#E5E7EB] shadow-2xl w-[380px] p-6" onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between mb-5">
-                <span className="text-[16px] text-[#1A2332]" style={{ fontWeight: 600 }}>Edit tax rates</span>
-                <button onClick={() => setEditingGroup(null)} className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-[#F5F7FA] text-[#6B7280]">
+                <span className="text-[16px] text-[#1A2332]" style={{ fontWeight: 600 }}>Edit tax profile rates</span>
+                <button onClick={() => setEditingProfile(null)} className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-[#F5F7FA] text-[#6B7280]">
                   <span className="material-icons" style={{ fontSize: "18px" }}>close</span>
                 </button>
               </div>
@@ -524,7 +526,7 @@ function TaxSettingsCard() {
                 })}
               </div>
               <div className="flex items-center justify-end gap-2">
-                <Button variant="outline" className="h-9 border-[#E5E7EB] px-4 text-[14px] text-[#1A2332]" onClick={() => setEditingGroup(null)}>Cancel</Button>
+                <Button variant="outline" className="h-9 border-[#E5E7EB] px-4 text-[14px] text-[#1A2332]" onClick={() => setEditingProfile(null)}>Cancel</Button>
                 <Button className="h-9 bg-[#4A6FA5] hover:bg-[#3d5a85] text-white px-4 text-[14px]" onClick={saveEditModal}>Save</Button>
               </div>
             </div>
@@ -540,7 +542,7 @@ function TaxRow({
   nameLabel, rateLabel, name, rateValue, description, rateLocked,
   onNameChange, onRateChange, onDescriptionChange,
 }: {
-  kind: "rate" | "group";
+  kind: "rate" | "profile";
   checked: boolean;
   onCheck: () => void;
   onRemove: () => void;
@@ -600,7 +602,7 @@ function TaxRow({
   );
 }
 
-// Regional settings dropdowns: Country / Timezone / Date format / Time format / First day
+// Regional settings dropdowns: Country / Language / Timezone / Date format / Time format / First day
 function RegionalSettingsCard() {
   const selectCls =
     "h-9 w-full rounded-lg border border-[#E5E7EB] bg-white pl-3 pr-8 text-[14px] text-[#1A2332] outline-none focus:border-[#4A6FA5] shadow-[0_1px_2px_rgba(0,0,0,0.05)] appearance-none cursor-pointer";
@@ -622,12 +624,22 @@ function RegionalSettingsCard() {
     <div className="flex flex-col gap-4 rounded-xl border border-[#E5E7EB] bg-white p-4">
       <span className="text-[16px] leading-6 text-[#1A2332]" style={{ fontWeight: 600 }}>Regional settings</span>
       <div className="flex flex-col gap-4">
-        <SelectField label="Country" defaultValue="United States">
-          <option>United States</option>
-          <option>Ukraine</option>
-          <option>Canada</option>
-          <option>Cyprus</option>
-        </SelectField>
+        <div className="flex gap-4">
+          <div className="flex-1">
+            <SelectField label="Country" defaultValue="United States">
+              <option>United States</option>
+              <option>Ukraine</option>
+              <option>Canada</option>
+              <option>Cyprus</option>
+            </SelectField>
+          </div>
+          <div className="flex-1">
+            <SelectField label="Language" defaultValue="English">
+              <option>English</option>
+              <option>Spanish</option>
+            </SelectField>
+          </div>
+        </div>
 
         <div className="flex gap-4">
           <div className="flex-1">
@@ -770,20 +782,26 @@ function BillingAndPlanSection() {
     { id: "INV-2026-05", label: "May 2026",      amount: 94, status: "Paid", date: "May 1, 2026"  },
     { id: "INV-2026-04", label: "April 2026",    amount: 94, status: "Paid", date: "Apr 1, 2026"  },
     { id: "INV-2026-03", label: "March 2026",    amount: 94, status: "Paid", date: "Mar 1, 2026"  },
+    { id: "INV-2026-02", label: "February 2026", amount: 94, status: "Paid", date: "Feb 1, 2026"  },
+    { id: "INV-2026-01", label: "January 2026",  amount: 94, status: "Paid", date: "Jan 1, 2026"  },
   ];
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex w-full flex-col">
       {/* Page header */}
-      <h2 className="text-[24px] leading-[135%] text-[#1A2332]" style={{ fontWeight: 600 }}>Billing & plan</h2>
+      <div className="flex h-[60px] items-start justify-between">
+        <h2 className="text-[24px] leading-8 text-[#1A2332]" style={{ fontWeight: 600 }}>Billing &amp; plan</h2>
+      </div>
+
+      <div className="flex flex-col gap-4">
 
       {/* 2-column layout */}
       <div className="grid grid-cols-2 gap-4">
         {/* Left column */}
         <div className="flex flex-col gap-4">
           {/* Plan card */}
-          <div className="flex flex-col gap-4 rounded-xl border border-[#E5E7EB] bg-white p-4">
-            <div className="flex items-start justify-between gap-6">
+          <div className="flex h-[389px] flex-col gap-4 rounded-xl border border-[#E5E7EB] bg-white p-4">
+            <div className="flex h-[112px] items-start justify-between gap-6">
               <div className="flex flex-col gap-1 flex-1">
                 <div className="flex items-center gap-2">
                   <span className="text-[16px] leading-6 text-[#1A2332]" style={{ fontWeight: 600 }}>Vision360 Core</span>
@@ -815,10 +833,18 @@ function BillingAndPlanSection() {
               </div>
               <p className="text-[12px] leading-4 text-[#6B7280]">Adding or removing users in Manage Team prorates this total on the next billing cycle.</p>
             </div>
+            <button
+              type="button"
+              onClick={() => toast.info("Subscription changes are handled by your account manager")}
+              className="flex h-9 min-h-9 w-full items-center justify-center rounded-lg border border-[#E5E7EB] bg-white px-4 text-[14px] leading-5 text-[#1A2332] transition-colors hover:bg-[#F5F7FA]"
+              style={{ fontWeight: 500 }}
+            >
+              Cancel subscription
+            </button>
           </div>
 
           {/* Payment method card */}
-          <div className="flex flex-1 flex-col justify-between gap-4 rounded-xl border border-[#E5E7EB] bg-white p-4">
+          <div className="flex h-[208px] flex-col gap-4 rounded-xl border border-[#E5E7EB] bg-white p-4">
             <div className="flex flex-col gap-1">
               <span className="text-[16px] leading-6 text-[#1A2332]" style={{ fontWeight: 600 }}>Subscription payment method</span>
               <span className="text-[14px] leading-5 text-[#6B7280]">Card we charge each month for Vision360.</span>
@@ -846,7 +872,7 @@ function BillingAndPlanSection() {
         {/* Right column */}
         <div className="flex flex-col gap-4">
           {/* Account manager card */}
-          <div className="flex flex-col gap-4 rounded-xl border border-[#E5E7EB] bg-white p-4">
+          <div className="flex h-[228px] flex-col gap-4 rounded-xl border border-[#E5E7EB] bg-white p-4">
             <span className="text-[16px] leading-6 text-[#1A2332]" style={{ fontWeight: 600 }}>Your account manager</span>
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-full bg-[#4A6FA5] text-white flex items-center justify-center text-[14px] shrink-0" style={{ fontWeight: 600 }}>SH</div>
@@ -877,13 +903,13 @@ function BillingAndPlanSection() {
           </div>
 
           {/* Payment history card */}
-          <div className="flex h-[317px] min-h-[317px] max-h-[317px] flex-col gap-4 overflow-hidden rounded-xl border border-[#E5E7EB] bg-white p-4 flex-1">
+          <div className="flex h-[369px] flex-col gap-4 overflow-hidden rounded-xl border border-[#E5E7EB] bg-white p-4">
             <div className="flex flex-col gap-1">
               <span className="text-[16px] leading-6 text-[#1A2332]" style={{ fontWeight: 600 }}>Payment history</span>
               <span className="text-[14px] leading-5 text-[#6B7280]">Last invoices for your subscription.</span>
             </div>
             <div className="relative min-h-0 flex-1">
-              <div className="flex h-full flex-col gap-2 overflow-hidden rounded-lg border border-[#E5E7EB] p-3 isolate">
+              <div className="flex h-full flex-col gap-2 overflow-y-auto rounded-lg border border-[#E5E7EB] p-3 pr-2 isolate [scrollbar-gutter:stable]">
                 {history.map(row => (
                   <div key={row.id} className="flex h-[76px] shrink-0 items-center gap-4 rounded-lg border border-[#E5E7EB] p-4">
                     <div className="flex min-w-0 flex-1 flex-col gap-1">
@@ -912,7 +938,7 @@ function BillingAndPlanSection() {
               {/* Gradient fade overlay */}
               <div
                 className="absolute bottom-0 left-0 right-0 pointer-events-none rounded-b-lg"
-                style={{ height: 65, background: "linear-gradient(180deg, rgba(255,255,255,0) 0%, #FFFFFF 100%)" }}
+                style={{ height: 93, background: "linear-gradient(180deg, rgba(255,255,255,0) 0%, #FFFFFF 100%)" }}
               />
             </div>
           </div>
@@ -920,14 +946,14 @@ function BillingAndPlanSection() {
       </div>
 
       {/* Advanced plans coming soon — full width */}
-      <div className="flex flex-col gap-4 rounded-xl border border-[#E5E7EB] bg-white p-4">
+      <div className="flex h-[264px] flex-col gap-4 rounded-xl border border-[#E5E7EB] bg-white p-4">
         <div className="flex flex-col gap-1">
           <span className="text-[16px] leading-6 text-[#1A2332]" style={{ fontWeight: 600 }}>Advanced plans coming soon</span>
           <span className="text-[14px] leading-5 text-[#6B7280]">Vision360 Pro and Enterprise are on the roadmap. They add route optimization, dispatching, advanced reporting, multi-location and white-label.</span>
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid h-[96px] grid-cols-2 gap-4">
           {/* Enterprise card */}
-          <div className="flex items-start gap-4 rounded-lg border border-[#E5E7EB] p-4">
+          <div className="flex h-[96px] items-start gap-4 rounded-lg border border-[#E5E7EB] p-4">
             <div className="flex flex-col gap-1 flex-1">
               <span className="text-[14px] leading-5 text-[#4A6FA5]" style={{ fontWeight: 500 }}>Vision360 Enterprise</span>
               <p className="text-[14px] leading-5 text-[#1A2332]">Multi-location, custom permissions, white-label, dedicated success manager.</p>
@@ -935,7 +961,7 @@ function BillingAndPlanSection() {
             <span className="inline-flex items-center shrink-0 rounded-lg px-2 py-0.5 text-[12px] leading-4 text-[#BD800E]" style={{ fontWeight: 500, background: "rgba(189,128,14,0.15)" }}>Coming soon</span>
           </div>
           {/* Pro card */}
-          <div className="flex items-start gap-4 rounded-lg border border-[#E5E7EB] p-4">
+          <div className="flex h-[96px] items-start gap-4 rounded-lg border border-[#E5E7EB] p-4">
             <div className="flex flex-col gap-1 flex-1">
               <span className="text-[14px] leading-5 text-[#4A6FA5]" style={{ fontWeight: 500 }}>Vision360 Pro</span>
               <p className="text-[14px] leading-5 text-[#1A2332]">Route optimization, dispatch board, call tracking, conversion analytics.</p>
@@ -955,10 +981,12 @@ function BillingAndPlanSection() {
         </div>
       </div>
 
+      </div>
+
       {/* Edit card modal */}
       {editCardOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-end bg-[#1C2B3A]/20 pr-[86px] backdrop-blur-[2px]"
           onClick={() => setEditCardOpen(false)}
         >
           <div
@@ -1851,7 +1879,7 @@ export function Settings() {
   const [searchQuery, setSearchQuery] = useState("");
   // Settings nav groups are collapsible accordions. Business Management is opened
   // by default because Company Info is the landing destination.
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set(["Business Management"]));
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set(["Business management"]));
   const toggleGroupExpanded = (title: string) =>
     setExpandedGroups(prev => {
       const next = new Set(prev);
@@ -1893,11 +1921,12 @@ export function Settings() {
   const [invite, setInvite] = useState(emptyInvite);
   // ── Login security & 2FA ──
   const [tempPasswordLink, setTempPasswordLink] = useState(true);
-  const [forceChangeOnLogin, setForceChangeOnLogin] = useState(true);
+  const [forceChangeOnLogin, setForceChangeOnLogin] = useState(false);
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(true);
   const [twoFactorMethod, setTwoFactorMethod] = useState<"email" | "phone" | "either">("either");
   // ── Pay rate type per company default ──
   const [defaultPayType, setDefaultPayType] = useState<"hourly" | "daily" | "salary">("hourly");
+  const [payRatesOpen, setPayRatesOpen] = useState(false);
   // ── User custom fields ──
   type UserCF = { id: string; label: string; type: "Text" | "Dropdown"; options?: string };
   const [userCustomFields, setUserCustomFields] = useState<UserCF[]>([
@@ -1970,7 +1999,13 @@ export function Settings() {
   const filteredTeam = team.filter(m => {
     const q = teamSearch.trim().toLowerCase();
     if (!q) return true;
-    return m.name.toLowerCase().includes(q) || m.email.toLowerCase().includes(q) || m.role.toLowerCase().includes(q);
+    return (
+      m.name.toLowerCase().includes(q) ||
+      m.username.toLowerCase().includes(q) ||
+      m.phone.toLowerCase().includes(q) ||
+      m.email.toLowerCase().includes(q) ||
+      m.role.toLowerCase().includes(q)
+    );
   });
   const submitInvite = () => {
     if (!invite.name.trim() || !invite.email.trim()) {
@@ -1981,6 +2016,8 @@ export function Settings() {
       ...prev,
       {
         name: invite.name.trim(),
+        username: invite.email.trim().split("@")[0] || invite.name.trim().toLowerCase().replace(/\s+/g, "."),
+        phone: "",
         email: invite.email.trim(),
         role: invite.role,
         rate: invite.rate.trim() ? (invite.rate.includes("/") ? invite.rate : `$${invite.rate}/hr`) : "$0/hr",
@@ -2429,12 +2466,12 @@ export function Settings() {
             <div className="flex flex-col gap-4" onClick={() => setTeamRowMenu(null)}>
 
               {/* Page header */}
-              <div className="flex items-center justify-between gap-3">
-                <h2 className="text-[20px] text-[#1A2332]" style={{ fontWeight: 600 }}>Manage team</h2>
+              <div className="flex items-center justify-between gap-3 py-2">
+                <h2 className="text-[24px] leading-8 text-[#1A2332]" style={{ fontWeight: 600 }}>Manage team</h2>
                 <button
                   type="button"
-                  onClick={e => { e.stopPropagation(); toast.success("Team settings saved"); }}
-                  className="h-9 px-4 rounded-lg bg-[#4A6FA5] hover:bg-[#3d5a85] text-white text-[14px] transition-colors"
+                  disabled
+                  className="h-9 px-4 rounded-lg bg-[#4A6FA5] text-white text-[14px] opacity-50 cursor-not-allowed"
                   style={{ fontWeight: 500 }}
                 >
                   Save changes
@@ -2444,40 +2481,54 @@ export function Settings() {
               {/* Users table card */}
               <div className="flex flex-col rounded-xl border border-[#E5E7EB] bg-white overflow-hidden">
                 {/* Toolbar */}
-                <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-[#E5E7EB]">
+                <div className="flex items-center justify-between gap-3 px-3 py-3 bg-white">
                   <div className="relative w-[300px]">
-                    <span className="material-icons absolute left-2.5 top-1/2 -translate-y-1/2 text-[#9CA3AF] pointer-events-none" style={{ fontSize: "16px" }}>search</span>
+                    <span className="material-icons absolute left-2.5 top-1/2 -translate-y-1/2 text-[#6B7280] pointer-events-none" style={{ fontSize: "16px" }}>search</span>
                     <input
                       placeholder="Search users"
                       value={teamSearch}
                       onChange={e => setTeamSearch(e.target.value)}
-                      className="h-9 w-full rounded-lg border border-[#E5E7EB] bg-white pl-8 pr-3 text-[14px] text-[#1A2332] outline-none focus:border-[#4A6FA5] shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
+                      className="h-9 w-full rounded-lg border border-[#E5E7EB] bg-white pl-8 pr-3 text-[14px] text-[#1A2332] placeholder:text-[#6B7280] outline-none focus:border-[#4A6FA5] shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
                     />
                   </div>
-                  <button
-                    type="button"
-                    onClick={e => { e.stopPropagation(); navigate("/settings/team/new"); }}
-                    className="h-9 px-4 flex items-center gap-1.5 rounded-lg bg-[#4A6FA5] hover:bg-[#3d5a85] text-white text-[14px] transition-colors shrink-0"
-                    style={{ fontWeight: 500 }}
-                  >
-                    <span className="material-icons" style={{ fontSize: "16px" }}>person_add</span>
-                    New User
-                  </button>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={e => { e.stopPropagation(); setPayRatesOpen(true); }}
+                      className="h-9 px-4 flex items-center rounded-lg border border-[#E5E7EB] bg-white hover:bg-[#F5F7FA] text-[14px] text-[#1A2332] transition-colors shrink-0"
+                      style={{ fontWeight: 500 }}
+                    >
+                      Pay rates settings
+                    </button>
+                    <button
+                      type="button"
+                      onClick={e => { e.stopPropagation(); navigate("/settings/team/new"); }}
+                      className="h-9 px-4 flex items-center gap-2 rounded-lg bg-[#4A6FA5] hover:bg-[#3d5a85] text-white text-[14px] transition-colors shrink-0"
+                      style={{ fontWeight: 500 }}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <circle cx="8" cy="8" r="6.67" stroke="currentColor" strokeWidth="1.2"/>
+                        <path d="M5.33 8h5.34M8 5.33v5.34" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+                      </svg>
+                      Invite user
+                    </button>
+                  </div>
                 </div>
 
                 {/* Table */}
                 <table className="w-full">
                   <thead>
-                    <tr className="bg-[#F5F7FA]">
-                      {["Name", "Email", "Role", "Pay rate", "Status", ""].map((h, i) => (
+                    <tr className="bg-[#F5F7FA] border-b border-[#E5E7EB]">
+                      {["Full Name", "User Name", "Phone", "Email", "Role"].map((h, i) => (
                         <th
                           key={i}
-                          className="px-4 text-left text-[12px] text-[#6B7280] border-b border-[#E5E7EB]"
-                          style={{ fontWeight: 500, height: 36, whiteSpace: "nowrap" }}
+                          className="px-2 text-left text-[14px] text-[#1A2332]"
+                          style={{ fontWeight: 500, height: 40, whiteSpace: "nowrap" }}
                         >
                           {h}
                         </th>
                       ))}
+                      <th className="px-2" style={{ height: 40, width: 52 }} />
                     </tr>
                   </thead>
                   <tbody>
@@ -2487,83 +2538,94 @@ export function Settings() {
                           No users match "{teamSearch}".
                         </td>
                       </tr>
-                    ) : filteredTeam.map((member, idx) => (
-                      <tr key={member.email} className={idx > 0 ? "border-t border-[#E5E7EB]" : ""}>
-                        <td className="px-4 text-[14px] text-[#1A2332]" style={{ height: 36, fontWeight: 500 }}>{member.name}</td>
-                        <td className="px-4 text-[14px] text-[#6B7280]" style={{ height: 36 }}>{member.email}</td>
-                        <td className="px-4 text-[14px] text-[#1A2332]" style={{ height: 36 }}>{member.role}</td>
-                        <td className="px-4 text-[14px] text-[#6B7280]" style={{ height: 36 }}>{member.rate}</td>
-                        <td className="px-4" style={{ height: 36 }}>
-                          {member.status === "Active" ? (
-                            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[12px]" style={{ fontWeight: 500, background: "rgba(22,163,74,0.15)", color: "#16A34A" }}>Active</span>
-                          ) : member.status === "Pending" || member.status === "Invited" ? (
-                            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[12px]" style={{ fontWeight: 500, background: "rgba(189,128,14,0.15)", color: "#BD800E" }}>{member.status}</span>
-                          ) : (
-                            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[12px]" style={{ fontWeight: 500, background: "rgba(107,114,128,0.15)", color: "#6B7280" }}>{member.status}</span>
-                          )}
-                        </td>
-                        <td className="px-2 relative" style={{ height: 36, width: 40 }}>
-                          <button
-                            type="button"
-                            onClick={e => { e.stopPropagation(); setTeamRowMenu(teamRowMenu === member.email ? null : member.email); }}
-                            className="w-8 h-8 flex items-center justify-center rounded-md text-[#9CA3AF] hover:bg-[#F5F7FA] hover:text-[#374151] transition-colors"
-                          >
-                            <span className="material-icons" style={{ fontSize: "18px" }}>more_vert</span>
-                          </button>
-                          {teamRowMenu === member.email && (
-                            <div
-                              className="absolute right-0 top-8 z-20 w-[120px] rounded-lg border border-[#E5E7EB] bg-white shadow-lg overflow-hidden"
-                              onClick={e => e.stopPropagation()}
+                    ) : filteredTeam.map((member, idx) => {
+                      const rowKey = `${member.email}-${idx}`;
+                      return (
+                        <tr key={rowKey} className="border-b border-[#E5E7EB] last:border-b-0">
+                          <td className="px-2 text-[14px] text-[#1A2332]" style={{ height: 36 }}>{member.name}</td>
+                          <td className="px-2 text-[14px] text-[#1A2332]" style={{ height: 36 }}>{member.username}</td>
+                          <td className="px-2 text-[14px] text-[#1A2332]" style={{ height: 36 }}>{member.phone}</td>
+                          <td className="px-2 text-[14px] text-[#1A2332]" style={{ height: 36 }}>{member.email}</td>
+                          <td className="px-2 text-[14px] text-[#1A2332]" style={{ height: 36 }}>{member.role}</td>
+                          <td className="px-2 relative" style={{ height: 36, width: 52 }}>
+                            <button
+                              type="button"
+                              onClick={e => { e.stopPropagation(); setTeamRowMenu(teamRowMenu === rowKey ? null : rowKey); }}
+                              className="w-9 h-9 flex items-center justify-center rounded-lg text-[#1A2332] hover:bg-[#F5F7FA] transition-colors"
                             >
-                              <button
-                                type="button"
-                                onClick={() => { setTeamRowMenu(null); toast.info(`Edit ${member.name}`); }}
-                                className="flex w-full items-center gap-2 px-3 py-2 text-[13px] text-[#374151] hover:bg-[#F5F7FA] transition-colors"
-                                style={{ fontWeight: 500 }}
+                              <span className="material-icons" style={{ fontSize: "16px" }}>more_vert</span>
+                            </button>
+                            {teamRowMenu === rowKey && (
+                              <div
+                                className="absolute right-0 top-9 z-20 w-[140px] rounded-lg border border-[#E5E7EB] bg-white shadow-lg overflow-hidden"
+                                onClick={e => e.stopPropagation()}
                               >
-                                <span className="material-icons text-[#6B7280]" style={{ fontSize: "16px" }}>edit</span>
-                                Edit
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => { setTeamRowMenu(null); toast.error(`${member.name} removed`); }}
-                                className="flex w-full items-center gap-2 px-3 py-2 text-[13px] text-[#DC2626] hover:bg-[#FEF2F2] transition-colors"
-                                style={{ fontWeight: 500 }}
-                              >
-                                <span className="material-icons" style={{ fontSize: "16px" }}>delete_outline</span>
-                                Delete
-                              </button>
-                            </div>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
+                                <button
+                                  type="button"
+                                  onClick={() => { setTeamRowMenu(null); toast.info(`Edit ${member.name}`); }}
+                                  className="flex w-full items-center gap-2 px-3 py-2 text-[13px] text-[#374151] hover:bg-[#F5F7FA] transition-colors"
+                                  style={{ fontWeight: 500 }}
+                                >
+                                  <span className="material-icons text-[#6B7280]" style={{ fontSize: "16px" }}>edit</span>
+                                  Edit
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => { setTeamRowMenu(null); toast.error(`${member.name} removed`); }}
+                                  className="flex w-full items-center gap-2 px-3 py-2 text-[13px] text-[#DC2626] hover:bg-[#FEF2F2] transition-colors"
+                                  style={{ fontWeight: 500 }}
+                                >
+                                  <span className="material-icons" style={{ fontSize: "16px" }}>delete_outline</span>
+                                  Delete
+                                </button>
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
 
                 {/* Pagination footer */}
-                <div className="flex items-center justify-between gap-3 px-4 py-2 border-t border-[#E5E7EB]">
-                  <div className="flex items-center gap-2 text-[14px] text-[#6B7280]">
+                <div className="flex items-center justify-between gap-3 px-4 py-4 border-t border-[#E5E7EB] bg-white">
+                  <div className="flex items-center gap-3 text-[14px] text-[#6B7280]">
                     <span>Rows per page:</span>
                     <div className="relative">
-                      <select className="h-8 rounded-md border border-[#E5E7EB] bg-white pl-2 pr-6 text-[14px] text-[#1A2332] outline-none appearance-none cursor-pointer">
+                      <select className="h-9 rounded-lg border border-[#E5E7EB] bg-white pl-3 pr-8 text-[14px] text-[#1A2332] outline-none appearance-none cursor-pointer shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
                         <option>5</option>
                         <option>10</option>
                         <option>25</option>
                       </select>
-                      <span className="material-icons pointer-events-none absolute right-1 top-1/2 -translate-y-1/2 text-[#6B7280]" style={{ fontSize: "14px" }}>expand_more</span>
+                      <span className="material-icons pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[#6B7280]" style={{ fontSize: "16px" }}>expand_more</span>
                     </div>
+                    <span>1-{filteredTeam.length} of 50</span>
                   </div>
-                  <div className="flex items-center gap-3 text-[14px] text-[#6B7280]">
-                    <span>1–{filteredTeam.length} of {filteredTeam.length}</span>
-                    <div className="flex items-center gap-1">
-                      <button type="button" className="w-8 h-8 flex items-center justify-center rounded-md text-[#9CA3AF] hover:bg-[#F5F7FA] disabled:opacity-40" disabled>
-                        <span className="material-icons" style={{ fontSize: "18px" }}>chevron_left</span>
-                      </button>
-                      <button type="button" className="w-8 h-8 flex items-center justify-center rounded-md text-[#9CA3AF] hover:bg-[#F5F7FA] disabled:opacity-40" disabled>
-                        <span className="material-icons" style={{ fontSize: "18px" }}>chevron_right</span>
-                      </button>
+                  <div className="flex items-center gap-2">
+                    <button type="button" disabled className="w-9 h-9 flex items-center justify-center rounded-lg text-[#1A2332] opacity-50">
+                      <span className="material-icons" style={{ fontSize: "16px" }}>chevron_left</span>
+                    </button>
+                    <button type="button" className="w-9 h-9 flex items-center justify-center rounded-lg text-[#1A2332] hover:bg-[#F5F7FA] transition-colors">
+                      <span className="material-icons" style={{ fontSize: "16px" }}>chevron_right</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Manage Custom Fields inline card */}
+                <div className="px-3 pb-3 pt-0 bg-white">
+                  <div className="flex items-center justify-between gap-4 rounded-lg border border-[#E5E7EB] p-4">
+                    <div className="flex flex-col gap-1">
+                      <span className="text-[14px] leading-5 text-[#1A2332]" style={{ fontWeight: 500 }}>Manage Custom Fields in General &gt; Custom Fields</span>
+                      <span className="text-[12px] leading-4 text-[#6B7280]" style={{ fontWeight: 500 }}>All custom fields are configured in one place across Clients, Jobs, Estimates, Invoices, Items.</span>
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => setActiveSection("general")}
+                      className="h-9 px-4 rounded-lg border border-[#E5E7EB] bg-white hover:bg-[#F5F7FA] text-[14px] text-[#1A2332] transition-colors shrink-0"
+                      style={{ fontWeight: 500 }}
+                    >
+                      Manage Custom Fields
+                    </button>
                   </div>
                 </div>
               </div>
@@ -2659,35 +2721,25 @@ export function Settings() {
 
               {/* Login Security & Password */}
               <div className="flex flex-col gap-4 rounded-xl border border-[#E5E7EB] bg-white p-4">
-                <span className="text-[16px] leading-6 text-[#1A2332]" style={{ fontWeight: 600 }}>Login Security &amp; Password</span>
-                <div className="flex items-center justify-between gap-4 rounded-lg border border-[#E5E7EB] p-4">
-                  <div className="flex flex-col gap-0.5">
-                    <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Send temporary password link on invite</span>
-                    <span className="text-[14px] text-[#6B7280]">Admin receives a one-time link by email instead of typing a password manually.</span>
-                  </div>
-                  <Switch checked={tempPasswordLink} onCheckedChange={setTempPasswordLink} />
+                <div className="flex flex-col gap-1">
+                  <span className="text-[16px] leading-6 text-[#1A2332]" style={{ fontWeight: 600 }}>Login Security &amp; Password</span>
+                  <span className="text-[14px] leading-5 text-[#6B7280]">How invitations and password resets work for users you add.</span>
                 </div>
-                <div className="flex items-center justify-between gap-4 rounded-lg border border-[#E5E7EB] p-4">
-                  <div className="flex flex-col gap-0.5">
-                    <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Require password change on first login</span>
-                    <span className="text-[14px] text-[#6B7280]">User must set their own password after using the temporary link.</span>
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center justify-between gap-4 rounded-lg border border-[#E5E7EB] p-4">
+                    <div className="flex flex-col gap-1">
+                      <span className="text-[14px] leading-5 text-[#1A2332]" style={{ fontWeight: 500 }}>Send temporary password link on invite</span>
+                      <span className="text-[12px] leading-4 text-[#6B7280]" style={{ fontWeight: 500 }}>Owner receives a one-time link by email instead of typing a password manually.</span>
+                    </div>
+                    <Switch checked={tempPasswordLink} onCheckedChange={setTempPasswordLink} />
                   </div>
-                  <Switch checked={forceChangeOnLogin} onCheckedChange={setForceChangeOnLogin} />
-                </div>
-                <div className="pt-1 border-t border-[#E5E7EB]" />
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex flex-col gap-0.5">
-                    <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Send password reset link</span>
-                    <span className="text-[14px] text-[#6B7280]">Trigger a manual reset email for a chosen user.</span>
+                  <div className="flex items-center justify-between gap-4 rounded-lg border border-[#E5E7EB] p-4">
+                    <div className="flex flex-col gap-1">
+                      <span className="text-[14px] leading-5 text-[#1A2332]" style={{ fontWeight: 500 }}>Require password change on first login</span>
+                      <span className="text-[12px] leading-4 text-[#6B7280]" style={{ fontWeight: 500 }}>User must set their own password after using the temporary link.</span>
+                    </div>
+                    <Switch checked={forceChangeOnLogin} onCheckedChange={setForceChangeOnLogin} />
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => toast.success("Password reset link sent")}
-                    className="h-9 px-4 rounded-lg border border-[#E5E7EB] bg-white hover:bg-[#F5F7FA] text-[14px] text-[#374151] transition-colors shrink-0"
-                    style={{ fontWeight: 500 }}
-                  >
-                    Send reset link
-                  </button>
                 </div>
               </div>
 
@@ -2777,264 +2829,101 @@ export function Settings() {
                 </div>
               </div>
 
-              {/* Pay rates */}
-              <div className="flex flex-col gap-4 rounded-xl border border-[#E5E7EB] bg-white p-4">
-                <div className="flex flex-col gap-1">
-                  <span className="text-[16px] leading-6 text-[#1A2332]" style={{ fontWeight: 600 }}>Pay rates</span>
-                  <span className="text-[14px] leading-5 text-[#6B7280]">How the company tracks compensation. Affects commission and reporting later.</span>
-                </div>
-                <div className="flex gap-4">
-                  {([
-                    { id: "hourly", label: "Hourly"  },
-                    { id: "daily",  label: "Per day" },
-                    { id: "salary", label: "Salary"  },
-                  ] as const).map(opt => {
-                    const selected = defaultPayType === opt.id;
-                    return (
-                      <button
-                        key={opt.id}
-                        type="button"
-                        onClick={() => setDefaultPayType(opt.id)}
-                        className="flex flex-1 items-center gap-3 rounded-[10px] border p-3 text-left transition-colors"
-                        style={{ borderColor: selected ? "#4A6FA5" : "#E5E7EB", background: "#FFFFFF" }}
-                      >
-                        {/* Square radio */}
-                        <span className="shrink-0 mt-[2.5px] relative flex items-center justify-center" style={{ width: 16, height: 16 }}>
-                          <span
-                            className="absolute inset-0 flex items-center justify-center"
-                            style={{
-                              border: `1px solid ${selected ? "#4A6FA5" : "#E5E7EB"}`,
-                              borderRadius: 3,
-                              background: "#FFFFFF",
-                              boxShadow: selected ? "none" : "0px 1px 2px rgba(0,0,0,0.05)",
-                            }}
-                          >
-                            {selected && (
-                              <span style={{ width: 8, height: 8, background: "#4A6FA5", borderRadius: 2, display: "block" }} />
-                            )}
-                          </span>
-                        </span>
-                        <span className="text-[14px] leading-5 text-[#1A2332]">{opt.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-                <p className="text-[12px] leading-4 text-[#6B7280]">
-                  Individual users can override this default from their profile (e.g., Lead Installer paid hourly while Salesperson is on commission).
-                </p>
+              {/* Footer Save changes */}
+              <div className="flex items-center justify-end pb-2">
+                <button
+                  type="button"
+                  disabled
+                  className="h-9 px-4 rounded-lg bg-[#4A6FA5] text-white text-[14px] opacity-50 cursor-not-allowed"
+                  style={{ fontWeight: 500 }}
+                >
+                  Save changes
+                </button>
               </div>
 
-              {/* Roles & permissions */}
-              <div className="flex flex-col gap-4 rounded-xl border border-[#E5E7EB] bg-white p-4">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex flex-col gap-1">
-                    <span className="text-[16px] leading-6 text-[#1A2332]" style={{ fontWeight: 600 }}>Roles &amp; permissions</span>
-                    <span className="text-[14px] leading-5 text-[#6B7280]">Add permission roles, then tune their access in the matrix.</span>
-                  </div>
-                  <div className="flex gap-3" style={{ width: 360 }}>
-                    <input
-                      placeholder="Add role (e.g. Office Manager)"
-                      value={newPermissionRole}
-                      onChange={e => setNewPermissionRole(e.target.value)}
-                      onKeyDown={e => {
-                        if (e.key === "Enter") addPermissionRole();
-                      }}
-                      className="h-9 flex-1 rounded-lg border border-[#E5E7EB] bg-white px-3 text-[14px] text-[#1A2332] outline-none focus:border-[#4A6FA5] shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
-                    />
-                    <button
-                      type="button"
-                      onClick={addPermissionRole}
-                      className="h-9 px-4 rounded-lg bg-[#4A6FA5] text-white text-[14px] transition-colors shrink-0"
-                      style={{ fontWeight: 500, opacity: newPermissionRole.trim() ? 1 : 0.5 }}
-                    >
-                      Add
-                    </button>
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap gap-2">
-                  {permissionRoles.map(role => (
-                    <span
-                      key={role.id}
-                      className="inline-flex h-7 items-center gap-1 rounded-lg border border-[#E5E7EB] bg-white px-2"
-                    >
-                      <span className="text-[12px] leading-4 text-[#1A2332]" style={{ fontWeight: 500 }}>{role.label}</span>
-                      {!role.locked && (
-                        <button
-                          type="button"
-                          onClick={() => removePermissionRole(role.label)}
-                          className="flex h-4 w-4 items-center justify-center rounded text-[#6B7280] hover:bg-[#F5F7FA] hover:text-[#1A2332]"
-                          title={`Remove ${role.label}`}
-                        >
-                          <span className="material-icons" style={{ fontSize: "14px" }}>close</span>
-                        </button>
-                      )}
-                    </span>
-                  ))}
-                </div>
-
-                <div className="grid grid-cols-5 gap-2">
-                  {permissionLevelOptions.map(level => {
-                    const style = permissionLevelDefinitions[level];
-                    return (
-                      <div key={level} className="rounded-lg border border-[#E5E7EB] bg-white p-3">
-                        <span className="inline-flex h-6 min-w-[54px] items-center justify-center rounded-lg px-2 text-[12px]" style={{ fontWeight: 600, background: style.bg, color: style.color }}>
-                          {style.label}
-                        </span>
-                        <p className="mt-2 text-[12px] leading-4 text-[#6B7280]">{style.description}</p>
+              {/* Pay rates settings modal */}
+              {payRatesOpen && (
+                <div
+                  className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm"
+                  onClick={() => setPayRatesOpen(false)}
+                >
+                  <div
+                    className="w-[560px] bg-white rounded-xl border border-[#E5E7EB] shadow-2xl overflow-hidden"
+                    onClick={e => e.stopPropagation()}
+                  >
+                    <div className="px-6 py-4 border-b border-[#E5E7EB] flex items-center justify-between">
+                      <div className="flex flex-col gap-1">
+                        <h3 className="text-[16px] leading-6 text-[#1A2332]" style={{ fontWeight: 600 }}>Pay rates</h3>
+                        <span className="text-[14px] leading-5 text-[#6B7280]">How the company tracks compensation. Affects commission and reporting later.</span>
                       </div>
-                    );
-                  })}
-                </div>
-
-                <div className="overflow-x-auto rounded-xl border border-[#E5E7EB]">
-                  <table className="w-full min-w-[760px]">
-                    <thead>
-                      <tr className="bg-[#F5F7FA]">
-                        <th className="px-4 text-left text-[12px] text-[#6B7280] border-b border-[#E5E7EB] w-[170px]" style={{ fontWeight: 500, height: 36 }}>Area</th>
-                        <th className="px-4 text-left text-[12px] text-[#6B7280] border-b border-[#E5E7EB]" style={{ fontWeight: 500, height: 36 }}>Feature</th>
-                        {permissionRoles.map(role => (
-                          <th key={role.id} className="px-4 text-right text-[12px] text-[#6B7280] border-b border-[#E5E7EB] w-[118px]" style={{ fontWeight: 500, height: 36 }}>
-                            {role.label}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {rbacRows.map((permission, i) => (
-                        <tr key={`${permission.area}-${permission.feature}`} className={i > 0 ? "border-t border-[#E5E7EB]" : ""}>
-                          <td className="px-4 py-2 text-[12px] leading-4 text-[#6B7280] align-top" style={{ fontWeight: 500 }}>{permission.area}</td>
-                          <td className="px-4 py-2 text-[14px] leading-5 text-[#1A2332] align-top">{permission.feature}</td>
-                          {permissionRoles.map(role => {
-                            const level = permission.access[role.label] ?? "NONE";
-                            const style = permissionLevelDefinitions[level];
-                            return (
-                              <td key={role.id} className="px-4 py-2 text-right align-top" style={{ width: 118 }}>
-                                <div className="relative inline-flex">
-                                  <select
-                                    value={level}
-                                    onChange={e => updatePermissionAccess(i, role.label, e.target.value as PermissionLevel)}
-                                    className="h-7 min-w-[86px] appearance-none rounded-lg border border-transparent px-2 pr-6 text-[12px] outline-none cursor-pointer"
-                                    style={{ fontWeight: 600, background: style.bg, color: style.color }}
-                                  >
-                                    {permissionLevelOptions.map(option => (
-                                      <option key={option} value={option}>{permissionLevelDefinitions[option].label}</option>
-                                    ))}
-                                  </select>
-                                  <span className="material-icons pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2" style={{ fontSize: "14px", color: style.color }}>expand_more</span>
-                                </div>
-                              </td>
-                            );
-                          })}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              {/* User Custom Fields */}
-              <div className="flex flex-col gap-4 rounded-xl border border-[#E5E7EB] bg-white p-4">
-                {/* Header row */}
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex flex-col gap-1">
-                    <span className="text-[16px] leading-6 text-[#1A2332]" style={{ fontWeight: 600 }}>User Custom Fields</span>
-                    <span className="text-[14px] leading-5 text-[#6B7280]">Extra fields you want on every user (e.g., Office / Field flag, who they report to).</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setUserCustomFields([...userCustomFields, { id: `ucf${Date.now()}`, label: "", type: "Text" }])}
-                    className="h-8 px-3 flex items-center gap-1.5 rounded-lg bg-[#4A6FA5] hover:bg-[#3d5a85] text-white text-[14px] transition-colors shrink-0"
-                    style={{ fontWeight: 500 }}
-                  >
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                      <path d="M8 2v12M2 8h12" stroke="#FFFFFF" strokeWidth="1.2" strokeLinecap="round"/>
-                    </svg>
-                    Add field
-                  </button>
-                </div>
-
-                {userCustomFields.length === 0 ? (
-                  <div className="rounded-lg border border-dashed border-[#E5E7EB] px-3 py-6 text-center text-[14px] text-[#9CA3AF]">
-                    No custom fields yet. Click "Add field" to create one.
-                  </div>
-                ) : (
-                  <div className="flex flex-col gap-3">
-                    {userCustomFields.map(cf => {
-                      const update = (patch: Partial<UserCF>) =>
-                        setUserCustomFields(userCustomFields.map(x => x.id === cf.id ? { ...x, ...patch } : x));
-                      const isDropdown = cf.type === "Dropdown";
-                      return (
-                        <div key={cf.id} className="rounded-lg border border-[#E5E7EB] p-4">
-                          <div className="flex items-end gap-4">
-                            {/* Field label column */}
-                            <div className="flex flex-col gap-1" style={{ flex: "0 0 246px" }}>
-                              <span className="text-[14px] leading-5 text-[#1A2332]" style={{ fontWeight: 500 }}>Field label</span>
-                              <input
-                                value={cf.label}
-                                onChange={e => update({ label: e.target.value })}
-                                placeholder="e.g. Office / Field user"
-                                className="h-9 w-full rounded-lg border border-[#E5E7EB] bg-white px-3 text-[14px] text-[#1A2332] outline-none focus:border-[#4A6FA5] shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
-                              />
-                            </div>
-                            {/* Type column */}
-                            <div className="flex flex-col gap-1 flex-1">
-                              <span className="text-[14px] leading-5 text-[#1A2332]" style={{ fontWeight: 500 }}>Type</span>
-                              <div className="relative">
-                                <select
-                                  value={cf.type}
-                                  onChange={e => {
-                                    const newType = e.target.value as "Text" | "Dropdown";
-                                    update({ type: newType, options: newType === "Dropdown" ? (cf.options ?? "") : undefined });
-                                  }}
-                                  className="h-9 w-full rounded-lg border border-[#E5E7EB] bg-white pl-3 pr-8 text-[14px] text-[#1A2332] outline-none focus:border-[#4A6FA5] shadow-[0_1px_2px_rgba(0,0,0,0.05)] appearance-none cursor-pointer"
-                                >
-                                  <option value="Text">Text</option>
-                                  <option value="Dropdown">Dropdown</option>
-                                </select>
-                                <span className="material-icons pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[#6B7280]" style={{ fontSize: "16px" }}>expand_more</span>
-                              </div>
-                            </div>
-                            {/* Options column — always rendered, invisible when Text */}
-                            <div className="flex flex-col gap-1 flex-1" style={{ opacity: isDropdown ? 1 : 0, pointerEvents: isDropdown ? "auto" : "none" }}>
-                              <span className="text-[14px] leading-5 text-[#1A2332]" style={{ fontWeight: 500 }}>Options (comma-separated)</span>
-                              <input
-                                value={cf.options ?? ""}
-                                onChange={e => update({ options: e.target.value })}
-                                placeholder="Office, Field"
-                                className="h-9 w-full rounded-lg border border-[#E5E7EB] bg-white px-3 text-[14px] text-[#1A2332] outline-none focus:border-[#4A6FA5] shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
-                              />
-                            </div>
-                            {/* Delete button */}
+                      <button
+                        onClick={() => setPayRatesOpen(false)}
+                        className="w-8 h-8 flex items-center justify-center rounded-md text-[#9CA3AF] hover:bg-[#F5F7FA] hover:text-[#374151] transition-colors shrink-0"
+                      >
+                        <span className="material-icons" style={{ fontSize: "20px" }}>close</span>
+                      </button>
+                    </div>
+                    <div className="p-6 flex flex-col gap-4">
+                      <div className="flex gap-4">
+                        {([
+                          { id: "hourly", label: "Hourly"  },
+                          { id: "daily",  label: "Per day" },
+                          { id: "salary", label: "Salary"  },
+                        ] as const).map(opt => {
+                          const selected = defaultPayType === opt.id;
+                          return (
                             <button
+                              key={opt.id}
                               type="button"
-                              onClick={() => setUserCustomFields(userCustomFields.filter(x => x.id !== cf.id))}
-                              className="shrink-0 w-9 h-9 flex items-center justify-center rounded-lg text-[#1A2332] hover:bg-[#FEF2F2] hover:text-[#DC2626] transition-colors"
-                              title="Remove field"
+                              onClick={() => setDefaultPayType(opt.id)}
+                              className="flex flex-1 items-center gap-3 rounded-[10px] border p-3 text-left transition-colors"
+                              style={{ borderColor: selected ? "#4A6FA5" : "#E5E7EB", background: "#FFFFFF" }}
                             >
-                              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                                <path d="M2.5 4h11M5.5 4V2.5h5V4M6.5 7v5M9.5 7v5M3.5 4l.5 9.5h8l.5-9.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
-                              </svg>
+                              <span className="shrink-0 relative flex items-center justify-center" style={{ width: 16, height: 16 }}>
+                                <span
+                                  className="absolute inset-0 flex items-center justify-center"
+                                  style={{
+                                    border: `1px solid ${selected ? "#4A6FA5" : "#E5E7EB"}`,
+                                    borderRadius: 3,
+                                    background: "#FFFFFF",
+                                    boxShadow: selected ? "none" : "0px 1px 2px rgba(0,0,0,0.05)",
+                                  }}
+                                >
+                                  {selected && (
+                                    <span style={{ width: 8, height: 8, background: "#4A6FA5", borderRadius: 2, display: "block" }} />
+                                  )}
+                                </span>
+                              </span>
+                              <span className="text-[14px] leading-5 text-[#1A2332]">{opt.label}</span>
                             </button>
-                          </div>
-                        </div>
-                      );
-                    })}
+                          );
+                        })}
+                      </div>
+                      <p className="text-[12px] leading-4 text-[#6B7280]">
+                        Individual users can override this default from their profile (e.g., Lead Installer paid hourly while Salesperson is on commission).
+                      </p>
+                    </div>
+                    <div className="px-6 py-4 border-t border-[#E5E7EB] flex items-center justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setPayRatesOpen(false)}
+                        className="h-9 px-4 rounded-lg border border-[#E5E7EB] bg-white hover:bg-[#F5F7FA] text-[14px] text-[#374151] transition-colors"
+                        style={{ fontWeight: 500 }}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setPayRatesOpen(false); toast.success("Pay rates settings saved"); }}
+                        className="h-9 px-4 rounded-lg bg-[#4A6FA5] hover:bg-[#3d5a85] text-white text-[14px] transition-colors"
+                        style={{ fontWeight: 500 }}
+                      >
+                        Save changes
+                      </button>
+                    </div>
                   </div>
-                )}
-
-                {/* Footer */}
-                <div className="pt-3 border-t border-[#E5E7EB] flex items-center justify-end gap-2">
-                  <button
-                    type="button"
-                    onClick={() => toast.success("Team settings saved")}
-                    className="h-9 px-4 rounded-lg bg-[#4A6FA5] hover:bg-[#3d5a85] text-white text-[14px] transition-colors"
-                    style={{ fontWeight: 500 }}
-                  >
-                    Save changes
-                  </button>
                 </div>
-              </div>
+              )}
 
             </div>
           )}

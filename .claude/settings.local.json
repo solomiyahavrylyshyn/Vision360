@@ -31,7 +31,12 @@
       "Bash(npx vite *)",
       "PowerShell(\\(Get-Content \"C:\\\\Users\\\\mykha\\\\Documents\\\\Vision360\\\\prototype.html\" -Raw\\) -replace 'MindBridge', 'Alive' -replace 'Mind<span>Bridge</span>', 'Alive' | Set-Content \"C:\\\\Users\\\\mykha\\\\Documents\\\\Vision360\\\\prototype.html\" -Encoding utf8)",
       "PowerShell(New-Item -ItemType Directory -Force \"C:\\\\Users\\\\mykha\\\\Documents\\\\Vision360\\\\alive\")",
-      "PowerShell(Move-Item \"C:\\\\Users\\\\mykha\\\\Documents\\\\Vision360\\\\prototype.html\" \"C:\\\\Users\\\\mykha\\\\Documents\\\\Vision360\\\\alive\\\\prototype.html\")"
+      "PowerShell(Move-Item \"C:\\\\Users\\\\mykha\\\\Documents\\\\Vision360\\\\prototype.html\" \"C:\\\\Users\\\\mykha\\\\Documents\\\\Vision360\\\\alive\\\\prototype.html\")",
+      "mcp__plugin_figma_figma__get_code_connect_suggestions",
+      "mcp__plugin_figma_figma__get_design_context",
+      "mcp__plugin_figma_figma__get_metadata",
+      "Bash(grep -n \"{\\\\* .* \\\\*}\\\\|/\\\\\\\\* .* \\\\\\\\*/\" \"C:\\\\Users\\\\mykha\\\\Documents\\\\Vision360\\\\src\\\\app\\\\pages\\\\Settings.tsx\")",
+      "Bash(awk -F: '$1>=2434 && $1<=3050')"
     ]
   }
 }
