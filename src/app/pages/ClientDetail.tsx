@@ -368,7 +368,8 @@ export function ClientDetail() {
   // Inline preview-pane state (mirrors the EstimateDetail Documents UX)
   const [docPreviewIdx, setDocPreviewIdx] = useState(0);
   const [docsPage, setDocsPage] = useState(0);
-  const DOCS_PER_PAGE = 10; // 5 columns x 2 rows of miniature thumbnails
+  const [docPreviewPaneOpen, setDocPreviewPaneOpen] = useState(true);
+  const DOCS_PER_PAGE = 12; // 3 columns x 4 rows of miniature thumbnails (left rail)
   const uploaderOptions = Array.from(new Set(documents.map(d => d.uploadedBy).filter(Boolean) as string[]));
   const filteredDocuments = documents.filter(d => {
     if (docSearch && !d.name.toLowerCase().includes(docSearch.toLowerCase())) return false;
@@ -1543,148 +1544,96 @@ export function ClientDetail() {
                   </div>
                 )}
 
-                <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden flex flex-col">
-                  {/* Inline preview pane */}
-                  <div className="relative bg-[#FAFBFC] p-4 flex items-center justify-center" style={{ minHeight: "320px" }}>
-                    {/* prev arrow */}
-                    <button
-                      onClick={() => setDocPreviewIdx(i => (i - 1 + sortedDocuments.length) % sortedDocuments.length)}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 z-10 h-9 w-9 rounded-full bg-white border border-[#E5E7EB] shadow-sm hover:bg-[#F5F7FA] flex items-center justify-center transition-colors"
-                      title="Previous"
-                    >
-                      <span className="material-icons text-[#546478]" style={{ fontSize: "20px" }}>chevron_left</span>
-                    </button>
-
-                    {/* main image / file */}
-                    <div className="relative w-full max-w-[560px] aspect-[4/3] rounded-lg overflow-hidden bg-white border border-[#E5E7EB] flex items-center justify-center">
-                      {current?.isImage && current.previewUrl ? (
-                        <img src={current.previewUrl} alt={current.name} className="w-full h-full object-cover" />
-                      ) : current?.isImage ? (
-                        <div
-                          className="w-full h-full flex items-center justify-center"
-                          style={{ background: current.previewGradient ?? "linear-gradient(135deg,#fde68a,#f59e0b)" }}
-                        >
-                          <span className="material-icons text-white/70" style={{ fontSize: "64px" }}>image</span>
-                        </div>
-                      ) : current ? (
-                        <div className="flex flex-col items-center gap-2 text-center px-6">
-                          <span className="material-icons" style={{ fontSize: "64px", color: current.iconColor, opacity: 0.85 }}>{current.icon}</span>
-                          <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{current.name}</div>
-                          <div className="text-[12px] text-[#9CA3AF]">{current.size} · {current.date}</div>
-                        </div>
-                      ) : null}
-
-                      {/* expand button */}
-                      {current && (
-                        <button
-                          onClick={() => setPreviewFileId(current.id)}
-                          className="absolute top-2 right-2 h-8 w-8 rounded-md bg-white/90 hover:bg-white border border-[#E5E7EB] flex items-center justify-center transition-colors"
-                          title="Open full preview"
-                        >
-                          <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>open_in_full</span>
-                        </button>
-                      )}
-
-                      {/* category tag overlay */}
-                      {current?.category && (
-                        <span className="absolute left-2 bottom-2 px-2 py-0.5 rounded-md text-[11px] text-white bg-[#16A34A]" style={{ fontWeight: 600 }}>
-                          {current.category}
-                        </span>
-                      )}
-                      {/* page counter */}
-                      <span className="absolute right-2 bottom-2 px-2 py-0.5 rounded-md text-[11px] text-white bg-black/60" style={{ fontWeight: 500 }}>
-                        {safeIdx + 1} / {sortedDocuments.length}
-                      </span>
-                    </div>
-
-                    {/* next arrow */}
-                    <button
-                      onClick={() => setDocPreviewIdx(i => (i + 1) % sortedDocuments.length)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 z-10 h-9 w-9 rounded-full bg-white border border-[#E5E7EB] shadow-sm hover:bg-[#F5F7FA] flex items-center justify-center transition-colors"
-                      title="Next"
-                    >
-                      <span className="material-icons text-[#546478]" style={{ fontSize: "20px" }}>chevron_right</span>
-                    </button>
-                  </div>
-
-                  {/* Caption */}
-                  {current && (
-                    <div className="px-4 py-2 border-t border-[#F3F4F6] text-[12px] text-[#6B7280] truncate" title={current.name}>
-                      {current.name}
-                    </div>
-                  )}
-
-                  {/* Miniature thumbnails strip (5 cols × 2 rows per page) */}
-                  <div className="p-3 border-t border-[#F3F4F6]">
-                    <div className="grid grid-cols-5 gap-1.5">
-                      {sortedDocuments.slice(safePage * DOCS_PER_PAGE, safePage * DOCS_PER_PAGE + DOCS_PER_PAGE).map((file) => {
-                        const globalIdx = sortedDocuments.indexOf(file);
-                        const isActive = globalIdx === safeIdx;
-                        const isSelected = selectedDocs.has(file.id);
-                        return (
+                <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden flex" style={{ minHeight: "520px" }}>
+                  {/* Left: miniature thumbnails rail (smaller icons, 3 cols when preview open, more cols when closed) */}
+                  <div className={`${docPreviewPaneOpen ? "w-[240px] shrink-0 border-r border-[#F3F4F6]" : "flex-1"} flex flex-col`}>
+                    <div className="p-2.5 flex-1 overflow-y-auto">
+                      {!docPreviewPaneOpen && (
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-[12px] text-[#6B7280]" style={{ fontWeight: 500 }}>
+                            Preview hidden — click any file to reopen
+                          </span>
                           <button
-                            key={file.id}
-                            onClick={(e) => {
-                              if (e.metaKey || e.ctrlKey || e.shiftKey || selectedDocs.size > 0) {
-                                toggleSelected(file.id);
-                              } else {
-                                setDocPreviewIdx(globalIdx);
-                              }
-                            }}
-                            className={`group relative aspect-[4/3] rounded-md overflow-hidden border transition-all ${
-                              isActive
-                                ? "border-[#4A6FA5] ring-2 ring-[#4A6FA5]/40"
-                                : isSelected
-                                  ? "border-[#4A6FA5] ring-2 ring-[#4A6FA5]/30"
-                                  : "border-[#E5E7EB] hover:border-[#C5D5EC]"
-                            }`}
-                            title={`${file.name}\n${file.size} · ${file.date}${file.uploadedBy ? ` · ${file.uploadedBy}` : ""}`}
+                            onClick={() => setDocPreviewPaneOpen(true)}
+                            className="h-7 px-2.5 inline-flex items-center gap-1 text-[12px] text-[#4A6FA5] border border-[#E5E7EB] rounded-md hover:bg-[#F5F7FA]"
+                            style={{ fontWeight: 500 }}
                           >
-                            {file.isImage && file.previewUrl ? (
-                              <img src={file.previewUrl} alt={file.name} className="w-full h-full object-cover" />
-                            ) : file.isImage ? (
-                              <div
-                                className="w-full h-full flex items-center justify-center"
-                                style={{ background: file.previewGradient ?? "linear-gradient(135deg,#fde68a,#f59e0b)" }}
-                              >
-                                <span className="material-icons text-white/70" style={{ fontSize: "22px" }}>image</span>
-                              </div>
-                            ) : (
-                              <div
-                                className="w-full h-full flex items-center justify-center"
-                                style={{ backgroundColor: file.iconColor + "12" }}
-                              >
-                                <span className="material-icons" style={{ fontSize: "22px", color: file.iconColor }}>{file.icon}</span>
-                              </div>
-                            )}
-                            {file.category && (
-                              <span className="absolute left-1 bottom-1 px-1 rounded text-[9px] text-white bg-[#16A34A]/80" style={{ fontWeight: 600 }}>
-                                {file.category.charAt(0)}
-                              </span>
-                            )}
-                            <span
-                              onClick={(e) => { e.stopPropagation(); toggleSelected(file.id); }}
-                              className={`absolute top-1 left-1 ${isSelected || selectedDocs.size > 0 ? "opacity-100" : "opacity-0 group-hover:opacity-100"} transition-opacity`}
-                            >
-                              <input
-                                type="checkbox"
-                                checked={isSelected}
-                                onChange={() => toggleSelected(file.id)}
-                                onClick={(e) => e.stopPropagation()}
-                                className="w-3.5 h-3.5 accent-[#4A6FA5] cursor-pointer"
-                                aria-label={`Select ${file.name}`}
-                              />
-                            </span>
+                            <span className="material-icons" style={{ fontSize: "14px" }}>visibility</span>
+                            Show preview
                           </button>
-                        );
-                      })}
+                        </div>
+                      )}
+                      <div className={`grid gap-1.5 ${docPreviewPaneOpen ? "grid-cols-3" : "grid-cols-6 md:grid-cols-8 lg:grid-cols-10"}`}>
+                        {sortedDocuments.slice(safePage * DOCS_PER_PAGE, safePage * DOCS_PER_PAGE + DOCS_PER_PAGE).map((file) => {
+                          const globalIdx = sortedDocuments.indexOf(file);
+                          const isActive = globalIdx === safeIdx;
+                          const isSelected = selectedDocs.has(file.id);
+                          return (
+                            <button
+                              key={file.id}
+                              onClick={(e) => {
+                                if (e.metaKey || e.ctrlKey || e.shiftKey || selectedDocs.size > 0) {
+                                  toggleSelected(file.id);
+                                } else {
+                                  setDocPreviewIdx(globalIdx);
+                                  if (!docPreviewPaneOpen) setDocPreviewPaneOpen(true);
+                                }
+                              }}
+                              className={`group relative aspect-[4/3] rounded overflow-hidden border transition-all ${
+                                isActive
+                                  ? "border-[#4A6FA5] ring-2 ring-[#4A6FA5]/40"
+                                  : isSelected
+                                    ? "border-[#4A6FA5] ring-2 ring-[#4A6FA5]/30"
+                                    : "border-[#E5E7EB] hover:border-[#C5D5EC]"
+                              }`}
+                              title={`${file.name}\n${file.size} · ${file.date}${file.uploadedBy ? ` · ${file.uploadedBy}` : ""}`}
+                            >
+                              {file.isImage && file.previewUrl ? (
+                                <img src={file.previewUrl} alt={file.name} className="w-full h-full object-cover" />
+                              ) : file.isImage ? (
+                                <div
+                                  className="w-full h-full flex items-center justify-center"
+                                  style={{ background: file.previewGradient ?? "linear-gradient(135deg,#fde68a,#f59e0b)" }}
+                                >
+                                  <span className="material-icons text-white/70" style={{ fontSize: "14px" }}>image</span>
+                                </div>
+                              ) : (
+                                <div
+                                  className="w-full h-full flex items-center justify-center"
+                                  style={{ backgroundColor: file.iconColor + "12" }}
+                                >
+                                  <span className="material-icons" style={{ fontSize: "14px", color: file.iconColor }}>{file.icon}</span>
+                                </div>
+                              )}
+                              {file.category && (
+                                <span className="absolute left-0.5 bottom-0.5 px-1 rounded text-[8px] text-white bg-[#16A34A]/80" style={{ fontWeight: 600 }}>
+                                  {file.category.charAt(0)}
+                                </span>
+                              )}
+                              <span
+                                onClick={(e) => { e.stopPropagation(); toggleSelected(file.id); }}
+                                className={`absolute top-0.5 left-0.5 ${isSelected || selectedDocs.size > 0 ? "opacity-100" : "opacity-0 group-hover:opacity-100"} transition-opacity`}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={() => toggleSelected(file.id)}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="w-3 h-3 accent-[#4A6FA5] cursor-pointer"
+                                  aria-label={`Select ${file.name}`}
+                                />
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
                     {totalPages > 1 && (
-                      <div className="mt-2.5 flex items-center justify-between text-[12px] text-[#6B7280]">
+                      <div className="px-2.5 py-2 border-t border-[#F3F4F6] flex items-center justify-between text-[11px] text-[#6B7280]">
                         <button
                           onClick={() => setDocsPage(p => Math.max(0, p - 1))}
                           disabled={safePage === 0}
-                          className="px-2 py-1 disabled:opacity-40 hover:text-[#374151]"
+                          className="px-1.5 py-0.5 disabled:opacity-40 hover:text-[#374151]"
                         >
                           Prev
                         </button>
@@ -1692,13 +1641,97 @@ export function ClientDetail() {
                         <button
                           onClick={() => setDocsPage(p => Math.min(totalPages - 1, p + 1))}
                           disabled={safePage >= totalPages - 1}
-                          className="px-2 py-1 disabled:opacity-40 hover:text-[#374151]"
+                          className="px-1.5 py-0.5 disabled:opacity-40 hover:text-[#374151]"
                         >
                           Next
                         </button>
                       </div>
                     )}
                   </div>
+
+                  {/* Right: preview pane (collapsible via the close button) */}
+                  {docPreviewPaneOpen && (
+                    <div className="flex-1 min-w-0 flex flex-col">
+                      <div className="relative bg-[#FAFBFC] p-4 flex-1 flex items-center justify-center">
+                        {/* close pane button */}
+                        <button
+                          onClick={() => setDocPreviewPaneOpen(false)}
+                          className="absolute top-3 left-3 z-10 h-8 w-8 rounded-md bg-white/90 hover:bg-white border border-[#E5E7EB] flex items-center justify-center transition-colors"
+                          title="Close preview"
+                          aria-label="Close preview"
+                        >
+                          <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>close</span>
+                        </button>
+
+                        {/* prev arrow */}
+                        <button
+                          onClick={() => setDocPreviewIdx(i => (i - 1 + sortedDocuments.length) % sortedDocuments.length)}
+                          className="absolute left-3 top-1/2 -translate-y-1/2 z-10 h-9 w-9 rounded-full bg-white border border-[#E5E7EB] shadow-sm hover:bg-[#F5F7FA] flex items-center justify-center transition-colors"
+                          title="Previous"
+                        >
+                          <span className="material-icons text-[#546478]" style={{ fontSize: "20px" }}>chevron_left</span>
+                        </button>
+
+                        {/* main image / file */}
+                        <div className="relative w-full max-w-[680px] aspect-[4/3] rounded-lg overflow-hidden bg-white border border-[#E5E7EB] flex items-center justify-center">
+                          {current?.isImage && current.previewUrl ? (
+                            <img src={current.previewUrl} alt={current.name} className="w-full h-full object-cover" />
+                          ) : current?.isImage ? (
+                            <div
+                              className="w-full h-full flex items-center justify-center"
+                              style={{ background: current.previewGradient ?? "linear-gradient(135deg,#fde68a,#f59e0b)" }}
+                            >
+                              <span className="material-icons text-white/70" style={{ fontSize: "64px" }}>image</span>
+                            </div>
+                          ) : current ? (
+                            <div className="flex flex-col items-center gap-2 text-center px-6">
+                              <span className="material-icons" style={{ fontSize: "64px", color: current.iconColor, opacity: 0.85 }}>{current.icon}</span>
+                              <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{current.name}</div>
+                              <div className="text-[12px] text-[#9CA3AF]">{current.size} · {current.date}</div>
+                            </div>
+                          ) : null}
+
+                          {/* expand button */}
+                          {current && (
+                            <button
+                              onClick={() => setPreviewFileId(current.id)}
+                              className="absolute top-2 right-2 h-8 w-8 rounded-md bg-white/90 hover:bg-white border border-[#E5E7EB] flex items-center justify-center transition-colors"
+                              title="Open full preview"
+                            >
+                              <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>open_in_full</span>
+                            </button>
+                          )}
+
+                          {/* category tag overlay */}
+                          {current?.category && (
+                            <span className="absolute left-2 bottom-2 px-2 py-0.5 rounded-md text-[11px] text-white bg-[#16A34A]" style={{ fontWeight: 600 }}>
+                              {current.category}
+                            </span>
+                          )}
+                          {/* page counter */}
+                          <span className="absolute right-2 bottom-2 px-2 py-0.5 rounded-md text-[11px] text-white bg-black/60" style={{ fontWeight: 500 }}>
+                            {safeIdx + 1} / {sortedDocuments.length}
+                          </span>
+                        </div>
+
+                        {/* next arrow */}
+                        <button
+                          onClick={() => setDocPreviewIdx(i => (i + 1) % sortedDocuments.length)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 z-10 h-9 w-9 rounded-full bg-white border border-[#E5E7EB] shadow-sm hover:bg-[#F5F7FA] flex items-center justify-center transition-colors"
+                          title="Next"
+                        >
+                          <span className="material-icons text-[#546478]" style={{ fontSize: "20px" }}>chevron_right</span>
+                        </button>
+                      </div>
+
+                      {/* Caption */}
+                      {current && (
+                        <div className="px-4 py-2 border-t border-[#F3F4F6] text-[12px] text-[#6B7280] truncate" title={current.name}>
+                          {current.name}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
                 </>
               );
@@ -1843,9 +1876,9 @@ export function ClientDetail() {
       {/* ── ONE BIG WHITE CARD CONTAINING EVERYTHING (per Figma spec) ── */}
       <div className="mx-6 mb-6 bg-white border border-[#E5E7EB] rounded-xl p-4">
 
-        {/* Name + address + phone + kebab row */}
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center justify-between gap-2">
+        {/* Header row: name + contact on the LEFT, KPI tiles on the RIGHT, kebab pinned far-right */}
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0 flex flex-col gap-1">
             <div className="flex items-center gap-2">
               <h2 className="text-[20px] text-[#1A2332] leading-[27px]" style={{ fontWeight: 600 }}>
                 {client.name}
@@ -1854,49 +1887,51 @@ export function ClientDetail() {
                 ({client.customerId.replace(/^C-/, "")})
               </span>
             </div>
+
+            {/* Address · Phone · Email — single inline row with separators */}
+            <div className="flex items-center gap-0.5 flex-wrap">
+              <div className="flex items-center gap-2 pr-2">
+                <span className="material-icons text-[#1A2332]" style={{ fontSize: "16px" }}>location_on</span>
+                <span className="text-[14px] text-[#1A2332]">{client.address}, {client.city}, {client.state} {client.zip}</span>
+              </div>
+              <div className="w-px h-6 bg-[#E5E7EB]" />
+              <a href={`tel:${client.mobilePhone}`} className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-[#F5F7FA] text-[14px] text-[#4A6FA5]" style={{ fontWeight: 500 }}>
+                <span className="material-icons" style={{ fontSize: "16px" }}>phone</span>
+                {client.mobilePhone}
+              </a>
+              <div className="w-px h-6 bg-[#E5E7EB]" />
+              <a href={`mailto:${client.email}`} className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-[#F5F7FA] text-[14px] text-[#4A6FA5]" style={{ fontWeight: 500 }}>
+                <span className="material-icons" style={{ fontSize: "16px" }}>mail</span>
+                {client.email}
+              </a>
+            </div>
+          </div>
+
+          {/* Right side: 4 compact KPI tiles + kebab */}
+          <div className="flex items-start gap-2 shrink-0">
+            <div className="flex gap-2">
+              {[
+                { label: "Total revenue", value: `$${Math.round(client.totalRevenue).toLocaleString("en-US")}`,    icon: "trending_up", iconColor: "#16A34A" },
+                { label: "Balance",       value: `$${Math.round(client.openBalance).toLocaleString("en-US")}`,     icon: "paid",        iconColor: "#4A6FA5" },
+                { label: "Past Due",      value: `$${Math.round(client.pastDueBalance).toLocaleString("en-US")}`,  icon: "schedule",    iconColor: "#DC2626" },
+                { label: "Open Jobs",     value: "3", icon: "work", iconColor: "#6B7280" },
+              ].map(({ label, value, icon, iconColor }) => (
+                <div key={label} className="flex w-[128px] items-center justify-between gap-2 rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5" style={{ minHeight: 44 }}>
+                  <div className="flex min-w-0 flex-col justify-center">
+                    <div className="truncate text-[15px] leading-tight tabular-nums text-[#1A2332]" style={{ fontWeight: 700 }}>{value}</div>
+                    <div className="truncate text-[10px] text-[#546478]">{label}</div>
+                  </div>
+                  <div
+                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md"
+                    style={{ backgroundColor: `${iconColor}26` }}
+                  >
+                    <span className="material-icons" style={{ fontSize: "16px", color: iconColor }}>{icon}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
             <KebabMenu />
           </div>
-
-          {/* Address · Phone · Email — single inline row with separators */}
-          <div className="flex items-center gap-0.5 flex-wrap">
-            <div className="flex items-center gap-2 pr-2">
-              <span className="material-icons text-[#1A2332]" style={{ fontSize: "16px" }}>location_on</span>
-              <span className="text-[14px] text-[#1A2332]">{client.address}, {client.city}, {client.state} {client.zip}</span>
-            </div>
-            <div className="w-px h-6 bg-[#E5E7EB]" />
-            <a href={`tel:${client.mobilePhone}`} className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-[#F5F7FA] text-[14px] text-[#4A6FA5]" style={{ fontWeight: 500 }}>
-              <span className="material-icons" style={{ fontSize: "16px" }}>phone</span>
-              {client.mobilePhone}
-            </a>
-            <div className="w-px h-6 bg-[#E5E7EB]" />
-            <a href={`mailto:${client.email}`} className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-[#F5F7FA] text-[14px] text-[#4A6FA5]" style={{ fontWeight: 500 }}>
-              <span className="material-icons" style={{ fontSize: "16px" }}>mail</span>
-              {client.email}
-            </a>
-          </div>
-        </div>
-
-        {/* KPI tiles row (4 cards spanning full width, BELOW the name row per Figma) */}
-        <div className="mt-4 flex gap-3">
-          {[
-            { label: "Total revenue", value: `$${client.totalRevenue.toLocaleString("en-US", { minimumFractionDigits: 0 })}`, icon: "trending_up", iconColor: "#16A34A" },
-            { label: "Balance",       value: `$${client.openBalance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, icon: "paid",        iconColor: "#4A6FA5" },
-            { label: "Past Due",      value: `$${client.pastDueBalance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, icon: "schedule",    iconColor: "#DC2626" },
-            { label: "Open Jobs",     value: "3", icon: "work", iconColor: "#6B7280" },
-          ].map(({ label, value, icon, iconColor }) => (
-            <div key={label} className="flex min-w-0 flex-1 items-center justify-between gap-3 rounded-xl border border-[#E5E7EB] bg-white px-4 py-3" style={{ minHeight: 56 }}>
-              <div className="flex min-w-0 flex-col justify-center">
-                <div className="truncate text-[18px] leading-tight tabular-nums text-[#1A2332]" style={{ fontWeight: 700 }}>{value}</div>
-                <div className="mt-0.5 truncate text-[11px] text-[#546478]">{label}</div>
-              </div>
-              <div
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
-                style={{ backgroundColor: `${iconColor}26` }}
-              >
-                <span className="material-icons" style={{ fontSize: "18px", color: iconColor }}>{icon}</span>
-              </div>
-            </div>
-          ))}
         </div>
 
         {/* Unified detail-page tab bar */}
@@ -1905,7 +1940,7 @@ export function ClientDetail() {
           activeTab={activeTab}
           onChange={(key) => { setActiveTab(key); if (isEditing) setIsEditing(false); }}
           trailing={<TabSettingsButton onClick={() => setShowTabSettings(true)} />}
-          className="mt-6"
+          className="mt-2"
         />
 
         {/* Tab content */}
