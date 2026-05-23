@@ -98,7 +98,7 @@ export function Payments() {
 
 
 
-  const fmt = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const fmt = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
   const fmtDate = (d: string) => {
     const dt = new Date(d + "T12:00:00");
     return dt.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
@@ -280,7 +280,7 @@ export function Payments() {
                   {cols.map(col => (
                     <DraggableTh key={col.key} colKey={col.key} onMove={moveCol}
                       className="px-4 py-3 text-left text-[14px] text-[#1A2332]"
-                      style={{ fontWeight: 500 }}
+                      style={{ fontFamily: "Geist", fontWeight: 500 }}
                     >
                       {col.label}
                     </DraggableTh>
@@ -318,9 +318,14 @@ export function Payments() {
                         switch (col.key) {
                           case "date": return <td key={col.key} className="px-4 py-4 text-[13px] text-[#546478]">{fmtDate(p.date)}</td>;
                           case "client": return (
-                            <td key={col.key} className="px-4 py-4">
-                              <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{p.clientName}</div>
-                              <div className="text-[12px] text-[#8899AA]">{p.clientEmail}</div>
+                            <td key={col.key} className="px-4 py-4" onClick={e => e.stopPropagation()}>
+                              <button
+                                onClick={() => navigate(`/clients/${p.invoiceNumber.split('-')[0]}`)}
+                                className="text-[14px] text-[#4A6FA5] hover:underline hover:text-[#3d5a85] transition-colors text-left"
+                                style={{ fontFamily: "Geist", fontWeight: 400, lineHeight: "20px" }}
+                              >
+                                {p.clientName}
+                              </button>
                             </td>
                           );
                           case "invoice": return (

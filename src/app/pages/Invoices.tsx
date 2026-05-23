@@ -459,8 +459,8 @@ export function Invoices() {
                 </th>
                 {cols.map(col => (
                   <DraggableTh key={col.key} colKey={col.key} onMove={moveCol}
-                    className="px-3 py-3 text-left text-[14px] text-[#1A2332] whitespace-nowrap"
-                    style={{ fontWeight: 500 }}
+                    className="px-4 py-3 text-left text-[14px] text-[#1A2332] whitespace-nowrap"
+                    style={{ fontFamily: "Geist", fontWeight: 500 }}
                   >
                     {col.label}
                   </DraggableTh>
@@ -496,19 +496,28 @@ export function Invoices() {
                   </td>
                   {cols.map(col => {
                     switch (col.key) {
-                      case "number": return <td key={col.key} className="px-3 py-4 text-[13px] text-[#4A6FA5] whitespace-nowrap" style={{ fontWeight: 600 }}>{inv.number}</td>;
-                      case "type": return <td key={col.key} className="px-3 py-4 text-[13px] text-[#546478] whitespace-nowrap">{inv.type}</td>;
-                      case "date": return <td key={col.key} className="px-3 py-4 text-[13px] text-[#546478] whitespace-nowrap">{fmtDate(inv.date)}</td>;
+                      case "number": return <td key={col.key} className="px-4 py-4 text-[14px] text-[#4A6FA5] whitespace-nowrap" style={{ fontWeight: 600 }}>{inv.number}</td>;
+                      case "type": return <td key={col.key} className="px-4 py-4 text-[14px] text-[#546478] whitespace-nowrap">{inv.type}</td>;
+                      case "date": return <td key={col.key} className="px-4 py-4 text-[14px] text-[#546478] whitespace-nowrap">{fmtDate(inv.date)}</td>;
                       case "client": return (
-                        <td key={col.key} className="px-3 py-4">
-                          <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{inv.clientName}</div>
-                          <div className="text-[12px] text-[#8899AA]">{inv.customerEmail}</div>
+                        <td key={col.key} className="px-3 py-4" onClick={e => e.stopPropagation()}>
+                          <button
+                            onClick={() => navigate(`/clients/${inv.number.split('-')[0]}`)}
+                            className="text-[14px] text-[#4A6FA5] hover:underline hover:text-[#3d5a85] transition-colors text-left"
+                            style={{ fontFamily: "Geist", fontWeight: 400, lineHeight: "20px" }}
+                          >
+                            {inv.clientName}
+                          </button>
                         </td>
                       );
                       case "job": return (
-                        <td key={col.key} className="px-3 py-4">
-                          <div className="text-[13px] text-[#4A6FA5]" style={{ fontWeight: 500 }}>{inv.jobNumber}</div>
-                          <div className="text-[12px] text-[#8899AA]">{inv.jobName}</div>
+                        <td key={col.key} className="px-4 py-4 whitespace-nowrap" onClick={e => e.stopPropagation()}>
+                          {inv.jobNumber ? (
+                            <button onClick={() => navigate(`/jobs/${inv.jobNumber}`)} className="text-left">
+                              <div className="text-[14px] text-[#4A6FA5] hover:underline" style={{ fontFamily: "Geist", fontWeight: 400, lineHeight: "20px" }}>{inv.jobNumber}</div>
+                              {inv.jobName && inv.jobName !== "—" && <div className="text-[13px] text-[#546478]" style={{ fontFamily: "Geist", fontWeight: 400, lineHeight: "18px" }}>{inv.jobName}</div>}
+                            </button>
+                          ) : <span className="text-[#D1D5DB]">—</span>}
                         </td>
                       );
                       case "status": return (
@@ -522,15 +531,15 @@ export function Invoices() {
                           )}
                         </td>
                       );
-                      case "total": return <td key={col.key} className="px-3 py-4 text-[13px] text-[#1A2332] whitespace-nowrap" style={{ fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>${fmt(inv.total)}</td>;
+                      case "total": return <td key={col.key} className="px-4 py-4 text-[14px] text-[#1A2332] whitespace-nowrap" style={{ fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>${fmt(inv.total)}</td>;
                       case "balance": return (
-                        <td key={col.key} className="px-3 py-4 text-[13px] whitespace-nowrap" style={{ fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>
+                        <td key={col.key} className="px-4 py-4 text-[14px] whitespace-nowrap" style={{ fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>
                           <span className={inv.balance > 0 ? "text-[#EF4444]" : "text-[#22C55E]"}>${fmt(inv.balance)}</span>
                         </td>
                       );
-                      case "dueDate": return <td key={col.key} className="px-3 py-4 text-[13px] text-[#546478] whitespace-nowrap">{fmtDate(inv.dueDate)}</td>;
+                      case "dueDate": return <td key={col.key} className="px-4 py-4 text-[14px] text-[#546478] whitespace-nowrap">{fmtDate(inv.dueDate)}</td>;
                       case "memo": return (
-                        <td key={col.key} className="px-3 py-4 text-[13px] text-[#546478] max-w-[220px] truncate" title={inv.memo}>
+                        <td key={col.key} className="px-4 py-4 text-[14px] text-[#546478] max-w-[220px] truncate" title={inv.memo}>
                           {inv.memo || <span className="text-[#C8D5E8]">—</span>}
                         </td>
                       );

@@ -63,7 +63,7 @@ function qfClass(active: boolean) {
 }
 
 const JOBS_COLS = [
-  { key: "id",       label: "#",         sortable: true  },
+  { key: "id",       label: "Job",       sortable: true  },
   { key: "client",   label: "Client",    sortable: true  },
   { key: "address",  label: "Address",   sortable: false },
   { key: "schedule", label: "Scheduled", sortable: true  },
@@ -305,11 +305,11 @@ export function Jobs() {
                   key={col.key}
                   colKey={col.key}
                   onMove={moveJobCol}
-                  className={`px-4 py-3 text-left text-[14px] text-[#1A2332] select-none${col.sortable ? " cursor-pointer" : ""}${col.key === "total" ? " text-right" : ""}`}
+                  className={`px-4 py-3 text-left text-[14px] text-[#1A2332] select-none${col.sortable ? " cursor-pointer" : ""}`}
                   style={{ fontWeight: 500 }}
                   onClick={col.sortable ? () => toggleSort(col.key as SortField) : undefined}
                 >
-                  <div className={`flex items-center${col.key === "total" ? " justify-end" : ""}`}>
+                  <div className="flex items-center">
                     {col.label}
                     {col.sortable && <SortIcon field={col.key as SortField} />}
                   </div>
@@ -333,7 +333,8 @@ export function Jobs() {
                     case "id":
                       return (
                         <td key="id" className="px-4 py-4">
-                          <div className="text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist", fontStyle: "normal", fontWeight: 400, lineHeight: "20px" }}>{job.title}</div>
+                          <div className="text-[14px] text-[#4A6FA5]" style={{ fontFamily: "Geist", fontWeight: 400, lineHeight: "20px" }}>{job.jobNumber}</div>
+                          <div className="text-[13px] text-[#546478]" style={{ fontFamily: "Geist", fontWeight: 400, lineHeight: "18px" }}>{job.title}</div>
                         </td>
                       );
                     case "client":
@@ -359,7 +360,7 @@ export function Jobs() {
                         </td>
                       );
                     case "total":
-                      return <td key="total" className="px-4 py-4 text-[13px] text-right text-[#1A2332]" style={{ fontWeight: 500 }}>${job.total.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</td>;
+                      return <td key="total" className="px-4 py-4 text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>${job.total.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</td>;
                     default:
                       return null;
                   }

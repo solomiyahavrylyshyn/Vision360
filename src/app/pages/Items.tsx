@@ -617,8 +617,8 @@ export function Items() {
                       key={col.key}
                       colKey={col.key}
                       onMove={movePbCol}
-                      className={`px-4 py-2 text-left text-[11px] uppercase tracking-wider text-[#546478] select-none ${col.sortable ? "hover:text-[#1A2332]" : ""} ${col.w}`}
-                      style={{ fontWeight: 600 }}
+                      className={`px-4 py-3 text-left text-[14px] text-[#1A2332] select-none${col.sortable ? " cursor-pointer" : ""} ${col.w}`}
+                      style={{ fontFamily: "Geist", fontWeight: 500 }}
                       onClick={col.sortable ? () => setPbSort(prev => ({ key: col.key, dir: prev.key === col.key && prev.dir === "asc" ? "desc" : "asc" })) : undefined}
                     >
                       <div className="flex items-center gap-0.5">
@@ -857,7 +857,7 @@ export function Items() {
                       <td className="px-4 py-2">
                         <div className="flex items-center gap-2.5">
                           <ItemIcon type={item.type} />
-                          <div className="truncate max-w-[200px] text-[13px] text-[#4A6FA5] hover:underline" style={{ fontWeight: 500 }}>{item.name}</div>
+                          <div className="truncate max-w-[200px] text-[14px] text-[#4A6FA5] hover:underline" style={{ fontFamily: "Geist", fontWeight: 400, lineHeight: "20px" }}>{item.name}</div>
                         </div>
                       </td>
                       <td className="px-4 py-2">
@@ -865,10 +865,10 @@ export function Items() {
                           {badge.label}
                         </span>
                       </td>
-                      <td className="px-4 py-2 text-[13px] text-[#546478]">{item.category || "—"}</td>
-                      <td className="px-4 py-2 text-[13px] text-[#546478]" style={{ fontVariantNumeric: "tabular-nums" }}>{item.modelNumber || "—"}</td>
-                      <td className="px-4 py-2 text-[13px] text-[#1A2332]" style={{ fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>${item.rate.toFixed(2)}</td>
-                      <td className="px-4 py-2 text-[13px] text-[#546478]" style={{ fontVariantNumeric: "tabular-nums" }}>${item.cost.toFixed(2)}</td>
+                      <td className="px-4 py-2 text-[14px] text-[#546478]" style={{ fontFamily: "Geist", fontWeight: 400, lineHeight: "20px" }}>{item.category || "—"}</td>
+                      <td className="px-4 py-2 text-[14px] text-[#546478]" style={{ fontFamily: "Geist", fontWeight: 400, lineHeight: "20px", fontVariantNumeric: "tabular-nums" }}>{item.modelNumber || "—"}</td>
+                      <td className="px-4 py-2 text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist", fontWeight: 400, lineHeight: "20px", fontVariantNumeric: "tabular-nums" }}>${item.rate.toFixed(2)}</td>
+                      <td className="px-4 py-2 text-[14px] text-[#546478]" style={{ fontFamily: "Geist", fontWeight: 400, lineHeight: "20px", fontVariantNumeric: "tabular-nums" }}>${item.cost.toFixed(2)}</td>
                       <td className="px-4 py-2">
                         {item.taxable
                           ? <span className="material-icons text-[#16A34A]" style={{ fontSize: "18px" }}>check</span>
@@ -1024,12 +1024,12 @@ export function Items() {
             <table className="w-full">
               <thead>
                 <tr className="bg-[#F5F7FA] border-b border-[#E5E7EB]">
-                  <th className="px-4 py-3 text-left text-[11px] uppercase tracking-wider text-[#546478]" style={{ fontWeight: 600 }}>Name</th>
-                  <th className="px-4 py-3 text-left text-[11px] uppercase tracking-wider text-[#546478]" style={{ fontWeight: 600 }}>Description</th>
-                  <th className="px-4 py-3 text-left text-[11px] uppercase tracking-wider text-[#546478]" style={{ fontWeight: 600 }}>Items</th>
-                  <th className="px-4 py-3 text-left text-[11px] uppercase tracking-wider text-[#546478]" style={{ fontWeight: 600 }}>Group Type</th>
-                  <th className="px-4 py-3 text-right text-[11px] uppercase tracking-wider text-[#546478]" style={{ fontWeight: 600 }}>Total</th>
-                  <th className="px-4 py-3 text-left text-[11px] uppercase tracking-wider text-[#546478]" style={{ fontWeight: 600 }}>Category</th>
+                  <th className="px-4 py-3 text-left text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist", fontWeight: 500 }}>Name</th>
+                  <th className="px-4 py-3 text-left text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist", fontWeight: 500 }}>Description</th>
+                  <th className="px-4 py-3 text-left text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist", fontWeight: 500 }}>Items</th>
+                  <th className="px-4 py-3 text-left text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist", fontWeight: 500 }}>Group Type</th>
+                  <th className="px-4 py-3 text-right text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist", fontWeight: 500 }}>Total</th>
+                  <th className="px-4 py-3 text-left text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist", fontWeight: 500 }}>Category</th>
                   <th className="px-4 py-3 w-[80px]" />
                 </tr>
               </thead>
@@ -1072,11 +1072,11 @@ export function Items() {
             <table className="w-full">
               <thead>
                 <tr className="bg-[#F5F7FA] border-b border-[#E5E7EB]">
-                  <th className="px-4 py-3 text-left text-[11px] uppercase tracking-wider text-[#546478]" style={{ fontWeight: 600 }}>Name</th>
-                  <th className="px-4 py-3 text-left text-[11px] uppercase tracking-wider text-[#546478]" style={{ fontWeight: 600 }}>Description</th>
-                  <th className="px-4 py-3 text-left text-[11px] uppercase tracking-wider text-[#546478]" style={{ fontWeight: 600 }}>Parent Category</th>
-                  <th className="px-4 py-3 text-center text-[11px] uppercase tracking-wider text-[#546478]" style={{ fontWeight: 600 }}>No. of Active Items</th>
-                  <th className="px-4 py-3 w-[100px] text-center text-[11px] uppercase tracking-wider text-[#546478]" style={{ fontWeight: 600 }}>Actions</th>
+                  <th className="px-4 py-3 text-left text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist", fontWeight: 500 }}>Name</th>
+                  <th className="px-4 py-3 text-left text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist", fontWeight: 500 }}>Description</th>
+                  <th className="px-4 py-3 text-left text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist", fontWeight: 500 }}>Parent Category</th>
+                  <th className="px-4 py-3 text-center text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist", fontWeight: 500 }}>No. of Active Items</th>
+                  <th className="px-4 py-3 w-[100px] text-center text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist", fontWeight: 500 }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -1127,9 +1127,9 @@ export function Items() {
             <table className="w-full">
               <thead>
                 <tr className="bg-[#F5F7FA] border-b border-[#E5E7EB]">
-                  <th className="px-4 py-3 text-left text-[11px] uppercase tracking-wider text-[#546478]" style={{ fontWeight: 600 }}>Name</th>
-                  <th className="px-4 py-3 text-left text-[11px] uppercase tracking-wider text-[#546478]" style={{ fontWeight: 600 }}>Description</th>
-                  <th className="px-4 py-3 w-[100px] text-center text-[11px] uppercase tracking-wider text-[#546478]" style={{ fontWeight: 600 }}>Actions</th>
+                  <th className="px-4 py-3 text-left text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist", fontWeight: 500 }}>Name</th>
+                  <th className="px-4 py-3 text-left text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist", fontWeight: 500 }}>Description</th>
+                  <th className="px-4 py-3 w-[100px] text-center text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist", fontWeight: 500 }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -1178,11 +1178,11 @@ export function Items() {
             <table className="w-full">
               <thead>
                 <tr className="bg-[#F5F7FA] border-b border-[#E5E7EB]">
-                  <th className="px-4 py-3 text-left text-[11px] uppercase tracking-wider text-[#546478]" style={{ fontWeight: 600 }}>Name</th>
-                  <th className="px-4 py-3 text-left text-[11px] uppercase tracking-wider text-[#546478]" style={{ fontWeight: 600 }}>Description</th>
-                  <th className="px-4 py-3 text-center text-[11px] uppercase tracking-wider text-[#546478]" style={{ fontWeight: 600 }}>Items</th>
-                  <th className="px-4 py-3 text-center text-[11px] uppercase tracking-wider text-[#546478]" style={{ fontWeight: 600 }}>Status</th>
-                  <th className="px-4 py-3 w-[100px] text-center text-[11px] uppercase tracking-wider text-[#546478]" style={{ fontWeight: 600 }}>Actions</th>
+                  <th className="px-4 py-3 text-left text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist", fontWeight: 500 }}>Name</th>
+                  <th className="px-4 py-3 text-left text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist", fontWeight: 500 }}>Description</th>
+                  <th className="px-4 py-3 text-center text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist", fontWeight: 500 }}>Items</th>
+                  <th className="px-4 py-3 text-center text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist", fontWeight: 500 }}>Status</th>
+                  <th className="px-4 py-3 w-[100px] text-center text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist", fontWeight: 500 }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -1838,7 +1838,7 @@ function GroupModal({ group, items, categories, onClose, onSave }: {
               <thead>
                 <tr className="bg-[#F5F7FA] border-b border-[#E5E7EB]">
                   {["Item Name", "Price", "Cost", "Qty", "Amount", ""].map(h => (
-                    <th key={h} className="px-3 py-2.5 text-left text-[11px] uppercase tracking-wider text-[#546478]" style={{ fontWeight: 600 }}>{h}</th>
+                    <th key={h} className="px-3 py-2.5 text-left text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist", fontWeight: 500 }}>{h}</th>
                   ))}
                 </tr>
               </thead>

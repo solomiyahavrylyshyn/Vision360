@@ -68,7 +68,6 @@ const EXPENSES_COLS = [
   { key: "jobId", label: "Job #" },
   { key: "invoiceId", label: "Invoice #" },
   { key: "notes", label: "Notes" },
-  { key: "receipts", label: "Receipts" },
 ] as const;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -216,8 +215,8 @@ export function Expenses() {
                 </th>
                 {cols.map(col => (
                   <DraggableTh key={col.key} colKey={col.key} onMove={moveCol}
-                    className="px-4 py-3 text-left text-xs text-[#546478] uppercase tracking-wide"
-                    style={{ fontWeight: 600 }}
+                    className="px-4 py-3 text-left text-[14px] text-[#1A2332]"
+                    style={{ fontFamily: "Geist", fontWeight: 500 }}
                   >
                     {col.label}
                   </DraggableTh>
@@ -254,48 +253,47 @@ export function Expenses() {
                       switch (col.key) {
                         case "date": return (
                           <td key={col.key} className="px-4 py-4">
-                            <span className="text-[13px] text-[#546478]">{expense.date}</span>
+                            <span className="text-[14px] text-[#546478]" style={{ fontFamily: "Geist", fontWeight: 400, lineHeight: "20px" }}>{expense.date}</span>
                           </td>
                         );
                         case "category": return (
                           <td key={col.key} className="px-4 py-4">
                             <span
-                              className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] whitespace-nowrap"
+                              className="inline-flex items-center justify-center min-w-[90px] rounded-full px-2.5 py-1 text-[12px] whitespace-nowrap"
                               style={{
                                 background: expenseCategoryBg[expense.category] || "#F3F4F6",
                                 color: categoryColors[expense.category] || "#8899AA",
                                 fontWeight: 600,
                               }}
                             >
-                              <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: categoryColors[expense.category] || "#8899AA" }} />
                               {expense.category}
                             </span>
                           </td>
                         );
                         case "merchant": return (
                           <td key={col.key} className="px-4 py-4">
-                            <span className="text-[13px] text-[#1A2332]">{expense.merchant}</span>
+                            <span className="text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist", fontWeight: 400, lineHeight: "20px" }}>{expense.merchant}</span>
                           </td>
                         );
                         case "amount": return (
                           <td key={col.key} className="px-4 py-4">
-                            <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>
-                              ${expense.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                            <span className="text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist", fontWeight: 400, lineHeight: "20px" }}>
+                              ${expense.amount.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                             </span>
                           </td>
                         );
                         case "jobId": return (
                           <td key={col.key} className="px-4 py-4">
                             {expense.jobId ? (
-                              <span
-                                className="text-[13px] text-[#4A6FA5] hover:underline"
-                                style={{ fontWeight: 500 }}
+                              <div
+                                className="cursor-pointer text-left"
                                 onClick={(e) => { e.stopPropagation(); navigate(`/jobs/${expense.jobId!.replace("J-", "")}`); }}
                               >
-                                #{expense.jobId}
-                              </span>
+                                <div className="text-[14px] text-[#4A6FA5] hover:underline" style={{ fontFamily: "Geist", fontWeight: 400, lineHeight: "20px" }}>{expense.jobId}</div>
+                                {expense.jobTitle && <div className="text-[13px] text-[#546478]" style={{ fontFamily: "Geist", fontWeight: 400, lineHeight: "18px" }}>{expense.jobTitle}</div>}
+                              </div>
                             ) : (
-                              <span className="text-[13px] text-[#8899AA]">—</span>
+                              <span className="text-[14px] text-[#8899AA]" style={{ fontFamily: "Geist", fontWeight: 400 }}>—</span>
                             )}
                           </td>
                         );
@@ -303,20 +301,20 @@ export function Expenses() {
                           <td key={col.key} className="px-4 py-4">
                             {expense.invoiceId ? (
                               <span
-                                className="text-[13px] text-[#4A6FA5] hover:underline"
-                                style={{ fontWeight: 500 }}
+                                className="text-[14px] text-[#4A6FA5] hover:underline"
+                                style={{ fontFamily: "Geist", fontWeight: 400, lineHeight: "20px" }}
                                 onClick={(e) => { e.stopPropagation(); navigate(`/invoices/${expense.invoiceId!.replace("INV-", "")}`); }}
                               >
                                 #{expense.invoiceId}
                               </span>
                             ) : (
-                              <span className="text-[13px] text-[#8899AA]">—</span>
+                              <span className="text-[14px] text-[#8899AA]" style={{ fontFamily: "Geist", fontWeight: 400 }}>—</span>
                             )}
                           </td>
                         );
                         case "notes": return (
                           <td key={col.key} className="px-4 py-4">
-                            <span className="text-[13px] text-[#546478] max-w-[200px] truncate block">{expense.notes || "—"}</span>
+                            <span className="text-[14px] text-[#546478] max-w-[200px] truncate block" style={{ fontFamily: "Geist", fontWeight: 400, lineHeight: "20px" }}>{expense.notes || "—"}</span>
                           </td>
                         );
                         case "receipts": return (

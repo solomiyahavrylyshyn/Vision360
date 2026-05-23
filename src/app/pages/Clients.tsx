@@ -686,8 +686,8 @@ export function Clients() {
                     key={col.key}
                     colKey={col.key}
                     onMove={moveClientCol}
-                    className={`px-4 py-3 text-left text-[11px] uppercase tracking-wide text-[#546478] select-none${col.sortable ? " cursor-pointer" : ""}`}
-                    style={{ fontWeight: 600 }}
+                    className={`px-4 py-3 text-left text-[14px] text-[#1A2332] select-none${col.sortable ? " cursor-pointer" : ""}`}
+                    style={{ fontFamily: "Geist", fontWeight: 500 }}
                     onClick={col.sortable ? () => toggleSort(col.key as SortField) : undefined}
                   >
                     <div className="flex items-center">

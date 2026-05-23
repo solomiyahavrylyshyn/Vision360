@@ -41,7 +41,8 @@
       "mcp__3efb2291-e18e-4c3d-a213-ae7a74e154cf__fireflies_get_transcripts",
       "Bash(npm install:*)",
       "Bash(awk 'NR>=3200 && NR<=3250' \"/Users/solomiyahavrylyshyn/Vision360 \\(1\\)/src/app/pages/Settings.tsx\")",
-      "Bash(grep -n \"totalBilled.*toFixed\\\\|totalBilled.*toLocale\\\\|toFixed.*totalBilled\\\\|\\\\$.*totalBilled\\\\|totalBilled.*\\\\$\" \"/Users/solomiyahavrylyshyn/Vision360 \\(1\\)/src/app/pages/Clients.tsx\")"
+      "Bash(grep -n \"totalBilled.*toFixed\\\\|totalBilled.*toLocale\\\\|toFixed.*totalBilled\\\\|\\\\$.*totalBilled\\\\|totalBilled.*\\\\$\" \"/Users/solomiyahavrylyshyn/Vision360 \\(1\\)/src/app/pages/Clients.tsx\")",
+      "Bash(grep -i \"fixed\\\\|locale\\\\|fraction\\\\|\\\\$\")"
     ]
   }
 }

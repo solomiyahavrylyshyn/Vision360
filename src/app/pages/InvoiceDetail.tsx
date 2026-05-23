@@ -291,7 +291,7 @@ export function InvoiceDetail() {
   // Void confirm
   const [voidConfirm, setVoidConfirm] = useState(false);
 
-  const fmt = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const fmt = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
   const fmtDate = (d: string) => {
     if (!d) return "";
     const dt = new Date(d + "T12:00:00");
