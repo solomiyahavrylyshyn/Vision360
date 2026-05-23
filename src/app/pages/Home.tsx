@@ -729,6 +729,10 @@ function ReportsTab({ generateOpen, setGenerateOpen }: { generateOpen: boolean; 
   const [search, setSearch] = useState("");
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const [previewReport, setPreviewReport] = useState<ReportRow | null>(null);
+  const [activeCategory, setActiveCategory] = useState("All Categories");
+  const [categoryOpen, setCategoryOpen] = useState(false);
+
+  const categories = ["All Categories", "Financial / Business", "Estimates", "Jobs", "Clients / Team / Items"];
 
   type ReportRow = { name: string; description: string; lastRun?: string; lastRunColor?: "default" | "orange" };
 
@@ -819,9 +823,6 @@ function ReportsTab({ generateOpen, setGenerateOpen }: { generateOpen: boolean; 
         >
           <span className="material-icons" style={{ fontSize: 14 }}>visibility</span>
         </button>
-        <button className="text-[#546478] hover:text-[#4A6FA5] transition-colors" title="Schedule">
-          <span className="material-icons" style={{ fontSize: 14 }}>calendar_today</span>
-        </button>
         <button className="text-[#546478] hover:text-[#4A6FA5] transition-colors" title="Download">
           <span className="material-icons" style={{ fontSize: 14 }}>file_download</span>
         </button>
@@ -829,17 +830,57 @@ function ReportsTab({ generateOpen, setGenerateOpen }: { generateOpen: boolean; 
     </div>
   );
 
-  const Section = ({ icon, title, rows }: { icon: string; title: string; rows: ReportRow[] }) => (
-    <div className="mb-4">
-      <div className="flex items-center gap-1.5 mb-2">
-        <span className="material-icons text-[#4A6FA5]" style={{ fontSize: 16 }}>{icon}</span>
-        <span className="text-[13px] font-bold text-[#1A2332]">{title}</span>
+  const Section = ({ icon, title, rows, category }: { icon: string; title: string; rows: ReportRow[]; category: string }) => {
+    const filtered = rows.filter(r =>
+      (!search || r.name.toLowerCase().includes(search.toLowerCase()) || r.description.toLowerCase().includes(search.toLowerCase()))
+    );
+    if ((activeCategory !== "All Categories" && activeCategory !== category) || filtered.length === 0) return null;
+
+    if (viewMode === "grid") {
+      return (
+        <div className="mb-4">
+          <div className="flex items-center gap-1.5 mb-2">
+            <span className="material-icons text-[#4A6FA5]" style={{ fontSize: 16 }}>{icon}</span>
+            <span className="text-[13px] font-bold text-[#1A2332]">{title}</span>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            {filtered.map(r => (
+              <div key={r.name} className="bg-white border border-[#E5E7EB] rounded-xl p-3 shadow-[0_1px_2px_rgba(0,0,0,0.05)] hover:border-[#4A6FA5]/40 transition-colors">
+                <div className="flex items-start justify-between gap-2 mb-1">
+                  <div className="text-[13px] font-semibold text-[#1A2332] leading-tight">{r.name}</div>
+                  {r.lastRun && (
+                    <span className={`text-[10px] font-medium shrink-0 ${r.lastRunColor === "orange" ? "text-[#D97706]" : "text-[#546478]"}`}>{r.lastRun}</span>
+                  )}
+                </div>
+                <div className="text-[11px] text-[#546478] mb-2 line-clamp-2">{r.description}</div>
+                <div className="flex items-center gap-1.5">
+                  <button onClick={() => setPreviewReport(r)} className="flex items-center gap-1 text-[11px] text-[#4A6FA5] hover:underline">
+                    <span className="material-icons" style={{ fontSize: 12 }}>visibility</span> Preview
+                  </button>
+                  <span className="text-[#E5E7EB]">·</span>
+                  <button className="flex items-center gap-1 text-[11px] text-[#546478] hover:text-[#1A2332]">
+                    <span className="material-icons" style={{ fontSize: 12 }}>file_download</span> Download
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="mb-4">
+        <div className="flex items-center gap-1.5 mb-2">
+          <span className="material-icons text-[#4A6FA5]" style={{ fontSize: 16 }}>{icon}</span>
+          <span className="text-[13px] font-bold text-[#1A2332]">{title}</span>
+        </div>
+        <div className="bg-white rounded-xl border border-[#E5E7EB] px-4 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
+          {filtered.map(r => <ReportRowItem key={r.name} r={r} />)}
+        </div>
       </div>
-      <div className="bg-white rounded-xl border border-[#E5E7EB] px-4 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
-        {rows.map(r => <ReportRowItem key={r.name} r={r} />)}
-      </div>
-    </div>
-  );
+    );
+  };
 
   if (generateOpen) {
     return <GenerateReportForm onCancel={() => setGenerateOpen(false)} />;
@@ -882,7 +923,7 @@ function ReportsTab({ generateOpen, setGenerateOpen }: { generateOpen: boolean; 
 
       {/* Search + filter bar */}
       <div className="flex items-center gap-3">
-        <div className="relative flex-1 max-w-xs">
+        <div className="relative max-w-xs flex-1">
           <span className="material-icons absolute left-2.5 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: 15 }}>search</span>
           <input
             type="text"
@@ -892,19 +933,42 @@ function ReportsTab({ generateOpen, setGenerateOpen }: { generateOpen: boolean; 
             className="w-full pl-8 pr-3 py-1.5 text-[13px] bg-white border border-[#E5E7EB] rounded-lg text-[#1A2332] placeholder-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#4A6FA5]/30"
           />
         </div>
-        <div className="ml-auto flex items-center gap-2">
-          <button className="flex items-center gap-1 text-[13px] text-[#1A2332] bg-white border border-[#E5E7EB] rounded-lg px-3 py-1.5 hover:bg-[#F3F4F6] transition-colors">
-            All Categories
-            <span className="material-icons text-[#546478]" style={{ fontSize: 14 }}>keyboard_arrow_down</span>
-          </button>
-          <div className="flex items-center bg-white border border-[#E5E7EB] rounded-lg overflow-hidden">
-            <button onClick={() => setViewMode("list")} className={`p-1.5 transition-colors ${viewMode === "list" ? "bg-[#F3F4F6] text-[#1A2332]" : "text-[#546478]"}`}>
-              <span className="material-icons" style={{ fontSize: 16 }}>format_list_bulleted</span>
+        <div className="flex items-center">
+          <div className="relative">
+            <button
+              onClick={() => setCategoryOpen(v => !v)}
+              className="flex items-center gap-1 text-[13px] text-[#1A2332] bg-white border border-[#E5E7EB] rounded-lg px-3 py-1.5 hover:bg-[#F3F4F6] transition-colors"
+            >
+              {activeCategory}
+              <span className="material-icons text-[#546478]" style={{ fontSize: 14 }}>keyboard_arrow_down</span>
             </button>
-            <button onClick={() => setViewMode("grid")} className={`p-1.5 transition-colors ${viewMode === "grid" ? "bg-[#F3F4F6] text-[#1A2332]" : "text-[#546478]"}`}>
-              <span className="material-icons" style={{ fontSize: 16 }}>grid_view</span>
-            </button>
+            {categoryOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setCategoryOpen(false)} />
+                <div className="absolute right-0 top-full mt-1 w-[200px] bg-white border border-[#E5E7EB] rounded-xl shadow-lg z-50 py-1 overflow-hidden">
+                  {categories.map(cat => (
+                    <button
+                      key={cat}
+                      onClick={() => { setActiveCategory(cat); setCategoryOpen(false); }}
+                      className={`w-full text-left px-4 py-2 text-[13px] transition-colors hover:bg-[#F5F7FA] flex items-center justify-between ${activeCategory === cat ? "text-[#4A6FA5] font-semibold" : "text-[#374151]"}`}
+                    >
+                      {cat}
+                      {activeCategory === cat && <span className="material-icons text-[#4A6FA5]" style={{ fontSize: 14 }}>check</span>}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
+        </div>
+        <div className="ml-auto">
+          <button
+            onClick={() => setGenerateOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-semibold text-white bg-[#4A6FA5] rounded-lg hover:bg-[#3d5a85] transition-colors shadow-sm"
+          >
+            <span className="material-icons" style={{ fontSize: 15 }}>bar_chart</span>
+            Generate Report
+          </button>
         </div>
       </div>
 
@@ -912,13 +976,13 @@ function ReportsTab({ generateOpen, setGenerateOpen }: { generateOpen: boolean; 
       <div className="grid grid-cols-2 gap-5">
         {/* Left */}
         <div>
-          <Section icon="bar_chart" title="Financial / Business" rows={financialReports} />
-          <Section icon="description" title="Estimates" rows={estimatesReports} />
+          <Section icon="bar_chart" title="Financial / Business" rows={financialReports} category="Financial / Business" />
+          <Section icon="description" title="Estimates" rows={estimatesReports} category="Estimates" />
         </div>
         {/* Right */}
         <div>
-          <Section icon="work" title="Jobs" rows={jobsReports} />
-          <Section icon="people" title="Clients / Team / Items" rows={clientsReports} />
+          <Section icon="work" title="Jobs" rows={jobsReports} category="Jobs" />
+          <Section icon="people" title="Clients / Team / Items" rows={clientsReports} category="Clients / Team / Items" />
 
           {/* Recent Scheduled Reports */}
           <div>
@@ -999,9 +1063,6 @@ function ReportsTab({ generateOpen, setGenerateOpen }: { generateOpen: boolean; 
                     {m.label}
                   </div>
                 ))}
-                <div className="ml-auto">
-                  <span className="text-[11px] font-semibold text-[#16A34A] bg-[#F0FDF4] px-2 py-0.5 rounded-full">Ready to generate</span>
-                </div>
               </div>
 
               {/* PDF-style document preview */}
@@ -1092,13 +1153,6 @@ function ReportsTab({ generateOpen, setGenerateOpen }: { generateOpen: boolean; 
                     <span className="material-icons" style={{ fontSize: 15 }}>file_download</span>
                     Download
                   </button>
-                  <button
-                    onClick={() => { setPreviewReport(null); setGenerateOpen(true); }}
-                    className="flex items-center gap-1.5 px-4 py-2 text-[13px] font-semibold text-white bg-[#4A6FA5] rounded-lg hover:bg-[#3d5a85] transition-colors"
-                  >
-                    <span className="material-icons" style={{ fontSize: 15 }}>bar_chart</span>
-                    Generate Report
-                  </button>
                 </div>
               </div>
             </div>
@@ -1154,11 +1208,18 @@ export function Home() {
   return (
     <div className="p-8">
       {/* ── Page header ── */}
-      <div className="mb-4">
-        <div className="flex items-start justify-between">
+      <div className="mb-4 flex items-start justify-between gap-4">
+        <div>
           <h1 className="text-[22px] text-[#1A2332]" style={{ fontWeight: 700 }}>
             {companyName} Business Insights
           </h1>
+          <p className="text-[13px] text-[#6B7280] mt-0.5">
+            {safeTab === "Reports" ? "Generate, schedule, and export business reports." : "Overview of your business performance"}
+          </p>
+        </div>
+
+        {/* Right controls */}
+        <div className="flex flex-col items-end gap-2 shrink-0">
           {/* Date range picker */}
           <div className="relative">
             <button
@@ -1187,26 +1248,6 @@ export function Home() {
             )}
           </div>
         </div>
-        {safeTab === "Reports" ? (
-          <div className="flex items-center justify-between mt-0.5">
-            <p className="text-[13px] text-[#6B7280]">Generate, schedule, and export business reports.</p>
-            <div className="flex items-center gap-2">
-              <button className="flex items-center gap-1.5 px-3 py-2 text-[13px] font-medium text-[#1A2332] bg-white border border-[#E5E7EB] rounded-lg hover:bg-[#F5F7FA] transition-colors shadow-sm">
-                <span className="material-icons text-[#546478]" style={{ fontSize: 15 }}>schedule</span>
-                Schedule Report
-              </button>
-              <button
-                onClick={() => setGenerateReportOpen(true)}
-                className="flex items-center gap-1.5 px-3 py-2 text-[13px] font-semibold text-white bg-[#4A6FA5] rounded-lg hover:bg-[#3d5a85] transition-colors shadow-sm"
-              >
-                <span className="material-icons" style={{ fontSize: 15 }}>bar_chart</span>
-                Generate Report
-              </button>
-            </div>
-          </div>
-        ) : (
-          <p className="text-[13px] text-[#6B7280] mt-0.5">Overview of your business performance</p>
-        )}
       </div>
 
       {/* ── Tabs bar ── */}
