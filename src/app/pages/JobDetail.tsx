@@ -1084,7 +1084,7 @@ export function JobDetail() {
       {/* ── ONE BIG WHITE CARD CONTAINING EVERYTHING ── */}
       <div className="relative mx-6 mb-6 bg-white border border-[#E5E7EB] rounded-xl p-4">
         <div className="absolute right-4 top-4 flex items-center gap-2">
-<KebabMenu triggerClassName="h-9 w-9 border border-[#E5E7EB] rounded-md hover:bg-[#EDF0F5] flex items-center justify-center bg-white">
+          <KebabMenu triggerClassName="h-9 w-9 border border-[#E5E7EB] rounded-md hover:bg-[#EDF0F5] flex items-center justify-center bg-white">
             <KebabItem icon="edit" onClick={() => navigate(`/jobs/${id}/edit`)}>Edit Job</KebabItem>
             <KebabItem icon="content_copy">Duplicate Job</KebabItem>
             <KebabItem icon="block" destructive>Inactivate Job</KebabItem>
@@ -1092,7 +1092,7 @@ export function JobDetail() {
         </div>
 
         {/* Summary content — left column has name/contact rows, right column has compact KPIs */}
-        <div className="flex items-start gap-4 pr-24">
+        <div className="flex items-start gap-4 pr-12">
           <div className="flex-1 min-w-0 flex flex-col gap-4">
             {/* Name + contact row — mirrors ClientDetail header style */}
             <div className="flex flex-col gap-1">

@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #f4f6fb;
+    color: #111827;
+    font-size: 13px;
+  }
+
+  /* Shell */
+  .shell { display: flex; height: 100vh; min-height: 600px; }
+
+  /* Sidebar */
+  .sidebar {
+    width: 200px;
+    min-width: 200px;
+    background: #0f172a;
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+  }
+  .logo {
+    padding: 16px 16px 12px;
+    border-bottom: 1px solid #1e293b;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .logo-icon {
+    width: 28px; height: 28px;
+    background: #3b82f6;
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .logo-icon svg { width: 16px; height: 16px; fill: #fff; }
+  .logo-text { font-weight: 700; font-size: 13px; color: #f1f5f9; line-height: 1.2; }
+  .logo-sub { font-size: 9px; color: #64748b; letter-spacing: 0.05em; text-transform: uppercase; }
+  .nav { padding: 12px 8px; flex: 1; }
+  .nav-item {
+    display: flex; align-items: center; gap: 9px;
+    padding: 8px 10px; border-radius: 6px;
+    color: #94a3b8; font-size: 12.5px; cursor: pointer;
+    margin-bottom: 2px;
+  }
+  .nav-item:hover { background: #1e293b; color: #e2e8f0; }
+  .nav-item.active { background: #1e3a5f; color: #60a5fa; font-weight: 600; }
+  .nav-icon { width: 15px; height: 15px; opacity: 0.7; }
+  .nav-item.active .nav-icon { opacity: 1; }
+
+  /* Main content */
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+  /* Top bar */
+  .topbar {
+    background: #fff;
+    border-bottom: 1px solid #e5e7eb;
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .back-btn {
+    display: flex; align-items: center; gap: 5px;
+    color: #6b7280; font-size: 12px; cursor: pointer;
+    padding: 5px 8px; border-radius: 5px;
+  }
+  .back-btn:hover { background: #f3f4f6; color: #111; }
+  .search-bar {
+    flex: 1; max-width: 380px;
+    background: #f9fafb; border: 1px solid #e5e7eb;
+    border-radius: 7px; padding: 7px 12px;
+    display: flex; align-items: center; gap: 7px;
+    color: #9ca3af; font-size: 12px;
+  }
+  .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+  .icon-btn {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: #f3f4f6; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; color: #6b7280; font-size: 14px;
+  }
+  .avatar {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: #3b82f6; color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700;
+  }
+
+  /* Content area */
+  .content { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+
+  /* Job header card */
+  .job-header {
+    background: #fff;
+    border-radius: 10px;
+    border: 1px solid #e5e7eb;
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .job-header-top {
+    display: flex; align-items: flex-start; gap: 12px;
+  }
+  .job-title-group { flex: 1; }
+  .job-name { font-size: 18px; font-weight: 700; color: #111827; }
+  .job-id { font-size: 12px; color: #9ca3af; margin-left: 6px; font-weight: 400; }
+  .status-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 10px; border-radius: 20px;
+    background: #dbeafe; color: #1d4ed8;
+    font-size: 11px; font-weight: 600;
+    margin-top: 4px;
+  }
+  .status-dot { width: 6px; height: 6px; border-radius: 50%; background: #3b82f6; }
+
+  .contact-row { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .contact-item { display: flex; align-items: center; gap: 5px; color: #374151; font-size: 12px; }
+  .contact-item a { color: #3b82f6; text-decoration: none; }
+  .contact-item a:hover { text-decoration: underline; }
+
+  /* Gate code badge */
+  .gate-code-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: #fef3c7; border: 1px solid #fbbf24;
+    border-radius: 6px; padding: 4px 10px;
+    font-size: 12px; color: #92400e; font-weight: 600;
+  }
+
+  .meta-row { display: flex; align-items: center; gap: 16px; padding-top: 4px; border-top: 1px solid #f3f4f6; }
+  .meta-item { font-size: 11.5px; color: #6b7280; }
+  .meta-item strong { color: #374151; }
+
+  .header-actions { display: flex; align-items: center; gap: 8px; }
+  .action-btn {
+    padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer;
+    border: 1px solid #e5e7eb; background: #fff; color: #374151;
+  }
+  .action-btn.primary { background: #3b82f6; color: #fff; border-color: #3b82f6; }
+
+  /* Metrics bar */
+  .metrics-bar {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    gap: 10px;
+  }
+  .metric-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    position: relative;
+    overflow: hidden;
+  }
+  .metric-card.primary { border-top: 3px solid #3b82f6; }
+  .metric-card.secondary { border-top: 3px solid #e5e7eb; }
+  .metric-label { font-size: 10.5px; color: #6b7280; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; }
+  .metric-value { font-size: 20px; font-weight: 700; color: #111827; }
+  .metric-card.primary .metric-value { font-size: 24px; color: #1d4ed8; }
+  .metric-sub { font-size: 11px; display: flex; align-items: center; gap: 4px; }
+  .trend-up { color: #16a34a; }
+  .trend-neutral { color: #6b7280; }
+  .profit-ring {
+    width: 40px; height: 40px;
+    position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+  }
+
+  /* Tabs */
+  .tabs-bar {
+    display: flex;
+    gap: 2px;
+    border-bottom: 2px solid #e5e7eb;
+    padding: 0 16px;
+    background: #fff;
+    border-radius: 10px 10px 0 0;
+    border: 1px solid #e5e7eb;
+    border-bottom: none;
+  }
+  .tab {
+    padding: 11px 14px;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: #6b7280;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    white-space: nowrap;
+  }
+  .tab:hover { color: #374151; }
+  .tab.active { color: #2563eb; border-bottom-color: #2563eb; font-weight: 600; }
+  .tab-count {
+    display: inline-block;
+    background: #f3f4f6;
+    border-radius: 10px;
+    padding: 1px 6px;
+    font-size: 10px;
+    font-weight: 600;
+    color: #6b7280;
+    margin-left: 4px;
+  }
+  .tab.active .tab-count { background: #dbeafe; color: #1d4ed8; }
+
+  /* Body grid */
+  .body-grid {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 14px;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 0 0 10px 10px;
+    border-top: none;
+    padding: 18px;
+  }
+
+  /* Section card */
+  .section-card {
+    border: 1px solid #f0f0f0;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    overflow: hidden;
+  }
+  .section-card:last-child { margin-bottom: 0; }
+  .section-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 14px;
+    background: #f9fafb;
+    border-bottom: 1px solid #f0f0f0;
+  }
+  .section-head-title { font-weight: 600; font-size: 12.5px; color: #374151; }
+  .edit-btn { color: #9ca3af; font-size: 12px; cursor: pointer; padding: 2px 6px; border-radius: 4px; }
+  .edit-btn:hover { background: #e5e7eb; color: #374151; }
+  .section-body { padding: 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .field-label { font-size: 10.5px; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 3px; font-weight: 500; }
+  .field-value { font-size: 13px; color: #111827; font-weight: 500; }
+  .field-value.address { font-size: 12.5px; line-height: 1.5; color: #374151; }
+
+  /* Technician chip */
+  .tech-chip {
+    display: inline-flex; align-items: center; gap: 7px;
+    background: #f0f9ff; border: 1px solid #bae6fd;
+    border-radius: 20px; padding: 4px 10px;
+  }
+  .tech-avatar {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: #0ea5e9; color: #fff;
+    font-size: 9px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .tech-name { font-size: 12px; color: #0369a1; font-weight: 600; }
+  .tech-role { font-size: 10px; color: #7dd3fc; }
+
+  /* Notes panel */
+  .notes-panel {}
+  .notes-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .notes-title { font-weight: 600; font-size: 13px; color: #374151; }
+  .notes-count { font-size: 11px; color: #6b7280; background: #f3f4f6; border-radius: 10px; padding: 2px 8px; }
+  .add-note-btn {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: #3b82f6; color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; cursor: pointer; font-weight: 300;
+  }
+  .note-item {
+    padding: 10px 0;
+    border-bottom: 1px solid #f3f4f6;
+  }
+  .note-item:last-child { border-bottom: none; }
+  .note-text { font-size: 12.5px; color: #111827; line-height: 1.45; margin-bottom: 4px; }
+  .note-meta { display: flex; align-items: center; gap: 6px; }
+  .note-date { font-size: 11px; color: #9ca3af; }
+  .note-pin { font-size: 10px; background: #fef3c7; color: #92400e; border-radius: 4px; padding: 1px 6px; font-weight: 600; }
+  .show-more {
+    text-align: center; padding: 10px 0 2px;
+    font-size: 12px; color: #3b82f6; cursor: pointer; font-weight: 500;
+  }
+  .show-more:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="logo">
+      <div class="logo-icon">
+        <svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="5" fill="none" stroke="#fff" stroke-width="2"/><circle cx="8" cy="8" r="2"/></svg>
+      </div>
+      <div>
+        <div class="logo-text">VISION360</div>
+        <div class="logo-sub">Field Service</div>
+      </div>
+    </div>
+    <nav class="nav">
+      <div class="nav-item">🏠 &nbsp;Home</div>
+      <div class="nav-item">📅 &nbsp;Schedule</div>
+      <div class="nav-item">👥 &nbsp;Clients</div>
+      <div class="nav-item active">💼 &nbsp;Jobs</div>
+      <div class="nav-item">📋 &nbsp;Estimates</div>
+      <div class="nav-item">🧾 &nbsp;Invoices</div>
+      <div class="nav-item">💳 &nbsp;Payments</div>
+      <div class="nav-item">💰 &nbsp;Expenses</div>
+      <div class="nav-item">📦 &nbsp;Items</div>
+    </nav>
+  </div>
+
+  <!-- Main -->
+  <div class="main">
+
+    <!-- Topbar -->
+    <div class="topbar">
+      <div class="back-btn">← Back to Jobs</div>
+      <div class="search-bar">🔍 &nbsp;Search customers, jobs, invoices…<span style="margin-left:auto;font-size:11px;color:#d1d5db">⌘K</span></div>
+      <div class="topbar-right">
+        <div class="icon-btn">＋</div>
+        <div class="icon-btn">🔔</div>
+        <div class="icon-btn">⚙</div>
+        <div class="avatar">JD</div>
+      </div>
+    </div>
+
+    <!-- Content -->
+    <div class="content">
+
+      <!-- Job Header Card -->
+      <div class="job-header">
+        <div class="job-header-top">
+          <div class="job-title-group">
+            <div>
+              <span class="job-name">Travis Jones</span>
+              <span class="job-id">#10245-J01</span>
+            </div>
+            <div style="margin-top:5px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+              <div class="status-badge"><span class="status-dot"></span>Scheduled</div>
+              <div class="gate-code-badge">🔑 Gate code: 4821</div>
+            </div>
+          </div>
+          <div class="header-actions">
+            <div class="action-btn">Edit Job</div>
+            <div class="action-btn primary">+ Add Note</div>
+          </div>
+        </div>
+        <div class="contact-row">
+          <div class="contact-item">📍 4405 North Clark Avenue, Tampa, FL 33614</div>
+          <div class="contact-item">📞 <a href="#">(813) 612-5487</a></div>
+          <div class="contact-item">✉ <a href="#">ccj924@yahoo.com</a></div>
+        </div>
+        <div class="meta-row">
+          <div class="meta-item">Customer since <strong>Jul 2021</strong></div>
+          <div class="meta-item">Last service <strong>Jun 25, 2026</strong></div>
+          <div class="meta-item">Has <strong>3 properties</strong> requiring service</div>
+        </div>
+      </div>
+
+      <!-- Metrics bar -->
+      <div class="metrics-bar">
+        <div class="metric-card primary">
+          <div class="metric-label">Total Price</div>
+          <div class="metric-value">$45,230</div>
+          <div class="metric-sub"><span class="trend-up">▲ 12% vs last job</span></div>
+        </div>
+        <div class="metric-card secondary">
+          <div class="metric-label">Compensation</div>
+          <div class="metric-value" style="font-size:17px;">$14,527</div>
+          <div class="metric-sub trend-neutral">32.1% of total</div>
+        </div>
+        <div class="metric-card secondary">
+          <div class="metric-label">All Expenses</div>
+          <div class="metric-value" style="font-size:17px;">$8,548</div>
+          <div class="metric-sub trend-neutral">18.9% of total</div>
+        </div>
+        <div class="metric-card secondary">
+          <div class="metric-label">Profit Margin</div>
+          <div class="metric-value" style="font-size:17px;color:#16a34a;">52%</div>
+          <div class="metric-sub"><span class="trend-up">▲ Above target</span></div>
+          <svg class="profit-ring" viewBox="0 0 40 40">
+            <circle cx="20" cy="20" r="16" fill="none" stroke="#f3f4f6" stroke-width="4"/>
+            <circle cx="20" cy="20" r="16" fill="none" stroke="#22c55e" stroke-width="4"
+              stroke-dasharray="52 48" stroke-dashoffset="25" stroke-linecap="round" transform="rotate(-90 20 20)"/>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Tabs + body -->
+      <div>
+        <div class="tabs-bar">
+          <div class="tab active">Job Details</div>
+          <div class="tab">Estimate <span class="tab-count">1</span></div>
+          <div class="tab">Invoices <span class="tab-count">2</span></div>
+          <div class="tab">Items <span class="tab-count">6</span></div>
+          <div class="tab">Expenses <span class="tab-count">4</span></div>
+          <div class="tab">Documents <span class="tab-count">7</span></div>
+        </div>
+
+        <div class="body-grid">
+
+          <!-- Left: job details -->
+          <div>
+            <div class="section-card">
+              <div class="section-head">
+                <span class="section-head-title">Job Overview</span>
+                <span class="edit-btn">✏ Edit</span>
+              </div>
+              <div class="section-body">
+                <div class="field-group">
+                  <div class="field-label">Job Title</div>
+                  <div class="field-value">AC Estimate</div>
+                </div>
+                <div class="field-group">
+                  <div class="field-label">Job Type</div>
+                  <div class="field-value">Estimate</div>
+                </div>
+                <div class="field-group" style="grid-column:1/-1;">
+                  <div class="field-label">Service Address</div>
+                  <div class="field-value address">4405 North Clark Avenue<br>Tampa, FL 33614</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="section-card">
+              <div class="section-head">
+                <span class="section-head-title">Job Date & Time</span>
+                <span class="edit-btn">✏ Edit</span>
+              </div>
+              <div class="section-body">
+                <div class="field-group">
+                  <div class="field-label">Start</div>
+                  <div class="field-value">Mar 30, 2026 · 9:00 AM</div>
+                </div>
+                <div class="field-group">
+                  <div class="field-label">End</div>
+                  <div class="field-value">Mar 30, 2026 · 11:00 AM</div>
+                </div>
+                <div class="field-group" style="grid-column:1/-1;">
+                  <div class="field-label">Assigned Technician</div>
+                  <div style="margin-top:5px;">
+                    <div class="tech-chip">
+                      <div class="tech-avatar">PN</div>
+                      <div>
+                        <div class="tech-name">Peter Novak</div>
+                        <div class="tech-role">Technician</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: notes panel -->
+          <div class="notes-panel">
+            <div class="notes-header">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span class="notes-title">Notes</span>
+                <span class="notes-count">12 total</span>
+              </div>
+              <div class="add-note-btn">+</div>
+            </div>
+
+            <div class="note-item">
+              <div class="note-text">Prefers morning appointments.</div>
+              <div class="note-meta">
+                <span class="note-pin">📌 Pinned</span>
+                <span class="note-date">Mar 28, 2026</span>
+              </div>
+            </div>
+            <div class="note-item">
+              <div class="note-text">Has three properties requiring service.</div>
+              <div class="note-meta"><span class="note-date">Feb 19, 2026</span></div>
+            </div>
+            <div class="note-item">
+              <div class="note-text">Requested annual maintenance plan.</div>
+              <div class="note-meta"><span class="note-date">Jan 15, 2026</span></div>
+            </div>
+            <div class="note-item">
+              <div class="note-text">Requested annual maintenance plan.</div>
+              <div class="note-meta">
+                <span style="font-size:10px;background:#fef2f2;color:#dc2626;border-radius:4px;padding:1px 6px;font-weight:600;">⚠ Duplicate</span>
+                <span class="note-date">Jan 10, 2026</span>
+              </div>
+            </div>
+
+            <div class="show-more">Show 8 more notes ↓</div>
+          </div>
+
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div>
+</body>
+</html>
