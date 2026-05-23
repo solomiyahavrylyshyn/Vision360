@@ -1,9 +1,16 @@
 import { useState, useRef } from "react";
 import { useNavigate, useParams } from "react-router";
 import { KebabMenu, KebabItem } from "../components/ui/kebab-menu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "../components/ui/dropdown-menu";
 import { DetailTabs, TabSettingsButton } from "../components/ui/detail-tabs";
 import { PlusIcon } from "../components/ui/plus-icon";
 import { DocumentPreview } from "../components/DocumentPreview";
+import { toast } from "sonner";
 
 interface Expense {
   id: number;
@@ -36,16 +43,18 @@ interface DocFile {
   isImage?: boolean;
   previewUrl?: string;
   previewGradient?: string;
+  uploadedBy?: string;
+  category?: string;
 }
 
 const INITIAL_DOCS: DocFile[] = [
-  { id: "1", name: "AC_Estimate_draft.pdf", size: "245 KB", date: "Mar 30, 2026", icon: "picture_as_pdf", iconColor: "#DC2626" },
-  { id: "2", name: "Site_Photos_Before.jpg", size: "1.2 MB", date: "Mar 30, 2026", icon: "image", iconColor: "#2563EB", isImage: true, previewGradient: "linear-gradient(135deg,#bfdbfe,#3b82f6)" },
-  { id: "3", name: "Service_Agreement.docx", size: "88 KB", date: "Mar 28, 2026", icon: "description", iconColor: "#2563EB" },
-  { id: "4", name: "Property_Map.pdf", size: "156 KB", date: "Mar 27, 2026", icon: "picture_as_pdf", iconColor: "#DC2626" },
-  { id: "5", name: "Invoice_Draft.pdf", size: "112 KB", date: "Mar 26, 2026", icon: "picture_as_pdf", iconColor: "#DC2626" },
-  { id: "6", name: "Duct_System_Photo.jpg", size: "2.1 MB", date: "Mar 25, 2026", icon: "image", iconColor: "#059669", isImage: true, previewGradient: "linear-gradient(135deg,#d1fae5,#10b981)" },
-  { id: "7", name: "Permit_Application.pdf", size: "320 KB", date: "Mar 22, 2026", icon: "picture_as_pdf", iconColor: "#DC2626" },
+  { id: "1", name: "AC_Estimate_draft.pdf", size: "245 KB", date: "Mar 30, 2026", icon: "picture_as_pdf", iconColor: "#DC2626", uploadedBy: "Peter Novak", category: "Documents" },
+  { id: "2", name: "Site_Photos_Before.jpg", size: "1.2 MB", date: "Mar 30, 2026", icon: "image", iconColor: "#2563EB", isImage: true, previewGradient: "linear-gradient(135deg,#bfdbfe,#3b82f6)", uploadedBy: "Field Crew", category: "Photos" },
+  { id: "3", name: "Service_Agreement.docx", size: "88 KB", date: "Mar 28, 2026", icon: "description", iconColor: "#2563EB", uploadedBy: "Office Admin", category: "Agreements" },
+  { id: "4", name: "Property_Map.pdf", size: "156 KB", date: "Mar 27, 2026", icon: "picture_as_pdf", iconColor: "#DC2626", uploadedBy: "Peter Novak", category: "Documents" },
+  { id: "5", name: "Invoice_Draft.pdf", size: "112 KB", date: "Mar 26, 2026", icon: "picture_as_pdf", iconColor: "#DC2626", uploadedBy: "Office Admin", category: "Documents" },
+  { id: "6", name: "Duct_System_Photo.jpg", size: "2.1 MB", date: "Mar 25, 2026", icon: "image", iconColor: "#059669", isImage: true, previewGradient: "linear-gradient(135deg,#d1fae5,#10b981)", uploadedBy: "Field Crew", category: "Photos" },
+  { id: "7", name: "Permit_Application.pdf", size: "320 KB", date: "Mar 22, 2026", icon: "picture_as_pdf", iconColor: "#DC2626", uploadedBy: "Office Admin", category: "Documents" },
 ];
 
 const mockJobData: Record<string, any> = {
@@ -357,6 +366,14 @@ export function JobDetail() {
   const [docSearch, setDocSearch] = useState("");
   const [docDate, setDocDate] = useState("all");
   const [docCategory, setDocCategory] = useState("all");
+  const [docUploader, setDocUploader] = useState("all");
+  const [docSortField, setDocSortField] = useState<"name" | "date" | "type" | "size" | "uploadedBy">("name");
+  const [docSortDir, setDocSortDir] = useState<"asc" | "desc">("asc");
+  const [docPreviewIdx, setDocPreviewIdx] = useState(0);
+  const [docsPage, setDocsPage] = useState(0);
+  const [docPreviewPaneOpen, setDocPreviewPaneOpen] = useState(true);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const DOCS_PER_PAGE = 12;
   const fileInputRef = useRef<HTMLInputElement>(null);
   // Right-side preview panel selection
   const [previewFileId, setPreviewFileId] = useState<string | null>(null);
@@ -417,9 +434,10 @@ export function JobDetail() {
   const getFileIcon = (name: string): { icon: string; iconColor: string } => {
     const ext = name.split(".").pop()?.toLowerCase();
     if (ext === "pdf") return { icon: "picture_as_pdf", iconColor: "#DC2626" };
-    if (["jpg", "jpeg", "png", "gif", "webp"].includes(ext || "")) return { icon: "image", iconColor: "#2563EB" };
+    if (["jpg", "jpeg", "png", "gif", "webp"].includes(ext || "")) return { icon: "image", iconColor: "#F59E0B" };
     if (["doc", "docx"].includes(ext || "")) return { icon: "description", iconColor: "#2563EB" };
-    if (["xls", "xlsx"].includes(ext || "")) return { icon: "table_chart", iconColor: "#059669" };
+    if (["xls", "xlsx", "csv"].includes(ext || "")) return { icon: "table_chart", iconColor: "#16A34A" };
+    if (["zip", "rar", "7z"].includes(ext || "")) return { icon: "folder_zip", iconColor: "#7C3AED" };
     return { icon: "insert_drive_file", iconColor: "#6B7280" };
   };
 
@@ -432,10 +450,21 @@ export function JobDetail() {
   const handleFilesAdded = (files: FileList | null) => {
     if (!files) return;
     const today = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    const imageExts = ["jpg", "jpeg", "png", "gif", "webp"];
     Array.from(files).forEach((f) => {
       const docId = String(Date.now() + Math.random());
-      const isImage = f.type.startsWith("image/");
-      const doc: DocFile = { id: docId, name: f.name, size: formatSize(f.size), date: today, ...getFileIcon(f.name), isImage };
+      const ext = f.name.split(".").pop()?.toLowerCase() ?? "";
+      const isImage = imageExts.includes(ext) || f.type.startsWith("image/");
+      const doc: DocFile = {
+        id: docId,
+        name: f.name,
+        size: formatSize(f.size),
+        date: today,
+        ...getFileIcon(f.name),
+        isImage,
+        uploadedBy: "You",
+        category: isImage ? "Photos" : /agreement/i.test(f.name) ? "Agreements" : "Documents",
+      };
       if (isImage) {
         const reader = new FileReader();
         reader.onload = () => setDocuments(prev => prev.map(d => d.id === docId ? { ...d, previewUrl: String(reader.result) } : d));
@@ -443,7 +472,45 @@ export function JobDetail() {
       }
       setDocuments(prev => [doc, ...prev]);
     });
+    toast.success(`${files.length} file${files.length > 1 ? "s" : ""} uploaded`);
   };
+
+  const uploaderOptions = Array.from(new Set(documents.map(d => d.uploadedBy).filter(Boolean) as string[]));
+  const filteredDocuments = documents.filter(d => {
+    if (docSearch && !d.name.toLowerCase().includes(docSearch.toLowerCase())) return false;
+    if (docCategory !== "all" && d.category !== docCategory) return false;
+    if (docUploader !== "all" && d.uploadedBy !== docUploader) return false;
+    if (docDate !== "all") {
+      const docTs = new Date(d.date).getTime();
+      const now = Date.now();
+      const days = docDate === "7" ? 7 : docDate === "30" ? 30 : 90;
+      if (now - docTs > days * 24 * 60 * 60 * 1000) return false;
+    }
+    return true;
+  });
+
+  const parseDocSize = (size: string) => {
+    const [rawValue, rawUnit = "B"] = size.split(" ");
+    const value = Number(rawValue) || 0;
+    const unit = rawUnit.toUpperCase();
+    if (unit.startsWith("GB")) return value * 1024 * 1024 * 1024;
+    if (unit.startsWith("MB")) return value * 1024 * 1024;
+    if (unit.startsWith("KB")) return value * 1024;
+    return value;
+  };
+
+  const sortedDocuments = [...filteredDocuments].sort((a, b) => {
+    const dir = docSortDir === "asc" ? 1 : -1;
+    if (docSortField === "name") return a.name.localeCompare(b.name) * dir;
+    if (docSortField === "date") return (new Date(a.date).getTime() - new Date(b.date).getTime()) * dir;
+    if (docSortField === "type") {
+      const aType = a.name.split(".").pop()?.toLowerCase() || "";
+      const bType = b.name.split(".").pop()?.toLowerCase() || "";
+      return aType.localeCompare(bType) * dir || a.name.localeCompare(b.name) * dir;
+    }
+    if (docSortField === "size") return (parseDocSize(a.size) - parseDocSize(b.size)) * dir;
+    return (a.uploadedBy || "").localeCompare(b.uploadedBy || "") * dir || a.name.localeCompare(b.name) * dir;
+  });
 
   /* ──────────────────────────────────────────
      CONTENT RENDERERS
@@ -795,260 +862,263 @@ export function JobDetail() {
     </>
   );
 
-  const renderDocumentsTab = () => {
-    // Derive category from file type (matches Clients tab convention)
-    const categoryOf = (d: DocFile): string => {
-      if (d.isImage) return "Photos";
-      if (/agreement/i.test(d.name)) return "Agreements";
-      return "Documents";
-    };
-    // Crude date filter — mock docs use friendly dates like "Mar 30, 2026"
-    const withinDays = (dateStr: string, days: number): boolean => {
-      const parsed = new Date(dateStr);
-      if (isNaN(parsed.getTime())) return true;
-      const diff = (Date.now() - parsed.getTime()) / (1000 * 60 * 60 * 24);
-      return diff <= days;
-    };
-    const filtered = documents.filter(d => {
-      if (docSearch && !d.name.toLowerCase().includes(docSearch.toLowerCase())) return false;
-      if (docCategory !== "all" && categoryOf(d) !== docCategory) return false;
-      if (docDate !== "all" && !withinDays(d.date, parseInt(docDate, 10))) return false;
-      return true;
-    });
-    return (
-      <div className="space-y-3">
-        {/* Toolbar */}
-        <div className="bg-white border border-[#E5E7EB] rounded-xl px-4 py-3 flex items-center gap-3">
-          <div className="relative flex-1 max-w-[260px]">
-            <span className="material-icons absolute left-2.5 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: "15px" }}>search</span>
-            <input
-              type="text"
-              value={docSearch}
-              onChange={e => setDocSearch(e.target.value)}
-              placeholder="Search documents..."
-              className="w-full h-8 pl-8 pr-3 rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] text-[13px] text-[#1A2332] placeholder:text-[#9CA3AF] outline-none focus:border-[#4A6FA5] focus:bg-white"
-            />
-          </div>
-          <select
-            value={docDate}
-            onChange={e => setDocDate(e.target.value)}
-            className="h-8 rounded-lg border border-[#E5E7EB] bg-white px-3 text-[13px] text-[#374151] outline-none focus:border-[#4A6FA5]"
-          >
-            <option value="all">Date: All time</option>
-            <option value="7">Last 7 days</option>
-            <option value="30">Last 30 days</option>
-            <option value="90">Last 90 days</option>
-          </select>
-          <select
-            value={docCategory}
-            onChange={e => setDocCategory(e.target.value)}
-            className="h-8 rounded-lg border border-[#E5E7EB] bg-white px-3 text-[13px] text-[#374151] outline-none focus:border-[#4A6FA5]"
-          >
-            <option value="all">All Categories</option>
-            <option value="Photos">Photos</option>
-            <option value="Documents">Documents</option>
-            <option value="Agreements">Agreements</option>
-          </select>
-          <div className="flex-1" />
-          <button
-            className="h-8 px-3 gap-1.5 text-[13px] bg-[#4A6FA5] hover:bg-[#3d5a85] text-white rounded-md flex items-center shrink-0 transition-colors"
-            style={{ fontWeight: 500 }}
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <span className="material-icons" style={{ fontSize: "16px" }}>upload</span>
-            Upload
-          </button>
+  const renderDocumentsTab = () => (
+    <div className="space-y-3">
+      <div className="bg-white border border-[#E5E7EB] rounded-xl px-4 py-3 flex items-center gap-3">
+        <div className="relative flex-1 max-w-[260px]">
+          <span className="material-icons absolute left-2.5 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: "15px" }}>search</span>
+          <input
+            type="text"
+            value={docSearch}
+            onChange={e => setDocSearch(e.target.value)}
+            placeholder="Search documents..."
+            className="w-full h-8 pl-8 pr-3 rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] text-[13px] text-[#1A2332] placeholder:text-[#9CA3AF] outline-none focus:border-[#4A6FA5] focus:bg-white"
+          />
         </div>
+        <select value={docDate} onChange={e => setDocDate(e.target.value)} className="h-8 rounded-lg border border-[#E5E7EB] bg-white px-3 text-[13px] text-[#374151] outline-none focus:border-[#4A6FA5]">
+          <option value="all">Date: All time</option>
+          <option value="7">Last 7 days</option>
+          <option value="30">Last 30 days</option>
+          <option value="90">Last 90 days</option>
+        </select>
+        <select value={docCategory} onChange={e => setDocCategory(e.target.value)} className="h-8 rounded-lg border border-[#E5E7EB] bg-white px-3 text-[13px] text-[#374151] outline-none focus:border-[#4A6FA5]">
+          <option value="all">All Categories</option>
+          <option value="Photos">Photos</option>
+          <option value="Documents">Documents</option>
+          <option value="Agreements">Agreements</option>
+        </select>
+        <select value={docUploader} onChange={e => setDocUploader(e.target.value)} className="h-8 rounded-lg border border-[#E5E7EB] bg-white px-3 text-[13px] text-[#374151] outline-none focus:border-[#4A6FA5]">
+          <option value="all">All uploaders</option>
+          {uploaderOptions.map(u => <option key={u} value={u}>{u}</option>)}
+        </select>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button type="button" className="h-8 px-3 rounded-lg border border-[#E5E7EB] bg-white text-[13px] text-[#374151] hover:bg-[#F5F7FA] flex items-center gap-1.5" style={{ fontWeight: 500 }}>
+              <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "16px" }}>swap_vert</span>
+              Sort
+              <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "16px" }}>expand_more</span>
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-[220px] p-1">
+            {[
+              { key: "name", label: "Name" },
+              { key: "date", label: "Date" },
+              { key: "type", label: "Type" },
+              { key: "size", label: "Size" },
+              { key: "uploadedBy", label: "Uploaded by" },
+            ].map((item) => (
+              <DropdownMenuItem key={item.key} className="h-9 px-3 text-[13px] text-[#374151] flex items-center gap-2.5 cursor-pointer" onClick={() => setDocSortField(item.key as typeof docSortField)}>
+                <span className="w-4 text-[#4A6FA5]">{docSortField === item.key ? "•" : ""}</span>
+                <span>{item.label}</span>
+              </DropdownMenuItem>
+            ))}
+            <div className="h-px bg-[#E5E7EB] my-1" />
+            <DropdownMenuItem className="h-9 px-3 text-[13px] text-[#374151] flex items-center gap-2.5 cursor-pointer" onClick={() => setDocSortDir("asc")}>
+              <span className="w-4 text-[#4A6FA5]">{docSortDir === "asc" ? "•" : ""}</span>
+              <span>Ascending</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem className="h-9 px-3 text-[13px] text-[#374151] flex items-center gap-2.5 cursor-pointer" onClick={() => setDocSortDir("desc")}>
+              <span className="w-4 text-[#4A6FA5]">{docSortDir === "desc" ? "•" : ""}</span>
+              <span>Descending</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+        <div className="flex-1" />
+        <button
+          type="button"
+          className={`h-8 px-3 gap-1.5 text-[13px] bg-[#4A6FA5] hover:bg-[#3d5a85] text-white rounded-md inline-flex items-center justify-center transition-colors shrink-0 ${isDragOver ? "ring-2 ring-[#C5D5EC]" : ""}`}
+          style={{ fontWeight: 600 }}
+          onClick={() => fileInputRef.current?.click()}
+          onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
+          onDragLeave={() => setIsDragOver(false)}
+          onDrop={(e) => { e.preventDefault(); setIsDragOver(false); handleFilesAdded(e.dataTransfer.files); }}
+        >
+          <span className="material-icons" style={{ fontSize: "16px" }}>upload</span>
+          Upload
+        </button>
+      </div>
 
-        {/* Hidden file input */}
-        <input
-          ref={fileInputRef}
-          type="file"
-          multiple
-          className="hidden"
-          onChange={e => handleFilesAdded(e.target.files)}
-        />
+      <input ref={fileInputRef} type="file" multiple className="hidden" onChange={(e) => handleFilesAdded(e.target.files)} />
 
-        {/* Batch selection action bar — appears when any file is selected */}
-        {selectedDocs.size > 0 && (
-          <div className="bg-[#EEF3FA] border border-[#C5D5EC] rounded-lg px-4 py-2 flex items-center gap-3">
-            <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>
-              {selectedDocs.size} selected
-            </span>
-            <button
-              onClick={() => setSelectedDocs(new Set(filtered.map(f => f.id)))}
-              className="text-[12px] text-[#4A6FA5] hover:underline"
-              style={{ fontWeight: 500 }}
-            >
-              Select all
-            </button>
-            <button
-              onClick={() => setSelectedDocs(new Set())}
-              className="text-[12px] text-[#6B7280] hover:underline"
-              style={{ fontWeight: 500 }}
-            >
-              Clear
-            </button>
-            <div className="flex-1" />
-            <button
-              onClick={() => setConfirmBulkDelete(true)}
-              className="h-8 px-3 flex items-center gap-1.5 border border-[#FCA5A5] bg-white hover:bg-[#FEF2F2] rounded-md text-[13px] text-[#DC2626] transition-colors"
-              style={{ fontWeight: 500 }}
-            >
-              <span className="material-icons" style={{ fontSize: "16px" }}>delete_outline</span>
-              Delete selected
-            </button>
+      {sortedDocuments.length === 0 ? (
+        <div className="bg-white border border-[#E5E7EB] rounded-xl py-12 text-center">
+          <span className="material-icons text-[#D1D5DB] mb-2 block" style={{ fontSize: "40px" }}>folder_open</span>
+          <div className="text-[13px] text-[#9CA3AF]">
+            {docSearch || docDate !== "all" || docCategory !== "all" || docUploader !== "all"
+              ? "No documents match your filters"
+              : "No documents yet"}
           </div>
-        )}
+        </div>
+      ) : (() => {
+        const safeIdx = Math.min(docPreviewIdx, Math.max(0, sortedDocuments.length - 1));
+        const current = sortedDocuments[safeIdx];
+        const totalPages = Math.ceil(sortedDocuments.length / DOCS_PER_PAGE);
+        const safePage = Math.min(docsPage, Math.max(0, totalPages - 1));
+        return (
+          <>
+            {selectedDocs.size > 0 && (
+              <div className="bg-[#EEF3FA] border border-[#C5D5EC] rounded-lg px-4 py-2 flex items-center gap-3 mb-3">
+                <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{selectedDocs.size} selected</span>
+                <button onClick={() => setSelectedDocs(new Set(sortedDocuments.map(f => f.id)))} className="text-[12px] text-[#4A6FA5] hover:underline" style={{ fontWeight: 500 }}>Select all</button>
+                <button onClick={() => setSelectedDocs(new Set())} className="text-[12px] text-[#6B7280] hover:underline" style={{ fontWeight: 500 }}>Clear</button>
+                <div className="flex-1" />
+                <button onClick={() => setConfirmBulkDelete(true)} className="h-8 px-3 flex items-center gap-1.5 border border-[#FCA5A5] bg-white hover:bg-[#FEF2F2] rounded-md text-[13px] text-[#DC2626] transition-colors" style={{ fontWeight: 500 }}>
+                  <span className="material-icons" style={{ fontSize: "16px" }}>delete_outline</span>
+                  Delete selected
+                </button>
+              </div>
+            )}
 
-        {/* Files grid — Windows File Explorer medium-icons style per Marek's request */}
-        {filtered.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7 gap-3">
-            {filtered.map((file) => {
-              const isSelected = selectedDocs.has(file.id);
-              return (
-              <div
-                key={file.id}
-                onClick={(e) => {
-                  // Cmd/Ctrl-click or Shift-click toggles selection without opening preview
-                  if (e.metaKey || e.ctrlKey || e.shiftKey || selectedDocs.size > 0) {
-                    toggleSelected(file.id);
-                  } else {
-                    setPreviewFileId(file.id);
-                  }
-                }}
-                className={`flex flex-col items-center text-center group relative cursor-pointer rounded-lg p-2 transition-colors ${
-                  isSelected ? "bg-[#DBE7F7] ring-2 ring-[#4A6FA5]" : "hover:bg-[#EEF3FA]"
-                }`}
-                title={`${file.name}\n${file.size} · ${file.date}`}
-              >
-                {/* Hover/selected checkbox */}
-                <label
-                  onClick={(e) => e.stopPropagation()}
-                  className={`absolute top-1 left-1 z-10 ${isSelected || selectedDocs.size > 0 ? "opacity-100" : "opacity-0 group-hover:opacity-100"} transition-opacity`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={isSelected}
-                    onChange={() => toggleSelected(file.id)}
-                    className="w-4 h-4 accent-[#4A6FA5] cursor-pointer"
-                    aria-label={`Select ${file.name}`}
-                  />
-                </label>
-
-                {/* Thumbnail */}
-                <div className="w-full aspect-[4/3] rounded-md border border-[#E5E7EB] overflow-hidden bg-white">
-                  {file.isImage ? (
-                    file.previewUrl ? (
-                      <img src={file.previewUrl} alt={file.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <div
-                        className="w-full h-full flex items-center justify-center"
-                        style={{ background: file.previewGradient ?? "linear-gradient(135deg,#fde68a,#f59e0b)" }}
-                      >
-                        <span className="material-icons text-white/70" style={{ fontSize: "32px" }}>image</span>
-                      </div>
-                    )
-                  ) : (
-                    <div
-                      className="w-full h-full flex items-center justify-center"
-                      style={{ backgroundColor: file.iconColor + "12" }}
-                    >
-                      <span className="material-icons" style={{ fontSize: "40px", color: file.iconColor, opacity: 0.85 }}>{file.icon}</span>
+            <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden flex" style={{ minHeight: "520px" }}>
+              <div className={`${docPreviewPaneOpen ? "w-[240px] shrink-0 border-r border-[#F3F4F6]" : "flex-1"} flex flex-col`}>
+                <div className="p-2.5 flex-1 overflow-y-auto">
+                  {!docPreviewPaneOpen && (
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[12px] text-[#6B7280]" style={{ fontWeight: 500 }}>Preview hidden — click any file to reopen</span>
+                      <button onClick={() => setDocPreviewPaneOpen(true)} className="h-7 px-2.5 inline-flex items-center gap-1 text-[12px] text-[#4A6FA5] border border-[#E5E7EB] rounded-md hover:bg-[#F5F7FA]" style={{ fontWeight: 500 }}>
+                        <span className="material-icons" style={{ fontSize: "14px" }}>visibility</span>
+                        Show preview
+                      </button>
                     </div>
                   )}
+                  <div className={`grid gap-1.5 ${docPreviewPaneOpen ? "grid-cols-3" : "grid-cols-6 md:grid-cols-8 lg:grid-cols-10"}`}>
+                    {sortedDocuments.slice(safePage * DOCS_PER_PAGE, safePage * DOCS_PER_PAGE + DOCS_PER_PAGE).map((file) => {
+                      const globalIdx = sortedDocuments.indexOf(file);
+                      const isActive = globalIdx === safeIdx;
+                      const isSelected = selectedDocs.has(file.id);
+                      return (
+                        <button
+                          key={file.id}
+                          onClick={(e) => {
+                            if (e.metaKey || e.ctrlKey || e.shiftKey || selectedDocs.size > 0) {
+                              toggleSelected(file.id);
+                            } else {
+                              setDocPreviewIdx(globalIdx);
+                              if (!docPreviewPaneOpen) setDocPreviewPaneOpen(true);
+                            }
+                          }}
+                          className={`group relative aspect-[4/3] rounded overflow-hidden border transition-all ${
+                            isActive ? "border-[#4A6FA5] ring-2 ring-[#4A6FA5]/40" : isSelected ? "border-[#4A6FA5] ring-2 ring-[#4A6FA5]/30" : "border-[#E5E7EB] hover:border-[#C5D5EC]"
+                          }`}
+                          title={`${file.name}\n${file.size} · ${file.date}${file.uploadedBy ? ` · ${file.uploadedBy}` : ""}`}
+                        >
+                          {file.isImage && file.previewUrl ? (
+                            <img src={file.previewUrl} alt={file.name} className="w-full h-full object-cover" />
+                          ) : file.isImage ? (
+                            <div className="w-full h-full flex items-center justify-center" style={{ background: file.previewGradient ?? "linear-gradient(135deg,#fde68a,#f59e0b)" }}>
+                              <span className="material-icons text-white/70" style={{ fontSize: "14px" }}>image</span>
+                            </div>
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: file.iconColor + "12" }}>
+                              <span className="material-icons" style={{ fontSize: "14px", color: file.iconColor }}>{file.icon}</span>
+                            </div>
+                          )}
+                          {file.category && (
+                            <span className="absolute left-0.5 bottom-0.5 px-1 rounded text-[8px] text-white bg-[#16A34A]/80" style={{ fontWeight: 600 }}>{file.category.charAt(0)}</span>
+                          )}
+                          <span onClick={(e) => { e.stopPropagation(); toggleSelected(file.id); }} className={`absolute top-0.5 left-0.5 ${isSelected || selectedDocs.size > 0 ? "opacity-100" : "opacity-0 group-hover:opacity-100"} transition-opacity`}>
+                            <input type="checkbox" checked={isSelected} onChange={() => toggleSelected(file.id)} onClick={(e) => e.stopPropagation()} className="w-3 h-3 accent-[#4A6FA5] cursor-pointer" aria-label={`Select ${file.name}`} />
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-
-                {/* Filename below */}
-                <div
-                  className="mt-2 text-[12px] text-[#1A2332] leading-[16px] w-full px-0.5"
-                  style={{
-                    fontWeight: 500,
-                    display: "-webkit-box",
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: "vertical",
-                    overflow: "hidden",
-                    wordBreak: "break-word",
-                  }}
-                >
-                  {file.name}
-                </div>
+                {totalPages > 1 && (
+                  <div className="px-2.5 py-2 border-t border-[#F3F4F6] flex items-center justify-between text-[11px] text-[#6B7280]">
+                    <button onClick={() => setDocsPage(p => Math.max(0, p - 1))} disabled={safePage === 0} className="px-1.5 py-0.5 disabled:opacity-40 hover:text-[#374151]">Prev</button>
+                    <span className="tabular-nums">{safePage + 1} / {totalPages}</span>
+                    <button onClick={() => setDocsPage(p => Math.min(totalPages - 1, p + 1))} disabled={safePage >= totalPages - 1} className="px-1.5 py-0.5 disabled:opacity-40 hover:text-[#374151]">Next</button>
+                  </div>
+                )}
               </div>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="bg-white border border-[#E5E7EB] rounded-xl text-center py-14">
-            <span className="material-icons text-[#D1D5DB] mb-2 block" style={{ fontSize: "40px" }}>folder_open</span>
-            <div className="text-[13px] text-[#9CA3AF]">
-              {docSearch || docDate !== "all" || docCategory !== "all"
-                ? "No documents match your filters"
-                : "No documents yet"}
+
+              {docPreviewPaneOpen && (
+                <div className="flex-1 min-w-0 flex flex-col">
+                  <div className="relative bg-[#FAFBFC] p-4 flex-1 flex items-center justify-center">
+                    <button onClick={() => setDocPreviewPaneOpen(false)} className="absolute top-3 left-3 z-10 h-8 w-8 rounded-md bg-white/90 hover:bg-white border border-[#E5E7EB] flex items-center justify-center transition-colors" title="Close preview" aria-label="Close preview">
+                      <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>close</span>
+                    </button>
+                    <button onClick={() => setDocPreviewIdx(i => (i - 1 + sortedDocuments.length) % sortedDocuments.length)} className="absolute left-3 top-1/2 -translate-y-1/2 z-10 h-9 w-9 rounded-full bg-white border border-[#E5E7EB] shadow-sm hover:bg-[#F5F7FA] flex items-center justify-center transition-colors" title="Previous">
+                      <span className="material-icons text-[#546478]" style={{ fontSize: "20px" }}>chevron_left</span>
+                    </button>
+                    <div className="relative w-full max-w-[680px] aspect-[4/3] rounded-lg overflow-hidden bg-white border border-[#E5E7EB] flex items-center justify-center">
+                      {current?.isImage && current.previewUrl ? (
+                        <img src={current.previewUrl} alt={current.name} className="w-full h-full object-cover" />
+                      ) : current?.isImage ? (
+                        <div className="w-full h-full flex items-center justify-center" style={{ background: current.previewGradient ?? "linear-gradient(135deg,#fde68a,#f59e0b)" }}>
+                          <span className="material-icons text-white/70" style={{ fontSize: "64px" }}>image</span>
+                        </div>
+                      ) : current ? (
+                        <div className="flex flex-col items-center gap-2 text-center px-6">
+                          <span className="material-icons" style={{ fontSize: "64px", color: current.iconColor, opacity: 0.85 }}>{current.icon}</span>
+                          <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{current.name}</div>
+                          <div className="text-[12px] text-[#9CA3AF]">{current.size} · {current.date}</div>
+                        </div>
+                      ) : null}
+                      {current && (
+                        <button onClick={() => setPreviewFileId(current.id)} className="absolute top-2 right-2 h-8 w-8 rounded-md bg-white/90 hover:bg-white border border-[#E5E7EB] flex items-center justify-center transition-colors" title="Open full preview">
+                          <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>open_in_full</span>
+                        </button>
+                      )}
+                      {current?.category && (
+                        <span className="absolute left-2 bottom-2 px-2 py-0.5 rounded-md text-[11px] text-white bg-[#16A34A]" style={{ fontWeight: 600 }}>{current.category}</span>
+                      )}
+                      <span className="absolute right-2 bottom-2 px-2 py-0.5 rounded-md text-[11px] text-white bg-black/60" style={{ fontWeight: 500 }}>{safeIdx + 1} / {sortedDocuments.length}</span>
+                    </div>
+                    <button onClick={() => setDocPreviewIdx(i => (i + 1) % sortedDocuments.length)} className="absolute right-3 top-1/2 -translate-y-1/2 z-10 h-9 w-9 rounded-full bg-white border border-[#E5E7EB] shadow-sm hover:bg-[#F5F7FA] flex items-center justify-center transition-colors" title="Next">
+                      <span className="material-icons text-[#546478]" style={{ fontSize: "20px" }}>chevron_right</span>
+                    </button>
+                  </div>
+                  {current && (
+                    <div className="px-4 py-2 border-t border-[#F3F4F6] text-[12px] text-[#6B7280] truncate" title={current.name}>{current.name}</div>
+                  )}
+                </div>
+              )}
             </div>
-            {!docSearch && docDate === "all" && docCategory === "all" && (
+          </>
+        );
+      })()}
+
+      <DocumentPreview
+        file={previewFile}
+        onClose={() => setPreviewFileId(null)}
+        onRename={(id, newName) => setDocuments(prev => prev.map(d => d.id === id ? { ...d, name: newName } : d))}
+        onDelete={(id) => setDocuments(prev => prev.filter(d => d.id !== id))}
+      />
+
+      {confirmBulkDelete && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center" role="alertdialog" aria-modal="true">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setConfirmBulkDelete(false)} />
+          <div className="relative bg-white rounded-xl shadow-2xl w-[420px] max-w-[90vw] p-6">
+            <div className="flex items-start gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-[#FEF2F2] flex items-center justify-center shrink-0">
+                <span className="material-icons" style={{ fontSize: "20px", color: "#DC2626" }}>delete_outline</span>
+              </div>
+              <div className="min-w-0 flex-1">
+                <h3 className="text-[16px] text-[#1A2332] mb-1" style={{ fontWeight: 600 }}>Delete {selectedDocs.size} {selectedDocs.size === 1 ? "file" : "files"}?</h3>
+                <p className="text-[13px] text-[#6B7280] leading-[18px]">The selected {selectedDocs.size === 1 ? "file" : "files"} will be permanently removed. This action cannot be undone.</p>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setConfirmBulkDelete(false)} className="h-9 px-4 border border-[#D8DEE8] hover:bg-[#F5F7FA] text-[#546478] text-[13px] rounded-md transition-colors" style={{ fontWeight: 500 }}>Cancel</button>
               <button
-                onClick={() => fileInputRef.current?.click()}
-                className="mt-3 text-[12px] text-[#4A6FA5] hover:underline"
+                onClick={() => {
+                  setDocuments(prev => prev.filter(d => !selectedDocs.has(d.id)));
+                  setSelectedDocs(new Set());
+                  setConfirmBulkDelete(false);
+                }}
+                className="h-9 px-4 bg-[#DC2626] hover:bg-[#B91C1C] text-white text-[13px] rounded-md transition-colors"
                 style={{ fontWeight: 500 }}
               >
-                Upload the first document
+                Delete {selectedDocs.size}
               </button>
-            )}
-          </div>
-        )}
-
-        {/* Right-side preview panel (rename / download / delete-with-confirm) */}
-        <DocumentPreview
-          file={previewFile}
-          onClose={() => setPreviewFileId(null)}
-          onRename={(id, newName) => setDocuments(prev => prev.map(d => d.id === id ? { ...d, name: newName } : d))}
-          onDelete={(id) => setDocuments(prev => prev.filter(d => d.id !== id))}
-        />
-
-        {/* Batch-delete confirmation */}
-        {confirmBulkDelete && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center" role="alertdialog" aria-modal="true">
-            <div className="absolute inset-0 bg-black/40" onClick={() => setConfirmBulkDelete(false)} />
-            <div className="relative bg-white rounded-xl shadow-2xl w-[420px] max-w-[90vw] p-6">
-              <div className="flex items-start gap-3 mb-4">
-                <div className="w-10 h-10 rounded-full bg-[#FEF2F2] flex items-center justify-center shrink-0">
-                  <span className="material-icons" style={{ fontSize: "20px", color: "#DC2626" }}>delete_outline</span>
-                </div>
-                <div className="min-w-0 flex-1">
-                  <h3 className="text-[16px] text-[#1A2332] mb-1" style={{ fontWeight: 600 }}>
-                    Delete {selectedDocs.size} {selectedDocs.size === 1 ? "file" : "files"}?
-                  </h3>
-                  <p className="text-[13px] text-[#6B7280] leading-[18px]">
-                    The selected {selectedDocs.size === 1 ? "file" : "files"} will be permanently removed. This action cannot be undone.
-                  </p>
-                </div>
-              </div>
-              <div className="flex justify-end gap-2">
-                <button
-                  onClick={() => setConfirmBulkDelete(false)}
-                  className="h-9 px-4 border border-[#D8DEE8] hover:bg-[#F5F7FA] text-[#546478] text-[13px] rounded-md transition-colors"
-                  style={{ fontWeight: 500 }}
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => {
-                    setDocuments(prev => prev.filter(d => !selectedDocs.has(d.id)));
-                    setSelectedDocs(new Set());
-                    setConfirmBulkDelete(false);
-                  }}
-                  className="h-9 px-4 bg-[#DC2626] hover:bg-[#B91C1C] text-white text-[13px] rounded-md transition-colors"
-                  style={{ fontWeight: 500 }}
-                >
-                  Delete {selectedDocs.size}
-                </button>
-              </div>
             </div>
           </div>
-        )}
-      </div>
-    );
-  };
+        </div>
+      )}
+    </div>
+  );
 
   const renderContent = () => {
     switch (activeTab) {
@@ -1092,7 +1162,7 @@ export function JobDetail() {
         </div>
 
         {/* Summary content — left column has name/contact rows, right column has compact KPIs */}
-        <div className="flex items-start gap-4 pr-12">
+        <div className="flex items-start gap-4 pr-14">
           <div className="flex-1 min-w-0 flex flex-col gap-4">
             {/* Name + contact row — mirrors ClientDetail header style */}
             <div className="flex flex-col gap-1">

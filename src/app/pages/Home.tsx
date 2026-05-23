@@ -46,7 +46,7 @@ const invoiceStatusData = [
   { status: "Paid",          amount: 13193, count: 3, color: "#16A34A" },
   { status: "Unpaid",        amount: 3413,  count: 3, color: "#4A6FA5" },
   { status: "Overdue",       amount: 5975,  count: 1, color: "#DC2626" },
-  { status: "Not Deposited", amount: 2365,  count: 1, color: "#D97706" },
+  { status: "Partially Paid", amount: 2365,  count: 1, color: "#D97706" },
 ];
 
 const cashFlowData = [
@@ -331,7 +331,7 @@ function FinancialPerformanceTab() {
     { label: "Paid",          count: 8, pct: 29, color: "#16A34A" },
     { label: "Unpaid",        count: 3, pct: 21, color: "#4A6FA5" },
     { label: "Overdue",       count: 5, pct: 15, color: "#DC2626" },
-    { label: "Not deposited", count: 4, pct: 25, color: "#F59E0B" },
+    { label: "Partially paid", count: 4, pct: 25, color: "#F59E0B" },
   ];
   // Expenses by category with Figma colors
   const expenseCats = [

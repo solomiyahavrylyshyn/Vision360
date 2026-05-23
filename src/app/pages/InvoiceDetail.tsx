@@ -7,11 +7,9 @@ import { PlusIcon } from "../components/ui/plus-icon";
 // ─── Types ───────────────────────────────────────────────────────────────────
 type InvoiceStatus =
   | "Unpaid"
-  | "Unpaid - Overdue"
-  | "Unpaid - Not Due"
+  | "Unpaid-Overdue"
   | "Paid"
-  | "Paid - Deposited"
-  | "Paid - Not Deposited"
+  | "Partially Paid"
   | "Void";
 
 type InvoiceType = "Standard" | "Recurring" | "Progress" | "Final" | "Credit Memo";
@@ -34,22 +32,18 @@ interface ActivityEntry {
 }
 
 const statusColors: Record<InvoiceStatus, { text: string; bg: string }> = {
-  "Unpaid":               { text: "#546478", bg: "#F3F4F6" },
-  "Unpaid - Not Due":     { text: "#3B82F6", bg: "#DBEAFE" },
-  "Unpaid - Overdue":     { text: "#EF4444", bg: "#FEE2E2" },
-  "Paid":                 { text: "#22C55E", bg: "#DCFCE7" },
-  "Paid - Deposited":     { text: "#15803D", bg: "#DCFCE7" },
-  "Paid - Not Deposited": { text: "#F59E0B", bg: "#FEF3C7" },
-  "Void":                 { text: "#9CA3AF", bg: "#F3F4F6" },
+  "Unpaid":         { text: "#546478", bg: "#F3F4F6" },
+  "Unpaid-Overdue": { text: "#EF4444", bg: "#FEE2E2" },
+  "Paid":           { text: "#16A34A", bg: "#DCFCE7" },
+  "Partially Paid": { text: "#D97706", bg: "#FEF3C7" },
+  "Void":           { text: "#9CA3AF", bg: "#F3F4F6" },
 };
 
 const allStatuses: InvoiceStatus[] = [
   "Unpaid",
-  "Unpaid - Not Due",
-  "Unpaid - Overdue",
+  "Unpaid-Overdue",
   "Paid",
-  "Paid - Deposited",
-  "Paid - Not Deposited",
+  "Partially Paid",
   "Void",
 ];
 
@@ -67,7 +61,7 @@ const mockInvoices: Record<string, any> = {
   "1": {
     number: "10245-I01",
     type: "Standard" as InvoiceType,
-    status: "Paid - Deposited" as InvoiceStatus,
+    status: "Paid" as InvoiceStatus,
     date: "2026-03-02",
     dueDate: "2026-04-01",
     dateSent: "2026-03-02",
@@ -119,13 +113,13 @@ const mockInvoices: Record<string, any> = {
       { id: 2, date: "2026-03-02 09:30", action: "Invoice sent", detail: "Sent to travis.j@email.com", icon: "send" },
       { id: 3, date: "2026-03-10 14:22", action: "Payment recorded", detail: "$5,000.00 via Bank Transfer", icon: "payments" },
       { id: 4, date: "2026-03-25 11:45", action: "Payment recorded", detail: "$5,502.00 via Check", icon: "payments" },
-      { id: 5, date: "2026-03-25 11:45", action: "Status changed", detail: "Marked as Paid - Deposited", icon: "check_circle" },
+      { id: 5, date: "2026-03-25 11:45", action: "Status changed", detail: "Marked as Paid", icon: "check_circle" },
     ],
   },
   "2": {
     number: "10246-I01",
     type: "Standard" as InvoiceType,
-    status: "Unpaid - Overdue" as InvoiceStatus,
+    status: "Unpaid-Overdue" as InvoiceStatus,
     date: "2026-03-02",
     dueDate: "2026-03-17",
     dateSent: "2026-03-02",
@@ -170,13 +164,13 @@ const mockInvoices: Record<string, any> = {
     activity: [
       { id: 1, date: "2026-03-02 10:00", action: "Invoice created", detail: "Created by Marek Stroz", icon: "add_circle" },
       { id: 2, date: "2026-03-02 10:05", action: "Invoice sent", detail: "Sent to john.d@email.com", icon: "send" },
-      { id: 3, date: "2026-03-18 00:00", action: "Status changed", detail: "Automatically marked Unpaid - Overdue", icon: "warning" },
+      { id: 3, date: "2026-03-18 00:00", action: "Status changed", detail: "Automatically marked Unpaid-Overdue", icon: "warning" },
     ],
   },
   "4": {
     number: "10248-I02",
     type: "Progress" as InvoiceType,
-    status: "Paid - Not Deposited" as InvoiceStatus,
+    status: "Partially Paid" as InvoiceStatus,
     date: "2026-02-28",
     dueDate: "2026-03-30",
     dateSent: "2026-03-01",
@@ -223,7 +217,7 @@ const mockInvoices: Record<string, any> = {
       { id: 1, date: "2026-02-28 15:00", action: "Invoice created", detail: "Created by Marek Stroz", icon: "add_circle" },
       { id: 2, date: "2026-03-01 09:00", action: "Invoice sent", detail: "Sent to sarah.w@email.com", icon: "send" },
       { id: 3, date: "2026-03-15 13:30", action: "Payment recorded", detail: "$1,000.00 via Check #9912", icon: "payments" },
-      { id: 4, date: "2026-03-15 13:30", action: "Status changed", detail: "Marked as Paid - Not Deposited", icon: "info" },
+      { id: 4, date: "2026-03-15 13:30", action: "Status changed", detail: "Marked as Partially Paid", icon: "info" },
     ],
   },
 };
@@ -311,8 +305,8 @@ export function InvoiceDetail() {
   const total = subtotal + taxAmount;
   const totalPayments = payments.reduce((s, p) => s + p.amount, 0);
   const balance = total - totalPayments;
-  const overdueDays = status === "Unpaid - Overdue" ? daysBetween(data.dueDate, TODAY) : 0;
-  const isPaid = status === "Paid" || status === "Paid - Deposited" || status === "Paid - Not Deposited";
+  const overdueDays = status === "Unpaid-Overdue" ? daysBetween(data.dueDate, TODAY) : 0;
+  const isPaid = status === "Paid";
 
   const handleStatusChange = (newStatus: InvoiceStatus) => {
     if (newStatus === "Void") {
@@ -360,7 +354,7 @@ export function InvoiceDetail() {
 
     const newTotalPaid = newPayments.reduce((s, p) => s + p.amount, 0);
     const newBalance = total - newTotalPaid;
-    const newStatus: InvoiceStatus = newBalance <= 0 ? "Paid - Not Deposited" : "Unpaid";
+    const newStatus: InvoiceStatus = newBalance <= 0 ? "Paid" : "Partially Paid";
     setStatus(newStatus);
 
     const detail = payMethod === "Check" && payCheckNumber
@@ -374,7 +368,7 @@ export function InvoiceDetail() {
         date: `${payDate} ${time}`,
         action: "Status changed",
         detail: `Marked as ${newStatus}`,
-        icon: newStatus.startsWith("Paid") ? "check_circle" : "info",
+        icon: newStatus === "Paid" ? "check_circle" : "info",
       },
       {
         id: prev.length + 1,

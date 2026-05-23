@@ -5,6 +5,7 @@ import { MessagingCenter } from "./MessagingCenter";
 import { AiAssistant } from "./AiAssistant";
 import { Dialer } from "./Dialer";
 import { HelpCenter } from "./HelpCenter";
+import { ProfileMenu } from "./ProfileMenu";
 import { PlusIcon } from "./ui/plus-icon";
 import { applyStoredBrandTheme, BRAND_LOGO_EVENT, getStoredBrandLogo } from "../utils/brandTheme";
 
@@ -35,6 +36,7 @@ export function Layout() {
   const [aiAssistantOpen, setAiAssistantOpen] = useState(false);
   const [dialerOpen, setDialerOpen] = useState(false);
   const [helpCenterOpen, setHelpCenterOpen] = useState(false);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [companyLogoSrc, setCompanyLogoSrc] = useState(() => getStoredBrandLogo() || logoImg);
 
   useEffect(() => {
@@ -53,6 +55,8 @@ export function Layout() {
   const notifBtnRef = useRef<HTMLButtonElement>(null);
   const createMenuRef = useRef<HTMLDivElement>(null);
   const createBtnRef = useRef<HTMLButtonElement>(null);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
+  const profileBtnRef = useRef<HTMLButtonElement>(null);
   const searchRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -126,10 +130,14 @@ export function Layout() {
         setGlobalSearchOpen(false);
         setSearchFilterOpen(false);
       }
+      if (profileMenuOpen && profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node) &&
+          profileBtnRef.current && !profileBtnRef.current.contains(event.target as Node)) {
+        setProfileMenuOpen(false);
+      }
     }
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [notifMenuOpen, createMenuOpen, globalSearchOpen]);
+  }, [notifMenuOpen, createMenuOpen, globalSearchOpen, profileMenuOpen]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -561,7 +569,11 @@ export function Layout() {
           <button
             ref={createBtnRef}
             title="Create"
-            onClick={() => setCreateMenuOpen(!createMenuOpen)}
+            onClick={() => {
+              setCreateMenuOpen(!createMenuOpen);
+              setNotifMenuOpen(false);
+              setProfileMenuOpen(false);
+            }}
             className="flex h-9 min-h-[36px] w-9 min-w-[36px] flex-none items-center justify-center rounded-lg bg-[#4A6FA5] p-2 text-white transition-colors hover:bg-[#3d5a85] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4A6FA5]/30"
           >
             <PlusIcon className="h-4 w-4 shrink-0" />
@@ -572,7 +584,11 @@ export function Layout() {
 
           {/* Icon action buttons (transparent, 36×36 with 8px padding, radius 8) */}
           <div className="flex items-center gap-1">
-            <button ref={notifBtnRef} title="Notifications" onClick={() => setNotifMenuOpen(!notifMenuOpen)}
+            <button ref={notifBtnRef} title="Notifications" onClick={() => {
+              setNotifMenuOpen(!notifMenuOpen);
+              setCreateMenuOpen(false);
+              setProfileMenuOpen(false);
+            }}
               className="relative w-9 h-9 p-2 rounded-lg flex items-center justify-center text-[#1A2332] hover:bg-[#F5F7FA] transition-colors">
               <span className="material-icons-outlined" style={{ fontSize: "20px" }}>notifications</span>
               <span className="absolute top-1.5 right-1.5 w-[7px] h-[7px] rounded-full bg-[#DC2626] border border-white" />
@@ -592,10 +608,17 @@ export function Layout() {
 
           {/* User section */}
           <button
+            ref={profileBtnRef}
             type="button"
             title="Profile"
-            onClick={() => navigate("/profile")}
-            className="flex h-9 items-center justify-center rounded-lg transition-colors hover:bg-[#F5F7FA]"
+            onClick={() => {
+              setProfileMenuOpen(prev => !prev);
+              setCreateMenuOpen(false);
+              setNotifMenuOpen(false);
+            }}
+            className={`flex h-9 items-center justify-center rounded-lg transition-colors hover:bg-[#F5F7FA] ${profileMenuOpen ? "bg-[#F5F7FA]" : ""}`}
+            aria-haspopup="menu"
+            aria-expanded={profileMenuOpen}
           >
             <div className="w-8 h-8 bg-[#4A6FA5] rounded-full flex items-center justify-center text-white text-[14px] flex-shrink-0" style={{ fontWeight: 600 }}>
               JD
@@ -662,6 +685,12 @@ export function Layout() {
           </button>
         </div>
       </div>
+
+      {profileMenuOpen && (
+        <div ref={profileMenuRef}>
+          <ProfileMenu onClose={() => setProfileMenuOpen(false)} />
+        </div>
+      )}
 
       {/* Notifications Dropdown */}
       <div

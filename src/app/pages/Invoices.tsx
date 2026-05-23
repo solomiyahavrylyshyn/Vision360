@@ -13,11 +13,9 @@ import { StatCard } from "../components/ui/stat-card";
 // ─── Types ───────────────────────────────────────────────────────────────────
 type InvoiceStatus =
   | "Unpaid"
-  | "Unpaid - Overdue"
-  | "Unpaid - Not Due"
+  | "Unpaid-Overdue"
   | "Paid"
-  | "Paid - Deposited"
-  | "Paid - Not Deposited"
+  | "Partially Paid"
   | "Void";
 
 type InvoiceType = "Standard" | "Recurring" | "Progress" | "Final" | "Credit Memo";
@@ -86,22 +84,18 @@ interface Invoice {
 }
 
 const statusColors: Record<InvoiceStatus, { text: string; bg: string }> = {
-  "Unpaid":               { text: "#546478", bg: "#F3F4F6" },
-  "Unpaid - Not Due":     { text: "#3B82F6", bg: "#DBEAFE" },
-  "Unpaid - Overdue":     { text: "#EF4444", bg: "#FEE2E2" },
-  "Paid":                 { text: "#22C55E", bg: "#DCFCE7" },
-  "Paid - Deposited":     { text: "#15803D", bg: "#DCFCE7" },
-  "Paid - Not Deposited": { text: "#F59E0B", bg: "#FEF3C7" },
-  "Void":                 { text: "#9CA3AF", bg: "#F3F4F6" },
+  "Unpaid":          { text: "#546478", bg: "#F3F4F6" },
+  "Unpaid-Overdue":  { text: "#EF4444", bg: "#FEE2E2" },
+  "Paid":            { text: "#16A34A", bg: "#DCFCE7" },
+  "Partially Paid":  { text: "#D97706", bg: "#FEF3C7" },
+  "Void":            { text: "#9CA3AF", bg: "#F3F4F6" },
 };
 
 const allStatuses: InvoiceStatus[] = [
   "Unpaid",
-  "Unpaid - Not Due",
-  "Unpaid - Overdue",
+  "Unpaid-Overdue",
   "Paid",
-  "Paid - Deposited",
-  "Paid - Not Deposited",
+  "Partially Paid",
   "Void",
 ];
 
@@ -124,7 +118,7 @@ const TODAY = "2026-04-27";
 const initialInvoices: Invoice[] = [
   {
     id: 1, number: "10245-I01", type: "Standard", date: "2026-03-02",
-    status: "Paid - Deposited",
+    status: "Paid",
     clientName: "Travis Jones", customerEmail: "travis.j@email.com", phone: "(512) 555-0142",
     jobNumber: "10245", jobName: "Kitchen Renovation",
     total: 10502.00, balance: 0,
@@ -141,7 +135,7 @@ const initialInvoices: Invoice[] = [
   },
   {
     id: 2, number: "10246-I01", type: "Standard", date: "2026-03-02",
-    status: "Unpaid - Overdue",
+    status: "Unpaid-Overdue",
     clientName: "John Doe", customerEmail: "john.d@email.com", phone: "(214) 555-0188",
     jobNumber: "10246", jobName: "Bathroom Remodel",
     total: 5975.50, balance: 5975.50,
@@ -175,7 +169,7 @@ const initialInvoices: Invoice[] = [
   },
   {
     id: 4, number: "10248-I02", type: "Progress", date: "2026-02-28",
-    status: "Paid - Not Deposited",
+    status: "Partially Paid",
     clientName: "Sarah Williams", customerEmail: "sarah.w@email.com", phone: "(713) 555-0301",
     jobNumber: "10248", jobName: "Electrical Work",
     total: 2365.00, balance: 1365.00,
@@ -192,7 +186,7 @@ const initialInvoices: Invoice[] = [
   },
   {
     id: 5, number: "10247-I01", type: "Standard", date: "2026-02-25",
-    status: "Unpaid - Not Due",
+    status: "Unpaid",
     clientName: "Mike Rodriguez", customerEmail: "mike.r@email.com", phone: "(210) 555-0247",
     jobNumber: "10247", jobName: "Plumbing Fix",
     total: 913.75, balance: 913.75,
@@ -209,7 +203,7 @@ const initialInvoices: Invoice[] = [
   },
   {
     id: 6, number: "10249-I01", type: "Final", date: "2026-02-20",
-    status: "Paid - Deposited",
+    status: "Paid",
     clientName: "Sarah Williams", customerEmail: "sarah.w@email.com", phone: "(713) 555-0301",
     jobNumber: "10249", jobName: "Drain Service",
     total: 326.25, balance: 0,
@@ -290,16 +284,16 @@ export function Invoices() {
 
   // Summary cards
   const summary = useMemo(() => {
-    const unpaid = invoices.filter(i => i.status === "Unpaid" || i.status === "Unpaid - Not Due");
-    const overdue = invoices.filter(i => i.status === "Unpaid - Overdue");
-    const paid = invoices.filter(i => i.status === "Paid" || i.status === "Paid - Deposited" || i.status === "Paid - Not Deposited");
-    const notDeposited = invoices.filter(i => i.status === "Paid - Not Deposited");
+    const unpaid = invoices.filter(i => i.status === "Unpaid");
+    const overdue = invoices.filter(i => i.status === "Unpaid-Overdue");
+    const paid = invoices.filter(i => i.status === "Paid");
+    const partiallyPaid = invoices.filter(i => i.status === "Partially Paid");
     const voided = invoices.filter(i => i.status === "Void");
     return {
       unpaid: { count: unpaid.length, total: unpaid.reduce((s, i) => s + i.balance, 0) },
       overdue: { count: overdue.length, total: overdue.reduce((s, i) => s + i.balance, 0) },
       paid: { count: paid.length, total: paid.reduce((s, i) => s + i.total, 0) },
-      notDeposited: { count: notDeposited.length, total: notDeposited.reduce((s, i) => s + i.total, 0) },
+      partiallyPaid: { count: partiallyPaid.length, total: partiallyPaid.reduce((s, i) => s + i.balance, 0) },
       voided: { count: voided.length },
     };
   }, [invoices]);
@@ -308,14 +302,7 @@ export function Invoices() {
   const filtered = useMemo(() => {
     let result = [...invoices];
     if (qfStatus !== "All") {
-      // Group filters
-      if (qfStatus === "Unpaid (all)") {
-        result = result.filter(i => i.status === "Unpaid" || i.status === "Unpaid - Not Due" || i.status === "Unpaid - Overdue");
-      } else if (qfStatus === "Paid (all)") {
-        result = result.filter(i => i.status === "Paid" || i.status === "Paid - Deposited" || i.status === "Paid - Not Deposited");
-      } else {
-        result = result.filter(i => i.status === qfStatus);
-      }
+      result = result.filter(i => i.status === qfStatus);
     }
     if (qfBalance === "With Balance") result = result.filter(i => i.balance > 0);
     if (search) {
@@ -342,11 +329,11 @@ export function Invoices() {
   };
 
   const summaryCards: { label: string; value: string; sub: string; filterVal: string; color: string }[] = [
-    { label: "Unpaid",         value: `$${fmt(summary.unpaid.total)}`,       sub: `${summary.unpaid.count} invoices`,       filterVal: "Unpaid (all)",         color: "#3B82F6" },
-    { label: "Overdue",        value: `$${fmt(summary.overdue.total)}`,      sub: `${summary.overdue.count} invoices`,      filterVal: "Unpaid - Overdue",     color: "#EF4444" },
-    { label: "Paid",           value: `$${fmt(summary.paid.total)}`,         sub: `${summary.paid.count} invoices`,         filterVal: "Paid (all)",           color: "#22C55E" },
-    { label: "Not Deposited",  value: `$${fmt(summary.notDeposited.total)}`, sub: `${summary.notDeposited.count} invoices`, filterVal: "Paid - Not Deposited", color: "#F59E0B" },
-    { label: "Void",           value: `${summary.voided.count}`,             sub: "invoices",                                filterVal: "Void",                 color: "#9CA3AF" },
+    { label: "Unpaid",        value: `$${fmt(summary.unpaid.total)}`,        sub: `${summary.unpaid.count} invoices`,        filterVal: "Unpaid",         color: "#3B82F6" },
+    { label: "Overdue",       value: `$${fmt(summary.overdue.total)}`,       sub: `${summary.overdue.count} invoices`,       filterVal: "Unpaid-Overdue", color: "#EF4444" },
+    { label: "Paid",          value: `$${fmt(summary.paid.total)}`,          sub: `${summary.paid.count} invoices`,          filterVal: "Paid",           color: "#22C55E" },
+    { label: "Partially Paid", value: `$${fmt(summary.partiallyPaid.total)}`, sub: `${summary.partiallyPaid.count} invoices`, filterVal: "Partially Paid", color: "#F59E0B" },
+    { label: "Void",          value: `${summary.voided.count}`,              sub: "invoices",                                filterVal: "Void",           color: "#9CA3AF" },
   ];
 
   return (
@@ -396,9 +383,9 @@ export function Invoices() {
           sparklineColor="#16A34A"
         />
         <StatCard
-          value={`$${fmt(summary.notDeposited.total)}`}
-          label="Not deposited"
-          sub={`${summary.notDeposited.count} invoices`}
+          value={`$${fmt(summary.partiallyPaid.total)}`}
+          label="Partially paid"
+          sub={`${summary.partiallyPaid.count} invoices`}
           change="+11%"
           changeUp
           period="vs prev. period"
@@ -493,7 +480,7 @@ export function Invoices() {
                   </td>
                 </tr>
               ) : paginated.map((inv, idx) => {
-                const overdueDays = inv.status === "Unpaid - Overdue" ? daysBetween(inv.dueDate, TODAY) : 0;
+                const overdueDays = inv.status === "Unpaid-Overdue" ? daysBetween(inv.dueDate, TODAY) : 0;
                 return (
                 <tr
                   key={inv.id}

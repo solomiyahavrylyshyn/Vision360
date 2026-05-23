@@ -730,13 +730,37 @@ export function EstimateDetail() {
                   <option>Start of Work</option>
                 </select>
               </div>
+              <div className="mb-5 rounded-md border border-[#E5E7EB] bg-[#FAFBFC] p-4">
+                <div className="mb-3 flex items-start justify-between gap-4">
+                  <div>
+                    <label className="block text-[11px] uppercase tracking-wider text-[#546478] mb-1.5" style={{ fontWeight: 600 }}>Invoice Status After Deposit</label>
+                    <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>Partially Paid</div>
+                  </div>
+                  <span className="rounded-full bg-[#FEF3C7] px-2.5 py-1 text-[11px] text-[#D97706]" style={{ fontWeight: 700 }}>MVP</span>
+                </div>
+                <div className="grid grid-cols-5 gap-2">
+                  {["Unpaid", "Unpaid-Overdue", "Paid", "Partially Paid", "Void"].map(status => (
+                    <div
+                      key={status}
+                      className={`flex min-h-8 items-center justify-center rounded-md border px-2 text-center text-[11px] leading-4 ${
+                        status === "Partially Paid"
+                          ? "border-[#F59E0B] bg-[#FEF3C7] text-[#92400E]"
+                          : "border-[#E5E7EB] bg-white text-[#546478]"
+                      }`}
+                      style={{ fontWeight: status === "Partially Paid" ? 700 : 600 }}
+                    >
+                      {status}
+                    </div>
+                  ))}
+                </div>
+              </div>
               <div className="rounded-md bg-[#EFF6FF] border border-[#BFDBFE] px-4 py-3 flex gap-3">
                 <span className="material-icons text-[#3B82F6] mt-0.5 shrink-0" style={{ fontSize: "18px" }}>info</span>
                 <div>
                   <div className="text-[13px] text-[#1E40AF] mb-1" style={{ fontWeight: 600 }}>How it works</div>
                   <div className="text-[12px] text-[#1E40AF] leading-relaxed">
-                    When this estimate is approved, the deposit will be recorded and applied to your total balance.
-                    The remaining balance will be due upon completion unless otherwise agreed.
+                    When this estimate is approved, the deposit is recorded against the invoice and the invoice status becomes Partially Paid.
+                    The remaining balance stays open until it is paid in full.
                   </div>
                 </div>
               </div>
@@ -779,6 +803,7 @@ export function EstimateDetail() {
                 {[
                   { icon: "task_alt", color: "#22C55E", title: "Secure Your Project", desc: "Your project is scheduled once the deposit is received." },
                   { icon: "account_balance_wallet", color: "#3B82F6", title: "Applied to Balance", desc: "Your deposit will be applied to your total balance." },
+                  { icon: "receipt_long", color: "#D97706", title: "Invoice Status", desc: "Recording a deposit marks the invoice Partially Paid." },
                   { icon: "tune", color: "#A855F7", title: "Flexible Terms", desc: "Final payment due upon completion unless otherwise agreed." },
                 ].map(({ icon, color, title, desc }) => (
                   <div key={title} className="flex gap-3">

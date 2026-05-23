@@ -97,78 +97,55 @@ const taxProfiles = [
 ];
 
 type AppRole = string;
-type PermissionLevel = "FULL" | "READ" | "OWN" | "FIELD" | "NONE";
+type PermissionAction = "view" | "create" | "edit" | "delete";
 type PermissionRole = { id: string; label: AppRole; locked?: boolean };
-type RbacPermission = { area: string; feature: string; access: Record<string, PermissionLevel> };
+type RbacPermission = { area: string; module: string; access: Record<string, PermissionAction[]> };
 
 const teamMembers: Array<{ name: string; username: string; phone: string; email: string; role: AppRole; rate: string; status: string }> = [
-  { name: "Emily Parker", username: "parker.emily", phone: "+1-234-234-5555", email: "parker.emily@email.com", role: "Owner", rate: "$0/hr", status: "Active" },
-  { name: "Emily Parker", username: "parker.emily", phone: "+1-234-234-5555", email: "parker.emily@email.com", role: "Owner", rate: "$0/hr", status: "Active" },
-  { name: "Emily Parker", username: "parker.emily", phone: "+1-234-234-5555", email: "parker.emily@email.com", role: "Owner", rate: "$0/hr", status: "Active" },
-  { name: "Emily Parker", username: "parker.emily", phone: "+1-234-234-5555", email: "parker.emily@email.com", role: "Owner", rate: "$0/hr", status: "Active" },
-  { name: "Emily Parker", username: "parker.emily", phone: "+1-234-234-5555", email: "parker.emily@email.com", role: "Owner", rate: "$0/hr", status: "Active" },
+  { name: "Peter Novak", username: "novak.peter", phone: "+1-813-555-0184", email: "peter@omega-home.com", role: "Admin", rate: "$0/hr", status: "Active" },
+  { name: "Emily Parker", username: "parker.emily", phone: "+1-234-234-5555", email: "parker.emily@email.com", role: "Employee", rate: "$28/hr", status: "Active" },
+  { name: "Elliot Harper", username: "harper.elliot", phone: "+1-813-555-0198", email: "elliot@omega-home.com", role: "Dispatcher", rate: "$32/hr", status: "Active" },
 ];
 
 const defaultPermissionRoles: PermissionRole[] = [
   { id: "admin", label: "Admin", locked: true },
   { id: "employee", label: "Employee", locked: true },
+  { id: "dispatcher", label: "Dispatcher" },
 ];
 
-const permissionLevelDefinitions: Record<PermissionLevel, { label: string; bg: string; color: string; description: string }> = {
-  FULL: { label: "Full", bg: "rgba(22,163,74,0.15)", color: "#16A34A", description: "Can view, create, edit, and manage this area." },
-  READ: { label: "Read", bg: "rgba(74,111,165,0.15)", color: "#4A6FA5", description: "Can open and view, but cannot change settings or records." },
-  OWN: { label: "Own", bg: "rgba(189,128,14,0.15)", color: "#BD800E", description: "Can work only with records they created or are assigned to." },
-  FIELD: { label: "Field", bg: "rgba(8,145,178,0.15)", color: "#0891B2", description: "Eligible only when marked as a field team member." },
-  NONE: { label: "None", bg: "rgba(107,114,128,0.15)", color: "#6B7280", description: "Cannot access this feature or screen." },
+const permissionActionDefinitions: Record<PermissionAction, { label: string; icon: string; description: string }> = {
+  view: { label: "View", icon: "visibility", description: "Open the module and see records." },
+  create: { label: "Create", icon: "add_circle_outline", description: "Create new records in the module." },
+  edit: { label: "Edit", icon: "edit", description: "Update existing module records." },
+  delete: { label: "Delete", icon: "delete_outline", description: "Archive or delete module records." },
 };
 
-const permissionLevelOptions = Object.keys(permissionLevelDefinitions) as PermissionLevel[];
+const permissionActionOptions = Object.keys(permissionActionDefinitions) as PermissionAction[];
+const fullAccess: PermissionAction[] = ["view", "create", "edit", "delete"];
+const readAccess: PermissionAction[] = ["view"];
+const writeAccess: PermissionAction[] = ["view", "create", "edit"];
 
-const createAccess = (admin: PermissionLevel, employee: PermissionLevel): Record<string, PermissionLevel> => ({
+const createAccess = (admin: PermissionAction[], employee: PermissionAction[], dispatcher: PermissionAction[] = []): Record<string, PermissionAction[]> => ({
   Admin: admin,
   Employee: employee,
+  Dispatcher: dispatcher,
 });
 
 const defaultRbacPermissions: RbacPermission[] = [
-  { area: "Business Management", feature: "Company Info (legal entity, address, business hours)", access: createAccess("FULL", "NONE") },
-  { area: "Business Management", feature: "Company Profile (about, industry, branding, notifications)", access: createAccess("FULL", "NONE") },
-  { area: "Business Management", feature: "Manage Team (invite, edit, remove users, role titles)", access: createAccess("FULL", "NONE") },
-  { area: "Business Management", feature: "Billing and Plan (credit card, plan, payment history)", access: createAccess("FULL", "NONE") },
-  { area: "System Preferences", feature: "Industry selection", access: createAccess("FULL", "NONE") },
-  { area: "System Preferences", feature: "Custom Fields configuration", access: createAccess("FULL", "NONE") },
-  { area: "System Preferences", feature: "Schedule settings", access: createAccess("FULL", "NONE") },
-  { area: "System Preferences", feature: "Job statuses, job types, job type colors", access: createAccess("FULL", "NONE") },
-  { area: "System Preferences", feature: "Estimate templates, signature settings, terms and conditions", access: createAccess("FULL", "READ") },
-  { area: "System Preferences", feature: "Invoice templates, payment terms, receipt notes", access: createAccess("FULL", "READ") },
-  { area: "System Preferences", feature: "Items / Price book settings", access: createAccess("FULL", "READ") },
-  { area: "Finance Center", feature: "Bank account information", access: createAccess("FULL", "NONE") },
-  { area: "Finance Center", feature: "Payment gateway / Stripe connection", access: createAccess("FULL", "NONE") },
-  { area: "Finance Center", feature: "Expense tracking configuration", access: createAccess("FULL", "NONE") },
-  { area: "Finance Center", feature: "Financing options / lenders", access: createAccess("FULL", "NONE") },
-  { area: "Integrations", feature: "QuickBooks, Zapier, Mailchimp, and other connected apps", access: createAccess("FULL", "NONE") },
-  { area: "Clients", feature: "View clients list", access: createAccess("FULL", "FULL") },
-  { area: "Clients", feature: "Create, edit, and deactivate clients", access: createAccess("FULL", "FULL") },
-  { area: "Clients", feature: "Tax profile assignment to a client", access: createAccess("FULL", "READ") },
-  { area: "Jobs", feature: "View jobs list and job details", access: createAccess("FULL", "FULL") },
-  { area: "Jobs", feature: "Create and edit jobs", access: createAccess("FULL", "FULL") },
-  { area: "Jobs", feature: "Appear in Assigned to dropdown for field jobs", access: createAccess("FIELD", "FIELD") },
-  { area: "Items", feature: "View item list / price book", access: createAccess("FULL", "FULL") },
-  { area: "Estimates", feature: "Create estimates", access: createAccess("FULL", "FULL") },
-  { area: "Estimates", feature: "Edit own estimates", access: createAccess("FULL", "FULL") },
-  { area: "Estimates", feature: "Send estimate to client", access: createAccess("FULL", "FULL") },
-  { area: "Estimates", feature: "Approve, archive, or mark as won", access: createAccess("FULL", "FULL") },
-  { area: "Estimates", feature: "Edit terms and conditions on a specific estimate", access: createAccess("NONE", "NONE") },
-  { area: "Estimates", feature: "Edit internal / private notes", access: createAccess("FULL", "FULL") },
-  { area: "Estimates", feature: "Edit notes to the client", access: createAccess("FULL", "FULL") },
-  { area: "Invoices", feature: "View, create, and edit invoices", access: createAccess("FULL", "FULL") },
-  { area: "Invoices", feature: "Send invoice by email or SMS", access: createAccess("FULL", "FULL") },
-  { area: "Payments", feature: "Collect payment from client", access: createAccess("FULL", "FULL") },
-  { area: "Expenses", feature: "Create, edit, and categorize expenses", access: createAccess("FULL", "OWN") },
-  { area: "Schedule", feature: "View schedule board", access: createAccess("FULL", "FULL") },
-  { area: "Documents", feature: "Upload photos / PDFs to clients and jobs", access: createAccess("FULL", "FULL") },
-  { area: "Reports / Home", feature: "Profit margin and compensation on job overview", access: createAccess("FULL", "NONE") },
-  { area: "Support", feature: "Account Manager contact", access: createAccess("FULL", "FULL") },
-  { area: "Help Center", feature: "Help / FAQ links", access: createAccess("FULL", "FULL") },
+  { area: "Business", module: "Company info", access: createAccess(fullAccess, [], readAccess) },
+  { area: "Business", module: "Manage team", access: createAccess(fullAccess, [], readAccess) },
+  { area: "Business", module: "Billing & plan", access: createAccess(fullAccess, [], []) },
+  { area: "Operations", module: "Clients", access: createAccess(fullAccess, writeAccess, writeAccess) },
+  { area: "Operations", module: "Jobs", access: createAccess(fullAccess, writeAccess, writeAccess) },
+  { area: "Operations", module: "Schedule", access: createAccess(fullAccess, writeAccess, writeAccess) },
+  { area: "Sales", module: "Estimates", access: createAccess(fullAccess, writeAccess, readAccess) },
+  { area: "Sales", module: "Invoices", access: createAccess(fullAccess, writeAccess, readAccess) },
+  { area: "Sales", module: "Payments", access: createAccess(fullAccess, writeAccess, []) },
+  { area: "Finance", module: "Expenses", access: createAccess(fullAccess, ["view", "create", "edit"], readAccess) },
+  { area: "Finance", module: "Finance settings", access: createAccess(fullAccess, [], []) },
+  { area: "System", module: "Settings", access: createAccess(fullAccess, [], []) },
+  { area: "System", module: "Reports", access: createAccess(fullAccess, [], readAccess) },
+  { area: "System", module: "Integrations", access: createAccess(fullAccess, [], []) },
 ];
 
 const templateCards = [
@@ -399,6 +376,18 @@ function TaxSettingsCard() {
           </span>
         </div>
 
+        <div className="rounded-lg border border-[#FDE68A] bg-[#FFFBEB] px-4 py-3">
+          <div className="flex items-start gap-2">
+            <span className="material-icons text-[#B45309]" style={{ fontSize: "17px" }}>rate_review</span>
+            <div>
+              <div className="text-[13px] text-[#92400E]" style={{ fontWeight: 700 }}>Review comment for approval</div>
+              <p className="mt-1 text-[12px] leading-4 text-[#92400E]">
+                Confirm final terminology: use "Tax rate" for individual percentages, "Tax profile" for grouped rates, and keep "Internal tax description" hidden from customer PDFs.
+              </p>
+            </div>
+          </div>
+        </div>
+
         {/* Tax rates sub-section */}
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between">
@@ -471,7 +460,7 @@ function TaxSettingsCard() {
                 <div className="flex items-center gap-2 pl-8 min-h-[36px]">
                   <span className="text-[14px] text-[#6B7280]">Tax rates:</span>
                   {rateItems.length === 0
-                    ? <span className="text-[14px] text-[#9CA3AF]">None selected</span>
+                    ? <span className="rounded-lg border border-dashed border-[#CBD5E1] bg-[#F8FAFC] px-3 py-1 text-[13px] text-[#64748B]">No tax rates selected yet. Add rates to calculate this profile.</span>
                     : rateItems.map((r, i) => (
                         <span key={r.id} className="flex items-center gap-2">
                           {i > 0 && <span className="w-px self-stretch bg-[#E5E7EB]" />}
@@ -774,7 +763,15 @@ function BillingAndPlanSection() {
   const userCount = 3;
   const monthly = BASE_PRICE + PER_USER * userCount;
 
-  const [card, setCard] = useState({ brand: "Visa", last4: "4242", expiry: "12/2026", holder: "Peter Novak" });
+  const [card, setCard] = useState({
+    brand: "Visa",
+    last4: "4242",
+    expiry: "12/2026",
+    holder: "Peter Novak",
+    billingEmail: "billing@omega-home.com",
+    billingZip: "33606",
+    country: "United States",
+  });
   const [editCardOpen, setEditCardOpen] = useState(false);
   const [draftCard, setDraftCard] = useState(card);
 
@@ -844,10 +841,10 @@ function BillingAndPlanSection() {
           </div>
 
           {/* Payment method card */}
-          <div className="flex h-[208px] flex-col gap-4 rounded-xl border border-[#E5E7EB] bg-white p-4">
+          <div className="flex min-h-[246px] flex-col gap-4 rounded-xl border border-[#E5E7EB] bg-white p-4">
             <div className="flex flex-col gap-1">
               <span className="text-[16px] leading-6 text-[#1A2332]" style={{ fontWeight: 600 }}>Subscription payment method</span>
-              <span className="text-[14px] leading-5 text-[#6B7280]">Card we charge each month for Vision360.</span>
+              <span className="text-[14px] leading-5 text-[#6B7280]">Stripe-hosted card fields used for monthly Vision360 subscription charges.</span>
             </div>
             <div className="flex items-center gap-4 rounded-lg border border-[#E5E7EB] p-4">
               <div className="flex items-center justify-center rounded-lg shrink-0" style={{ width: 80, height: 48, background: "#1C2B3A" }}>
@@ -856,6 +853,7 @@ function BillingAndPlanSection() {
               <div className="flex flex-col gap-1 flex-1">
                 <span className="text-[14px] leading-5 text-[#1A2332]" style={{ fontWeight: 500 }}>•••• •••• •••• {card.last4}</span>
                 <span className="text-[14px] leading-5 text-[#6B7280]">{card.holder} · Expires {card.expiry}</span>
+                <span className="text-[12px] leading-4 text-[#6B7280]">{card.billingEmail} · ZIP {card.billingZip}</span>
               </div>
               <button
                 type="button"
@@ -865,7 +863,7 @@ function BillingAndPlanSection() {
                 <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
               </button>
             </div>
-            <p className="text-[12px] leading-4 text-[#6B7280]">All charges appear on your statement as "Vision360 FSM".</p>
+            <p className="text-[12px] leading-4 text-[#6B7280]">Card number, expiration, CVC, billing ZIP, country, and billing email map to Stripe. Vision360 stores only Stripe IDs and safe card metadata.</p>
           </div>
         </div>
 
@@ -1005,10 +1003,11 @@ function BillingAndPlanSection() {
                 <Input value={draftCard.holder} onChange={e => setDraftCard({ ...draftCard, holder: e.target.value })} className="h-9 border-[#E5E7EB] shadow-[0_1px_2px_rgba(0,0,0,0.05)]" />
               </div>
               <div className="flex flex-col gap-1">
-                <label className="text-[13px] leading-4 text-[#1A2332]" style={{ fontWeight: 500 }}>Card number (last 4)</label>
+                <label className="text-[13px] leading-4 text-[#1A2332]" style={{ fontWeight: 500 }}>Card number</label>
                 <Input value={draftCard.last4} onChange={e => setDraftCard({ ...draftCard, last4: e.target.value.replace(/\D/g, "").slice(0, 4) })} placeholder="4242" className="h-9 border-[#E5E7EB] shadow-[0_1px_2px_rgba(0,0,0,0.05)]" />
+                <span className="text-[11px] leading-4 text-[#6B7280]">Prototype shows last 4 only; production uses Stripe Elements.</span>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-3 gap-3">
                 <div className="flex flex-col gap-1">
                   <label className="text-[13px] leading-4 text-[#1A2332]" style={{ fontWeight: 500 }}>Brand</label>
                   <div className="relative">
@@ -1021,6 +1020,28 @@ function BillingAndPlanSection() {
                 <div className="flex flex-col gap-1">
                   <label className="text-[13px] leading-4 text-[#1A2332]" style={{ fontWeight: 500 }}>Expiry (MM/YYYY)</label>
                   <Input value={draftCard.expiry} onChange={e => setDraftCard({ ...draftCard, expiry: e.target.value })} placeholder="12/2026" className="h-9 border-[#E5E7EB] shadow-[0_1px_2px_rgba(0,0,0,0.05)]" />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-[13px] leading-4 text-[#1A2332]" style={{ fontWeight: 500 }}>CVC</label>
+                  <Input value="•••" readOnly className="h-9 border-[#E5E7EB] bg-[#F9FAFB] shadow-[0_1px_2px_rgba(0,0,0,0.05)]" />
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="flex flex-col gap-1">
+                  <label className="text-[13px] leading-4 text-[#1A2332]" style={{ fontWeight: 500 }}>Billing ZIP</label>
+                  <Input value={draftCard.billingZip} onChange={e => setDraftCard({ ...draftCard, billingZip: e.target.value })} placeholder="33606" className="h-9 border-[#E5E7EB] shadow-[0_1px_2px_rgba(0,0,0,0.05)]" />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-[13px] leading-4 text-[#1A2332]" style={{ fontWeight: 500 }}>Country</label>
+                  <select value={draftCard.country} onChange={e => setDraftCard({ ...draftCard, country: e.target.value })} className="h-9 w-full rounded-lg border border-[#E5E7EB] bg-white px-3 text-[14px] text-[#1A2332] shadow-[0_1px_2px_rgba(0,0,0,0.05)] outline-none focus:border-[#4A6FA5]">
+                    <option>United States</option>
+                    <option>Canada</option>
+                    <option>Spain</option>
+                  </select>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-[13px] leading-4 text-[#1A2332]" style={{ fontWeight: 500 }}>Billing email</label>
+                  <Input value={draftCard.billingEmail} onChange={e => setDraftCard({ ...draftCard, billingEmail: e.target.value })} placeholder="billing@company.com" className="h-9 border-[#E5E7EB] shadow-[0_1px_2px_rgba(0,0,0,0.05)]" />
                 </div>
               </div>
             </div>
@@ -1967,9 +1988,24 @@ export function Settings() {
     { color: "#0D9488", bg: "#CCFBF1", icon: "near_me"           },
   ];
   const [newStatusLabel, setNewStatusLabel] = useState("");
-  const updatePermissionAccess = (rowIndex: number, roleLabel: string, level: PermissionLevel) => {
+  const togglePermissionAction = (rowIndex: number, roleLabel: string, action: PermissionAction) => {
     setRbacRows(prev => prev.map((row, i) => (
-      i === rowIndex ? { ...row, access: { ...row.access, [roleLabel]: level } } : row
+      i === rowIndex
+        ? {
+            ...row,
+            access: {
+              ...row.access,
+              [roleLabel]: row.access[roleLabel]?.includes(action)
+                ? row.access[roleLabel].filter(item => item !== action)
+                : [...(row.access[roleLabel] ?? []), action],
+            },
+          }
+        : row
+    )));
+  };
+  const clearPermissionAccess = (rowIndex: number, roleLabel: string) => {
+    setRbacRows(prev => prev.map((row, i) => (
+      i === rowIndex ? { ...row, access: { ...row.access, [roleLabel]: [] } } : row
     )));
   };
   const addPermissionRole = () => {
@@ -1982,7 +2018,7 @@ export function Settings() {
     const slug = label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "role";
     const id = `${slug}-${Date.now()}`;
     setPermissionRoles(prev => [...prev, { id, label }]);
-    setRbacRows(prev => prev.map(row => ({ ...row, access: { ...row.access, [label]: "NONE" } })));
+    setRbacRows(prev => prev.map(row => ({ ...row, access: { ...row.access, [label]: [] } })));
     setNewPermissionRole("");
   };
   const removePermissionRole = (roleLabel: string) => {
@@ -2007,6 +2043,10 @@ export function Settings() {
       m.role.toLowerCase().includes(q)
     );
   });
+  const permissionGroups = rbacRows.reduce<Record<string, Array<{ row: RbacPermission; index: number }>>>((groups, row, index) => {
+    groups[row.area] = [...(groups[row.area] ?? []), { row, index }];
+    return groups;
+  }, {});
   const submitInvite = () => {
     if (!invite.name.trim() || !invite.email.trim()) {
       toast.error("Name and email are required");
@@ -2630,6 +2670,109 @@ export function Settings() {
                 </div>
               </div>
 
+              <SectionCard
+                title="Manage roles"
+                description="Set modular access per role. Each module can allow view, create, edit, delete, or no access."
+              >
+                <div className="mt-4 flex items-center justify-between gap-3">
+                  <div className="flex flex-wrap gap-2">
+                    {permissionRoles.map(role => (
+                      <span key={role.id} className="inline-flex h-7 items-center gap-1.5 rounded-lg border border-[#E5E7EB] bg-white px-2.5 text-[12px] text-[#1A2332]" style={{ fontWeight: 600 }}>
+                        {role.label}
+                        {!role.locked && (
+                          <button
+                            type="button"
+                            onClick={() => removePermissionRole(role.label)}
+                            className="text-[#9AA3AF] hover:text-[#DC2626]"
+                            title={`Remove ${role.label}`}
+                          >
+                            <span className="material-icons" style={{ fontSize: "14px" }}>close</span>
+                          </button>
+                        )}
+                      </span>
+                    ))}
+                  </div>
+                  <div className="flex w-[300px] items-center gap-2">
+                    <Input
+                      value={newPermissionRole}
+                      onChange={e => setNewPermissionRole(e.target.value)}
+                      placeholder="Add custom role"
+                      className="h-9 border-[#E5E7EB] text-[13px]"
+                      onKeyDown={e => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          addPermissionRole();
+                        }
+                      }}
+                    />
+                    <Button type="button" onClick={addPermissionRole} className="h-9 bg-[#4A6FA5] px-4 text-white hover:bg-[#3d5a85]">Add</Button>
+                  </div>
+                </div>
+
+                <div className="mt-4 overflow-x-auto rounded-xl border border-[#E5E7EB]">
+                  <table className="min-w-[760px] w-full bg-white">
+                    <thead className="bg-[#F5F7FA]">
+                      <tr>
+                        <th className="w-[170px] px-3 py-2 text-left text-[12px] uppercase tracking-wide text-[#6B7280]" style={{ fontWeight: 700 }}>Module</th>
+                        {permissionRoles.map(role => (
+                          <th key={role.id} className="min-w-[190px] px-3 py-2 text-left text-[12px] uppercase tracking-wide text-[#6B7280]" style={{ fontWeight: 700 }}>{role.label}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {Object.entries(permissionGroups).map(([area, rows]) => (
+                        rows.map(({ row, index }, rowIndex) => (
+                          <tr key={`${area}-${row.module}`} className="border-t border-[#E5E7EB]">
+                            <td className="px-3 py-3 align-top">
+                              {rowIndex === 0 && <div className="mb-1 text-[11px] uppercase tracking-wide text-[#9CA3AF]" style={{ fontWeight: 700 }}>{area}</div>}
+                              <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 700 }}>{row.module}</div>
+                            </td>
+                            {permissionRoles.map(role => {
+                              const access = row.access[role.label] ?? [];
+                              return (
+                                <td key={role.id} className="px-3 py-3 align-top">
+                                  <div className="flex flex-wrap gap-1.5">
+                                    <button
+                                      type="button"
+                                      onClick={() => clearPermissionAccess(index, role.label)}
+                                      className={`inline-flex h-7 items-center rounded-md border px-2 text-[11px] transition-colors ${access.length === 0 ? "border-[#6B7280] bg-[#F3F4F6] text-[#374151]" : "border-[#E5E7EB] bg-white text-[#6B7280] hover:bg-[#F5F7FA]"}`}
+                                      style={{ fontWeight: 600 }}
+                                      title="No access"
+                                    >
+                                      No access
+                                    </button>
+                                    {permissionActionOptions.map(action => {
+                                      const selected = access.includes(action);
+                                      const definition = permissionActionDefinitions[action];
+                                      return (
+                                        <button
+                                          key={action}
+                                          type="button"
+                                          onClick={() => togglePermissionAction(index, role.label, action)}
+                                          className={`inline-flex h-7 items-center gap-1 rounded-md border px-2 text-[11px] transition-colors ${selected ? "border-[#4A6FA5] bg-[#EBF0F8] text-[#4A6FA5]" : "border-[#E5E7EB] bg-white text-[#6B7280] hover:bg-[#F5F7FA]"}`}
+                                          style={{ fontWeight: 600 }}
+                                          title={definition.description}
+                                        >
+                                          <span className="material-icons" style={{ fontSize: "13px" }}>{definition.icon}</span>
+                                          {definition.label}
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        ))
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="mt-3 rounded-lg border border-[#D8E3F4] bg-[#F8FBFF] px-3 py-2 text-[12px] leading-4 text-[#546478]">
+                  Example: Elliot Harper uses the custom Dispatcher role to manage schedule, jobs, and clients without billing or finance access.
+                </div>
+              </SectionCard>
+
               {/* Invite user modal */}
               {inviteOpen && (
                 <div
@@ -3006,6 +3149,22 @@ export function Settings() {
                         </div>
                       </div>
                     ))}
+                  </div>
+                </SectionCard>
+
+                <SectionCard title="Empty state UI review note" description="Comment left for approval before this pattern is reused across modules.">
+                  <div className="rounded-lg border border-[#D8E3F4] bg-[#F8FBFF] px-4 py-3">
+                    <div className="flex items-start gap-3">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#EBF0F8] text-[#4A6FA5]">
+                        <span className="material-icons" style={{ fontSize: "18px" }}>rate_review</span>
+                      </div>
+                      <div>
+                        <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 700 }}>Approval comment</div>
+                        <p className="mt-1 text-[12px] leading-4 text-[#546478]">
+                          Empty states should show one concise sentence, one primary action, and one secondary link only when there is a clear next step. Please confirm this pattern for Estimates, Invoices, Expenses, and Items.
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </SectionCard>
 
