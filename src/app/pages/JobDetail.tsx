@@ -1106,6 +1106,32 @@ export function JobDetail() {
                   {job.client}
                 </button>
                 <span className="text-[16px] text-[#6B7280] leading-[24px]" style={{ fontWeight: 400 }}>({job.jobNumber})</span>
+                {/* Status dropdown */}
+                <div className="relative">
+                  <button
+                    onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[13px] transition-colors"
+                    style={{ fontWeight: 600, backgroundColor: `${statusColor}18`, color: statusColor }}
+                  >
+                    <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: statusColor }} />
+                    {currentStatus}
+                    <span className="material-icons" style={{ fontSize: "14px" }}>arrow_drop_down</span>
+                  </button>
+                  {statusDropdownOpen && (
+                    <div className="absolute left-0 top-full mt-1 bg-white border border-[#E5E7EB] rounded-md shadow-lg z-50 w-[160px] py-1">
+                      {["Scheduled", "In Progress", "Completed"].map((s) => (
+                        <button
+                          key={s}
+                          onClick={() => handleStatusChange(s)}
+                          className="w-full text-left px-3 py-2 text-[13px] hover:bg-[#F3F4F6] flex items-center gap-2"
+                        >
+                          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: statusColors[s] }} />
+                          <span style={{ color: statusColors[s], fontWeight: 500 }}>{s}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Row 2: Address · Phone · Email · Status — single inline row with separators */}
@@ -1124,33 +1150,6 @@ export function JobDetail() {
                   <span className="material-icons" style={{ fontSize: "16px" }}>mail</span>
                   {job.email}
                 </a>
-                <div className="w-px h-5 bg-[#E5E7EB]" />
-                {/* Status dropdown */}
-                <div className="relative pl-2">
-                  <button
-                    onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[13px] transition-colors"
-                    style={{ fontWeight: 600, backgroundColor: `${statusColor}18`, color: statusColor }}
-                  >
-                    <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: statusColor }} />
-                    {currentStatus}
-                    <span className="material-icons" style={{ fontSize: "14px" }}>arrow_drop_down</span>
-                  </button>
-                  {statusDropdownOpen && (
-                    <div className="absolute left-2 top-full mt-1 bg-white border border-[#E5E7EB] rounded-md shadow-lg z-50 w-[160px] py-1">
-                      {["Scheduled", "In Progress", "Completed"].map((s) => (
-                        <button
-                          key={s}
-                          onClick={() => handleStatusChange(s)}
-                          className="w-full text-left px-3 py-2 text-[13px] hover:bg-[#F3F4F6] flex items-center gap-2"
-                        >
-                          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: statusColors[s] }} />
-                          <span style={{ color: statusColors[s], fontWeight: 500 }}>{s}</span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
               </div>
 
               {/* Row 3: Customer since · Last Service · Notes — inline strip */}
