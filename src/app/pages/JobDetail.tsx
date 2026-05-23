@@ -1084,13 +1084,7 @@ export function JobDetail() {
       {/* ── ONE BIG WHITE CARD CONTAINING EVERYTHING ── */}
       <div className="relative mx-6 mb-6 bg-white border border-[#E5E7EB] rounded-xl p-4">
         <div className="absolute right-4 top-4 flex items-center gap-2">
-          <button
-            onClick={() => navigate(`/jobs/${id}/edit`)}
-            className="border border-[#E5E7EB] text-[#546478] hover:bg-[#EDF0F5] h-9 px-2.5 rounded-md flex items-center justify-center bg-white"
-          >
-            <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
-          </button>
-          <KebabMenu triggerClassName="h-9 w-9 border border-[#E5E7EB] rounded-md hover:bg-[#EDF0F5] flex items-center justify-center bg-white">
+<KebabMenu triggerClassName="h-9 w-9 border border-[#E5E7EB] rounded-md hover:bg-[#EDF0F5] flex items-center justify-center bg-white">
             <KebabItem icon="edit" onClick={() => navigate(`/jobs/${id}/edit`)}>Edit Job</KebabItem>
             <KebabItem icon="content_copy">Duplicate Job</KebabItem>
             <KebabItem icon="block" destructive>Inactivate Job</KebabItem>
@@ -1180,7 +1174,7 @@ export function JobDetail() {
                       <div className="flex items-start gap-2">
                         <span className="text-[13px] text-[#6B7280] shrink-0">Notes ({job.notes.length})</span>
                         <div className="flex flex-col">
-                          {job.notes.slice(0, 2).map((note: NoteEntry) => (
+                          {job.notes.slice(0, 1).map((note: NoteEntry) => (
                             <span key={note.id} className="text-[13px] text-[#374151] leading-[19px]">{note.text}</span>
                           ))}
                         </div>
