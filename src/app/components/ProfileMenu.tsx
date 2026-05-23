@@ -3,9 +3,9 @@ import { useNavigate } from "react-router";
 export function ProfileMenu({ onClose }: { onClose: () => void }) {
   const navigate = useNavigate();
 
-  const goTo = (path: string) => {
+  const goTo = (path: string, replace = false) => {
     onClose();
-    navigate(path);
+    navigate(path, { replace });
   };
 
   return (
@@ -24,7 +24,7 @@ export function ProfileMenu({ onClose }: { onClose: () => void }) {
 
       <button
         type="button"
-        onClick={() => goTo("/login")}
+        onClick={() => goTo("/login", true)}
         className="flex w-full items-center gap-3 px-4 py-3 text-left text-[13px] text-[#B91C1C] transition-colors hover:bg-[#FEF2F2]"
         style={{ fontWeight: 600 }}
       >
