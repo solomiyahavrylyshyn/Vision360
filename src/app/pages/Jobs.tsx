@@ -333,8 +333,7 @@ export function Jobs() {
                     case "id":
                       return (
                         <td key="id" className="px-4 py-4">
-                          <div className="text-[12px] text-[#8899AA] font-mono tabular-nums">{job.jobNumber}</div>
-                          <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{job.title}</div>
+                          <div className="text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist", fontStyle: "normal", fontWeight: 400, lineHeight: "20px" }}>{job.title}</div>
                         </td>
                       );
                     case "client":
@@ -342,25 +341,25 @@ export function Jobs() {
                         <td key="client" className="px-4 py-4" onClick={e => e.stopPropagation()}>
                           <button
                             onClick={() => navigate(`/clients/${job.clientId}`)}
-                            className="text-[13px] text-[#4A6FA5] hover:underline hover:text-[#3d5a85] transition-colors text-left"
-                            style={{ fontWeight: 500 }}
+                            className="text-[14px] text-[#4A6FA5] hover:underline hover:text-[#3d5a85] transition-colors text-left"
+                            style={{ fontFamily: "Geist", fontStyle: "normal", fontWeight: 400, lineHeight: "20px" }}
                           >
                             {job.client}
                           </button>
                         </td>
                       );
                     case "address":
-                      return <td key="address" className="px-4 py-4 text-[13px] text-[#546478]">{job.address}</td>;
+                      return <td key="address" className="px-4 py-4 text-[14px] text-[#546478]" style={{ fontFamily: "Geist", fontStyle: "normal", fontWeight: 400, lineHeight: "20px" }}>{job.address}</td>;
                     case "schedule":
-                      return <td key="schedule" className="px-4 py-4 text-[13px] text-[#546478]">{job.schedule}</td>;
+                      return <td key="schedule" className="px-4 py-4 text-[14px] text-[#546478]" style={{ fontFamily: "Geist", fontStyle: "normal", fontWeight: 400, lineHeight: "20px" }}>{job.schedule}</td>;
                     case "status":
                       return (
                         <td key="status" className="px-4 py-4">
-                          <span className="px-2.5 py-1 rounded-full text-[12px]" style={{ fontWeight: 500, color: statusColors[job.status], backgroundColor: statusBg[job.status] }}>{job.status}</span>
+                          <span className="inline-flex items-center justify-center min-w-[86px] px-2.5 py-1 rounded-full text-[12px]" style={{ fontWeight: 500, color: statusColors[job.status], backgroundColor: statusBg[job.status] }}>{job.status}</span>
                         </td>
                       );
                     case "total":
-                      return <td key="total" className="px-4 py-4 text-[13px] text-right text-[#1A2332]" style={{ fontWeight: 500 }}>${job.total.toFixed(2)}</td>;
+                      return <td key="total" className="px-4 py-4 text-[13px] text-right text-[#1A2332]" style={{ fontWeight: 500 }}>${job.total.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</td>;
                     default:
                       return null;
                   }

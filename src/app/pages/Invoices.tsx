@@ -238,7 +238,6 @@ const initialInvoices: Invoice[] = [
 ];
 
 const INVOICES_COLS = [
-  { key: "number", label: "Number" },
   { key: "type", label: "Type" },
   { key: "date", label: "Date" },
   { key: "client", label: "Client" },

@@ -73,18 +73,19 @@ function getAvatarColor(name: string) {
 }
 
 const ESTIMATES_COLS = [
-  { key: "estimate", label: "Estimate", sortable: true },
-  { key: "client", label: "Client", sortable: true },
-  { key: "created", label: "Created", sortable: true },
-  { key: "option", label: "Option" },
-  { key: "amount", label: "Amount", sortable: true },
-  { key: "status", label: "Status", sortable: true },
-  { key: "job", label: "Job" },
-  { key: "sentDate", label: "Sent Date" },
+  { key: "estimate",       label: "Estimate",        sortable: true },
+  { key: "client",         label: "Client",           sortable: true },
+  { key: "status",         label: "Status",           sortable: true },
+  { key: "amount",         label: "Amount",           sortable: true },
+  { key: "job",            label: "Job" },
+  { key: "technician",     label: "Technician" },
+  { key: "created",        label: "Created",          sortable: true },
+  { key: "sentDate",       label: "Sent Date" },
   { key: "expirationDate", label: "Expiration Date" },
-  { key: "technician", label: "Technician" },
-  { key: "depositDue", label: "Deposit due" },
+  { key: "depositDue",     label: "Deposit due" },
 ] as const;
+
+const DEFAULT_VISIBLE_COLS = new Set(["estimate", "client", "status", "amount", "job", "technician"]);
 
 const timeFilters = [
   "All time", "Custom", "Today", "Yesterday", "Last 7 days", "Last 14 days",
@@ -205,6 +206,16 @@ export function Estimates() {
     </span>
   );
 
+  // Edit Columns modal
+  const [editColsOpen, setEditColsOpen] = useState(false);
+  const [visibleCols, setVisibleCols] = useState<Set<string>>(new Set(DEFAULT_VISIBLE_COLS));
+  const toggleCol = (key: string) => setVisibleCols(prev => {
+    const next = new Set(prev);
+    if (next.has(key)) { if (next.size > 1) next.delete(key); }
+    else next.add(key);
+    return next;
+  });
+
   // Create modal
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [clientSearch, setClientSearch] = useState("");
@@ -267,7 +278,7 @@ export function Estimates() {
     !clientSearch || c.name.toLowerCase().includes(clientSearch.toLowerCase()) || c.email.toLowerCase().includes(clientSearch.toLowerCase()) || c.phone.includes(clientSearch)
   );
 
-  const fmt = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const fmt = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
   return (
     <DndProvider backend={HTML5Backend}>
@@ -363,8 +374,7 @@ export function Estimates() {
           </button>
           <div className="ml-auto">
             <KebabMenu triggerClassName="w-10 h-10 border border-[#D8DEE8] rounded-xl bg-white">
-              <KebabItem icon="view_column">Edit Columns</KebabItem>
-              <KebabItem icon="swap_horiz">Change Status</KebabItem>
+              <KebabItem icon="view_column" onClick={() => setEditColsOpen(true)}>Edit Columns</KebabItem>
               <KebabItem icon="content_copy">Manage Duplicates</KebabItem>
               <KebabSeparator />
               <KebabItem icon="file_upload">Import</KebabItem>
@@ -398,7 +408,7 @@ export function Estimates() {
                     className="w-4 h-4 rounded border-[#E5E7EB] cursor-pointer accent-[#4A6FA5]"
                   />
                 </th>
-                {cols.map(col => {
+                {cols.filter(c => visibleCols.has(c.key)).map(col => {
                   const sortFieldMap: Record<string, SortField> = { estimate: "estimateNumber", client: "clientName", created: "createdDate", amount: "amount", status: "status" };
                   const sf = sortFieldMap[col.key];
                   return (
@@ -410,9 +420,7 @@ export function Estimates() {
                       style={{ fontWeight: 600 }}
                       onClick={sf ? () => toggleSort(sf) : undefined}
                     >
-                      {col.key === "amount" ? (
-                        <div className="flex items-center justify-end">{col.label}{sf && <SortIcon field={sf} />}</div>
-                      ) : col.key === "option" ? (
+                      {col.key === "option" ? (
                         <div className="text-center">{col.label}</div>
                       ) : (
                         <div className="flex items-center">{col.label}{sf && <SortIcon field={sf} />}</div>
@@ -449,24 +457,27 @@ export function Estimates() {
                       className="w-4 h-4 rounded border-[#E5E7EB] cursor-pointer accent-[#4A6FA5]"
                     />
                   </td>
-                  {cols.map(col => {
+                  {cols.filter(c => visibleCols.has(c.key)).map(col => {
                     switch (col.key) {
                       case "estimate": return (
                         <td key={col.key} className="px-4 py-4" onClick={() => navigate(`/estimates/${est.id}`)}>
-                          <div className="text-[12px] text-[#8899AA] font-mono tabular-nums">#{est.estimateNumber}</div>
-                          <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{est.estimateName || <span className="text-[#9CA3AF]">—</span>}</div>
+                          <div className="text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist", fontWeight: 400, lineHeight: "20px" }}>{est.estimateName || <span className="text-[#9CA3AF]">—</span>}</div>
                         </td>
                       );
                       case "client": return (
-                        <td key={col.key} className="px-4 py-4" onClick={() => navigate(`/estimates/${est.id}`)}>
-                          <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{est.clientName}</div>
-                          <div className="text-[12px] text-[#8899AA]">{est.clientEmail}</div>
+                        <td key={col.key} className="px-4 py-4" onClick={e => e.stopPropagation()}>
+                          <button
+                            onClick={() => navigate(`/clients/${est.estimateNumber.split('-')[0]}`)}
+                            className="text-[14px] text-[#4A6FA5] hover:underline hover:text-[#3d5a85] transition-colors text-left"
+                            style={{ fontFamily: "Geist", fontWeight: 400, lineHeight: "20px" }}
+                          >
+                            {est.clientName}
+                          </button>
                         </td>
                       );
                       case "created": return (
                         <td key={col.key} className="px-4 py-4 whitespace-nowrap" onClick={() => navigate(`/estimates/${est.id}`)}>
-                          <div className="text-[13px] text-[#374151]">{est.createdDate}</div>
-                          <div className="text-[12px] text-[#8899AA]">by {est.addedBy}</div>
+                          <div className="text-[13px] text-[#374151]">{est.createdDate.replace(/^\w{3}\s/, "")}</div>
                         </td>
                       );
                       case "option": return (
@@ -477,16 +488,13 @@ export function Estimates() {
                         </td>
                       );
                       case "amount": return (
-                        <td key={col.key} className="px-4 py-4 text-right whitespace-nowrap" onClick={() => navigate(`/estimates/${est.id}`)}>
+                        <td key={col.key} className="px-4 py-4 whitespace-nowrap" onClick={() => navigate(`/estimates/${est.id}`)}>
                           <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>${fmt(est.amount)}</div>
                         </td>
                       );
                       case "status": return (
-                        <td key={col.key} className="px-4 py-4" onClick={(e) => e.stopPropagation()}>
-                          <InlineStatusSelect status={est.status} onChange={(s) => handleStatusChange(est.id, s)} />
-                          {est.updatedDate && (
-                            <div className="text-[11px] text-[#8899AA] mt-1">Updated: {est.updatedDate}</div>
-                          )}
+                        <td key={col.key} className="px-4 py-4">
+                          <span className="inline-flex items-center justify-center min-w-[86px] px-2.5 py-1 rounded-full text-[12px]" style={{ fontWeight: 500, color: statusColors[est.status], backgroundColor: statusBg[est.status] }}>{est.status}</span>
                         </td>
                       );
                       case "job": return (
@@ -514,7 +522,6 @@ export function Estimates() {
                       <KebabItem icon="edit" onClick={() => navigate(`/estimates/${est.id}`)}>Edit</KebabItem>
                       <KebabItem icon="send">Send to Client</KebabItem>
                       <KebabItem icon="receipt">Make Invoice</KebabItem>
-                      <KebabItem icon="link">Get Link</KebabItem>
                       <KebabItem icon="print">Print</KebabItem>
                       <KebabSeparator />
                       <KebabItem icon="content_copy">Duplicate</KebabItem>
@@ -546,6 +553,52 @@ export function Estimates() {
           </div>
         </div>
       </div>
+
+      {/* ═══ Edit Columns Modal ═══ */}
+      {editColsOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setEditColsOpen(false)}>
+          <div className="bg-white rounded-xl shadow-2xl w-[340px] border border-[#E5E7EB]" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[#E5E7EB]">
+              <div className="text-[15px] text-[#1A2332]" style={{ fontWeight: 700 }}>Edit Columns</div>
+              <button onClick={() => setEditColsOpen(false)} className="w-8 h-8 rounded-lg hover:bg-[#F5F7FA] flex items-center justify-center">
+                <span className="material-icons text-[#546478]" style={{ fontSize: "20px" }}>close</span>
+              </button>
+            </div>
+            <div className="px-5 py-3 space-y-1">
+              {ESTIMATES_COLS.map(col => (
+                <label key={col.key} className="flex items-center gap-3 py-2 cursor-pointer rounded-lg px-2 hover:bg-[#F5F7FA] transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={visibleCols.has(col.key)}
+                    onChange={() => toggleCol(col.key)}
+                    className="w-4 h-4 rounded border-[#E5E7EB] accent-[#4A6FA5] cursor-pointer"
+                  />
+                  <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 400 }}>{col.label}</span>
+                  {DEFAULT_VISIBLE_COLS.has(col.key) && (
+                    <span className="ml-auto text-[11px] text-[#9CA3AF]" style={{ fontWeight: 500 }}>default</span>
+                  )}
+                </label>
+              ))}
+            </div>
+            <div className="flex items-center justify-between px-5 py-4 border-t border-[#E5E7EB] gap-3">
+              <button
+                onClick={() => setVisibleCols(new Set(DEFAULT_VISIBLE_COLS))}
+                className="text-[13px] text-[#4A6FA5] hover:underline"
+                style={{ fontWeight: 500 }}
+              >
+                Reset to default
+              </button>
+              <button
+                onClick={() => setEditColsOpen(false)}
+                className="h-9 px-5 rounded-lg bg-[#4A6FA5] text-white text-[13px] hover:bg-[#3d5a85] transition-colors"
+                style={{ fontWeight: 600 }}
+              >
+                Apply
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ═══ Create Estimate Modal ═══ */}
       {createModalOpen && (
