@@ -37,7 +37,8 @@
       "mcp__plugin_figma_figma__get_metadata",
       "Bash(grep -n \"{\\\\* .* \\\\*}\\\\|/\\\\\\\\* .* \\\\\\\\*/\" \"C:\\\\Users\\\\mykha\\\\Documents\\\\Vision360\\\\src\\\\app\\\\pages\\\\Settings.tsx\")",
       "Bash(awk -F: '$1>=2434 && $1<=3050')",
-      "Bash(mkdir -p \"/Users/solomiyahavrylyshyn/Vision360 \\(1\\)/.claude\")"
+      "Bash(mkdir -p \"/Users/solomiyahavrylyshyn/Vision360 \\(1\\)/.claude\")",
+      "mcp__3efb2291-e18e-4c3d-a213-ae7a74e154cf__fireflies_get_transcripts"
     ]
   }
 }

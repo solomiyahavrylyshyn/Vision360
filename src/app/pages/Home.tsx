@@ -728,6 +728,7 @@ function GenerateReportForm({ onCancel }: { onCancel: () => void }) {
 function ReportsTab({ generateOpen, setGenerateOpen }: { generateOpen: boolean; setGenerateOpen: (v: boolean) => void }) {
   const [search, setSearch] = useState("");
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
+  const [previewReport, setPreviewReport] = useState<ReportRow | null>(null);
 
   type ReportRow = { name: string; description: string; lastRun?: string; lastRunColor?: "default" | "orange" };
 
@@ -759,6 +760,46 @@ function ReportsTab({ generateOpen, setGenerateOpen }: { generateOpen: boolean; 
     { name: "Payments Report", schedule: "Monthly on 1st", nextRun: "Next run: Jun 1, 2025", orange: false },
   ];
 
+  const previewSampleData: Record<string, { headers: string[]; rows: (string | number)[][] }> = {
+    "Revenue Report": {
+      headers: ["Date", "Client", "Service", "Technician", "Amount"],
+      rows: [
+        ["May 28", "Travis Jones", "HVAC Install", "Peter N.", "$1,850"],
+        ["May 25", "Sarah Williams", "Plumbing", "Mike D.", "$620"],
+        ["May 22", "John Doe", "Electrical", "Peter N.", "$980"],
+        ["May 19", "Mike Rodriguez", "HVAC Service", "Travis B.", "$430"],
+        ["May 15", "Alex Turner", "Plumbing", "Mike D.", "$750"],
+      ],
+    },
+    "Jobs Report": {
+      headers: ["Job #", "Client", "Status", "Date", "Revenue"],
+      rows: [
+        ["#J-2091", "Travis Jones", "Completed", "May 28", "$1,850"],
+        ["#J-2090", "Sarah Williams", "In Progress", "May 25", "$620"],
+        ["#J-2089", "John Doe", "Scheduled", "May 30", "$980"],
+        ["#J-2088", "Mike Rodriguez", "Completed", "May 19", "$430"],
+      ],
+    },
+    "Payments Report": {
+      headers: ["Date", "Client", "Invoice", "Method", "Amount"],
+      rows: [
+        ["May 28", "Travis Jones", "#INV-1042", "Credit Card", "$1,850"],
+        ["May 25", "Sarah Williams", "#INV-1039", "Check", "$620"],
+        ["May 20", "John Doe", "#INV-1035", "Bank Transfer", "$2,400"],
+      ],
+    },
+  };
+
+  const getPreviewData = (name: string) =>
+    previewSampleData[name] ?? {
+      headers: ["Date", "Description", "Amount", "Status"],
+      rows: [
+        ["May 28", "Item 1", "$1,200", "Processed"],
+        ["May 22", "Item 2", "$850", "Processed"],
+        ["May 15", "Item 3", "$430", "Pending"],
+      ],
+    };
+
   const ReportRowItem = ({ r }: { r: ReportRow }) => (
     <div className="flex items-center justify-between py-2.5 border-b border-[#F3F4F6] last:border-0 gap-3">
       <div className="flex-1 min-w-0">
@@ -771,9 +812,19 @@ function ReportsTab({ generateOpen, setGenerateOpen }: { generateOpen: boolean; 
             {r.lastRun}
           </span>
         )}
-        <button className="text-[#546478] hover:text-[#1A2332] transition-colors"><span className="material-icons" style={{ fontSize: 14 }}>visibility</span></button>
-        <button className="text-[#546478] hover:text-[#1A2332] transition-colors"><span className="material-icons" style={{ fontSize: 14 }}>calendar_today</span></button>
-        <button className="text-[#546478] hover:text-[#1A2332] transition-colors"><span className="material-icons" style={{ fontSize: 14 }}>file_download</span></button>
+        <button
+          onClick={() => setPreviewReport(r)}
+          className="text-[#546478] hover:text-[#4A6FA5] transition-colors"
+          title="Preview"
+        >
+          <span className="material-icons" style={{ fontSize: 14 }}>visibility</span>
+        </button>
+        <button className="text-[#546478] hover:text-[#4A6FA5] transition-colors" title="Schedule">
+          <span className="material-icons" style={{ fontSize: 14 }}>calendar_today</span>
+        </button>
+        <button className="text-[#546478] hover:text-[#4A6FA5] transition-colors" title="Download">
+          <span className="material-icons" style={{ fontSize: 14 }}>file_download</span>
+        </button>
       </div>
     </div>
   );
@@ -907,6 +958,153 @@ function ReportsTab({ generateOpen, setGenerateOpen }: { generateOpen: boolean; 
           <span className="material-icons" style={{ fontSize: 13 }}>open_in_new</span>
         </button>
       </div>
+
+      {/* Report Preview Modal */}
+      {previewReport && (() => {
+        const data = getPreviewData(previewReport.name);
+        return (
+          <div className="fixed inset-0 z-[2000] flex items-center justify-center">
+            {/* Backdrop */}
+            <div className="absolute inset-0 bg-black/40" onClick={() => setPreviewReport(null)} />
+
+            {/* Modal */}
+            <div className="relative bg-white rounded-2xl shadow-[0_24px_64px_rgba(0,0,0,0.18)] w-[720px] max-h-[85vh] flex flex-col overflow-hidden">
+              {/* Header */}
+              <div className="flex items-start justify-between px-6 py-4 border-b border-[#E5E7EB] shrink-0">
+                <div>
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <span className="material-icons text-[#4A6FA5]" style={{ fontSize: 18 }}>visibility</span>
+                    <h2 className="text-[16px] font-bold text-[#1A2332]">{previewReport.name}</h2>
+                  </div>
+                  <p className="text-[12px] text-[#546478]">{previewReport.description}</p>
+                </div>
+                <button
+                  onClick={() => setPreviewReport(null)}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg text-[#9CA3AF] hover:bg-[#F3F4F6] hover:text-[#1A2332] transition-colors shrink-0 ml-4"
+                >
+                  <span className="material-icons" style={{ fontSize: 18 }}>close</span>
+                </button>
+              </div>
+
+              {/* Meta row */}
+              <div className="flex items-center gap-4 px-6 py-3 bg-[#F9FAFB] border-b border-[#E5E7EB] shrink-0">
+                {[
+                  { icon: "calendar_today", label: "May 1 – May 31, 2025" },
+                  { icon: "filter_alt", label: "All filters" },
+                  { icon: "group", label: "Group by: Date" },
+                  { icon: "picture_as_pdf", label: "PDF", color: "#DC2626" },
+                ].map((m, i) => (
+                  <div key={i} className="flex items-center gap-1.5 text-[12px] text-[#546478]">
+                    <span className="material-icons" style={{ fontSize: 14, color: m.color ?? "#9CA3AF" }}>{m.icon}</span>
+                    {m.label}
+                  </div>
+                ))}
+                <div className="ml-auto">
+                  <span className="text-[11px] font-semibold text-[#16A34A] bg-[#F0FDF4] px-2 py-0.5 rounded-full">Ready to generate</span>
+                </div>
+              </div>
+
+              {/* PDF-style document preview */}
+              <div className="flex-1 overflow-auto bg-[#E8E8E8] px-6 py-5">
+                {/* Page shadow wrapper */}
+                <div className="bg-white mx-auto shadow-[0_4px_24px_rgba(0,0,0,0.18)]" style={{ width: 560, minHeight: 720, fontFamily: "Georgia, serif" }}>
+                  {/* PDF page header */}
+                  <div className="flex items-center justify-between px-8 pt-8 pb-4 border-b border-[#E5E7EB]">
+                    <div>
+                      <div className="text-[9px] text-[#9CA3AF] uppercase tracking-widest mb-0.5">Omega Home Services</div>
+                      <div className="text-[18px] font-bold text-[#1A2332]" style={{ fontFamily: "Georgia, serif" }}>{previewReport.name}</div>
+                      <div className="text-[10px] text-[#546478] mt-0.5">Period: May 1 – May 31, 2025 &nbsp;|&nbsp; Generated: {new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-[9px] text-[#9CA3AF] uppercase tracking-widest">Format</div>
+                      <div className="text-[11px] font-bold text-[#DC2626] mt-0.5">PDF</div>
+                    </div>
+                  </div>
+
+                  {/* Summary KPIs */}
+                  <div className="grid grid-cols-3 gap-0 border-b border-[#E5E7EB]">
+                    {[
+                      { label: "Total Amount", value: "$25,400" },
+                      { label: "Records", value: "42" },
+                      { label: "Avg per Record", value: "$605" },
+                    ].map((kpi, i) => (
+                      <div key={i} className={`px-6 py-4 text-center ${i < 2 ? "border-r border-[#E5E7EB]" : ""}`}>
+                        <div className="text-[18px] font-bold text-[#1A2332]">{kpi.value}</div>
+                        <div className="text-[9px] text-[#9CA3AF] uppercase tracking-wide mt-0.5">{kpi.label}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Bar chart illustration */}
+                  <div className="px-8 pt-5 pb-4">
+                    <div className="text-[10px] font-semibold text-[#546478] uppercase tracking-wide mb-3">Monthly Overview</div>
+                    <div className="flex items-end gap-2 h-[72px]">
+                      {[40, 62, 55, 78, 85, 100].map((h, i) => (
+                        <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                          <div className="w-full rounded-sm" style={{ height: `${h * 0.68}px`, background: i === 5 ? "#4A6FA5" : "#C7D8F0" }} />
+                          <div className="text-[8px] text-[#9CA3AF]">{["Jan","Feb","Mar","Apr","May","Jun"][i]}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Table */}
+                  <div className="px-8 pb-6">
+                    <div className="text-[10px] font-semibold text-[#546478] uppercase tracking-wide mb-2">Detail</div>
+                    <table className="w-full" style={{ fontSize: 10, borderCollapse: "collapse" }}>
+                      <thead>
+                        <tr style={{ background: "#F5F7FA", borderBottom: "1px solid #E5E7EB" }}>
+                          {data.headers.map(h => (
+                            <th key={h} style={{ textAlign: "left", padding: "5px 8px", color: "#546478", fontWeight: 600, fontFamily: "sans-serif" }}>{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {data.rows.map((row, ri) => (
+                          <tr key={ri} style={{ borderBottom: "1px solid #F3F4F6" }}>
+                            {row.map((cell, ci) => (
+                              <td key={ci} style={{ padding: "5px 8px", color: "#1A2332", fontFamily: "sans-serif" }}>{cell}</td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* PDF footer */}
+                  <div className="border-t border-[#E5E7EB] mx-8 py-3 flex items-center justify-between">
+                    <div className="text-[8px] text-[#C4C9D4]">Confidential — Omega Home Services</div>
+                    <div className="text-[8px] text-[#C4C9D4]">Page 1 of 3</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer actions */}
+              <div className="flex items-center justify-between px-6 py-4 border-t border-[#E5E7EB] shrink-0 bg-white">
+                <button
+                  onClick={() => setPreviewReport(null)}
+                  className="px-4 py-2 text-[13px] font-medium text-[#546478] bg-white border border-[#E5E7EB] rounded-lg hover:bg-[#F5F7FA] transition-colors"
+                >
+                  Close
+                </button>
+                <div className="flex items-center gap-2">
+                  <button className="flex items-center gap-1.5 px-4 py-2 text-[13px] font-medium text-[#546478] bg-white border border-[#E5E7EB] rounded-lg hover:bg-[#F5F7FA] transition-colors">
+                    <span className="material-icons" style={{ fontSize: 15 }}>file_download</span>
+                    Download
+                  </button>
+                  <button
+                    onClick={() => { setPreviewReport(null); setGenerateOpen(true); }}
+                    className="flex items-center gap-1.5 px-4 py-2 text-[13px] font-semibold text-white bg-[#4A6FA5] rounded-lg hover:bg-[#3d5a85] transition-colors"
+                  >
+                    <span className="material-icons" style={{ fontSize: 15 }}>bar_chart</span>
+                    Generate Report
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
