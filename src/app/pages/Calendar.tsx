@@ -1359,11 +1359,14 @@ export function Calendar() {
         )}
       </div>
 
-      {/* Map — below main card, only in Day view */}
+      {/* Map — below main card, only in Day view. When the job sidebar is
+          open, narrow the map by the sidebar width so the calendar block as
+          a whole (schedule card + map) appears next to the sidebar rather
+          than under it. */}
       {viewMode === "day" && (
         <div
-          className="mt-4 rounded-xl border border-[#D8DCE6] bg-[#EEF3F8] overflow-hidden shrink-0 relative"
-          style={{ height: 240 }}
+          className="mt-4 rounded-xl border border-[#D8DCE6] bg-[#EEF3F8] overflow-hidden shrink-0 relative transition-[margin] duration-200"
+          style={{ height: 240, marginRight: selectedDayJob ? 316 : 0 }}
         >
           <div className="absolute inset-0 opacity-70">
             <div className="absolute left-0 right-0 top-[32%] h-[2px] bg-white" />
