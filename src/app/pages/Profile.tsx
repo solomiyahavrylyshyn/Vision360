@@ -144,15 +144,6 @@ export function Profile() {
             <h1 className="text-[26px] leading-8 text-[#1A2332]" style={{ fontWeight: 750 }}>User Account Profile</h1>
             <p className="mt-1 text-[14px] leading-5 text-[#6B7280]">Personal information, notifications, appearance, and account access.</p>
           </div>
-          <button
-            type="button"
-            onClick={() => navigate("/login")}
-            className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[#FECACA] bg-white px-4 text-[13px] text-[#B91C1C] transition-colors hover:bg-[#FEF2F2]"
-            style={{ fontWeight: 700 }}
-          >
-            <span className="material-icons" style={{ fontSize: "16px" }}>logout</span>
-            Logout
-          </button>
         </div>
 
         <div className="grid grid-cols-[minmax(0,1.05fr)_minmax(360px,0.95fr)] gap-4">
@@ -243,24 +234,6 @@ export function Profile() {
                     ))}
                   </div>
                 </div>
-              </div>
-            </Section>
-
-            <Section title="Logout" eyebrow="4">
-              <div className="flex items-center justify-between gap-4 rounded-lg border border-[#FEE2E2] bg-[#FEF2F2] px-4 py-3">
-                <div>
-                  <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 700 }}>End this session</div>
-                  <div className="mt-0.5 text-[12px] leading-4 text-[#6B7280]">Return to the login screen for this prototype.</div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => navigate("/login")}
-                  className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#B91C1C] px-4 text-[13px] text-white transition-colors hover:bg-[#991B1B]"
-                  style={{ fontWeight: 700 }}
-                >
-                  <span className="material-icons" style={{ fontSize: "16px" }}>logout</span>
-                  Logout
-                </button>
               </div>
             </Section>
 

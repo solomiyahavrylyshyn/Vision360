@@ -52,44 +52,78 @@ export function Login() {
 
       {/* Left Column: Visual/Marketing - Hidden on small screens */}
       <div className="hidden lg:flex w-1/2 relative bg-[#1A2332] flex-col justify-between overflow-hidden">
-        {/* Background Image with Overlay */}
-        <div 
-          className="absolute inset-0 z-0 opacity-40 bg-cover bg-center"
-          style={{ backgroundImage: "url('https://images.unsplash.com/photo-1554224155-169641357599?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwzfHxidXNpbmVzcyUyMGNvbmNlcHR8ZW58MHx8fHwxNzc1MjIyNTE2fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral')" }}
-        />
-        <div className="absolute inset-0 z-0 bg-gradient-to-t from-[#1A2332] via-[#1A2332]/80 to-transparent" />
-        
+        {/* Subtle background gradient accent */}
+        <div className="absolute inset-0 z-0 bg-gradient-to-br from-[#1A2332] via-[#1e2d45] to-[#1A2332]" />
+        <div className="absolute top-0 right-0 w-96 h-96 bg-[#4A6FA5]/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+        <div className="absolute bottom-0 left-0 w-80 h-80 bg-[#4A6FA5]/8 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
+
         {/* Content */}
         <div className="relative z-10 p-12 lg:p-16 flex flex-col h-full">
-          <div className="mt-auto mb-16">
-            <div className="mb-8" style={{ marginTop: "-1px", paddingRight: "3px", marginBottom: "-1px", paddingLeft: "3px" }}>
-              <img src={logoImg} alt="Vision360 Logo" className="h-[96px] w-auto object-contain mb-6" />
-            </div>
-            
-            <h1 className="text-4xl lg:text-5xl font-bold text-white mb-6 leading-tight">
-              Transform your <br/>
-              <span className="text-[#4A6FA5]">field operations.</span>
-            </h1>
-            <p className="text-[#A0B0C4] text-lg max-w-md mb-8">
-              Join thousands of professionals scaling their service businesses with Vision360 FSM Platform.
-            </p>
-            
-            <div className="space-y-4">
-              <div className="flex items-center gap-3 text-white">
-                <span className="material-icons text-[#4A6FA5]">check_circle</span>
-                <span className="font-medium">Smart job scheduling & dispatch</span>
+          {/* Logo */}
+          <div>
+            <img src={logoImg} alt="Vision360 Logo" className="h-[72px] w-auto object-contain" />
+          </div>
+
+          {/* Hero Image Card */}
+          <div className="flex-1 flex items-center justify-center py-10">
+            <div className="w-full max-w-sm relative">
+              {/* Glow behind image */}
+              <div className="absolute inset-0 rounded-2xl bg-[#4A6FA5]/20 blur-2xl scale-95" />
+              {/* Image */}
+              <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-white/10">
+                <img
+                  src="https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=600&q=80&fit=crop"
+                  alt="Field service professional"
+                  className="w-full h-64 object-cover"
+                />
+                {/* Overlay card at bottom of image */}
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-[#1A2332]/90 to-transparent px-5 py-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-[#4A6FA5] flex items-center justify-center flex-shrink-0">
+                      <span className="material-icons text-white" style={{ fontSize: "16px" }}>trending_up</span>
+                    </div>
+                    <div>
+                      <p className="text-white text-sm font-semibold">+34% efficiency</p>
+                      <p className="text-[#A0B0C4] text-xs">avg. across all teams this quarter</p>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div className="flex items-center gap-3 text-white">
-                <span className="material-icons text-[#4A6FA5]">check_circle</span>
-                <span className="font-medium">Automated quotes and invoicing</span>
-              </div>
-              <div className="flex items-center gap-3 text-white">
-                <span className="material-icons text-[#4A6FA5]">check_circle</span>
-                <span className="font-medium">Real-time team tracking</span>
+
+              {/* Floating stat badge */}
+              <div className="absolute -top-4 -right-4 bg-[#4A6FA5] rounded-xl px-4 py-2.5 shadow-xl border border-white/10">
+                <p className="text-white text-xs font-medium opacity-80">Active jobs</p>
+                <p className="text-white text-xl font-bold leading-tight">1,248</p>
               </div>
             </div>
           </div>
-          
+
+          {/* Text Content */}
+          <div className="mb-6">
+            <h1 className="text-3xl lg:text-4xl font-bold text-white mb-4 leading-tight">
+              Transform your <br/>
+              <span className="text-[#4A6FA5]">field operations.</span>
+            </h1>
+            <p className="text-[#A0B0C4] text-base max-w-md mb-6">
+              Join thousands of professionals scaling their service businesses with Vision360.
+            </p>
+
+            <div className="space-y-3">
+              <div className="flex items-center gap-3 text-white">
+                <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "20px" }}>check_circle</span>
+                <span className="font-medium text-sm">Smart job scheduling & dispatch</span>
+              </div>
+              <div className="flex items-center gap-3 text-white">
+                <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "20px" }}>check_circle</span>
+                <span className="font-medium text-sm">Automated quotes and invoicing</span>
+              </div>
+              <div className="flex items-center gap-3 text-white">
+                <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "20px" }}>check_circle</span>
+                <span className="font-medium text-sm">Real-time team tracking</span>
+              </div>
+            </div>
+          </div>
+
           <div className="text-[#546478] text-sm">
             © 2026 Vision360 Inc. All rights reserved.
           </div>

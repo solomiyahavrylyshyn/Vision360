@@ -571,7 +571,6 @@ export function ClientDetail() {
           { label: "Job",               icon: "work",        path: "/jobs/new" },
           { label: "Invoice",           icon: "receipt",     path: "/invoices/new" },
           { label: "Payment",           icon: "credit_card", path: "/payments/new" },
-          { label: "Contact",           icon: "person_add",  path: "/clients/new" },
         ].map(({ label, icon, path }) => (
           <DropdownMenuItem
             key={label}
