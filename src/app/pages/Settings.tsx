@@ -376,18 +376,6 @@ function TaxSettingsCard() {
           </span>
         </div>
 
-        <div className="rounded-lg border border-[#FDE68A] bg-[#FFFBEB] px-4 py-3">
-          <div className="flex items-start gap-2">
-            <span className="material-icons text-[#B45309]" style={{ fontSize: "17px" }}>rate_review</span>
-            <div>
-              <div className="text-[13px] text-[#92400E]" style={{ fontWeight: 700 }}>Review comment for approval</div>
-              <p className="mt-1 text-[12px] leading-4 text-[#92400E]">
-                Confirm final terminology: use "Tax rate" for individual percentages, "Tax profile" for grouped rates, and keep "Internal tax description" hidden from customer PDFs.
-              </p>
-            </div>
-          </div>
-        </div>
-
         {/* Tax rates sub-section */}
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between">
@@ -1057,7 +1045,7 @@ function BillingAndPlanSection() {
 }
 
 // Tiny SVG-ish preview of a template — used inside the card thumb
-function TemplatePreview({ kind }: { kind: string }) {
+function TemplatePreview({ kind, className }: { kind: string; className?: string }) {
   // Each template has a slightly different mini-layout
   const variants: Record<string, React.ReactNode> = {
     Classic: (
@@ -1112,7 +1100,7 @@ function TemplatePreview({ kind }: { kind: string }) {
     ),
   };
   return (
-    <div className="mb-2 h-24 rounded-lg bg-[#F5F7FA] border border-[#E5E7EB] p-2 flex flex-col overflow-hidden">
+    <div className={className ?? "mb-2 h-24 rounded-lg bg-[#F5F7FA] border border-[#E5E7EB] p-2 flex flex-col overflow-hidden"}>
       {variants[kind] ?? variants.Classic}
     </div>
   );
@@ -1442,38 +1430,27 @@ function InvoicesPreferences({ templateCards }: { templateCards: { title: string
           {templateCards.map(card => {
             const selected = selectedTemplate === card.title;
             return (
-              <button
+              <div
                 key={card.title}
-                type="button"
                 onClick={() => { setSelectedTemplate(card.title); toast.success(`${card.title} template selected`); }}
-                className={`text-left rounded-xl border p-3 transition-all relative cursor-pointer ${
+                className={`rounded-xl border p-3 flex flex-col transition-all cursor-pointer ${
                   selected
-                    ? "border-[#4A6FA5] ring-2 ring-[#4A6FA5]/30 bg-[#F8FBFF]"
-                    : "border-[#E5E7EB] hover:border-[#C8D5E8] hover:bg-[#FAFBFC]"
+                    ? "border-[#4A6FA5] ring-2 ring-[#4A6FA5]/30 bg-white"
+                    : "border-[#E5E7EB] hover:border-[#C8D5E8] bg-white"
                 }`}
               >
-                {selected && (
-                  <span className="absolute top-2 right-2 inline-flex items-center justify-center h-5 w-5 rounded-full bg-[#4A6FA5] text-white">
-                    <span className="material-icons" style={{ fontSize: "14px" }}>check</span>
-                  </span>
-                )}
-                <TemplatePreview kind={card.title} />
-                <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 700 }}>{card.title}</div>
-                <p className="mt-1 text-[12px] leading-4 text-[#546478]">{card.description}</p>
-                <div className="mt-2 flex items-center gap-3 text-[11px]">
-                  <button
-                    type="button"
-                    onClick={e => { e.stopPropagation(); setPreviewTemplate(card.title); }}
-                    className="text-[#4A6FA5] hover:underline"
-                    style={{ fontWeight: 600 }}
-                  >
-                    Preview
-                  </button>
-                  {selected
-                    ? <span className="text-[#16A34A]" style={{ fontWeight: 700 }}>In use</span>
-                    : <span className="text-[#9CA3AF]">Click to use</span>}
-                </div>
-              </button>
+                <TemplatePreview kind={card.title} className="h-[120px] rounded-lg bg-[#F5F7FA] border border-[#E5E7EB] p-2.5 flex flex-col overflow-hidden" />
+                <div className="mt-2 text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>{card.title}</div>
+                <p className="mt-0.5 text-[12px] leading-4 text-[#546478]">{card.description}</p>
+                <button
+                  type="button"
+                  onClick={e => { e.stopPropagation(); setPreviewTemplate(card.title); }}
+                  className="mt-2 w-full rounded-lg border border-[#E5E7EB] py-2 text-[13px] text-[#1A2332] bg-white hover:bg-[#F9FAFB] transition-colors"
+                  style={{ fontWeight: 600 }}
+                >
+                  Preview
+                </button>
+              </div>
             );
           })}
         </div>
@@ -1503,35 +1480,12 @@ function InvoicesPreferences({ templateCards }: { templateCards: { title: string
         )}
       </SectionCard>
 
-      {/* Numbering */}
-      <SectionCard title="Numbering" description="How invoice numbers are generated.">
-        <div className="grid grid-cols-3 gap-3">
-          <div>
-            <label className="block text-[13px] text-[#1A2332] mb-1.5" style={{ fontWeight: 600 }}>Prefix</label>
-            <Input value={numberingPrefix} onChange={e => setNumberingPrefix(e.target.value)} className="h-9 border-[#D8DEE8]" />
-          </div>
-          <div>
-            <label className="block text-[13px] text-[#1A2332] mb-1.5" style={{ fontWeight: 600 }}>Next number</label>
-            <Input value={nextNumber} onChange={e => setNextNumber(e.target.value.replace(/\D/g, ""))} className="h-9 border-[#D8DEE8]" />
-          </div>
-          <div>
-            <label className="block text-[13px] text-[#1A2332] mb-1.5" style={{ fontWeight: 600 }}>Zero-pad to</label>
-            <select value={zeroPad} onChange={e => setZeroPad(e.target.value)} className="h-9 w-full rounded-lg border border-[#D8DEE8] bg-white px-3 text-[14px]">
-              {["3", "4", "5", "6"].map(n => <option key={n} value={n}>{n} digits</option>)}
-            </select>
-          </div>
-        </div>
-        <p className="mt-3 text-[12px] text-[#6B7280]">
-          Preview: <span className="font-mono text-[#1A2332]" style={{ fontWeight: 600 }}>{numberingPrefix}{nextNumber.padStart(parseInt(zeroPad), "0")}</span>
-        </p>
-      </SectionCard>
-
       {/* Deposits */}
       <SectionCard title="Deposits" description="Collect a deposit when the customer accepts an estimate or signs an invoice.">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Require deposit before scheduling</div>
-            <div className="text-[13px] text-[#546478]">Customer pays a percentage upfront; rest is invoiced when the job is done.</div>
+        <div className="flex items-center justify-between gap-4 rounded-lg border border-[#E5E7EB] px-4 py-4">
+          <div className="flex-1">
+            <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Require deposit before scheduling</div>
+            <div className="text-[12px] text-[#6B7280] mt-0.5">Customer pays a percentage upfront; rest is invoiced when the job is done.</div>
           </div>
           <Switch checked={requireDeposit} onCheckedChange={setRequireDeposit} />
         </div>
@@ -1550,25 +1504,6 @@ function InvoicesPreferences({ templateCards }: { templateCards: { title: string
           <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "28px" }}>credit_score</span>
           <div className="text-[13px] text-[#1A2332] mt-1" style={{ fontWeight: 600 }}>Lender integration coming soon</div>
           <div className="text-[12px] text-[#6B7280] mt-1">Wells Fargo, GreenSky and Synchrony brochures will plug in here.</div>
-        </div>
-      </SectionCard>
-
-      {/* Discounts */}
-      <SectionCard title="Discounts" description="Predefined discount labels available on estimates and invoices.">
-        <div className="flex flex-wrap gap-2">
-          {discountTypes.map(d => (
-            <span key={d} className="flex items-center gap-1 rounded-full border border-[#E5E7EB] bg-[#F8FAFC] px-3 py-1.5 text-[13px] text-[#1A2332]">
-              {d}
-              <button onClick={() => setDiscountTypes(discountTypes.filter(x => x !== d))} className="ml-1 text-[#9AA3AF] hover:text-[#DC2626]">×</button>
-            </span>
-          ))}
-        </div>
-        <div className="mt-3 flex gap-2">
-          <Input value={newDiscount} onChange={e => setNewDiscount(e.target.value)} placeholder="Add discount label" className="h-9 max-w-[320px] border-[#D8DEE8] text-[13px]"
-            onKeyDown={e => { if (e.key === "Enter") { const v = newDiscount.trim(); if (!v || discountTypes.includes(v)) return; setDiscountTypes([...discountTypes, v]); setNewDiscount(""); }}}
-          />
-          <Button className="h-9 bg-[#4A6FA5] px-4 text-[13px] hover:bg-[#3d5a85]"
-            onClick={() => { const v = newDiscount.trim(); if (!v || discountTypes.includes(v)) return; setDiscountTypes([...discountTypes, v]); setNewDiscount(""); }}>Add</Button>
         </div>
       </SectionCard>
 
@@ -1593,18 +1528,18 @@ function InvoicesPreferences({ templateCards }: { templateCards: { title: string
 
       {/* Signature Settings */}
       <SectionCard title="Signature Settings" description="Capture customer authorization on invoices.">
-        <div className="space-y-3">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Require client signature on estimates</div>
-              <div className="text-[13px] text-[#546478]">Customer signs the estimate before work begins.</div>
+        <div className="space-y-2 mt-2">
+          <div className="flex items-center justify-between gap-4 rounded-lg border border-[#E5E7EB] px-4 py-4">
+            <div className="flex-1">
+              <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Require client signature on estimates</div>
+              <div className="text-[12px] text-[#6B7280] mt-0.5">Customer signs the estimate before work begins.</div>
             </div>
             <Switch checked={requireSig} onCheckedChange={setRequireSig} />
           </div>
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Require client signature on invoices</div>
-              <div className="text-[13px] text-[#546478]">Signature captured at delivery confirms receipt of services rendered.</div>
+          <div className="flex items-center justify-between gap-4 rounded-lg border border-[#E5E7EB] px-4 py-4">
+            <div className="flex-1">
+              <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Require client signature on invoices</div>
+              <div className="text-[12px] text-[#6B7280] mt-0.5">Signature captured at delivery confirms receipt of services rendered.</div>
             </div>
             <Switch checked={requireSigInvoice} onCheckedChange={setRequireSigInvoice} />
           </div>
@@ -1613,14 +1548,14 @@ function InvoicesPreferences({ templateCards }: { templateCards: { title: string
 
       {/* Notes on invoice */}
       <SectionCard title="Notes on invoice" description="Default fine print printed at the bottom of every invoice and receipt.">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-4 mt-2">
           <div>
-            <label className="block text-[13px] text-[#1A2332] mb-1.5" style={{ fontWeight: 600 }}>Invoice fine print</label>
-            <textarea defaultValue="Equipment remains property of Omega Home Services until invoice is paid in full." className="min-h-[100px] w-full rounded-lg border border-[#D8DEE8] px-3 py-2 text-[14px] outline-none focus:border-[#4A6FA5] focus:ring-2 focus:ring-[#4A6FA5]/20 resize-y" />
+            <label className="block text-[14px] text-[#1A2332] mb-1" style={{ fontWeight: 500 }}>Invoice fine print</label>
+            <textarea defaultValue="Equipment remains property of Omega Home Services until invoice is paid in full." className="min-h-[76px] w-full rounded-lg border border-[#E5E7EB] px-3 py-2 text-[14px] shadow-[0_1px_2px_rgba(0,0,0,0.05)] outline-none focus:border-[#4A6FA5] focus:ring-2 focus:ring-[#4A6FA5]/20 resize-y" />
           </div>
           <div>
-            <label className="block text-[13px] text-[#1A2332] mb-1.5" style={{ fontWeight: 600 }}>Receipt note</label>
-            <textarea defaultValue="Paid in full. Thank you for your business." className="min-h-[100px] w-full rounded-lg border border-[#D8DEE8] px-3 py-2 text-[14px] outline-none focus:border-[#4A6FA5] focus:ring-2 focus:ring-[#4A6FA5]/20 resize-y" />
+            <label className="block text-[14px] text-[#1A2332] mb-1" style={{ fontWeight: 500 }}>Receipt note</label>
+            <textarea defaultValue="Paid in full. Thank you for your business." className="min-h-[76px] w-full rounded-lg border border-[#E5E7EB] px-3 py-2 text-[14px] shadow-[0_1px_2px_rgba(0,0,0,0.05)] outline-none focus:border-[#4A6FA5] focus:ring-2 focus:ring-[#4A6FA5]/20 resize-y" />
           </div>
         </div>
 
@@ -1637,7 +1572,6 @@ function InvoicesPreferences({ templateCards }: { templateCards: { title: string
 // Finance Center — Marek's spec
 function FinanceCenterSection() {
   const [stripeConnected, setStripeConnected] = useState(true);
-  const [paypalConnected, setPaypalConnected] = useState(false);
   const [methods, setMethods] = useState({
     creditCard: true,
     ach: false,
@@ -1656,7 +1590,7 @@ function FinanceCenterSection() {
       <div className="space-y-4">
         {/* Payments / Gateways */}
         <SectionCard title="Payments" description="Connect a payment processor so customers can pay invoices online.">
-          <div className="space-y-3">
+          <div>
             {/* Stripe */}
             <div className="flex items-center justify-between rounded-xl border border-[#E5E7EB] p-4">
               <div className="flex items-center gap-3">
@@ -1673,25 +1607,6 @@ function FinanceCenterSection() {
                 </div>
               ) : (
                 <Button className="h-9 bg-[#635BFF] hover:bg-[#5048d8] text-white" onClick={() => { setStripeConnected(true); toast.success("Stripe connected"); }}>Connect Stripe</Button>
-              )}
-            </div>
-
-            {/* PayPal */}
-            <div className="flex items-center justify-between rounded-xl border border-[#E5E7EB] p-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-[#003087] text-white" style={{ fontWeight: 800 }}>P</div>
-                <div>
-                  <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 700 }}>PayPal</div>
-                  <div className="text-[12px] text-[#6B7280]">Customers pay with PayPal or Venmo.</div>
-                </div>
-              </div>
-              {paypalConnected ? (
-                <div className="flex items-center gap-2">
-                  <span className="rounded-full bg-[#DCFCE7] px-2 py-0.5 text-[11px] text-[#15803D]" style={{ fontWeight: 700 }}>Connected</span>
-                  <Button variant="outline" className="h-9 border-[#E5E7EB] text-[#546478] hover:bg-[#EDF0F5]" onClick={() => { setPaypalConnected(false); toast.info("PayPal disconnected"); }}>Disconnect</Button>
-                </div>
-              ) : (
-                <Button className="h-9 bg-[#003087] hover:bg-[#001a52] text-white" onClick={() => { setPaypalConnected(true); toast.success("PayPal connected"); }}>Connect PayPal</Button>
               )}
             </div>
           </div>
@@ -1720,7 +1635,7 @@ function FinanceCenterSection() {
 
         {/* Payment Methods */}
         <SectionCard title="Payment Methods" description="Which methods appear when an invoice is sent to a customer.">
-          <div className="space-y-2">
+          <div className="grid grid-cols-2 gap-2 mt-2">
             {[
               { id: "creditCard", label: "Credit / Debit cards", desc: "Stripe required."                },
               { id: "ach",        label: "ACH bank transfer",    desc: "Lower fees, slower clearing."   },
@@ -1728,10 +1643,10 @@ function FinanceCenterSection() {
               { id: "check",      label: "Check",                desc: "Track check number on payment." },
               { id: "financing",  label: "Financing",            desc: "Send customer to a lender plan (coming soon)." },
             ].map(m => (
-              <div key={m.id} className="flex items-center justify-between rounded-lg border border-[#E5E7EB] px-3 py-2">
-                <div>
-                  <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>{m.label}</div>
-                  <div className="text-[12px] text-[#6B7280]">{m.desc}</div>
+              <div key={m.id} className="flex items-center justify-between gap-4 rounded-lg border border-[#E5E7EB] px-4 py-4">
+                <div className="flex-1">
+                  <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>{m.label}</div>
+                  <div className="text-[12px] text-[#6B7280] mt-0.5">{m.desc}</div>
                 </div>
                 <Switch checked={(methods as any)[m.id]} onCheckedChange={v => setMethods({ ...methods, [m.id]: v })} />
               </div>
@@ -1741,23 +1656,23 @@ function FinanceCenterSection() {
 
         {/* Notes on receipt */}
         <SectionCard title="Notes on receipt" description="Printed at the bottom of every payment receipt.">
-          <textarea defaultValue="Thank you for your payment. Keep this receipt for your records." className="min-h-[90px] w-full rounded-lg border border-[#D8DEE8] px-3 py-2 text-[14px] outline-none focus:border-[#4A6FA5] focus:ring-2 focus:ring-[#4A6FA5]/20 resize-y" />
+          <textarea defaultValue="Thank you for your payment. Keep this receipt for your records." className="mt-2 min-h-[76px] w-full rounded-lg border border-[#E5E7EB] px-3 py-2 text-[14px] shadow-[0_1px_2px_rgba(0,0,0,0.05)] outline-none focus:border-[#4A6FA5] focus:ring-2 focus:ring-[#4A6FA5]/20 resize-y" />
         </SectionCard>
 
         {/* Expense Tracking */}
         <SectionCard title="Expense Tracking" description="How expenses move from the Expenses module into your books.">
-          <div className="space-y-3">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Auto-categorize by vendor</div>
-                <div className="text-[13px] text-[#546478]">Apply the last category used for that vendor on new expenses.</div>
+          <div className="space-y-2 mt-2">
+            <div className="flex items-center justify-between gap-4 rounded-lg border border-[#E5E7EB] px-4 py-4">
+              <div className="flex-1">
+                <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Auto-categorize by vendor</div>
+                <div className="text-[12px] text-[#6B7280] mt-0.5">Apply the last category used for that vendor on new expenses.</div>
               </div>
               <Switch defaultChecked />
             </div>
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Require receipt photo</div>
-                <div className="text-[13px] text-[#546478]">Field tech must attach a photo before saving an expense.</div>
+            <div className="flex items-center justify-between gap-4 rounded-lg border border-[#E5E7EB] px-4 py-4">
+              <div className="flex-1">
+                <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Require receipt photo</div>
+                <div className="text-[12px] text-[#6B7280] mt-0.5">Field tech must attach a photo before saving an expense.</div>
               </div>
               <Switch defaultChecked />
             </div>
@@ -1940,6 +1855,9 @@ export function Settings() {
   const [rbacRows, setRbacRows] = useState<RbacPermission[]>(defaultRbacPermissions);
   const emptyInvite = { name: "", email: "", role: "Employee" as AppRole, rate: "" };
   const [invite, setInvite] = useState(emptyInvite);
+  // ── Estimate templates ──
+  const [selectedEstimateTemplate, setSelectedEstimateTemplate] = useState<string>("Classic");
+  const [previewEstimateTemplate, setPreviewEstimateTemplate] = useState<string | null>(null);
   // ── Login security & 2FA ──
   const [tempPasswordLink, setTempPasswordLink] = useState(true);
   const [forceChangeOnLogin, setForceChangeOnLogin] = useState(false);
@@ -1988,6 +1906,14 @@ export function Settings() {
     { color: "#0D9488", bg: "#CCFBF1", icon: "near_me"           },
   ];
   const [newStatusLabel, setNewStatusLabel] = useState("");
+  const JOB_TYPE_COLORS = [
+    { fg: "#DC2626", bg: "rgba(220,38,38,0.12)",  icon: "edit" },
+    { fg: "#A856F7", bg: "rgba(168,86,247,0.12)", icon: "edit" },
+    { fg: "#4A6FA5", bg: "rgba(74,111,165,0.12)", icon: "edit" },
+    { fg: "#16A34A", bg: "rgba(22,163,74,0.12)",  icon: "edit" },
+    { fg: "#D97706", bg: "rgba(217,119,6,0.12)",  icon: "edit" },
+    { fg: "#0891B2", bg: "rgba(8,145,178,0.12)",  icon: "edit" },
+  ];
   const togglePermissionAction = (rowIndex: number, roleLabel: string, action: PermissionAction) => {
     setRbacRows(prev => prev.map((row, i) => (
       i === rowIndex
@@ -2670,109 +2596,6 @@ export function Settings() {
                 </div>
               </div>
 
-              <SectionCard
-                title="Manage roles"
-                description="Set modular access per role. Each module can allow view, create, edit, delete, or no access."
-              >
-                <div className="mt-4 flex items-center justify-between gap-3">
-                  <div className="flex flex-wrap gap-2">
-                    {permissionRoles.map(role => (
-                      <span key={role.id} className="inline-flex h-7 items-center gap-1.5 rounded-lg border border-[#E5E7EB] bg-white px-2.5 text-[12px] text-[#1A2332]" style={{ fontWeight: 600 }}>
-                        {role.label}
-                        {!role.locked && (
-                          <button
-                            type="button"
-                            onClick={() => removePermissionRole(role.label)}
-                            className="text-[#9AA3AF] hover:text-[#DC2626]"
-                            title={`Remove ${role.label}`}
-                          >
-                            <span className="material-icons" style={{ fontSize: "14px" }}>close</span>
-                          </button>
-                        )}
-                      </span>
-                    ))}
-                  </div>
-                  <div className="flex w-[300px] items-center gap-2">
-                    <Input
-                      value={newPermissionRole}
-                      onChange={e => setNewPermissionRole(e.target.value)}
-                      placeholder="Add custom role"
-                      className="h-9 border-[#E5E7EB] text-[13px]"
-                      onKeyDown={e => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          addPermissionRole();
-                        }
-                      }}
-                    />
-                    <Button type="button" onClick={addPermissionRole} className="h-9 bg-[#4A6FA5] px-4 text-white hover:bg-[#3d5a85]">Add</Button>
-                  </div>
-                </div>
-
-                <div className="mt-4 overflow-x-auto rounded-xl border border-[#E5E7EB]">
-                  <table className="min-w-[760px] w-full bg-white">
-                    <thead className="bg-[#F5F7FA]">
-                      <tr>
-                        <th className="w-[170px] px-3 py-2 text-left text-[12px] uppercase tracking-wide text-[#6B7280]" style={{ fontWeight: 700 }}>Module</th>
-                        {permissionRoles.map(role => (
-                          <th key={role.id} className="min-w-[190px] px-3 py-2 text-left text-[12px] uppercase tracking-wide text-[#6B7280]" style={{ fontWeight: 700 }}>{role.label}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {Object.entries(permissionGroups).map(([area, rows]) => (
-                        rows.map(({ row, index }, rowIndex) => (
-                          <tr key={`${area}-${row.module}`} className="border-t border-[#E5E7EB]">
-                            <td className="px-3 py-3 align-top">
-                              {rowIndex === 0 && <div className="mb-1 text-[11px] uppercase tracking-wide text-[#9CA3AF]" style={{ fontWeight: 700 }}>{area}</div>}
-                              <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 700 }}>{row.module}</div>
-                            </td>
-                            {permissionRoles.map(role => {
-                              const access = row.access[role.label] ?? [];
-                              return (
-                                <td key={role.id} className="px-3 py-3 align-top">
-                                  <div className="flex flex-wrap gap-1.5">
-                                    <button
-                                      type="button"
-                                      onClick={() => clearPermissionAccess(index, role.label)}
-                                      className={`inline-flex h-7 items-center rounded-md border px-2 text-[11px] transition-colors ${access.length === 0 ? "border-[#6B7280] bg-[#F3F4F6] text-[#374151]" : "border-[#E5E7EB] bg-white text-[#6B7280] hover:bg-[#F5F7FA]"}`}
-                                      style={{ fontWeight: 600 }}
-                                      title="No access"
-                                    >
-                                      No access
-                                    </button>
-                                    {permissionActionOptions.map(action => {
-                                      const selected = access.includes(action);
-                                      const definition = permissionActionDefinitions[action];
-                                      return (
-                                        <button
-                                          key={action}
-                                          type="button"
-                                          onClick={() => togglePermissionAction(index, role.label, action)}
-                                          className={`inline-flex h-7 items-center gap-1 rounded-md border px-2 text-[11px] transition-colors ${selected ? "border-[#4A6FA5] bg-[#EBF0F8] text-[#4A6FA5]" : "border-[#E5E7EB] bg-white text-[#6B7280] hover:bg-[#F5F7FA]"}`}
-                                          style={{ fontWeight: 600 }}
-                                          title={definition.description}
-                                        >
-                                          <span className="material-icons" style={{ fontSize: "13px" }}>{definition.icon}</span>
-                                          {definition.label}
-                                        </button>
-                                      );
-                                    })}
-                                  </div>
-                                </td>
-                              );
-                            })}
-                          </tr>
-                        ))
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                <div className="mt-3 rounded-lg border border-[#D8E3F4] bg-[#F8FBFF] px-3 py-2 text-[12px] leading-4 text-[#546478]">
-                  Example: Elliot Harper uses the custom Dispatcher role to manage schedule, jobs, and clients without billing or finance access.
-                </div>
-              </SectionCard>
-
               {/* Invite user modal */}
               {inviteOpen && (
                 <div
@@ -2947,28 +2770,6 @@ export function Settings() {
                       })}
                     </div>
                   )}
-                </div>
-              </div>
-
-              {/* User Profile defaults */}
-              <div className="flex flex-col gap-4 rounded-xl border border-[#E5E7EB] bg-white p-4">
-                <div className="flex flex-col gap-1">
-                  <span className="text-[16px] leading-6 text-[#1A2332]" style={{ fontWeight: 600 }}>User Profile defaults</span>
-                  <span className="text-[14px] leading-5 text-[#6B7280]">Fields every user record carries. Marek's MVP set: username, full name, and a pay rate.</span>
-                </div>
-                <div className="grid grid-cols-3 gap-3">
-                  {([
-                    { label: "Username",   desc: "Auto-derived from email, editable." },
-                    { label: "Full name",  desc: "Display name across the app." },
-                    { label: "Phone",      desc: "Required when 2FA uses SMS." },
-                    { label: "User role",  desc: "Admin, Employee, or custom permission role." },
-                    { label: "Pay rate",   desc: "Hourly, daily, or salary — set per user." },
-                  ]).map(f => (
-                    <div key={f.label} className="flex flex-col gap-1 rounded-lg border border-[#E5E7EB] bg-white px-3 py-2.5">
-                      <span className="text-[13px] leading-5 text-[#1A2332]" style={{ fontWeight: 600 }}>{f.label}</span>
-                      <span className="text-[12px] leading-4 text-[#6B7280]">{f.desc}</span>
-                    </div>
-                  ))}
                 </div>
               </div>
 
@@ -3149,22 +2950,6 @@ export function Settings() {
                         </div>
                       </div>
                     ))}
-                  </div>
-                </SectionCard>
-
-                <SectionCard title="Empty state UI review note" description="Comment left for approval before this pattern is reused across modules.">
-                  <div className="rounded-lg border border-[#D8E3F4] bg-[#F8FBFF] px-4 py-3">
-                    <div className="flex items-start gap-3">
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#EBF0F8] text-[#4A6FA5]">
-                        <span className="material-icons" style={{ fontSize: "18px" }}>rate_review</span>
-                      </div>
-                      <div>
-                        <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 700 }}>Approval comment</div>
-                        <p className="mt-1 text-[12px] leading-4 text-[#546478]">
-                          Empty states should show one concise sentence, one primary action, and one secondary link only when there is a clear next step. Please confirm this pattern for Estimates, Invoices, Expenses, and Items.
-                        </p>
-                      </div>
-                    </div>
                   </div>
                 </SectionCard>
 
@@ -3423,149 +3208,151 @@ export function Settings() {
                 {activeSection === "jobs" && (
                   <>
                     {/* Job Types */}
-                    <SectionCard title="Job Types" description="Types used when creating jobs. Helps categorize and filter work orders." className="min-h-[172px]">
-                      <div className="mt-4 flex w-[422px] gap-3">
+                    <SectionCard title="Job Types" description="Types used when creating jobs. Helps categorize and filter work orders.">
+                      <div className="mt-2 flex w-[422px] gap-3">
                         <Input
                           value={newJobTypeName}
                           onChange={e => setNewJobTypeName(e.target.value)}
-                          placeholder="Add role type"
-                          className="h-9 flex-1 border-[#E5E7EB] text-[14px] shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
+                          placeholder="Add status (e.g. Dispatched, On Route, Cancelled)"
+                          className="h-9 flex-1 border-[#E5E7EB] text-[13px] shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
                           onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addJobType(); } }}
                         />
-                        <Button disabled={!newJobTypeName.trim()} className="h-9 w-[59px] rounded-lg bg-[#4A6FA5] px-4 text-[14px] text-white opacity-50 hover:bg-[#4A6FA5]" onClick={addJobType}>Add</Button>
+                        <Button disabled={!newJobTypeName.trim()} className="h-9 w-[59px] rounded-lg bg-[#4A6FA5] px-4 text-[13px] text-white hover:bg-[#3d5a85]" onClick={addJobType}>Add</Button>
                       </div>
-                      <div className="mt-4 flex flex-wrap gap-2">
-                        {jobTypes.map(jt => (
-                          <span key={jt} className="flex h-6 items-center gap-1 rounded-lg border border-[#E5E7EB] bg-white px-2 text-[12px] leading-4 text-[#1A2332]" style={{ fontWeight: 500 }}>
-                            {jt}
-                            <button className="ml-1 text-[#9AA3AF] hover:text-[#DC2626]" onClick={() => { jobTypesStore.removeJobType(jt); toast.success("Job type removed"); }}>×</button>
-                          </span>
-                        ))}
-                        {jobTypes.length === 0 && <span className="text-[13px] text-[#9AA3AF]">No job types yet.</span>}
-                      </div>
-                    </SectionCard>
-
-                    {/* Job Statuses — editable labels + add custom */}
-                    <SectionCard title="Job Statuses" description="MVP ships three core statuses. Rename them or add your own (Dispatched, On Route, Paused, Cancelled…).">
-                      <div className="space-y-2">
-                        {jobStatuses.map(s => {
-                          const defaultLabel: Record<string, string> = {
-                            scheduled: "Scheduled",
-                            inProgress: "In Progress",
-                            completed: "Completed",
-                          };
-                          const isCore = !!s.core;
-                          // Cycle through palette on chip click for custom statuses
-                          const cycleColor = () => {
-                            if (isCore) return;
-                            const palette = STATUS_PALETTE;
-                            const idx = palette.findIndex(p => p.color === s.color);
-                            const next = palette[(idx + 1) % palette.length];
-                            setJobStatuses(jobStatuses.map(x => x.id === s.id ? { ...x, ...next } : x));
-                          };
+                      <div className="mt-2 grid grid-cols-3 gap-2">
+                        {jobTypes.map((jt, idx) => {
+                          const clr = JOB_TYPE_COLORS[idx % JOB_TYPE_COLORS.length];
                           return (
-                            <div key={s.id} className="flex items-center gap-3">
-                              {/* Color/icon chip */}
+                            <div key={jt} className="flex items-center gap-3 rounded-lg border border-[#E5E7EB] px-3 py-2.5">
+                              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg" style={{ background: clr.bg }}>
+                                <span className="material-icons" style={{ fontSize: 16, color: clr.fg }}>{clr.icon}</span>
+                              </div>
+                              <input
+                                value={jt}
+                                onChange={e => jobTypesStore.renameJobType(jt, e.target.value)}
+                                className="min-w-0 flex-1 bg-transparent text-[13px] text-[#1A2332] outline-none"
+                                style={{ fontWeight: 500 }}
+                              />
                               <button
-                                type="button"
-                                onClick={cycleColor}
-                                className={`shrink-0 flex items-center justify-center h-9 w-9 rounded-lg border ${isCore ? "cursor-default" : "hover:ring-2 hover:ring-[#4A6FA5]/30 cursor-pointer"}`}
-                                style={{ backgroundColor: s.bg, borderColor: s.bg }}
-                                title={isCore ? "Core status — color locked" : "Click to change color"}
+                                onClick={() => { jobTypesStore.removeJobType(jt); toast.success("Job type removed"); }}
+                                className="shrink-0 text-[#9CA3AF] hover:text-[#DC2626] transition-colors"
+                                title="Remove"
                               >
-                                <span className="material-icons" style={{ fontSize: "18px", color: s.color }}>{s.icon}</span>
+                                <span className="material-icons" style={{ fontSize: 18 }}>delete_outline</span>
                               </button>
-                              {/* Editable label */}
-                              <label className="flex flex-col rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5 flex-1 max-w-[320px]">
-                                <span className="text-[11px] text-[#6B7280]">Status label</span>
-                                <input
-                                  value={s.label}
-                                  onChange={e => setJobStatuses(jobStatuses.map(x => x.id === s.id ? { ...x, label: e.target.value } : x))}
-                                  className="bg-transparent text-[13px] outline-none mt-0.5"
-                                  style={{ color: s.color, fontWeight: 600 }}
-                                />
-                              </label>
-                              {isCore ? (
-                                <button
-                                  type="button"
-                                  onClick={() => setJobStatuses(jobStatuses.map(x => x.id === s.id ? { ...x, label: defaultLabel[s.id] ?? x.label } : x))}
-                                  className="text-[12px] text-[#4A6FA5] hover:underline"
-                                  title="Reset label to default"
-                                >
-                                  Reset
-                                </button>
-                              ) : (
-                                <button
-                                  type="button"
-                                  onClick={() => setJobStatuses(jobStatuses.filter(x => x.id !== s.id))}
-                                  className="shrink-0 h-9 w-9 rounded-lg border border-[#E5E7EB] bg-white text-[#9CA3AF] hover:bg-[#FEF2F2] hover:border-[#FECACA] hover:text-[#DC2626] flex items-center justify-center transition-colors"
-                                  title="Remove status"
-                                >
-                                  <span className="material-icons" style={{ fontSize: "18px" }}>delete_outline</span>
-                                </button>
-                              )}
                             </div>
                           );
                         })}
+                        {jobTypes.length === 0 && (
+                          <div className="col-span-3 text-[13px] text-[#9CA3AF]">No job types yet.</div>
+                        )}
+                      </div>
+                    </SectionCard>
+
+                    {/* Job Statuses */}
+                    <SectionCard title="Job Statuses" description="MVP ships three core statuses. Rename them or add your own (Dispatched, On Route, Paused, Cancelled…).">
+                      {/* System statuses */}
+                      <div className="mt-2">
+                        <div className="text-[13px] text-[#1A2332] mb-0.5" style={{ fontWeight: 500 }}>System statuses</div>
+                        <div className="text-[12px] text-[#6B7280] mb-2">The three core statuses (Scheduled / In Progress / Completed) stay in the system but you can rename them.</div>
+                        <div className="grid grid-cols-3 gap-3">
+                          {jobStatuses.filter(s => s.core).map(s => (
+                            <div key={s.id} className="flex items-center gap-3 rounded-lg border border-[#E5E7EB] px-3 py-2.5">
+                              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg" style={{ background: s.bg }}>
+                                <span className="material-icons" style={{ fontSize: 16, color: s.color }}>{s.icon}</span>
+                              </div>
+                              <input
+                                value={s.label}
+                                onChange={e => setJobStatuses(jobStatuses.map(x => x.id === s.id ? { ...x, label: e.target.value } : x))}
+                                className="min-w-0 flex-1 bg-transparent text-[13px] text-[#1A2332] outline-none"
+                                style={{ fontWeight: 500 }}
+                              />
+                            </div>
+                          ))}
+                        </div>
                       </div>
 
-                      {/* Add new status */}
-                      <div className="mt-4 flex items-center gap-2">
-                        <Input
-                          value={newStatusLabel}
-                          onChange={e => setNewStatusLabel(e.target.value)}
-                          placeholder="Add status (e.g. Dispatched, On Route, Cancelled)"
-                          className="h-9 max-w-[360px] border-[#D8DEE8] text-[13px]"
-                          onKeyDown={e => {
-                            if (e.key === "Enter") {
+                      <div className="my-2 h-px bg-[#E5E7EB]" />
+
+                      {/* Custom statuses */}
+                      <div>
+                        <div className="text-[13px] text-[#1A2332] mb-2" style={{ fontWeight: 500 }}>Custom statuses</div>
+                        <div className="flex w-[422px] gap-3 mb-3">
+                          <Input
+                            value={newStatusLabel}
+                            onChange={e => setNewStatusLabel(e.target.value)}
+                            placeholder="Add status (e.g. Dispatched, On Route, Cancelled)"
+                            className="h-9 flex-1 border-[#E5E7EB] text-[13px]"
+                            onKeyDown={e => {
+                              if (e.key === "Enter") {
+                                const v = newStatusLabel.trim();
+                                if (!v) return;
+                                const palette = STATUS_PALETTE[jobStatuses.filter(x => !x.core).length % STATUS_PALETTE.length];
+                                setJobStatuses([...jobStatuses, { id: `st${Date.now()}`, label: v, ...palette }]);
+                                setNewStatusLabel("");
+                              }
+                            }}
+                          />
+                          <Button
+                            className="h-9 w-[59px] rounded-lg bg-[#4A6FA5] px-4 text-[13px] text-white hover:bg-[#3d5a85]"
+                            onClick={() => {
                               const v = newStatusLabel.trim();
                               if (!v) return;
                               const palette = STATUS_PALETTE[jobStatuses.filter(x => !x.core).length % STATUS_PALETTE.length];
                               setJobStatuses([...jobStatuses, { id: `st${Date.now()}`, label: v, ...palette }]);
                               setNewStatusLabel("");
-                            }
-                          }}
-                        />
-                        <Button
-                          className="h-9 bg-[#4A6FA5] px-4 text-[13px] hover:bg-[#3d5a85]"
-                          onClick={() => {
-                            const v = newStatusLabel.trim();
-                            if (!v) return;
-                            const palette = STATUS_PALETTE[jobStatuses.filter(x => !x.core).length % STATUS_PALETTE.length];
-                            setJobStatuses([...jobStatuses, { id: `st${Date.now()}`, label: v, ...palette }]);
-                            setNewStatusLabel("");
-                          }}
-                        >
-                          + Add status
-                        </Button>
+                            }}
+                          >
+                            Add
+                          </Button>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          {jobStatuses.filter(s => !s.core).map(s => (
+                            <div key={s.id} className="flex items-center gap-3 rounded-lg border border-[#E5E7EB] px-3 py-2.5">
+                              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg" style={{ background: s.bg }}>
+                                <span className="material-icons" style={{ fontSize: 16, color: s.color }}>{s.icon}</span>
+                              </div>
+                              <input
+                                value={s.label}
+                                onChange={e => setJobStatuses(jobStatuses.map(x => x.id === s.id ? { ...x, label: e.target.value } : x))}
+                                className="min-w-0 flex-1 bg-transparent text-[13px] text-[#1A2332] outline-none"
+                                style={{ fontWeight: 500 }}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setJobStatuses(jobStatuses.filter(x => x.id !== s.id))}
+                                className="shrink-0 text-[#9CA3AF] hover:text-[#DC2626] transition-colors"
+                                title="Remove status"
+                              >
+                                <span className="material-icons" style={{ fontSize: 18 }}>delete_outline</span>
+                              </button>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-
-                      <p className="mt-3 text-[12px] text-[#6B7280]">
-                        The three core statuses (Scheduled / In Progress / Completed) stay in the system but you can rename them. Click any custom status chip to cycle through colors; trash icon removes it.
-                      </p>
                     </SectionCard>
 
                     {/* Signature Settings */}
                     <SectionCard title="Signature Settings" description="Require the customer's signature at key moments. Captured signatures attach to the job PDF for legal protection.">
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between gap-4">
-                          <div>
+                      <div className="space-y-2 mt-2">
+                        <div className="flex items-center justify-between gap-4 rounded-lg border border-[#E5E7EB] px-4 py-4">
+                          <div className="flex-1">
                             <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Require signature before starting work</div>
-                            <div className="text-[13px] text-[#546478]">Field tech can't mark a job In Progress until the customer signs the Authorization to Proceed.</div>
+                            <div className="text-[12px] text-[#6B7280] mt-0.5">Field tech can't mark a job In Progress until the customer signs the Authorization to Proceed.</div>
                           </div>
                           <Switch checked={requireSigBeforeStart} onCheckedChange={setRequireSigBeforeStart} />
                         </div>
-                        <div className="flex items-center justify-between gap-4">
-                          <div>
+                        <div className="flex items-center justify-between gap-4 rounded-lg border border-[#E5E7EB] px-4 py-4">
+                          <div className="flex-1">
                             <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Require signature on completion</div>
-                            <div className="text-[13px] text-[#546478]">Customer signs off when the work is done; locks the job into the Completed state.</div>
+                            <div className="text-[12px] text-[#6B7280] mt-0.5">Customer signs off when the work is done; locks the job into the Completed state.</div>
                           </div>
                           <Switch checked={requireSigOnComplete} onCheckedChange={setRequireSigOnComplete} />
                         </div>
-                        <div className="flex items-center justify-between gap-4">
-                          <div>
+                        <div className="flex items-center justify-between gap-4 rounded-lg border border-[#E5E7EB] px-4 py-4">
+                          <div className="flex-1">
                             <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Capture parent / guardian signature when minor present</div>
-                            <div className="text-[13px] text-[#546478]">Optional second signature line shown on the customer-facing form.</div>
+                            <div className="text-[12px] text-[#6B7280] mt-0.5">Optional second signature line shown on the customer-facing form.</div>
                           </div>
                           <Switch checked={requireParentSig} onCheckedChange={setRequireParentSig} />
                         </div>
@@ -3573,8 +3360,19 @@ export function Settings() {
                     </SectionCard>
 
                     {/* Notes on Jobs */}
-                    <SectionCard title="Notes on Jobs" description="Reusable legal / operational text printed on the job sheet (service agreements, authorization, disclaimers).">
-                      <div className="space-y-3">
+                    <SectionCard
+                      title="Notes on Jobs"
+                      description="Reusable legal / operational text printed on the job sheet (service agreements, authorization, disclaimers)."
+                      headerAction={
+                        <Button
+                          className="h-8 bg-[#4A6FA5] px-3 text-[13px] hover:bg-[#3d5a85]"
+                          onClick={() => setJobNotes([...jobNotes, { id: `jn${Date.now()}`, title: "New note", body: "" }])}
+                        >
+                          + Add note
+                        </Button>
+                      }
+                    >
+                      <div className="space-y-3 mt-2">
                         {jobNotes.map(note => (
                           <div key={note.id} className="rounded-xl border border-[#E5E7EB] p-3 space-y-2">
                             <div className="flex items-center gap-2">
@@ -3604,12 +3402,6 @@ export function Settings() {
                           </div>
                         ))}
                       </div>
-                      <Button
-                        className="mt-3 h-9 bg-[#4A6FA5] px-4 text-[13px] hover:bg-[#3d5a85]"
-                        onClick={() => setJobNotes([...jobNotes, { id: `jn${Date.now()}`, title: "New note", body: "" }])}
-                      >
-                        + Add note
-                      </Button>
                     </SectionCard>
 
                     {/* Schedule Board */}
@@ -3665,10 +3457,10 @@ export function Settings() {
                         </div>
                         <Button
                           variant="outline"
-                          className="h-9 border-[#C8D5E8] text-[#4A6FA5] hover:bg-[#EBF0F8]"
+                          className="h-9 shrink-0 border-[#E5E7EB] text-[#1A2332] hover:bg-[#F3F4F6] shadow-[0_0_0_3px_#E5E7EB]"
                           onClick={() => { setActiveSection("general"); setCfEntity("jobs"); }}
                         >
-                          Open
+                          Manage Custom Fields
                         </Button>
                       </div>
 
@@ -3697,16 +3489,72 @@ export function Settings() {
                 {activeSection === "estimates" && (
                   <>
                     <SectionCard title="Estimate templates" description="Offer four pre-built templates instead of advanced document customization.">
-                      <div className="grid grid-cols-4 gap-3">{templateCards.map(card => <div key={card.title} className="rounded-xl border border-[#E5E7EB] p-3"><div className="mb-2 h-24 rounded-lg bg-[#F5F7FA]" /><div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 700 }}>{card.title}</div><p className="mt-1 text-[12px] leading-4 text-[#546478]">{card.description}</p></div>)}</div>
+                      <div className="grid grid-cols-4 gap-3">
+                        {templateCards.map(card => {
+                          const selected = selectedEstimateTemplate === card.title;
+                          return (
+                            <div
+                              key={card.title}
+                              onClick={() => { setSelectedEstimateTemplate(card.title); toast.success(`${card.title} template selected`); }}
+                              className={`rounded-xl border p-3 flex flex-col transition-all cursor-pointer ${
+                                selected
+                                  ? "border-[#4A6FA5] ring-2 ring-[#4A6FA5]/30 bg-white"
+                                  : "border-[#E5E7EB] hover:border-[#C8D5E8] bg-white"
+                              }`}
+                            >
+                              <TemplatePreview kind={card.title} className="h-[120px] rounded-lg bg-[#F5F7FA] border border-[#E5E7EB] p-2.5 flex flex-col overflow-hidden" />
+                              <div className="mt-2 text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>{card.title}</div>
+                              <p className="mt-0.5 text-[12px] leading-4 text-[#546478]">{card.description}</p>
+                              <button
+                                type="button"
+                                onClick={e => { e.stopPropagation(); setPreviewEstimateTemplate(card.title); }}
+                                className="mt-2 w-full rounded-lg border border-[#E5E7EB] py-2 text-[13px] text-[#1A2332] bg-white hover:bg-[#F9FAFB] transition-colors"
+                                style={{ fontWeight: 600 }}
+                              >
+                                Preview
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Preview modal */}
+                      {previewEstimateTemplate && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setPreviewEstimateTemplate(null)}>
+                          <div className="w-[640px] max-h-[80vh] bg-white rounded-xl border border-[#E5E7EB] shadow-2xl overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+                            <div className="px-6 py-4 border-b border-[#E5E7EB] flex items-center justify-between">
+                              <div>
+                                <h3 className="text-[16px] text-[#1A2332]" style={{ fontWeight: 700 }}>{previewEstimateTemplate} template</h3>
+                                <p className="text-[12px] text-[#6B7280]">{templateCards.find(c => c.title === previewEstimateTemplate)?.description}</p>
+                              </div>
+                              <button onClick={() => setPreviewEstimateTemplate(null)} className="text-[#9CA3AF] hover:text-[#1A2332]">
+                                <span className="material-icons" style={{ fontSize: "20px" }}>close</span>
+                              </button>
+                            </div>
+                            <div className="flex-1 overflow-auto bg-[#F5F7FA] p-6 flex items-start justify-center">
+                              <TemplatePreviewLarge kind={previewEstimateTemplate} />
+                            </div>
+                            <div className="px-6 py-4 border-t border-[#E5E7EB] flex items-center justify-end gap-3 bg-white">
+                              <Button type="button" variant="outline" onClick={() => setPreviewEstimateTemplate(null)} className="border-[#E5E7EB] text-[#546478] hover:bg-[#EDF0F5] h-10 px-6">Close</Button>
+                              <Button type="button" onClick={() => { setSelectedEstimateTemplate(previewEstimateTemplate); setPreviewEstimateTemplate(null); toast.success(`${previewEstimateTemplate} template selected`); }} className="bg-[#4A6FA5] hover:bg-[#3d5a85] text-white h-10 px-6" style={{ fontWeight: 600 }}>Use this template</Button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </SectionCard>
-                    <SectionCard title="Estimate rules"><div className="grid grid-cols-2 gap-4"><div className="flex items-center justify-between rounded-lg border border-[#E5E7EB] p-3"><span className="text-[14px] text-[#1A2332]">Require client signature before proceeding</span><Switch defaultChecked /></div><Field label="Payment terms"><Input defaultValue="Payment is due within 15 days of approval." className="h-9 border-[#D8DEE8]" /></Field></div></SectionCard>
-                    <SectionCard title="Document sections" description="Default text shown on every estimate. Edit to match your company's language.">
-                      <div className="flex flex-col gap-6">
-                        <DocSection label="Terms and Conditions" defaultValue={"This estimate is valid for 30 days from the date above. Work will commence within 5 business days of estimate approval and receipt of the required deposit.\n\nPayment is due upon completion unless otherwise agreed in writing. A finance charge of 1.5% per month (18% APR) will be applied to all past due balances.\n\nAll materials are guaranteed to be as specified. All work is completed in a workmanlike manner according to standard industry practices."} />
-                        <DocSection label="Disclaimer" defaultValue="This estimate is based on accessible areas at the time of inspection. Additional charges may apply if unforeseen conditions are discovered once work begins." />
-                        <DocSection label="Customer Acknowledgement" defaultValue="By signing below, you acknowledge that you have read, understand, and agree to the terms and conditions, disclaimer, and privacy policy outlined in this estimate." />
-                        <DocSection label="Privacy Policy" defaultValue="We respect your privacy. Your information will be used only for the purpose of completing this project and providing you with exceptional service." />
-                        <DocSection label="Exclusions" defaultValue="This estimate does not include: patching or painting, permit fees, structural work, or any items not specifically listed in the line items." />
+                    <SectionCard title="Estimate rules">
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="flex flex-col gap-1">
+                          <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Signature</div>
+                          <div className="flex items-center gap-2 py-2">
+                            <Switch defaultChecked />
+                            <span className="text-[14px] text-[#1A2332]">Require client signature before proceeding</span>
+                          </div>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Payment terms</div>
+                          <Input defaultValue="Payment is due within 15 days of approval." className="h-9 border-[#E5E7EB] shadow-[0_1px_2px_rgba(0,0,0,0.05)]" />
+                        </div>
                       </div>
                       <div className="mt-5 -mx-5 -mb-5 px-5 py-4 border-t border-[#E1E6EF] flex items-center justify-end gap-3 bg-white rounded-b-xl">
                         <Button type="button" variant="outline" onClick={() => toast.info("Changes discarded")} className="border-[#E5E7EB] text-[#546478] hover:bg-[#EDF0F5] h-10 px-6">Cancel</Button>

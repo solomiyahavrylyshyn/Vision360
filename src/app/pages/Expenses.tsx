@@ -44,6 +44,18 @@ export const expenseCategoryColors: Record<string, string> = {
   "Equipment Rental": "#EA580C",
   Other: "#8899AA",
 };
+const expenseCategoryBg: Record<string, string> = {
+  Materials: "#EBF0F8",
+  Fuel: "#DCFCE7",
+  Tools: "#FEF3C7",
+  Software: "#EDE9FE",
+  Meals: "#FEE2E2",
+  Travel: "#CFFAFE",
+  Subcontractor: "#EDE9FE",
+  "Office Supplies": "#DBEAFE",
+  "Equipment Rental": "#FFEDD5",
+  Other: "#F3F4F6",
+};
 const categoryColors = expenseCategoryColors;
 
 const categoryFilterOptions = ["All", "Materials", "Fuel", "Tools", "Software", "Meals", "Travel"];
@@ -247,10 +259,17 @@ export function Expenses() {
                         );
                         case "category": return (
                           <td key={col.key} className="px-4 py-4">
-                            <div className="flex items-center gap-2">
-                              <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: categoryColors[expense.category] || "#8899AA" }} />
-                              <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{expense.category}</span>
-                            </div>
+                            <span
+                              className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] whitespace-nowrap"
+                              style={{
+                                background: expenseCategoryBg[expense.category] || "#F3F4F6",
+                                color: categoryColors[expense.category] || "#8899AA",
+                                fontWeight: 600,
+                              }}
+                            >
+                              <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: categoryColors[expense.category] || "#8899AA" }} />
+                              {expense.category}
+                            </span>
                           </td>
                         );
                         case "merchant": return (

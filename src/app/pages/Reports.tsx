@@ -1,18 +1,10 @@
 import { useState } from "react";
-import { BarChart2, Download, Eye, Calendar, Clock, Search, LayoutList, LayoutGrid, ChevronDown, FileText, TrendingUp, DollarSign, Users, Briefcase, MoreHorizontal } from "lucide-react";
-import { Button } from "../components/ui/button";
 
 interface Report {
   name: string;
   description: string;
   lastRun?: string;
   lastRunColor?: "default" | "green" | "orange";
-}
-
-interface ReportSection {
-  title: string;
-  icon: React.ReactNode;
-  reports: Report[];
 }
 
 const financialReports: Report[] = [
@@ -67,24 +59,21 @@ function ReportRow({ report }: { report: Report }) {
       <div className="flex items-center gap-3 shrink-0">
         {report.lastRun && <LastRunBadge label={report.lastRun} color={report.lastRunColor} />}
         <button className="text-[#546478] hover:text-[#1A2332] transition-colors" title="Preview">
-          <Eye size={15} />
-        </button>
-        <button className="text-[#546478] hover:text-[#1A2332] transition-colors" title="Schedule">
-          <Calendar size={15} />
+          <span className="material-icons" style={{ fontSize: 15 }}>visibility</span>
         </button>
         <button className="text-[#546478] hover:text-[#1A2332] transition-colors" title="Download">
-          <Download size={15} />
+          <span className="material-icons" style={{ fontSize: 15 }}>file_download</span>
         </button>
       </div>
     </div>
   );
 }
 
-function SectionCard({ icon, title, reports }: { icon: React.ReactNode; title: string; reports: Report[] }) {
+function SectionCard({ icon, title, reports }: { icon: string; title: string; reports: Report[] }) {
   return (
     <div className="mb-5">
       <div className="flex items-center gap-2 mb-2">
-        <span className="text-[#4A6FA5]">{icon}</span>
+        <span className="material-icons text-[#4A6FA5]" style={{ fontSize: 16 }}>{icon}</span>
         <span className="text-sm font-bold text-[#1A2332]">{title}</span>
       </div>
       <div className="bg-white rounded-xl border border-[#E5E7EB] px-4 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
@@ -98,7 +87,6 @@ function SectionCard({ icon, title, reports }: { icon: React.ReactNode; title: s
 
 export function Reports() {
   const [activeTab, setActiveTab] = useState("reports");
-  const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const [search, setSearch] = useState("");
 
   return (
@@ -111,16 +99,12 @@ export function Reports() {
         </div>
         <div className="flex items-center gap-3 shrink-0">
           <button className="flex items-center gap-1.5 text-sm font-medium text-[#1A2332] bg-white border border-[#E5E7EB] rounded-lg px-3 py-2 shadow-sm hover:bg-[#F3F4F6] transition-colors">
-            <Calendar size={15} className="text-[#546478]" />
+            <span className="material-icons text-[#546478]" style={{ fontSize: 15 }}>calendar_today</span>
             This Month
-            <ChevronDown size={14} className="text-[#546478]" />
+            <span className="material-icons text-[#546478]" style={{ fontSize: 14 }}>keyboard_arrow_down</span>
           </button>
-          <button className="flex items-center gap-1.5 text-sm font-medium text-[#1A2332] bg-white border border-[#E5E7EB] rounded-lg px-3 py-2 shadow-sm hover:bg-[#F3F4F6] transition-colors">
-            <Clock size={15} className="text-[#546478]" />
-            Schedule Report
-          </button>
-          <button className="flex items-center gap-1.5 text-sm font-semibold text-white bg-[#1A2332] rounded-lg px-4 py-2 shadow-sm hover:bg-[#243044] transition-colors">
-            <BarChart2 size={15} />
+          <button className="flex items-center gap-1.5 text-sm font-semibold text-white bg-[#4A6FA5] rounded-lg px-4 py-2 shadow-sm hover:bg-[#3d5a85] transition-colors">
+            <span className="material-icons" style={{ fontSize: 15 }}>bar_chart</span>
             Generate Report
           </button>
         </div>
@@ -146,9 +130,6 @@ export function Reports() {
             {tab.label}
           </button>
         ))}
-        <button className="ml-2 p-2 text-[#546478] hover:text-[#1A2332] transition-colors">
-          <LayoutGrid size={16} />
-        </button>
       </div>
 
       {/* Stat Cards */}
@@ -159,7 +140,7 @@ export function Reports() {
             <div className="text-xs text-[#546478] mt-0.5">Reports available</div>
           </div>
           <div className="w-10 h-10 bg-[#EFF6FF] rounded-xl flex items-center justify-center">
-            <FileText size={20} className="text-[#4A6FA5]" />
+            <span className="material-icons text-[#4A6FA5]" style={{ fontSize: 20 }}>description</span>
           </div>
         </div>
         <div className="bg-white rounded-xl border border-[#E5E7EB] px-5 py-4 flex items-center justify-between shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
@@ -169,7 +150,7 @@ export function Reports() {
             <div className="text-xs font-semibold text-[#1A2332] mt-0.5">Revenue Report</div>
           </div>
           <div className="w-10 h-10 bg-[#F0FDF4] rounded-xl flex items-center justify-center">
-            <Download size={20} className="text-[#16A34A]" />
+            <span className="material-icons text-[#16A34A]" style={{ fontSize: 20 }}>file_download</span>
           </div>
         </div>
         <div className="bg-white rounded-xl border border-[#E5E7EB] px-5 py-4 flex items-center justify-between shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
@@ -181,7 +162,7 @@ export function Reports() {
             </div>
           </div>
           <div className="w-10 h-10 bg-[#FFFBEB] rounded-xl flex items-center justify-center">
-            <Clock size={20} className="text-[#D97706]" />
+            <span className="material-icons text-[#D97706]" style={{ fontSize: 20 }}>schedule</span>
           </div>
         </div>
       </div>
@@ -189,7 +170,7 @@ export function Reports() {
       {/* Search + Filter bar */}
       <div className="flex items-center gap-3 mb-5">
         <div className="relative flex-1 max-w-sm">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
+          <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: 15 }}>search</span>
           <input
             type="text"
             placeholder="Search reports..."
@@ -201,22 +182,8 @@ export function Reports() {
         <div className="ml-auto flex items-center gap-2">
           <button className="flex items-center gap-1.5 text-sm text-[#1A2332] bg-white border border-[#E5E7EB] rounded-lg px-3 py-2 hover:bg-[#F3F4F6] transition-colors">
             All Categories
-            <ChevronDown size={14} className="text-[#546478]" />
+            <span className="material-icons text-[#546478]" style={{ fontSize: 14 }}>keyboard_arrow_down</span>
           </button>
-          <div className="flex items-center bg-white border border-[#E5E7EB] rounded-lg overflow-hidden">
-            <button
-              onClick={() => setViewMode("list")}
-              className={`p-2 transition-colors ${viewMode === "list" ? "bg-[#F3F4F6] text-[#1A2332]" : "text-[#546478] hover:text-[#1A2332]"}`}
-            >
-              <LayoutList size={16} />
-            </button>
-            <button
-              onClick={() => setViewMode("grid")}
-              className={`p-2 transition-colors ${viewMode === "grid" ? "bg-[#F3F4F6] text-[#1A2332]" : "text-[#546478] hover:text-[#1A2332]"}`}
-            >
-              <LayoutGrid size={16} />
-            </button>
-          </div>
         </div>
       </div>
 
@@ -224,36 +191,20 @@ export function Reports() {
       <div className="grid grid-cols-2 gap-6">
         {/* Left column */}
         <div>
-          <SectionCard
-            icon={<BarChart2 size={16} />}
-            title="Financial / Business"
-            reports={financialReports}
-          />
-          <SectionCard
-            icon={<FileText size={16} />}
-            title="Estimates"
-            reports={estimatesReports}
-          />
+          <SectionCard icon="bar_chart" title="Financial / Business" reports={financialReports} />
+          <SectionCard icon="description" title="Estimates" reports={estimatesReports} />
         </div>
 
         {/* Right column */}
         <div>
-          <SectionCard
-            icon={<Briefcase size={16} />}
-            title="Jobs"
-            reports={jobsReports}
-          />
-          <SectionCard
-            icon={<Users size={16} />}
-            title="Clients / Team / Items"
-            reports={clientsReports}
-          />
+          <SectionCard icon="work" title="Jobs" reports={jobsReports} />
+          <SectionCard icon="group" title="Clients / Team / Items" reports={clientsReports} />
 
           {/* Recent Scheduled Reports */}
           <div>
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
-                <Clock size={16} className="text-[#4A6FA5]" />
+                <span className="material-icons text-[#4A6FA5]" style={{ fontSize: 16 }}>schedule</span>
                 <span className="text-sm font-bold text-[#1A2332]">Recent Scheduled Reports</span>
               </div>
               <button className="text-sm font-medium text-[#4A6FA5] hover:underline">View all</button>
@@ -273,7 +224,7 @@ export function Reports() {
                       {r.nextRun}
                     </span>
                     <button className="text-[#546478] hover:text-[#1A2332] transition-colors">
-                      <MoreHorizontal size={15} />
+                      <span className="material-icons" style={{ fontSize: 16 }}>more_horiz</span>
                     </button>
                   </div>
                 </div>
@@ -286,12 +237,12 @@ export function Reports() {
       {/* Footer banner */}
       <div className="mt-6 flex items-center justify-between bg-white border border-[#E5E7EB] rounded-xl px-5 py-3 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
         <div className="flex items-center gap-2 text-sm text-[#546478]">
-          <span className="text-[#4A6FA5]">ℹ</span>
+          <span className="material-icons text-[#4A6FA5]" style={{ fontSize: 16 }}>info</span>
           Need a custom report? Contact support or let us know what you'd like to see.
         </div>
         <button className="flex items-center gap-1 text-sm font-medium text-[#4A6FA5] hover:underline">
           Contact Support
-          <span className="inline-block ml-0.5">↗</span>
+          <span className="material-icons" style={{ fontSize: 14 }}>open_in_new</span>
         </button>
       </div>
     </div>
