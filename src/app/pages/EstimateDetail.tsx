@@ -872,14 +872,14 @@ export function EstimateDetail() {
   return (
     <div className="min-h-screen bg-[#F5F7FA]">
       {/* Breadcrumb */}
-      <div className="px-6 pt-6 pb-4 flex items-center gap-2 text-[13px] text-[#546478]">
+      <div className="px-6 pt-6 pb-4 flex items-center gap-2">
         <button onClick={() => navigate("/estimates")}
-          className="inline-flex items-center gap-1 text-[#4A6FA5] hover:text-[#3d5a85] transition-colors" style={{ fontWeight: 500 }}>
-          <span className="material-icons" style={{ fontSize: "16px" }}>arrow_back</span>
+          className="inline-flex items-center gap-1.5 text-[13px] text-[#4A6FA5] hover:text-[#3d5a85] transition-colors" style={{ fontWeight: 500 }}>
+          <span className="material-icons" style={{ fontSize: "18px" }}>arrow_back</span>
           Back to Estimates
         </button>
-        <span className="text-[#D1D5DB]">/</span>
-        <span className="text-[#1A2332]" style={{ fontWeight: 500 }}>#{estimate.estimateNumber}</span>
+        <span className="text-[13px] text-[#D1D5DB]">/</span>
+        <span className="text-[13px] text-[#546478]">#{estimate.estimateNumber}</span>
       </div>
 
       {/* White card */}

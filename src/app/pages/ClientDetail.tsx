@@ -1939,7 +1939,7 @@ export function ClientDetail() {
           activeTab={activeTab}
           onChange={(key) => { setActiveTab(key); if (isEditing) setIsEditing(false); }}
           trailing={<TabSettingsButton onClick={() => setShowTabSettings(true)} />}
-          className="mt-2"
+          className="mt-5"
         />
 
         {/* Tab content */}
