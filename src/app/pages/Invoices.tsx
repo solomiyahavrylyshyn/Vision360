@@ -238,7 +238,6 @@ const initialInvoices: Invoice[] = [
 ];
 
 const INVOICES_COLS = [
-  { key: "type", label: "Type" },
   { key: "date", label: "Date" },
   { key: "client", label: "Client" },
   { key: "job", label: "Job" },
@@ -274,7 +273,7 @@ export function Invoices() {
   const perPage = 10;
 
 
-  const fmt = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const fmt = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
   const fmtDate = (d: string) => {
     if (!d) return "—";
     const dt = new Date(d + "T12:00:00");

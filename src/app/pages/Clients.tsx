@@ -741,7 +741,7 @@ export function Clients() {
                         return (
                           <td key="totalBilled" className="px-4 py-4">
                             <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 400 }}>
-                              ${client.totalBilled.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              ${client.totalBilled.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                             </div>
                           </td>
                         );
