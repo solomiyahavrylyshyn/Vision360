@@ -1,4 +1,5 @@
-import { useState, useMemo, useSyncExternalStore, type DragEvent, type FormEvent, type MouseEvent } from "react";
+import { useState, useMemo, useSyncExternalStore, useEffect, type DragEvent, type FormEvent, type MouseEvent } from "react";
+import { useNavigate } from "react-router";
 import { PageHeader } from "../components/ui/page-header";
 import { CreateActionButton } from "../components/ui/create-action-button";
 import { scheduleSettingsStore } from "../stores/scheduleSettingsStore";
@@ -165,15 +166,25 @@ const CURRENT_TIME     = 10.5; // 10:30 AM
 const WEEK_LABEL_WIDTH = 220;
 
 type ViewMode = "month" | "week" | "day";
+type SidebarTab = "Details" | "Notes" | "History";
 type SlotPointerEvent = DragEvent<HTMLDivElement> | MouseEvent<HTMLDivElement>;
 
+const VIEW_MODE_STORAGE_KEY = "vision360.calendar.viewMode";
+
+const readPersistedViewMode = (): ViewMode => {
+  if (typeof localStorage === "undefined") return "week";
+  const stored = localStorage.getItem(VIEW_MODE_STORAGE_KEY);
+  return stored === "day" || stored === "week" || stored === "month" ? stored : "week";
+};
+
 export function Calendar() {
+  const navigate = useNavigate();
   const scheduleSettings = useSyncExternalStore(scheduleSettingsStore.subscribe, scheduleSettingsStore.getSnapshot);
   const GANTT_START_HOUR = scheduleSettings.startHour;
   const GANTT_END_HOUR = scheduleSettings.endHour;
   const SLOT_HOURS = scheduleSettings.slotMinutes / 60;
   const [currentDate, setCurrentDate] = useState(new Date(2026, 3, 12));
-  const [viewMode, setViewMode] = useState<ViewMode>("day");
+  const [viewMode, setViewModeState] = useState<ViewMode>(() => readPersistedViewMode());
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [selectedDispatchJob, setSelectedDispatchJob] = useState<DispatchJob | null>(null);
   const [selectedDayJob, setSelectedDayJob] = useState<DayJob | null>(null);
@@ -184,6 +195,28 @@ export function Calendar() {
   const [quickJobDraft, setQuickJobDraft] = useState<QuickJobDraft | null>(null);
   const [conflictMessage, setConflictMessage] = useState<string | null>(null);
   const [selectedMapJobId, setSelectedMapJobId] = useState<number | null>(DAY_JOBS[0]?.id ?? null);
+  const [sidebarTab, setSidebarTab] = useState<SidebarTab>("Details");
+  const [jobNotes, setJobNotes] = useState<Record<string, string[]>>({});
+  const [noteDraft, setNoteDraft] = useState("");
+  const [toast, setToast] = useState<string | null>(null);
+
+  const setViewMode = (mode: ViewMode) => {
+    setViewModeState(mode);
+    if (typeof localStorage !== "undefined") localStorage.setItem(VIEW_MODE_STORAGE_KEY, mode);
+  };
+
+  // Auto-dismiss toast after 3s
+  useEffect(() => {
+    if (!toast) return;
+    const id = setTimeout(() => setToast(null), 3000);
+    return () => clearTimeout(id);
+  }, [toast]);
+
+  // Reset sidebar tab when selection changes
+  useEffect(() => {
+    setSidebarTab("Details");
+    setNoteDraft("");
+  }, [selectedDispatchJob?.id, selectedDayJob?.id]);
 
   const goBack = () => {
     if (viewMode === "month") setCurrentDate(subMonths(currentDate, 1));
@@ -196,6 +229,47 @@ export function Calendar() {
     else setCurrentDate(addDays(currentDate, 1));
   };
   const goToday = () => setCurrentDate(new Date(2026, 3, 12));
+
+  // Notes / history helpers
+  const activeJobKey = selectedDispatchJob
+    ? `dispatch:${selectedDispatchJob.id}`
+    : selectedDayJob
+    ? `day:${selectedDayJob.id}`
+    : null;
+  const notesForActive = activeJobKey ? jobNotes[activeJobKey] ?? [] : [];
+  const addNote = () => {
+    if (!activeJobKey || !noteDraft.trim()) return;
+    const entry = `${format(new Date(), "MMM d, yyyy h:mm a")} — ${noteDraft.trim()}`;
+    setJobNotes((prev) => ({ ...prev, [activeJobKey]: [entry, ...(prev[activeJobKey] ?? [])] }));
+    setNoteDraft("");
+    setToast("Note added");
+  };
+
+  // Job history derived from current state (status + assignment for the selected job)
+  const historyForActive = useMemo(() => {
+    const entries: { when: string; label: string }[] = [];
+    if (selectedDispatchJob) {
+      entries.push({ when: "Today", label: `Status: ${selectedDispatchJob.status}` });
+      entries.push({ when: "Today", label: `Assigned to ${TEAM.find((t) => t.id === selectedDispatchJob.technicianId)?.name ?? "Unassigned"}` });
+      entries.push({ when: "On create", label: `Job created via ${selectedDispatchJob.source}` });
+    } else if (selectedDayJob) {
+      entries.push({ when: "Today", label: `Status: ${selectedDayJob.status}` });
+      entries.push({ when: "Today", label: `Assigned to ${TEAM.find((t) => t.id === selectedDayJob.technicianId)?.name ?? "Unassigned"}` });
+      entries.push({ when: "On create", label: "Job scheduled" });
+    }
+    return entries;
+  }, [selectedDispatchJob, selectedDayJob]);
+
+  // Quick contact actions: phone -> tel link, chat -> messaging center
+  const handlePhoneClick = (e: MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
+    window.location.href = "tel:+18132867572";
+  };
+  const handleChatClick = (e: MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
+    window.dispatchEvent(new CustomEvent("vision360:open-messaging"));
+    setToast("Opening messaging…");
+  };
 
   const monthDays = useMemo(() => {
     const start = startOfWeek(startOfMonth(currentDate));
@@ -363,6 +437,7 @@ export function Calendar() {
       });
       const movedJob = nextJobs.find((job) => job.id === jobId) ?? null;
       setSelectedDispatchJob(movedJob);
+      if (movedJob) setToast(`Moved to ${fmtHour(movedJob.start)}`);
       return nextJobs;
     });
   };
@@ -395,6 +470,7 @@ export function Calendar() {
       });
       const movedJob = nextJobs.find((job) => job.id === jobId) ?? null;
       setSelectedDayJob(movedJob);
+      if (movedJob) setToast(`Moved to ${fmtHour(movedJob.start)}`);
       return nextJobs;
     });
   };
@@ -423,6 +499,35 @@ export function Calendar() {
   };
 
   const selectedMapJob = dayJobs.find((job) => job.id === selectedMapJobId) ?? dayJobs[0];
+
+  // Keyboard shortcuts: ← → navigate, T today, D/W/M view, N new job, Esc close
+  useEffect(() => {
+    const handler = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      const tag = target?.tagName;
+      const isTyping = tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || target?.isContentEditable;
+      if (event.metaKey || event.ctrlKey || event.altKey) return;
+      if (event.key === "Escape") {
+        if (quickJobDraft) { setQuickJobDraft(null); event.preventDefault(); return; }
+        if (selectedEvent) { setSelectedEvent(null); event.preventDefault(); return; }
+        if (selectedDispatchJob) { setSelectedDispatchJob(null); event.preventDefault(); return; }
+        if (selectedDayJob) { setSelectedDayJob(null); event.preventDefault(); return; }
+        return;
+      }
+      if (isTyping || quickJobDraft) return;
+      switch (event.key) {
+        case "ArrowLeft":  event.preventDefault(); goBack(); break;
+        case "ArrowRight": event.preventDefault(); goForward(); break;
+        case "t": case "T": event.preventDefault(); goToday(); break;
+        case "d": case "D": event.preventDefault(); setViewMode("day"); break;
+        case "w": case "W": event.preventDefault(); setViewMode("week"); break;
+        case "m": case "M": event.preventDefault(); setViewMode("month"); break;
+        case "n": case "N": event.preventDefault(); openHeaderQuickCreate(); break;
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [viewMode, currentDate, quickJobDraft, selectedEvent, selectedDispatchJob, selectedDayJob]);
 
   const EventPopover = ({ event, onClose }: { event: CalendarEvent; onClose: () => void }) => {
     const c = getC(event.color);
@@ -547,13 +652,13 @@ export function Calendar() {
 
         {/* ── MONTH VIEW ── */}
         {viewMode === "month" && (
-          <div className="flex-1 flex flex-col overflow-hidden">
-            <div className="grid grid-cols-7 border-b border-[#E5E7EB] bg-[#FAFBFC] shrink-0">
+          <div className="flex-1 flex flex-col overflow-hidden" role="region" aria-label="Month calendar">
+            <div className="grid grid-cols-7 border-b border-[#E5E7EB] bg-[#FAFBFC] shrink-0" role="row">
               {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
-                <div key={d} className="py-2.5 text-center text-[11px] text-[#8899AA] uppercase tracking-wide" style={{ fontWeight: 600 }}>{d}</div>
+                <div key={d} role="columnheader" className="py-2.5 text-center text-[11px] text-[#8899AA] uppercase tracking-wide" style={{ fontWeight: 600 }}>{d}</div>
               ))}
             </div>
-            <div className="flex-1 overflow-auto">
+            <div className="flex-1 overflow-auto" role="grid" aria-label="Month grid">
               <div className="grid grid-cols-7" style={{ gridTemplateRows: `repeat(${Math.ceil(monthDays.length / 7)}, minmax(110px, 1fr))` }}>
                 {monthDays.map((day, idx) => {
                   const events = getEventsForDay(day);
@@ -563,6 +668,8 @@ export function Calendar() {
                   return (
                     <div
                       key={idx}
+                      role="gridcell"
+                      aria-label={`${format(day, "EEEE, MMMM d")}, ${events.length} event${events.length === 1 ? "" : "s"}`}
                       className={`border-b border-r border-[#E5E7EB] p-2 transition-colors cursor-pointer ${
                         !isCurrentMo ? "bg-[#FAFBFC]" : isHovered ? "bg-[#F9FAFB]" : "bg-white"
                       }`}
@@ -756,9 +863,17 @@ export function Calendar() {
                               )}
 
                               {memberJobs.length === 0 && (
-                                <div className="absolute inset-2 rounded-lg border border-dashed border-[#CDD1DA] flex items-center justify-center">
-                                  <div className="text-[10px] text-[#B8BEC9]" style={{ fontWeight: 500 }}>No jobs</div>
-                                </div>
+                                <button
+                                  type="button"
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    openQuickCreate("week", d, GANTT_START_HOUR, member.id, dayI);
+                                  }}
+                                  className="absolute inset-2 rounded-lg border border-dashed border-[#CDD1DA] flex items-center justify-center gap-1.5 hover:border-[#4A6FA5] hover:bg-[#F5F8FD] transition-colors group"
+                                >
+                                  <span className="material-icons text-[#B8BEC9] group-hover:text-[#4A6FA5]" style={{ fontSize: "14px" }}>add</span>
+                                  <span className="text-[10px] text-[#B8BEC9] group-hover:text-[#4A6FA5]" style={{ fontWeight: 500 }}>Add job</span>
+                                </button>
                               )}
 
                               {memberJobs.map((job, idx) => {
@@ -772,7 +887,10 @@ export function Calendar() {
                                     key={job.id}
                                     data-job-card="true"
                                     draggable
-                                    className="absolute rounded-lg overflow-hidden cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow"
+                                    role="button"
+                                    tabIndex={0}
+                                    aria-label={`Job for ${job.client}, ${job.service}, ${fmtHour(job.start)}–${fmtHour(job.end)}, status ${job.status}`}
+                                    className="absolute rounded-lg overflow-hidden cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-[#4A6FA5]"
                                     style={{
                                       left,
                                       width: Math.max(width, 70),
@@ -784,6 +902,7 @@ export function Calendar() {
                                     }}
                                     onDragStart={(event) => event.dataTransfer.setData("text/plain", `week:${job.id}`)}
                                     onClick={() => setSelectedDispatchJob(isSelected ? null : job)}
+                                    onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setSelectedDispatchJob(isSelected ? null : job); } }}
                                     onDoubleClick={(event) => event.stopPropagation()}
                                   >
                                     <div className="flex flex-col h-full px-2 py-1">
@@ -833,45 +952,91 @@ export function Calendar() {
                     <span className="material-icons text-[#8899AA]" style={{ fontSize: "18px" }}>close</span>
                   </button>
                 </div>
-                <div className="flex border-b border-[#E5E7EB] shrink-0">
-                  {["Details", "Notes", "History"].map((tab, i) => (
-                    <button key={tab} className={`flex-1 py-2.5 text-[12px] transition-colors relative ${i === 0 ? "text-[#4A6FA5]" : "text-[#546478] hover:text-[#1A2332]"}`} style={{ fontWeight: 500 }}>
-                      {tab}
-                      {i === 0 && <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#4A6FA5]" />}
-                    </button>
-                  ))}
+                <div className="flex border-b border-[#E5E7EB] shrink-0" role="tablist" aria-label="Job sidebar tabs">
+                  {(["Details", "Notes", "History"] as SidebarTab[]).map((tab) => {
+                    const active = sidebarTab === tab;
+                    return (
+                      <button
+                        key={tab}
+                        role="tab"
+                        aria-selected={active}
+                        onClick={() => setSidebarTab(tab)}
+                        className={`flex-1 py-2.5 text-[12px] transition-colors relative ${active ? "text-[#4A6FA5]" : "text-[#546478] hover:text-[#1A2332]"}`}
+                        style={{ fontWeight: active ? 700 : 500 }}
+                      >
+                        {tab}{tab === "Notes" && notesForActive.length > 0 ? ` (${notesForActive.length})` : ""}
+                        {active && <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#4A6FA5]" />}
+                      </button>
+                    );
+                  })}
                 </div>
                 <div className="flex-1 overflow-y-auto bg-[#FAFBFC]">
-                  <div className="p-4 bg-white mx-3 mt-3 rounded-xl border border-[#E5E7EB]">
-                    <div className="flex items-start justify-between mb-3">
-                      <div>
-                        <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 700 }}>{selectedDispatchJob.client}</div>
-                        <div className="text-[12px] text-[#546478] mt-0.5">{selectedDispatchJob.service}</div>
-                        <div className="text-[11px] text-[#8899AA] mt-1">{selectedDispatchJob.address}</div>
+                  {sidebarTab === "Details" && (
+                    <div className="p-4 bg-white mx-3 mt-3 rounded-xl border border-[#E5E7EB]">
+                      <div className="flex items-start justify-between mb-3">
+                        <div>
+                          <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 700 }}>{selectedDispatchJob.client}</div>
+                          <div className="text-[12px] text-[#546478] mt-0.5">{selectedDispatchJob.service}</div>
+                          <div className="text-[11px] text-[#8899AA] mt-1">{selectedDispatchJob.address}</div>
+                        </div>
+                        <div className="flex gap-1.5 shrink-0">
+                          <button onClick={handlePhoneClick} aria-label="Call client" className="w-8 h-8 rounded-lg border border-[#E5E7EB] flex items-center justify-center hover:bg-[#F5F7FA] transition-colors">
+                            <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "17px" }}>phone</span>
+                          </button>
+                          <button onClick={handleChatClick} aria-label="Open chat" className="w-8 h-8 rounded-lg border border-[#E5E7EB] flex items-center justify-center hover:bg-[#F5F7FA] transition-colors">
+                            <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "17px" }}>chat</span>
+                          </button>
+                        </div>
                       </div>
-                      <div className="flex gap-1.5 shrink-0">
-                        <button className="w-8 h-8 rounded-lg border border-[#E5E7EB] flex items-center justify-center hover:bg-[#F5F7FA] transition-colors">
-                          <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "17px" }}>phone</span>
-                        </button>
-                        <button className="w-8 h-8 rounded-lg border border-[#E5E7EB] flex items-center justify-center hover:bg-[#F5F7FA] transition-colors">
-                          <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "17px" }}>chat</span>
-                        </button>
+                      <div className="border-t border-[#E5E7EB] pt-3 mt-3">
+                        {[
+                          { icon: "event",        label: "Time",   value: `${fmtHour(selectedDispatchJob.start)} – ${fmtHour(selectedDispatchJob.end)}` },
+                          { icon: "attach_money", label: "Amount", value: `$${selectedDispatchJob.amount.toFixed(2)}` },
+                          { icon: "build",        label: "Type",   value: selectedDispatchJob.jobType },
+                        ].map(f => (
+                          <div key={f.label} className="flex items-center gap-2.5 py-2 border-b border-[#F5F7FA] last:border-0">
+                            <span className="material-icons text-[#9CA3AF] shrink-0" style={{ fontSize: "16px" }}>{f.icon}</span>
+                            <span className="text-[11px] text-[#8899AA] w-[60px] shrink-0">{f.label}</span>
+                            <span className="text-[12px] text-[#1A2332] flex-1" style={{ fontWeight: 500 }}>{f.value}</span>
+                          </div>
+                        ))}
                       </div>
                     </div>
-                    <div className="border-t border-[#E5E7EB] pt-3 mt-3">
-                      {[
-                        { icon: "event",        label: "Time",   value: `${fmtHour(selectedDispatchJob.start)} – ${fmtHour(selectedDispatchJob.end)}` },
-                        { icon: "attach_money", label: "Amount", value: `$${selectedDispatchJob.amount.toFixed(2)}` },
-                        { icon: "build",        label: "Type",   value: selectedDispatchJob.jobType },
-                      ].map(f => (
-                        <div key={f.label} className="flex items-center gap-2.5 py-2 border-b border-[#F5F7FA] last:border-0">
-                          <span className="material-icons text-[#9CA3AF] shrink-0" style={{ fontSize: "16px" }}>{f.icon}</span>
-                          <span className="text-[11px] text-[#8899AA] w-[60px] shrink-0">{f.label}</span>
-                          <span className="text-[12px] text-[#1A2332] flex-1" style={{ fontWeight: 500 }}>{f.value}</span>
+                  )}
+                  {sidebarTab === "Notes" && (
+                    <div className="p-3 space-y-3">
+                      <div className="bg-white rounded-xl border border-[#E5E7EB] p-3">
+                        <textarea
+                          value={noteDraft}
+                          onChange={(e) => setNoteDraft(e.target.value)}
+                          placeholder="Add a note for this job…"
+                          className="w-full text-[12px] text-[#1A2332] resize-none outline-none placeholder:text-[#9CA3AF] min-h-[64px]"
+                        />
+                        <div className="flex justify-end">
+                          <button onClick={addNote} disabled={!noteDraft.trim()} className="px-3 py-1.5 rounded-lg bg-[#4A6FA5] text-white text-[11px] disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#3d5a85]" style={{ fontWeight: 600 }}>
+                            Save note
+                          </button>
+                        </div>
+                      </div>
+                      {notesForActive.length === 0 ? (
+                        <div className="text-center text-[11px] text-[#9CA3AF] py-4">No notes yet</div>
+                      ) : (
+                        notesForActive.map((note, i) => (
+                          <div key={i} className="bg-white rounded-xl border border-[#E5E7EB] p-3 text-[12px] text-[#1A2332]">{note}</div>
+                        ))
+                      )}
+                    </div>
+                  )}
+                  {sidebarTab === "History" && (
+                    <div className="p-3 space-y-2">
+                      {historyForActive.map((entry, i) => (
+                        <div key={i} className="bg-white rounded-xl border border-[#E5E7EB] p-3">
+                          <div className="text-[10px] uppercase tracking-wide text-[#9CA3AF]" style={{ fontWeight: 700 }}>{entry.when}</div>
+                          <div className="text-[12px] text-[#1A2332] mt-1">{entry.label}</div>
                         </div>
                       ))}
                     </div>
-                  </div>
+                  )}
                 </div>
 	                <div className="p-4 border-t border-[#E5E7EB] shrink-0 bg-white">
 	                  <button
@@ -882,8 +1047,8 @@ export function Calendar() {
 	                    {selectedDispatchJob.status === "Scheduled" ? "Start Job" : selectedDispatchJob.status === "In Progress" ? "Complete Job" : "Reopen Job"}
 	                  </button>
                   <div className="flex gap-2">
-                    <button className="flex-1 py-2 border border-[#E5E7EB] text-[#546478] rounded-lg text-[12px] hover:bg-[#F5F7FA] transition-colors" style={{ fontWeight: 500 }}>Edit</button>
-                    <button className="flex-1 py-2 border border-[#E5E7EB] text-[#546478] rounded-lg text-[12px] hover:bg-[#F5F7FA] transition-colors" style={{ fontWeight: 500 }}>Reschedule</button>
+                    <button onClick={() => navigate(`/jobs/${selectedDispatchJob.id}`)} className="flex-1 py-2 border border-[#E5E7EB] text-[#546478] rounded-lg text-[12px] hover:bg-[#F5F7FA] transition-colors" style={{ fontWeight: 500 }}>Edit</button>
+                    <button onClick={() => openQuickCreate("week", weekDays[selectedDispatchJob.dayIdx] ?? weekDays[0], selectedDispatchJob.start, selectedDispatchJob.technicianId, selectedDispatchJob.dayIdx)} className="flex-1 py-2 border border-[#E5E7EB] text-[#546478] rounded-lg text-[12px] hover:bg-[#F5F7FA] transition-colors" style={{ fontWeight: 500 }}>Reschedule</button>
                   </div>
                 </div>
               </div>
@@ -1012,7 +1177,10 @@ export function Calendar() {
                               key={job.id}
                               data-job-card="true"
                               draggable
-                              className="absolute rounded-lg overflow-hidden cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow"
+                              role="button"
+                              tabIndex={0}
+                              aria-label={`Job for ${job.client}, ${job.service}, ${fmtHour(job.start)}–${fmtHour(job.end)}, status ${job.status}`}
+                              className="absolute rounded-lg overflow-hidden cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-[#4A6FA5]"
                               style={{
                                 left,
                                 width: Math.max(width, 60),
@@ -1020,12 +1188,14 @@ export function Calendar() {
                                 height: 72,
                                 backgroundColor: job.bg,
                                 borderLeft: `3px solid ${job.border}`,
+                                boxShadow: selectedDayJob?.id === job.id ? `0 0 0 2px ${job.border}` : "none",
                               }}
                               onDragStart={(event) => event.dataTransfer.setData("text/plain", `day:${job.id}`)}
                               onClick={() => {
                                 setSelectedDayJob(job);
                                 setSelectedMapJobId(job.id);
                               }}
+                              onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setSelectedDayJob(job); setSelectedMapJobId(job.id); } }}
                               onDoubleClick={(event) => event.stopPropagation()}
                             >
                               <div className="flex flex-col h-full px-2 py-1">
@@ -1077,38 +1247,110 @@ export function Calendar() {
                       {selectedDayJob.status}
                     </span>
                   </div>
-                  <button onClick={() => setSelectedDayJob(null)} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-[#F5F7FA]">
+                  <button onClick={() => setSelectedDayJob(null)} aria-label="Close job details" className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-[#F5F7FA]">
                     <span className="material-icons text-[#8899AA]" style={{ fontSize: "18px" }}>close</span>
                   </button>
                 </div>
-                <div className="flex-1 overflow-y-auto bg-[#FAFBFC] p-3">
-                  <div className="rounded-xl bg-white border border-[#E5E7EB] p-4">
-                    <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 700 }}>{selectedDayJob.client}</div>
-                    <div className="text-[12px] text-[#546478] mt-0.5">{selectedDayJob.service}</div>
-                    <div className="text-[11px] text-[#8899AA] mt-1">{selectedDayJob.address}</div>
-                    <div className="border-t border-[#E5E7EB] pt-3 mt-3">
-                      {[
-                        { icon: "engineering", label: "Person", value: TEAM.find((member) => member.id === selectedDayJob.technicianId)?.name ?? "Unassigned" },
-                        { icon: "event", label: "Time", value: `${fmtHour(selectedDayJob.start)} - ${fmtHour(selectedDayJob.end)}` },
-                        { icon: "attach_money", label: "Amount", value: `$${selectedDayJob.amount.toLocaleString("en-US")}` },
-                      ].map((field) => (
-                        <div key={field.label} className="flex items-center gap-2.5 py-2 border-b border-[#F5F7FA] last:border-0">
-                          <span className="material-icons text-[#9CA3AF] shrink-0" style={{ fontSize: "16px" }}>{field.icon}</span>
-                          <span className="text-[11px] text-[#8899AA] w-[58px] shrink-0">{field.label}</span>
-                          <span className="text-[12px] text-[#1A2332] flex-1" style={{ fontWeight: 500 }}>{field.value}</span>
+                <div className="flex border-b border-[#E5E7EB] shrink-0" role="tablist" aria-label="Job sidebar tabs">
+                  {(["Details", "Notes", "History"] as SidebarTab[]).map((tab) => {
+                    const active = sidebarTab === tab;
+                    return (
+                      <button
+                        key={tab}
+                        role="tab"
+                        aria-selected={active}
+                        onClick={() => setSidebarTab(tab)}
+                        className={`flex-1 py-2.5 text-[12px] transition-colors relative ${active ? "text-[#4A6FA5]" : "text-[#546478] hover:text-[#1A2332]"}`}
+                        style={{ fontWeight: active ? 700 : 500 }}
+                      >
+                        {tab}{tab === "Notes" && notesForActive.length > 0 ? ` (${notesForActive.length})` : ""}
+                        {active && <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#4A6FA5]" />}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="flex-1 overflow-y-auto bg-[#FAFBFC]">
+                  {sidebarTab === "Details" && (
+                    <div className="p-3">
+                      <div className="rounded-xl bg-white border border-[#E5E7EB] p-4">
+                        <div className="flex items-start justify-between">
+                          <div className="min-w-0">
+                            <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 700 }}>{selectedDayJob.client}</div>
+                            <div className="text-[12px] text-[#546478] mt-0.5">{selectedDayJob.service}</div>
+                            <div className="text-[11px] text-[#8899AA] mt-1">{selectedDayJob.address}</div>
+                          </div>
+                          <div className="flex gap-1.5 shrink-0">
+                            <button onClick={handlePhoneClick} aria-label="Call client" className="w-8 h-8 rounded-lg border border-[#E5E7EB] flex items-center justify-center hover:bg-[#F5F7FA] transition-colors">
+                              <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "17px" }}>phone</span>
+                            </button>
+                            <button onClick={handleChatClick} aria-label="Open chat" className="w-8 h-8 rounded-lg border border-[#E5E7EB] flex items-center justify-center hover:bg-[#F5F7FA] transition-colors">
+                              <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "17px" }}>chat</span>
+                            </button>
+                          </div>
+                        </div>
+                        <div className="border-t border-[#E5E7EB] pt-3 mt-3">
+                          {[
+                            { icon: "engineering", label: "Person", value: TEAM.find((member) => member.id === selectedDayJob.technicianId)?.name ?? "Unassigned" },
+                            { icon: "event", label: "Time", value: `${fmtHour(selectedDayJob.start)} - ${fmtHour(selectedDayJob.end)}` },
+                            { icon: "attach_money", label: "Amount", value: `$${selectedDayJob.amount.toLocaleString("en-US")}` },
+                          ].map((field) => (
+                            <div key={field.label} className="flex items-center gap-2.5 py-2 border-b border-[#F5F7FA] last:border-0">
+                              <span className="material-icons text-[#9CA3AF] shrink-0" style={{ fontSize: "16px" }}>{field.icon}</span>
+                              <span className="text-[11px] text-[#8899AA] w-[58px] shrink-0">{field.label}</span>
+                              <span className="text-[12px] text-[#1A2332] flex-1" style={{ fontWeight: 500 }}>{field.value}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {sidebarTab === "Notes" && (
+                    <div className="p-3 space-y-3">
+                      <div className="bg-white rounded-xl border border-[#E5E7EB] p-3">
+                        <textarea
+                          value={noteDraft}
+                          onChange={(e) => setNoteDraft(e.target.value)}
+                          placeholder="Add a note for this job…"
+                          className="w-full text-[12px] text-[#1A2332] resize-none outline-none placeholder:text-[#9CA3AF] min-h-[64px]"
+                        />
+                        <div className="flex justify-end">
+                          <button onClick={addNote} disabled={!noteDraft.trim()} className="px-3 py-1.5 rounded-lg bg-[#4A6FA5] text-white text-[11px] disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#3d5a85]" style={{ fontWeight: 600 }}>
+                            Save note
+                          </button>
+                        </div>
+                      </div>
+                      {notesForActive.length === 0 ? (
+                        <div className="text-center text-[11px] text-[#9CA3AF] py-4">No notes yet</div>
+                      ) : (
+                        notesForActive.map((note, i) => (
+                          <div key={i} className="bg-white rounded-xl border border-[#E5E7EB] p-3 text-[12px] text-[#1A2332]">{note}</div>
+                        ))
+                      )}
+                    </div>
+                  )}
+                  {sidebarTab === "History" && (
+                    <div className="p-3 space-y-2">
+                      {historyForActive.map((entry, i) => (
+                        <div key={i} className="bg-white rounded-xl border border-[#E5E7EB] p-3">
+                          <div className="text-[10px] uppercase tracking-wide text-[#9CA3AF]" style={{ fontWeight: 700 }}>{entry.when}</div>
+                          <div className="text-[12px] text-[#1A2332] mt-1">{entry.label}</div>
                         </div>
                       ))}
                     </div>
-                  </div>
+                  )}
                 </div>
                 <div className="p-4 border-t border-[#E5E7EB] shrink-0 bg-white">
                   <button
                     onClick={() => updateDayStatus(selectedDayJob.id, selectedDayJob.status === "Completed" ? "Scheduled" : nextStatus(selectedDayJob.status))}
-                    className="w-full py-2.5 bg-[#4A6FA5] text-white rounded-lg text-[13px] hover:bg-[#3d5a85] transition-colors"
+                    className="w-full py-2.5 bg-[#4A6FA5] text-white rounded-lg text-[13px] hover:bg-[#3d5a85] transition-colors mb-2"
                     style={{ fontWeight: 600 }}
                   >
                     {selectedDayJob.status === "Scheduled" ? "Start Job" : selectedDayJob.status === "In Progress" ? "Complete Job" : "Reopen Job"}
                   </button>
+                  <div className="flex gap-2">
+                    <button onClick={() => navigate(`/jobs/${selectedDayJob.id}`)} className="flex-1 py-2 border border-[#E5E7EB] text-[#546478] rounded-lg text-[12px] hover:bg-[#F5F7FA] transition-colors" style={{ fontWeight: 500 }}>Edit</button>
+                    <button onClick={() => openQuickCreate("day", currentDate, selectedDayJob.start, selectedDayJob.technicianId)} className="flex-1 py-2 border border-[#E5E7EB] text-[#546478] rounded-lg text-[12px] hover:bg-[#F5F7FA] transition-colors" style={{ fontWeight: 500 }}>Reschedule</button>
+                  </div>
                 </div>
               </div>
             ) : null}
@@ -1316,6 +1558,13 @@ export function Calendar() {
       )}
 
       {selectedEvent && <EventPopover event={selectedEvent} onClose={() => setSelectedEvent(null)} />}
+
+      {toast && (
+        <div role="status" aria-live="polite" className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-lg bg-[#1A2332] text-white text-[13px] shadow-xl flex items-center gap-2" style={{ fontWeight: 500 }}>
+          <span className="material-icons text-[#22C55E]" style={{ fontSize: "18px" }}>check_circle</span>
+          {toast}
+        </div>
+      )}
     </div>
   );
 }
