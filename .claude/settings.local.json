@@ -36,7 +36,8 @@
       "mcp__plugin_figma_figma__get_design_context",
       "mcp__plugin_figma_figma__get_metadata",
       "Bash(grep -n \"{\\\\* .* \\\\*}\\\\|/\\\\\\\\* .* \\\\\\\\*/\" \"C:\\\\Users\\\\mykha\\\\Documents\\\\Vision360\\\\src\\\\app\\\\pages\\\\Settings.tsx\")",
-      "Bash(awk -F: '$1>=2434 && $1<=3050')"
+      "Bash(awk -F: '$1>=2434 && $1<=3050')",
+      "Bash(mkdir -p \"/Users/solomiyahavrylyshyn/Vision360 \\(1\\)/.claude\")"
     ]
   }
 }

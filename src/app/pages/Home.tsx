@@ -452,151 +452,460 @@ function FinancialPerformanceTab() {
   );
 }
 
-function ReportsTab() {
-  type ReportItem = { type: "PDF" | "CSV"; title: string; desc: string };
-  type ReportFormat = "Report default" | "PDF" | "CSV";
-  type GeneratedReport = {
-    title: string;
-    format: string;
-    fromDate: string;
-    toDate: string;
-    user: string;
-    status: string;
-    detail: string;
-    generatedAt: string;
-  };
+function GenerateReportForm({ onCancel }: { onCancel: () => void }) {
+  const reportTypes = ["Revenue Report", "Profit & Loss Statement", "Jobs Report", "Job Costing Summary", "Invoice Summary", "Expense Report", "Client Report", "Team Report", "Sales Tax Report", "Items Report", "Payments Report", "Estimates Report", "Estimate Conversion Report", "Revenue by Technician"];
+  const categories = ["Financial / Business", "Jobs", "Clients / Team / Items", "Estimates"];
+  const groupByOptions = ["Date", "Client", "Technician", "Service", "Job Type"];
+  const sortByOptions = ["Date (Newest → Oldest)", "Date (Oldest → Newest)", "Amount (High → Low)", "Amount (Low → High)"];
+  const quickFilters = ["This Month", "Last Month", "This Quarter", "Last Quarter", "Year to Date", "Custom"];
 
-  // PDF / CSV file-shape icon
-  const FileIcon = ({ type }: { type: "PDF" | "CSV" }) => {
-    const color = type === "PDF" ? "#DC2626" : "#16A34A";
-    return (
-      <div className="relative shrink-0" style={{ width: 24, height: 28 }}>
-        {/* Page body */}
-        <div className="absolute inset-0 rounded-sm" style={{ background: color }} />
-        {/* Folded corner */}
-        <div className="absolute top-0 right-0" style={{
-          width: 7, height: 7,
-          background: "#E4E7EC",
-          boxShadow: "-1.5px 1.5px 3px rgba(0,0,0,0.2)",
-        }} />
-        {/* Label badge */}
-        <div className="absolute left-0 right-0 flex items-center justify-center" style={{ bottom: 3, height: 9 }}>
-          <span className="text-white" style={{ fontSize: 7.5, fontWeight: 700, letterSpacing: "0.2px" }}>{type}</span>
-        </div>
+  const [reportType, setReportType] = useState("Revenue Report");
+  const [category, setCategory] = useState("Financial / Business");
+  const [reportName, setReportName] = useState("Revenue Report - May 2025");
+  const [activeQuickFilter, setActiveQuickFilter] = useState("This Month");
+  const [outputFormat, setOutputFormat] = useState<"PDF" | "Excel" | "CSV">("PDF");
+  const [includeCharts, setIncludeCharts] = useState(true);
+  const [includeSummaryOnly, setIncludeSummaryOnly] = useState(false);
+  const [groupBy, setGroupBy] = useState("Date");
+  const [sortBy, setSortBy] = useState("Date (Newest → Oldest)");
+  const [scheduleEnabled, setScheduleEnabled] = useState(false);
+
+  const Toggle = ({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) => (
+    <button
+      type="button"
+      onClick={() => onChange(!value)}
+      className={`relative inline-flex h-5 w-9 shrink-0 rounded-full border-2 border-transparent transition-colors ${value ? "bg-[#4A6FA5]" : "bg-[#D1D5DB]"}`}
+    >
+      <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${value ? "translate-x-4" : "translate-x-0"}`} />
+    </button>
+  );
+
+  const SelectField = ({ value, onChange, options, label }: { value: string; onChange: (v: string) => void; options: string[]; label?: string }) => (
+    <div className="relative w-full">
+      {label && <div className="mb-1 text-[12px] text-[#6B7280] font-medium">{label}</div>}
+      <div className="relative">
+        <select
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          className="w-full appearance-none h-9 pl-3 pr-8 border border-[#E5E7EB] rounded-lg text-[13px] text-[#1A2332] bg-white focus:outline-none focus:border-[#4A6FA5] shadow-[0_1px_2px_rgba(0,0,0,0.05)] cursor-pointer"
+        >
+          {options.map(o => <option key={o}>{o}</option>)}
+        </select>
+        <span className="material-icons absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-[#9CA3AF]" style={{ fontSize: 16 }}>keyboard_arrow_down</span>
       </div>
-    );
-  };
-
-  const reportItems: ReportItem[] = [
-    { type: "PDF", title: "Revenue Report",                         desc: "Revenue totals by period, client, job type, and technician" },
-    { type: "PDF", title: "Profit & loss statement",                desc: "Income, expenses, gross profit, and net profit summary" },
-    { type: "CSV", title: "Jobs report",                            desc: "Scheduled, in-progress, completed, and cancelled job activity" },
-    { type: "PDF", title: "Job Costing Summary",                    desc: "Labor, materials, expenses, revenue, and margin by job" },
-    { type: "PDF", title: "Invoice summary (Accounts Receivable)",  desc: "Open, overdue, paid, and partially paid invoice balances" },
-    { type: "CSV", title: "Expense report",                         desc: "Expenses by date, category, merchant, job, and reimbursable status" },
-    { type: "CSV", title: "Client report",                          desc: "Client list, activity, revenue, open balances, and lifetime value" },
-    { type: "CSV", title: "Team report",                            desc: "Team workload, completed jobs, hours, and productivity metrics" },
-    { type: "PDF", title: "Sales Tax Report",                       desc: "Taxable sales, collected tax, tax profiles, and jurisdiction totals" },
-    { type: "CSV", title: "Items Report (Items Usage Report)",      desc: "Item usage, quantities, revenue, cost, and profitability" },
-    { type: "CSV", title: "Payments Report",                        desc: "Payments collected by method, invoice, client, and deposit status" },
-    { type: "CSV", title: "Estimates Report",                       desc: "Estimate totals, statuses, sent dates, and client response activity" },
-    { type: "PDF", title: "Estimate Conversion Report",             desc: "Won, lost, pending, and expired estimates with conversion rate" },
-    { type: "CSV", title: "Revenue by Technician",                  desc: "Revenue, completed jobs, and average job value by technician" },
-  ];
-  const userOptions = ["All users", "Peter Novak", "Travis Brown", "Maria Garcia", "Emily Parker", "Office staff"];
-  const statusOptions = ["All statuses", "Scheduled", "In Progress", "Completed", "Paid", "Unpaid", "Overdue"];
-  const detailOptions = ["Summary", "Detailed", "Line item detail"];
-  const [reportParams, setReportParams] = useState({
-    fromDate: "2026-05-01",
-    toDate: "2026-05-31",
-    user: "All users",
-    status: "All statuses",
-    format: "Report default" as ReportFormat,
-    detail: "Summary",
-  });
-  const [generatedReport, setGeneratedReport] = useState<GeneratedReport | null>(null);
-  const controlCls = "h-9 w-full rounded-lg border border-[#E5E7EB] bg-white px-3 text-[13px] text-[#1A2332] outline-none focus:border-[#4A6FA5] shadow-[0_1px_2px_rgba(0,0,0,0.05)]";
-  const selectCls = `${controlCls} pr-8 appearance-none cursor-pointer`;
-  const labelCls = "mb-1 block text-[12px] text-[#6B7280]";
-  const formatDate = (value: string) =>
-    new Date(`${value}T00:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-  const generateReport = (report?: ReportItem) => {
-    const title = report?.title ?? "All reports package";
-    const format = reportParams.format === "Report default" ? (report?.type ?? "ZIP") : reportParams.format;
-    setGeneratedReport({
-      title,
-      format,
-      fromDate: reportParams.fromDate,
-      toDate: reportParams.toDate,
-      user: reportParams.user,
-      status: reportParams.status,
-      detail: reportParams.detail,
-      generatedAt: "Just now",
-    });
-  };
+    </div>
+  );
 
   return (
-    <div className="space-y-6">
-      {/* ── Summary row (per Figma) ─────────────────────────── */}
-      <div className="grid grid-cols-3 gap-3">
-        {[
-          { value: "14",         label: "Reports available", sub: "ready to generate",     icon: "sync",            iconBg: "rgba(74,111,165,0.15)",  iconColor: "#4A6FA5" },
-          { value: "2 days ago", label: "Last export",        sub: "Revenue Report (PDF)",  icon: "file_download",   iconBg: "rgba(22,163,74,0.15)",   iconColor: "#16A34A" },
-          { value: "3",          label: "Scheduled reports",  sub: "Next run in 5 days",   icon: "schedule",        iconBg: "rgba(245,158,11,0.15)",  iconColor: "#F59E0B" },
-        ].map(c => (
-          <div
-            key={c.label}
-            className="flex min-h-[56px] min-w-0 items-center justify-between gap-3 rounded-xl border border-[#E5E7EB] bg-white px-4 py-3"
-            style={{ boxShadow: "0px 1px 2px rgba(0,0,0,0.05)" }}
-            title={`${c.label}: ${c.value}. ${c.sub}`}
-          >
-            <div className="flex min-w-0 flex-col justify-center">
-              <div className="truncate text-[18px] leading-tight text-[#1A2332]" style={{ fontWeight: 700 }}>{c.value}</div>
-              <div className="mt-0.5 truncate text-[11px] text-[#546478]">{c.label}</div>
+    <div className="flex gap-5">
+      {/* Main form */}
+      <div className="flex-1 min-w-0 space-y-4">
+        {/* Section 1: Report Details */}
+        <div className="bg-white border border-[#E5E7EB] rounded-xl p-5 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-5 h-5 rounded-full bg-[#4A6FA5] text-white text-[11px] font-bold flex items-center justify-center shrink-0">1</div>
+            <h3 className="text-[15px] font-semibold text-[#1A2332]">Report Details</h3>
+          </div>
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <div className="mb-1 text-[12px] text-[#6B7280] font-medium">Report Type <span className="text-[#DC2626]">*</span></div>
+              <SelectField value={reportType} onChange={setReportType} options={reportTypes} />
+              <div className="mt-1.5 text-[11px] text-[#9CA3AF]">Summary of revenue by date, service, or technician.</div>
             </div>
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg" style={{ background: c.iconBg }}>
-              <span className="material-icons" style={{ fontSize: "18px", color: c.iconColor }}>{c.icon}</span>
+            <div>
+              <div className="mb-1 text-[12px] text-[#6B7280] font-medium">Category <span className="text-[#DC2626]">*</span></div>
+              <SelectField value={category} onChange={setCategory} options={categories} />
+            </div>
+            <div>
+              <div className="mb-1 text-[12px] text-[#6B7280] font-medium">Report Name <span className="text-[#DC2626]">*</span></div>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={reportName}
+                  onChange={e => setReportName(e.target.value.slice(0, 100))}
+                  className="w-full h-9 px-3 border border-[#E5E7EB] rounded-lg text-[13px] text-[#1A2332] focus:outline-none focus:border-[#4A6FA5] shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
+                />
+              </div>
+              <div className="mt-1.5 flex items-center justify-between text-[11px] text-[#9CA3AF]">
+                <span>This name will be used for saved reports</span>
+                <span>{reportName.length}/100</span>
+              </div>
             </div>
           </div>
-        ))}
-      </div>
-
-      {/* ── Available reports (per Figma) ────────────────────── */}
-      <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3.5">
-          <h2 className="text-[16px] text-[#1A2332]" style={{ fontWeight: 600, lineHeight: "24px" }}>Available reports</h2>
-          <button
-            type="button"
-            onClick={() => generateReport()}
-            className="h-8 px-3 flex items-center justify-center gap-1.5 bg-[#4A6FA5] hover:bg-[#3d5a85] rounded-lg text-white text-[14px] transition-colors"
-            style={{ fontWeight: 500 }}
-          >
-            <span className="material-icons" style={{ fontSize: "16px" }}>play_arrow</span>
-            Generate all
-          </button>
         </div>
 
-        {/* Report rows — 2-col grid, 16px gap, 16px h padding */}
-        <div className="grid grid-cols-2 gap-4 px-4 pb-4">
-          {reportItems.map(r => (
-            <div
-              key={r.title}
-              className="flex items-start justify-between gap-2 p-4 border border-[#E5E7EB] rounded-lg hover:bg-[#FAFAFA] transition-colors cursor-pointer group"
-            >
-              <div className="flex items-center gap-4 flex-1 min-w-0">
-                <FileIcon type={r.type} />
-                <div className="flex flex-col gap-0.5 min-w-0">
-                  <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600, lineHeight: "20px" }}>{r.title}</div>
-                  <div className="text-[14px] text-[#6B7280] truncate" style={{ fontWeight: 400, lineHeight: "20px" }}>{r.desc}</div>
+        {/* Section 2: Filters */}
+        <div className="bg-white border border-[#E5E7EB] rounded-xl p-5 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <div className="w-5 h-5 rounded-full bg-[#4A6FA5] text-white text-[11px] font-bold flex items-center justify-center shrink-0">2</div>
+              <h3 className="text-[15px] font-semibold text-[#1A2332]">Filters</h3>
+            </div>
+            <button className="flex items-center gap-1 text-[12px] text-[#4A6FA5] hover:underline font-medium">
+              <span className="material-icons" style={{ fontSize: 14 }}>refresh</span>
+              Clear Filters
+            </button>
+          </div>
+          <div className="space-y-3">
+            <div>
+              <div className="mb-1 text-[12px] text-[#6B7280] font-medium">Date Range <span className="text-[#DC2626]">*</span></div>
+              <div className="flex items-center gap-2">
+                <div className="flex-1 relative">
+                  <div className="flex items-center gap-2 h-9 pl-3 pr-8 border border-[#E5E7EB] rounded-lg text-[13px] text-[#1A2332] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.05)] cursor-pointer">
+                    <span className="material-icons text-[#546478]" style={{ fontSize: 15 }}>calendar_today</span>
+                    <span>This Month (May 1 – May 31, 2025)</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5 h-9 px-3 border border-[#E5E7EB] rounded-lg bg-white shadow-[0_1px_2px_rgba(0,0,0,0.05)] text-[13px] text-[#1A2332]">
+                  <span className="text-[#9CA3AF]">×</span>
+                  <span className="font-medium">+2</span>
+                  <span className="material-icons text-[#9CA3AF]" style={{ fontSize: 14 }}>keyboard_arrow_down</span>
                 </div>
               </div>
-              <button className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-[#F3F4F6] transition-colors shrink-0">
-                <span className="material-icons text-[#1A2332]" style={{ fontSize: "16px" }}>file_download</span>
-              </button>
             </div>
-          ))}
+            <div>
+              <div className="mb-1 text-[12px] text-[#6B7280] font-medium">Technicians</div>
+              <div className="flex items-center gap-2 h-9 pl-2 pr-2 border border-[#E5E7EB] rounded-lg bg-white shadow-[0_1px_2px_rgba(0,0,0,0.05)] text-[13px]">
+                <span className="flex items-center gap-1 bg-[#EFF6FF] text-[#4A6FA5] text-[12px] px-2 py-0.5 rounded-md">John Smith <span className="ml-0.5 cursor-pointer">×</span></span>
+                <span className="flex items-center gap-1 bg-[#EFF6FF] text-[#4A6FA5] text-[12px] px-2 py-0.5 rounded-md">Mike Johnson <span className="ml-0.5 cursor-pointer">×</span></span>
+                <span className="material-icons ml-auto text-[#9CA3AF]" style={{ fontSize: 14 }}>keyboard_arrow_down</span>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <div className="mb-1 text-[12px] text-[#6B7280] font-medium">Service / Location</div>
+                <SelectField value="All Services / Locations" onChange={() => {}} options={["All Services / Locations"]} />
+              </div>
+              <div>
+                <div className="mb-1 text-[12px] text-[#6B7280] font-medium">&nbsp;</div>
+                <SelectField value="Paid, Partially Paid, Unpaid" onChange={() => {}} options={["Paid, Partially Paid, Unpaid", "Paid only", "Unpaid only"]} />
+              </div>
+            </div>
+            <div>
+              <div className="mb-1.5 text-[12px] text-[#6B7280] font-medium">Quick Filters</div>
+              <div className="flex items-center gap-2 flex-wrap">
+                {quickFilters.map(f => (
+                  <button
+                    key={f}
+                    onClick={() => setActiveQuickFilter(f)}
+                    className={`px-3 py-1 rounded-lg text-[12px] font-medium border transition-colors ${
+                      activeQuickFilter === f
+                        ? "bg-[#EFF6FF] text-[#4A6FA5] border-[#4A6FA5]/30"
+                        : "bg-white text-[#546478] border-[#E5E7EB] hover:border-[#4A6FA5]/30 hover:text-[#4A6FA5]"
+                    }`}
+                  >
+                    {f}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
+
+        {/* Section 3: Display & Export Options */}
+        <div className="bg-white border border-[#E5E7EB] rounded-xl p-5 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-5 h-5 rounded-full bg-[#4A6FA5] text-white text-[11px] font-bold flex items-center justify-center shrink-0">3</div>
+            <h3 className="text-[15px] font-semibold text-[#1A2332]">Display & Export Options</h3>
+          </div>
+          <div className="grid grid-cols-3 gap-4 mb-4">
+            <SelectField label="Group By" value={groupBy} onChange={setGroupBy} options={groupByOptions} />
+            <SelectField label="Sort By" value={sortBy} onChange={setSortBy} options={sortByOptions} />
+            <SelectField label="Include Columns" value="8 columns selected" onChange={() => {}} options={["8 columns selected", "All columns", "Custom"]} />
+          </div>
+          <div className="flex items-center gap-8">
+            <div>
+              <div className="mb-1.5 text-[12px] text-[#6B7280] font-medium">Output Format</div>
+              <div className="flex items-center gap-1 bg-[#F5F7FA] border border-[#E5E7EB] rounded-lg p-0.5">
+                {(["PDF", "Excel", "CSV"] as const).map(f => (
+                  <button
+                    key={f}
+                    onClick={() => setOutputFormat(f)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors ${
+                      outputFormat === f ? "bg-white text-[#1A2332] shadow-sm" : "text-[#6B7280] hover:text-[#1A2332]"
+                    }`}
+                  >
+                    <span className="material-icons" style={{ fontSize: 14, color: f === "PDF" ? "#DC2626" : f === "Excel" ? "#16A34A" : "#4A6FA5" }}>
+                      {f === "PDF" ? "picture_as_pdf" : f === "Excel" ? "table_chart" : "grid_on"}
+                    </span>
+                    {f}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="flex items-center gap-6 ml-4">
+              <div className="flex items-center gap-2">
+                <Toggle value={includeSummaryOnly} onChange={setIncludeSummaryOnly} />
+                <span className="text-[13px] text-[#546478]">Include summary only</span>
+                <span className="material-icons text-[#9CA3AF]" style={{ fontSize: 14 }}>help_outline</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Toggle value={includeCharts} onChange={setIncludeCharts} />
+                <span className="text-[13px] text-[#546478]">Include charts</span>
+                <span className="material-icons text-[#9CA3AF]" style={{ fontSize: 14 }}>help_outline</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Section 4: Schedule Report (Optional) */}
+        <div className="bg-white border border-[#E5E7EB] rounded-xl shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
+          <div className="flex items-center justify-between px-5 py-4">
+            <div className="flex items-center gap-2">
+              <div className="w-5 h-5 rounded-full bg-[#E5E7EB] text-[#6B7280] text-[11px] font-bold flex items-center justify-center shrink-0">4</div>
+              <h3 className="text-[15px] font-semibold text-[#1A2332]">Schedule Report <span className="text-[#9CA3AF] font-normal text-[13px]">(Optional)</span></h3>
+            </div>
+            <div className="flex items-center gap-3">
+              <Toggle value={scheduleEnabled} onChange={setScheduleEnabled} />
+              <span className="text-[13px] text-[#546478]">Schedule this report</span>
+              <span className="material-icons text-[#9CA3AF]" style={{ fontSize: 16 }}>keyboard_arrow_down</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom actions */}
+        <div className="flex items-center justify-between">
+          <button onClick={onCancel} className="px-4 py-2 text-[13px] font-medium text-[#546478] bg-white border border-[#E5E7EB] rounded-lg hover:bg-[#F5F7FA] transition-colors">
+            Cancel
+          </button>
+          <div className="flex items-center gap-2">
+            <button className="flex items-center gap-1.5 px-4 py-2 text-[13px] font-medium text-[#4A6FA5] bg-white border border-[#4A6FA5]/40 rounded-lg hover:bg-[#EFF6FF] transition-colors">
+              <span className="material-icons" style={{ fontSize: 15 }}>visibility</span>
+              Preview Report
+            </button>
+            <button className="flex items-center gap-1.5 px-4 py-2 text-[13px] font-semibold text-white bg-[#4A6FA5] rounded-lg hover:bg-[#3d5a85] transition-colors">
+              <span className="material-icons" style={{ fontSize: 15 }}>bar_chart</span>
+              Generate Report
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Report Preview sidebar */}
+      <div className="w-[260px] shrink-0">
+        <div className="bg-white border border-[#E5E7EB] rounded-xl p-4 shadow-[0_1px_2px_rgba(0,0,0,0.05)] sticky top-0">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-1.5">
+              <span className="material-icons text-[#4A6FA5]" style={{ fontSize: 16 }}>visibility</span>
+              <span className="text-[14px] font-semibold text-[#1A2332]">Report Preview</span>
+            </div>
+            <span className="text-[11px] font-semibold text-[#16A34A] bg-[#F0FDF4] px-2 py-0.5 rounded-full">Ready to generate</span>
+          </div>
+          <div className="space-y-3">
+            {[
+              { icon: "description", label: "Report Type", value: reportType },
+              { icon: "calendar_today", label: "Date Range", value: "May 1 – May 31, 2025 (This Month)" },
+              { icon: "filter_alt", label: "Filters", value: "2 Customers, 2 Technicians,\n2 Job Statuses, All Services" },
+              { icon: "group", label: "Group By", value: groupBy },
+              { icon: "description", label: "Format", value: outputFormat, formatIcon: true },
+              { icon: "tune", label: "Includes", value: `8 columns, Charts: ${includeCharts ? "Yes" : "No"}` },
+              { icon: "schedule", label: "Schedule", value: scheduleEnabled ? "Enabled" : "Not scheduled" },
+            ].map(item => (
+              <div key={item.label} className="flex items-start gap-2.5">
+                <span className="material-icons text-[#4A6FA5] mt-0.5 shrink-0" style={{ fontSize: 15 }}>{item.icon}</span>
+                <div className="min-w-0">
+                  <div className="text-[11px] text-[#9CA3AF] font-medium">{item.label}</div>
+                  <div className="text-[12px] text-[#1A2332] font-medium whitespace-pre-line">
+                    {item.formatIcon ? (
+                      <span className="flex items-center gap-1">
+                        <span className="material-icons" style={{ fontSize: 13, color: outputFormat === "PDF" ? "#DC2626" : outputFormat === "Excel" ? "#16A34A" : "#4A6FA5" }}>
+                          {outputFormat === "PDF" ? "picture_as_pdf" : outputFormat === "Excel" ? "table_chart" : "grid_on"}
+                        </span>
+                        {outputFormat}
+                      </span>
+                    ) : item.value}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ReportsTab({ generateOpen, setGenerateOpen }: { generateOpen: boolean; setGenerateOpen: (v: boolean) => void }) {
+  const [search, setSearch] = useState("");
+  const [viewMode, setViewMode] = useState<"list" | "grid">("list");
+
+  type ReportRow = { name: string; description: string; lastRun?: string; lastRunColor?: "default" | "orange" };
+
+  const financialReports: ReportRow[] = [
+    { name: "Revenue Report", description: "Summary of revenue by date, service, or technician.", lastRun: "2 days ago" },
+    { name: "Profit & Loss Statement", description: "Overview of income, cost of goods sold, and expenses." },
+    { name: "Invoice Summary (Accounts Receivable)", description: "Outstanding invoices and aging summary.", lastRun: "3 days ago" },
+    { name: "Expense Report", description: "Track and summarize business expenses." },
+    { name: "Sales Tax Report", description: "Sales tax collected and payable summary.", lastRun: "1 week ago" },
+    { name: "Payments Report", description: "Payments received summary by method and date.", lastRun: "1 day ago" },
+  ];
+  const estimatesReports: ReportRow[] = [
+    { name: "Estimates Report", description: "Summary of estimates by status and date range.", lastRun: "1 week ago" },
+    { name: "Estimate Conversion Report", description: "Conversion of estimates to jobs and revenue.", lastRun: "2 days ago" },
+    { name: "Revenue by Technician", description: "Revenue generated by each technician.", lastRun: "Tomorrow", lastRunColor: "orange" },
+  ];
+  const jobsReports: ReportRow[] = [
+    { name: "Jobs Report", description: "Overview of jobs by status, date, and revenue.", lastRun: "Tomorrow", lastRunColor: "orange" },
+    { name: "Job Costing Summary", description: "Job costs, profit margins, and labor analysis.", lastRun: "2 days ago" },
+  ];
+  const clientsReports: ReportRow[] = [
+    { name: "Client Report", description: "Client details and job / revenue summary.", lastRun: "3 days ago" },
+    { name: "Team Report", description: "Revenue and performance by technician.", lastRun: "Tomorrow", lastRunColor: "orange" },
+    { name: "Items Report (Items Usage Report)", description: "Item usage and inventory movement summary.", lastRun: "5 days ago" },
+  ];
+  const scheduledReports = [
+    { name: "Jobs Report", schedule: "Daily at 7:00 AM", nextRun: "Next run: Tomorrow", orange: true },
+    { name: "Revenue Report", schedule: "Weekly on Monday", nextRun: "Next run: Jun 2, 2025", orange: false },
+    { name: "Payments Report", schedule: "Monthly on 1st", nextRun: "Next run: Jun 1, 2025", orange: false },
+  ];
+
+  const ReportRowItem = ({ r }: { r: ReportRow }) => (
+    <div className="flex items-center justify-between py-2.5 border-b border-[#F3F4F6] last:border-0 gap-3">
+      <div className="flex-1 min-w-0">
+        <div className="text-[13px] font-semibold text-[#1A2332] truncate">{r.name}</div>
+        <div className="text-[11px] text-[#546478] truncate">{r.description}</div>
+      </div>
+      <div className="flex items-center gap-2 shrink-0">
+        {r.lastRun && (
+          <span className={`text-[11px] font-medium ${r.lastRunColor === "orange" ? "text-[#D97706]" : "text-[#546478]"}`}>
+            {r.lastRun}
+          </span>
+        )}
+        <button className="text-[#546478] hover:text-[#1A2332] transition-colors"><span className="material-icons" style={{ fontSize: 14 }}>visibility</span></button>
+        <button className="text-[#546478] hover:text-[#1A2332] transition-colors"><span className="material-icons" style={{ fontSize: 14 }}>calendar_today</span></button>
+        <button className="text-[#546478] hover:text-[#1A2332] transition-colors"><span className="material-icons" style={{ fontSize: 14 }}>file_download</span></button>
+      </div>
+    </div>
+  );
+
+  const Section = ({ icon, title, rows }: { icon: string; title: string; rows: ReportRow[] }) => (
+    <div className="mb-4">
+      <div className="flex items-center gap-1.5 mb-2">
+        <span className="material-icons text-[#4A6FA5]" style={{ fontSize: 16 }}>{icon}</span>
+        <span className="text-[13px] font-bold text-[#1A2332]">{title}</span>
+      </div>
+      <div className="bg-white rounded-xl border border-[#E5E7EB] px-4 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
+        {rows.map(r => <ReportRowItem key={r.name} r={r} />)}
+      </div>
+    </div>
+  );
+
+  if (generateOpen) {
+    return <GenerateReportForm onCancel={() => setGenerateOpen(false)} />;
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Stat cards */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="flex items-center justify-between bg-white rounded-xl border border-[#E5E7EB] px-4 py-3 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
+          <div>
+            <div className="text-[20px] font-bold text-[#1A2332]">14</div>
+            <div className="text-[11px] text-[#546478]">Reports available</div>
+          </div>
+          <div className="w-9 h-9 bg-[#EFF6FF] rounded-xl flex items-center justify-center">
+            <span className="material-icons text-[#4A6FA5]" style={{ fontSize: 18 }}>description</span>
+          </div>
+        </div>
+        <div className="flex items-center justify-between bg-white rounded-xl border border-[#E5E7EB] px-4 py-3 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
+          <div>
+            <div className="text-[20px] font-bold text-[#1A2332]">2 days ago</div>
+            <div className="text-[11px] text-[#546478]">Last export</div>
+            <div className="text-[11px] font-semibold text-[#1A2332]">Revenue Report</div>
+          </div>
+          <div className="w-9 h-9 bg-[#F0FDF4] rounded-xl flex items-center justify-center">
+            <span className="material-icons text-[#16A34A]" style={{ fontSize: 18 }}>file_download</span>
+          </div>
+        </div>
+        <div className="flex items-center justify-between bg-white rounded-xl border border-[#E5E7EB] px-4 py-3 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
+          <div>
+            <div className="text-[20px] font-bold text-[#1A2332]">3</div>
+            <div className="text-[11px] text-[#546478]">Scheduled reports</div>
+            <div className="text-[11px] text-[#1A2332]">Next: <span className="font-semibold">Jobs Report</span> <span className="text-[#546478]">(Tomorrow)</span></div>
+          </div>
+          <div className="w-9 h-9 bg-[#FFFBEB] rounded-xl flex items-center justify-center">
+            <span className="material-icons text-[#D97706]" style={{ fontSize: 18 }}>schedule</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Search + filter bar */}
+      <div className="flex items-center gap-3">
+        <div className="relative flex-1 max-w-xs">
+          <span className="material-icons absolute left-2.5 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: 15 }}>search</span>
+          <input
+            type="text"
+            placeholder="Search reports..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="w-full pl-8 pr-3 py-1.5 text-[13px] bg-white border border-[#E5E7EB] rounded-lg text-[#1A2332] placeholder-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#4A6FA5]/30"
+          />
+        </div>
+        <div className="ml-auto flex items-center gap-2">
+          <button className="flex items-center gap-1 text-[13px] text-[#1A2332] bg-white border border-[#E5E7EB] rounded-lg px-3 py-1.5 hover:bg-[#F3F4F6] transition-colors">
+            All Categories
+            <span className="material-icons text-[#546478]" style={{ fontSize: 14 }}>keyboard_arrow_down</span>
+          </button>
+          <div className="flex items-center bg-white border border-[#E5E7EB] rounded-lg overflow-hidden">
+            <button onClick={() => setViewMode("list")} className={`p-1.5 transition-colors ${viewMode === "list" ? "bg-[#F3F4F6] text-[#1A2332]" : "text-[#546478]"}`}>
+              <span className="material-icons" style={{ fontSize: 16 }}>format_list_bulleted</span>
+            </button>
+            <button onClick={() => setViewMode("grid")} className={`p-1.5 transition-colors ${viewMode === "grid" ? "bg-[#F3F4F6] text-[#1A2332]" : "text-[#546478]"}`}>
+              <span className="material-icons" style={{ fontSize: 16 }}>grid_view</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Two-column layout */}
+      <div className="grid grid-cols-2 gap-5">
+        {/* Left */}
+        <div>
+          <Section icon="bar_chart" title="Financial / Business" rows={financialReports} />
+          <Section icon="description" title="Estimates" rows={estimatesReports} />
+        </div>
+        {/* Right */}
+        <div>
+          <Section icon="work" title="Jobs" rows={jobsReports} />
+          <Section icon="people" title="Clients / Team / Items" rows={clientsReports} />
+
+          {/* Recent Scheduled Reports */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-1.5">
+                <span className="material-icons text-[#4A6FA5]" style={{ fontSize: 16 }}>schedule</span>
+                <span className="text-[13px] font-bold text-[#1A2332]">Recent Scheduled Reports</span>
+              </div>
+              <button className="text-[12px] font-medium text-[#4A6FA5] hover:underline">View all</button>
+            </div>
+            <div className="bg-white rounded-xl border border-[#E5E7EB] px-4 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
+              {scheduledReports.map((r, i) => (
+                <div key={i} className="flex items-center justify-between py-2.5 border-b border-[#F3F4F6] last:border-0 gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[13px] font-semibold text-[#1A2332] truncate">{r.name}</div>
+                    <div className="text-[11px] text-[#546478]">{r.schedule}</div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className={`text-[11px] font-medium ${r.orange ? "text-[#D97706]" : "text-[#546478]"}`}>{r.nextRun}</span>
+                    <button className="text-[#546478] hover:text-[#1A2332] transition-colors"><span className="material-icons" style={{ fontSize: 15 }}>more_horiz</span></button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Footer banner */}
+      <div className="flex items-center justify-between bg-white border border-[#E5E7EB] rounded-xl px-4 py-3 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
+        <div className="flex items-center gap-2 text-[12px] text-[#546478]">
+          <span className="material-icons text-[#4A6FA5]" style={{ fontSize: 15 }}>info</span>
+          Need a custom report? Contact support or let us know what you'd like to see.
+        </div>
+        <button className="flex items-center gap-1 text-[12px] font-medium text-[#4A6FA5] hover:underline">
+          Contact Support
+          <span className="material-icons" style={{ fontSize: 13 }}>open_in_new</span>
+        </button>
       </div>
     </div>
   );
@@ -610,6 +919,7 @@ export function Home() {
   const [dateRange, setDateRange] = useState<string>("This Month");
   const [dateOpen, setDateOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [generateReportOpen, setGenerateReportOpen] = useState(false);
   const [tabOrder, setTabOrder] = useState<DashTab[]>([...ALL_TABS]);
   const [draggingTab, setDraggingTab] = useState<DashTab | null>(null);
   const [visibleTabs, setVisibleTabs] = useState<Record<DashTab, boolean>>({
@@ -646,41 +956,59 @@ export function Home() {
   return (
     <div className="p-8">
       {/* ── Page header ── */}
-      <div className="flex items-start justify-between mb-4">
-        <div>
+      <div className="mb-4">
+        <div className="flex items-start justify-between">
           <h1 className="text-[22px] text-[#1A2332]" style={{ fontWeight: 700 }}>
             {companyName} Business Insights
           </h1>
-          <p className="text-[13px] text-[#6B7280] mt-0.5">Overview of your business performance</p>
+          {/* Date range picker */}
+          <div className="relative">
+            <button
+              onClick={() => setDateOpen(v => !v)}
+              className="flex items-center gap-2 px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-[13px] text-[#374151] hover:bg-[#F5F7FA] transition-colors"
+              style={{ fontWeight: 500 }}
+            >
+              <span className="material-icons text-[#6B7280]" style={{ fontSize: "16px" }}>calendar_today</span>
+              {dateRange}
+              <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "16px" }}>keyboard_arrow_down</span>
+            </button>
+            {dateOpen && (
+              <div className="absolute right-0 top-full mt-1 w-[180px] bg-white border border-[#E5E7EB] rounded-lg shadow-lg z-50 py-1">
+                {DATE_OPTIONS.map(opt => (
+                  <button
+                    key={opt}
+                    onClick={() => { setDateRange(opt); setDateOpen(false); }}
+                    className={`w-full text-left px-4 py-2 text-[13px] transition-colors hover:bg-[#F5F7FA] ${
+                      dateRange === opt ? "text-[#4A6FA5] font-semibold" : "text-[#374151]"
+                    }`}
+                  >
+                    {opt}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
-
-        {/* Date range picker */}
-        <div className="relative">
-          <button
-            onClick={() => setDateOpen(v => !v)}
-            className="flex items-center gap-2 px-3 py-2 bg-white border border-[#E5E7EB] rounded-lg text-[13px] text-[#374151] hover:bg-[#F5F7FA] transition-colors"
-            style={{ fontWeight: 500 }}
-          >
-            <span className="material-icons text-[#6B7280]" style={{ fontSize: "16px" }}>calendar_today</span>
-            {dateRange}
-            <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "16px" }}>keyboard_arrow_down</span>
-          </button>
-          {dateOpen && (
-            <div className="absolute right-0 top-full mt-1 w-[180px] bg-white border border-[#E5E7EB] rounded-lg shadow-lg z-50 py-1">
-              {DATE_OPTIONS.map(opt => (
-                <button
-                  key={opt}
-                  onClick={() => { setDateRange(opt); setDateOpen(false); }}
-                  className={`w-full text-left px-4 py-2 text-[13px] transition-colors hover:bg-[#F5F7FA] ${
-                    dateRange === opt ? "text-[#4A6FA5] font-semibold" : "text-[#374151]"
-                  }`}
-                >
-                  {opt}
-                </button>
-              ))}
+        {safeTab === "Reports" ? (
+          <div className="flex items-center justify-between mt-0.5">
+            <p className="text-[13px] text-[#6B7280]">Generate, schedule, and export business reports.</p>
+            <div className="flex items-center gap-2">
+              <button className="flex items-center gap-1.5 px-3 py-2 text-[13px] font-medium text-[#1A2332] bg-white border border-[#E5E7EB] rounded-lg hover:bg-[#F5F7FA] transition-colors shadow-sm">
+                <span className="material-icons text-[#546478]" style={{ fontSize: 15 }}>schedule</span>
+                Schedule Report
+              </button>
+              <button
+                onClick={() => setGenerateReportOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-2 text-[13px] font-semibold text-white bg-[#4A6FA5] rounded-lg hover:bg-[#3d5a85] transition-colors shadow-sm"
+              >
+                <span className="material-icons" style={{ fontSize: 15 }}>bar_chart</span>
+                Generate Report
+              </button>
             </div>
-          )}
-        </div>
+          </div>
+        ) : (
+          <p className="text-[13px] text-[#6B7280] mt-0.5">Overview of your business performance</p>
+        )}
       </div>
 
       {/* ── Tabs bar ── */}
@@ -781,7 +1109,7 @@ export function Home() {
       {safeTab === "All Business"          && <AllBusinessTab />}
       {safeTab === "Sales Performance"     && <SalesPerformanceTab />}
       {safeTab === "Financial Performance" && <FinancialPerformanceTab />}
-      {safeTab === "Reports"               && <ReportsTab />}
+      {safeTab === "Reports"               && <ReportsTab generateOpen={generateReportOpen} setGenerateOpen={setGenerateReportOpen} />}
     </div>
   );
 }
