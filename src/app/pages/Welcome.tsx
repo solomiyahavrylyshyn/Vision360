@@ -131,19 +131,6 @@ export function Welcome() {
             </button>
           </div>
 
-          {/* Sample Company card */}
-          <div className="w-full bg-[#EEF3FA] border border-[#C8D8EE] rounded-xl px-5 py-4 flex items-start gap-3 mb-6">
-            <span className="material-icons text-[#4A6FA5] shrink-0 mt-0.5" style={{ fontSize: "18px" }}>
-              store
-            </span>
-            <div>
-              <p className="text-sm font-semibold text-[#1A2332] mb-0.5">Explore the Sample Company</p>
-              <p className="text-xs text-[#546478]">
-                See a fully populated demo — schedule, jobs, clients, and invoices — to get inspired before entering your own data.
-              </p>
-            </div>
-          </div>
-
           {/* Primary CTA */}
           <Button
             onClick={() => navigate("/")}

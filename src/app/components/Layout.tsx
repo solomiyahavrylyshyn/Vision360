@@ -677,6 +677,12 @@ export function Layout() {
             </div>
             <span style={{ fontWeight: 500 }}>Client</span>
           </button>
+          <button onClick={() => { setCreateMenuOpen(false); navigate("/expenses/new"); }} className="w-full flex items-center gap-3 px-4 py-2.5 text-[13px] text-[#1A2332] hover:bg-[#F5F7FA] transition-colors group">
+            <div className="w-8 h-8 rounded-lg bg-[#EBF2FC] flex items-center justify-center group-hover:bg-[#4A6FA5] transition-colors flex-shrink-0">
+              <span className="material-icons-outlined text-[#4A6FA5] group-hover:text-white transition-colors" style={{ fontSize: "18px" }}>receipt_long</span>
+            </div>
+            <span style={{ fontWeight: 500 }}>Expense</span>
+          </button>
           <button onClick={() => { setCreateMenuOpen(false); navigate("/items"); }} className="w-full flex items-center gap-3 px-4 py-2.5 text-[13px] text-[#1A2332] hover:bg-[#F5F7FA] transition-colors group">
             <div className="w-8 h-8 rounded-lg bg-[#EBF2FC] flex items-center justify-center group-hover:bg-[#4A6FA5] transition-colors flex-shrink-0">
               <span className="material-icons-outlined text-[#4A6FA5] group-hover:text-white transition-colors" style={{ fontSize: "18px" }}>inventory_2</span>

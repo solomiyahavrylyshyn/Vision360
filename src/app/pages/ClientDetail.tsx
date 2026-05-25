@@ -1849,27 +1849,23 @@ export function ClientDetail() {
             <span>Back to Clients</span>
           </button>
         </div>
-        <div className="flex items-center gap-2">
-          {!isEditing ? (
-            <CreateDropdown />
-          ) : (
-            <>
-              <Button
-                variant="outline"
-                onClick={handleCancelClick}
-                className="border-[#E5E7EB] text-[#546478] hover:bg-[#EDF0F5] h-9 px-3 text-[13px]"
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleSaveClick}
-                className="bg-[#4A6FA5] hover:bg-[#3d5a85] h-9 px-3 text-white text-[13px]"
-              >
-                Save Changes
-              </Button>
-            </>
-          )}
-        </div>
+        {isEditing && (
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={handleCancelClick}
+              className="border-[#E5E7EB] text-[#546478] hover:bg-[#EDF0F5] h-9 px-3 text-[13px]"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveClick}
+              className="bg-[#4A6FA5] hover:bg-[#3d5a85] h-9 px-3 text-white text-[13px]"
+            >
+              Save Changes
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* ── ONE BIG WHITE CARD CONTAINING EVERYTHING (per Figma spec) ── */}
@@ -1906,30 +1902,27 @@ export function ClientDetail() {
             </div>
           </div>
 
-          {/* Right side: 4 compact KPI tiles + kebab */}
-          <div className="flex items-start gap-2 shrink-0">
-            <div className="flex gap-2">
-              {[
-                { label: "Total revenue", value: `$${Math.round(client.totalRevenue).toLocaleString("en-US")}`,    icon: "trending_up", iconColor: "#16A34A" },
-                { label: "Balance",       value: `$${Math.round(client.openBalance).toLocaleString("en-US")}`,     icon: "paid",        iconColor: "#4A6FA5" },
-                { label: "Past Due",      value: `$${Math.round(client.pastDueBalance).toLocaleString("en-US")}`,  icon: "schedule",    iconColor: "#DC2626" },
-                { label: "Open Jobs",     value: "3", icon: "work", iconColor: "#6B7280" },
-              ].map(({ label, value, icon, iconColor }) => (
-                <div key={label} className="flex w-[128px] items-center justify-between gap-2 rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5" style={{ minHeight: 44 }}>
-                  <div className="flex min-w-0 flex-col justify-center">
-                    <div className="truncate text-[15px] leading-tight tabular-nums text-[#1A2332]" style={{ fontWeight: 700 }}>{value}</div>
-                    <div className="truncate text-[10px] text-[#546478]">{label}</div>
-                  </div>
-                  <div
-                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md"
-                    style={{ backgroundColor: `${iconColor}26` }}
-                  >
-                    <span className="material-icons" style={{ fontSize: "16px", color: iconColor }}>{icon}</span>
-                  </div>
+          {/* Right side: 4 compact KPI tiles */}
+          <div className="flex gap-2 shrink-0">
+            {[
+              { label: "Total revenue", value: `$${Math.round(client.totalRevenue).toLocaleString("en-US")}`,    icon: "trending_up", iconColor: "#16A34A" },
+              { label: "Balance",       value: `$${Math.round(client.openBalance).toLocaleString("en-US")}`,     icon: "paid",        iconColor: "#4A6FA5" },
+              { label: "Past Due",      value: `$${Math.round(client.pastDueBalance).toLocaleString("en-US")}`,  icon: "schedule",    iconColor: "#DC2626" },
+              { label: "Open Jobs",     value: "3", icon: "work", iconColor: "#6B7280" },
+            ].map(({ label, value, icon, iconColor }) => (
+              <div key={label} className="flex w-[128px] items-center justify-between gap-2 rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5" style={{ minHeight: 44 }}>
+                <div className="flex min-w-0 flex-col justify-center">
+                  <div className="truncate text-[15px] leading-tight tabular-nums text-[#1A2332]" style={{ fontWeight: 700 }}>{value}</div>
+                  <div className="truncate text-[10px] text-[#546478]">{label}</div>
                 </div>
-              ))}
-            </div>
-            <KebabMenu />
+                <div
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md"
+                  style={{ backgroundColor: `${iconColor}26` }}
+                >
+                  <span className="material-icons" style={{ fontSize: "16px", color: iconColor }}>{icon}</span>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
@@ -1938,7 +1931,13 @@ export function ClientDetail() {
           tabs={visibleTabs}
           activeTab={activeTab}
           onChange={(key) => { setActiveTab(key); if (isEditing) setIsEditing(false); }}
-          trailing={<TabSettingsButton onClick={() => setShowTabSettings(true)} />}
+          tabSuffix={<TabSettingsButton onClick={() => setShowTabSettings(true)} />}
+          trailing={
+            <>
+              <CreateDropdown />
+              <KebabMenu />
+            </>
+          }
           className="mt-5"
         />
 

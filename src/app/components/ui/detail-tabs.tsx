@@ -11,7 +11,9 @@ interface DetailTabsProps<K extends string = string> {
   tabs: DetailTab<K>[];
   activeTab: K;
   onChange: (key: K) => void;
-  /** Optional trailing slot rendered directly after the tabs. */
+  /** Rendered inside the scrollable tabs row, right after the last tab (e.g. settings icon). */
+  tabSuffix?: React.ReactNode;
+  /** Rendered outside the scrollable tabs row, pushed to the far right (e.g. Create + kebab). */
   trailing?: React.ReactNode;
   className?: string;
 }
@@ -25,12 +27,13 @@ export function DetailTabs<K extends string = string>({
   tabs,
   activeTab,
   onChange,
+  tabSuffix,
   trailing,
   className,
 }: DetailTabsProps<K>) {
   return (
-    <div className={`flex items-center gap-1.5 ${className ?? ""}`}>
-      <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide">
+    <div className={`flex items-center ${className ?? ""}`}>
+      <div className="flex-1 min-w-0 flex items-center gap-1.5 overflow-x-auto scrollbar-hide">
         {tabs.map(({ key, label, count }) => {
           const isActive = activeTab === key;
           return (
@@ -61,8 +64,13 @@ export function DetailTabs<K extends string = string>({
             </button>
           );
         })}
+        {tabSuffix}
       </div>
-      {trailing}
+      {trailing && (
+        <div className="shrink-0 flex items-center gap-1.5 pl-2">
+          {trailing}
+        </div>
+      )}
     </div>
   );
 }

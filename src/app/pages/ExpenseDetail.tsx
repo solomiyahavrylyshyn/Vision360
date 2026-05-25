@@ -167,7 +167,7 @@ export function ExpenseDetail() {
         </div>
 
         {/* Unified tab bar */}
-        <DetailTabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} trailing={<TabSettingsButton />} className="mt-6" />
+        <DetailTabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} tabSuffix={<TabSettingsButton />} className="mt-6" />
 
         {/* Content */}
         <div className="mt-4">

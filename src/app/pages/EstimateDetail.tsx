@@ -1029,7 +1029,7 @@ export function EstimateDetail() {
             }))}
             activeTab={activeTab}
             onChange={setActiveTab}
-            trailing={<TabSettingsButton />}
+            tabSuffix={<TabSettingsButton />}
           />
           <div className="flex items-center gap-2 py-2 shrink-0">
             <button

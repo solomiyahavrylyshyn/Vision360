@@ -439,7 +439,7 @@ export function ItemDetail() {
         </div>
 
         {/* ── UNIFIED TAB BAR ── */}
-        <DetailTabs tabs={TABS} activeTab={activeTab} onChange={setActiveTab} trailing={<TabSettingsButton />} className="mt-6" />
+        <DetailTabs tabs={TABS} activeTab={activeTab} onChange={setActiveTab} tabSuffix={<TabSettingsButton />} className="mt-6" />
 
         {/* ── CONTENT ── */}
         <div className="mt-4 space-y-4">
