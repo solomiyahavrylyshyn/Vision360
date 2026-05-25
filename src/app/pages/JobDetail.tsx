@@ -1472,10 +1472,10 @@ export function JobDetail() {
                 onClick={() => setActiveTab(tab.key)}
                 className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-[13px] transition-colors ${
                   activeTab === tab.key
-                    ? "bg-[#1A2332] text-white"
-                    : "text-[#6B7280] hover:text-[#1A2332] hover:bg-[#F5F7FA]"
+                    ? "bg-[#4A6FA5] text-white"
+                    : "text-[#374151] hover:text-[#1A2332] hover:bg-[#F5F7FA]"
                 }`}
-                style={{ fontWeight: activeTab === tab.key ? 500 : 400 }}
+                style={{ fontWeight: activeTab === tab.key ? 600 : 500 }}
               >
                 {tab.label}
                 {tab.count != null && tab.count > 0 && (
