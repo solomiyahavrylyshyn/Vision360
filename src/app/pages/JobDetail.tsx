@@ -7,7 +7,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "../components/ui/dropdown-menu";
-import { DetailTabs, TabSettingsButton } from "../components/ui/detail-tabs";
+import { TabSettingsButton } from "../components/ui/detail-tabs";
 import { PlusIcon } from "../components/ui/plus-icon";
 import { DocumentPreview } from "../components/DocumentPreview";
 import { toast } from "sonner";
@@ -1335,125 +1335,69 @@ export function JobDetail() {
 
       {/* ── ONE BIG WHITE CARD CONTAINING EVERYTHING ── */}
       <div className="relative mx-6 mb-6 bg-white border border-[#E5E7EB] rounded-xl p-4">
-        <div className="absolute right-4 top-4 flex items-center gap-2">
-          <KebabMenu triggerClassName="h-9 w-9 border border-[#E5E7EB] rounded-md hover:bg-[#EDF0F5] flex items-center justify-center bg-white">
-            <KebabItem icon="edit" onClick={() => navigate(`/jobs/${id}/edit`)}>Edit Job</KebabItem>
-            <KebabItem icon="content_copy">Duplicate Job</KebabItem>
-            <KebabItem icon="block" destructive>Inactivate Job</KebabItem>
-          </KebabMenu>
-        </div>
 
-        {/* Summary content — left column has name/contact rows, right column has compact KPIs */}
-        <div className="flex items-start gap-4 pr-14">
-          <div className="flex-1 min-w-0 flex flex-col gap-4">
-            {/* Name + contact row — mirrors ClientDetail header style */}
-            <div className="flex flex-col gap-1">
-              {/* Row 1: Name + job number */}
-              <div className="flex items-center gap-2">
+        {/* Summary content — left column has title/contact row, right column has compact KPIs */}
+        <div className="flex items-start gap-4">
+          <div className="flex-1 min-w-0 flex flex-col gap-1.5">
+            {/* Row 1: Job number + status */}
+            <div className="flex items-center gap-2">
+              <h1 className="text-[20px] text-[#1A2332] leading-[27px]" style={{ fontFamily: "Geist", fontWeight: 700 }}>
+                Job #{job.jobNumber}
+              </h1>
+              {/* Status dropdown */}
+              <div className="relative">
                 <button
-                  onClick={() => navigate(`/clients/${job.clientId}`)}
-                  className="text-[20px] text-[#1A2332] leading-[27px] hover:text-[#4A6FA5] hover:underline transition-colors"
-                  style={{ fontWeight: 600 }}
+                  onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[13px] transition-colors"
+                  style={{ fontWeight: 600, backgroundColor: `${statusColor}18`, color: statusColor }}
                 >
-                  {job.client}
+                  <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: statusColor }} />
+                  {currentStatus}
+                  <span className="material-icons" style={{ fontSize: "14px" }}>arrow_drop_down</span>
                 </button>
-                <span className="text-[16px] text-[#6B7280] leading-[24px]" style={{ fontWeight: 400 }}>({job.jobNumber})</span>
-                {/* Status dropdown */}
-                <div className="relative">
-                  <button
-                    onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[13px] transition-colors"
-                    style={{ fontWeight: 600, backgroundColor: `${statusColor}18`, color: statusColor }}
-                  >
-                    <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: statusColor }} />
-                    {currentStatus}
-                    <span className="material-icons" style={{ fontSize: "14px" }}>arrow_drop_down</span>
-                  </button>
-                  {statusDropdownOpen && (
-                    <div className="absolute left-0 top-full mt-1 bg-white border border-[#E5E7EB] rounded-md shadow-lg z-50 w-[160px] py-1">
-                      {["Scheduled", "In Progress", "Completed"].map((s) => (
-                        <button
-                          key={s}
-                          onClick={() => handleStatusChange(s)}
-                          className="w-full text-left px-3 py-2 text-[13px] hover:bg-[#F3F4F6] flex items-center gap-2"
-                        >
-                          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: statusColors[s] }} />
-                          <span style={{ color: statusColors[s], fontWeight: 500 }}>{s}</span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Row 2: Address · Phone · Email · Status — single inline row with separators */}
-              <div className="flex items-center gap-0.5 flex-wrap">
-                <div className="flex items-center gap-1.5 pr-2">
-                  <span className="material-icons text-[#6B7280]" style={{ fontSize: "16px" }}>location_on</span>
-                  <span className="text-[14px] text-[#374151]">{job.address}, {job.city}, {job.state} {job.zip}</span>
-                </div>
-                <div className="w-px h-5 bg-[#E5E7EB]" />
-                <a href={`tel:${job.phone}`} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-[#F5F7FA] text-[14px] text-[#4A6FA5] transition-colors" style={{ fontWeight: 500 }}>
-                  <span className="material-icons" style={{ fontSize: "16px" }}>phone</span>
-                  {job.phone}
-                </a>
-                <div className="w-px h-5 bg-[#E5E7EB]" />
-                <a href={`mailto:${job.email}`} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-[#F5F7FA] text-[14px] text-[#4A6FA5] transition-colors" style={{ fontWeight: 500 }}>
-                  <span className="material-icons" style={{ fontSize: "16px" }}>mail</span>
-                  {job.email}
-                </a>
-              </div>
-
-              {/* Row 3: Customer since · Last Service · Notes — inline strip */}
-              <div className="flex items-start gap-0.5 flex-wrap pt-2 mt-1 border-t border-[#F3F4F6]">
-                <div className="flex items-center gap-1.5 pr-3">
-                  <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "14px" }}>person</span>
-                  <span className="text-[13px] text-[#6B7280]">Customer since</span>
-                  <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>{job.customerSince}</span>
-                </div>
-                <div className="w-px h-5 bg-[#E5E7EB]" />
-                <div className="flex items-center gap-1.5 px-3">
-                  <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "14px" }}>schedule</span>
-                  <span className="text-[13px] text-[#6B7280]">Last service</span>
-                  <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>{job.lastService || "—"}</span>
-                </div>
-                {job.notes.length > 0 && (
-                  <>
-                    <div className="w-px h-5 bg-[#E5E7EB]" />
-                    <div className="relative group flex items-start gap-1.5 px-3">
-                      <span className="material-icons text-[#D97706] mt-0.5" style={{ fontSize: "14px" }}>sticky_note_2</span>
-                      <div className="flex items-start gap-2">
-                        <span className="text-[13px] text-[#6B7280] shrink-0">Notes ({job.notes.length})</span>
-                        <div className="flex flex-col">
-                          {job.notes.slice(0, 1).map((note: NoteEntry) => (
-                            <span key={note.id} className="text-[13px] text-[#374151] leading-[19px]">{note.text}</span>
-                          ))}
-                        </div>
-                      </div>
-                      {/* Hover tooltip for remaining notes */}
-                      {job.notes.length > 2 && (
-                        <div className="absolute left-3 top-full mt-2 hidden group-hover:flex flex-col w-[300px] z-[60]">
-                          <div className="absolute -top-1.5 left-4 w-3 h-1.5 overflow-hidden">
-                            <div className="absolute w-2 h-2 bg-white border-l border-t border-[#E5E7EB] rotate-45 left-1/2 -translate-x-1/2" />
-                          </div>
-                          <div className="bg-white border border-[#E5E7EB] rounded-lg shadow-lg p-3.5">
-                            <div className="text-[11px] text-[#6B7280] uppercase tracking-wider mb-2" style={{ fontWeight: 600 }}>All Notes</div>
-                            <div className="h-px bg-[#E5E7EB] mb-3" />
-                            <div className="flex flex-col gap-3 max-h-[360px] overflow-y-auto">
-                              {job.notes.map((note: NoteEntry, index: number) => (
-                                <div key={note.id} className="flex flex-col gap-0.5">
-                                  <div className="text-[13px] text-[#1A2332] leading-[20px]">{note.text}</div>
-                                  <div className="text-[11px] text-[#6B7280]">{note.date}</div>
-                                  {index < job.notes.length - 1 && <div className="h-px bg-[#F3F4F6] mt-1" />}
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </>
+                {statusDropdownOpen && (
+                  <div className="absolute left-0 top-full mt-1 bg-white border border-[#E5E7EB] rounded-md shadow-lg z-50 w-[160px] py-1">
+                    {["Scheduled", "In Progress", "Completed"].map((s) => (
+                      <button
+                        key={s}
+                        onClick={() => handleStatusChange(s)}
+                        className="w-full text-left px-3 py-2 text-[13px] hover:bg-[#F3F4F6] flex items-center gap-2"
+                      >
+                        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: statusColors[s] }} />
+                        <span style={{ color: statusColors[s], fontWeight: 500 }}>{s}</span>
+                      </button>
+                    ))}
+                  </div>
                 )}
+              </div>
+            </div>
+
+            {/* Row 2: Contact icon row — client name | phone icon | email icon | address | job title */}
+            <div className="flex items-center gap-0.5 flex-wrap">
+              <button
+                onClick={() => navigate(`/clients/${job.clientId}`)}
+                className="flex items-center gap-1.5 pr-2 hover:text-[#4A6FA5] transition-colors"
+              >
+                <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "15px" }}>person</span>
+                <span className="text-[13px] text-[#374151]" style={{ fontWeight: 500 }}>{job.client}</span>
+              </button>
+              <div className="w-px h-4 bg-[#E5E7EB]" />
+              <a href={`tel:${job.phone}`} className="flex items-center justify-center w-7 h-7 rounded-lg hover:bg-[#F5F7FA] transition-colors" title={job.phone}>
+                <span className="material-icons text-[#6B7280]" style={{ fontSize: "16px" }}>phone</span>
+              </a>
+              <div className="w-px h-4 bg-[#E5E7EB]" />
+              <a href={`mailto:${job.email}`} className="flex items-center justify-center w-7 h-7 rounded-lg hover:bg-[#F5F7FA] transition-colors" title={job.email}>
+                <span className="material-icons text-[#6B7280]" style={{ fontSize: "16px" }}>mail</span>
+              </a>
+              <div className="w-px h-4 bg-[#E5E7EB]" />
+              <div className="flex items-center gap-1 px-1.5">
+                <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "15px" }}>location_on</span>
+                <span className="text-[13px] text-[#546478]">{job.address}, {job.city}, {job.state} {job.zip}</span>
+              </div>
+              <div className="w-px h-4 bg-[#E5E7EB]" />
+              <div className="flex items-center gap-1 px-1.5">
+                <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "15px" }}>work</span>
+                <span className="text-[13px] text-[#546478]">{job.title}</span>
               </div>
             </div>
           </div>
@@ -1544,35 +1488,42 @@ export function JobDetail() {
             <TabSettingsButton onClick={() => setShowTabSettings(true)} />
           </div>
 
-          {/* + Create dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                className="h-9 px-3 shrink-0 inline-flex items-center gap-1.5 text-[13px] text-white bg-[#4A6FA5] rounded-lg hover:bg-[#3d5a85] transition-colors"
-                style={{ fontWeight: 600 }}
-              >
-                <span className="material-icons" style={{ fontSize: "16px" }}>add</span>
-                Create
-                <span className="material-icons" style={{ fontSize: "15px" }}>keyboard_arrow_down</span>
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-[180px] p-1">
-              <DropdownMenuItem
-                className="h-9 px-3 text-[13px] text-[#374151] flex items-center gap-2.5 cursor-pointer"
-                onClick={() => navigate(`/estimates/create?fromJob=${job.id}&client=${encodeURIComponent(job.client)}`)}
-              >
-                <span className="material-icons text-[#6B7280]" style={{ fontSize: "16px" }}>request_quote</span>
-                Create Estimate
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                className="h-9 px-3 text-[13px] text-[#374151] flex items-center gap-2.5 cursor-pointer"
-                onClick={() => navigate(`/invoices/create?job=${job.jobNumber}&client=${encodeURIComponent(job.client)}`)}
-              >
-                <span className="material-icons text-[#6B7280]" style={{ fontSize: "16px" }}>receipt</span>
-                Create Invoice
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {/* + Create dropdown + kebab */}
+          <div className="flex items-center gap-2 shrink-0">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  className="h-9 px-3 inline-flex items-center gap-1.5 text-[13px] text-white bg-[#4A6FA5] rounded-lg hover:bg-[#3d5a85] transition-colors"
+                  style={{ fontWeight: 600 }}
+                >
+                  <span className="material-icons" style={{ fontSize: "16px" }}>add</span>
+                  Create
+                  <span className="material-icons" style={{ fontSize: "15px" }}>keyboard_arrow_down</span>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-[180px] p-1">
+                <DropdownMenuItem
+                  className="h-9 px-3 text-[13px] text-[#374151] flex items-center gap-2.5 cursor-pointer"
+                  onClick={() => navigate(`/estimates/create?fromJob=${job.id}&client=${encodeURIComponent(job.client)}`)}
+                >
+                  <span className="material-icons text-[#6B7280]" style={{ fontSize: "16px" }}>request_quote</span>
+                  Create Estimate
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="h-9 px-3 text-[13px] text-[#374151] flex items-center gap-2.5 cursor-pointer"
+                  onClick={() => navigate(`/invoices/create?job=${job.jobNumber}&client=${encodeURIComponent(job.client)}`)}
+                >
+                  <span className="material-icons text-[#6B7280]" style={{ fontSize: "16px" }}>receipt</span>
+                  Create Invoice
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <KebabMenu triggerClassName="h-9 w-9 border border-[#E5E7EB] rounded-lg hover:bg-[#EDF0F5] flex items-center justify-center bg-white">
+              <KebabItem icon="edit" onClick={() => navigate(`/jobs/${id}/edit`)}>Edit Job</KebabItem>
+              <KebabItem icon="content_copy">Duplicate Job</KebabItem>
+              <KebabItem icon="block" destructive>Inactivate Job</KebabItem>
+            </KebabMenu>
+          </div>
         </div>
 
         {/* divider below tab bar */}
