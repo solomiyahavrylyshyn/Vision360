@@ -146,15 +146,31 @@ const priorityColors: Record<string, { bg: string; text: string }> = {
   High: { bg: "#FEF2F2", text: "#DC2626" },
 };
 
-type TabKey = "details" | "estimate" | "invoices" | "items" | "expenses" | "documents";
+type TabKey = "details" | "estimate" | "invoices" | "items" | "expenses" | "documents" | "notes";
 
 const BASE_TABS: { key: TabKey; label: string }[] = [
-  { key: "details", label: "Job Details" },
-  { key: "estimate", label: "Estimate" },
-  { key: "invoices", label: "Invoices" },
-  { key: "items", label: "Items" },
-  { key: "expenses", label: "Expenses" },
+  { key: "details",   label: "Job Details" },
+  { key: "estimate",  label: "Estimate" },
+  { key: "invoices",  label: "Invoices" },
+  { key: "items",     label: "Items" },
+  { key: "expenses",  label: "Expenses" },
   { key: "documents", label: "Documents" },
+  { key: "notes",     label: "Notes" },
+];
+
+/* 11 placeholder photos for the Attachments panel */
+const MOCK_PHOTOS = [
+  { id: "p1",  gradient: "linear-gradient(135deg,#bfdbfe,#3b82f6)",  tag: "Frame" },
+  { id: "p2",  gradient: "linear-gradient(135deg,#d1fae5,#10b981)",  tag: null },
+  { id: "p3",  gradient: "linear-gradient(135deg,#fde68a,#f59e0b)",  tag: null },
+  { id: "p4",  gradient: "linear-gradient(135deg,#e9d5ff,#8b5cf6)",  tag: null },
+  { id: "p5",  gradient: "linear-gradient(135deg,#fed7d7,#f87171)",  tag: null },
+  { id: "p6",  gradient: "linear-gradient(135deg,#bfdbfe,#6366f1)",  tag: null },
+  { id: "p7",  gradient: "linear-gradient(135deg,#fde68a,#d97706)",  tag: null },
+  { id: "p8",  gradient: "linear-gradient(135deg,#d1fae5,#059669)",  tag: null },
+  { id: "p9",  gradient: "linear-gradient(135deg,#fed7d7,#dc2626)",  tag: null },
+  { id: "p10", gradient: "linear-gradient(135deg,#e0e7ff,#4f46e5)",  tag: null },
+  { id: "p11", gradient: "linear-gradient(135deg,#fce7f3,#ec4899)",  tag: null },
 ];
 
 /* ──────────────────────────────────────────
@@ -361,6 +377,14 @@ export function JobDetail() {
   const [assignedTo, setAssignedTo] = useState<string>(job.assignedTo || "");
   const [assignedToOpen, setAssignedToOpen] = useState(false);
 
+  // Notes sub-tab + media preview state
+  const [noteTab,        setNoteTab]        = useState<"office" | "internal" | "field">("office");
+  const [notesAdding,    setNotesAdding]    = useState(false);
+  const [notesNewText,   setNotesNewText]   = useState("");
+  const [notesExpanded,  setNotesExpanded]  = useState(false);
+  const [mediaPreviewIdx, setMediaPreviewIdx] = useState(0);
+  const [mediaTab,       setMediaTab]       = useState<"media" | "files">("media");
+
   // Documents state
   const [documents, setDocuments] = useState<DocFile[]>(INITIAL_DOCS);
   const [docSearch, setDocSearch] = useState("");
@@ -397,6 +421,7 @@ export function JobDetail() {
   /* ── Tab counts ── */
   const getTabCount = (key: TabKey): number | undefined => {
     const counts: Partial<Record<TabKey, number>> = {
+      notes: job.notes.length + job.privateNotes.length + job.fieldNotes.length,
       estimate: job.linkedEstimate ? 1 : 0,
       invoices: job.linkedInvoice ? 1 : 0,
       expenses: job.expenses.length,
@@ -516,94 +541,98 @@ export function JobDetail() {
      CONTENT RENDERERS
   ────────────────────────────────────────── */
 
-  const renderDetailsTab = () => (
-    <div className="flex gap-4 items-start">
+  const renderDetailsTab = () => {
+    const noteTabs = [
+      { key: "office"   as const, label: "Office",   notes: job.notes        },
+      { key: "internal" as const, label: "Internal", notes: job.privateNotes },
+      { key: "field"    as const, label: "Field",    notes: job.fieldNotes   },
+    ];
+    const activeNotes = noteTabs.find(t => t.key === noteTab)?.notes ?? [];
+    const SHOW_N = 4;
+    const shownNotes = notesExpanded ? activeNotes : activeNotes.slice(0, SHOW_N);
 
-      {/* ── Left: single combined card (Job Overview + Job Date & Time in one container per reference) ── */}
-      <div className="w-[420px] shrink-0">
-        <div className="bg-white border border-[#E5E7EB] rounded-lg p-5 flex flex-col gap-5">
+    const handleSaveNote = () => {
+      const trimmed = notesNewText.trim();
+      if (!trimmed) return;
+      setNotesAdding(false);
+      setNotesNewText("");
+    };
 
-          {/* Job Overview section */}
-          <section className="flex flex-col gap-4">
+    return (
+      <div className="flex gap-4 items-start">
+
+        {/* ── Col 1: Job Overview + Job Date & Time (separate cards) ── */}
+        <div className="w-[270px] shrink-0 flex flex-col gap-3">
+
+          {/* Job Overview */}
+          <div className="bg-white border border-[#E5E7EB] rounded-lg p-4 flex flex-col gap-3">
             <div className="flex items-center justify-between">
-              <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Job Overview</h3>
-              <button onClick={() => openEdit("overview")} className="text-[#9CA3AF] hover:text-[#6B7280]" title="Edit overview">
+              <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>Job Overview</span>
+              <button onClick={() => openEdit("overview")} className="text-[#9CA3AF] hover:text-[#6B7280]">
                 <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
               </button>
             </div>
-            {/* Title + Type side-by-side per reference screenshot */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex flex-col gap-1">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
                 <div className="text-[11px] text-[#9CA3AF]">Job Title</div>
-                <div className="text-[13px] text-[#374151]" style={{ fontWeight: 500 }}>{job.title}</div>
+                <div className="text-[13px] text-[#374151] mt-0.5" style={{ fontWeight: 500 }}>{job.title}</div>
               </div>
-              <div className="flex flex-col gap-1">
+              <div>
                 <div className="text-[11px] text-[#9CA3AF]">Job Type</div>
-                <div className="text-[13px] text-[#374151]">{job.jobType}</div>
+                <div className="text-[13px] text-[#374151] mt-0.5">{job.jobType}</div>
               </div>
             </div>
-            <div className="flex flex-col gap-1">
+            <div>
               <div className="text-[11px] text-[#9CA3AF]">Service Address</div>
-              <div className="flex items-start gap-1.5">
-                <span className="material-icons text-[#6B7280] mt-0.5" style={{ fontSize: "15px" }}>location_on</span>
-                <div className="text-[13px] text-[#374151] leading-[20px]">
+              <div className="flex items-start gap-1.5 mt-0.5">
+                <span className="material-icons text-[#6B7280] mt-0.5" style={{ fontSize: "14px" }}>location_on</span>
+                <div className="text-[13px] text-[#374151] leading-[19px]">
                   {job.address}<br />{job.city}, {job.state} {job.zip}
                   {job.gateCode && <><br /><span className="text-[#9CA3AF]">Gate code: {job.gateCode}</span></>}
                 </div>
               </div>
             </div>
-          </section>
+          </div>
 
-          {/* Divider between the two sections */}
-          <div className="h-px bg-[#E5E7EB]" />
-
-          {/* Job Date & Time section — includes Assigned To per reference screenshot */}
-          <section className="flex flex-col gap-4">
+          {/* Job Date & Time */}
+          <div className="bg-white border border-[#E5E7EB] rounded-lg p-4 flex flex-col gap-3">
             <div className="flex items-center justify-between">
-              <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Job Date & Time</h3>
-              <button onClick={() => openEdit("schedule")} className="text-[#9CA3AF] hover:text-[#6B7280]" title="Edit schedule">
+              <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>Job Date & Time</span>
+              <button onClick={() => openEdit("schedule")} className="text-[#9CA3AF] hover:text-[#6B7280]">
                 <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
               </button>
             </div>
-            <div className="grid grid-cols-3 gap-4">
-              <div className="flex flex-col gap-1">
+            <div className="grid grid-cols-3 gap-x-3 gap-y-3">
+              <div>
                 <div className="text-[11px] text-[#9CA3AF]">Start Date</div>
-                <div className="text-[13px] text-[#374151]" style={{ fontWeight: 500 }}>{job.startedOn}</div>
+                <div className="text-[13px] text-[#374151] mt-0.5" style={{ fontWeight: 500 }}>{job.startedOn}</div>
               </div>
-              <div className="flex flex-col gap-1">
+              <div>
                 <div className="text-[11px] text-[#9CA3AF]">End Date</div>
-                <div className="text-[13px] text-[#374151]" style={{ fontWeight: 500 }}>{job.endsOn}</div>
+                <div className="text-[13px] text-[#374151] mt-0.5" style={{ fontWeight: 500 }}>{job.endsOn}</div>
               </div>
-              {/* Assigned To dropdown — third column, spans both rows */}
-              <div className="flex flex-col gap-1 row-span-2">
+              <div className="row-span-2">
                 <div className="text-[11px] text-[#9CA3AF]">Assigned To</div>
-                <div className="relative">
+                <div className="relative mt-0.5">
                   <button
                     onClick={() => setAssignedToOpen(!assignedToOpen)}
-                    className="flex items-center gap-1 text-[13px] text-[#374151] hover:text-[#4A6FA5] transition-colors w-full"
+                    className="flex items-center gap-0.5 text-[13px] text-[#374151] hover:text-[#4A6FA5] transition-colors"
                     style={{ fontWeight: 500 }}
                   >
                     {assignedTo || <span className="text-[#9CA3AF]">Unassigned</span>}
                     <span className="material-icons" style={{ fontSize: "14px", color: "#9CA3AF" }}>arrow_drop_down</span>
                   </button>
-                  {assignedTo && (
-                    <div className="text-[11px] text-[#9CA3AF] mt-0.5">Technician</div>
-                  )}
+                  {assignedTo && <div className="text-[11px] text-[#9CA3AF] mt-0.5">Technician</div>}
                   {assignedToOpen && (
                     <div className="absolute left-0 top-full mt-1 bg-white border border-[#E5E7EB] rounded-md shadow-lg z-50 w-[180px] py-1">
                       <button
                         onClick={() => { setAssignedTo(""); setAssignedToOpen(false); }}
                         className="w-full text-left px-3 py-2 text-[13px] text-[#9CA3AF] hover:bg-[#F3F4F6] italic"
-                      >
-                        Unassigned
-                      </button>
+                      >Unassigned</button>
                       {FIELD_EMPLOYEES.map((name) => (
-                        <button
-                          key={name}
-                          onClick={() => { setAssignedTo(name); setAssignedToOpen(false); }}
-                          className="w-full text-left px-3 py-2 text-[13px] text-[#374151] hover:bg-[#F3F4F6] flex items-center gap-2"
-                        >
-                          <span className="w-6 h-6 rounded-full bg-[#4A6FA5] flex items-center justify-center text-white text-[10px]" style={{ fontWeight: 600, flexShrink: 0 }}>
+                        <button key={name} onClick={() => { setAssignedTo(name); setAssignedToOpen(false); }}
+                          className="w-full text-left px-3 py-2 text-[13px] text-[#374151] hover:bg-[#F3F4F6] flex items-center gap-2">
+                          <span className="w-6 h-6 rounded-full bg-[#4A6FA5] flex items-center justify-center text-white text-[10px]" style={{ fontWeight: 600 }}>
                             {name.split(" ").map((n) => n[0]).join("")}
                           </span>
                           {name}
@@ -613,25 +642,177 @@ export function JobDetail() {
                   )}
                 </div>
               </div>
-              <div className="flex flex-col gap-1">
+              <div>
                 <div className="text-[11px] text-[#9CA3AF]">Start Time</div>
-                <div className="text-[13px] text-[#374151]" style={{ fontWeight: 500 }}>{job.startTime}</div>
+                <div className="text-[13px] text-[#374151] mt-0.5" style={{ fontWeight: 500 }}>{job.startTime}</div>
               </div>
-              <div className="flex flex-col gap-1">
+              <div>
                 <div className="text-[11px] text-[#9CA3AF]">End Time</div>
-                <div className="text-[13px] text-[#374151]" style={{ fontWeight: 500 }}>{job.endTime}</div>
+                <div className="text-[13px] text-[#374151] mt-0.5" style={{ fontWeight: 500 }}>{job.endTime}</div>
               </div>
             </div>
-          </section>
+          </div>
+        </div>
+
+        {/* ── Col 2: Notes panel with sub-tabs ── */}
+        <div className="flex-1 bg-white border border-[#E5E7EB] rounded-lg overflow-hidden">
+          {/* Header: "Notes" label + sub-tabs + "+" */}
+          <div className="flex items-center border-b border-[#E5E7EB] px-4 gap-1">
+            <span className="text-[13px] text-[#1A2332] mr-2 py-3" style={{ fontWeight: 600 }}>Notes</span>
+            {noteTabs.map(tab => (
+              <button
+                key={tab.key}
+                onClick={() => { setNoteTab(tab.key); setNotesExpanded(false); }}
+                className={`relative py-3 px-2 text-[13px] transition-colors ${
+                  noteTab === tab.key ? "text-[#4A6FA5]" : "text-[#6B7280] hover:text-[#1A2332]"
+                }`}
+                style={{ fontWeight: noteTab === tab.key ? 500 : 400 }}
+              >
+                {tab.label} <span className="opacity-70">({tab.notes.length})</span>
+                {noteTab === tab.key && <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#4A6FA5] rounded-full" />}
+              </button>
+            ))}
+            <button
+              onClick={() => { setNotesAdding(true); setNotesNewText(""); }}
+              className="ml-auto w-7 h-7 flex items-center justify-center rounded hover:bg-[#F5F7FA]"
+            >
+              <PlusIcon className="h-3.5 w-3.5 text-[#9CA3AF]" />
+            </button>
+          </div>
+
+          {/* Add note form */}
+          {notesAdding && (
+            <div className="px-4 py-3 border-b border-[#E5E7EB] bg-[#F9FAFB]">
+              <textarea
+                autoFocus value={notesNewText} onChange={e => setNotesNewText(e.target.value)}
+                placeholder="Write a note…" rows={3}
+                className="w-full text-[13px] text-[#1A2332] border border-[#E5E7EB] rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-[#4A6FA5] bg-white placeholder:text-[#9CA3AF]"
+              />
+              <div className="flex gap-2 mt-2">
+                <button onClick={handleSaveNote} disabled={!notesNewText.trim()}
+                  className="h-7 px-3 bg-[#4A6FA5] hover:bg-[#3d5a85] disabled:opacity-40 text-white text-[12px] rounded-md" style={{ fontWeight: 500 }}>Save</button>
+                <button onClick={() => { setNotesAdding(false); setNotesNewText(""); }}
+                  className="h-7 px-3 text-[#546478] hover:bg-[#EDF0F5] text-[12px] rounded-md" style={{ fontWeight: 500 }}>Cancel</button>
+              </div>
+            </div>
+          )}
+
+          {/* Notes list */}
+          {activeNotes.length === 0 && !notesAdding ? (
+            <div className="py-8 text-center text-[12px] text-[#9CA3AF]">No {noteTabs.find(t=>t.key===noteTab)?.label.toLowerCase()} notes yet</div>
+          ) : (
+            <div className="divide-y divide-[#F3F4F6]">
+              {shownNotes.map((note: NoteEntry) => (
+                <div key={note.id} className="px-4 py-3 group">
+                  <p className="text-[13px] text-[#1A2332] leading-[20px]" style={{ fontWeight: 500 }}>{note.text}</p>
+                  <div className="text-[11px] text-[#9CA3AF] mt-1">{note.date}</div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Show more */}
+          {activeNotes.length > SHOW_N && (
+            <button
+              onClick={() => setNotesExpanded(v => !v)}
+              className="w-full py-2.5 text-[12px] text-[#4A6FA5] hover:bg-[#F5F7FA] flex items-center justify-center gap-1 border-t border-[#E5E7EB] transition-colors"
+              style={{ fontWeight: 500 }}
+            >
+              <span className="material-icons" style={{ fontSize: "14px" }}>{notesExpanded ? "expand_less" : "expand_more"}</span>
+              {notesExpanded ? "Show less" : `Show ${activeNotes.length - SHOW_N} more`}
+            </button>
+          )}
+        </div>
+
+        {/* ── Col 3: Attachments (Media / Files) ── */}
+        <div className="w-[380px] shrink-0 bg-white border border-[#E5E7EB] rounded-lg overflow-hidden">
+          {/* Header */}
+          <div className="flex items-center border-b border-[#E5E7EB] px-4 py-2.5 gap-3">
+            <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>Attachments</span>
+            <div className="flex items-center gap-1 ml-1">
+              {(["media", "files"] as const).map(t => (
+                <button
+                  key={t}
+                  onClick={() => setMediaTab(t)}
+                  className={`relative px-2 py-1 text-[13px] transition-colors capitalize ${
+                    mediaTab === t ? "text-[#4A6FA5]" : "text-[#6B7280] hover:text-[#1A2332]"
+                  }`}
+                  style={{ fontWeight: mediaTab === t ? 500 : 400 }}
+                >
+                  {t === "media" ? `Media (${MOCK_PHOTOS.length})` : `Files (${documents.filter(d => !d.isImage).length})`}
+                  {mediaTab === t && <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#4A6FA5] rounded-full" />}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Media tab */}
+          {mediaTab === "media" && (
+            <div className="flex" style={{ minHeight: 260 }}>
+              {/* Thumbnail grid (2 cols) */}
+              <div className="w-[110px] shrink-0 p-2 border-r border-[#F3F4F6] grid grid-cols-2 gap-1 content-start overflow-y-auto" style={{ maxHeight: 320 }}>
+                {MOCK_PHOTOS.map((photo, idx) => (
+                  <button
+                    key={photo.id}
+                    onClick={() => setMediaPreviewIdx(idx)}
+                    className={`aspect-square rounded overflow-hidden border-2 transition-all ${
+                      idx === mediaPreviewIdx ? "border-[#4A6FA5]" : "border-transparent hover:border-[#C5D5EC]"
+                    }`}
+                  >
+                    <div className="w-full h-full" style={{ background: photo.gradient }} />
+                  </button>
+                ))}
+              </div>
+
+              {/* Large preview */}
+              <div className="flex-1 relative flex items-center justify-center p-3 bg-[#FAFBFC]">
+                <button
+                  onClick={() => setMediaPreviewIdx(i => (i - 1 + MOCK_PHOTOS.length) % MOCK_PHOTOS.length)}
+                  className="absolute left-2 top-1/2 -translate-y-1/2 z-10 w-7 h-7 rounded-full bg-white border border-[#E5E7EB] shadow flex items-center justify-center hover:bg-[#F5F7FA]"
+                >
+                  <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>chevron_left</span>
+                </button>
+                <div className="w-full aspect-[4/3] rounded-lg overflow-hidden relative">
+                  <div className="w-full h-full" style={{ background: MOCK_PHOTOS[mediaPreviewIdx]?.gradient }} />
+                  {MOCK_PHOTOS[mediaPreviewIdx]?.tag && (
+                    <span className="absolute left-2 bottom-2 px-2 py-0.5 rounded text-[10px] text-white bg-[#16A34A]" style={{ fontWeight: 600 }}>
+                      {MOCK_PHOTOS[mediaPreviewIdx].tag}
+                    </span>
+                  )}
+                  <span className="absolute right-2 bottom-2 px-2 py-0.5 rounded text-[10px] text-white bg-black/60" style={{ fontWeight: 500 }}>
+                    {mediaPreviewIdx + 1}/{MOCK_PHOTOS.length}
+                  </span>
+                  <button
+                    onClick={() => setMediaPreviewIdx(i => (i + 1) % MOCK_PHOTOS.length)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 z-10 w-7 h-7 rounded-full bg-white border border-[#E5E7EB] shadow flex items-center justify-center hover:bg-[#F5F7FA]"
+                  >
+                    <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>chevron_right</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Files tab */}
+          {mediaTab === "files" && (
+            <div className="divide-y divide-[#F3F4F6]">
+              {documents.filter(d => !d.isImage).length === 0 ? (
+                <div className="py-8 text-center text-[13px] text-[#9CA3AF]">No files yet</div>
+              ) : documents.filter(d => !d.isImage).map(f => (
+                <div key={f.id} className="flex items-center gap-3 px-4 py-2.5 hover:bg-[#F9FBFD]">
+                  <span className="material-icons" style={{ fontSize: "20px", color: f.iconColor }}>{f.icon}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[13px] text-[#1A2332] truncate" style={{ fontWeight: 500 }}>{f.name}</div>
+                    <div className="text-[11px] text-[#9CA3AF]">{f.size} · {f.date}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
-
-      {/* ── Right: single combined Notes column (matches Client Detail layout) ── */}
-      <div className="flex-1">
-        <NoteColumn title="Notes" initialNotes={[...job.notes, ...job.fieldNotes, ...job.privateNotes]} />
-      </div>
-    </div>
-  );
+    );
+  };
 
   const renderEstimateTab = () => (
     <>
@@ -1128,6 +1309,7 @@ export function JobDetail() {
       case "items":     return renderItemsTab();
       case "expenses":  return renderExpensesTab();
       case "documents": return renderDocumentsTab();
+      case "notes":     return <NoteColumn title="Notes" initialNotes={[...job.notes, ...job.fieldNotes, ...job.privateNotes]} />;
       default: return null;
     }
   };
@@ -1337,17 +1519,67 @@ export function JobDetail() {
           </div>
         </div>
 
-        {/* ── UNIFIED TAB BAR ── */}
-        <DetailTabs
-          tabs={visibleTabs}
-          activeTab={activeTab}
-          onChange={setActiveTab}
-          trailing={<TabSettingsButton onClick={() => setShowTabSettings(true)} />}
-          className="mt-2"
-        />
+        {/* ── PILL TAB BAR + CREATE ── */}
+        <div className="flex items-center justify-between gap-3 mt-4">
+          <div className="flex items-center gap-0.5 flex-wrap">
+            {visibleTabs.map(tab => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-[13px] transition-colors ${
+                  activeTab === tab.key
+                    ? "bg-[#1A2332] text-white"
+                    : "text-[#6B7280] hover:text-[#1A2332] hover:bg-[#F5F7FA]"
+                }`}
+                style={{ fontWeight: activeTab === tab.key ? 500 : 400 }}
+              >
+                {tab.label}
+                {tab.count != null && tab.count > 0 && (
+                  <span className={`text-[11px] ${activeTab === tab.key ? "opacity-60" : "text-[#9CA3AF]"}`}>
+                    ({tab.count})
+                  </span>
+                )}
+              </button>
+            ))}
+            <TabSettingsButton onClick={() => setShowTabSettings(true)} />
+          </div>
+
+          {/* + Create dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                className="h-9 px-3 shrink-0 inline-flex items-center gap-1.5 text-[13px] text-white bg-[#4A6FA5] rounded-lg hover:bg-[#3d5a85] transition-colors"
+                style={{ fontWeight: 600 }}
+              >
+                <span className="material-icons" style={{ fontSize: "16px" }}>add</span>
+                Create
+                <span className="material-icons" style={{ fontSize: "15px" }}>keyboard_arrow_down</span>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-[180px] p-1">
+              <DropdownMenuItem
+                className="h-9 px-3 text-[13px] text-[#374151] flex items-center gap-2.5 cursor-pointer"
+                onClick={() => navigate(`/estimates/create?fromJob=${job.id}&client=${encodeURIComponent(job.client)}`)}
+              >
+                <span className="material-icons text-[#6B7280]" style={{ fontSize: "16px" }}>request_quote</span>
+                Create Estimate
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="h-9 px-3 text-[13px] text-[#374151] flex items-center gap-2.5 cursor-pointer"
+                onClick={() => navigate(`/invoices/create?job=${job.jobNumber}&client=${encodeURIComponent(job.client)}`)}
+              >
+                <span className="material-icons text-[#6B7280]" style={{ fontSize: "16px" }}>receipt</span>
+                Create Invoice
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
+        {/* divider below tab bar */}
+        <div className="h-px bg-[#E5E7EB] mt-3 mb-4" />
 
         {/* ── CONTENT AREA ── */}
-        <div className="mt-4">
+        <div>
           {renderContent()}
         </div>
       </div>

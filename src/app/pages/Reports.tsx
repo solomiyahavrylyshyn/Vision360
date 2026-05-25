@@ -30,217 +30,278 @@ const jobsReports: Report[] = [
 const clientsReports: Report[] = [
   { name: "Client Report", description: "Client details and job / revenue summary.", lastRun: "3 days ago", lastRunColor: "default" },
   { name: "Team Report", description: "Revenue and performance by technician.", lastRun: "Tomorrow", lastRunColor: "orange" },
-  { name: "Items Report (Items Usage Report)", description: "Item usage and inventory movement summary.", lastRun: "5 days ago", lastRunColor: "default" },
+  { name: "Items Report", description: "Item usage and inventory movement summary.", lastRun: "5 days ago", lastRunColor: "default" },
 ];
 
 const scheduledReports = [
-  { name: "Jobs Report", schedule: "Daily at 7:00 AM", nextRun: "Next run: Tomorrow", nextRunColor: "orange" },
-  { name: "Revenue Report", schedule: "Weekly on Monday", nextRun: "Next run: Jun 2, 2025", nextRunColor: "default" },
-  { name: "Payments Report", schedule: "Monthly on 1st", nextRun: "Next run: Jun 1, 2025", nextRunColor: "default" },
+  { name: "Jobs Report",    schedule: "Daily at 7:00 AM",  nextRun: "Tomorrow",      nextRunColor: "orange"   },
+  { name: "Revenue Report", schedule: "Weekly on Monday",  nextRun: "Jun 2, 2025",   nextRunColor: "default"  },
+  { name: "Payments Report",schedule: "Monthly on 1st",    nextRun: "Jun 1, 2025",   nextRunColor: "default"  },
 ];
 
-function LastRunBadge({ label, color }: { label: string; color?: "default" | "green" | "orange" }) {
-  const cls =
-    color === "orange"
-      ? "text-[#D97706]"
-      : color === "green"
-      ? "text-[#16A34A]"
-      : "text-[#546478]";
-  return <span className={`text-xs font-medium ${cls} whitespace-nowrap`}>{label}</span>;
-}
+const TABS = [
+  { id: "all",       label: "All Business" },
+  { id: "sales",     label: "Sales Performance" },
+  { id: "financial", label: "Financial Performance" },
+  { id: "reports",   label: "Reports" },
+];
 
+/* ── single report row ── */
 function ReportRow({ report }: { report: Report }) {
+  const lastRunColor =
+    report.lastRunColor === "orange" ? "text-[#D97706]" :
+    report.lastRunColor === "green"  ? "text-[#16A34A]" :
+    "text-[#9CA3AF]";
+
   return (
-    <div className="flex items-center justify-between py-3 border-b border-[#F3F4F6] last:border-0 gap-4">
+    <div className="flex items-center justify-between px-4 py-[10px] border-b border-[#F3F4F6] last:border-0 gap-3 hover:bg-[#F9FBFD] transition-colors">
       <div className="flex-1 min-w-0">
-        <div className="text-sm font-semibold text-[#1A2332] truncate">{report.name}</div>
-        <div className="text-xs text-[#546478] truncate">{report.description}</div>
+        <div className="text-[14px] text-[#1A2332] truncate" style={{ fontFamily: "Geist", fontWeight: 500, lineHeight: "20px" }}>
+          {report.name}
+        </div>
+        <div className="text-[13px] text-[#546478] truncate" style={{ fontFamily: "Geist", fontWeight: 400, lineHeight: "18px" }}>
+          {report.description}
+        </div>
       </div>
-      <div className="flex items-center gap-3 shrink-0">
-        {report.lastRun && <LastRunBadge label={report.lastRun} color={report.lastRunColor} />}
-        <button className="text-[#546478] hover:text-[#1A2332] transition-colors" title="Preview">
-          <span className="material-icons" style={{ fontSize: 15 }}>visibility</span>
+      <div className="flex items-center gap-1 shrink-0">
+        {report.lastRun && (
+          <span className={`text-[12px] mr-1 ${lastRunColor}`} style={{ fontFamily: "Geist" }}>
+            {report.lastRun}
+          </span>
+        )}
+        <button
+          className="w-7 h-7 flex items-center justify-center rounded hover:bg-[#EDF0F5] text-[#9CA3AF] hover:text-[#546478] transition-colors"
+          title="Preview"
+        >
+          <span className="material-icons" style={{ fontSize: 16 }}>visibility</span>
         </button>
-        <button className="text-[#546478] hover:text-[#1A2332] transition-colors" title="Download">
-          <span className="material-icons" style={{ fontSize: 15 }}>file_download</span>
+        <button
+          className="w-7 h-7 flex items-center justify-center rounded hover:bg-[#EDF0F5] text-[#9CA3AF] hover:text-[#546478] transition-colors"
+          title="Download"
+        >
+          <span className="material-icons" style={{ fontSize: 16 }}>file_download</span>
         </button>
       </div>
     </div>
   );
 }
 
+/* ── scrollable card — body grows with content, caps at maxHeight ── */
 function SectionCard({ icon, title, reports }: { icon: string; title: string; reports: Report[] }) {
   return (
-    <div className="mb-5">
-      <div className="flex items-center gap-2 mb-2">
-        <span className="material-icons text-[#4A6FA5]" style={{ fontSize: 16 }}>{icon}</span>
-        <span className="text-sm font-bold text-[#1A2332]">{title}</span>
+    <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
+      {/* fixed header */}
+      <div className="flex items-center gap-2 px-4 py-3 border-b border-[#E5E7EB] bg-[#F9FBFD]">
+        <span className="material-icons text-[#4A6FA5]" style={{ fontSize: 18 }}>{icon}</span>
+        <span className="text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist", fontWeight: 600 }}>{title}</span>
+        <span className="ml-auto text-[12px] text-[#546478] bg-[#EDF0F5] px-2 py-0.5 rounded-full" style={{ fontFamily: "Geist" }}>
+          {reports.length}
+        </span>
       </div>
-      <div className="bg-white rounded-xl border border-[#E5E7EB] px-4 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
-        {reports.map((r) => (
-          <ReportRow key={r.name} report={r} />
-        ))}
+      {/* body: grows with content, scrolls after 4 rows (~220px) */}
+      <div className="overflow-y-auto" style={{ maxHeight: 220 }}>
+        {reports.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-8 gap-1">
+            <span className="material-icons text-[#D1D5DB]" style={{ fontSize: 28 }}>search_off</span>
+            <span className="text-[13px] text-[#9CA3AF]" style={{ fontFamily: "Geist" }}>No reports found</span>
+          </div>
+        ) : (
+          reports.map((r) => <ReportRow key={r.name} report={r} />)
+        )}
       </div>
     </div>
   );
 }
 
+/* ── main page ── */
 export function Reports() {
   const [activeTab, setActiveTab] = useState("reports");
   const [search, setSearch] = useState("");
 
+  const q = search.toLowerCase().trim();
+  const filter = (list: Report[]) =>
+    q ? list.filter((r) => r.name.toLowerCase().includes(q) || r.description.toLowerCase().includes(q)) : list;
+
+  const totalReports =
+    financialReports.length + estimatesReports.length + jobsReports.length + clientsReports.length;
+
   return (
-    <div className="p-8 min-h-screen bg-[#F9FAFB]">
-      {/* Header */}
-      <div className="flex items-start justify-between mb-5">
+    <div className="p-6 min-h-screen bg-[#F5F7FA]">
+
+      {/* ── Header ── */}
+      <div className="flex items-start justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-[#1A2332]">Omega Home Services Business Insights</h1>
-          <p className="text-sm text-[#546478] mt-0.5">Generate, schedule, and export business reports.</p>
+          <h1 className="text-[20px] text-[#1A2332] leading-[28px]" style={{ fontFamily: "Geist", fontWeight: 700 }}>
+            Business Insights
+          </h1>
+          <p className="text-[14px] text-[#546478] mt-0.5" style={{ fontFamily: "Geist" }}>
+            Generate, schedule, and export business reports.
+          </p>
         </div>
-        <div className="flex items-center gap-3 shrink-0">
-          <button className="flex items-center gap-1.5 text-sm font-medium text-[#1A2332] bg-white border border-[#E5E7EB] rounded-lg px-3 py-2 shadow-sm hover:bg-[#F3F4F6] transition-colors">
-            <span className="material-icons text-[#546478]" style={{ fontSize: 15 }}>calendar_today</span>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            className="h-9 px-3 flex items-center gap-1.5 text-[13px] text-[#1A2332] bg-white border border-[#E5E7EB] rounded-lg hover:bg-[#F5F7FA] transition-colors"
+            style={{ fontFamily: "Geist", fontWeight: 500 }}
+          >
+            <span className="material-icons text-[#546478]" style={{ fontSize: 16 }}>calendar_today</span>
             This Month
-            <span className="material-icons text-[#546478]" style={{ fontSize: 14 }}>keyboard_arrow_down</span>
+            <span className="material-icons text-[#546478]" style={{ fontSize: 15 }}>keyboard_arrow_down</span>
           </button>
-          <button className="flex items-center gap-1.5 text-sm font-semibold text-white bg-[#4A6FA5] rounded-lg px-4 py-2 shadow-sm hover:bg-[#3d5a85] transition-colors">
-            <span className="material-icons" style={{ fontSize: 15 }}>bar_chart</span>
+          <button
+            className="h-9 px-4 flex items-center gap-1.5 text-[13px] text-white bg-[#4A6FA5] rounded-lg hover:bg-[#3d5a85] transition-colors"
+            style={{ fontFamily: "Geist", fontWeight: 600 }}
+          >
+            <span className="material-icons" style={{ fontSize: 16 }}>bar_chart</span>
             Generate Report
           </button>
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex items-center gap-1 mb-5 border-b border-[#E5E7EB]">
-        {[
-          { id: "all", label: "All Business" },
-          { id: "sales", label: "Sales Performance" },
-          { id: "financial", label: "Financial Performance" },
-          { id: "reports", label: "Reports" },
-        ].map((tab) => (
+      {/* ── Tabs ── */}
+      <div className="flex items-center border-b border-[#E5E7EB] mb-6">
+        {TABS.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`px-4 py-2.5 text-sm font-medium rounded-t-md transition-colors border-b-2 -mb-px ${
-              activeTab === tab.id
-                ? "text-white bg-[#1A2332] border-[#1A2332]"
-                : "text-[#546478] border-transparent hover:text-[#1A2332] hover:border-[#E5E7EB]"
+            className={`relative px-4 py-2.5 text-[14px] transition-colors mr-1 ${
+              activeTab === tab.id ? "text-[#4A6FA5]" : "text-[#6B7280] hover:text-[#1A2332]"
             }`}
+            style={{ fontFamily: "Geist", fontWeight: activeTab === tab.id ? 500 : 400 }}
           >
             {tab.label}
+            {activeTab === tab.id && (
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#4A6FA5] rounded-full" />
+            )}
           </button>
         ))}
       </div>
 
-      {/* Stat Cards */}
+      {/* ── KPI cards ── */}
       <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className="bg-white rounded-xl border border-[#E5E7EB] px-5 py-4 flex items-center justify-between shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
-          <div>
-            <div className="text-2xl font-bold text-[#1A2332]">14</div>
-            <div className="text-xs text-[#546478] mt-0.5">Reports available</div>
-          </div>
-          <div className="w-10 h-10 bg-[#EFF6FF] rounded-xl flex items-center justify-center">
-            <span className="material-icons text-[#4A6FA5]" style={{ fontSize: 20 }}>description</span>
-          </div>
-        </div>
-        <div className="bg-white rounded-xl border border-[#E5E7EB] px-5 py-4 flex items-center justify-between shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
-          <div>
-            <div className="text-2xl font-bold text-[#1A2332]">2 days ago</div>
-            <div className="text-xs text-[#546478] mt-0.5">Last export</div>
-            <div className="text-xs font-semibold text-[#1A2332] mt-0.5">Revenue Report</div>
-          </div>
-          <div className="w-10 h-10 bg-[#F0FDF4] rounded-xl flex items-center justify-center">
-            <span className="material-icons text-[#16A34A]" style={{ fontSize: 20 }}>file_download</span>
-          </div>
-        </div>
-        <div className="bg-white rounded-xl border border-[#E5E7EB] px-5 py-4 flex items-center justify-between shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
-          <div>
-            <div className="text-2xl font-bold text-[#1A2332]">3</div>
-            <div className="text-xs text-[#546478] mt-0.5">Scheduled reports</div>
-            <div className="text-xs font-semibold text-[#1A2332] mt-0.5">
-              Next: Jobs Report <span className="text-[#546478] font-normal">(Tomorrow)</span>
+        {[
+          {
+            value: String(totalReports),
+            label: "Reports available",
+            icon: "description",
+            iconBg: "#EFF6FF",
+            iconColor: "#4A6FA5",
+          },
+          {
+            value: "2 days ago",
+            label: "Last export",
+            sublabel: "Revenue Report",
+            icon: "file_download",
+            iconBg: "#F0FDF4",
+            iconColor: "#16A34A",
+          },
+          {
+            value: String(scheduledReports.length),
+            label: "Scheduled reports",
+            sublabel: "Next: Jobs Report (Tomorrow)",
+            icon: "schedule",
+            iconBg: "#FFFBEB",
+            iconColor: "#D97706",
+          },
+        ].map(({ value, label, sublabel, icon, iconBg, iconColor }) => (
+          <div key={label} className="bg-white border border-[#E5E7EB] rounded-xl px-5 py-4 flex items-center justify-between">
+            <div>
+              <div className="text-[22px] text-[#1A2332] leading-tight" style={{ fontFamily: "Geist", fontWeight: 700 }}>
+                {value}
+              </div>
+              <div className="text-[12px] text-[#546478] mt-0.5" style={{ fontFamily: "Geist" }}>{label}</div>
+              {sublabel && (
+                <div className="text-[12px] text-[#1A2332] mt-0.5" style={{ fontFamily: "Geist", fontWeight: 500 }}>
+                  {sublabel}
+                </div>
+              )}
+            </div>
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: iconBg }}>
+              <span className="material-icons" style={{ fontSize: 20, color: iconColor }}>{icon}</span>
             </div>
           </div>
-          <div className="w-10 h-10 bg-[#FFFBEB] rounded-xl flex items-center justify-center">
-            <span className="material-icons text-[#D97706]" style={{ fontSize: 20 }}>schedule</span>
-          </div>
-        </div>
+        ))}
       </div>
 
-      {/* Search + Filter bar */}
+      {/* ── Search + filter bar ── */}
       <div className="flex items-center gap-3 mb-5">
-        <div className="relative flex-1 max-w-sm">
-          <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: 15 }}>search</span>
+        <div className="relative w-[300px]">
+          <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: 16 }}>search</span>
           <input
             type="text"
             placeholder="Search reports..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-8 pr-4 py-2 text-sm bg-white border border-[#E5E7EB] rounded-lg text-[#1A2332] placeholder-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#4A6FA5]/30"
+            className="w-full h-9 pl-9 pr-4 text-[13px] bg-white border border-[#E5E7EB] rounded-lg text-[#1A2332] placeholder-[#9CA3AF] focus:outline-none focus:border-[#4A6FA5] transition-colors"
+            style={{ fontFamily: "Geist" }}
           />
         </div>
-        <div className="ml-auto flex items-center gap-2">
-          <button className="flex items-center gap-1.5 text-sm text-[#1A2332] bg-white border border-[#E5E7EB] rounded-lg px-3 py-2 hover:bg-[#F3F4F6] transition-colors">
-            All Categories
-            <span className="material-icons text-[#546478]" style={{ fontSize: 14 }}>keyboard_arrow_down</span>
+        <button
+          className="ml-auto h-9 px-3 flex items-center gap-1.5 text-[13px] text-[#1A2332] bg-white border border-[#E5E7EB] rounded-lg hover:bg-[#F5F7FA] transition-colors"
+          style={{ fontFamily: "Geist" }}
+        >
+          All Categories
+          <span className="material-icons text-[#546478]" style={{ fontSize: 15 }}>keyboard_arrow_down</span>
+        </button>
+      </div>
+
+      {/* ── two flex columns — cards grow to content, scroll after 4 rows ── */}
+      <div className="flex gap-4 mb-4">
+        <div className="flex-1 flex flex-col gap-4">
+          <SectionCard icon="bar_chart"   title="Financial / Business" reports={filter(financialReports)} />
+          <SectionCard icon="description" title="Estimates"            reports={filter(estimatesReports)} />
+        </div>
+        <div className="flex-1 flex flex-col gap-4">
+          <SectionCard icon="group" title="Clients / Team / Items" reports={filter(clientsReports)} />
+          <SectionCard icon="work"  title="Jobs"                   reports={filter(jobsReports)} />
+        </div>
+      </div>
+
+      {/* ── Scheduled Reports (full width) ── */}
+      <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden mb-4">
+        <div className="flex items-center gap-2 px-4 py-3 border-b border-[#E5E7EB] bg-[#F9FBFD]">
+          <span className="material-icons text-[#4A6FA5]" style={{ fontSize: 18 }}>schedule</span>
+          <span className="text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist", fontWeight: 600 }}>Scheduled Reports</span>
+          <button className="ml-auto text-[13px] text-[#4A6FA5] hover:underline" style={{ fontFamily: "Geist" }}>
+            View all
           </button>
         </div>
-      </div>
-
-      {/* Two-column layout */}
-      <div className="grid grid-cols-2 gap-6">
-        {/* Left column */}
         <div>
-          <SectionCard icon="bar_chart" title="Financial / Business" reports={financialReports} />
-          <SectionCard icon="description" title="Estimates" reports={estimatesReports} />
-        </div>
-
-        {/* Right column */}
-        <div>
-          <SectionCard icon="work" title="Jobs" reports={jobsReports} />
-          <SectionCard icon="group" title="Clients / Team / Items" reports={clientsReports} />
-
-          {/* Recent Scheduled Reports */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <span className="material-icons text-[#4A6FA5]" style={{ fontSize: 16 }}>schedule</span>
-                <span className="text-sm font-bold text-[#1A2332]">Recent Scheduled Reports</span>
-              </div>
-              <button className="text-sm font-medium text-[#4A6FA5] hover:underline">View all</button>
-            </div>
-            <div className="bg-white rounded-xl border border-[#E5E7EB] px-4 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
-              {scheduledReports.map((r, i) => (
-                <div
-                  key={r.name + i}
-                  className="flex items-center justify-between py-3 border-b border-[#F3F4F6] last:border-0 gap-4"
-                >
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-semibold text-[#1A2332] truncate">{r.name}</div>
-                    <div className="text-xs text-[#546478] truncate">{r.schedule}</div>
-                  </div>
-                  <div className="flex items-center gap-3 shrink-0">
-                    <span className={`text-xs font-medium ${r.nextRunColor === "orange" ? "text-[#D97706]" : "text-[#546478]"}`}>
-                      {r.nextRun}
-                    </span>
-                    <button className="text-[#546478] hover:text-[#1A2332] transition-colors">
-                      <span className="material-icons" style={{ fontSize: 16 }}>more_horiz</span>
-                    </button>
-                  </div>
+          {scheduledReports.map((r, i) => (
+            <div
+              key={r.name + i}
+              className="flex items-center justify-between px-4 py-[10px] border-b border-[#F3F4F6] last:border-0 gap-4 hover:bg-[#F9FBFD] transition-colors"
+            >
+              <div className="flex-1 min-w-0">
+                <div className="text-[14px] text-[#1A2332] truncate" style={{ fontFamily: "Geist", fontWeight: 500, lineHeight: "20px" }}>
+                  {r.name}
                 </div>
-              ))}
+                <div className="text-[13px] text-[#546478] truncate" style={{ fontFamily: "Geist", lineHeight: "18px" }}>
+                  {r.schedule}
+                </div>
+              </div>
+              <div className="flex items-center gap-3 shrink-0">
+                <span
+                  className={`text-[12px] ${r.nextRunColor === "orange" ? "text-[#D97706]" : "text-[#546478]"}`}
+                  style={{ fontFamily: "Geist" }}
+                >
+                  Next run: {r.nextRun}
+                </span>
+                <button className="w-7 h-7 flex items-center justify-center rounded hover:bg-[#EDF0F5] text-[#9CA3AF] hover:text-[#546478] transition-colors">
+                  <span className="material-icons" style={{ fontSize: 16 }}>more_horiz</span>
+                </button>
+              </div>
             </div>
-          </div>
+          ))}
         </div>
       </div>
 
-      {/* Footer banner */}
-      <div className="mt-6 flex items-center justify-between bg-white border border-[#E5E7EB] rounded-xl px-5 py-3 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
-        <div className="flex items-center gap-2 text-sm text-[#546478]">
+      {/* ── Footer banner ── */}
+      <div className="flex items-center justify-between bg-white border border-[#E5E7EB] rounded-xl px-5 py-3">
+        <div className="flex items-center gap-2 text-[13px] text-[#546478]" style={{ fontFamily: "Geist" }}>
           <span className="material-icons text-[#4A6FA5]" style={{ fontSize: 16 }}>info</span>
           Need a custom report? Contact support or let us know what you'd like to see.
         </div>
-        <button className="flex items-center gap-1 text-sm font-medium text-[#4A6FA5] hover:underline">
+        <button className="flex items-center gap-1 text-[13px] text-[#4A6FA5] hover:underline" style={{ fontFamily: "Geist", fontWeight: 500 }}>
           Contact Support
           <span className="material-icons" style={{ fontSize: 14 }}>open_in_new</span>
         </button>
