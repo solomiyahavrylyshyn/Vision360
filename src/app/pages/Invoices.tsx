@@ -590,14 +590,14 @@ export function Invoices() {
               <div className="w-10 h-10 rounded-full bg-[#FEE2E2] flex items-center justify-center">
                 <span className="material-icons text-[#DC2626]" style={{ fontSize: "22px" }}>warning</span>
               </div>
-              <h3 className="text-[18px] text-[#1A2332]" style={{ fontWeight: 700 }}>Archive invoices?</h3>
+              <h3 className="text-[18px] text-[#1A2332]" style={{ fontWeight: 700 }}>Inactivate invoices?</h3>
             </div>
             <p className="text-[14px] text-[#546478] mb-6">
-              Archive {selectedIds.size} invoice(s)? They can be restored later.
+              Inactivate {selectedIds.size} invoice(s)? They can be restored later.
             </p>
             <div className="flex items-center justify-end gap-3">
               <button onClick={() => setDeleteConfirm(false)} className="px-4 py-2.5 border border-[#E5E7EB] text-[#546478] rounded-lg text-[13px] hover:bg-[#F5F7FA]" style={{ fontWeight: 500 }}>Cancel</button>
-              <button onClick={handleBulkDelete} className="px-4 py-2.5 bg-[#DC2626] text-white rounded-lg text-[13px] hover:bg-[#B91C1C]" style={{ fontWeight: 600 }}>Archive</button>
+              <button onClick={handleBulkDelete} className="px-4 py-2.5 bg-[#DC2626] text-white rounded-lg text-[13px] hover:bg-[#B91C1C]" style={{ fontWeight: 600 }}>Inactivate</button>
             </div>
           </div>
         </div>
