@@ -149,7 +149,7 @@ const mockEstimates: Record<string, EstimateData> = {
 
 type TabKey = "details" | "deposit" | "activity";
 const TABS: { key: TabKey; label: string }[] = [
-  { key: "details", label: "Details" },
+  { key: "details", label: "Estimate Details" },
   { key: "deposit", label: "Deposit" },
   { key: "activity", label: "Activity" },
 ];
@@ -890,9 +890,45 @@ export function EstimateDetail() {
           <div className="flex items-start justify-between gap-6">
             {/* Left: name + contact info */}
             <div className="flex flex-col gap-1 min-w-0">
-              <h1 className="text-[20px] text-[#1A2332] leading-[27px]" style={{ fontWeight: 700 }}>
-                {estimate.estimateName || `Estimate #${estimate.estimateNumber}`}
-              </h1>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-[20px] text-[#1A2332] leading-[27px]" style={{ fontWeight: 700 }}>
+                  {estimate.estimateName || `Estimate #${estimate.estimateNumber}`}
+                </h1>
+                <div ref={statusRef} className="relative">
+                  <button onClick={() => setStatusOpen(!statusOpen)}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[13px] hover:opacity-80 transition-opacity"
+                    style={{ fontWeight: 600, color: statusColors[estimate.status], backgroundColor: statusBg[estimate.status] }}>
+                    <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: statusColors[estimate.status] }} />
+                    {estimate.status}
+                    <span className="material-icons" style={{ fontSize: "14px" }}>arrow_drop_down</span>
+                  </button>
+                  {statusOpen && (
+                    <div className="absolute left-0 top-[calc(100%+4px)] w-[200px] bg-white border border-[#E5E7EB] rounded-xl shadow-lg z-40 py-1.5">
+                      {primaryStatuses.map(s => (
+                        <button key={s} onClick={() => { setEstimate(prev => ({ ...prev, status: s })); setStatusOpen(false); }}
+                          className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-[13px] transition-colors ${s === estimate.status ? "bg-[#EEF3FA]" : "hover:bg-[#F5F7FA]"}`}
+                          style={{ fontWeight: s === estimate.status ? 600 : 400, color: s === estimate.status ? "#4A6FA5" : "#1A2332" }}>
+                          <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: statusColors[s] }} />
+                          {s}
+                          {s === estimate.status && <span className="material-icons ml-auto" style={{ fontSize: "16px", color: "#4A6FA5" }}>check</span>}
+                        </button>
+                      ))}
+                      <div className="mx-3 my-1 border-t border-[#F3F4F6]" />
+                      <div className="px-3.5 pb-1">
+                        <span className="text-[10px] uppercase tracking-wider text-[#9CA3AF]" style={{ fontWeight: 600 }}>Other</span>
+                      </div>
+                      {otherStatuses.map(s => (
+                        <button key={s} onClick={() => { setEstimate(prev => ({ ...prev, status: s })); setStatusOpen(false); }}
+                          className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-[13px] transition-colors ${s === estimate.status ? "bg-[#EEF3FA]" : "hover:bg-[#F5F7FA]"}`}
+                          style={{ fontWeight: s === estimate.status ? 600 : 400, color: s === estimate.status ? "#4A6FA5" : "#1A2332" }}>
+                          <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: statusColors[s] }} />
+                          {s}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
               {/* Client + phone + email + address + job inline row */}
               <div className="flex items-center gap-0.5 flex-wrap">
                 <button onClick={() => navigate("/clients/1")} className="flex items-center gap-1.5 text-[14px] text-[#4A6FA5] hover:underline transition-colors" style={{ fontWeight: 500 }}>
@@ -960,58 +996,22 @@ export function EstimateDetail() {
               </div>
             </div>
 
-            {/* Right: Total + Status + kebab */}
+            {/* Right: Total + kebab */}
             <div className="flex flex-col items-end gap-3 shrink-0">
               <div className="text-right">
                 <div className="text-[11px] text-[#9CA3AF] uppercase tracking-wide mb-0.5" style={{ fontWeight: 600 }}>Total (USD)</div>
                 <div className="text-[28px] text-[#1A2332] leading-tight" style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>${fmt(total)}</div>
               </div>
-              <div className="flex items-center gap-2">
-                <div ref={statusRef} className="relative">
-                  <button onClick={() => setStatusOpen(!statusOpen)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] hover:opacity-80 transition-opacity"
-                    style={{ fontWeight: 600, color: statusColors[estimate.status], backgroundColor: statusBg[estimate.status] }}>
-                    <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: statusColors[estimate.status] }} />
-                    {estimate.status}
-                    <span className="material-icons" style={{ fontSize: "15px" }}>expand_more</span>
-                  </button>
-                  {statusOpen && (
-                    <div className="absolute right-0 top-[calc(100%+4px)] w-[200px] bg-white border border-[#E5E7EB] rounded-xl shadow-lg z-40 py-1.5">
-                      {primaryStatuses.map(s => (
-                        <button key={s} onClick={() => { setEstimate(prev => ({ ...prev, status: s })); setStatusOpen(false); }}
-                          className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-[13px] transition-colors ${s === estimate.status ? "bg-[#EEF3FA]" : "hover:bg-[#F5F7FA]"}`}
-                          style={{ fontWeight: s === estimate.status ? 600 : 400, color: s === estimate.status ? "#4A6FA5" : "#1A2332" }}>
-                          <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: statusColors[s] }} />
-                          {s}
-                          {s === estimate.status && <span className="material-icons ml-auto" style={{ fontSize: "16px", color: "#4A6FA5" }}>check</span>}
-                        </button>
-                      ))}
-                      <div className="mx-3 my-1 border-t border-[#F3F4F6]" />
-                      <div className="px-3.5 pb-1">
-                        <span className="text-[10px] uppercase tracking-wider text-[#9CA3AF]" style={{ fontWeight: 600 }}>Other</span>
-                      </div>
-                      {otherStatuses.map(s => (
-                        <button key={s} onClick={() => { setEstimate(prev => ({ ...prev, status: s })); setStatusOpen(false); }}
-                          className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-[13px] transition-colors ${s === estimate.status ? "bg-[#EEF3FA]" : "hover:bg-[#F5F7FA]"}`}
-                          style={{ fontWeight: s === estimate.status ? 600 : 400, color: s === estimate.status ? "#4A6FA5" : "#1A2332" }}>
-                          <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: statusColors[s] }} />
-                          {s}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <KebabMenu triggerClassName="w-8 h-8 border border-[#E5E7EB] rounded-md bg-white flex items-center justify-center hover:bg-[#F5F7FA]">
-                  <KebabItem icon="send">Send to Client</KebabItem>
-                  <KebabItem icon="receipt">Make Invoice</KebabItem>
-                  <KebabItem icon="link">Get Link</KebabItem>
-                  <KebabItem icon="print" onClick={() => setCustomerPreviewOpen(true)}>Print</KebabItem>
-                  <KebabSeparator />
-                  <KebabItem icon="content_copy">Duplicate</KebabItem>
-                  <KebabSeparator />
-                  <KebabItem icon="delete" destructive>Delete</KebabItem>
-                </KebabMenu>
-              </div>
+              <KebabMenu triggerClassName="w-8 h-8 border border-[#E5E7EB] rounded-md bg-white flex items-center justify-center hover:bg-[#F5F7FA]">
+                <KebabItem icon="send">Send to Client</KebabItem>
+                <KebabItem icon="receipt">Make Invoice</KebabItem>
+                <KebabItem icon="link">Get Link</KebabItem>
+                <KebabItem icon="print" onClick={() => setCustomerPreviewOpen(true)}>Print</KebabItem>
+                <KebabSeparator />
+                <KebabItem icon="content_copy">Duplicate</KebabItem>
+                <KebabSeparator />
+                <KebabItem icon="delete" destructive>Delete</KebabItem>
+              </KebabMenu>
             </div>
           </div>
         </div>

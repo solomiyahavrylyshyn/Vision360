@@ -347,7 +347,10 @@ export function PaymentDetail() {
         {/* ── PILL TAB BAR ── */}
         <div className="flex items-center justify-between gap-3 mt-4">
           <div className="flex items-center gap-0.5">
-            {(["details", "activity"] as TabKey[]).map(key => (
+            {([
+              { key: "details" as TabKey, label: "Payment Details" },
+              { key: "activity" as TabKey, label: "Activity" },
+            ]).map(({ key, label }) => (
               <button
                 key={key}
                 onClick={() => setActiveTab(key)}
@@ -358,7 +361,7 @@ export function PaymentDetail() {
                 }`}
                 style={{ fontWeight: activeTab === key ? 500 : 400 }}
               >
-                {key.charAt(0).toUpperCase() + key.slice(1)}
+                {label}
               </button>
             ))}
             <TabSettingsButton />

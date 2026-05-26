@@ -9,6 +9,7 @@ import { Switch } from "../components/ui/switch";
 import { ColumnSettingsIcon } from "../components/ui/column-settings-icon";
 import { companyStore } from "../stores/companyStore";
 import { countiesStore } from "../stores/countiesStore";
+import { relationshipsStore } from "../stores/relationshipsStore";
 import { customFieldsStore, type CfEntity, type CfFieldType } from "../stores/customFieldsStore";
 import { jobTypesStore } from "../stores/jobTypesStore";
 import { marketingSourcesStore } from "../stores/marketingSourcesStore";
@@ -33,7 +34,8 @@ type SettingsSection =
   | "profile"
   | "business"
   | "security"
-  | "taxes";
+  | "taxes"
+  | "relationships";
 
 const sectionAliases: Partial<Record<SettingsSection, SettingsSection>> = {
   profile: "companyProfile",
@@ -67,6 +69,7 @@ const navGroups: Array<{
       { id: "estimates", label: "Estimates", description: "Templates, deposits, terms" },
       { id: "invoices", label: "Invoices", description: "Templates, signatures, receipt notes" },
       { id: "items", label: "Items", description: "Catalog and item settings" },
+      { id: "relationships", label: "Relationships", description: "Relationship types for additional client contacts" },
     ],
   },
   {
@@ -1828,6 +1831,8 @@ export function Settings() {
   const marketingSources = useSyncExternalStore(marketingSourcesStore.subscribe, marketingSourcesStore.getSources);
   const customerTags = useSyncExternalStore(tagsStore.subscribe, tagsStore.getTags);
   const counties = useSyncExternalStore(countiesStore.subscribe, countiesStore.getCounties);
+  const relationships = useSyncExternalStore(relationshipsStore.subscribe, relationshipsStore.getRelationships);
+  const [newRelationshipName, setNewRelationshipName] = useState("");
   const jobTypes = useSyncExternalStore(jobTypesStore.subscribe, jobTypesStore.getJobTypes);
   const customFields = useSyncExternalStore(customFieldsStore.subscribe, customFieldsStore.getFields);
   const scheduleSettings = useSyncExternalStore(scheduleSettingsStore.subscribe, scheduleSettingsStore.getSnapshot);
@@ -2110,6 +2115,18 @@ export function Settings() {
     countiesStore.addCounty(newCountyName);
     setNewCountyName("");
     toast.success("County added");
+  };
+
+  const addRelationship = () => {
+    const trimmed = newRelationshipName.trim();
+    if (!trimmed) return;
+    if (relationships.includes(trimmed)) {
+      toast.error("Relationship already exists");
+      return;
+    }
+    relationshipsStore.addRelationship(trimmed);
+    setNewRelationshipName("");
+    toast.success("Relationship added");
   };
 
   const addJobType = () => {
@@ -3181,6 +3198,62 @@ export function Settings() {
                     <Button className="mt-3 h-8 bg-[#4A6FA5] px-4 text-[13px] hover:bg-[#3d5a85]">Save</Button>
                   </SectionCard>
                 ))}
+              </div>
+            </>
+          )}
+
+          {activeSection === "relationships" && (
+            <>
+              <div className="mb-4 flex h-[52px] items-center justify-between">
+                <h1 className="text-[24px] leading-8 text-[#1A2332]" style={{ fontWeight: 600 }}>Relationships</h1>
+              </div>
+              <div className="space-y-4 pb-6">
+                <SectionCard
+                  title="Relationship types"
+                  description="Used in Additional Contacts on the client intake form. Add custom types if your team uses different terminology."
+                >
+                  <div className="mt-2 flex w-[422px] gap-3">
+                    <Input
+                      value={newRelationshipName}
+                      onChange={e => setNewRelationshipName(e.target.value)}
+                      placeholder="Add relationship (e.g. Spouse, Trustee)"
+                      className="h-9 flex-1 border-[#E5E7EB] text-[13px] shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
+                      onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addRelationship(); } }}
+                    />
+                    <Button
+                      disabled={!newRelationshipName.trim()}
+                      className="h-9 w-[59px] rounded-lg bg-[#4A6FA5] px-4 text-[13px] text-white hover:bg-[#3d5a85]"
+                      onClick={addRelationship}
+                    >
+                      Add
+                    </Button>
+                  </div>
+                  <div className="mt-3 grid grid-cols-3 gap-2">
+                    {relationships.map(r => (
+                      <div key={r} className="flex items-center gap-3 rounded-lg border border-[#E5E7EB] px-3 py-2.5">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#EEF3FA]">
+                          <span className="material-icons" style={{ fontSize: 16, color: "#4A6FA5" }}>person</span>
+                        </div>
+                        <input
+                          value={r}
+                          onChange={e => relationshipsStore.renameRelationship(r, e.target.value)}
+                          className="min-w-0 flex-1 bg-transparent text-[13px] text-[#1A2332] outline-none"
+                          style={{ fontWeight: 500 }}
+                        />
+                        <button
+                          onClick={() => { relationshipsStore.removeRelationship(r); toast.success("Relationship removed"); }}
+                          className="shrink-0 text-[#9CA3AF] hover:text-[#DC2626] transition-colors"
+                          title="Remove"
+                        >
+                          <span className="material-icons" style={{ fontSize: 18 }}>delete_outline</span>
+                        </button>
+                      </div>
+                    ))}
+                    {relationships.length === 0 && (
+                      <div className="col-span-3 text-[13px] text-[#9CA3AF]">No relationships yet.</div>
+                    )}
+                  </div>
+                </SectionCard>
               </div>
             </>
           )}

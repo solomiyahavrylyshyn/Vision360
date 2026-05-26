@@ -13,6 +13,7 @@ import {
 } from "../components/ui/select";
 import { toast } from "sonner";
 import { countiesStore } from "../stores/countiesStore";
+import { relationshipsStore } from "../stores/relationshipsStore";
 import { useSyncExternalStore } from "react";
 
 interface AdditionalContact {
@@ -192,15 +193,38 @@ export function CreateClient() {
     countiesStore.subscribe,
     countiesStore.getCounties,
   );
+  const relationships = useSyncExternalStore(
+    relationshipsStore.subscribe,
+    relationshipsStore.getRelationships,
+  );
+
+  const validate = (): string | null => {
+    if (!formData.firstName.trim()) return "First name is required";
+    if (!formData.lastName.trim()) return "Last name is required";
+    if (!formData.mobilePhone.trim()) return "Primary phone is required";
+    if (!formData.email.trim()) return "Email is required";
+    if (!formData.zip.trim()) return "ZIP code is required";
+    return null;
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const error = validate();
+    if (error) {
+      toast.error(error);
+      return;
+    }
     const newClientId = Math.random().toString(36).substr(2, 9);
     console.log("Saving client:", formData);
     navigate(`/clients/${newClientId}`);
   };
 
   const handleSaveAndCreateAnother = () => {
+    const error = validate();
+    if (error) {
+      toast.error(error);
+      return;
+    }
     console.log("Saving client:", formData);
     toast.success("Saved");
     setFormData(initialFormData);
@@ -297,7 +321,7 @@ export function CreateClient() {
                       className="text-[13px] text-[#374151] mb-2 block"
                       style={{ fontWeight: 500 }}
                     >
-                      Name
+                      Name <span className="text-[#DC2626]">*</span>
                     </Label>
                     <div className="grid grid-cols-[100px_1fr_60px_1fr] gap-3">
                       <Select
@@ -335,7 +359,8 @@ export function CreateClient() {
                       </Select>
                       <Input
                         type="text"
-                        placeholder="First name"
+                        placeholder="First name *"
+                        required
                         value={formData.firstName}
                         onChange={(e) =>
                           handleChange(
@@ -362,7 +387,8 @@ export function CreateClient() {
                       />
                       <Input
                         type="text"
-                        placeholder="Last name"
+                        placeholder="Last name *"
+                        required
                         value={formData.lastName}
                         onChange={(e) =>
                           handleChange(
@@ -461,12 +487,13 @@ export function CreateClient() {
                       className="text-[13px] text-[#374151] mb-2 block"
                       style={{ fontWeight: 500 }}
                     >
-                      Primary phone number
+                      Primary phone number <span className="text-[#DC2626]">*</span>
                     </Label>
                     <div className="flex gap-[19px]">
                       <Input
                         type="tel"
                         placeholder="(555) 123-4567"
+                        required
                         value={formData.mobilePhone}
                         onChange={(e) =>
                           handleChange(
@@ -529,11 +556,12 @@ export function CreateClient() {
                       className="text-[13px] text-[#374151] mb-2 block"
                       style={{ fontWeight: 500 }}
                     >
-                      Email
+                      Email <span className="text-[#DC2626]">*</span>
                     </Label>
                     <Input
                       type="email"
                       placeholder="john@example.com"
+                      required
                       value={formData.email}
                       onChange={(e) =>
                         handleChange("email", e.target.value)
@@ -596,8 +624,12 @@ export function CreateClient() {
                     className="text-[16px] text-[#1A2332] mb-2"
                     style={{ fontWeight: 600 }}
                   >
-                    Billing Address
+                    Billing Address <span className="text-[#DC2626]">*</span>
                   </h2>
+                  <p className="text-[12px] text-[#6B7280]">
+                    {/* TODO: integrate Google Places API to auto-populate fields from ZIP */}
+                    ZIP code is required; address fields will auto-fill once Google Places is wired up.
+                  </p>
                 </div>
                 <div className="space-y-4 max-w-[600px]">
                   <div className="flex gap-[19px] w-[600px] h-10 flex-none order-0 self-stretch">
@@ -655,7 +687,8 @@ export function CreateClient() {
                   <div className="grid grid-cols-2 gap-4">
                     <Input
                       type="text"
-                      placeholder="ZIP Code"
+                      placeholder="ZIP Code *"
+                      required
                       value={formData.zip}
                       onChange={(e) =>
                         handleChange("zip", e.target.value)
@@ -801,19 +834,30 @@ export function CreateClient() {
                             className="border-[#E5E7EB] bg-white h-10 text-[14px]"
                           />
                         </div>
-                        <Input
-                          type="text"
-                          placeholder="Relationship (e.g. Legal guardian, Spouse, Property manager)"
-                          value={contact.relationship}
-                          onChange={(e) =>
+                        <Select
+                          value={contact.relationship || undefined}
+                          onValueChange={(value) =>
                             updateAdditionalContact(
                               contact.id,
                               "relationship",
-                              e.target.value,
+                              value,
                             )
                           }
-                          className="border-[#E5E7EB] bg-white h-10 text-[14px]"
-                        />
+                        >
+                          <SelectTrigger className="border-[#E5E7EB] bg-white h-10 text-[14px]">
+                            <SelectValue placeholder="Relationship" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {relationships.map((r) => (
+                              <SelectItem key={r} value={r}>
+                                {r}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <p className="text-[12px] text-[#6B7280]">
+                          Manage relationships in <span className="text-[#4A6FA5] cursor-pointer hover:underline" onClick={() => navigate("/settings?section=relationships")}>Settings → Relationships</span>
+                        </p>
                       </div>
                     ),
                   )}

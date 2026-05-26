@@ -86,7 +86,7 @@ const mockJobData: Record<string, any> = {
       { id: 3, text: "Requested annual maintenance plan.", date: "Jan 10, 2026" },
       { id: 4, text: "Requested annual maintenance plan.", date: "Jan 05, 2026" },
     ] as NoteEntry[],
-    privateNotes: [
+    internalNotes: [
       { id: 1, text: "Requested annual maintenance plan.", date: "Jan 15, 2026" },
       { id: 2, text: "Requested annual maintenance plan.", date: "Jan 10, 2026" },
       { id: 3, text: "Internal note: check warranty status.", date: "Dec 20, 2025" },
@@ -123,7 +123,7 @@ const mockJobData: Record<string, any> = {
     tags: ["Landscaping"],
     notes: [] as NoteEntry[],
     fieldNotes: [] as NoteEntry[],
-    privateNotes: [] as NoteEntry[],
+    internalNotes: [] as NoteEntry[],
     lineItems: [{ name: "Tree Removal", description: "Full tree removal service", quantity: 1, unitCost: 200, unitPrice: 450, total: 450 }],
     totalCost: 200, totalPrice: 450,
     expenses: [] as Expense[], expenseTotal: 0,
@@ -154,8 +154,6 @@ const BASE_TABS: { key: TabKey; label: string }[] = [
   { key: "invoices",  label: "Invoices" },
   { key: "items",     label: "Items" },
   { key: "expenses",  label: "Expenses" },
-  { key: "documents", label: "Documents" },
-  { key: "notes",     label: "Notes" },
 ];
 
 /* 11 placeholder photos for the Attachments panel */
@@ -421,7 +419,7 @@ export function JobDetail() {
   /* ── Tab counts ── */
   const getTabCount = (key: TabKey): number | undefined => {
     const counts: Partial<Record<TabKey, number>> = {
-      notes: job.notes.length + job.privateNotes.length + job.fieldNotes.length,
+      notes: job.notes.length + job.internalNotes.length + job.fieldNotes.length,
       estimate: job.linkedEstimate ? 1 : 0,
       invoices: job.linkedInvoice ? 1 : 0,
       expenses: job.expenses.length,
@@ -543,9 +541,9 @@ export function JobDetail() {
 
   const renderDetailsTab = () => {
     const noteTabs = [
-      { key: "office"   as const, label: "Office",   notes: job.notes        },
-      { key: "internal" as const, label: "Internal", notes: job.privateNotes },
-      { key: "field"    as const, label: "Field",    notes: job.fieldNotes   },
+      { key: "office"   as const, label: "Office",   notes: job.notes         },
+      { key: "internal" as const, label: "Internal", notes: job.internalNotes },
+      { key: "field"    as const, label: "Field",    notes: job.fieldNotes    },
     ];
     const activeNotes = noteTabs.find(t => t.key === noteTab)?.notes ?? [];
     const SHOW_N = 4;
@@ -725,7 +723,7 @@ export function JobDetail() {
         </div>
 
         {/* ── Col 3: Attachments (Media / Files) ── */}
-        <div className="w-[380px] shrink-0 bg-white border border-[#E5E7EB] rounded-lg overflow-hidden">
+        <div className="w-[440px] shrink-0 bg-white border border-[#E5E7EB] rounded-lg overflow-hidden">
           {/* Header */}
           <div className="flex items-center border-b border-[#E5E7EB] px-4 py-2.5 gap-3">
             <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>Attachments</span>
@@ -1309,7 +1307,7 @@ export function JobDetail() {
       case "items":     return renderItemsTab();
       case "expenses":  return renderExpensesTab();
       case "documents": return renderDocumentsTab();
-      case "notes":     return <NoteColumn title="Notes" initialNotes={[...job.notes, ...job.fieldNotes, ...job.privateNotes]} />;
+      case "notes":     return <NoteColumn title="Notes" initialNotes={[...job.notes, ...job.fieldNotes, ...job.internalNotes]} />;
       default: return null;
     }
   };
@@ -1400,6 +1398,38 @@ export function JobDetail() {
                 <span className="text-[13px] text-[#546478]">{job.title}</span>
               </div>
             </div>
+
+            {/* Row 3: Secondary metadata strip (grayed) — client since · last visit · notes preview */}
+            {(job.customerSince || job.lastService || (job.notes && job.notes.length > 0)) && (
+              <div className="flex items-center gap-0.5 flex-wrap pt-1.5 text-[12px] text-[#6B7280]">
+                {job.customerSince && (
+                  <div className="flex items-center gap-1.5 pr-3">
+                    <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "14px" }}>calendar_today</span>
+                    Client since {job.customerSince}
+                  </div>
+                )}
+                {job.lastService && (
+                  <>
+                    {job.customerSince && <div className="w-px h-3.5 bg-[#E5E7EB]" />}
+                    <div className="flex items-center gap-1.5 px-3">
+                      <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "14px" }}>schedule</span>
+                      Last visit: {job.lastService}
+                    </div>
+                  </>
+                )}
+                {job.notes && job.notes.length > 0 && (
+                  <>
+                    {(job.customerSince || job.lastService) && <div className="w-px h-3.5 bg-[#E5E7EB]" />}
+                    <div className="flex items-center gap-1.5 px-3 min-w-0">
+                      <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "14px" }}>sticky_note_2</span>
+                      <span className="truncate">
+                        Notes ({job.notes.length}): {job.notes[0].text}
+                      </span>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Right column: Financial KPI cards — compact, no decimals, aligned to the right */}

@@ -260,7 +260,7 @@ function Card({ title, children, onEdit, action }: { title: string; children: Re
 type TabKey = "details" | "payments" | "activity";
 type NotesTabKey = "customer" | "internal";
 const TABS: { key: TabKey; label: string }[] = [
-  { key: "details", label: "Details" },
+  { key: "details", label: "Invoice Details" },
   { key: "payments", label: "Payments" },
   { key: "activity", label: "Activity" },
 ];
@@ -698,9 +698,38 @@ export function InvoiceDetail() {
           <div className="flex items-start justify-between gap-6">
             {/* Left: name + contact info */}
             <div className="flex flex-col gap-1 min-w-0">
-              <h1 className="text-[20px] text-[#1A2332] leading-[27px]" style={{ fontWeight: 700 }}>
-                Invoice #{data.number}
-              </h1>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-[20px] text-[#1A2332] leading-[27px]" style={{ fontWeight: 700 }}>
+                  Invoice #{data.number}
+                </h1>
+                <div className="relative">
+                  <button
+                    onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[13px] hover:opacity-80 transition-opacity"
+                    style={{ fontWeight: 600, backgroundColor: statusColors[status].bg, color: statusColors[status].text }}
+                  >
+                    <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: statusColors[status].text }} />
+                    {status}
+                    <span className="material-icons" style={{ fontSize: "14px" }}>arrow_drop_down</span>
+                  </button>
+                  {statusDropdownOpen && (
+                    <div className="absolute left-0 top-[calc(100%+4px)] w-[220px] bg-white border border-[#E5E7EB] rounded-xl shadow-lg z-40 py-1.5">
+                      {allStatuses.map(s => (
+                        <button
+                          key={s}
+                          onClick={() => handleStatusChange(s)}
+                          className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-[13px] transition-colors ${s === status ? "bg-[#EEF3FA]" : "hover:bg-[#F5F7FA]"}`}
+                          style={{ fontWeight: s === status ? 600 : 400, color: s === status ? "#4A6FA5" : "#1A2332" }}
+                        >
+                          <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: statusColors[s].text }} />
+                          {s}
+                          {s === status && <span className="material-icons ml-auto" style={{ fontSize: "16px", color: "#4A6FA5" }}>check</span>}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
 
               {/* Client + address + job inline row */}
               <div className="flex items-center gap-0.5 flex-wrap">
@@ -774,7 +803,7 @@ export function InvoiceDetail() {
               </div>
             </div>
 
-            {/* Right: Total + Balance + Status + Kebab */}
+            {/* Right: Total + Balance + Kebab */}
             <div className="flex flex-col items-end gap-3 shrink-0">
               <div className="text-right">
                 <div className="text-[11px] text-[#9CA3AF] uppercase tracking-wide mb-0.5" style={{ fontWeight: 600 }}>Total (USD)</div>
@@ -786,45 +815,16 @@ export function InvoiceDetail() {
                   </span>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="relative">
-                  <button
-                    onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] hover:opacity-80 transition-opacity"
-                    style={{ fontWeight: 600, backgroundColor: statusColors[status].bg, color: statusColors[status].text }}
-                  >
-                    <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: statusColors[status].text }} />
-                    {status}
-                    <span className="material-icons" style={{ fontSize: "15px" }}>expand_more</span>
-                  </button>
-                  {statusDropdownOpen && (
-                    <div className="absolute right-0 top-[calc(100%+4px)] w-[220px] bg-white border border-[#E5E7EB] rounded-xl shadow-lg z-40 py-1.5">
-                      {allStatuses.map(s => (
-                        <button
-                          key={s}
-                          onClick={() => handleStatusChange(s)}
-                          className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-[13px] transition-colors ${s === status ? "bg-[#EEF3FA]" : "hover:bg-[#F5F7FA]"}`}
-                          style={{ fontWeight: s === status ? 600 : 400, color: s === status ? "#4A6FA5" : "#1A2332" }}
-                        >
-                          <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: statusColors[s].text }} />
-                          {s}
-                          {s === status && <span className="material-icons ml-auto" style={{ fontSize: "16px", color: "#4A6FA5" }}>check</span>}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <KebabMenu triggerClassName="w-8 h-8 border border-[#E5E7EB] rounded-md bg-white flex items-center justify-center hover:bg-[#F5F7FA]">
-                  <KebabItem icon="picture_as_pdf">Download PDF</KebabItem>
-                  {!isPaid && status !== "Void" && (
-                    <KebabItem icon="payments" onClick={() => setPaymentModalOpen(true)}>Record Payment</KebabItem>
-                  )}
-                  <KebabSeparator />
-                  <KebabItem icon="content_copy">Duplicate Invoice</KebabItem>
-                  <KebabSeparator />
-                  <KebabItem icon="block" destructive onClick={() => setVoidConfirm(true)}>Void Invoice</KebabItem>
-                </KebabMenu>
-              </div>
+              <KebabMenu triggerClassName="w-8 h-8 border border-[#E5E7EB] rounded-md bg-white flex items-center justify-center hover:bg-[#F5F7FA]">
+                <KebabItem icon="picture_as_pdf">Download PDF</KebabItem>
+                {!isPaid && status !== "Void" && (
+                  <KebabItem icon="payments" onClick={() => setPaymentModalOpen(true)}>Record Payment</KebabItem>
+                )}
+                <KebabSeparator />
+                <KebabItem icon="content_copy">Duplicate Invoice</KebabItem>
+                <KebabSeparator />
+                <KebabItem icon="block" destructive onClick={() => setVoidConfirm(true)}>Void Invoice</KebabItem>
+              </KebabMenu>
             </div>
           </div>
         </div>
