@@ -136,7 +136,7 @@ export function Welcome() {
             onClick={() => navigate("/")}
             className="w-full h-12 text-base font-semibold bg-[#4A6FA5] hover:bg-[#3d5a85] text-white transition-colors"
           >
-            Go to Dashboard
+            Go to Homepage
           </Button>
 
         </div>

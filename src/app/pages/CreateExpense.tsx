@@ -60,6 +60,7 @@ export function CreateExpense() {
   );
   const [total, setTotal] = useState("");
   const [description, setDescription] = useState("");
+  const [referenceNumber, setReferenceNumber] = useState("");
   const [notes, setNotes] = useState("");
   const [jobId, setJobId] = useState("");
   const [invoiceId, setInvoiceId] = useState("");
@@ -359,6 +360,23 @@ export function CreateExpense() {
                     />
                   </div>
                 </div>
+              </div>
+
+              {/* Document reference number (Section 7.1) */}
+              <div className="mt-4">
+                <label
+                  className="block text-[12px] text-[#546478] mb-1.5"
+                  style={{ fontWeight: 500 }}
+                >
+                  Document reference number
+                </label>
+                <input
+                  type="text"
+                  value={referenceNumber}
+                  onChange={(e) => setReferenceNumber(e.target.value)}
+                  placeholder="Receipt # or vendor invoice #"
+                  className="w-full h-10 px-3.5 border border-[#E5E7EB] rounded-lg text-[13px] bg-white text-[#1A2332] placeholder:text-[#B0BEC5] outline-none focus:border-[#4A6FA5] focus:ring-2 focus:ring-[#4A6FA5]/10 transition-all"
+                />
               </div>
             </div>
 

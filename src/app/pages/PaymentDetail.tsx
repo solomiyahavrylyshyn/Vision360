@@ -367,14 +367,17 @@ export function PaymentDetail() {
             <TabSettingsButton />
           </div>
 
-          {/* Collect Payment */}
-          <button
-            className="h-9 px-4 inline-flex items-center gap-1.5 text-[13px] text-white bg-[#4A6FA5] rounded-lg hover:bg-[#3d5a85] transition-colors"
-            style={{ fontWeight: 600 }}
-          >
-            <span className="w-2 h-2 rounded-full bg-white opacity-80" />
-            Collect Payment
-          </button>
+          {/* Collect Payment — only when an unpaid balance remains (Section 6.4) */}
+          {payment.status !== "Completed" && payment.status !== "Refunded" && payment.status !== "Voided" && (
+            <button
+              onClick={() => navigate(`/payments/new?client=${encodeURIComponent(payment.clientName)}&invoice=${encodeURIComponent(payment.invoiceId || "")}&job=${encodeURIComponent(payment.jobId || "")}`)}
+              className="h-9 px-4 inline-flex items-center gap-1.5 text-[13px] text-white bg-[#4A6FA5] rounded-lg hover:bg-[#3d5a85] transition-colors"
+              style={{ fontWeight: 600 }}
+            >
+              <span className="w-2 h-2 rounded-full bg-white opacity-80" />
+              Collect Payment
+            </button>
+          )}
         </div>
 
         {/* divider */}

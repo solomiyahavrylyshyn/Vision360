@@ -816,12 +816,9 @@ export function InvoiceDetail() {
                 </div>
               </div>
               <KebabMenu triggerClassName="w-8 h-8 border border-[#E5E7EB] rounded-md bg-white flex items-center justify-center hover:bg-[#F5F7FA]">
-                <KebabItem icon="picture_as_pdf">Download PDF</KebabItem>
-                {!isPaid && status !== "Void" && (
-                  <KebabItem icon="payments" onClick={() => setPaymentModalOpen(true)}>Record Payment</KebabItem>
-                )}
-                <KebabSeparator />
-                <KebabItem icon="content_copy">Duplicate Invoice</KebabItem>
+                <KebabItem icon="visibility">Preview</KebabItem>
+                <KebabItem icon="send">Send</KebabItem>
+                <KebabItem icon="file_download">Download</KebabItem>
                 <KebabSeparator />
                 <KebabItem icon="block" destructive onClick={() => setVoidConfirm(true)}>Void Invoice</KebabItem>
               </KebabMenu>
@@ -841,22 +838,6 @@ export function InvoiceDetail() {
             tabSuffix={<TabSettingsButton />}
           />
           <div className="flex items-center gap-2 py-2 shrink-0">
-            <button
-              className="h-9 px-3.5 rounded-md border border-[#E5E7EB] bg-white text-[13px] text-[#546478] hover:bg-[#F5F7FA] inline-flex items-center gap-1.5 transition-colors"
-              style={{ fontWeight: 500 }}
-              title="Preview invoice"
-            >
-              <span className="material-icons" style={{ fontSize: "16px" }}>visibility</span>
-              Preview
-            </button>
-            <button
-              className="h-9 px-3.5 rounded-md border border-[#C8D5E8] bg-white hover:bg-[#F5F7FA] text-[#4A6FA5] text-[13px] inline-flex items-center gap-1.5 transition-colors"
-              style={{ fontWeight: 600 }}
-              title="Send invoice"
-            >
-              <span className="material-icons" style={{ fontSize: "16px" }}>send</span>
-              Send
-            </button>
             <button
               onClick={() => setPaymentModalOpen(true)}
               className="h-9 px-3.5 rounded-md bg-[#4A6FA5] hover:bg-[#3d5a85] text-white text-[13px] inline-flex items-center gap-1.5 transition-colors"

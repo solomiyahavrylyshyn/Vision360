@@ -129,7 +129,7 @@ export function Register() {
           <form onSubmit={handleRegister} className="space-y-5">
             <div className="space-y-1.5">
               <Label className="text-sm font-semibold text-[#1A2332]">
-                Work Email <span className="text-red-500">*</span>
+                Email <span className="text-red-500">*</span>
               </Label>
               <Input
                 type="email"
