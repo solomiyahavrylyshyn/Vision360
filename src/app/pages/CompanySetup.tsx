@@ -177,7 +177,16 @@ export function CompanySetup() {
                 <option value="roofing">Roofing</option>
                 <option value="pool">Pool Service</option>
                 <option value="general">General Contracting</option>
-                <option value="other">Other</option>
+                <option value="lawncare">Lawn Care</option>
+                <option value="pestcontrol">Pest Control</option>
+                <option value="painting">Painting</option>
+                <option value="remodeling">Remodeling</option>
+                <option value="appliancerepair">Appliance Repair</option>
+                <option value="junkremoval">Junk Removal</option>
+                <option value="handyman">Handyman</option>
+                <option value="janitorial">Janitorial Cleaning</option>
+                <option value="pressurewashing">Pressure Washing</option>
+                <option value="others">Others</option>
               </select>
             </div>
 
@@ -189,9 +198,9 @@ export function CompanySetup() {
                 className="w-full h-11 px-3 border border-[#E5E7EB] rounded-md bg-[#F5F7FA] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#4A6FA5] transition-colors text-sm"
               >
                 <option value="">Select team size</option>
-                <option value="1">Just me (solo operator)</option>
-                <option value="2">Me + 1 employee</option>
-                <option value="3">Me + 2 employees</option>
+                <option value="solo">Solo Operator</option>
+                <option value="under10">Under 10 Employees</option>
+                <option value="over10">More Than 10 Employees</option>
               </select>
             </div>
 
