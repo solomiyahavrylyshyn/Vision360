@@ -150,6 +150,23 @@ export function HelpCenter({ isOpen, onClose }: HelpCenterProps) {
 
             {!search && (
               <>
+                {/* Section 8.7 — Sample Company sandbox: first item in Help Center */}
+                <div className="px-5 pt-5">
+                  <button
+                    onClick={() => { onClose(); window.location.href = "/?sandbox=sample"; }}
+                    className="w-full flex items-center gap-3 p-4 rounded-xl text-left bg-gradient-to-br from-[#4A6FA5] to-[#3d5a85] hover:from-[#3d5a85] hover:to-[#2f4670] transition-all group shadow-[0_4px_12px_rgba(74,111,165,0.25)]"
+                  >
+                    <div className="w-11 h-11 rounded-lg bg-white/15 flex items-center justify-center flex-shrink-0 group-hover:bg-white/20 transition-colors">
+                      <span className="material-icons text-white" style={{ fontSize: "22px" }}>play_circle</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[14px] text-white" style={{ fontWeight: 600 }}>Play with sample company</div>
+                      <div className="text-[12px] text-white/80 mt-0.5">Try every feature with realistic mock data — no impact on your real records.</div>
+                    </div>
+                    <span className="material-icons text-white/70 flex-shrink-0 group-hover:translate-x-0.5 transition-transform" style={{ fontSize: "20px" }}>arrow_forward</span>
+                  </button>
+                </div>
+
                 {/* Categories */}
                 <div className="p-5">
                   <h3 className="text-[12px] uppercase tracking-wider text-[#546478] mb-3" style={{ fontWeight: 600 }}>Browse by Topic</h3>
