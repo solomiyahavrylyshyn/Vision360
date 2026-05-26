@@ -993,7 +993,11 @@ export function JobDetail() {
     <>
       <div className="flex items-center justify-between mb-5">
         <h3 className="text-[15px] text-[#1A2332]" style={{ fontWeight: 600 }}>Expenses</h3>
-        <button className="h-8 px-3 gap-1.5 text-[13px] bg-[#4A6FA5] hover:bg-[#3d5a85] text-white rounded-md inline-flex items-center justify-center transition-colors" style={{ fontWeight: 600 }}>
+        <button
+          onClick={() => navigate(`/expenses/new?fromJob=${encodeURIComponent(job.jobNumber)}${job.linkedInvoice ? `&fromInvoice=${encodeURIComponent(job.linkedInvoice.id)}` : ""}`)}
+          className="h-8 px-3 gap-1.5 text-[13px] bg-[#4A6FA5] hover:bg-[#3d5a85] text-white rounded-md inline-flex items-center justify-center transition-colors"
+          style={{ fontWeight: 600 }}
+        >
           <PlusIcon className="h-4 w-4" />
           Add expense
         </button>

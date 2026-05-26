@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
+import { toast } from "sonner";
 import { ItemPicker, catalogItemToLineItem, type CatalogItem, type SelectedLineItem } from "../components/ItemPicker";
 import { PlusIcon } from "../components/ui/plus-icon";
 import { CategoryPill } from "../components/ui/category-pill";
@@ -49,9 +50,14 @@ interface ReceiptFile {
 
 export function CreateExpense() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const dropZoneRef = useRef<HTMLDivElement>(null);
+
+  // Section 7.2 — batch entry shortcut: read context from query params
+  const initialJobId = searchParams.get("fromJob") || "";
+  const initialInvoiceId = searchParams.get("fromInvoice") || "";
 
   const [merchant, setMerchant] = useState("");
   const [category, setCategory] = useState("");
@@ -62,8 +68,8 @@ export function CreateExpense() {
   const [description, setDescription] = useState("");
   const [referenceNumber, setReferenceNumber] = useState("");
   const [notes, setNotes] = useState("");
-  const [jobId, setJobId] = useState("");
-  const [invoiceId, setInvoiceId] = useState("");
+  const [jobId, setJobId] = useState(initialJobId);
+  const [invoiceId, setInvoiceId] = useState(initialInvoiceId);
   const [receipts, setReceipts] = useState<ReceiptFile[]>([]);
   const [saving, setSaving] = useState(false);
   const [dragOver, setDragOver] = useState(false);
@@ -162,6 +168,26 @@ export function CreateExpense() {
     setTimeout(() => navigate("/expenses"), 600);
   };
 
+  // Section 7.2 — Save and Create Another: persist + clear non-context fields,
+  // keep job/invoice so the user can keep entering a stack of receipts.
+  const handleSaveAndCreateAnother = () => {
+    setSaving(true);
+    setTimeout(() => {
+      toast.success("Expense saved");
+      setMerchant("");
+      setCategory("");
+      setExpenseDate(new Date().toISOString().split("T")[0]);
+      setTotal("");
+      setDescription("");
+      setReferenceNumber("");
+      setNotes("");
+      setReceipts([]);
+      setLineItems([]);
+      // jobId + invoiceId stay so the next expense lands on the same job
+      setSaving(false);
+    }, 600);
+  };
+
   const isValid = merchant.trim() && category && expenseDate && (total || lineItems.length > 0);
 
   const selectedJob = mockJobs.find((j) => j.id === jobId);
@@ -200,6 +226,18 @@ export function CreateExpense() {
               >
                 Cancel
               </button>
+              {/* Section 7.2 — Save and Create Another only makes sense when context is set */}
+              {jobId && (
+                <button
+                  onClick={handleSaveAndCreateAnother}
+                  disabled={!isValid || saving}
+                  className="h-10 px-5 rounded-lg border border-[#E5E7EB] bg-white text-[13px] text-[#546478] hover:bg-[#F5F7FA] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                  style={{ fontWeight: 500 }}
+                  title="Save and start a new expense on the same job"
+                >
+                  Save and Create Another
+                </button>
+              )}
               <button
                 onClick={handleSave}
                 disabled={!isValid || saving}

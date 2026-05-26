@@ -445,6 +445,16 @@ export function InvoiceDetail() {
                   <td colSpan={4} className="pt-3 text-[13px] text-[#374151] text-right" style={{ fontWeight: 500 }}>Total paid</td>
                   <td className="pt-3 text-[14px] text-[#16A34A] text-right" style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>${fmt(totalPayments)}</td>
                 </tr>
+                <tr>
+                  <td colSpan={4} className="pt-1 text-[13px] text-[#374151] text-right" style={{ fontWeight: 500 }}>Balance remaining</td>
+                  <td className="pt-1 text-[14px] text-right" style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums", color: balance > 0 ? "#DC2626" : "#16A34A" }}>
+                    ${fmt(Math.max(0, balance))}
+                  </td>
+                </tr>
+                <tr>
+                  <td colSpan={4} className="pt-1 text-[12px] text-[#6B7280] text-right">Invoice total</td>
+                  <td className="pt-1 text-[12px] text-[#6B7280] text-right" style={{ fontVariantNumeric: "tabular-nums" }}>${fmt(total)}</td>
+                </tr>
               </tbody>
             </table>
           )}
@@ -877,7 +887,28 @@ export function InvoiceDetail() {
               </div>
 
               <div>
-                <label className="block text-[12px] uppercase tracking-wider text-[#6B7280] mb-1.5" style={{ fontWeight: 600 }}>Amount</label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-[12px] uppercase tracking-wider text-[#6B7280]" style={{ fontWeight: 600 }}>Amount</label>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setPayAmount((balance / 2).toFixed(2))}
+                      className="text-[11px] text-[#4A6FA5] hover:underline"
+                      style={{ fontWeight: 500 }}
+                    >
+                      50%
+                    </button>
+                    <span className="text-[#D1D5DB]">·</span>
+                    <button
+                      type="button"
+                      onClick={() => setPayAmount(Math.max(0, balance).toFixed(2))}
+                      className="text-[11px] text-[#4A6FA5] hover:underline"
+                      style={{ fontWeight: 500 }}
+                    >
+                      Full balance
+                    </button>
+                  </div>
+                </div>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6B7280] text-[14px]">$</span>
                   <input
@@ -888,6 +919,33 @@ export function InvoiceDetail() {
                     style={{ fontVariantNumeric: "tabular-nums" }}
                   />
                 </div>
+                {(() => {
+                  const entered = parseFloat(payAmount);
+                  if (!entered || entered <= 0) return null;
+                  const remaining = balance - entered;
+                  if (remaining > 0) {
+                    return (
+                      <div className="mt-1.5 text-[11px] text-[#D97706] flex items-center gap-1">
+                        <span className="material-icons" style={{ fontSize: "13px" }}>info</span>
+                        Partial payment — ${fmt(remaining)} will remain
+                      </div>
+                    );
+                  }
+                  if (remaining < 0) {
+                    return (
+                      <div className="mt-1.5 text-[11px] text-[#DC2626] flex items-center gap-1">
+                        <span className="material-icons" style={{ fontSize: "13px" }}>warning</span>
+                        Exceeds balance by ${fmt(-remaining)}
+                      </div>
+                    );
+                  }
+                  return (
+                    <div className="mt-1.5 text-[11px] text-[#16A34A] flex items-center gap-1">
+                      <span className="material-icons" style={{ fontSize: "13px" }}>check_circle</span>
+                      Pays the invoice in full
+                    </div>
+                  );
+                })()}
               </div>
 
               <div className="grid grid-cols-2 gap-4">
