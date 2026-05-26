@@ -799,7 +799,13 @@ export function EstimateDetail() {
                   <span className="text-[15px] text-[#4A6FA5]" style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>${fmt(total)}</span>
                 </div>
               </div>
-              <div className="px-5 py-4 space-y-3 border-b border-[#E5E7EB]">
+              <div className="px-5 py-4 border-b border-[#E5E7EB]">
+                <button className="w-full py-2.5 bg-[#22C55E] hover:bg-[#16A34A] text-white rounded-md text-[14px] transition-colors" style={{ fontWeight: 600 }}>
+                  Record Deposit
+                </button>
+                <div className="text-center text-[11px] text-[#9CA3AF] mt-2">This deposit will be applied to your total balance.</div>
+              </div>
+              <div className="px-5 py-4 space-y-3">
                 {[
                   { icon: "task_alt", color: "#22C55E", title: "Secure Your Project", desc: "Your project is scheduled once the deposit is received." },
                   { icon: "account_balance_wallet", color: "#3B82F6", title: "Applied to Balance", desc: "Your deposit will be applied to your total balance." },
@@ -814,12 +820,6 @@ export function EstimateDetail() {
                     </div>
                   </div>
                 ))}
-              </div>
-              <div className="px-5 py-4">
-                <button className="w-full py-2.5 bg-[#22C55E] hover:bg-[#16A34A] text-white rounded-md text-[14px] transition-colors" style={{ fontWeight: 600 }}>
-                  Record Deposit
-                </button>
-                <div className="text-center text-[11px] text-[#9CA3AF] mt-2">This deposit will be applied to your total balance.</div>
               </div>
             </>
           ) : (
