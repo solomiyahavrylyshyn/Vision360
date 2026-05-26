@@ -43,7 +43,8 @@
       "Bash(awk 'NR>=3200 && NR<=3250' \"/Users/solomiyahavrylyshyn/Vision360 \\(1\\)/src/app/pages/Settings.tsx\")",
       "Bash(grep -n \"totalBilled.*toFixed\\\\|totalBilled.*toLocale\\\\|toFixed.*totalBilled\\\\|\\\\$.*totalBilled\\\\|totalBilled.*\\\\$\" \"/Users/solomiyahavrylyshyn/Vision360 \\(1\\)/src/app/pages/Clients.tsx\")",
       "Bash(grep -i \"fixed\\\\|locale\\\\|fraction\\\\|\\\\$\")",
-      "Bash(git check-ignore *)"
+      "Bash(git check-ignore *)",
+      "Bash(git commit -m 'Update CompanySetup industry list and team size buckets *)"
     ]
   }
 }

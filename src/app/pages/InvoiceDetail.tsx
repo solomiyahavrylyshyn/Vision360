@@ -803,7 +803,7 @@ export function InvoiceDetail() {
               </div>
             </div>
 
-            {/* Right: Total + Balance + Kebab */}
+            {/* Right: Total + Balance (kebab moved next to Collect Payment) */}
             <div className="flex flex-col items-end gap-3 shrink-0">
               <div className="text-right">
                 <div className="text-[11px] text-[#9CA3AF] uppercase tracking-wide mb-0.5" style={{ fontWeight: 600 }}>Total (USD)</div>
@@ -815,13 +815,6 @@ export function InvoiceDetail() {
                   </span>
                 </div>
               </div>
-              <KebabMenu triggerClassName="w-8 h-8 border border-[#E5E7EB] rounded-md bg-white flex items-center justify-center hover:bg-[#F5F7FA]">
-                <KebabItem icon="visibility">Preview</KebabItem>
-                <KebabItem icon="send">Send</KebabItem>
-                <KebabItem icon="file_download">Download</KebabItem>
-                <KebabSeparator />
-                <KebabItem icon="block" destructive onClick={() => setVoidConfirm(true)}>Void Invoice</KebabItem>
-              </KebabMenu>
             </div>
           </div>
         </div>
@@ -847,6 +840,13 @@ export function InvoiceDetail() {
               <span className="material-icons" style={{ fontSize: "16px" }}>payments</span>
               Collect Payment
             </button>
+            <KebabMenu triggerClassName="h-9 w-9 border border-[#E5E7EB] rounded-md bg-white flex items-center justify-center hover:bg-[#F5F7FA]">
+              <KebabItem icon="visibility">Preview</KebabItem>
+              <KebabItem icon="send">Send</KebabItem>
+              <KebabItem icon="file_download">Download</KebabItem>
+              <KebabSeparator />
+              <KebabItem icon="block" destructive onClick={() => setVoidConfirm(true)}>Void Invoice</KebabItem>
+            </KebabMenu>
           </div>
         </div>
 

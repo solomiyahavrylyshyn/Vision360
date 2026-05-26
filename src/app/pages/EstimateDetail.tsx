@@ -996,22 +996,12 @@ export function EstimateDetail() {
               </div>
             </div>
 
-            {/* Right: Total + kebab */}
+            {/* Right: Total (kebab moved next to +Create) */}
             <div className="flex flex-col items-end gap-3 shrink-0">
               <div className="text-right">
                 <div className="text-[11px] text-[#9CA3AF] uppercase tracking-wide mb-0.5" style={{ fontWeight: 600 }}>Total (USD)</div>
                 <div className="text-[28px] text-[#1A2332] leading-tight" style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>${fmt(total)}</div>
               </div>
-              <KebabMenu triggerClassName="w-8 h-8 border border-[#E5E7EB] rounded-md bg-white flex items-center justify-center hover:bg-[#F5F7FA]">
-                <KebabItem icon="send">Send to Client</KebabItem>
-                <KebabItem icon="receipt">Make Invoice</KebabItem>
-                <KebabItem icon="link">Get Link</KebabItem>
-                <KebabItem icon="print" onClick={() => setCustomerPreviewOpen(true)}>Print</KebabItem>
-                <KebabSeparator />
-                <KebabItem icon="content_copy">Duplicate</KebabItem>
-                <KebabSeparator />
-                <KebabItem icon="delete" destructive>Delete</KebabItem>
-              </KebabMenu>
             </div>
           </div>
         </div>
@@ -1078,6 +1068,15 @@ export function EstimateDetail() {
                 </div>
               )}
             </div>
+            <KebabMenu triggerClassName="h-9 w-9 border border-[#E5E7EB] rounded-md bg-white flex items-center justify-center hover:bg-[#F5F7FA]">
+              <KebabItem icon="send">Send to Client</KebabItem>
+              <KebabItem icon="link">Get Link</KebabItem>
+              <KebabItem icon="print" onClick={() => setCustomerPreviewOpen(true)}>Print</KebabItem>
+              <KebabSeparator />
+              <KebabItem icon="content_copy">Duplicate</KebabItem>
+              <KebabSeparator />
+              <KebabItem icon="delete" destructive>Delete</KebabItem>
+            </KebabMenu>
           </div>
         </div>
 
