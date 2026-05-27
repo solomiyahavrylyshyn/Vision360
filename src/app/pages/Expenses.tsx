@@ -8,6 +8,7 @@ import { useDraggableColumns, DraggableTh } from "../components/ui/draggable-col
 import { PageHeader } from "../components/ui/page-header";
 import { SelectionBar } from "../components/ui/selection-bar";
 import { CreateActionButton } from "../components/ui/create-action-button";
+import { AdvancedFilterActions, AdvancedFilterField, AdvancedFilterPanel, advancedInputClass, advancedSelectClass } from "../components/ui/advanced-filters";
 
 export interface Expense {
   id: string;
@@ -77,6 +78,22 @@ function qfClass(active: boolean) {
   }`;
 }
 
+function toDateInputValue(date: string) {
+  const parsed = new Date(`${date} 12:00:00`);
+  if (Number.isNaN(parsed.getTime())) return "";
+  return parsed.toISOString().slice(0, 10);
+}
+
+function matchesDatePreset(date: string, preset: string) {
+  if (preset === "all") return true;
+  const value = toDateInputValue(date);
+  if (!value) return true;
+  if (preset === "this_month") return value >= "2026-04-01" && value <= "2026-04-30";
+  if (preset === "last_month") return value >= "2026-03-01" && value <= "2026-03-31";
+  if (preset === "last_90") return value >= "2026-01-05" && value <= "2026-04-05";
+  return true;
+}
+
 export function Expenses() {
   const navigate = useNavigate();
   const [cols, moveCol] = useDraggableColumns([...EXPENSES_COLS]);
@@ -89,9 +106,16 @@ export function Expenses() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [filterOpen, setFilterOpen] = useState(false);
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [amountMin, setAmountMin] = useState("");
+  const [amountMax, setAmountMax] = useState("");
+  const [receiptFilter, setReceiptFilter] = useState("All");
+  const [invoiceFilter, setInvoiceFilter] = useState("All");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const filtered = expenses.filter((e) => {
+    const dateValue = toDateInputValue(e.date);
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       if (
@@ -102,9 +126,28 @@ export function Expenses() {
       ) return false;
     }
     if (qfCategory !== "All" && e.category !== qfCategory) return false;
+    if (!matchesDatePreset(e.date, qfDate)) return false;
     if (qfJob && e.jobId !== qfJob) return false;
+    if (dateFrom && dateValue && dateValue < dateFrom) return false;
+    if (dateTo && dateValue && dateValue > dateTo) return false;
+    if (amountMin && e.amount < Number(amountMin)) return false;
+    if (amountMax && e.amount > Number(amountMax)) return false;
+    if (receiptFilter === "With receipts" && e.receipts <= 0) return false;
+    if (receiptFilter === "Missing receipts" && e.receipts > 0) return false;
+    if (invoiceFilter === "Linked to invoice" && !e.invoiceId) return false;
+    if (invoiceFilter === "No invoice" && e.invoiceId) return false;
     return true;
   });
+
+  const advancedActive = Boolean(dateFrom || dateTo || amountMin || amountMax || receiptFilter !== "All" || invoiceFilter !== "All");
+  const resetAdvancedFilters = () => {
+    setDateFrom("");
+    setDateTo("");
+    setAmountMin("");
+    setAmountMax("");
+    setReceiptFilter("All");
+    setInvoiceFilter("All");
+  };
 
   const totalAmount = filtered.reduce((s, e) => s + e.amount, 0);
   const uniqueJobs = Array.from(new Set(expenses.filter((e) => e.jobId).map((e) => e.jobId!)));
@@ -161,12 +204,12 @@ export function Expenses() {
           <button
             onClick={() => setFilterOpen(!filterOpen)}
             className={`h-8 px-3 border rounded-lg text-[13px] flex items-center gap-1.5 transition-colors ${
-              filterOpen ? "border-[#4A6FA5] text-[#4A6FA5] bg-[#EEF3FA]" : "border-[#E5E7EB] text-[#546478] hover:bg-[#F5F7FA] bg-white"
+              filterOpen || advancedActive ? "border-[#4A6FA5] text-[#4A6FA5] bg-[#EEF3FA]" : "border-[#E5E7EB] text-[#546478] hover:bg-[#F5F7FA] bg-white"
             }`}
             style={{ fontWeight: 500 }}
           >
             <span className="material-icons" style={{ fontSize: "16px" }}>filter_alt</span>
-            Filter
+            Filter{advancedActive ? " *" : ""}
           </button>
           <div className="ml-auto flex items-center gap-2">
             <CreateActionButton onClick={() => navigate("/expenses/new")}>
@@ -182,6 +225,41 @@ export function Expenses() {
             </KebabMenu>
           </div>
         </div>
+        {filterOpen && (
+          <AdvancedFilterPanel>
+            <AdvancedFilterField label="Date from">
+              <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className={advancedInputClass} />
+            </AdvancedFilterField>
+            <AdvancedFilterField label="Date to">
+              <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className={advancedInputClass} />
+            </AdvancedFilterField>
+            <AdvancedFilterField label="Amount min">
+              <input type="number" min="0" placeholder="$0" value={amountMin} onChange={(e) => setAmountMin(e.target.value)} className={advancedInputClass} />
+            </AdvancedFilterField>
+            <AdvancedFilterField label="Amount max">
+              <input type="number" min="0" placeholder="Any" value={amountMax} onChange={(e) => setAmountMax(e.target.value)} className={advancedInputClass} />
+            </AdvancedFilterField>
+            <AdvancedFilterField label="Receipts">
+              <select value={receiptFilter} onChange={(e) => setReceiptFilter(e.target.value)} className={advancedSelectClass}>
+                <option>All</option>
+                <option>With receipts</option>
+                <option>Missing receipts</option>
+              </select>
+            </AdvancedFilterField>
+            <AdvancedFilterField label="Invoice">
+              <select value={invoiceFilter} onChange={(e) => setInvoiceFilter(e.target.value)} className={advancedSelectClass}>
+                <option>All</option>
+                <option>Linked to invoice</option>
+                <option>No invoice</option>
+              </select>
+            </AdvancedFilterField>
+            <AdvancedFilterActions>
+              <button type="button" onClick={resetAdvancedFilters} className="h-8 rounded-lg border border-[#E5E7EB] bg-white px-3 text-[13px] text-[#546478] hover:bg-[#F5F7FA]">
+                Reset
+              </button>
+            </AdvancedFilterActions>
+          </AdvancedFilterPanel>
+        )}
         <SelectionBar
           count={selectedIds.size}
           onDeselect={() => setSelectedIds(new Set())}

@@ -9,6 +9,7 @@ import { PageHeader } from "../components/ui/page-header";
 import { SelectionBar } from "../components/ui/selection-bar";
 import { CreateActionButton } from "../components/ui/create-action-button";
 import { StatCard } from "../components/ui/stat-card";
+import { AdvancedFilterActions, AdvancedFilterField, AdvancedFilterPanel, advancedInputClass, advancedSelectClass } from "../components/ui/advanced-filters";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 export type PaymentMethod = "Cash" | "Check" | "Credit Card" | "Debit Card" | "Bank Transfer" | "Other";
@@ -80,6 +81,19 @@ function qfClass(active: boolean) {
   }`;
 }
 
+function matchesDatePreset(date: string, preset: string) {
+  if (preset === "All time") return true;
+  if (preset === "Today") return date === "2026-04-27";
+  if (preset === "Yesterday") return date === "2026-04-26";
+  if (preset === "Last 7 days") return date >= "2026-04-21" && date <= "2026-04-27";
+  if (preset === "Last 30 days") return date >= "2026-03-29" && date <= "2026-04-27";
+  if (preset === "This month") return date >= "2026-04-01" && date <= "2026-04-30";
+  if (preset === "Last month") return date >= "2026-03-01" && date <= "2026-03-31";
+  if (preset === "This year") return date >= "2026-01-01" && date <= "2026-12-31";
+  if (preset === "Last year") return date >= "2025-01-01" && date <= "2025-12-31";
+  return true;
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 export function Payments() {
   const navigate = useNavigate();
@@ -91,6 +105,14 @@ export function Payments() {
   const [qfStatus, setQfStatus] = useState("All");
   const [qfDate, setQfDate] = useState("All time");
   const [qfMethod, setQfMethod] = useState("All");
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [amountMin, setAmountMin] = useState("");
+  const [amountMax, setAmountMax] = useState("");
+  const [createdByFilter, setCreatedByFilter] = useState("All");
+  const [invoiceFilter, setInvoiceFilter] = useState("");
+  const [jobFilter, setJobFilter] = useState("");
 
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [page, setPage] = useState(1);
@@ -125,6 +147,20 @@ export function Payments() {
     let result = [...payments];
     if (qfStatus !== "All") result = result.filter(p => p.status === qfStatus);
     if (qfMethod !== "All") result = result.filter(p => p.method === qfMethod);
+    result = result.filter(p => matchesDatePreset(p.date, qfDate));
+    if (dateFrom) result = result.filter(p => p.date >= dateFrom);
+    if (dateTo) result = result.filter(p => p.date <= dateTo);
+    if (amountMin) result = result.filter(p => p.amount >= Number(amountMin));
+    if (amountMax) result = result.filter(p => p.amount <= Number(amountMax));
+    if (createdByFilter !== "All") result = result.filter(p => p.createdBy === createdByFilter);
+    if (invoiceFilter) {
+      const q = invoiceFilter.toLowerCase();
+      result = result.filter(p => p.invoiceNumber.toLowerCase().includes(q));
+    }
+    if (jobFilter) {
+      const q = jobFilter.toLowerCase();
+      result = result.filter(p => (p.jobId || "").toLowerCase().includes(q));
+    }
     if (search) {
       const q = search.toLowerCase();
       result = result.filter(p =>
@@ -136,7 +172,20 @@ export function Payments() {
     }
     result.sort((a, b) => b.date.localeCompare(a.date));
     return result;
-  }, [payments, search, qfStatus, qfMethod]);
+  }, [payments, search, qfStatus, qfMethod, qfDate, dateFrom, dateTo, amountMin, amountMax, createdByFilter, invoiceFilter, jobFilter]);
+
+  const creators = useMemo(() => Array.from(new Set(payments.map(p => p.createdBy))), [payments]);
+  const advancedActive = Boolean(dateFrom || dateTo || amountMin || amountMax || createdByFilter !== "All" || invoiceFilter || jobFilter);
+  const resetAdvancedFilters = () => {
+    setDateFrom("");
+    setDateTo("");
+    setAmountMin("");
+    setAmountMax("");
+    setCreatedByFilter("All");
+    setInvoiceFilter("");
+    setJobFilter("");
+    setPage(1);
+  };
 
   const paginated = filtered.slice((page - 1) * perPage, page * perPage);
   const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
@@ -219,7 +268,7 @@ export function Payments() {
                 <option key={s} value={s}>{s}</option>
               ))}
             </select>
-            <select value={qfDate} onChange={e => setQfDate(e.target.value)} className={qfClass(qfDate !== "All time")}>
+            <select value={qfDate} onChange={e => { setQfDate(e.target.value); setPage(1); }} className={qfClass(qfDate !== "All time")}>
               {timeFilters.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
             <select value={qfMethod} onChange={e => { setQfMethod(e.target.value); setPage(1); }} className={qfClass(qfMethod !== "All")}>
@@ -229,9 +278,15 @@ export function Payments() {
               ))}
             </select>
             <div className="w-px h-5 bg-[#E5E7EB] mx-1" />
-            <button className="h-8 px-3 border border-[#E5E7EB] rounded-lg text-[13px] text-[#546478] hover:bg-[#F5F7FA] flex items-center gap-1.5 bg-white" style={{ fontWeight: 500 }}>
+            <button
+              onClick={() => setFilterOpen(!filterOpen)}
+              className={`h-8 px-3 border rounded-lg text-[13px] flex items-center gap-1.5 transition-colors ${
+                filterOpen || advancedActive ? "border-[#4A6FA5] text-[#4A6FA5] bg-[#EEF3FA]" : "border-[#E5E7EB] text-[#546478] hover:bg-[#F5F7FA] bg-white"
+              }`}
+              style={{ fontWeight: 500 }}
+            >
               <span className="material-icons" style={{ fontSize: "16px" }}>filter_alt</span>
-              Filter
+              Filter{advancedActive ? " *" : ""}
             </button>
             <div className="ml-auto flex items-center gap-2">
               <CreateActionButton>
@@ -247,6 +302,39 @@ export function Payments() {
               </KebabMenu>
             </div>
           </div>
+          {filterOpen && (
+            <AdvancedFilterPanel>
+              <AdvancedFilterField label="Date from">
+                <input type="date" value={dateFrom} onChange={(e) => { setDateFrom(e.target.value); setPage(1); }} className={advancedInputClass} />
+              </AdvancedFilterField>
+              <AdvancedFilterField label="Date to">
+                <input type="date" value={dateTo} onChange={(e) => { setDateTo(e.target.value); setPage(1); }} className={advancedInputClass} />
+              </AdvancedFilterField>
+              <AdvancedFilterField label="Amount min">
+                <input type="number" min="0" placeholder="$0" value={amountMin} onChange={(e) => { setAmountMin(e.target.value); setPage(1); }} className={advancedInputClass} />
+              </AdvancedFilterField>
+              <AdvancedFilterField label="Amount max">
+                <input type="number" min="0" placeholder="Any" value={amountMax} onChange={(e) => { setAmountMax(e.target.value); setPage(1); }} className={advancedInputClass} />
+              </AdvancedFilterField>
+              <AdvancedFilterField label="Created by">
+                <select value={createdByFilter} onChange={(e) => { setCreatedByFilter(e.target.value); setPage(1); }} className={advancedSelectClass}>
+                  <option>All</option>
+                  {creators.map((creator) => <option key={creator}>{creator}</option>)}
+                </select>
+              </AdvancedFilterField>
+              <AdvancedFilterField label="Invoice #">
+                <input value={invoiceFilter} onChange={(e) => { setInvoiceFilter(e.target.value); setPage(1); }} placeholder="10245-I01" className={advancedInputClass} />
+              </AdvancedFilterField>
+              <AdvancedFilterField label="Job #">
+                <input value={jobFilter} onChange={(e) => { setJobFilter(e.target.value); setPage(1); }} placeholder="10245-J01" className={advancedInputClass} />
+              </AdvancedFilterField>
+              <AdvancedFilterActions>
+                <button type="button" onClick={resetAdvancedFilters} className="h-8 rounded-lg border border-[#E5E7EB] bg-white px-3 text-[13px] text-[#546478] hover:bg-[#F5F7FA]">
+                  Reset
+                </button>
+              </AdvancedFilterActions>
+            </AdvancedFilterPanel>
+          )}
           <SelectionBar
             count={selectedIds.size}
             onDeselect={() => setSelectedIds(new Set())}
