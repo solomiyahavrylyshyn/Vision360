@@ -890,8 +890,8 @@ export function EstimateDetail() {
             {/* Left: name + contact info */}
             <div className="flex flex-col gap-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-[20px] text-[#1A2332] leading-[27px]" style={{ fontWeight: 600 }}>
-                  {estimate.estimateName || `Estimate #${estimate.estimateNumber}`}
+                <h2 className="text-[20px] text-[#1A2332] leading-[27px]" style={{ fontWeight: 700 }}>
+                  Estimate #{estimate.estimateNumber}
                 </h2>
                 <div ref={statusRef} className="relative">
                   <button onClick={() => setStatusOpen(!statusOpen)}
@@ -985,13 +985,6 @@ export function EstimateDetail() {
                   <span className="material-icons" style={{ fontSize: "14px" }}>mail</span>
                   Sent {estimate.sentDate}
                 </div>
-                <button
-                  onClick={() => navigate(`/estimates/${id}/edit`)}
-                  className="ml-1.5 inline-flex items-center justify-center w-6 h-6 rounded text-[#6B7280] hover:text-[#4A6FA5] hover:bg-[#F5F7FA] transition-colors"
-                  title="Edit estimate details"
-                >
-                  <span className="material-icons" style={{ fontSize: "15px" }}>edit</span>
-                </button>
               </div>
             </div>
 
@@ -1023,21 +1016,6 @@ export function EstimateDetail() {
           tabSuffix={<TabSettingsButton />}
           trailing={
             <>
-            <button
-              onClick={() => setCustomerPreviewOpen(true)}
-              className="h-9 px-3.5 rounded-md border border-[#E5E7EB] bg-white text-[13px] text-[#546478] hover:bg-[#F5F7FA] inline-flex items-center gap-1.5 transition-colors"
-              style={{ fontWeight: 500 }}
-            >
-              <span className="material-icons" style={{ fontSize: "16px" }}>visibility</span>
-              Preview
-            </button>
-            <button
-              className="h-9 px-3.5 rounded-md border border-[#C8D5E8] bg-white hover:bg-[#F5F7FA] text-[#4A6FA5] text-[13px] inline-flex items-center gap-1.5 transition-colors"
-              style={{ fontWeight: 600 }}
-            >
-              <span className="material-icons" style={{ fontSize: "16px" }}>send</span>
-              Send
-            </button>
             <div className="relative">
               <button
                 onClick={() => setCreateMenuOpen(!createMenuOpen)}
