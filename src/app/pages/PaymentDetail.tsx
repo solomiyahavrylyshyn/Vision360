@@ -376,7 +376,7 @@ export function PaymentDetail() {
       <div className="relative mx-6 mb-6 bg-white border border-[#E5E7EB] rounded-xl p-4">
 
         {/* ── HEADER: title + status + KPI ── */}
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex items-start justify-between gap-4 border-b border-[#E5E7EB] pb-4">
 
           {/* Left: title + contact row */}
           <div className="flex-1 min-w-0 flex flex-col gap-1.5">
@@ -479,7 +479,7 @@ export function PaymentDetail() {
 
         <DetailTabs
           tabs={[
-            { key: "details", label: "Payment Details" },
+            { key: "details", label: "Details" },
             { key: "activity", label: "Activity" },
           ]}
           activeTab={activeTab}
@@ -487,16 +487,14 @@ export function PaymentDetail() {
           tabSuffix={<TabSettingsButton />}
           trailing={
             <>
-              {payment.status !== "Completed" && payment.status !== "Refunded" && payment.status !== "Voided" && (
-                <button
-                  onClick={() => navigate(`/payments/new?client=${encodeURIComponent(payment.clientName)}&invoice=${encodeURIComponent(payment.invoiceId || "")}&job=${encodeURIComponent(payment.jobId || "")}`)}
-                  className="h-9 px-4 inline-flex items-center gap-1.5 text-[13px] text-white bg-[#4A6FA5] rounded-lg hover:bg-[#3d5a85] transition-colors"
-                  style={{ fontWeight: 600 }}
-                >
-                  <span className="w-2 h-2 rounded-full bg-white opacity-80" />
-                  Collect Payment
-                </button>
-              )}
+              <button
+                onClick={() => navigate(`/payments/new?client=${encodeURIComponent(payment.clientName)}&invoice=${encodeURIComponent(payment.invoiceId || "")}&job=${encodeURIComponent(payment.jobId || "")}`)}
+                className="h-9 px-3.5 rounded-md bg-[#4A6FA5] hover:bg-[#3d5a85] text-white text-[13px] inline-flex items-center gap-1.5 transition-colors"
+                style={{ fontWeight: 600 }}
+              >
+                <span className="material-icons" style={{ fontSize: "16px" }}>payments</span>
+                Collect Payment
+              </button>
               <KebabMenu
                 triggerClassName="h-9 w-9 border border-[#E5E7EB] rounded-md hover:bg-[#EDF0F5] flex items-center justify-center bg-white"
               >

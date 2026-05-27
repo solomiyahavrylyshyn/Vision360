@@ -258,9 +258,9 @@ export function CompanySetup() {
                 aria-invalid={Boolean(errors.teamSize)}
               >
                 <option value="">Select team size</option>
-                <option value="solo">Solo operator</option>
-                <option value="under10">Under 10 employees</option>
-                <option value="over10">More than 10 employees</option>
+                <option value="solo">Just me (solo operator)</option>
+                <option value="plus1">Me + 1 employee</option>
+                <option value="plus2">Me + 2 employees</option>
               </select>
               {errors.teamSize && <p className="text-xs text-[#DC2626]">{errors.teamSize}</p>}
             </div>

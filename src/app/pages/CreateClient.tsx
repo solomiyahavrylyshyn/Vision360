@@ -199,11 +199,11 @@ export function CreateClient() {
   );
 
   const validate = (): string | null => {
-    if (!formData.firstName.trim() && !formData.company.trim()) {
-      return "Provide a first name or company name";
-    }
+    if (!formData.firstName.trim()) return "First name is required";
+    if (!formData.lastName.trim()) return "Last name is required";
     if (!formData.mobilePhone.trim()) return "Primary phone is required";
     if (!formData.email.trim()) return "Email is required";
+    if (!formData.address.trim()) return "Billing address is required";
     if (!formData.zip.trim()) return "ZIP code is required";
     return null;
   };
@@ -361,6 +361,7 @@ export function CreateClient() {
                       <Input
                         type="text"
                         placeholder="First name *"
+                        required
                         value={formData.firstName}
                         onChange={(e) =>
                           handleChange(
@@ -387,7 +388,8 @@ export function CreateClient() {
                       />
                       <Input
                         type="text"
-                        placeholder="Last name"
+                        placeholder="Last name *"
+                        required
                         value={formData.lastName}
                         onChange={(e) =>
                           handleChange(
@@ -429,11 +431,11 @@ export function CreateClient() {
                         className="text-[13px] text-[#374151] mb-2 block"
                         style={{ fontWeight: 500 }}
                       >
-                        Company name *
+                        Company name
                       </Label>
                       <Input
                         type="text"
-                        placeholder="Company name *"
+                        placeholder="Company name"
                         value={formData.company}
                         onChange={(e) =>
                           handleChange(
@@ -634,7 +636,8 @@ export function CreateClient() {
                   <div className="flex gap-[19px] w-[600px] h-10 flex-none order-0 self-stretch">
                     <Input
                       type="text"
-                      placeholder="Address"
+                      placeholder="Address *"
+                      required
                       value={formData.address}
                       onChange={(e) =>
                         handleChange("address", e.target.value)

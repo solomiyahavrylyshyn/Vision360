@@ -138,7 +138,7 @@ export function ExpenseDetail() {
               <span className="material-icons" style={{ fontSize: "18px" }}>edit</span>
             </button>
 
-            <div className="space-y-8">
+            <div className="space-y-6">
               <DetailBlock label="Document Number" value={documentNumber} />
               {expense.jobId && (
                 <DetailBlock
@@ -168,12 +168,12 @@ export function ExpenseDetail() {
               )}
               <div>
                 <div
-                  className="mb-3 text-[13px] uppercase tracking-[0.04em] text-[#6B7280]"
-                  style={{ fontWeight: 700 }}
+                  className="mb-1.5 text-[11px] uppercase tracking-wider text-[#546478]"
+                  style={{ fontWeight: 600 }}
                 >
                   Notes
                 </div>
-                <div className="rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] px-4 py-3 text-[16px] leading-6 text-[#374151]">
+                <div className="rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] px-3 py-2 text-[13px] leading-5 text-[#374151]">
                   {expense.notes || "No notes"}
                 </div>
               </div>
@@ -296,12 +296,12 @@ function DetailBlock({ label, value }: { label: string; value: React.ReactNode }
   return (
     <div>
       <div
-        className="mb-2 text-[13px] uppercase tracking-[0.04em] text-[#6B7280]"
-        style={{ fontWeight: 700 }}
+        className="mb-1 text-[11px] uppercase tracking-wider text-[#546478]"
+        style={{ fontWeight: 600 }}
       >
         {label}
       </div>
-      <div className="text-[17px] leading-6 text-[#546478]" style={{ fontWeight: 600 }}>
+      <div className="text-[14px] leading-5 text-[#1A2332]" style={{ fontWeight: 500 }}>
         {value}
       </div>
     </div>
