@@ -9,6 +9,7 @@ import { SelectionBar } from "../components/ui/selection-bar";
 import { CreateActionButton } from "../components/ui/create-action-button";
 import { StatCard } from "../components/ui/stat-card";
 import { useDraggableColumns, DraggableTh } from "../components/ui/draggable-columns";
+import { AdvancedFilterActions, AdvancedFilterField, AdvancedFilterPanel, advancedInputClass, advancedSelectClass } from "../components/ui/advanced-filters";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type EstimateStatus = "Draft" | "Sent" | "Viewed" | "Approved" | "Rejected" | "Expired" | "Archived";
@@ -122,6 +123,28 @@ function qfClass(active: boolean) {
   }`;
 }
 
+function toDateInputValue(date: string) {
+  if (!date) return "";
+  const parsed = new Date(`${date} 12:00:00`);
+  if (Number.isNaN(parsed.getTime())) return "";
+  return parsed.toISOString().slice(0, 10);
+}
+
+function matchesDatePreset(date: string, preset: string) {
+  if (preset === "All time") return true;
+  const value = toDateInputValue(date);
+  if (!value) return true;
+  if (preset === "Today") return value === "2026-04-27";
+  if (preset === "Yesterday") return value === "2026-04-26";
+  if (preset === "Last 7 days") return value >= "2026-04-21" && value <= "2026-04-27";
+  if (preset === "Last 30 days") return value >= "2026-03-29" && value <= "2026-04-27";
+  if (preset === "This month") return value >= "2026-04-01" && value <= "2026-04-30";
+  if (preset === "Last month") return value >= "2026-03-01" && value <= "2026-03-31";
+  if (preset === "This year") return value >= "2026-01-01" && value <= "2026-12-31";
+  if (preset === "Last year") return value >= "2025-01-01" && value <= "2025-12-31";
+  return true;
+}
+
 function ModalBackdrop({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={onClose}>
@@ -188,6 +211,16 @@ export function Estimates() {
   // Quick filters
   const [qfStatus, setQfStatus] = useState<"All" | EstimateStatus>("All");
   const [qfDate, setQfDate] = useState("All time");
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [createdFrom, setCreatedFrom] = useState("");
+  const [createdTo, setCreatedTo] = useState("");
+  const [expiresFrom, setExpiresFrom] = useState("");
+  const [expiresTo, setExpiresTo] = useState("");
+  const [amountMin, setAmountMin] = useState("");
+  const [amountMax, setAmountMax] = useState("");
+  const [teamFilter, setTeamFilter] = useState("All");
+  const [depositFilter, setDepositFilter] = useState("All");
+  const [jobFilter, setJobFilter] = useState("");
 
   const [search, setSearch] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
@@ -237,6 +270,20 @@ export function Estimates() {
   const filtered = useMemo(() => {
     let result = [...estimates];
     if (qfStatus !== "All") result = result.filter(e => e.status === qfStatus);
+    result = result.filter(e => matchesDatePreset(e.createdDate, qfDate));
+    if (createdFrom) result = result.filter(e => toDateInputValue(e.createdDate) >= createdFrom);
+    if (createdTo) result = result.filter(e => toDateInputValue(e.createdDate) <= createdTo);
+    if (expiresFrom) result = result.filter(e => toDateInputValue(e.expirationDate) >= expiresFrom);
+    if (expiresTo) result = result.filter(e => toDateInputValue(e.expirationDate) <= expiresTo);
+    if (amountMin) result = result.filter(e => e.amount >= Number(amountMin));
+    if (amountMax) result = result.filter(e => e.amount <= Number(amountMax));
+    if (teamFilter !== "All") result = result.filter(e => e.teamMember === teamFilter);
+    if (depositFilter === "Deposit due") result = result.filter(e => e.depositDue > 0);
+    if (depositFilter === "No deposit") result = result.filter(e => e.depositDue <= 0);
+    if (jobFilter) {
+      const q = jobFilter.toLowerCase();
+      result = result.filter(e => e.job.toLowerCase().includes(q) || e.jobTitle.toLowerCase().includes(q));
+    }
     if (search) {
       const q = search.toLowerCase();
       result = result.filter(e =>
@@ -247,7 +294,22 @@ export function Estimates() {
       );
     }
     return result;
-  }, [estimates, qfStatus, search]);
+  }, [estimates, qfStatus, qfDate, createdFrom, createdTo, expiresFrom, expiresTo, amountMin, amountMax, teamFilter, depositFilter, jobFilter, search]);
+
+  const teamMembers = useMemo(() => Array.from(new Set(estimates.map(e => e.teamMember).filter(Boolean))), [estimates]);
+  const advancedActive = Boolean(createdFrom || createdTo || expiresFrom || expiresTo || amountMin || amountMax || teamFilter !== "All" || depositFilter !== "All" || jobFilter);
+  const resetAdvancedFilters = () => {
+    setCreatedFrom("");
+    setCreatedTo("");
+    setExpiresFrom("");
+    setExpiresTo("");
+    setAmountMin("");
+    setAmountMax("");
+    setTeamFilter("All");
+    setDepositFilter("All");
+    setJobFilter("");
+    setPage(1);
+  };
 
   const sorted = useMemo(() => {
     return [...filtered].sort((a, b) => {
@@ -360,13 +422,19 @@ export function Estimates() {
             <option disabled>── other options ──</option>
             {otherStatuses.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
-          <select value={qfDate} onChange={e => setQfDate(e.target.value)} className={qfClass(qfDate !== "All time")}>
+          <select value={qfDate} onChange={e => { setQfDate(e.target.value); setPage(1); }} className={qfClass(qfDate !== "All time")}>
             {timeFilters.map(t => <option key={t} value={t}>{t}</option>)}
           </select>
           <div className="w-px h-5 bg-[#E5E7EB] mx-1" />
-          <button className="h-8 px-3 border border-[#E5E7EB] rounded-lg text-[13px] text-[#546478] hover:bg-[#F5F7FA] flex items-center gap-1.5 bg-white" style={{ fontWeight: 500 }}>
+          <button
+            onClick={() => setFilterOpen(!filterOpen)}
+            className={`h-8 px-3 border rounded-lg text-[13px] flex items-center gap-1.5 transition-colors ${
+              filterOpen || advancedActive ? "border-[#4A6FA5] text-[#4A6FA5] bg-[#EEF3FA]" : "border-[#E5E7EB] text-[#546478] hover:bg-[#F5F7FA] bg-white"
+            }`}
+            style={{ fontWeight: 500 }}
+          >
             <span className="material-icons" style={{ fontSize: "16px" }}>filter_alt</span>
-            Filter
+            Filter{advancedActive ? " *" : ""}
           </button>
           <div className="ml-auto flex items-center gap-2">
             <CreateActionButton onClick={() => setCreateModalOpen(true)}>
@@ -381,6 +449,49 @@ export function Estimates() {
             </KebabMenu>
           </div>
         </div>
+        {filterOpen && (
+          <AdvancedFilterPanel>
+            <AdvancedFilterField label="Created from">
+              <input type="date" value={createdFrom} onChange={(e) => { setCreatedFrom(e.target.value); setPage(1); }} className={advancedInputClass} />
+            </AdvancedFilterField>
+            <AdvancedFilterField label="Created to">
+              <input type="date" value={createdTo} onChange={(e) => { setCreatedTo(e.target.value); setPage(1); }} className={advancedInputClass} />
+            </AdvancedFilterField>
+            <AdvancedFilterField label="Expires from">
+              <input type="date" value={expiresFrom} onChange={(e) => { setExpiresFrom(e.target.value); setPage(1); }} className={advancedInputClass} />
+            </AdvancedFilterField>
+            <AdvancedFilterField label="Expires to">
+              <input type="date" value={expiresTo} onChange={(e) => { setExpiresTo(e.target.value); setPage(1); }} className={advancedInputClass} />
+            </AdvancedFilterField>
+            <AdvancedFilterField label="Amount min">
+              <input type="number" min="0" placeholder="$0" value={amountMin} onChange={(e) => { setAmountMin(e.target.value); setPage(1); }} className={advancedInputClass} />
+            </AdvancedFilterField>
+            <AdvancedFilterField label="Amount max">
+              <input type="number" min="0" placeholder="Any" value={amountMax} onChange={(e) => { setAmountMax(e.target.value); setPage(1); }} className={advancedInputClass} />
+            </AdvancedFilterField>
+            <AdvancedFilterField label="Team member">
+              <select value={teamFilter} onChange={(e) => { setTeamFilter(e.target.value); setPage(1); }} className={advancedSelectClass}>
+                <option>All</option>
+                {teamMembers.map((member) => <option key={member}>{member}</option>)}
+              </select>
+            </AdvancedFilterField>
+            <AdvancedFilterField label="Deposit">
+              <select value={depositFilter} onChange={(e) => { setDepositFilter(e.target.value); setPage(1); }} className={advancedSelectClass}>
+                <option>All</option>
+                <option>Deposit due</option>
+                <option>No deposit</option>
+              </select>
+            </AdvancedFilterField>
+            <AdvancedFilterField label="Job">
+              <input value={jobFilter} onChange={(e) => { setJobFilter(e.target.value); setPage(1); }} placeholder="10246-J01" className={advancedInputClass} />
+            </AdvancedFilterField>
+            <AdvancedFilterActions>
+              <button type="button" onClick={resetAdvancedFilters} className="h-8 rounded-lg border border-[#E5E7EB] bg-white px-3 text-[13px] text-[#546478] hover:bg-[#F5F7FA]">
+                Reset
+              </button>
+            </AdvancedFilterActions>
+          </AdvancedFilterPanel>
+        )}
         <SelectionBar
           count={selectedIds.size}
           onDeselect={() => setSelectedIds(new Set())}
