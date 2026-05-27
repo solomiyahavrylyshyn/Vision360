@@ -149,7 +149,7 @@ const mockEstimates: Record<string, EstimateData> = {
 
 type TabKey = "details" | "deposit" | "activity";
 const TABS: { key: TabKey; label: string }[] = [
-  { key: "details", label: "Estimate Details" },
+  { key: "details", label: "Details" },
   { key: "deposit", label: "Deposit" },
   { key: "activity", label: "Activity" },
 ];
