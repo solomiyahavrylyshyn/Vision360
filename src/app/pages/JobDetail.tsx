@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { useNavigate, useParams } from "react-router";
-import { KebabMenu, KebabItem } from "../components/ui/kebab-menu";
+import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -1535,7 +1535,8 @@ export function JobDetail() {
             <KebabMenu triggerClassName="h-9 w-9 border border-[#E5E7EB] rounded-lg hover:bg-[#EDF0F5] flex items-center justify-center bg-white">
               <KebabItem icon="edit" onClick={() => navigate(`/jobs/${id}/edit`)}>Edit Job</KebabItem>
               <KebabItem icon="content_copy">Duplicate Job</KebabItem>
-              <KebabItem icon="block" destructive>Inactivate Job</KebabItem>
+              <KebabSeparator />
+              <KebabItem icon="archive" destructive>Archive Job</KebabItem>
             </KebabMenu>
             </>
           }

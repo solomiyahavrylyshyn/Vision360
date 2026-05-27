@@ -9,7 +9,7 @@ import { PageHeader } from "../components/ui/page-header";
 import { SelectionBar } from "../components/ui/selection-bar";
 import { CreateActionButton } from "../components/ui/create-action-button";
 import { StatCard } from "../components/ui/stat-card";
-import { AdvancedFilterActions, AdvancedFilterField, AdvancedFilterPanel, advancedInputClass, advancedSelectClass } from "../components/ui/advanced-filters";
+import { AdvancedFilterField, AdvancedFilterPanel, advancedInputClass, advancedSelectClass } from "../components/ui/advanced-filters";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 export type PaymentMethod = "Cash" | "Check" | "Credit Card" | "Debit Card" | "Bank Transfer" | "Other";
@@ -175,7 +175,8 @@ export function Payments() {
   }, [payments, search, qfStatus, qfMethod, qfDate, dateFrom, dateTo, amountMin, amountMax, createdByFilter, invoiceFilter, jobFilter]);
 
   const creators = useMemo(() => Array.from(new Set(payments.map(p => p.createdBy))), [payments]);
-  const advancedActive = Boolean(dateFrom || dateTo || amountMin || amountMax || createdByFilter !== "All" || invoiceFilter || jobFilter);
+  const activeFilterCount = [dateFrom, dateTo, amountMin, amountMax, createdByFilter !== "All", invoiceFilter, jobFilter].filter(Boolean).length;
+  const advancedActive = activeFilterCount > 0;
   const resetAdvancedFilters = () => {
     setDateFrom("");
     setDateTo("");
@@ -279,14 +280,19 @@ export function Payments() {
             </select>
             <div className="w-px h-5 bg-[#E5E7EB] mx-1" />
             <button
-              onClick={() => setFilterOpen(!filterOpen)}
+              onClick={() => setFilterOpen(true)}
               className={`h-8 px-3 border rounded-lg text-[13px] flex items-center gap-1.5 transition-colors ${
                 filterOpen || advancedActive ? "border-[#4A6FA5] text-[#4A6FA5] bg-[#EEF3FA]" : "border-[#E5E7EB] text-[#546478] hover:bg-[#F5F7FA] bg-white"
               }`}
               style={{ fontWeight: 500 }}
             >
               <span className="material-icons" style={{ fontSize: "16px" }}>filter_alt</span>
-              Filter{advancedActive ? " *" : ""}
+              Filter
+              {activeFilterCount > 0 && (
+                <span className="w-4 h-4 bg-[#4A6FA5] text-white text-[10px] rounded-full flex items-center justify-center" style={{ fontWeight: 700 }}>
+                  {activeFilterCount}
+                </span>
+              )}
             </button>
             <div className="ml-auto flex items-center gap-2">
               <CreateActionButton>
@@ -303,7 +309,11 @@ export function Payments() {
             </div>
           </div>
           {filterOpen && (
-            <AdvancedFilterPanel>
+            <AdvancedFilterPanel
+              onClose={() => setFilterOpen(false)}
+              onClear={() => { resetAdvancedFilters(); setFilterOpen(false); }}
+              onApply={() => setFilterOpen(false)}
+            >
               <AdvancedFilterField label="Date from">
                 <input type="date" value={dateFrom} onChange={(e) => { setDateFrom(e.target.value); setPage(1); }} className={advancedInputClass} />
               </AdvancedFilterField>
@@ -328,11 +338,6 @@ export function Payments() {
               <AdvancedFilterField label="Job #">
                 <input value={jobFilter} onChange={(e) => { setJobFilter(e.target.value); setPage(1); }} placeholder="10245-J01" className={advancedInputClass} />
               </AdvancedFilterField>
-              <AdvancedFilterActions>
-                <button type="button" onClick={resetAdvancedFilters} className="h-8 rounded-lg border border-[#E5E7EB] bg-white px-3 text-[13px] text-[#546478] hover:bg-[#F5F7FA]">
-                  Reset
-                </button>
-              </AdvancedFilterActions>
             </AdvancedFilterPanel>
           )}
           <SelectionBar
@@ -340,11 +345,11 @@ export function Payments() {
             onDeselect={() => setSelectedIds(new Set())}
             actions={[
               {
-                label: "Inactivate selected",
-                icon: "block",
+                label: "Refund selected",
+                icon: "undo",
                 destructive: true,
                 onClick: () => {
-                  setPayments(prev => prev.filter(p => !selectedIds.has(p.id)));
+                  setPayments(prev => prev.map(p => selectedIds.has(p.id) ? { ...p, status: "Refunded" } : p));
                   setSelectedIds(new Set());
                 },
               },
@@ -455,9 +460,10 @@ export function Payments() {
                         <KebabMenu>
                           <KebabItem icon="visibility" onSelect={() => navigate(`/payments/${p.id}`)}>View details</KebabItem>
                           <KebabItem icon="receipt" onSelect={() => navigate(`/invoices/${p.invoiceId}`)}>Open invoice</KebabItem>
-                          <KebabItem icon="content_copy">Duplicate</KebabItem>
                           <KebabSeparator />
-                          <KebabItem icon="block" destructive>Refund</KebabItem>
+                          <KebabItem icon="undo" destructive onSelect={() => {
+                            setPayments(prev => prev.map(pp => pp.id === p.id ? { ...pp, status: "Refunded" } : pp));
+                          }}>Refund</KebabItem>
                         </KebabMenu>
                       </td>
                     </tr>

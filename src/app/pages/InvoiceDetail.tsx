@@ -843,7 +843,8 @@ export function InvoiceDetail() {
               <KebabItem icon="send">Send</KebabItem>
               <KebabItem icon="file_download">Download</KebabItem>
               <KebabSeparator />
-              <KebabItem icon="block" destructive onClick={() => setVoidConfirm(true)}>Void Invoice</KebabItem>
+              <KebabItem icon="block" onClick={() => setVoidConfirm(true)}>Void Invoice</KebabItem>
+              <KebabItem icon="archive" destructive>Archive Invoice</KebabItem>
             </KebabMenu>
             </>
           }

@@ -123,7 +123,7 @@ export function ExpenseDetail() {
               )}
               <KebabItem icon="content_copy">Duplicate</KebabItem>
               <KebabSeparator />
-              <KebabItem icon="delete_outline" destructive>Delete</KebabItem>
+              <KebabItem icon="archive" destructive>Archive</KebabItem>
             </KebabMenu>
           </div>
         </div>

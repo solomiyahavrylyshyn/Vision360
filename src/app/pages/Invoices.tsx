@@ -10,7 +10,7 @@ import { SelectionBar } from "../components/ui/selection-bar";
 import { CreateActionButton } from "../components/ui/create-action-button";
 import { StatCard } from "../components/ui/stat-card";
 import { formatRegionalDate, regionalSettingsStore } from "../stores/regionalSettingsStore";
-import { AdvancedFilterActions, AdvancedFilterField, AdvancedFilterPanel, advancedInputClass, advancedSelectClass } from "../components/ui/advanced-filters";
+import { AdvancedFilterField, AdvancedFilterPanel, advancedInputClass, advancedSelectClass } from "../components/ui/advanced-filters";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type InvoiceStatus =
@@ -354,7 +354,8 @@ export function Invoices() {
 
   const creators = useMemo(() => Array.from(new Set(invoices.map(i => i.createdBy))), [invoices]);
   const terms = useMemo(() => Array.from(new Set(invoices.map(i => i.paymentTerms).filter(Boolean))), [invoices]);
-  const advancedActive = Boolean(createdFrom || createdTo || dueFrom || dueTo || totalMin || totalMax || balanceMin || balanceMax || createdByFilter !== "All" || termsFilter !== "All");
+  const activeFilterCount = [createdFrom, createdTo, dueFrom, dueTo, totalMin, totalMax, balanceMin, balanceMax, createdByFilter !== "All", termsFilter !== "All"].filter(Boolean).length;
+  const advancedActive = activeFilterCount > 0;
   const resetAdvancedFilters = () => {
     setCreatedFrom("");
     setCreatedTo("");
@@ -466,14 +467,19 @@ export function Invoices() {
           </select>
           <div className="w-px h-5 bg-[#E5E7EB] mx-1" />
           <button
-            onClick={() => setFilterOpen(!filterOpen)}
+            onClick={() => setFilterOpen(true)}
             className={`h-8 px-3 border rounded-lg text-[13px] flex items-center gap-1.5 transition-colors ${
               filterOpen || advancedActive ? "border-[#4A6FA5] text-[#4A6FA5] bg-[#EEF3FA]" : "border-[#E5E7EB] text-[#546478] hover:bg-[#F5F7FA] bg-white"
             }`}
             style={{ fontWeight: 500 }}
           >
             <span className="material-icons" style={{ fontSize: "16px" }}>filter_alt</span>
-            Filter{advancedActive ? " *" : ""}
+            Filter
+            {activeFilterCount > 0 && (
+              <span className="w-4 h-4 bg-[#4A6FA5] text-white text-[10px] rounded-full flex items-center justify-center" style={{ fontWeight: 700 }}>
+                {activeFilterCount}
+              </span>
+            )}
           </button>
           <div className="ml-auto flex items-center gap-2">
             <CreateActionButton onClick={() => navigate("/invoices/new")}>
@@ -490,7 +496,11 @@ export function Invoices() {
           </div>
         </div>
         {filterOpen && (
-          <AdvancedFilterPanel>
+          <AdvancedFilterPanel
+            onClose={() => setFilterOpen(false)}
+            onClear={() => { resetAdvancedFilters(); setFilterOpen(false); }}
+            onApply={() => setFilterOpen(false)}
+          >
             <AdvancedFilterField label="Created from">
               <input type="date" value={createdFrom} onChange={(e) => { setCreatedFrom(e.target.value); setPage(1); }} className={advancedInputClass} />
             </AdvancedFilterField>
@@ -527,11 +537,6 @@ export function Invoices() {
                 {terms.map((term) => <option key={term}>{term}</option>)}
               </select>
             </AdvancedFilterField>
-            <AdvancedFilterActions>
-              <button type="button" onClick={resetAdvancedFilters} className="h-8 rounded-lg border border-[#E5E7EB] bg-white px-3 text-[13px] text-[#546478] hover:bg-[#F5F7FA]">
-                Reset
-              </button>
-            </AdvancedFilterActions>
           </AdvancedFilterPanel>
         )}
         <SelectionBar
@@ -539,8 +544,8 @@ export function Invoices() {
           onDeselect={() => setSelectedIds(new Set())}
           actions={[
             {
-              label: "Inactivate selected",
-              icon: "block",
+              label: "Archive selected",
+              icon: "archive",
               destructive: true,
               onClick: () => setDeleteConfirm(true),
             },
@@ -654,7 +659,8 @@ export function Invoices() {
                       <KebabItem icon="content_copy">Duplicate</KebabItem>
                       <KebabItem icon="send">Send to Client</KebabItem>
                       <KebabSeparator />
-                      <KebabItem icon="block" destructive>Void</KebabItem>
+                      <KebabItem icon="block">Void</KebabItem>
+                      <KebabItem icon="archive" destructive>Archive</KebabItem>
                     </KebabMenu>
                   </td>
                 </tr>
@@ -692,14 +698,14 @@ export function Invoices() {
               <div className="w-10 h-10 rounded-full bg-[#FEE2E2] flex items-center justify-center">
                 <span className="material-icons text-[#DC2626]" style={{ fontSize: "22px" }}>warning</span>
               </div>
-              <h3 className="text-[18px] text-[#1A2332]" style={{ fontWeight: 700 }}>Inactivate invoices?</h3>
+              <h3 className="text-[18px] text-[#1A2332]" style={{ fontWeight: 700 }}>Archive invoices?</h3>
             </div>
             <p className="text-[14px] text-[#546478] mb-6">
-              Inactivate {selectedIds.size} invoice(s)? They can be restored later.
+              Archive {selectedIds.size} invoice(s)? They can be restored later.
             </p>
             <div className="flex items-center justify-end gap-3">
               <button onClick={() => setDeleteConfirm(false)} className="px-4 py-2.5 border border-[#E5E7EB] text-[#546478] rounded-lg text-[13px] hover:bg-[#F5F7FA]" style={{ fontWeight: 500 }}>Cancel</button>
-              <button onClick={handleBulkDelete} className="px-4 py-2.5 bg-[#DC2626] text-white rounded-lg text-[13px] hover:bg-[#B91C1C]" style={{ fontWeight: 600 }}>Inactivate</button>
+              <button onClick={handleBulkDelete} className="px-4 py-2.5 bg-[#DC2626] text-white rounded-lg text-[13px] hover:bg-[#B91C1C]" style={{ fontWeight: 600 }}>Archive</button>
             </div>
           </div>
         </div>

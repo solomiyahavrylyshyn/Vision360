@@ -1410,11 +1410,79 @@ function ItemsPreferences() {
             </tbody>
           </table>
         </div>
-        <Button
-          variant="outline"
-          className="mt-3 h-9 border-[#C8D5E8] text-[#4A6FA5] hover:bg-[#EBF0F8]"
-          onClick={() => setVendors([...vendors, { id: `v${Date.now()}`, name: "New vendor", code: "", contact: "" }])}
-        >+ Add vendor</Button>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <Button
+            variant="outline"
+            className="h-9 border-[#C8D5E8] text-[#4A6FA5] hover:bg-[#EBF0F8]"
+            onClick={() => setVendors([...vendors, { id: `v${Date.now()}`, name: "New vendor", code: "", contact: "" }])}
+          >+ Add vendor</Button>
+
+          {/* CSV upload — accepts: name, code, contact (header row optional). */}
+          <input
+            id="vendor-csv-input"
+            type="file"
+            accept=".csv,text/csv"
+            className="hidden"
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              const text = await file.text();
+              // Lightweight CSV parser: split lines, skip blanks, support optional header row,
+              // tolerate quoted fields (basic). Columns: name, code, contact.
+              const rows = text.split(/\r?\n/).map(r => r.trim()).filter(Boolean);
+              if (rows.length === 0) { toast.error("CSV is empty"); return; }
+              const splitCsv = (line: string) => {
+                const out: string[] = [];
+                let cur = ""; let inQuote = false;
+                for (let i = 0; i < line.length; i++) {
+                  const c = line[i];
+                  if (c === '"' && line[i + 1] === '"') { cur += '"'; i++; continue; }
+                  if (c === '"') { inQuote = !inQuote; continue; }
+                  if (c === "," && !inQuote) { out.push(cur); cur = ""; continue; }
+                  cur += c;
+                }
+                out.push(cur);
+                return out.map(s => s.trim());
+              };
+              const first = splitCsv(rows[0]).map(s => s.toLowerCase());
+              const hasHeader = first.some(s => ["name", "vendor", "vendor name", "code", "contact"].includes(s));
+              const dataRows = hasHeader ? rows.slice(1) : rows;
+              const idx = hasHeader
+                ? {
+                    name: first.findIndex(s => s === "vendor" || s === "name" || s === "vendor name"),
+                    code: first.findIndex(s => s === "code"),
+                    contact: first.findIndex(s => s === "contact" || s === "email"),
+                  }
+                : { name: 0, code: 1, contact: 2 };
+              const added = dataRows.map((line, i) => {
+                const cells = splitCsv(line);
+                return {
+                  id: `v${Date.now()}-${i}`,
+                  name: (cells[idx.name] || "").trim() || "Unnamed vendor",
+                  code: (cells[idx.code] || "").trim(),
+                  contact: (cells[idx.contact] || "").trim(),
+                };
+              }).filter(v => v.name && v.name !== "Unnamed vendor");
+              if (added.length === 0) { toast.error("No valid vendor rows found"); }
+              else {
+                setVendors([...vendors, ...added]);
+                toast.success(`Imported ${added.length} vendor${added.length === 1 ? "" : "s"}`);
+              }
+              // reset so the same file can be re-uploaded
+              e.target.value = "";
+            }}
+          />
+          <Button
+            variant="outline"
+            className="h-9 border-[#C8D5E8] text-[#4A6FA5] hover:bg-[#EBF0F8] inline-flex items-center gap-1.5"
+            onClick={() => document.getElementById("vendor-csv-input")?.click()}
+            title="Upload a CSV with columns: vendor name, code, contact"
+          >
+            <span className="material-icons" style={{ fontSize: "16px" }}>upload_file</span>
+            Upload CSV
+          </Button>
+          <span className="text-[12px] text-[#9CA3AF]">CSV columns: vendor name, code, contact</span>
+        </div>
 
         {/* Footer — Save / Cancel attached */}
         <div className="mt-5 -mx-5 -mb-5 px-5 py-4 border-t border-[#E1E6EF] flex items-center justify-end gap-3 bg-white rounded-b-xl">

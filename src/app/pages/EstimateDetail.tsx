@@ -1048,13 +1048,14 @@ export function EstimateDetail() {
               )}
             </div>
             <KebabMenu triggerClassName="h-9 w-9 border border-[#E5E7EB] rounded-md bg-white flex items-center justify-center hover:bg-[#F5F7FA]">
+              <KebabItem icon="visibility" onClick={() => setCustomerPreviewOpen(true)}>Preview estimate</KebabItem>
               <KebabItem icon="send">Send to Client</KebabItem>
               <KebabItem icon="link">Get Link</KebabItem>
               <KebabItem icon="print" onClick={() => setCustomerPreviewOpen(true)}>Print</KebabItem>
               <KebabSeparator />
               <KebabItem icon="content_copy">Duplicate</KebabItem>
               <KebabSeparator />
-              <KebabItem icon="block" destructive>Inactivate</KebabItem>
+              <KebabItem icon="archive" destructive>Archive</KebabItem>
             </KebabMenu>
             </>
           }

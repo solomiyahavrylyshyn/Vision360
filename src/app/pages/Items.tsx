@@ -8,6 +8,7 @@ import { SelectionBar } from "../components/ui/selection-bar";
 import { useDraggableColumns, DraggableTh } from "../components/ui/draggable-columns";
 import { PlusIcon } from "../components/ui/plus-icon";
 import { CreateActionButton } from "../components/ui/create-action-button";
+import { AdvancedFilterField, AdvancedFilterPanel, advancedInputClass, advancedSelectClass } from "../components/ui/advanced-filters";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type ItemType =
@@ -412,6 +413,15 @@ export function Items() {
   const [pbPerPage, setPbPerPage] = useState(10);
   const [pbCols, movePbCol] = useDraggableColumns([...PRICEBOOK_COLS]);
 
+  // Advanced filters
+  const [filterPanelOpen, setFilterPanelOpen] = useState(false);
+  const [advancedType, setAdvancedType] = useState("All");
+  const [advancedPriceMin, setAdvancedPriceMin] = useState("");
+  const [advancedPriceMax, setAdvancedPriceMax] = useState("");
+  const [advancedCostMin, setAdvancedCostMin] = useState("");
+  const [advancedCostMax, setAdvancedCostMax] = useState("");
+  const [advancedTaxable, setAdvancedTaxable] = useState("All");
+
   // ─── Items Logic ─────────────────────────────────────────────────────
   const filteredItems = useMemo(() => {
     let result = [...items];
@@ -428,6 +438,13 @@ export function Items() {
     // Status filter
     if (itemStatusFilter === "Active") result = result.filter(i => i.active);
     else if (itemStatusFilter === "Inactive") result = result.filter(i => !i.active);
+    if (advancedType !== "All") result = result.filter(i => i.type === advancedType);
+    if (advancedPriceMin) result = result.filter(i => i.rate >= Number(advancedPriceMin));
+    if (advancedPriceMax) result = result.filter(i => i.rate <= Number(advancedPriceMax));
+    if (advancedCostMin) result = result.filter(i => i.cost >= Number(advancedCostMin));
+    if (advancedCostMax) result = result.filter(i => i.cost <= Number(advancedCostMax));
+    if (advancedTaxable === "Taxable") result = result.filter(i => i.taxable);
+    if (advancedTaxable === "Non-taxable") result = result.filter(i => !i.taxable);
     // Search
     if (itemSearch) {
       const q = itemSearch.toLowerCase();
@@ -445,7 +462,7 @@ export function Items() {
       return itemSort.dir === "asc" ? String(av).localeCompare(String(bv)) : String(bv).localeCompare(String(av));
     });
     return result;
-  }, [items, itemFilter, itemStatusFilter, itemSearch, itemSort, activeTab]);
+  }, [items, itemFilter, itemStatusFilter, itemSearch, itemSort, activeTab, advancedType, advancedPriceMin, advancedPriceMax, advancedCostMin, advancedCostMax, advancedTaxable]);
 
   const paginatedItems = filteredItems.slice((itemPage - 1) * itemPerPage, itemPage * itemPerPage);
   const allItemsSelected = paginatedItems.length > 0 && paginatedItems.every(i => selectedItems.has(i.id));
@@ -456,6 +473,12 @@ export function Items() {
     if (pbCategoryFilter !== "All") result = result.filter(i => i.category === pbCategoryFilter);
     if (pbStatusFilter === "Active") result = result.filter(i => i.active);
     else if (pbStatusFilter === "Inactive") result = result.filter(i => !i.active);
+    if (advancedPriceMin) result = result.filter(i => i.price >= Number(advancedPriceMin));
+    if (advancedPriceMax) result = result.filter(i => i.price <= Number(advancedPriceMax));
+    if (advancedCostMin) result = result.filter(i => i.cost >= Number(advancedCostMin));
+    if (advancedCostMax) result = result.filter(i => i.cost <= Number(advancedCostMax));
+    if (advancedTaxable === "Taxable") result = result.filter(i => i.taxable);
+    if (advancedTaxable === "Non-taxable") result = result.filter(i => !i.taxable);
     if (pbSearch) {
       const q = pbSearch.toLowerCase();
       result = result.filter(i => i.name.toLowerCase().includes(q) || i.category.toLowerCase().includes(q) || i.description.toLowerCase().includes(q));
@@ -466,7 +489,7 @@ export function Items() {
       return pbSort.dir === "asc" ? String(av).localeCompare(String(bv)) : String(bv).localeCompare(String(av));
     });
     return result;
-  }, [pbItems, pbCategoryFilter, pbStatusFilter, pbSearch, pbSort]);
+  }, [pbItems, pbCategoryFilter, pbStatusFilter, pbSearch, pbSort, advancedPriceMin, advancedPriceMax, advancedCostMin, advancedCostMax, advancedTaxable]);
 
   const paginatedPbItems = filteredPbItems.slice((pbPage - 1) * pbPerPage, pbPage * pbPerPage);
   const pbCategories = [...new Set(pbItems.map(i => i.category))];
@@ -508,6 +531,27 @@ export function Items() {
     equipment: items.filter(i => getItemCategory(i.type) === "Equipment").length,
     asset: items.filter(i => getItemCategory(i.type) === "Asset").length,
     fees: items.filter(i => getItemCategory(i.type) === "Fee").length,
+  };
+
+  const itemTypeOptions = [...new Set(items.map(i => i.type))];
+  const advancedFilterCount = [
+    activeTab !== "pricebook" && advancedType !== "All",
+    advancedPriceMin,
+    advancedPriceMax,
+    advancedCostMin,
+    advancedCostMax,
+    advancedTaxable !== "All",
+  ].filter(Boolean).length;
+  const clearAdvancedFilters = () => {
+    setAdvancedType("All");
+    setAdvancedPriceMin("");
+    setAdvancedPriceMax("");
+    setAdvancedCostMin("");
+    setAdvancedCostMax("");
+    setAdvancedTaxable("All");
+    setFilterPanelOpen(false);
+    setItemPage(1);
+    setPbPage(1);
   };
 
   // ═══════════════════════════════════════════════════════════════════════
@@ -570,9 +614,22 @@ export function Items() {
               <option value="Active">Active</option>
               <option value="Inactive">Inactive</option>
             </select>
-            <button className="h-8 px-3 border border-[#E5E7EB] rounded-lg text-[13px] text-[#546478] bg-white hover:bg-[#F5F7FA] flex items-center gap-1.5 transition-colors">
+            <button
+              onClick={() => setFilterPanelOpen(true)}
+              className={`h-8 px-3 rounded-lg border text-[13px] flex items-center gap-1.5 transition-colors ${
+                advancedFilterCount > 0
+                  ? "border-[#4A6FA5] text-[#4A6FA5] bg-[#EEF3FA]"
+                  : "border-[#E5E7EB] text-[#546478] hover:bg-[#F5F7FA] hover:border-[#C5CEDD]"
+              }`}
+              style={{ fontWeight: 500 }}
+            >
               <span className="material-icons" style={{ fontSize: "16px" }}>filter_alt</span>
               Filters
+              {advancedFilterCount > 0 && (
+                <span className="w-4 h-4 bg-[#4A6FA5] text-white text-[10px] rounded-full flex items-center justify-center" style={{ fontWeight: 700 }}>
+                  {advancedFilterCount}
+                </span>
+              )}
             </button>
             <div className="ml-auto flex items-center gap-2">
               <CreateActionButton onClick={() => { setEditingItem(null); setItemModalOpen(true); }}>
@@ -733,9 +790,22 @@ export function Items() {
               <option value="Active">Active</option>
               <option value="Inactive">Inactive</option>
             </select>
-            <button className="h-8 px-3 border border-[#E5E7EB] rounded-lg text-[13px] text-[#546478] bg-white hover:bg-[#F5F7FA] flex items-center gap-1.5 transition-colors">
+            <button
+              onClick={() => setFilterPanelOpen(true)}
+              className={`h-8 px-3 rounded-lg border text-[13px] flex items-center gap-1.5 transition-colors ${
+                advancedFilterCount > 0
+                  ? "border-[#4A6FA5] text-[#4A6FA5] bg-[#EEF3FA]"
+                  : "border-[#E5E7EB] text-[#546478] hover:bg-[#F5F7FA] hover:border-[#C5CEDD]"
+              }`}
+              style={{ fontWeight: 500 }}
+            >
               <span className="material-icons" style={{ fontSize: "16px" }}>filter_alt</span>
               Filters
+              {advancedFilterCount > 0 && (
+                <span className="w-4 h-4 bg-[#4A6FA5] text-white text-[10px] rounded-full flex items-center justify-center" style={{ fontWeight: 700 }}>
+                  {advancedFilterCount}
+                </span>
+              )}
             </button>
             <div className="ml-auto flex items-center gap-2">
               <CreateActionButton onClick={() => { setEditingItem(null); setItemModalOpen(true); }}>
@@ -881,6 +951,50 @@ export function Items() {
       )}
 
       {/* ═══════════════ BOTTOM INFO PANEL (conditional) ═══════════════ */}
+      {filterPanelOpen && (
+        <AdvancedFilterPanel
+          onClose={() => setFilterPanelOpen(false)}
+          onClear={clearAdvancedFilters}
+          onApply={() => {
+            setFilterPanelOpen(false);
+            setItemPage(1);
+            setPbPage(1);
+          }}
+        >
+          {activeTab !== "pricebook" && (
+            <AdvancedFilterField label="Item type">
+              <select value={advancedType} onChange={(e) => setAdvancedType(e.target.value)} className={advancedSelectClass}>
+                <option value="All">All</option>
+                {itemTypeOptions.map(type => <option key={type} value={type}>{type}</option>)}
+              </select>
+            </AdvancedFilterField>
+          )}
+          <div className="border-t border-[#E5E7EB] pt-5">
+            <h3 className="text-[13px] text-[#374151] mb-4" style={{ fontWeight: 600 }}>Price</h3>
+            <div className="flex items-center gap-2">
+              <input type="number" min="0" placeholder="Min" value={advancedPriceMin} onChange={(e) => setAdvancedPriceMin(e.target.value)} className={advancedInputClass} />
+              <span className="text-[#546478] text-[13px]">-</span>
+              <input type="number" min="0" placeholder="Max" value={advancedPriceMax} onChange={(e) => setAdvancedPriceMax(e.target.value)} className={advancedInputClass} />
+            </div>
+          </div>
+          <div className="border-t border-[#E5E7EB] pt-5">
+            <h3 className="text-[13px] text-[#374151] mb-4" style={{ fontWeight: 600 }}>Cost</h3>
+            <div className="flex items-center gap-2">
+              <input type="number" min="0" placeholder="Min" value={advancedCostMin} onChange={(e) => setAdvancedCostMin(e.target.value)} className={advancedInputClass} />
+              <span className="text-[#546478] text-[13px]">-</span>
+              <input type="number" min="0" placeholder="Max" value={advancedCostMax} onChange={(e) => setAdvancedCostMax(e.target.value)} className={advancedInputClass} />
+            </div>
+          </div>
+          <AdvancedFilterField label="Taxable">
+            <select value={advancedTaxable} onChange={(e) => setAdvancedTaxable(e.target.value)} className={advancedSelectClass}>
+              <option value="All">All</option>
+              <option value="Taxable">Taxable</option>
+              <option value="Non-taxable">Non-taxable</option>
+            </select>
+          </AdvancedFilterField>
+        </AdvancedFilterPanel>
+      )}
+
       {showInfoBar && (activeTab === "pricebook" ? (
         <div className="mt-3 bg-white border border-[#E5E7EB] rounded-xl px-5 py-4 flex gap-6 relative">
           {/* Close button */}

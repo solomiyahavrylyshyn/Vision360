@@ -282,8 +282,8 @@ export function Jobs() {
           onDeselect={() => setSelectedJobs(new Set())}
           actions={[
             {
-              label: "Inactivate selected",
-              icon: "block",
+              label: "Archive selected",
+              icon: "archive",
               destructive: true,
               onClick: () => {
                 setJobs(prev => prev.filter(j => !selectedJobs.has(j.id)));
@@ -369,10 +369,9 @@ export function Jobs() {
                   <KebabMenu>
                     <KebabItem icon="edit" onSelect={() => navigate(`/jobs/${job.id}`)}>Edit</KebabItem>
                     <KebabItem icon="content_copy">Duplicate</KebabItem>
-                    <KebabSeparator />
-                    <KebabItem icon="block" destructive>Inactivate</KebabItem>
-                    <KebabSeparator />
                     <KebabItem icon="open_in_new" onSelect={() => window.open(`/jobs/${job.id}`, "_blank")}>Open in New Tab</KebabItem>
+                    <KebabSeparator />
+                    <KebabItem icon="archive" destructive>Archive</KebabItem>
                   </KebabMenu>
                 </td>
               </tr>

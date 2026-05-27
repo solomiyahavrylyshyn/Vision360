@@ -8,7 +8,7 @@ import { useDraggableColumns, DraggableTh } from "../components/ui/draggable-col
 import { PageHeader } from "../components/ui/page-header";
 import { SelectionBar } from "../components/ui/selection-bar";
 import { CreateActionButton } from "../components/ui/create-action-button";
-import { AdvancedFilterActions, AdvancedFilterField, AdvancedFilterPanel, advancedInputClass, advancedSelectClass } from "../components/ui/advanced-filters";
+import { AdvancedFilterField, AdvancedFilterPanel, advancedInputClass, advancedSelectClass } from "../components/ui/advanced-filters";
 
 export interface Expense {
   id: string;
@@ -139,7 +139,8 @@ export function Expenses() {
     return true;
   });
 
-  const advancedActive = Boolean(dateFrom || dateTo || amountMin || amountMax || receiptFilter !== "All" || invoiceFilter !== "All");
+  const activeFilterCount = [dateFrom, dateTo, amountMin, amountMax, receiptFilter !== "All", invoiceFilter !== "All"].filter(Boolean).length;
+  const advancedActive = activeFilterCount > 0;
   const resetAdvancedFilters = () => {
     setDateFrom("");
     setDateTo("");
@@ -202,14 +203,19 @@ export function Expenses() {
           </select>
           <div className="w-px h-5 bg-[#E5E7EB] mx-1" />
           <button
-            onClick={() => setFilterOpen(!filterOpen)}
+            onClick={() => setFilterOpen(true)}
             className={`h-8 px-3 border rounded-lg text-[13px] flex items-center gap-1.5 transition-colors ${
               filterOpen || advancedActive ? "border-[#4A6FA5] text-[#4A6FA5] bg-[#EEF3FA]" : "border-[#E5E7EB] text-[#546478] hover:bg-[#F5F7FA] bg-white"
             }`}
             style={{ fontWeight: 500 }}
           >
             <span className="material-icons" style={{ fontSize: "16px" }}>filter_alt</span>
-            Filter{advancedActive ? " *" : ""}
+            Filter
+            {activeFilterCount > 0 && (
+              <span className="w-4 h-4 bg-[#4A6FA5] text-white text-[10px] rounded-full flex items-center justify-center" style={{ fontWeight: 700 }}>
+                {activeFilterCount}
+              </span>
+            )}
           </button>
           <div className="ml-auto flex items-center gap-2">
             <CreateActionButton onClick={() => navigate("/expenses/new")}>
@@ -226,7 +232,11 @@ export function Expenses() {
           </div>
         </div>
         {filterOpen && (
-          <AdvancedFilterPanel>
+          <AdvancedFilterPanel
+            onClose={() => setFilterOpen(false)}
+            onClear={() => { resetAdvancedFilters(); setFilterOpen(false); }}
+            onApply={() => setFilterOpen(false)}
+          >
             <AdvancedFilterField label="Date from">
               <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className={advancedInputClass} />
             </AdvancedFilterField>
@@ -253,11 +263,6 @@ export function Expenses() {
                 <option>No invoice</option>
               </select>
             </AdvancedFilterField>
-            <AdvancedFilterActions>
-              <button type="button" onClick={resetAdvancedFilters} className="h-8 rounded-lg border border-[#E5E7EB] bg-white px-3 text-[13px] text-[#546478] hover:bg-[#F5F7FA]">
-                Reset
-              </button>
-            </AdvancedFilterActions>
           </AdvancedFilterPanel>
         )}
         <SelectionBar
@@ -265,8 +270,8 @@ export function Expenses() {
           onDeselect={() => setSelectedIds(new Set())}
           actions={[
             {
-              label: "Inactivate selected",
-              icon: "block",
+              label: "Archive selected",
+              icon: "archive",
               destructive: true,
               onClick: () => {
                 setExpenses(prev => prev.filter(e => !selectedIds.has(e.id)));
@@ -416,7 +421,7 @@ export function Expenses() {
                         )}
                         <KebabItem icon="edit">Edit</KebabItem>
                         <KebabSeparator />
-                        <KebabItem icon="delete_outline" destructive>Delete</KebabItem>
+                        <KebabItem icon="archive" destructive>Archive</KebabItem>
                       </KebabMenu>
                     </td>
                   </tr>

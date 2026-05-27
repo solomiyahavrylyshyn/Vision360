@@ -501,14 +501,11 @@ export function PaymentDetail() {
                 <KebabItem icon="receipt" onSelect={() => navigate(`/invoices/${payment.invoiceId}`)}>
                   Open Invoice
                 </KebabItem>
-                <KebabItem icon="content_copy">Duplicate</KebabItem>
-                <KebabSeparator />
-                <KebabItem icon="undo" destructive>Refund</KebabItem>
-                <KebabSeparator />
-                <KebabItem icon="block">Void Payment</KebabItem>
                 <KebabItem icon="send">Send Receipt</KebabItem>
                 <KebabItem icon="file_download">Download Receipt</KebabItem>
                 <KebabItem icon="account_balance">View Payout</KebabItem>
+                <KebabSeparator />
+                <KebabItem icon="undo" destructive>Refund</KebabItem>
               </KebabMenu>
             </>
           }

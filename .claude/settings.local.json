@@ -51,7 +51,8 @@
       "Bash(brew list *)",
       "Bash(pip show *)",
       "Bash(brew install *)",
-      "Bash(pandoc --version)"
+      "Bash(pandoc --version)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\mykha\\\\Documents\\\\Vision360\\\\src\\\\app\\\\pages\" -Filter \"*.tsx\" -Name)"
     ]
   }
 }
