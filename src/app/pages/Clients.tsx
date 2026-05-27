@@ -653,7 +653,7 @@ export function Clients() {
                   </KebabItem>
                 )}
                 <KebabItem icon="view_column" onSelect={e => { e.preventDefault(); setPendingColumns(new Set(visibleColumns)); setEditColumnsOpen(true); }}>Edit Columns</KebabItem>
-                <KebabItem icon="content_copy" onSelect={() => navigate("/clients/duplicates")}>Merge Duplicates</KebabItem>
+                <KebabItem icon="content_copy" onSelect={() => navigate("/clients/duplicates")}>Manage Duplicates</KebabItem>
                 <KebabSeparator />
                 <KebabItem icon="file_upload">{showEmptyStatePreview ? "Import Contacts" : "Import"}</KebabItem>
                 <KebabItem icon="file_download">Export</KebabItem>

@@ -274,23 +274,6 @@ function getTypeBadge(type: ItemType): { label: string; bg: string; color: strin
   return { label: "Other", bg: "#F3F4F6", color: "#6B7280" };
 }
 
-function ItemIcon({ type }: { type: ItemType }) {
-  const cat = getItemCategory(type);
-  const cfg: Record<ItemCategory, { bg: string; icon: string }> = {
-    Service: { bg: "#4A6FA5", icon: "build" },
-    Material: { bg: "#16A34A", icon: "category" },
-    Equipment: { bg: "#7C3AED", icon: "settings" },
-    Asset: { bg: "#D97706", icon: "location_on" },
-    Fee: { bg: "#EA580C", icon: "attach_money" },
-    Other: { bg: "#6B7280", icon: "list" },
-  };
-  const { bg, icon } = cfg[cat];
-  return (
-    <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: bg }}>
-      <span className="material-icons text-white" style={{ fontSize: "15px" }}>{icon}</span>
-    </div>
-  );
-}
 
 // ─── Helper Components ───────────────────────────────────────────────────────
 
@@ -855,10 +838,7 @@ export function Items() {
                         />
                       </td>
                       <td className="px-4 py-2">
-                        <div className="flex items-center gap-2.5">
-                          <ItemIcon type={item.type} />
-                          <div className="truncate max-w-[200px] text-[14px] text-[#4A6FA5] hover:underline" style={{ fontFamily: "Geist", fontWeight: 400, lineHeight: "20px" }}>{item.name}</div>
-                        </div>
+                        <div className="truncate max-w-[200px] text-[14px] text-[#4A6FA5] hover:underline" style={{ fontFamily: "Geist", fontWeight: 400, lineHeight: "20px" }}>{item.name}</div>
                       </td>
                       <td className="px-4 py-2">
                         <span className="inline-block px-2 py-0.5 rounded text-[11px] whitespace-nowrap" style={{ fontWeight: 600, backgroundColor: badge.bg, color: badge.color }}>
