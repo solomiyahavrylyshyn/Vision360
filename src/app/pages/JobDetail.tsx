@@ -653,7 +653,7 @@ export function JobDetail() {
         </div>
 
         {/* ── Col 2: Notes panel with sub-tabs ── */}
-        <div className="flex-1 bg-white border border-[#E5E7EB] rounded-lg overflow-hidden">
+        <div className="w-[400px] shrink-0 bg-white border border-[#E5E7EB] rounded-lg overflow-hidden">
           {/* Header: "Notes" label + sub-tabs + "+" */}
           <div className="flex items-center border-b border-[#E5E7EB] px-4 gap-1">
             <span className="text-[13px] text-[#1A2332] mr-2 py-3" style={{ fontWeight: 600 }}>Notes</span>
