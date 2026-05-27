@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useSyncExternalStore } from "react";
 import { useNavigate } from "react-router";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
@@ -9,6 +9,7 @@ import { PageHeader } from "../components/ui/page-header";
 import { SelectionBar } from "../components/ui/selection-bar";
 import { CreateActionButton } from "../components/ui/create-action-button";
 import { StatCard } from "../components/ui/stat-card";
+import { formatRegionalDate, regionalSettingsStore } from "../stores/regionalSettingsStore";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type InvoiceStatus =
@@ -258,6 +259,7 @@ function qfClass(active: boolean) {
 // ═══════════════════════════════════════════════════════════════════════════════
 export function Invoices() {
   const navigate = useNavigate();
+  const regionalSettings = useSyncExternalStore(regionalSettingsStore.subscribe, regionalSettingsStore.getSnapshot);
   const [cols, moveCol] = useDraggableColumns([...INVOICES_COLS]);
   const [invoices, setInvoices] = useState<Invoice[]>(initialInvoices);
   const [search, setSearch] = useState("");
@@ -275,9 +277,7 @@ export function Invoices() {
 
   const fmt = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
   const fmtDate = (d: string) => {
-    if (!d) return "—";
-    const dt = new Date(d + "T12:00:00");
-    return dt.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    return formatRegionalDate(d, regionalSettings);
   };
 
   // Summary cards

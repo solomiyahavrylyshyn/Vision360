@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { useNavigate } from "react-router";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
@@ -13,6 +13,7 @@ import {
 import { Card } from "../components/ui/card";
 import { CreateActionButton } from "../components/ui/create-action-button";
 import { StatCard } from "../components/ui/stat-card";
+import { formatRegionalDate, regionalSettingsStore } from "../stores/regionalSettingsStore";
 
 interface Job {
   id: number;
@@ -73,6 +74,7 @@ const JOBS_COLS = [
 
 export function Jobs() {
   const navigate = useNavigate();
+  const regionalSettings = useSyncExternalStore(regionalSettingsStore.subscribe, regionalSettingsStore.getSnapshot);
   const [jobs, setJobs] = useState<Job[]>(mockJobs);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedJobs, setSelectedJobs] = useState<Set<number>>(new Set());
@@ -352,7 +354,7 @@ export function Jobs() {
                     case "address":
                       return <td key="address" className="px-4 py-4 text-[14px] text-[#546478]" style={{ fontFamily: "Geist", fontStyle: "normal", fontWeight: 400, lineHeight: "20px" }}>{job.address}</td>;
                     case "schedule":
-                      return <td key="schedule" className="px-4 py-4 text-[14px] text-[#546478]" style={{ fontFamily: "Geist", fontStyle: "normal", fontWeight: 400, lineHeight: "20px" }}>{job.schedule}</td>;
+                      return <td key="schedule" className="px-4 py-4 text-[14px] text-[#546478]" style={{ fontFamily: "Geist", fontStyle: "normal", fontWeight: 400, lineHeight: "20px" }}>{formatRegionalDate(job.scheduleDateSort, regionalSettings)}</td>;
                     case "status":
                       return (
                         <td key="status" className="px-4 py-4">

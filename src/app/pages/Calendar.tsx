@@ -3,6 +3,8 @@ import { useNavigate } from "react-router";
 import { PageHeader } from "../components/ui/page-header";
 import { CreateActionButton } from "../components/ui/create-action-button";
 import { scheduleSettingsStore } from "../stores/scheduleSettingsStore";
+import { businessHoursStore, isDateOpenForBusiness } from "../stores/businessHoursStore";
+import { formatRegionalDate, formatRegionalTime, getWeekStartsOn, regionalSettingsStore } from "../stores/regionalSettingsStore";
 import {
   format,
   startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek, endOfWeek,
@@ -76,15 +78,6 @@ const mockEvents: CalendarEvent[] = [
   { id: 9,  title: "Roof Inspection",       client: "David Park",    date: new Date(2026, 3, 15), startHour: 10, duration: 2.5, color: "blue",   status: "Scheduled",   property: "321 Aspen Blvd",  amount: 250  },
   { id: 10, title: "Window Install",        client: "Karen White",   date: new Date(2026, 3, 20), startHour: 9,  duration: 5,   color: "purple", status: "Scheduled",   property: "45 Spruce Rd",     amount: 1450 },
 ];
-
-// ── Dispatch Board Data (Week view) ──────────────────────────────────────────
-function fmtHour(h: number): string {
-  const hr = Math.floor(h);
-  const min = Math.round((h - hr) * 60);
-  const period = hr >= 12 ? "PM" : "AM";
-  const display = hr > 12 ? hr - 12 : hr === 0 ? 12 : hr;
-  return `${display}:${String(min).padStart(2, "0")} ${period}`;
-}
 
 const dispatchJobs: DispatchJob[] = [
   { id: 1,  num: "2401", technicianId: "peter",  client: "Smith Resi...",  service: "AC Repair",       address: "123 Main St",     status: "Scheduled",   dayIdx: 1, start: 8,    end: 10,   amount: 89,   bg: "#EBF0F8", border: "#4A6FA5", priority: "Normal", jobType: "Repair",       source: "Phone" },
@@ -180,6 +173,8 @@ const readPersistedViewMode = (): ViewMode => {
 export function Calendar() {
   const navigate = useNavigate();
   const scheduleSettings = useSyncExternalStore(scheduleSettingsStore.subscribe, scheduleSettingsStore.getSnapshot);
+  const businessHours = useSyncExternalStore(businessHoursStore.subscribe, businessHoursStore.getSnapshot);
+  const regionalSettings = useSyncExternalStore(regionalSettingsStore.subscribe, regionalSettingsStore.getSnapshot);
   const GANTT_START_HOUR = scheduleSettings.startHour;
   const GANTT_END_HOUR = scheduleSettings.endHour;
   const SLOT_HOURS = scheduleSettings.slotMinutes / 60;
@@ -272,44 +267,52 @@ export function Calendar() {
   };
 
   const monthDays = useMemo(() => {
-    const start = startOfWeek(startOfMonth(currentDate));
-    const end = endOfWeek(endOfMonth(currentDate));
+    const weekStartsOn = getWeekStartsOn(regionalSettings);
+    const start = startOfWeek(startOfMonth(currentDate), { weekStartsOn });
+    const end = endOfWeek(endOfMonth(currentDate), { weekStartsOn });
     return eachDayOfInterval({ start, end });
-  }, [currentDate]);
+  }, [currentDate, regionalSettings]);
 
   const weekDays = useMemo(() => {
-    const start = startOfWeek(currentDate);
+    const start = startOfWeek(currentDate, { weekStartsOn: getWeekStartsOn(regionalSettings) });
     return eachDayOfInterval({ start, end: addDays(start, 6) });
-  }, [currentDate]);
+  }, [currentDate, regionalSettings]);
 
-  const getEventsForDay = (day: Date) => mockEvents.filter(e => isSameDay(e.date, day));
+  const isCurrentDateOpen = isDateOpenForBusiness(currentDate, businessHours);
+  const getEventsForDay = (day: Date) => isDateOpenForBusiness(day, businessHours)
+    ? mockEvents.filter(e => isSameDay(e.date, day))
+    : [];
   const getC = (color: string) => COLORS[color as keyof typeof COLORS] || COLORS.blue;
 
   const headerLabel = viewMode === "month"
     ? format(currentDate, "MMMM yyyy")
     : viewMode === "week"
-    ? `${format(weekDays[0], "MMM d")} – ${format(weekDays[6], "MMM d, yyyy")}`
-    : format(currentDate, "EEEE, MMMM d, yyyy");
+    ? `${formatRegionalDate(weekDays[0], regionalSettings)} - ${formatRegionalDate(weekDays[6], regionalSettings)}`
+    : `${format(currentDate, "EEEE")}, ${formatRegionalDate(currentDate, regionalSettings)}`;
 
   // Gantt grid total width
   const ganttHours = Array.from({ length: GANTT_END_HOUR - GANTT_START_HOUR + 1 }, (_, i) => GANTT_START_HOUR + i);
   const ganttTotalWidth = (GANTT_END_HOUR - GANTT_START_HOUR) * HOUR_WIDTH;
-  const monthRevenue = mockEvents.reduce((sum, event) => sum + event.amount, 0);
-  const weekRevenue = weekJobs.reduce((sum, job) => sum + job.amount, 0);
-  const dayRevenue = dayJobs.reduce((sum, job) => sum + job.amount, 0);
+  const openWeekDayIndexes = new Set(weekDays.map((day, index) => isDateOpenForBusiness(day, businessHours) ? index : -1).filter(index => index >= 0));
+  const filteredMonthEvents = mockEvents.filter(event => isDateOpenForBusiness(event.date, businessHours));
+  const filteredWeekJobs = weekJobs.filter(job => openWeekDayIndexes.has(job.dayIdx));
+  const filteredDayJobs = isCurrentDateOpen ? dayJobs : [];
+  const monthRevenue = filteredMonthEvents.reduce((sum, event) => sum + event.amount, 0);
+  const weekRevenue = filteredWeekJobs.reduce((sum, job) => sum + job.amount, 0);
+  const dayRevenue = filteredDayJobs.reduce((sum, job) => sum + job.amount, 0);
   const topRevenue = viewMode === "month" ? monthRevenue : viewMode === "week" ? weekRevenue : dayRevenue;
   const topRevenueLabel = viewMode === "month" ? "Revenue this month" : viewMode === "week" ? "Revenue this week" : "Revenue today";
-  const scheduleJobCount = viewMode === "month" ? mockEvents.length : viewMode === "week" ? weekJobs.length : dayJobs.length;
+  const scheduleJobCount = viewMode === "month" ? filteredMonthEvents.length : viewMode === "week" ? filteredWeekJobs.length : filteredDayJobs.length;
   const completedJobCount = viewMode === "month"
-    ? mockEvents.filter((event) => event.status === "Completed").length
+    ? filteredMonthEvents.filter((event) => event.status === "Completed").length
     : viewMode === "week"
-    ? weekJobs.filter((job) => job.status === "Completed").length
-    : dayJobs.filter((job) => job.status === "Completed").length;
+    ? filteredWeekJobs.filter((job) => job.status === "Completed").length
+    : filteredDayJobs.filter((job) => job.status === "Completed").length;
   const inProgressJobCount = viewMode === "month"
-    ? mockEvents.filter((event) => event.status === "In Progress").length
+    ? filteredMonthEvents.filter((event) => event.status === "In Progress").length
     : viewMode === "week"
-    ? weekJobs.filter((job) => job.status === "In Progress").length
-    : dayJobs.filter((job) => job.status === "In Progress").length;
+    ? filteredWeekJobs.filter((job) => job.status === "In Progress").length
+    : filteredDayJobs.filter((job) => job.status === "In Progress").length;
   const completionRate = scheduleJobCount > 0 ? Math.round((completedJobCount / scheduleJobCount) * 100) : 0;
   const scopedJobLabel = viewMode === "month" ? "Jobs this month" : viewMode === "week" ? "Jobs this week" : "Jobs today";
   const scheduleKpis = [
@@ -345,6 +348,10 @@ export function Calendar() {
   };
 
   const openQuickCreate = (view: "day" | "week", date: Date, startHour: number, technicianId: string, dayIdx?: number) => {
+    if (!isDateOpenForBusiness(date, businessHours)) {
+      setToast("This day is closed in business hours.");
+      return;
+    }
     const start = Math.max(GANTT_START_HOUR, Math.min(GANTT_END_HOUR - SLOT_HOURS, startHour));
     setConflictMessage(null);
     setQuickJobDraft({
@@ -424,6 +431,10 @@ export function Calendar() {
     setWeekJobs((jobs) => {
       const targetJob = jobs.find((job) => job.id === jobId);
       if (!targetJob) return jobs;
+      if (!openWeekDayIndexes.has(dayIdx)) {
+        setConflictMessage("This day is closed in business hours.");
+        return jobs;
+      }
       const duration = targetJob.end - targetJob.start;
       const dropEnd = Math.min(GANTT_END_HOUR, dropStart + duration);
       if (weekHasConflict(jobs, jobId, dayIdx, technicianId, dropStart, dropEnd)) {
@@ -437,13 +448,14 @@ export function Calendar() {
       });
       const movedJob = nextJobs.find((job) => job.id === jobId) ?? null;
       setSelectedDispatchJob(movedJob);
-      if (movedJob) setToast(`Moved to ${fmtHour(movedJob.start)}`);
+      if (movedJob) setToast(`Moved to ${formatRegionalTime(movedJob.start, regionalSettings)}`);
       return nextJobs;
     });
   };
 
   const handleWeekDragOver = (event: DragEvent<HTMLDivElement>, dayIdx: number, technicianId: string) => {
     event.preventDefault();
+    if (!openWeekDayIndexes.has(dayIdx)) return;
     setDropPreview({ view: "week", dayIdx, technicianId, start: hourFromPointer(event) });
   };
 
@@ -457,6 +469,10 @@ export function Calendar() {
     setDayJobs((jobs) => {
       const targetJob = jobs.find((job) => job.id === jobId);
       if (!targetJob) return jobs;
+      if (!isCurrentDateOpen) {
+        setConflictMessage("This day is closed in business hours.");
+        return jobs;
+      }
       const duration = targetJob.end - targetJob.start;
       const dropEnd = Math.min(GANTT_END_HOUR, dropStart + duration);
       if (dayHasConflict(jobs, jobId, technicianId, dropStart, dropEnd)) {
@@ -470,35 +486,43 @@ export function Calendar() {
       });
       const movedJob = nextJobs.find((job) => job.id === jobId) ?? null;
       setSelectedDayJob(movedJob);
-      if (movedJob) setToast(`Moved to ${fmtHour(movedJob.start)}`);
+      if (movedJob) setToast(`Moved to ${formatRegionalTime(movedJob.start, regionalSettings)}`);
       return nextJobs;
     });
   };
 
   const handleDayDragOver = (event: DragEvent<HTMLDivElement>, technicianId: string) => {
     event.preventDefault();
+    if (!isCurrentDateOpen) return;
     setDropPreview({ view: "day", technicianId, start: hourFromPointer(event) });
   };
 
   const handleWeekSlotDoubleClick = (event: MouseEvent<HTMLDivElement>, date: Date, technicianId: string, dayIdx: number) => {
     if ((event.target as HTMLElement).closest("[data-job-card='true']")) return;
+    if (!openWeekDayIndexes.has(dayIdx)) return;
     openQuickCreate("week", date, hourFromPointer(event), technicianId, dayIdx);
   };
 
   const handleDaySlotDoubleClick = (event: MouseEvent<HTMLDivElement>, technicianId: string) => {
     if ((event.target as HTMLElement).closest("[data-job-card='true']")) return;
+    if (!isCurrentDateOpen) return;
     openQuickCreate("day", currentDate, hourFromPointer(event), technicianId);
   };
 
   const openHeaderQuickCreate = () => {
     if (viewMode === "week") {
-      openQuickCreate("week", weekDays[0], GANTT_START_HOUR, TEAM[0].id, 0);
+      const openDayIndex = weekDays.findIndex(day => isDateOpenForBusiness(day, businessHours));
+      if (openDayIndex === -1) {
+        setToast("This week has no open business days.");
+        return;
+      }
+      openQuickCreate("week", weekDays[openDayIndex], GANTT_START_HOUR, TEAM[0].id, openDayIndex);
       return;
     }
     openQuickCreate("day", currentDate, GANTT_START_HOUR, TEAM[0].id);
   };
 
-  const selectedMapJob = dayJobs.find((job) => job.id === selectedMapJobId) ?? dayJobs[0];
+  const selectedMapJob = filteredDayJobs.find((job) => job.id === selectedMapJobId) ?? filteredDayJobs[0];
 
   // Keyboard shortcuts: ← → navigate, T today, D/W/M view, N new job, Esc close
   useEffect(() => {
@@ -531,6 +555,8 @@ export function Calendar() {
 
   const EventPopover = ({ event, onClose }: { event: CalendarEvent; onClose: () => void }) => {
     const c = getC(event.color);
+    const eventEndHour = event.startHour + event.duration;
+    const eventTimeLabel = `${formatRegionalDate(event.date, regionalSettings)} · ${formatRegionalTime(event.startHour, regionalSettings)} - ${formatRegionalTime(eventEndHour, regionalSettings)}`;
     return (
       <div className="fixed inset-0 z-50 flex justify-end" onClick={onClose}>
         <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
@@ -553,7 +579,7 @@ export function Calendar() {
               </div>
               <div className="flex items-center gap-2.5">
                 <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "17px" }}>schedule</span>
-                <span className="text-[#546478] text-[12px]">{format(event.date, "EEE, MMM d")} · {event.startHour > 12 ? event.startHour - 12 : event.startHour}:00 {event.startHour >= 12 ? "PM" : "AM"} – {(() => { const end = event.startHour + event.duration; return `${end > 12 ? end - 12 : end}:${event.duration % 1 === 0.5 ? "30" : "00"} ${end >= 12 ? "PM" : "AM"}`; })()}</span>
+                <span className="text-[#546478] text-[12px]">{eventTimeLabel}</span>
               </div>
               <div className="flex items-center gap-2.5">
                 <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "17px" }}>location_on</span>
@@ -734,7 +760,7 @@ export function Calendar() {
                   {/* Hour labels */}
                   {ganttHours.map((h) => {
                     const isCurrentHour = h === Math.floor(CURRENT_TIME);
-                    const label = h === 12 ? "12 PM" : h > 12 ? `${h - 12} PM` : `${h} AM`;
+                    const label = formatRegionalTime(h, regionalSettings);
                     const isLastHour = h === GANTT_END_HOUR;
                     return (
                       <div
@@ -745,7 +771,7 @@ export function Calendar() {
                         {!isLastHour && (
                           isCurrentHour ? (
                             <span className="px-2 py-0.5 rounded-full text-white text-[10px]" style={{ backgroundColor: "#DC2626", fontWeight: 700 }}>
-                              10:30 AM
+                              {formatRegionalTime(CURRENT_TIME, regionalSettings)}
                             </span>
                           ) : (
                             <span className="text-[11px] text-[#8899AA]" style={{ fontWeight: 500 }}>{label}</span>
@@ -760,6 +786,7 @@ export function Calendar() {
                 {weekDays.map((d, dayI) => {
                   const isToday = isSameDay(d, new Date(2026, 3, 14));
                   const isWeekend = dayI === 0 || dayI === 6;
+                  const dayOpen = openWeekDayIndexes.has(dayI);
                   const labelBg = isToday ? "#DDE8F5" : isWeekend ? "#ECEEF3" : "#F8F9FB";
                   // Per Marek: shorter schedule rows so the map below gets more space
                   // (only 3 techs in MVP — wasted vertical space under each lane).
@@ -780,7 +807,7 @@ export function Calendar() {
                       />
 
                       {TEAM.map((member, memberIdx) => {
-                        const memberJobs = weekJobs
+                        const memberJobs = filteredWeekJobs
                           .filter((job) => job.dayIdx === dayI && job.technicianId === member.id)
                           .sort((a, b) => a.start - b.start);
                         const memberTotal = memberJobs.reduce((sum, job) => sum + job.amount, 0);
@@ -810,24 +837,36 @@ export function Calendar() {
                                         {format(d, "EEE")}
                                       </div>
                                       <div className={`text-[12px] mt-0.5 ${isToday ? "text-[#4A6FA5]" : "text-[#9CA3AF]"}`} style={{ fontWeight: isToday ? 600 : 400 }}>
-                                        {format(d, "MMM d")}
+                                        {formatRegionalDate(d, regionalSettings)}
                                       </div>
+                                      {!dayOpen && (
+                                        <div className="text-[10px] mt-1 text-[#DC2626]" style={{ fontWeight: 700 }}>Closed</div>
+                                      )}
                                     </>
+                                  )}
+                                  {memberIdx !== 0 && !dayOpen && (
+                                    <span className="text-[11px] text-[#8899AA]" style={{ fontWeight: 600 }}>Closed</span>
                                   )}
                                 </div>
                                 <div className="flex items-center gap-2 px-3 border-l border-[#D8DCE6]">
-                                  <div
-                                    className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[12px] shrink-0"
-                                    style={{ backgroundColor: member.color, fontWeight: 700 }}
-                                  >
-                                    {member.initial}
-                                  </div>
-                                  <div className="min-w-0">
-                                    <div className="text-[13px] text-[#1A2332] truncate" style={{ fontWeight: 700 }}>{member.name}</div>
-                                    <div className="text-[11px] text-[#16A34A] tabular-nums" style={{ fontWeight: 600 }}>
-                                      ${memberTotal.toLocaleString("en-US")}
-                                    </div>
-                                  </div>
+                                  {dayOpen ? (
+                                    <>
+                                      <div
+                                        className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[12px] shrink-0"
+                                        style={{ backgroundColor: member.color, fontWeight: 700 }}
+                                      >
+                                        {member.initial}
+                                      </div>
+                                      <div className="min-w-0">
+                                        <div className="text-[13px] text-[#1A2332] truncate" style={{ fontWeight: 700 }}>{member.name}</div>
+                                        <div className="text-[11px] text-[#16A34A] tabular-nums" style={{ fontWeight: 600 }}>
+                                          ${memberTotal.toLocaleString("en-US")}
+                                        </div>
+                                      </div>
+                                    </>
+                                  ) : (
+                                    <span className="text-[12px] text-[#8899AA]" style={{ fontWeight: 700 }}>Unavailable</span>
+                                  )}
                                 </div>
                               </div>
                             </div>
@@ -840,6 +879,11 @@ export function Calendar() {
                               onDrop={(event) => handleWeekDrop(event, dayI, member.id)}
                               onDoubleClick={(event) => handleWeekSlotDoubleClick(event, d, member.id, dayI)}
                             >
+                              {!dayOpen && (
+                                <div className="absolute inset-0 z-10 flex items-center justify-center bg-[#F8FAFC]/80 text-[12px] text-[#8899AA]" style={{ fontWeight: 700 }}>
+                                  Closed
+                                </div>
+                              )}
                               {ganttHours.slice(0, -1).map((h) => (
                                 <div
                                   key={h}
@@ -862,7 +906,7 @@ export function Calendar() {
                                 />
                               )}
 
-                              {memberJobs.length === 0 && (
+                              {dayOpen && memberJobs.length === 0 && (
                                 <button
                                   type="button"
                                   onClick={(event) => {
@@ -889,7 +933,7 @@ export function Calendar() {
                                     draggable
                                     role="button"
                                     tabIndex={0}
-                                    aria-label={`Job for ${job.client}, ${job.service}, ${fmtHour(job.start)}–${fmtHour(job.end)}, status ${job.status}`}
+                                    aria-label={`Job for ${job.client}, ${job.service}, ${formatRegionalTime(job.start, regionalSettings)}-${formatRegionalTime(job.end, regionalSettings)}, status ${job.status}`}
                                     className="absolute rounded-lg overflow-hidden cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-[#4A6FA5]"
                                     style={{
                                       left,
@@ -907,7 +951,7 @@ export function Calendar() {
                                   >
                                     <div className="flex flex-col h-full px-2 py-1">
                                       <div className="flex items-center justify-between gap-2 text-[9px] text-[#9CA3AF] tabular-nums shrink-0">
-                                        <span>{fmtHour(job.start)} – {fmtHour(job.end)}</span>
+                                        <span>{formatRegionalTime(job.start, regionalSettings)} - {formatRegionalTime(job.end, regionalSettings)}</span>
                                         <span className="flex h-4 w-4 items-center justify-center rounded-full text-[9px] text-white" style={{ backgroundColor: member.color, fontWeight: 700 }}>
                                           {routeNumber}
                                         </span>
@@ -990,7 +1034,7 @@ export function Calendar() {
                       </div>
                       <div className="border-t border-[#E5E7EB] pt-3 mt-3">
                         {[
-                          { icon: "event",        label: "Time",   value: `${fmtHour(selectedDispatchJob.start)} – ${fmtHour(selectedDispatchJob.end)}` },
+                          { icon: "event",        label: "Time",   value: `${formatRegionalTime(selectedDispatchJob.start, regionalSettings)} - ${formatRegionalTime(selectedDispatchJob.end, regionalSettings)}` },
                           { icon: "attach_money", label: "Amount", value: `$${selectedDispatchJob.amount.toFixed(2)}` },
                           { icon: "build",        label: "Type",   value: selectedDispatchJob.jobType },
                         ].map(f => (
@@ -1082,7 +1126,7 @@ export function Calendar() {
                   <div className="min-w-0">
                     <div className="text-[13px] text-[#1A2332] truncate" style={{ fontWeight: 600 }}>{member.name}</div>
                     <div className="text-[11px] text-[#16A34A] tabular-nums" style={{ fontWeight: 600 }}>
-                      ${dayJobs.filter((job) => job.technicianId === member.id).reduce((sum, job) => sum + job.amount, 0).toLocaleString("en-US")} today
+                      ${filteredDayJobs.filter((job) => job.technicianId === member.id).reduce((sum, job) => sum + job.amount, 0).toLocaleString("en-US")} today
                     </div>
                   </div>
                 </div>
@@ -1101,7 +1145,7 @@ export function Calendar() {
                   >
                     {ganttHours.map((h) => {
                       const isCurrentHour = h === Math.floor(CURRENT_TIME);
-                      const label = h === 12 ? "12 PM" : h > 12 ? `${h - 12} PM` : `${h} AM`;
+                      const label = formatRegionalTime(h, regionalSettings);
                       const isLastHour = h === GANTT_END_HOUR;
                       return (
                         <div
@@ -1115,7 +1159,7 @@ export function Calendar() {
                                 className="px-2 py-0.5 rounded-full text-white text-[10px]"
                                 style={{ backgroundColor: "#DC2626", fontWeight: 700 }}
                               >
-                                10:30 AM
+                                {formatRegionalTime(CURRENT_TIME, regionalSettings)}
                               </span>
                             ) : (
                               <span className="text-[11px] text-[#8899AA]" style={{ fontWeight: 500 }}>{label}</span>
@@ -1127,7 +1171,7 @@ export function Calendar() {
                   </div>
 
                   {TEAM.map((member) => {
-                    const memberJobs = dayJobs
+                    const memberJobs = filteredDayJobs
                       .filter((job) => job.technicianId === member.id)
                       .sort((a, b) => a.start - b.start);
 
@@ -1141,6 +1185,11 @@ export function Calendar() {
                         onDrop={(event) => handleDayDrop(event, member.id)}
                         onDoubleClick={(event) => handleDaySlotDoubleClick(event, member.id)}
                       >
+                        {!isCurrentDateOpen && (
+                          <div className="absolute inset-0 z-20 flex items-center justify-center bg-[#F8FAFC]/85 text-[12px] text-[#8899AA]" style={{ fontWeight: 700 }}>
+                            Closed
+                          </div>
+                        )}
                         {/* Hour grid lines */}
                         {ganttHours.slice(0, -1).map((h) => (
                           <div
@@ -1179,7 +1228,7 @@ export function Calendar() {
                               draggable
                               role="button"
                               tabIndex={0}
-                              aria-label={`Job for ${job.client}, ${job.service}, ${fmtHour(job.start)}–${fmtHour(job.end)}, status ${job.status}`}
+                              aria-label={`Job for ${job.client}, ${job.service}, ${formatRegionalTime(job.start, regionalSettings)}-${formatRegionalTime(job.end, regionalSettings)}, status ${job.status}`}
                               className="absolute rounded-lg overflow-hidden cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-[#4A6FA5]"
                               style={{
                                 left,
@@ -1200,7 +1249,7 @@ export function Calendar() {
                             >
                               <div className="flex flex-col h-full px-2 py-1">
                                 <div className="flex items-center justify-between gap-2 text-[9px] text-[#9CA3AF] tabular-nums shrink-0">
-                                  <span>{fmtHour(job.start)} – {fmtHour(job.end)}</span>
+                                  <span>{formatRegionalTime(job.start, regionalSettings)} - {formatRegionalTime(job.end, regionalSettings)}</span>
                                   <span className="flex h-4 w-4 items-center justify-center rounded-full text-[9px] text-white" style={{ backgroundColor: member.color, fontWeight: 700 }}>
                                     {routeNumber}
                                   </span>
@@ -1291,7 +1340,7 @@ export function Calendar() {
                         <div className="border-t border-[#E5E7EB] pt-3 mt-3">
                           {[
                             { icon: "engineering", label: "Person", value: TEAM.find((member) => member.id === selectedDayJob.technicianId)?.name ?? "Unassigned" },
-                            { icon: "event", label: "Time", value: `${fmtHour(selectedDayJob.start)} - ${fmtHour(selectedDayJob.end)}` },
+                            { icon: "event", label: "Time", value: `${formatRegionalTime(selectedDayJob.start, regionalSettings)} - ${formatRegionalTime(selectedDayJob.end, regionalSettings)}` },
                             { icon: "attach_money", label: "Amount", value: `$${selectedDayJob.amount.toLocaleString("en-US")}` },
                           ].map((field) => (
                             <div key={field.label} className="flex items-center gap-2.5 py-2 border-b border-[#F5F7FA] last:border-0">
@@ -1380,9 +1429,9 @@ export function Calendar() {
             <div className="text-[12px] text-[#1A2332]" style={{ fontWeight: 700 }}>Route map</div>
             <div className="text-[11px] text-[#546478]">Pins match schedule route numbers</div>
           </div>
-          {dayJobs.map((job) => {
+          {filteredDayJobs.map((job) => {
             const member = TEAM.find((person) => person.id === job.technicianId) ?? TEAM[0];
-            const memberJobs = dayJobs.filter((item) => item.technicianId === job.technicianId).sort((a, b) => a.start - b.start);
+            const memberJobs = filteredDayJobs.filter((item) => item.technicianId === job.technicianId).sort((a, b) => a.start - b.start);
             const routeNumber = memberJobs.findIndex((item) => item.id === job.id) + 1;
             const left = 13 + ((job.id * 19 + Math.round(job.start * 7)) % 74);
             const top = 20 + ((job.id * 23 + Math.round(job.end * 11)) % 58);
@@ -1417,7 +1466,7 @@ export function Calendar() {
                 </span>
               </div>
               <div className="mt-2 flex items-center justify-between text-[11px] text-[#546478]">
-                <span>{fmtHour(selectedMapJob.start)} - {fmtHour(selectedMapJob.end)}</span>
+                <span>{formatRegionalTime(selectedMapJob.start, regionalSettings)} - {formatRegionalTime(selectedMapJob.end, regionalSettings)}</span>
                 <span className="tabular-nums" style={{ color: "#16A34A", fontWeight: 700 }}>${selectedMapJob.amount.toLocaleString("en-US")}</span>
               </div>
             </div>
@@ -1454,7 +1503,7 @@ export function Calendar() {
               <div>
                 <div className="text-[15px] text-[#1A2332]" style={{ fontWeight: 700 }}>Create job</div>
                 <div className="text-[12px] text-[#546478] mt-0.5">
-                  {format(quickJobDraft.date, "EEE, MMM d")} · {fmtHour(quickJobDraft.start)} · {TEAM.find((member) => member.id === quickJobDraft.technicianId)?.name}
+                  {formatRegionalDate(quickJobDraft.date, regionalSettings)} · {formatRegionalTime(quickJobDraft.start, regionalSettings)} · {TEAM.find((member) => member.id === quickJobDraft.technicianId)?.name}
                 </div>
               </div>
               <button type="button" onClick={() => setQuickJobDraft(null)} className="w-8 h-8 rounded-lg hover:bg-[#F5F7FA] flex items-center justify-center">

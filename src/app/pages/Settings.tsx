@@ -17,7 +17,7 @@ import { formatScheduleHour, parseScheduleHour, scheduleSettingsStore } from "..
 import { tagsStore } from "../stores/tagsStore";
 import { applyBrandTheme, DEFAULT_BRAND_THEME, getStoredBrandLogo, getStoredBrandTheme, resetBrandLogo, resetBrandTheme, setBrandLogo } from "../utils/brandTheme";
 import { businessHoursStore, type BusinessHourRow } from "../stores/businessHoursStore";
-import { DEFAULT_REGIONAL_SETTINGS, regionalSettingsStore, type RegionalSettings } from "../stores/regionalSettingsStore";
+import { regionalSettingsStore, type RegionalSettings } from "../stores/regionalSettingsStore";
 
 type SettingsSection =
   | "home"
@@ -2482,7 +2482,7 @@ export function Settings() {
                       </Button>
                       <Button
                         type="button"
-                        onClick={() => toast.success("Company profile saved")}
+                        onClick={handleCompanyProfileSave}
                         className="bg-[#4A6FA5] hover:bg-[#3d5a85] text-white h-10 px-6"
                         style={{ fontWeight: 600 }}
                       >

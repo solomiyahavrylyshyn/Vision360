@@ -62,8 +62,15 @@ const updateSettings = (patch: Partial<RegionalSettings>) => {
 };
 
 const parseDateInput = (value: string | Date) => {
-  if (value instanceof Date) return value;
-  return new Date(`${value}T12:00:00`);
+  if (value instanceof Date) {
+    return new Date(Date.UTC(value.getFullYear(), value.getMonth(), value.getDate(), 12));
+  }
+  const isoDate = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (isoDate) {
+    const [, year, month, day] = isoDate;
+    return new Date(Date.UTC(Number(year), Number(month) - 1, Number(day), 12));
+  }
+  return new Date(value);
 };
 
 export const regionalSettingsStore = {
