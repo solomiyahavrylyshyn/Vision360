@@ -260,7 +260,7 @@ function Card({ title, children, onEdit, action }: { title: string; children: Re
 type TabKey = "details" | "payments" | "activity";
 type NotesTabKey = "customer" | "internal";
 const TABS: { key: TabKey; label: string }[] = [
-  { key: "details", label: "Invoice Details" },
+  { key: "details", label: "Details" },
   { key: "payments", label: "Payments" },
   { key: "activity", label: "Activity" },
 ];
@@ -793,22 +793,6 @@ export function InvoiceDetail() {
                   <span className="material-icons" style={{ fontSize: "14px" }}>mail</span>
                   Sent {fmtDate(data.dateSent)}
                 </div>
-                {data.linkedEstimate && (
-                  <>
-                    <div className="w-px h-4 bg-[#E5E7EB]" />
-                    <button onClick={() => navigate(`/estimates/${data.linkedEstimate}`)} className="flex items-center gap-1.5 px-3 text-[13px] text-[#4A6FA5] hover:underline">
-                      <span className="material-icons" style={{ fontSize: "14px" }}>request_quote</span>
-                      {data.linkedEstimate}
-                    </button>
-                  </>
-                )}
-                <button
-                  onClick={() => navigate(`/invoices/${id}/edit`)}
-                  className="ml-1.5 inline-flex items-center justify-center w-6 h-6 rounded text-[#6B7280] hover:text-[#4A6FA5] hover:bg-[#F5F7FA] transition-colors"
-                  title="Edit invoice details"
-                >
-                  <span className="material-icons" style={{ fontSize: "15px" }}>edit</span>
-                </button>
               </div>
             </div>
 
