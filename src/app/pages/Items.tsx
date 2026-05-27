@@ -536,7 +536,7 @@ export function Items() {
       {/* Page Header */}
       <PageHeader
         title="Items"
-        count={`${tabRecordCounts[activeTab]} records`}
+        count={tabRecordCounts[activeTab]}
         className="mb-4"
         actions={
           <CreateActionButton onClick={() => { setEditingItem(null); setItemModalOpen(true); }}>
@@ -1348,12 +1348,10 @@ export function Items() {
               <div className="w-10 h-10 rounded-full bg-[#FEE2E2] flex items-center justify-center">
                 <span className="material-icons text-[#DC2626]" style={{ fontSize: "22px" }}>warning</span>
               </div>
-              <h3 className="text-[18px] text-[#1A2332]" style={{ fontWeight: 700 }}>{deleteConfirm.type === "item" ? "Inactivate item?" : `Delete ${deleteConfirm.type}?`}</h3>
+              <h3 className="text-[18px] text-[#1A2332]" style={{ fontWeight: 700 }}>{deleteConfirm.type === "item" ? "Inactivate item?" : `Inactivate ${deleteConfirm.type}?`}</h3>
             </div>
             <p className="text-[14px] text-[#546478] mb-6">
-              {deleteConfirm.type === "item"
-                ? <>Are you sure you want to inactivate <strong>"{deleteConfirm.name}"</strong>? It will no longer appear in active lists.</>
-                : <>Are you sure you want to delete <strong>"{deleteConfirm.name}"</strong>? This action cannot be undone.</>}
+              Are you sure you want to inactivate <strong>"{deleteConfirm.name}"</strong>? It will no longer appear in active lists.
             </p>
             <div className="flex items-center justify-end gap-3">
               <button onClick={() => setDeleteConfirm(null)} className="px-4 py-2.5 border border-[#E5E7EB] text-[#546478] rounded-lg text-[13px] hover:bg-[#F5F7FA]" style={{ fontWeight: 500 }}>Cancel</button>
@@ -1370,7 +1368,7 @@ export function Items() {
                 className="px-4 py-2.5 bg-[#DC2626] text-white rounded-lg text-[13px] hover:bg-[#B91C1C]"
                 style={{ fontWeight: 600 }}
               >
-                {deleteConfirm.type === "item" ? "Inactivate" : "Delete"}
+                Inactivate
               </button>
             </div>
           </div>

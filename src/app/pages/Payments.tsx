@@ -155,7 +155,7 @@ export function Payments() {
       {/* Header */}
       <PageHeader
         title="Payments"
-        count={selectedIds.size > 0 ? `${filtered.length} records · ${selectedIds.size} selected` : `${filtered.length} records`}
+        count={selectedIds.size > 0 ? `${filtered.length} · ${selectedIds.size} selected` : filtered.length}
         actions={
           <CreateActionButton>
             Record Payment

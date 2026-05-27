@@ -37,18 +37,18 @@ interface Client {
   lastActivity: string;
   totalJobs: number;
   totalBilled: number;
-  status?: "Active" | "Inactive";
+  status?: "Prospect" | "Active" | "Inactive";
   pastDue?: number;
   daysOverdue?: number;
 }
 
 const initialClients: Client[] = [
   { id: "10245", initials: "JS", avatarColor: "#4A6FA5", name: "John Smith", company: null, email: "john.smith@email.com", phone: "(555) 123-4567", address: "123 Main St, Austin, TX 78701", tags: ["Residential", "VIP"], lastActivity: "Invoice sent · 2 days ago", totalJobs: 5, totalBilled: 12450.00 },
-  { id: "10246", initials: "SJ", avatarColor: "#3B82F6", name: "Sarah Johnson", company: null, email: "sarah.j@email.com", phone: "(555) 234-5678", address: "456 Oak Ave, Dallas, TX 75201", tags: ["Commercial"], lastActivity: "Estimate sent · 5 days ago", totalJobs: 0, totalBilled: 0 },
+  { id: "10246", initials: "SJ", avatarColor: "#3B82F6", name: "Sarah Johnson", company: null, email: "sarah.j@email.com", phone: "(555) 234-5678", address: "456 Oak Ave, Dallas, TX 75201", tags: ["Commercial"], lastActivity: "Estimate sent · 5 days ago", totalJobs: 0, totalBilled: 0, status: "Prospect" },
   { id: "10247", initials: "MD", avatarColor: "#8B5CF6", name: "Mike Davis", company: "Davis Construction", email: "mike@davis.com", phone: "(555) 345-6789", address: "789 Pine Rd, Houston, TX 77001", tags: ["Residential", "Repeat"], lastActivity: "Invoice overdue · 18 days", totalJobs: 3, totalBilled: 8750.50, pastDue: 1250.00, daysOverdue: 18 },
   { id: "10248", initials: "RL", avatarColor: "#D97706", name: "Robert Lee", company: "Lee & Associates", email: "robert.l@email.com", phone: "(555) 456-7890", address: "321 Elm St, San Antonio, TX 78201", tags: ["Commercial", "New"], lastActivity: "Contacted · 3 days ago", totalJobs: 0, totalBilled: 0 },
   { id: "10249", initials: "EP", avatarColor: "#10B981", name: "Emily Parker", company: null, email: "e.parker@email.com", phone: "(555) 567-8901", address: "654 Maple Dr, Fort Worth, TX 76101", tags: ["Residential"], lastActivity: "Payment received · 4 days ago", totalJobs: 2, totalBilled: 5320.00 },
-  { id: "10250", initials: "TC", avatarColor: "#DC2626", name: "Tom Carter", company: null, email: "tom.c@email.com", phone: "(555) 678-9012", address: "987 Cedar Ln, Plano, TX 75023", tags: ["Commercial", "Priority"], lastActivity: "Quote requested · today", totalJobs: 0, totalBilled: 0 },
+  { id: "10250", initials: "TC", avatarColor: "#DC2626", name: "Tom Carter", company: null, email: "tom.c@email.com", phone: "(555) 678-9012", address: "987 Cedar Ln, Plano, TX 75023", tags: ["Commercial", "Priority"], lastActivity: "Quote requested · today", totalJobs: 0, totalBilled: 0, status: "Prospect" },
 ];
 
 
@@ -72,7 +72,7 @@ export function Clients() {
   // Quick filters
   const [qfDate, setQfDate] = useState("all_time");
   const [qfBalance, setQfBalance] = useState("all");
-  const [qfStatus, setQfStatus] = useState<"Active" | "Inactive" | "All">("Active");
+  const [qfStatus, setQfStatus] = useState<"Prospect" | "Active" | "Inactive" | "All">("Active");
 
   const marketingSources = useSyncExternalStore(marketingSourcesStore.subscribe, marketingSourcesStore.getSources);
   const availableTags = useSyncExternalStore(tagsStore.subscribe, tagsStore.getTags);
@@ -268,7 +268,7 @@ export function Clients() {
         ) : (
           <PageHeader
             title="Clients"
-            count={selectedClients.size > 0 ? `${filteredClients.length} records · ${selectedClients.size} selected` : `${filteredClients.length} records`}
+            count={selectedClients.size > 0 ? `${filteredClients.length} · ${selectedClients.size} selected` : filteredClients.length}
             actions={
               <>
                 <CreateActionButton onClick={() => navigate("/clients/new")}>
@@ -576,9 +576,10 @@ export function Clients() {
               <QuickFilterSelect
                 prefix="Status:"
                 value={qfStatus}
-                onChange={v => { setQfStatus(v as "Active" | "Inactive" | "All"); setSelectedClients(new Set()); setCurrentPage(1); }}
+                onChange={v => { setQfStatus(v as "Prospect" | "Active" | "Inactive" | "All"); setSelectedClients(new Set()); setCurrentPage(1); }}
                 options={[
                   { value: "Active", label: "Active" },
+                  { value: "Prospect", label: "Prospect" },
                   { value: "Inactive", label: "Inactive" },
                   { value: "All", label: "All" },
                 ]}

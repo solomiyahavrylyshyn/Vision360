@@ -1075,7 +1075,7 @@ export function EstimateDetail() {
               <KebabSeparator />
               <KebabItem icon="content_copy">Duplicate</KebabItem>
               <KebabSeparator />
-              <KebabItem icon="delete" destructive>Delete</KebabItem>
+              <KebabItem icon="block" destructive>Inactivate</KebabItem>
             </KebabMenu>
           </div>
         </div>

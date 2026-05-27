@@ -26,6 +26,19 @@ const categories = [
   "Other",
 ];
 
+const vendors = [
+  "Home Depot",
+  "Lowe's",
+  "Shell Gas Station",
+  "Grainger",
+  "Microsoft",
+  "Ferguson Plumbing",
+  "Delta Airlines",
+  "Starbucks",
+  "Office Depot",
+  "Best Buy",
+];
+
 const mockJobs = [
   { id: "J-1234", title: "HVAC Installation — 123 Main St" },
   { id: "J-1235", title: "Plumbing Repair — 456 Oak Ave" },
@@ -312,22 +325,35 @@ export function CreateExpense() {
                 />
               </div>
 
-              {/* Merchant + Category row */}
+              {/* Vendor + Category row */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                 <div>
                   <label
                     className="block text-[12px] text-[#546478] mb-1.5"
                     style={{ fontWeight: 500 }}
                   >
-                    Merchant <span className="text-[#DC2626]">*</span>
+                    Vendor <span className="text-[#DC2626]">*</span>
                   </label>
-                  <input
-                    type="text"
-                    value={merchant}
-                    onChange={(e) => setMerchant(e.target.value)}
-                    placeholder="e.g. Home Depot"
-                    className="w-full h-10 px-3.5 border border-[#E5E7EB] rounded-lg text-[13px] bg-white text-[#1A2332] placeholder:text-[#B0BEC5] outline-none focus:border-[#4A6FA5] focus:ring-2 focus:ring-[#4A6FA5]/10 transition-all"
-                  />
+                  <div className="relative">
+                    <select
+                      value={merchant}
+                      onChange={(e) => setMerchant(e.target.value)}
+                      className={`w-full h-10 px-3.5 pr-9 border border-[#E5E7EB] rounded-lg text-[13px] bg-white outline-none cursor-pointer focus:border-[#4A6FA5] focus:ring-2 focus:ring-[#4A6FA5]/10 transition-all appearance-none ${merchant ? "text-[#1A2332]" : "text-[#B0BEC5]"}`}
+                    >
+                      <option value="">Select vendor</option>
+                      {vendors.map((v) => (
+                        <option key={v} value={v}>
+                          {v}
+                        </option>
+                      ))}
+                    </select>
+                    <span
+                      className="material-icons absolute right-3 top-1/2 -translate-y-1/2 text-[#8899AA] pointer-events-none"
+                      style={{ fontSize: "18px" }}
+                    >
+                      expand_more
+                    </span>
+                  </div>
                 </div>
                 <div>
                   <label
@@ -1022,7 +1048,7 @@ export function CreateExpense() {
                   {merchant && (
                     <div className="flex items-center justify-between">
                       <span className="text-[12px] text-[#546478]">
-                        Merchant
+                        Vendor
                       </span>
                       <span
                         className="text-[13px] text-[#1A2332]"

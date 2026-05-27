@@ -32,7 +32,7 @@ interface ActivityEntry {
 }
 
 const statusColors: Record<InvoiceStatus, { text: string; bg: string }> = {
-  "Unpaid":         { text: "#546478", bg: "#F3F4F6" },
+  "Unpaid":         { text: "#DC2626", bg: "#FEE2E2" },
   "Unpaid-Overdue": { text: "#EF4444", bg: "#FEE2E2" },
   "Paid":           { text: "#16A34A", bg: "#DCFCE7" },
   "Partially Paid": { text: "#D97706", bg: "#FEF3C7" },

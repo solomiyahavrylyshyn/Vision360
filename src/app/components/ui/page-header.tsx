@@ -15,7 +15,7 @@ type PageHeaderProps = {
 export function PageHeader({
   title,
   count,
-  countSuffix = "records",
+  countSuffix = "",
   subtitle,
   actions,
   icon,
@@ -26,7 +26,7 @@ export function PageHeader({
       subtitle
     ) : count !== undefined ? (
       <span className="text-[15px] text-[#9AA3AF]" style={{ fontWeight: 400 }}>
-        ({typeof count === "number" ? `${count} ${countSuffix}` : count})
+        ({typeof count === "number" ? (countSuffix ? `${count} ${countSuffix}` : count) : count})
       </span>
     ) : null;
 

@@ -63,7 +63,7 @@ const categoryFilterOptions = ["All", "Materials", "Fuel", "Tools", "Software", 
 const EXPENSES_COLS = [
   { key: "date", label: "Date" },
   { key: "category", label: "Category" },
-  { key: "merchant", label: "Merchant" },
+  { key: "merchant", label: "Vendor" },
   { key: "amount", label: "Amount" },
   { key: "jobId", label: "Job #" },
   { key: "invoiceId", label: "Invoice #" },
@@ -116,7 +116,7 @@ export function Expenses() {
       {/* Header */}
       <PageHeader
         title="Expenses"
-        count={selectedIds.size > 0 ? `${filtered.length} records · ${selectedIds.size} selected` : `${filtered.length} records`}
+        count={selectedIds.size > 0 ? `${filtered.length} · ${selectedIds.size} selected` : filtered.length}
         actions={
           <CreateActionButton onClick={() => navigate("/expenses/new")}>
             Create Expense

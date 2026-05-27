@@ -149,11 +149,11 @@ const priorityColors: Record<string, { bg: string; text: string }> = {
 type TabKey = "details" | "estimate" | "invoices" | "items" | "expenses" | "documents" | "notes";
 
 const BASE_TABS: { key: TabKey; label: string }[] = [
-  { key: "details",   label: "Job Details" },
+  { key: "details",   label: "Details" },
   { key: "estimate",  label: "Estimate" },
   { key: "invoices",  label: "Invoices" },
   { key: "items",     label: "Items" },
-  { key: "expenses",  label: "Expenses" },
+  { key: "expenses",  label: "Expense" },
 ];
 
 /* 11 placeholder photos for the Attachments panel */

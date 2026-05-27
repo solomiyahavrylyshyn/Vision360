@@ -84,7 +84,7 @@ interface Invoice {
 }
 
 const statusColors: Record<InvoiceStatus, { text: string; bg: string }> = {
-  "Unpaid":          { text: "#546478", bg: "#F3F4F6" },
+  "Unpaid":          { text: "#DC2626", bg: "#FEE2E2" },
   "Unpaid-Overdue":  { text: "#EF4444", bg: "#FEE2E2" },
   "Paid":            { text: "#16A34A", bg: "#DCFCE7" },
   "Partially Paid":  { text: "#D97706", bg: "#FEF3C7" },
@@ -340,7 +340,7 @@ export function Invoices() {
       {/* Header */}
       <PageHeader
         title="Invoices"
-        count={selectedIds.size > 0 ? `${filtered.length} records · ${selectedIds.size} selected` : `${filtered.length} records`}
+        count={selectedIds.size > 0 ? `${filtered.length} · ${selectedIds.size} selected` : filtered.length}
         actions={
           <CreateActionButton onClick={() => navigate("/invoices/new")}>
             Create Invoice

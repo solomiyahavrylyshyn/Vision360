@@ -49,7 +49,7 @@ export function ExpenseDetail() {
             label="Category"
             value={<CategoryPill category={expense.category} />}
           />
-          <Field label="Merchant" value={expense.merchant} />
+          <Field label="Vendor" value={expense.merchant} />
           <Field label="Amount" value={`$${expense.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}`} />
           {expense.jobId && (
             <Field

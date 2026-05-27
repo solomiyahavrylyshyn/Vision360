@@ -168,7 +168,7 @@ export function Jobs() {
       {/* ── Header ── */}
       <PageHeader
         title="Jobs"
-        count={selectedJobs.size > 0 ? `${filtered.length} records · ${selectedJobs.size} selected` : `${filtered.length} records`}
+        count={selectedJobs.size > 0 ? `${filtered.length} · ${selectedJobs.size} selected` : filtered.length}
         actions={
           <CreateActionButton onClick={() => navigate("/jobs/new")}>
             Create Job
