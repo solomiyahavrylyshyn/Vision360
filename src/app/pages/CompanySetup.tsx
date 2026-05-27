@@ -5,6 +5,9 @@ import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import logoImg from "figma:asset/58956be46c544ae8676a6fc4c67137e1d450e75f.png";
 import { companyStore } from "../stores/companyStore";
+import { trialStore } from "../stores/trialStore";
+
+type SetupErrors = Partial<Record<"companyName" | "firstName" | "lastName" | "phone" | "industry" | "otherIndustry" | "teamSize", string>>;
 
 export function CompanySetup() {
   const navigate = useNavigate();
@@ -13,11 +16,27 @@ export function CompanySetup() {
   const [lastName, setLastName] = useState("");
   const [phone, setPhone] = useState("");
   const [industry, setIndustry] = useState("");
+  const [otherIndustry, setOtherIndustry] = useState("");
   const [teamSize, setTeamSize] = useState("");
+  const [errors, setErrors] = useState<SetupErrors>({});
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const nextErrors: SetupErrors = {};
+
+    if (!companyName.trim()) nextErrors.companyName = "Company name is required.";
+    if (!firstName.trim()) nextErrors.firstName = "First name is required.";
+    if (!lastName.trim()) nextErrors.lastName = "Last name is required.";
+    if (!phone.trim()) nextErrors.phone = "Business phone is required.";
+    if (!industry) nextErrors.industry = "Industry is required.";
+    if (industry === "others" && !otherIndustry.trim()) nextErrors.otherIndustry = "Tell us your industry.";
+    if (!teamSize) nextErrors.teamSize = "Team size is required.";
+
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) return;
+
     if (companyName.trim()) companyStore.setCompanyName(companyName.trim());
+    trialStore.startTrialIfMissing();
     navigate("/welcome");
   };
 
@@ -102,7 +121,7 @@ export function CompanySetup() {
             <p className="text-[#546478] text-[15px]">Just the basics to personalize your experience.</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-5" noValidate>
             <div className="space-y-1.5">
               <Label className="text-sm font-semibold text-[#1A2332]">
                 Company Name <span className="text-red-500">*</span>
@@ -111,10 +130,14 @@ export function CompanySetup() {
                 type="text"
                 placeholder="e.g., Smith Plumbing Services"
                 value={companyName}
-                onChange={(e) => setCompanyName(e.target.value)}
-                className="h-11 border-[#E5E7EB] focus-visible:ring-[#4A6FA5] bg-[#F5F7FA] focus:bg-white transition-colors"
-                required
+                onChange={(e) => {
+                  setCompanyName(e.target.value);
+                  setErrors(({ companyName, ...rest }) => rest);
+                }}
+                className={`h-11 focus-visible:ring-[#4A6FA5] bg-[#F5F7FA] focus:bg-white transition-colors ${errors.companyName ? "border-[#DC2626]" : "border-[#E5E7EB]"}`}
+                aria-invalid={Boolean(errors.companyName)}
               />
+              {errors.companyName && <p className="text-xs text-[#DC2626]">{errors.companyName}</p>}
               <p className="text-xs text-[#546478]">This appears on estimates and invoices</p>
             </div>
 
@@ -127,10 +150,14 @@ export function CompanySetup() {
                   type="text"
                   placeholder="John"
                   value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                  className="h-11 border-[#E5E7EB] focus-visible:ring-[#4A6FA5] bg-[#F5F7FA] focus:bg-white transition-colors"
-                  required
+                  onChange={(e) => {
+                    setFirstName(e.target.value);
+                    setErrors(({ firstName, ...rest }) => rest);
+                  }}
+                  className={`h-11 focus-visible:ring-[#4A6FA5] bg-[#F5F7FA] focus:bg-white transition-colors ${errors.firstName ? "border-[#DC2626]" : "border-[#E5E7EB]"}`}
+                  aria-invalid={Boolean(errors.firstName)}
                 />
+                {errors.firstName && <p className="text-xs text-[#DC2626]">{errors.firstName}</p>}
               </div>
               <div className="space-y-1.5">
                 <Label className="text-sm font-semibold text-[#1A2332]">
@@ -140,10 +167,14 @@ export function CompanySetup() {
                   type="text"
                   placeholder="Smith"
                   value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                  className="h-11 border-[#E5E7EB] focus-visible:ring-[#4A6FA5] bg-[#F5F7FA] focus:bg-white transition-colors"
-                  required
+                  onChange={(e) => {
+                    setLastName(e.target.value);
+                    setErrors(({ lastName, ...rest }) => rest);
+                  }}
+                  className={`h-11 focus-visible:ring-[#4A6FA5] bg-[#F5F7FA] focus:bg-white transition-colors ${errors.lastName ? "border-[#DC2626]" : "border-[#E5E7EB]"}`}
+                  aria-invalid={Boolean(errors.lastName)}
                 />
+                {errors.lastName && <p className="text-xs text-[#DC2626]">{errors.lastName}</p>}
               </div>
             </div>
 
@@ -155,18 +186,29 @@ export function CompanySetup() {
                 type="tel"
                 placeholder="(555) 123-4567"
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className="h-11 border-[#E5E7EB] focus-visible:ring-[#4A6FA5] bg-[#F5F7FA] focus:bg-white transition-colors"
-                required
+                onChange={(e) => {
+                  setPhone(e.target.value);
+                  setErrors(({ phone, ...rest }) => rest);
+                }}
+                className={`h-11 focus-visible:ring-[#4A6FA5] bg-[#F5F7FA] focus:bg-white transition-colors ${errors.phone ? "border-[#DC2626]" : "border-[#E5E7EB]"}`}
+                aria-invalid={Boolean(errors.phone)}
               />
+              {errors.phone && <p className="text-xs text-[#DC2626]">{errors.phone}</p>}
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-sm font-semibold text-[#1A2332]">Industry</Label>
+              <Label className="text-sm font-semibold text-[#1A2332]">
+                Industry <span className="text-red-500">*</span>
+              </Label>
               <select
                 value={industry}
-                onChange={(e) => setIndustry(e.target.value)}
-                className="w-full h-11 px-3 border border-[#E5E7EB] rounded-md bg-[#F5F7FA] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#4A6FA5] transition-colors text-sm"
+                onChange={(e) => {
+                  setIndustry(e.target.value);
+                  if (e.target.value !== "others") setOtherIndustry("");
+                  setErrors(({ industry, otherIndustry, ...rest }) => rest);
+                }}
+                className={`w-full h-11 px-3 border rounded-md bg-[#F5F7FA] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#4A6FA5] transition-colors text-sm ${errors.industry ? "border-[#DC2626]" : "border-[#E5E7EB]"}`}
+                aria-invalid={Boolean(errors.industry)}
               >
                 <option value="">Select your industry</option>
                 <option value="hvac">HVAC</option>
@@ -188,26 +230,53 @@ export function CompanySetup() {
                 <option value="pressurewashing">Pressure Washing</option>
                 <option value="others">Others</option>
               </select>
+              {errors.industry && <p className="text-xs text-[#DC2626]">{errors.industry}</p>}
             </div>
 
+            {industry === "others" && (
+              <div className="space-y-1.5">
+                <Label className="text-sm font-semibold text-[#1A2332]">
+                  Other industry <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  type="text"
+                  placeholder="Tell us your industry"
+                  value={otherIndustry}
+                  onChange={(e) => {
+                    setOtherIndustry(e.target.value);
+                    setErrors(({ otherIndustry, ...rest }) => rest);
+                  }}
+                  className={`h-11 focus-visible:ring-[#4A6FA5] bg-[#F5F7FA] focus:bg-white transition-colors ${errors.otherIndustry ? "border-[#DC2626]" : "border-[#E5E7EB]"}`}
+                  aria-invalid={Boolean(errors.otherIndustry)}
+                />
+                {errors.otherIndustry && <p className="text-xs text-[#DC2626]">{errors.otherIndustry}</p>}
+              </div>
+            )}
+
             <div className="space-y-1.5">
-              <Label className="text-sm font-semibold text-[#1A2332]">Team Size</Label>
+              <Label className="text-sm font-semibold text-[#1A2332]">
+                Team Size <span className="text-red-500">*</span>
+              </Label>
               <select
                 value={teamSize}
-                onChange={(e) => setTeamSize(e.target.value)}
-                className="w-full h-11 px-3 border border-[#E5E7EB] rounded-md bg-[#F5F7FA] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#4A6FA5] transition-colors text-sm"
+                onChange={(e) => {
+                  setTeamSize(e.target.value);
+                  setErrors(({ teamSize, ...rest }) => rest);
+                }}
+                className={`w-full h-11 px-3 border rounded-md bg-[#F5F7FA] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#4A6FA5] transition-colors text-sm ${errors.teamSize ? "border-[#DC2626]" : "border-[#E5E7EB]"}`}
+                aria-invalid={Boolean(errors.teamSize)}
               >
                 <option value="">Select team size</option>
-                <option value="solo">Solo Operator</option>
-                <option value="under10">Under 10 Employees</option>
-                <option value="over10">More Than 10 Employees</option>
+                <option value="solo">Solo operator</option>
+                <option value="under10">Under 10 employees</option>
+                <option value="over10">More than 10 employees</option>
               </select>
+              {errors.teamSize && <p className="text-xs text-[#DC2626]">{errors.teamSize}</p>}
             </div>
 
             <Button
               type="submit"
               className="w-full h-12 text-base font-semibold bg-[#4A6FA5] hover:bg-[#3d5a85] text-white transition-colors mt-2"
-              disabled={!companyName || !firstName || !lastName || !phone}
             >
               Continue
             </Button>

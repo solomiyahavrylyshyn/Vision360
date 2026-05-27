@@ -16,6 +16,8 @@ import { marketingSourcesStore } from "../stores/marketingSourcesStore";
 import { formatScheduleHour, parseScheduleHour, scheduleSettingsStore } from "../stores/scheduleSettingsStore";
 import { tagsStore } from "../stores/tagsStore";
 import { applyBrandTheme, DEFAULT_BRAND_THEME, getStoredBrandLogo, getStoredBrandTheme, resetBrandLogo, resetBrandTheme, setBrandLogo } from "../utils/brandTheme";
+import { businessHoursStore, type BusinessHourRow } from "../stores/businessHoursStore";
+import { DEFAULT_REGIONAL_SETTINGS, regionalSettingsStore, type RegionalSettings } from "../stores/regionalSettingsStore";
 
 type SettingsSection =
   | "home"
@@ -168,6 +170,30 @@ const generalIndustryOptions = [
   "General contracting",
   "Other",
 ];
+
+const COMPANY_ABOUT_STORAGE_KEY = "vision360.companyAbout";
+const SOCIAL_LINKS_STORAGE_KEY = "vision360.socialLinks";
+const DEFAULT_COMPANY_ABOUT = "Omega Home Services is a full-service home maintenance company based in Tampa, FL. We specialize in HVAC, plumbing, and general repairs.";
+const DEFAULT_SOCIAL_LINKS = {
+  facebook: "",
+  instagram: "https://instagram.com/omega-home",
+  linkedin: "",
+  website: "https://omega-home.com",
+};
+
+const readStoredText = (key: string, fallback: string) => {
+  if (typeof localStorage === "undefined") return fallback;
+  return localStorage.getItem(key) ?? fallback;
+};
+
+const readStoredSocialLinks = () => {
+  if (typeof localStorage === "undefined") return DEFAULT_SOCIAL_LINKS;
+  try {
+    return { ...DEFAULT_SOCIAL_LINKS, ...JSON.parse(localStorage.getItem(SOCIAL_LINKS_STORAGE_KEY) || "{}") };
+  } catch {
+    return DEFAULT_SOCIAL_LINKS;
+  }
+};
 
 const customFieldEntities: CfEntity[] = ["clients", "jobs", "estimates", "invoices", "items", "team"];
 const customFieldEntityLabels: Record<CfEntity, string> = {
@@ -584,16 +610,17 @@ function TaxRow({
 
 // Regional settings dropdowns: Country / Language / Timezone / Date format / Time format / First day
 function RegionalSettingsCard() {
+  const regionalSettings = useSyncExternalStore(regionalSettingsStore.subscribe, regionalSettingsStore.getSnapshot);
   const selectCls =
     "h-9 w-full rounded-lg border border-[#E5E7EB] bg-white pl-3 pr-8 text-[14px] text-[#1A2332] outline-none focus:border-[#4A6FA5] shadow-[0_1px_2px_rgba(0,0,0,0.05)] appearance-none cursor-pointer";
   const labelCls = "block text-[14px] text-[#1A2332] mb-1" as const;
 
-  function SelectField({ label, defaultValue, children }: { label: string; defaultValue: string; children: React.ReactNode }) {
+  function SelectField({ label, value, onChange, children }: { label: string; value: string; onChange: (value: string) => void; children: React.ReactNode }) {
     return (
       <div className="flex flex-col gap-1">
         <span className={labelCls} style={{ fontWeight: 500 }}>{label}</span>
         <div className="relative">
-          <select className={selectCls} defaultValue={defaultValue}>{children}</select>
+          <select className={selectCls} value={value} onChange={e => onChange(e.target.value)}>{children}</select>
           <span className="material-icons pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[#6B7280]" style={{ fontSize: "16px" }}>expand_more</span>
         </div>
       </div>
@@ -606,7 +633,7 @@ function RegionalSettingsCard() {
       <div className="flex flex-col gap-4">
         <div className="flex gap-4">
           <div className="flex-1">
-            <SelectField label="Country" defaultValue="United States">
+            <SelectField label="Country" value={regionalSettings.country} onChange={value => regionalSettingsStore.setSettings({ country: value })}>
               <option>United States</option>
               <option>Ukraine</option>
               <option>Canada</option>
@@ -614,7 +641,7 @@ function RegionalSettingsCard() {
             </SelectField>
           </div>
           <div className="flex-1">
-            <SelectField label="Language" defaultValue="English">
+            <SelectField label="Language" value={regionalSettings.language} onChange={value => regionalSettingsStore.setSettings({ language: value })}>
               <option>English</option>
               <option>Spanish</option>
             </SelectField>
@@ -623,34 +650,33 @@ function RegionalSettingsCard() {
 
         <div className="flex gap-4">
           <div className="flex-1">
-            <SelectField label="Timezone" defaultValue="(GMT-05:00) America/New_York">
-              <option>(GMT-05:00) America/New_York</option>
-              <option>(GMT-06:00) America/Chicago</option>
-              <option>(GMT-07:00) America/Denver</option>
-              <option>(GMT-08:00) America/Los_Angeles</option>
-              <option>(GMT+02:00) Europe/Kyiv</option>
+            <SelectField label="Time zone" value={regionalSettings.timeZone} onChange={value => regionalSettingsStore.setSettings({ timeZone: value })}>
+              <option value="America/New_York">EST - America/New_York</option>
+              <option value="America/Chicago">CST - America/Chicago</option>
+              <option value="America/Denver">MST - America/Denver</option>
+              <option value="America/Los_Angeles">PST - America/Los_Angeles</option>
+              <option value="Europe/Kyiv">EET - Europe/Kyiv</option>
             </SelectField>
           </div>
           <div className="flex-1">
-            <SelectField label="Date format" defaultValue="Jan 31, 2026">
-              <option>Jan 31, 2026</option>
-              <option>31 Jan 2026</option>
-              <option>01/31/2026</option>
-              <option>31/01/2026</option>
-              <option>2026-01-31</option>
+            <SelectField label="Date format" value={regionalSettings.dateFormat} onChange={value => regionalSettingsStore.setSettings({ dateFormat: value as RegionalSettings["dateFormat"] })}>
+              <option value="MM-DD-YYYY">MM-DD-YYYY</option>
+              <option value="DD-MM-YYYY">DD-MM-YYYY</option>
+              <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+              <option value="MMM D, YYYY">MMM D, YYYY</option>
             </SelectField>
           </div>
         </div>
 
         <div className="flex gap-4">
           <div className="flex-1">
-            <SelectField label="Time format" defaultValue="12 Hour (1:30 PM)">
-              <option>12 Hour (1:30 PM)</option>
-              <option>24 Hour (13:30)</option>
+            <SelectField label="Time format" value={regionalSettings.timeFormat} onChange={value => regionalSettingsStore.setSettings({ timeFormat: value as RegionalSettings["timeFormat"] })}>
+              <option value="12h">12h</option>
+              <option value="24h">24h</option>
             </SelectField>
           </div>
           <div className="flex-1">
-            <SelectField label="First day of the week" defaultValue="Sunday">
+            <SelectField label="First day of week" value={regionalSettings.firstDayOfWeek} onChange={value => regionalSettingsStore.setSettings({ firstDayOfWeek: value as RegionalSettings["firstDayOfWeek"] })}>
               <option>Sunday</option>
               <option>Monday</option>
             </SelectField>
@@ -663,18 +689,9 @@ function RegionalSettingsCard() {
 
 // Business hours — day rows with checkbox + time inputs
 function BusinessHoursCard({ footer }: { footer?: React.ReactNode }) {
-  type Row = { day: string; open: boolean; from: string; to: string };
-  const [rows, setRows] = useState<Row[]>([
-    { day: "Sunday",    open: false, from: "9:00 am", to: "5:00 pm" },
-    { day: "Monday",    open: true,  from: "9:00 am", to: "5:00 pm" },
-    { day: "Tuesday",   open: true,  from: "9:00 am", to: "5:00 pm" },
-    { day: "Wednesday", open: true,  from: "9:00 am", to: "5:00 pm" },
-    { day: "Thursday",  open: true,  from: "9:00 am", to: "5:00 pm" },
-    { day: "Friday",    open: true,  from: "9:00 am", to: "5:00 pm" },
-    { day: "Saturday",  open: false, from: "9:00 am", to: "5:00 pm" },
-  ]);
-  const updateRow = (i: number, patch: Partial<Row>) =>
-    setRows(rows.map((r, idx) => idx === i ? { ...r, ...patch } : r));
+  const rows = useSyncExternalStore(businessHoursStore.subscribe, businessHoursStore.getSnapshot);
+  const updateRow = (i: number, patch: Partial<BusinessHourRow>) =>
+    businessHoursStore.setRows(rows.map((r, idx) => idx === i ? { ...r, ...patch } : r));
 
   const inputCls = "h-9 w-[90px] rounded-lg border border-[#E5E7EB] bg-white px-3 text-[14px] text-[#1A2332] outline-none focus:border-[#4A6FA5] shadow-[0_1px_2px_rgba(0,0,0,0.05)]";
 
@@ -2005,6 +2022,8 @@ export function Settings() {
   const [brandAccent, setBrandAccent] = useState(() => getStoredBrandTheme().accent);
   const [brandLogoPreview, setBrandLogoPreview] = useState(() => getStoredBrandLogo());
   const [resetBrandDialogOpen, setResetBrandDialogOpen] = useState(false);
+  const [companyAbout, setCompanyAbout] = useState(() => readStoredText(COMPANY_ABOUT_STORAGE_KEY, DEFAULT_COMPANY_ABOUT));
+  const [socialLinks, setSocialLinks] = useState(() => readStoredSocialLinks());
   const [tcFile, setTcFile] = useState<string | null>(null);
   const [policiesFile, setPoliciesFile] = useState<string | null>(null);
   const [privacyFile, setPrivacyFile] = useState<string | null>(null);
@@ -2139,13 +2158,13 @@ export function Settings() {
   const handleLogoUpload = (file: File | undefined) => {
     if (!file) return;
 
-    const supportedTypes = ["image/png", "image/svg+xml", "image/jpeg", "image/gif"];
+    const supportedTypes = ["image/png", "image/jpeg"];
     if (!supportedTypes.includes(file.type)) {
-      toast.error("Upload a PNG, SVG, JPG, or GIF logo");
+      toast.error("Upload a PNG or JPG logo");
       return;
     }
-    if (file.size > 3 * 1024 * 1024) {
-      toast.error("Logo must be under 3 MB");
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Logo must be under 2 MB");
       return;
     }
 
@@ -2158,6 +2177,33 @@ export function Settings() {
     };
     reader.onerror = () => toast.error("Logo upload failed");
     reader.readAsDataURL(file);
+  };
+
+  const updateSocialLink = (key: keyof typeof DEFAULT_SOCIAL_LINKS, value: string) => {
+    setSocialLinks(prev => ({ ...prev, [key]: value }));
+  };
+
+  const isValidSocialUrl = (value: string) => {
+    if (!value.trim()) return true;
+    try {
+      const parsed = new URL(value);
+      return parsed.protocol === "http:" || parsed.protocol === "https:";
+    } catch {
+      return false;
+    }
+  };
+
+  const handleCompanyProfileSave = () => {
+    const invalid = Object.entries(socialLinks).find(([, value]) => !isValidSocialUrl(value));
+    if (invalid) {
+      toast.error(`${invalid[0][0].toUpperCase()}${invalid[0].slice(1)} must be a valid URL`);
+      return;
+    }
+    if (typeof localStorage !== "undefined") {
+      localStorage.setItem(COMPANY_ABOUT_STORAGE_KEY, companyAbout);
+      localStorage.setItem(SOCIAL_LINKS_STORAGE_KEY, JSON.stringify(socialLinks));
+    }
+    toast.success("Changes saved");
   };
 
   return (
@@ -2229,6 +2275,7 @@ export function Settings() {
                     <Field label="Phone number"><Input defaultValue="(813) 286-7572" className="h-9 border-[#D8DEE8]" /></Field>
                     <Field label="Website"><Input defaultValue="https://omega-home.com" className="h-9 border-[#D8DEE8]" /></Field>
                     <Field label="Email"><Input defaultValue="office@omega-home.com" className="h-9 border-[#D8DEE8]" /></Field>
+                    <Field label="EIN / tax ID"><Input defaultValue="12-3456789" className="h-9 border-[#D8DEE8]" /></Field>
                     <Field label="License number"><Input defaultValue="LIC-2486-FL" className="h-9 border-[#D8DEE8]" /></Field>
                   </div>
                 </SectionCard>
@@ -2236,9 +2283,9 @@ export function Settings() {
                 <div className="flex justify-end">
                   <Button
                     type="button"
-                    disabled
-                    className="bg-[#4A6FA5] text-white h-9 px-4 opacity-50"
+                    className="bg-[#4A6FA5] hover:bg-[#3d5a85] text-white h-9 px-4"
                     style={{ fontWeight: 500 }}
+                    onClick={() => toast.success("Company info saved")}
                   >
                     Save changes
                   </Button>
@@ -2256,7 +2303,7 @@ export function Settings() {
                   <Button
                     className="h-9 bg-[#4A6FA5] hover:bg-[#3d5a85] text-white px-4 text-[13px]"
                     style={{ fontWeight: 600 }}
-                    onClick={() => toast.success("Changes saved")}
+                    onClick={handleCompanyProfileSave}
                   >
                     Save changes
                   </Button>
@@ -2324,7 +2371,7 @@ export function Settings() {
                       <input
                         ref={logoInputRef}
                         type="file"
-                        accept="image/png,image/svg+xml,image/jpeg,image/gif"
+                        accept="image/png,image/jpeg"
                         className="hidden"
                         onChange={e => handleLogoUpload(e.target.files?.[0])}
                       />
@@ -2346,7 +2393,7 @@ export function Settings() {
                               Drop your files here, or{" "}
                               <span className="text-[#4A6FA5] underline underline-offset-2" style={{ fontWeight: 600 }}>click to browse</span>
                             </p>
-                            <p className="mt-0.5 text-[11px] text-[#9AA3AF]">SVG, PNG, JPG or GIF (max. 3MB)</p>
+                            <p className="mt-0.5 text-[11px] text-[#9AA3AF]">PNG or JPG (max. 2MB)</p>
                           </>
                         )}
                       </div>
@@ -2382,26 +2429,30 @@ export function Settings() {
 
                 <SectionCard title="About" description="A short note about your business, visible to your team.">
                   <textarea
-                    defaultValue="Omega Home Services is a full-service home maintenance company based in Tampa, FL. We specialize in HVAC, plumbing, and general repairs."
+                    value={companyAbout}
+                    onChange={e => setCompanyAbout(e.target.value)}
                     className="min-h-[90px] w-full rounded-lg border border-[#D8DEE8] bg-white px-3 py-2 text-[14px] leading-5 text-[#1A2332] outline-none focus:border-[#4A6FA5] focus:ring-2 focus:ring-[#4A6FA5]/20"
                   />
                 </SectionCard>
 
                 <SectionCard title="Social network links" description="Links shown on your Client Hub and customer-facing pages.">
                   <div className="grid grid-cols-2 gap-4">
-                    <Field label="Facebook"><Input placeholder="https://facebook.com/your-page" className="h-9 border-[#D8DEE8]" /></Field>
-                    <Field label="Instagram"><Input defaultValue="https://instagram.com/omega-home" className="h-9 border-[#D8DEE8]" /></Field>
-                    <Field label="LinkedIn"><Input placeholder="https://linkedin.com/company/your-page" className="h-9 border-[#D8DEE8]" /></Field>
-                    <Field label="Website"><Input defaultValue="https://omega-home.com" className="h-9 border-[#D8DEE8]" /></Field>
+                    <Field label="Facebook"><Input value={socialLinks.facebook} onChange={e => updateSocialLink("facebook", e.target.value)} placeholder="https://facebook.com/your-page" className="h-9 border-[#D8DEE8]" /></Field>
+                    <Field label="Instagram"><Input value={socialLinks.instagram} onChange={e => updateSocialLink("instagram", e.target.value)} placeholder="https://instagram.com/your-page" className="h-9 border-[#D8DEE8]" /></Field>
+                    <Field label="LinkedIn"><Input value={socialLinks.linkedin} onChange={e => updateSocialLink("linkedin", e.target.value)} placeholder="https://linkedin.com/company/your-page" className="h-9 border-[#D8DEE8]" /></Field>
+                    <Field label="Website"><Input value={socialLinks.website} onChange={e => updateSocialLink("website", e.target.value)} placeholder="https://omega-home.com" className="h-9 border-[#D8DEE8]" /></Field>
                   </div>
                 </SectionCard>
 
                 <SectionCard title="Notifications" description="Control when the app notifies you about client activity.">
                   <div className="space-y-3">
                     {[
-                      { label: "Client signs an estimate", sub: "In-app and email notification when a client signs" },
-                      { label: "Client signs an invoice", sub: "In-app and email notification when a client pays" },
-                      { label: "Job status changes", sub: "Notify when a job moves to In Progress or Completed" },
+                      { label: "Estimate signed", sub: "Notify when a client signs an estimate" },
+                      { label: "Estimate viewed", sub: "Notify when a client views an estimate" },
+                      { label: "Customer requested change", sub: "Notify when a client requests a change" },
+                      { label: "Invoice signed", sub: "Notify when a client signs an invoice" },
+                      { label: "Payment received", sub: "Notify when a customer payment is received" },
+                      { label: "Invoice overdue", sub: "Notify when an invoice passes its due date" },
                     ].map(n => (
                       <div key={n.label} className="flex items-center justify-between rounded-lg border border-[#E5E7EB] px-4 py-3">
                         <div>

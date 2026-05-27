@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router";
 import { useSyncExternalStore } from "react";
 import { companyStore } from "../stores/companyStore";
+import { formatTrialDate, isTrialActive, trialStore } from "../stores/trialStore";
 
 // Software-account page — the customer↔Vision360 relationship.
 // Per Marek's walkthrough #3: "Account... For the software account.
@@ -12,6 +13,8 @@ import { companyStore } from "../stores/companyStore";
 export function Account() {
   const navigate = useNavigate();
   const companyName = useSyncExternalStore(companyStore.subscribe, companyStore.getCompanyName);
+  const trial = useSyncExternalStore(trialStore.subscribe, trialStore.getSnapshot);
+  const trialActive = isTrialActive(trial);
 
   // Mocked Vision360 account data
   const accountManager = {
@@ -25,8 +28,8 @@ export function Account() {
     plan: "Growth",
     seats: 5,
     seatsUsed: 4,
-    status: "Active",
-    renewalDate: "Dec 14, 2026",
+    status: trialActive ? "Free trial" : "Active",
+    renewalDate: trialActive && trial ? formatTrialDate(trial.expiresAt) : "Dec 14, 2026",
     pricePerSeat: 49,
   };
   const accountId = "V360-29899-OMH";
@@ -107,13 +110,13 @@ export function Account() {
           </Section>
 
           {/* Subscription / plan */}
-          <Section title="Subscription" description="Current plan, seats, and renewal.">
+          <Section title="Subscription" description={trialActive ? "Current trial, seats, and expiry." : "Current plan, seats, and renewal."}>
             <div className="grid grid-cols-2 gap-x-8 gap-y-4">
               <div>
                 <div className="text-[11px] text-[#9CA3AF] uppercase tracking-wide" style={{ fontWeight: 600 }}>Plan</div>
                 <div className="mt-1 flex items-center gap-2">
                   <span className="text-[16px] text-[#1A2332]" style={{ fontWeight: 600 }}>{subscription.plan}</span>
-                  <span className="text-[11px] px-2 py-0.5 rounded bg-[#DCFCE7] text-[#16A34A]" style={{ fontWeight: 600 }}>{subscription.status}</span>
+                  <span className={`text-[11px] px-2 py-0.5 rounded ${trialActive ? "bg-[#EBF2FC] text-[#4A6FA5]" : "bg-[#DCFCE7] text-[#16A34A]"}`} style={{ fontWeight: 600 }}>{subscription.status}</span>
                 </div>
               </div>
               <div>
@@ -123,7 +126,7 @@ export function Account() {
                 </div>
               </div>
               <div>
-                <div className="text-[11px] text-[#9CA3AF] uppercase tracking-wide" style={{ fontWeight: 600 }}>Renews on</div>
+                <div className="text-[11px] text-[#9CA3AF] uppercase tracking-wide" style={{ fontWeight: 600 }}>{trialActive ? "Trial expires" : "Renews on"}</div>
                 <div className="text-[16px] text-[#1A2332] mt-1" style={{ fontWeight: 600 }}>{subscription.renewalDate}</div>
               </div>
               <div>
@@ -132,8 +135,13 @@ export function Account() {
               </div>
             </div>
             <div className="flex gap-2 mt-5">
-              <button className="h-9 px-4 bg-[#4A6FA5] hover:bg-[#3d5a85] rounded-md text-[13px] text-white transition-colors" style={{ fontWeight: 500 }}>
-                Manage plan
+              <button
+                type="button"
+                onClick={() => trialStore.activateSubscription()}
+                className="h-9 px-4 bg-[#4A6FA5] hover:bg-[#3d5a85] rounded-md text-[13px] text-white transition-colors"
+                style={{ fontWeight: 500 }}
+              >
+                {trialActive ? "Subscribe now" : "Manage plan"}
               </button>
               <button className="h-9 px-4 border border-[#D8DEE8] bg-white hover:bg-[#F5F7FA] rounded-md text-[13px] text-[#374151] transition-colors" style={{ fontWeight: 500 }}>
                 View invoices

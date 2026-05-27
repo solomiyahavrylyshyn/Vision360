@@ -5,6 +5,7 @@ import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Checkbox } from "../components/ui/checkbox";
 import logoImg from "figma:asset/58956be46c544ae8676a6fc4c67137e1d450e75f.png";
+import { trialStore } from "../stores/trialStore";
 
 export function Register() {
   const navigate = useNavigate();
@@ -37,6 +38,7 @@ export function Register() {
       alert("Passwords don't match");
       return;
     }
+    trialStore.startTrial();
     navigate("/verify-2fa");
   };
 

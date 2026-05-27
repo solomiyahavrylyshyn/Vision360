@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useSyncExternalStore } from "react";
 import { Outlet, NavLink, useNavigate } from "react-router";
 import logoImg from "../../assets/vision360-logo.svg";
 import { MessagingCenter } from "./MessagingCenter";
@@ -8,6 +8,7 @@ import { HelpCenter } from "./HelpCenter";
 import { ProfileMenu } from "./ProfileMenu";
 import { PlusIcon } from "./ui/plus-icon";
 import { applyStoredBrandTheme, BRAND_LOGO_EVENT, getStoredBrandLogo } from "../utils/brandTheme";
+import { formatTrialDate, getTrialDaysRemaining, isTrialActive, trialStore } from "../stores/trialStore";
 
 const navItems = [
   { to: "/", icon: "home", label: "Home" },
@@ -38,6 +39,9 @@ export function Layout() {
   const [helpCenterOpen, setHelpCenterOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [companyLogoSrc, setCompanyLogoSrc] = useState(() => getStoredBrandLogo() || logoImg);
+  const trial = useSyncExternalStore(trialStore.subscribe, trialStore.getSnapshot);
+  const showTrialBanner = isTrialActive(trial);
+  const trialDaysRemaining = getTrialDaysRemaining(trial);
 
   useEffect(() => {
     applyStoredBrandTheme();
@@ -626,6 +630,26 @@ export function Layout() {
           </button>
         </div>
         </header>
+
+        {showTrialBanner && trial && (
+          <div className="flex flex-shrink-0 items-center justify-between gap-4 border-b border-[#D8E4F2] bg-[#EBF2FC] px-5 py-2.5">
+            <div className="flex min-w-0 items-center gap-2.5 text-[13px] text-[#1A2332]">
+              <span className="material-icons-outlined text-[#4A6FA5]" style={{ fontSize: "18px" }}>schedule</span>
+              <span className="truncate">
+                Your 7-day free trial ends {formatTrialDate(trial.expiresAt)}
+                {trialDaysRemaining > 0 ? ` (${trialDaysRemaining} day${trialDaysRemaining === 1 ? "" : "s"} left).` : "."}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => navigate("/account")}
+              className="h-8 shrink-0 rounded-md bg-[#4A6FA5] px-3 text-[13px] text-white transition-colors hover:bg-[#3d5a85]"
+              style={{ fontWeight: 600 }}
+            >
+              Subscribe now
+            </button>
+          </div>
+        )}
 
         {/* Content Area */}
         <div className="flex-1 overflow-auto">
