@@ -7,7 +7,7 @@ import { PlusIcon } from "../components/ui/plus-icon";
 // ─── Types ───────────────────────────────────────────────────────────────────
 type InvoiceStatus =
   | "Unpaid"
-  | "Unpaid-Overdue"
+  | "Overdue"
   | "Paid"
   | "Partially Paid"
   | "Void";
@@ -33,7 +33,7 @@ interface ActivityEntry {
 
 const statusColors: Record<InvoiceStatus, { text: string; bg: string }> = {
   "Unpaid":         { text: "#DC2626", bg: "#FEE2E2" },
-  "Unpaid-Overdue": { text: "#EF4444", bg: "#FEE2E2" },
+  "Overdue": { text: "#EF4444", bg: "#FEE2E2" },
   "Paid":           { text: "#16A34A", bg: "#DCFCE7" },
   "Partially Paid": { text: "#D97706", bg: "#FEF3C7" },
   "Void":           { text: "#9CA3AF", bg: "#F3F4F6" },
@@ -41,7 +41,7 @@ const statusColors: Record<InvoiceStatus, { text: string; bg: string }> = {
 
 const allStatuses: InvoiceStatus[] = [
   "Unpaid",
-  "Unpaid-Overdue",
+  "Overdue",
   "Paid",
   "Partially Paid",
   "Void",
@@ -119,7 +119,7 @@ const mockInvoices: Record<string, any> = {
   "2": {
     number: "10246-I01",
     type: "Standard" as InvoiceType,
-    status: "Unpaid-Overdue" as InvoiceStatus,
+    status: "Overdue" as InvoiceStatus,
     date: "2026-03-02",
     dueDate: "2026-03-17",
     dateSent: "2026-03-02",
@@ -164,7 +164,7 @@ const mockInvoices: Record<string, any> = {
     activity: [
       { id: 1, date: "2026-03-02 10:00", action: "Invoice created", detail: "Created by Marek Stroz", icon: "add_circle" },
       { id: 2, date: "2026-03-02 10:05", action: "Invoice sent", detail: "Sent to john.d@email.com", icon: "send" },
-      { id: 3, date: "2026-03-18 00:00", action: "Status changed", detail: "Automatically marked Unpaid-Overdue", icon: "warning" },
+      { id: 3, date: "2026-03-18 00:00", action: "Status changed", detail: "Automatically marked Overdue", icon: "warning" },
     ],
   },
   "4": {
@@ -305,7 +305,7 @@ export function InvoiceDetail() {
   const total = subtotal + taxAmount;
   const totalPayments = payments.reduce((s, p) => s + p.amount, 0);
   const balance = total - totalPayments;
-  const overdueDays = status === "Unpaid-Overdue" ? daysBetween(data.dueDate, TODAY) : 0;
+  const overdueDays = status === "Overdue" ? daysBetween(data.dueDate, TODAY) : 0;
   const isPaid = status === "Paid";
 
   const handleStatusChange = (newStatus: InvoiceStatus) => {

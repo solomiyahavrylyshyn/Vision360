@@ -52,7 +52,7 @@ const statusColors: Record<EstimateStatus, string> = {
   Approved: "#166534",
   Rejected: "#DC2626",
   Expired: "#6B7280",
-  Archived: "#FFFFFF",
+  Archived: "#4B5563",
 };
 
 const statusBg: Record<EstimateStatus, string> = {
@@ -62,7 +62,7 @@ const statusBg: Record<EstimateStatus, string> = {
   Approved: "#DCFCE7",
   Rejected: "#FEE2E2",
   Expired: "#F3F4F6",
-  Archived: "#1F2937",
+  Archived: "#E5E7EB",
 };
 
 const avatarColors = ["#4A6FA5", "#3B82F6", "#8B5CF6", "#D97706", "#10B981", "#DC2626"];

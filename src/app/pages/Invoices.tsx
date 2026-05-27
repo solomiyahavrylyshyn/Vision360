@@ -13,7 +13,7 @@ import { StatCard } from "../components/ui/stat-card";
 // ─── Types ───────────────────────────────────────────────────────────────────
 type InvoiceStatus =
   | "Unpaid"
-  | "Unpaid-Overdue"
+  | "Overdue"
   | "Paid"
   | "Partially Paid"
   | "Void";
@@ -85,7 +85,7 @@ interface Invoice {
 
 const statusColors: Record<InvoiceStatus, { text: string; bg: string }> = {
   "Unpaid":          { text: "#DC2626", bg: "#FEE2E2" },
-  "Unpaid-Overdue":  { text: "#EF4444", bg: "#FEE2E2" },
+  "Overdue":  { text: "#EF4444", bg: "#FEE2E2" },
   "Paid":            { text: "#16A34A", bg: "#DCFCE7" },
   "Partially Paid":  { text: "#D97706", bg: "#FEF3C7" },
   "Void":            { text: "#9CA3AF", bg: "#F3F4F6" },
@@ -93,7 +93,7 @@ const statusColors: Record<InvoiceStatus, { text: string; bg: string }> = {
 
 const allStatuses: InvoiceStatus[] = [
   "Unpaid",
-  "Unpaid-Overdue",
+  "Overdue",
   "Paid",
   "Partially Paid",
   "Void",
@@ -135,7 +135,7 @@ const initialInvoices: Invoice[] = [
   },
   {
     id: 2, number: "10246-I01", type: "Standard", date: "2026-03-02",
-    status: "Unpaid-Overdue",
+    status: "Overdue",
     clientName: "John Doe", customerEmail: "john.d@email.com", phone: "(214) 555-0188",
     jobNumber: "10246", jobName: "Bathroom Remodel",
     total: 5975.50, balance: 5975.50,
@@ -283,7 +283,7 @@ export function Invoices() {
   // Summary cards
   const summary = useMemo(() => {
     const unpaid = invoices.filter(i => i.status === "Unpaid");
-    const overdue = invoices.filter(i => i.status === "Unpaid-Overdue");
+    const overdue = invoices.filter(i => i.status === "Overdue");
     const paid = invoices.filter(i => i.status === "Paid");
     const partiallyPaid = invoices.filter(i => i.status === "Partially Paid");
     const voided = invoices.filter(i => i.status === "Void");
@@ -328,7 +328,7 @@ export function Invoices() {
 
   const summaryCards: { label: string; value: string; sub: string; filterVal: string; color: string }[] = [
     { label: "Unpaid",        value: `$${fmt(summary.unpaid.total)}`,        sub: `${summary.unpaid.count} invoices`,        filterVal: "Unpaid",         color: "#3B82F6" },
-    { label: "Overdue",       value: `$${fmt(summary.overdue.total)}`,       sub: `${summary.overdue.count} invoices`,       filterVal: "Unpaid-Overdue", color: "#EF4444" },
+    { label: "Overdue",       value: `$${fmt(summary.overdue.total)}`,       sub: `${summary.overdue.count} invoices`,       filterVal: "Overdue", color: "#EF4444" },
     { label: "Paid",          value: `$${fmt(summary.paid.total)}`,          sub: `${summary.paid.count} invoices`,          filterVal: "Paid",           color: "#22C55E" },
     { label: "Partially Paid", value: `$${fmt(summary.partiallyPaid.total)}`, sub: `${summary.partiallyPaid.count} invoices`, filterVal: "Partially Paid", color: "#F59E0B" },
     { label: "Void",          value: `${summary.voided.count}`,              sub: "invoices",                                filterVal: "Void",           color: "#9CA3AF" },
@@ -478,7 +478,7 @@ export function Invoices() {
                   </td>
                 </tr>
               ) : paginated.map((inv, idx) => {
-                const overdueDays = inv.status === "Unpaid-Overdue" ? daysBetween(inv.dueDate, TODAY) : 0;
+                const overdueDays = inv.status === "Overdue" ? daysBetween(inv.dueDate, TODAY) : 0;
                 return (
                 <tr
                   key={inv.id}

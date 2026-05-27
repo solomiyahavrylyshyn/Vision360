@@ -44,11 +44,11 @@ interface EstimateData {
 // ─── Status colours ───────────────────────────────────────────────────────────
 const statusColors: Record<EstimateStatus, string> = {
   Draft: "#6B7280", Sent: "#1E40AF", Viewed: "#92400E",
-  Approved: "#166534", Rejected: "#DC2626", Expired: "#6B7280", Archived: "#FFFFFF",
+  Approved: "#166534", Rejected: "#DC2626", Expired: "#6B7280", Archived: "#4B5563",
 };
 const statusBg: Record<EstimateStatus, string> = {
   Draft: "#F3F4F6", Sent: "#DBEAFE", Viewed: "#FEF3C7",
-  Approved: "#DCFCE7", Rejected: "#FEE2E2", Expired: "#F3F4F6", Archived: "#1F2937",
+  Approved: "#DCFCE7", Rejected: "#FEE2E2", Expired: "#F3F4F6", Archived: "#E5E7EB",
 };
 const primaryStatuses: EstimateStatus[] = [
   "Draft", "Sent", "Viewed", "Approved", "Rejected", "Expired",
@@ -739,7 +739,7 @@ export function EstimateDetail() {
                   <span className="rounded-full bg-[#FEF3C7] px-2.5 py-1 text-[11px] text-[#D97706]" style={{ fontWeight: 700 }}>MVP</span>
                 </div>
                 <div className="grid grid-cols-5 gap-2">
-                  {["Unpaid", "Unpaid-Overdue", "Paid", "Partially Paid", "Void"].map(status => (
+                  {["Unpaid", "Overdue", "Paid", "Partially Paid", "Void"].map(status => (
                     <div
                       key={status}
                       className={`flex min-h-8 items-center justify-center rounded-md border px-2 text-center text-[11px] leading-4 ${
