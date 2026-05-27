@@ -519,7 +519,7 @@ export function Invoices() {
                         </td>
                       );
                       case "status": return (
-                        <td key={col.key} className="px-3 py-4 whitespace-nowrap" onClick={e => e.stopPropagation()}>
+                        <td key={col.key} className="px-3 py-4 whitespace-nowrap">
                           <span className="px-2.5 py-1 rounded-md text-[12px]"
                             style={{ fontWeight: 600, color: statusColors[inv.status].text, backgroundColor: statusColors[inv.status].bg }}>
                             {inv.status}
