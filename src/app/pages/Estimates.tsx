@@ -46,7 +46,7 @@ const primaryStatuses: EstimateStatus[] = ["Draft", "Sent", "Viewed", "Approved"
 const otherStatuses: EstimateStatus[] = ["Archived"];
 
 const statusColors: Record<EstimateStatus, string> = {
-  Draft: "#7C3AED",
+  Draft: "#6B7280",
   Sent: "#1E40AF",
   Viewed: "#92400E",
   Approved: "#166534",
@@ -56,7 +56,7 @@ const statusColors: Record<EstimateStatus, string> = {
 };
 
 const statusBg: Record<EstimateStatus, string> = {
-  Draft: "#EDE9FE",
+  Draft: "#F3F4F6",
   Sent: "#DBEAFE",
   Viewed: "#FEF3C7",
   Approved: "#DCFCE7",
@@ -160,7 +160,7 @@ function InlineStatusSelect({ status, onChange }: { status: EstimateStatus; onCh
     <div ref={ref} className="relative inline-block">
       <button
         onClick={() => setOpen(!open)}
-        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[12px] transition-opacity hover:opacity-80"
+        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[12px] transition-opacity hover:opacity-80"
         style={{ fontWeight: 600, color: statusColors[status], backgroundColor: statusBg[status] }}
       >
         {status}
@@ -495,7 +495,7 @@ export function Estimates() {
                       );
                       case "status": return (
                         <td key={col.key} className="px-4 py-4">
-                          <span className="inline-flex items-center justify-center min-w-[86px] px-2.5 py-1 rounded-full text-[12px]" style={{ fontWeight: 500, color: statusColors[est.status], backgroundColor: statusBg[est.status] }}>{est.status}</span>
+                          <span className="inline-flex items-center justify-center min-w-[86px] px-2.5 py-1 rounded-md text-[12px]" style={{ fontWeight: 500, color: statusColors[est.status], backgroundColor: statusBg[est.status] }}>{est.status}</span>
                         </td>
                       );
                       case "job": return (

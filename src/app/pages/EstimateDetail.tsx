@@ -43,11 +43,11 @@ interface EstimateData {
 
 // ─── Status colours ───────────────────────────────────────────────────────────
 const statusColors: Record<EstimateStatus, string> = {
-  Draft: "#7C3AED", Sent: "#1E40AF", Viewed: "#92400E",
+  Draft: "#6B7280", Sent: "#1E40AF", Viewed: "#92400E",
   Approved: "#166534", Rejected: "#DC2626", Expired: "#6B7280", Archived: "#FFFFFF",
 };
 const statusBg: Record<EstimateStatus, string> = {
-  Draft: "#EDE9FE", Sent: "#DBEAFE", Viewed: "#FEF3C7",
+  Draft: "#F3F4F6", Sent: "#DBEAFE", Viewed: "#FEF3C7",
   Approved: "#DCFCE7", Rejected: "#FEE2E2", Expired: "#F3F4F6", Archived: "#1F2937",
 };
 const primaryStatuses: EstimateStatus[] = [
@@ -639,7 +639,7 @@ export function EstimateDetail() {
                 value={estimate.internalNotes}
                 onChange={(e) => setEstimate(prev => ({ ...prev, internalNotes: e.target.value }))}
                 className="w-full text-[13px] text-[#374151] leading-relaxed resize-none border border-[#E5E7EB] rounded-md focus:outline-none focus:border-[#4A6FA5] p-2.5 min-h-[100px]"
-                placeholder="Private notes — e.g. 'Dog on right side'..."
+                placeholder="Internal notes — e.g. 'Dog on right side'..."
               />
               <p className="text-[11px] text-[#9CA3AF]">
                 Manage defaults in{" "}

@@ -259,7 +259,7 @@ export function Expenses() {
                         case "category": return (
                           <td key={col.key} className="px-4 py-4">
                             <span
-                              className="inline-flex items-center justify-center min-w-[90px] rounded-full px-2.5 py-1 text-[12px] whitespace-nowrap"
+                              className="inline-flex items-center justify-center min-w-[90px] rounded-md px-2.5 py-1 text-[12px] whitespace-nowrap"
                               style={{
                                 background: expenseCategoryBg[expense.category] || "#F3F4F6",
                                 color: categoryColors[expense.category] || "#8899AA",

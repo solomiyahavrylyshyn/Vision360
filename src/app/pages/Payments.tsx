@@ -356,7 +356,7 @@ export function Payments() {
                           );
                           case "status": return (
                             <td key={col.key} className="px-4 py-4">
-                              <span className="px-2.5 py-1 rounded-full text-[12px]" style={{ fontWeight: 600, color: ss.text, backgroundColor: ss.bg }}>
+                              <span className="px-2.5 py-1 rounded-md text-[12px]" style={{ fontWeight: 600, color: ss.text, backgroundColor: ss.bg }}>
                                 {p.status}
                               </span>
                             </td>

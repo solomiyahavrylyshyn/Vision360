@@ -356,7 +356,7 @@ export function Jobs() {
                     case "status":
                       return (
                         <td key="status" className="px-4 py-4">
-                          <span className="inline-flex items-center justify-center min-w-[86px] px-2.5 py-1 rounded-full text-[12px]" style={{ fontWeight: 500, color: statusColors[job.status], backgroundColor: statusBg[job.status] }}>{job.status}</span>
+                          <span className="inline-flex items-center justify-center min-w-[86px] px-2.5 py-1 rounded-md text-[12px]" style={{ fontWeight: 500, color: statusColors[job.status], backgroundColor: statusBg[job.status] }}>{job.status}</span>
                         </td>
                       );
                     case "total":

@@ -259,7 +259,7 @@ export function CreateJob() {
             {[
               { title: "Job Notes", value: notes, setValue: setNotes, placeholder: "Notes visible on the job..." },
               { title: "Field Notes", value: fieldNotes, setValue: setFieldNotes, placeholder: "Technician notes..." },
-              { title: "Private Notes", value: privateNotes, setValue: setPrivateNotes, placeholder: "Internal private notes..." },
+              { title: "Internal Notes", value: privateNotes, setValue: setPrivateNotes, placeholder: "Internal notes..." },
             ].map((note) => (
               <div key={note.title} className="border border-[#E5E7EB] rounded-lg bg-white">
                 <div className="px-4 py-3 border-b border-[#E5E7EB]">
