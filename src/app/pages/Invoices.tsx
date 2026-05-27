@@ -10,6 +10,7 @@ import { SelectionBar } from "../components/ui/selection-bar";
 import { CreateActionButton } from "../components/ui/create-action-button";
 import { StatCard } from "../components/ui/stat-card";
 import { formatRegionalDate, regionalSettingsStore } from "../stores/regionalSettingsStore";
+import { AdvancedFilterActions, AdvancedFilterField, AdvancedFilterPanel, advancedInputClass, advancedSelectClass } from "../components/ui/advanced-filters";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type InvoiceStatus =
@@ -256,6 +257,19 @@ function qfClass(active: boolean) {
   }`;
 }
 
+function matchesDatePreset(date: string, preset: string) {
+  if (preset === "All time") return true;
+  if (preset === "Today") return date === "2026-04-27";
+  if (preset === "Yesterday") return date === "2026-04-26";
+  if (preset === "Last 7 days") return date >= "2026-04-21" && date <= "2026-04-27";
+  if (preset === "Last 30 days") return date >= "2026-03-29" && date <= "2026-04-27";
+  if (preset === "This month") return date >= "2026-04-01" && date <= "2026-04-30";
+  if (preset === "Last month") return date >= "2026-03-01" && date <= "2026-03-31";
+  if (preset === "This year") return date >= "2026-01-01" && date <= "2026-12-31";
+  if (preset === "Last year") return date >= "2025-01-01" && date <= "2025-12-31";
+  return true;
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 export function Invoices() {
   const navigate = useNavigate();
@@ -268,6 +282,17 @@ export function Invoices() {
   const [qfStatus, setQfStatus] = useState<string>("All");
   const [qfDate, setQfDate] = useState("All time");
   const [qfBalance, setQfBalance] = useState("All");
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [createdFrom, setCreatedFrom] = useState("");
+  const [createdTo, setCreatedTo] = useState("");
+  const [dueFrom, setDueFrom] = useState("");
+  const [dueTo, setDueTo] = useState("");
+  const [totalMin, setTotalMin] = useState("");
+  const [totalMax, setTotalMax] = useState("");
+  const [balanceMin, setBalanceMin] = useState("");
+  const [balanceMax, setBalanceMax] = useState("");
+  const [createdByFilter, setCreatedByFilter] = useState("All");
+  const [termsFilter, setTermsFilter] = useState("All");
 
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [page, setPage] = useState(1);
@@ -302,7 +327,18 @@ export function Invoices() {
     if (qfStatus !== "All") {
       result = result.filter(i => i.status === qfStatus);
     }
+    result = result.filter(i => matchesDatePreset(i.date, qfDate));
     if (qfBalance === "With Balance") result = result.filter(i => i.balance > 0);
+    if (createdFrom) result = result.filter(i => i.date >= createdFrom);
+    if (createdTo) result = result.filter(i => i.date <= createdTo);
+    if (dueFrom) result = result.filter(i => i.dueDate >= dueFrom);
+    if (dueTo) result = result.filter(i => i.dueDate <= dueTo);
+    if (totalMin) result = result.filter(i => i.total >= Number(totalMin));
+    if (totalMax) result = result.filter(i => i.total <= Number(totalMax));
+    if (balanceMin) result = result.filter(i => i.balance >= Number(balanceMin));
+    if (balanceMax) result = result.filter(i => i.balance <= Number(balanceMax));
+    if (createdByFilter !== "All") result = result.filter(i => i.createdBy === createdByFilter);
+    if (termsFilter !== "All") result = result.filter(i => i.paymentTerms === termsFilter);
     if (search) {
       const q = search.toLowerCase();
       result = result.filter(i =>
@@ -314,7 +350,24 @@ export function Invoices() {
       );
     }
     return result;
-  }, [invoices, qfStatus, qfBalance, search]);
+  }, [invoices, qfStatus, qfDate, qfBalance, createdFrom, createdTo, dueFrom, dueTo, totalMin, totalMax, balanceMin, balanceMax, createdByFilter, termsFilter, search]);
+
+  const creators = useMemo(() => Array.from(new Set(invoices.map(i => i.createdBy))), [invoices]);
+  const terms = useMemo(() => Array.from(new Set(invoices.map(i => i.paymentTerms).filter(Boolean))), [invoices]);
+  const advancedActive = Boolean(createdFrom || createdTo || dueFrom || dueTo || totalMin || totalMax || balanceMin || balanceMax || createdByFilter !== "All" || termsFilter !== "All");
+  const resetAdvancedFilters = () => {
+    setCreatedFrom("");
+    setCreatedTo("");
+    setDueFrom("");
+    setDueTo("");
+    setTotalMin("");
+    setTotalMax("");
+    setBalanceMin("");
+    setBalanceMax("");
+    setCreatedByFilter("All");
+    setTermsFilter("All");
+    setPage(1);
+  };
 
   const paginated = filtered.slice((page - 1) * perPage, page * perPage);
   const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
@@ -404,7 +457,7 @@ export function Invoices() {
               <option key={s} value={s}>{s}</option>
             ))}
           </select>
-          <select value={qfDate} onChange={e => setQfDate(e.target.value)} className={qfClass(qfDate !== "All time")}>
+          <select value={qfDate} onChange={e => { setQfDate(e.target.value); setPage(1); }} className={qfClass(qfDate !== "All time")}>
             {timeFilters.map(t => <option key={t} value={t}>{t}</option>)}
           </select>
           <select value={qfBalance} onChange={e => { setQfBalance(e.target.value); setPage(1); }} className={qfClass(qfBalance !== "All")}>
@@ -412,9 +465,15 @@ export function Invoices() {
             <option value="With Balance">With balance</option>
           </select>
           <div className="w-px h-5 bg-[#E5E7EB] mx-1" />
-          <button className="h-8 px-3 border border-[#E5E7EB] rounded-lg text-[13px] text-[#546478] hover:bg-[#F5F7FA] flex items-center gap-1.5 bg-white" style={{ fontWeight: 500 }}>
+          <button
+            onClick={() => setFilterOpen(!filterOpen)}
+            className={`h-8 px-3 border rounded-lg text-[13px] flex items-center gap-1.5 transition-colors ${
+              filterOpen || advancedActive ? "border-[#4A6FA5] text-[#4A6FA5] bg-[#EEF3FA]" : "border-[#E5E7EB] text-[#546478] hover:bg-[#F5F7FA] bg-white"
+            }`}
+            style={{ fontWeight: 500 }}
+          >
             <span className="material-icons" style={{ fontSize: "16px" }}>filter_alt</span>
-            Filter
+            Filter{advancedActive ? " *" : ""}
           </button>
           <div className="ml-auto flex items-center gap-2">
             <CreateActionButton onClick={() => navigate("/invoices/new")}>
@@ -430,6 +489,51 @@ export function Invoices() {
             </KebabMenu>
           </div>
         </div>
+        {filterOpen && (
+          <AdvancedFilterPanel>
+            <AdvancedFilterField label="Created from">
+              <input type="date" value={createdFrom} onChange={(e) => { setCreatedFrom(e.target.value); setPage(1); }} className={advancedInputClass} />
+            </AdvancedFilterField>
+            <AdvancedFilterField label="Created to">
+              <input type="date" value={createdTo} onChange={(e) => { setCreatedTo(e.target.value); setPage(1); }} className={advancedInputClass} />
+            </AdvancedFilterField>
+            <AdvancedFilterField label="Due from">
+              <input type="date" value={dueFrom} onChange={(e) => { setDueFrom(e.target.value); setPage(1); }} className={advancedInputClass} />
+            </AdvancedFilterField>
+            <AdvancedFilterField label="Due to">
+              <input type="date" value={dueTo} onChange={(e) => { setDueTo(e.target.value); setPage(1); }} className={advancedInputClass} />
+            </AdvancedFilterField>
+            <AdvancedFilterField label="Total min">
+              <input type="number" min="0" placeholder="$0" value={totalMin} onChange={(e) => { setTotalMin(e.target.value); setPage(1); }} className={advancedInputClass} />
+            </AdvancedFilterField>
+            <AdvancedFilterField label="Total max">
+              <input type="number" min="0" placeholder="Any" value={totalMax} onChange={(e) => { setTotalMax(e.target.value); setPage(1); }} className={advancedInputClass} />
+            </AdvancedFilterField>
+            <AdvancedFilterField label="Balance min">
+              <input type="number" min="0" placeholder="$0" value={balanceMin} onChange={(e) => { setBalanceMin(e.target.value); setPage(1); }} className={advancedInputClass} />
+            </AdvancedFilterField>
+            <AdvancedFilterField label="Balance max">
+              <input type="number" min="0" placeholder="Any" value={balanceMax} onChange={(e) => { setBalanceMax(e.target.value); setPage(1); }} className={advancedInputClass} />
+            </AdvancedFilterField>
+            <AdvancedFilterField label="Created by">
+              <select value={createdByFilter} onChange={(e) => { setCreatedByFilter(e.target.value); setPage(1); }} className={advancedSelectClass}>
+                <option>All</option>
+                {creators.map((creator) => <option key={creator}>{creator}</option>)}
+              </select>
+            </AdvancedFilterField>
+            <AdvancedFilterField label="Terms">
+              <select value={termsFilter} onChange={(e) => { setTermsFilter(e.target.value); setPage(1); }} className={advancedSelectClass}>
+                <option>All</option>
+                {terms.map((term) => <option key={term}>{term}</option>)}
+              </select>
+            </AdvancedFilterField>
+            <AdvancedFilterActions>
+              <button type="button" onClick={resetAdvancedFilters} className="h-8 rounded-lg border border-[#E5E7EB] bg-white px-3 text-[13px] text-[#546478] hover:bg-[#F5F7FA]">
+                Reset
+              </button>
+            </AdvancedFilterActions>
+          </AdvancedFilterPanel>
+        )}
         <SelectionBar
           count={selectedIds.size}
           onDeselect={() => setSelectedIds(new Set())}
