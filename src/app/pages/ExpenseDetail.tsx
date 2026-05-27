@@ -79,19 +79,19 @@ export function ExpenseDetail() {
       </div>
 
       <section className="mx-6 mb-6 overflow-hidden rounded-xl border border-[#E5E7EB] bg-white">
-        <div className="flex min-h-[72px] items-center justify-between gap-5 border-b border-[#E5E7EB] px-5 py-4">
-          <div className="flex min-w-0 items-center gap-3">
+        <div className="flex min-h-[64px] items-center justify-between gap-4 border-b border-[#E5E7EB] px-4 py-3">
+          <div className="flex min-w-0 items-center gap-2.5">
             <h1
-              className="truncate text-[26px] leading-8 text-[#1A2332]"
+              className="truncate text-[20px] leading-[27px] text-[#1A2332]"
               style={{ fontWeight: 600 }}
             >
               {expense.merchant}
             </h1>
-            <span className="shrink-0 text-[18px] leading-6 text-[#9CA3AF]">{expense.date}</span>
-            <CategoryPill category={expense.category} className="shrink-0 px-3 py-1.5 text-[14px]" />
+            <span className="shrink-0 text-[14px] leading-5 text-[#9CA3AF]">{expense.date}</span>
+            <CategoryPill category={expense.category} className="shrink-0 px-2.5 py-1 text-[12px]" />
           </div>
 
-          <div className="flex shrink-0 items-center gap-3">
+          <div className="flex shrink-0 items-center gap-2">
             <KpiTile
               value={money(expense.amount)}
               label="Total"
@@ -108,13 +108,13 @@ export function ExpenseDetail() {
             />
             <button
               onClick={() => navigate("/expenses/new")}
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-[#4A6FA5] px-4 text-[14px] leading-5 text-white transition-colors hover:bg-[#3E5F8F]"
+              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-md bg-[#4A6FA5] px-3.5 text-[13px] leading-5 text-white transition-colors hover:bg-[#3d5a85]"
               style={{ fontWeight: 600 }}
             >
-              <span className="material-icons" style={{ fontSize: "17px" }}>add</span>
+              <span className="material-icons" style={{ fontSize: "16px" }}>add</span>
               Create Expense
             </button>
-            <KebabMenu triggerClassName="h-12 w-12 border border-[#E5E7EB] rounded-lg hover:bg-[#F5F7FA] bg-white">
+            <KebabMenu triggerClassName="h-9 w-9 border border-[#E5E7EB] rounded-md hover:bg-[#F5F7FA] bg-white">
               <KebabItem icon="edit">Edit expense</KebabItem>
               {expense.invoiceId && (
                 <KebabItem icon="receipt" onSelect={() => navigate(`/invoices/${expense.invoiceId!.replace("INV-", "")}`)}>
@@ -278,15 +278,15 @@ function KpiTile({
   iconColor: string;
 }) {
   return (
-    <div className="flex h-12 min-w-[116px] items-center justify-between gap-3 rounded-lg border border-[#E5E7EB] bg-white px-3 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
+    <div className="flex h-10 min-w-[108px] items-center justify-between gap-2.5 rounded-md border border-[#E5E7EB] bg-white px-3 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
       <div className="min-w-0">
-        <div className="truncate text-[16px] leading-5 text-[#1A2332]" style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
+        <div className="truncate text-[14px] leading-4 text-[#1A2332]" style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
           {value}
         </div>
-        <div className="truncate text-[11px] leading-4 text-[#6B7280]">{label}</div>
+        <div className="truncate text-[10px] leading-4 text-[#6B7280]">{label}</div>
       </div>
-      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md" style={{ backgroundColor: iconBg }}>
-        <span className="material-icons" style={{ fontSize: "17px", color: iconColor }}>{icon}</span>
+      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md" style={{ backgroundColor: iconBg }}>
+        <span className="material-icons" style={{ fontSize: "16px", color: iconColor }}>{icon}</span>
       </div>
     </div>
   );

@@ -219,16 +219,7 @@ export function CompanySetup() {
                 <option value="roofing">Roofing</option>
                 <option value="pool">Pool Service</option>
                 <option value="general">General Contracting</option>
-                <option value="lawncare">Lawn Care</option>
-                <option value="pestcontrol">Pest Control</option>
-                <option value="painting">Painting</option>
-                <option value="remodeling">Remodeling</option>
-                <option value="appliancerepair">Appliance Repair</option>
-                <option value="junkremoval">Junk Removal</option>
-                <option value="handyman">Handyman</option>
-                <option value="janitorial">Janitorial Cleaning</option>
-                <option value="pressurewashing">Pressure Washing</option>
-                <option value="others">Others</option>
+                <option value="others">Other</option>
               </select>
               {errors.industry && <p className="text-xs text-[#DC2626]">{errors.industry}</p>}
             </div>
