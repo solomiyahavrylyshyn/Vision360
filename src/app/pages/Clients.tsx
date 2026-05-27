@@ -259,23 +259,11 @@ export function Clients() {
                 Store contact details, properties, jobs, invoices, and notes in one place.
               </p>
             </div>
-            <div className="flex items-center gap-2">
-              <CreateActionButton onClick={() => navigate("/clients/new")}>
-                Create Client
-              </CreateActionButton>
-            </div>
           </div>
         ) : (
           <PageHeader
             title="Clients"
             count={selectedClients.size > 0 ? `${filteredClients.length} · ${selectedClients.size} selected` : filteredClients.length}
-            actions={
-              <>
-                <CreateActionButton onClick={() => navigate("/clients/new")}>
-                  Create Client
-                </CreateActionButton>
-              </>
-            }
           />
         )}
 
@@ -625,7 +613,10 @@ export function Clients() {
                 )}
               </button>
             </div>
-            <div className="ml-auto">
+            <div className="ml-auto flex items-center gap-2">
+              <CreateActionButton onClick={() => navigate("/clients/new")}>
+                Create Client
+              </CreateActionButton>
               <KebabMenu triggerClassName="w-10 h-10 border border-[#D8DEE8] rounded-xl bg-white">
                 {showEmptyStatePreview ? (
                   <KebabItem

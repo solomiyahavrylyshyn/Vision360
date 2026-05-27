@@ -171,11 +171,6 @@ export function Jobs() {
       <PageHeader
         title="Jobs"
         count={selectedJobs.size > 0 ? `${filtered.length} · ${selectedJobs.size} selected` : filtered.length}
-        actions={
-          <CreateActionButton onClick={() => navigate("/jobs/new")}>
-            Create Job
-          </CreateActionButton>
-        }
       />
 
       {/* ── Stats Cards (Clients-template style) ── */}
@@ -268,7 +263,10 @@ export function Jobs() {
               )}
             </button>
           </div>
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-2">
+            <CreateActionButton onClick={() => navigate("/jobs/new")}>
+              Create Job
+            </CreateActionButton>
             <KebabMenu triggerClassName="w-10 h-10 border border-[#D8DEE8] rounded-xl bg-white">
               <KebabItem icon="view_column">Edit Columns</KebabItem>
               <KebabItem icon="swap_horiz">Change Status</KebabItem>

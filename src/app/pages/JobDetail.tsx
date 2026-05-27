@@ -7,7 +7,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "../components/ui/dropdown-menu";
-import { TabSettingsButton } from "../components/ui/detail-tabs";
+import { DetailTabs, TabSettingsButton } from "../components/ui/detail-tabs";
 import { PlusIcon } from "../components/ui/plus-icon";
 import { DocumentPreview } from "../components/DocumentPreview";
 import { toast } from "sonner";
@@ -1343,9 +1343,9 @@ export function JobDetail() {
           <div className="flex-1 min-w-0 flex flex-col gap-1.5">
             {/* Row 1: Job number + status */}
             <div className="flex items-center gap-2">
-              <h1 className="text-[20px] text-[#1A2332] leading-[27px]" style={{ fontFamily: "Geist", fontWeight: 700 }}>
+              <h2 className="text-[20px] text-[#1A2332] leading-[27px]" style={{ fontFamily: "Geist", fontWeight: 600 }}>
                 Job #{job.jobNumber}
-              </h1>
+              </h2>
               {/* Status dropdown */}
               <div className="relative">
                 <button
@@ -1497,33 +1497,13 @@ export function JobDetail() {
           </div>
         </div>
 
-        {/* ── PILL TAB BAR + CREATE ── */}
-        <div className="flex items-center justify-between gap-3 mt-4">
-          <div className="flex items-center gap-0.5 flex-wrap">
-            {visibleTabs.map(tab => (
-              <button
-                key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
-                className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-[13px] transition-colors ${
-                  activeTab === tab.key
-                    ? "bg-[#4A6FA5] text-white"
-                    : "text-[#374151] hover:text-[#1A2332] hover:bg-[#F5F7FA]"
-                }`}
-                style={{ fontWeight: activeTab === tab.key ? 600 : 500 }}
-              >
-                {tab.label}
-                {tab.count != null && tab.count > 0 && (
-                  <span className={`text-[11px] ${activeTab === tab.key ? "opacity-60" : "text-[#9CA3AF]"}`}>
-                    ({tab.count})
-                  </span>
-                )}
-              </button>
-            ))}
-            <TabSettingsButton onClick={() => setShowTabSettings(true)} />
-          </div>
-
-          {/* + Create dropdown + kebab */}
-          <div className="flex items-center gap-2 shrink-0">
+        <DetailTabs
+          tabs={visibleTabs}
+          activeTab={activeTab}
+          onChange={setActiveTab}
+          tabSuffix={<TabSettingsButton onClick={() => setShowTabSettings(true)} />}
+          trailing={
+            <>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
@@ -1557,14 +1537,13 @@ export function JobDetail() {
               <KebabItem icon="content_copy">Duplicate Job</KebabItem>
               <KebabItem icon="block" destructive>Inactivate Job</KebabItem>
             </KebabMenu>
-          </div>
-        </div>
-
-        {/* divider below tab bar */}
-        <div className="h-px bg-[#E5E7EB] mt-3 mb-4" />
+            </>
+          }
+          className="mt-5"
+        />
 
         {/* ── CONTENT AREA ── */}
-        <div>
+        <div className="mt-4">
           {renderContent()}
         </div>
       </div>

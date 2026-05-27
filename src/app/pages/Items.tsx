@@ -521,11 +521,6 @@ export function Items() {
         title="Items"
         count={tabRecordCounts[activeTab]}
         className="mb-4"
-        actions={
-          <CreateActionButton onClick={() => { setEditingItem(null); setItemModalOpen(true); }}>
-            {activeTab === "pricebook" ? "Create Pricebook Item" : "Create Item"}
-          </CreateActionButton>
-        }
       />
 
       {/* Tabs */}
@@ -579,7 +574,10 @@ export function Items() {
               <span className="material-icons" style={{ fontSize: "16px" }}>filter_alt</span>
               Filters
             </button>
-            <div className="ml-auto">
+            <div className="ml-auto flex items-center gap-2">
+              <CreateActionButton onClick={() => { setEditingItem(null); setItemModalOpen(true); }}>
+                {activeTab === "pricebook" ? "Create Pricebook Item" : "Create Item"}
+              </CreateActionButton>
               <KebabMenu triggerClassName="w-10 h-10 border border-[#D8DEE8] rounded-xl bg-white">
                 <KebabItem icon="view_column">Edit Columns</KebabItem>
                 <KebabItem icon="content_copy">Manage Duplicates</KebabItem>
@@ -739,7 +737,10 @@ export function Items() {
               <span className="material-icons" style={{ fontSize: "16px" }}>filter_alt</span>
               Filters
             </button>
-            <div className="ml-auto">
+            <div className="ml-auto flex items-center gap-2">
+              <CreateActionButton onClick={() => { setEditingItem(null); setItemModalOpen(true); }}>
+                {activeTab === "pricebook" ? "Create Pricebook Item" : "Create Item"}
+              </CreateActionButton>
               <KebabMenu triggerClassName="w-10 h-10 border border-[#D8DEE8] rounded-xl bg-white">
                 <KebabItem icon="view_column">Edit Columns</KebabItem>
                 <KebabItem icon="content_copy">Manage Duplicates</KebabItem>

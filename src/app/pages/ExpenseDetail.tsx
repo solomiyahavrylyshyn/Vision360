@@ -146,28 +146,42 @@ export function ExpenseDetail() {
 
       {/* ── ONE BIG WHITE CARD CONTAINING EVERYTHING ── */}
       <div className="relative mx-6 mb-6 bg-white border border-[#E5E7EB] rounded-xl p-4">
-        <div className="absolute right-4 top-4">
-          <KebabMenu triggerClassName="h-9 w-9 border border-[#E5E7EB] rounded-md hover:bg-[#EDF0F5] flex items-center justify-center bg-white">
-            {expense.invoiceId && (
-              <KebabItem icon="receipt" onSelect={() => navigate(`/invoices/${expense.invoiceId!.replace("INV-", "")}`)}>Open Invoice</KebabItem>
-            )}
-            <KebabItem icon="edit">Edit</KebabItem>
-            <KebabSeparator />
-            <KebabItem icon="delete_outline" destructive>Delete</KebabItem>
-          </KebabMenu>
-        </div>
-
         {/* Identity row */}
-        <div className="flex items-baseline gap-3">
-          <h1 className="text-[20px] text-[#1A2332] leading-[27px]" style={{ fontWeight: 600 }}>
-            {expense.merchant}
-          </h1>
-          <span className="text-[13px] text-[#9CA3AF]">{expense.date}</span>
-          <CategoryPill category={expense.category} className="py-0.5" />
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0 flex flex-col gap-1">
+            <div className="flex items-center gap-2">
+              <h2 className="text-[20px] text-[#1A2332] leading-[27px]" style={{ fontWeight: 600 }}>
+                {expense.merchant}
+              </h2>
+              <CategoryPill category={expense.category} className="py-0.5" />
+            </div>
+            <div className="flex items-center gap-0.5 flex-wrap">
+              <div className="flex items-center gap-2 pr-2">
+                <span className="material-icons text-[#1A2332]" style={{ fontSize: "16px" }}>calendar_today</span>
+                <span className="text-[14px] text-[#1A2332]">{expense.date}</span>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Unified tab bar */}
-        <DetailTabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} tabSuffix={<TabSettingsButton />} className="mt-6" />
+        <DetailTabs
+          tabs={tabs}
+          activeTab={activeTab}
+          onChange={setActiveTab}
+          tabSuffix={<TabSettingsButton />}
+          trailing={
+            <KebabMenu triggerClassName="h-9 w-9 border border-[#E5E7EB] rounded-md hover:bg-[#EDF0F5] flex items-center justify-center bg-white">
+              {expense.invoiceId && (
+                <KebabItem icon="receipt" onSelect={() => navigate(`/invoices/${expense.invoiceId!.replace("INV-", "")}`)}>Open Invoice</KebabItem>
+              )}
+              <KebabItem icon="edit">Edit</KebabItem>
+              <KebabSeparator />
+              <KebabItem icon="delete_outline" destructive>Delete</KebabItem>
+            </KebabMenu>
+          }
+          className="mt-5"
+        />
 
         {/* Content */}
         <div className="mt-4">

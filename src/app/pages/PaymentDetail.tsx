@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import { useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
 import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
-import { TabSettingsButton } from "../components/ui/detail-tabs";
+import { DetailTabs, TabSettingsButton } from "../components/ui/detail-tabs";
 import { mockPayments, paymentStatusColors, paymentMethodIcons, type Payment } from "./Payments";
 
 interface PaymentAttachment {
@@ -376,19 +376,19 @@ export function PaymentDetail() {
       <div className="relative mx-6 mb-6 bg-white border border-[#E5E7EB] rounded-xl p-4">
 
         {/* ── HEADER: title + status + KPI ── */}
-        <div className="flex items-start justify-between gap-4 pr-10">
+        <div className="flex items-start justify-between gap-4">
 
           {/* Left: title + contact row */}
           <div className="flex-1 min-w-0 flex flex-col gap-1.5">
 
             {/* Row 1: Payment number + status badge */}
             <div className="flex items-center gap-2 flex-wrap">
-              <h1
+              <h2
                 className="text-[20px] text-[#1A2332] leading-[27px]"
-                style={{ fontFamily: "Geist", fontWeight: 700 }}
+                style={{ fontFamily: "Geist", fontWeight: 600 }}
               >
                 Payment #{paymentNumber}
-              </h1>
+              </h2>
               <span
                 className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[13px]"
                 style={{ fontWeight: 600, color: ss.text, backgroundColor: ss.bg }}
@@ -448,26 +448,26 @@ export function PaymentDetail() {
 
           {/* Right: Total Price KPI */}
           <div
-            className="flex w-[152px] items-center justify-between gap-2 rounded-lg border border-[#E5E7EB] px-3 py-2 shrink-0"
-            style={{ backgroundColor: "#F9FBFD" }}
+            className="flex w-[128px] items-center justify-between gap-2 rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5 shrink-0"
+            style={{ minHeight: 44 }}
           >
             <div className="min-w-0">
               <div
-                className="truncate text-[16px] leading-tight tabular-nums"
+                className="truncate text-[15px] leading-tight tabular-nums"
                 style={{ fontWeight: 700, color: payment.status === "Refunded" ? "#8B5CF6" : "#16A34A" }}
               >
                 {payment.status === "Refunded" ? "−" : ""}${Math.round(payment.amount).toLocaleString("en-US")}
               </div>
-              <div className="text-[11px] text-[#546478]">Total Price</div>
+              <div className="truncate text-[10px] text-[#546478]">Total Price</div>
             </div>
             <div
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md"
               style={{ backgroundColor: payment.status === "Refunded" ? "#EDE9FE" : "#DCFCE7" }}
             >
               <span
                 className="material-icons"
                 style={{
-                  fontSize: "18px",
+                  fontSize: "16px",
                   color: payment.status === "Refunded" ? "#8B5CF6" : "#16A34A",
                 }}
               >
@@ -477,66 +477,48 @@ export function PaymentDetail() {
           </div>
         </div>
 
-        {/* ── KEBAB (absolute top-right) ── */}
-        <div className="absolute right-4 top-4">
-          <KebabMenu
-            triggerClassName="h-9 w-9 border border-[#E5E7EB] rounded-md hover:bg-[#EDF0F5] flex items-center justify-center bg-white"
-          >
-            <KebabItem icon="receipt" onSelect={() => navigate(`/invoices/${payment.invoiceId}`)}>
-              Open Invoice
-            </KebabItem>
-            <KebabItem icon="content_copy">Duplicate</KebabItem>
-            <KebabSeparator />
-            <KebabItem icon="undo" destructive>Refund</KebabItem>
-            <KebabSeparator />
-            <KebabItem icon="block">Void Payment</KebabItem>
-            <KebabItem icon="send">Send Receipt</KebabItem>
-            <KebabItem icon="file_download">Download Receipt</KebabItem>
-            <KebabItem icon="account_balance">View Payout</KebabItem>
-          </KebabMenu>
-        </div>
-
-        {/* ── PILL TAB BAR ── */}
-        <div className="flex items-center justify-between gap-3 mt-4">
-          <div className="flex items-center gap-0.5">
-            {([
-              { key: "details" as TabKey, label: "Payment Details" },
-              { key: "activity" as TabKey, label: "Activity" },
-            ]).map(({ key, label }) => (
-              <button
-                key={key}
-                onClick={() => setActiveTab(key)}
-                className={`px-3 py-1.5 rounded-lg text-[13px] transition-colors ${
-                  activeTab === key
-                    ? "bg-[#1A2332] text-white"
-                    : "text-[#6B7280] hover:text-[#1A2332] hover:bg-[#F5F7FA]"
-                }`}
-                style={{ fontWeight: activeTab === key ? 500 : 400 }}
+        <DetailTabs
+          tabs={[
+            { key: "details", label: "Payment Details" },
+            { key: "activity", label: "Activity" },
+          ]}
+          activeTab={activeTab}
+          onChange={setActiveTab}
+          tabSuffix={<TabSettingsButton />}
+          trailing={
+            <>
+              {payment.status !== "Completed" && payment.status !== "Refunded" && payment.status !== "Voided" && (
+                <button
+                  onClick={() => navigate(`/payments/new?client=${encodeURIComponent(payment.clientName)}&invoice=${encodeURIComponent(payment.invoiceId || "")}&job=${encodeURIComponent(payment.jobId || "")}`)}
+                  className="h-9 px-4 inline-flex items-center gap-1.5 text-[13px] text-white bg-[#4A6FA5] rounded-lg hover:bg-[#3d5a85] transition-colors"
+                  style={{ fontWeight: 600 }}
+                >
+                  <span className="w-2 h-2 rounded-full bg-white opacity-80" />
+                  Collect Payment
+                </button>
+              )}
+              <KebabMenu
+                triggerClassName="h-9 w-9 border border-[#E5E7EB] rounded-md hover:bg-[#EDF0F5] flex items-center justify-center bg-white"
               >
-                {label}
-              </button>
-            ))}
-            <TabSettingsButton />
-          </div>
-
-          {/* Collect Payment — only when an unpaid balance remains (Section 6.4) */}
-          {payment.status !== "Completed" && payment.status !== "Refunded" && payment.status !== "Voided" && (
-            <button
-              onClick={() => navigate(`/payments/new?client=${encodeURIComponent(payment.clientName)}&invoice=${encodeURIComponent(payment.invoiceId || "")}&job=${encodeURIComponent(payment.jobId || "")}`)}
-              className="h-9 px-4 inline-flex items-center gap-1.5 text-[13px] text-white bg-[#4A6FA5] rounded-lg hover:bg-[#3d5a85] transition-colors"
-              style={{ fontWeight: 600 }}
-            >
-              <span className="w-2 h-2 rounded-full bg-white opacity-80" />
-              Collect Payment
-            </button>
-          )}
-        </div>
-
-        {/* divider */}
-        <div className="h-px bg-[#E5E7EB] mt-3 mb-4" />
+                <KebabItem icon="receipt" onSelect={() => navigate(`/invoices/${payment.invoiceId}`)}>
+                  Open Invoice
+                </KebabItem>
+                <KebabItem icon="content_copy">Duplicate</KebabItem>
+                <KebabSeparator />
+                <KebabItem icon="undo" destructive>Refund</KebabItem>
+                <KebabSeparator />
+                <KebabItem icon="block">Void Payment</KebabItem>
+                <KebabItem icon="send">Send Receipt</KebabItem>
+                <KebabItem icon="file_download">Download Receipt</KebabItem>
+                <KebabItem icon="account_balance">View Payout</KebabItem>
+              </KebabMenu>
+            </>
+          }
+          className="mt-5"
+        />
 
         {/* ── CONTENT ── */}
-        <div>
+        <div className="mt-4">
           {activeTab === "details" ? renderDetails() : renderActivity()}
         </div>
       </div>

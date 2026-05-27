@@ -701,17 +701,16 @@ export function InvoiceDetail() {
       </div>
 
       {/* ── White card containing header + tabs + content ── */}
-      <div className="relative mx-6 mb-6 bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
+      <div className="relative mx-6 mb-6 bg-white border border-[#E5E7EB] rounded-xl p-4">
 
         {/* ── Header ── */}
-        <div className="px-6 pt-5 pb-4 border-b border-[#E5E7EB]">
-          <div className="flex items-start justify-between gap-6">
+        <div className="flex items-start justify-between gap-4">
             {/* Left: name + contact info */}
             <div className="flex flex-col gap-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-[20px] text-[#1A2332] leading-[27px]" style={{ fontWeight: 700 }}>
+                <h2 className="text-[20px] text-[#1A2332] leading-[27px]" style={{ fontWeight: 600 }}>
                   Invoice #{data.number}
-                </h1>
+                </h2>
                 <div className="relative">
                   <button
                     onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
@@ -813,34 +812,39 @@ export function InvoiceDetail() {
               </div>
             </div>
 
-            {/* Right: Total + Balance (kebab moved next to Collect Payment) */}
-            <div className="flex flex-col items-end gap-3 shrink-0">
-              <div className="text-right">
-                <div className="text-[11px] text-[#9CA3AF] uppercase tracking-wide mb-0.5" style={{ fontWeight: 600 }}>Total (USD)</div>
-                <div className="text-[28px] text-[#1A2332] leading-tight" style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>${fmt(total)}</div>
-                <div className="text-[12px] text-[#6B7280] mt-1">
-                  Balance Due:{" "}
-                  <span style={{ fontWeight: 600, color: balance > 0 ? "#DC2626" : "#16A34A", fontVariantNumeric: "tabular-nums" }}>
-                    ${fmt(Math.max(0, balance))}
-                  </span>
+            {/* Right side: compact KPI tiles */}
+            <div className="flex gap-2 shrink-0">
+              <div className="flex w-[128px] items-center justify-between gap-2 rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5" style={{ minHeight: 44 }}>
+                <div className="flex min-w-0 flex-col justify-center">
+                  <div className="truncate text-[15px] leading-tight tabular-nums text-[#1A2332]" style={{ fontWeight: 700 }}>${fmt(total)}</div>
+                  <div className="truncate text-[10px] text-[#546478]">Total (USD)</div>
+                </div>
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md" style={{ backgroundColor: "#4A6FA526" }}>
+                  <span className="material-icons" style={{ fontSize: "16px", color: "#4A6FA5" }}>receipt</span>
+                </div>
+              </div>
+              <div className="flex w-[128px] items-center justify-between gap-2 rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5" style={{ minHeight: 44 }}>
+                <div className="flex min-w-0 flex-col justify-center">
+                  <div className="truncate text-[15px] leading-tight tabular-nums" style={{ fontWeight: 700, color: balance > 0 ? "#DC2626" : "#16A34A" }}>${fmt(Math.max(0, balance))}</div>
+                  <div className="truncate text-[10px] text-[#546478]">Balance Due</div>
+                </div>
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md" style={{ backgroundColor: `${balance > 0 ? "#DC2626" : "#16A34A"}26` }}>
+                  <span className="material-icons" style={{ fontSize: "16px", color: balance > 0 ? "#DC2626" : "#16A34A" }}>paid</span>
                 </div>
               </div>
             </div>
-          </div>
         </div>
 
-        {/* ── Tabs + action buttons row ── */}
-        <div className="flex items-center justify-between px-4 border-b border-[#E5E7EB]">
-          <DetailTabs
-            tabs={TABS.map(t => ({
-              ...t,
-              count: t.key === "activity" ? activity.length : t.key === "payments" ? payments.length : undefined,
-            }))}
-            activeTab={activeTab}
-            onChange={setActiveTab}
-            tabSuffix={<TabSettingsButton />}
-          />
-          <div className="flex items-center gap-2 py-2 shrink-0">
+        <DetailTabs
+          tabs={TABS.map(t => ({
+            ...t,
+            count: t.key === "activity" ? activity.length : t.key === "payments" ? payments.length : undefined,
+          }))}
+          activeTab={activeTab}
+          onChange={setActiveTab}
+          tabSuffix={<TabSettingsButton />}
+          trailing={
+            <>
             <button
               onClick={() => setPaymentModalOpen(true)}
               className="h-9 px-3.5 rounded-md bg-[#4A6FA5] hover:bg-[#3d5a85] text-white text-[13px] inline-flex items-center gap-1.5 transition-colors"
@@ -857,11 +861,13 @@ export function InvoiceDetail() {
               <KebabSeparator />
               <KebabItem icon="block" destructive onClick={() => setVoidConfirm(true)}>Void Invoice</KebabItem>
             </KebabMenu>
-          </div>
-        </div>
+            </>
+          }
+          className="mt-5"
+        />
 
         {/* ── CONTENT ── */}
-        <div className="p-4">
+        <div className="mt-4">
           {activeTab === "details" && renderDetailsTab()}
           {activeTab === "payments" && renderPaymentsTab()}
           {activeTab === "activity" && renderActivityTab()}

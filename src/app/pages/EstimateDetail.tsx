@@ -883,17 +883,16 @@ export function EstimateDetail() {
       </div>
 
       {/* White card */}
-      <div className="mx-6 mb-6 bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
+      <div className="mx-6 mb-6 bg-white border border-[#E5E7EB] rounded-xl p-4">
 
         {/* ── Header ── */}
-        <div className="px-6 pt-5 pb-4 border-b border-[#E5E7EB]">
-          <div className="flex items-start justify-between gap-6">
+        <div className="flex items-start justify-between gap-4">
             {/* Left: name + contact info */}
             <div className="flex flex-col gap-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-[20px] text-[#1A2332] leading-[27px]" style={{ fontWeight: 700 }}>
+                <h2 className="text-[20px] text-[#1A2332] leading-[27px]" style={{ fontWeight: 600 }}>
                   {estimate.estimateName || `Estimate #${estimate.estimateNumber}`}
-                </h1>
+                </h2>
                 <div ref={statusRef} className="relative">
                   <button onClick={() => setStatusOpen(!statusOpen)}
                     className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[13px] hover:opacity-80 transition-opacity"
@@ -996,32 +995,34 @@ export function EstimateDetail() {
               </div>
             </div>
 
-            {/* Right: Total (kebab moved next to +Create) */}
-            <div className="flex flex-col items-end gap-3 shrink-0">
-              <div className="text-right">
-                <div className="text-[11px] text-[#9CA3AF] uppercase tracking-wide mb-0.5" style={{ fontWeight: 600 }}>Total (USD)</div>
-                <div className="text-[28px] text-[#1A2332] leading-tight" style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>${fmt(total)}</div>
+            {/* Right side: compact KPI tile */}
+            <div className="flex gap-2 shrink-0">
+              <div className="flex w-[128px] items-center justify-between gap-2 rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5" style={{ minHeight: 44 }}>
+                <div className="flex min-w-0 flex-col justify-center">
+                  <div className="truncate text-[15px] leading-tight tabular-nums text-[#1A2332]" style={{ fontWeight: 700 }}>${fmt(total)}</div>
+                  <div className="truncate text-[10px] text-[#546478]">Total (USD)</div>
+                </div>
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md" style={{ backgroundColor: "#4A6FA526" }}>
+                  <span className="material-icons" style={{ fontSize: "16px", color: "#4A6FA5" }}>request_quote</span>
+                </div>
               </div>
             </div>
-          </div>
         </div>
 
-        {/* ── Tabs + action buttons ── */}
-        <div className="flex items-center justify-between px-4 border-b border-[#E5E7EB]">
-          <DetailTabs
-            tabs={TABS.map(t => ({
-              ...t,
-              count: t.key === "deposit"
-                ? (estimate.depositRequired ? 1 : undefined)
-                : t.key === "activity"
-                ? estimate.activity.length
-                : undefined,
-            }))}
-            activeTab={activeTab}
-            onChange={setActiveTab}
-            tabSuffix={<TabSettingsButton />}
-          />
-          <div className="flex items-center gap-2 py-2 shrink-0">
+        <DetailTabs
+          tabs={TABS.map(t => ({
+            ...t,
+            count: t.key === "deposit"
+              ? (estimate.depositRequired ? 1 : undefined)
+              : t.key === "activity"
+              ? estimate.activity.length
+              : undefined,
+          }))}
+          activeTab={activeTab}
+          onChange={setActiveTab}
+          tabSuffix={<TabSettingsButton />}
+          trailing={
+            <>
             <button
               onClick={() => setCustomerPreviewOpen(true)}
               className="h-9 px-3.5 rounded-md border border-[#E5E7EB] bg-white text-[13px] text-[#546478] hover:bg-[#F5F7FA] inline-flex items-center gap-1.5 transition-colors"
@@ -1077,11 +1078,13 @@ export function EstimateDetail() {
               <KebabSeparator />
               <KebabItem icon="block" destructive>Inactivate</KebabItem>
             </KebabMenu>
-          </div>
-        </div>
+            </>
+          }
+          className="mt-5"
+        />
 
         {/* Tab content */}
-        <div className="p-4">
+        <div className="mt-4">
           {activeTab === "details" && renderDetailsTab()}
           {activeTab === "deposit" && renderDepositTab()}
           {activeTab === "activity" && renderActivityTab()}

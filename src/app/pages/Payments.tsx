@@ -156,11 +156,6 @@ export function Payments() {
       <PageHeader
         title="Payments"
         count={selectedIds.size > 0 ? `${filtered.length} · ${selectedIds.size} selected` : filtered.length}
-        actions={
-          <CreateActionButton>
-            Record Payment
-          </CreateActionButton>
-        }
       />
 
       {/* ── Stats Cards (Clients-template style) ── */}
@@ -238,7 +233,10 @@ export function Payments() {
               <span className="material-icons" style={{ fontSize: "16px" }}>filter_alt</span>
               Filter
             </button>
-            <div className="ml-auto">
+            <div className="ml-auto flex items-center gap-2">
+              <CreateActionButton>
+                Record Payment
+              </CreateActionButton>
               <KebabMenu triggerClassName="w-10 h-10 border border-[#D8DEE8] rounded-xl bg-white">
                 <KebabItem icon="view_column">Edit Columns</KebabItem>
                 <KebabItem icon="swap_horiz">Change Status</KebabItem>

@@ -358,29 +358,17 @@ export function ItemDetail() {
 
       {/* ── ONE BIG WHITE CARD CONTAINING EVERYTHING ── */}
       <div className="relative mx-6 mb-6 bg-white border border-[#E5E7EB] rounded-xl p-4">
-        <div className="absolute right-4 top-4 flex items-center gap-2">
-          <button className="border border-[#E5E7EB] text-[#546478] hover:bg-[#EDF0F5] h-9 px-2.5 rounded-md flex items-center justify-center bg-white">
-            <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
-          </button>
-          <KebabMenu triggerClassName="h-9 w-9 border border-[#E5E7EB] rounded-md hover:bg-[#EDF0F5] flex items-center justify-center bg-white">
-            <KebabItem icon="content_copy">Duplicate Item</KebabItem>
-            <KebabSeparator />
-            <KebabItem icon="block" destructive>Inactivate Item</KebabItem>
-          </KebabMenu>
-        </div>
-
         {/* Summary content */}
-        <div>
-          <div className="flex items-start justify-between gap-8">
+        <div className="flex items-start justify-between gap-4">
             {/* Left: name + badges */}
-            <div className="flex flex-col gap-3">
-              <div className="flex items-baseline gap-3">
-                <h1 className="text-[22px] text-[#1A2332] leading-none" style={{ fontWeight: 600 }}>
+            <div className="min-w-0 flex flex-col gap-1">
+              <div className="flex items-center gap-2">
+                <h2 className="text-[20px] text-[#1A2332] leading-[27px]" style={{ fontWeight: 600 }}>
                   {item.name}
-                </h1>
-                <span className="text-[13px] text-[#9CA3AF]">#{item.id}</span>
+                </h2>
+                <span className="text-[16px] text-[#6B7280] leading-[24px]" style={{ fontWeight: 400 }}>#{item.id}</span>
               </div>
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-0.5 flex-wrap">
                 <span className={`inline-block px-2.5 py-1 rounded-full text-[11px] ${getTypeBadgeClass(item.type)}`} style={{ fontWeight: 600 }}>
                   {item.type}
                 </span>
@@ -395,51 +383,91 @@ export function ItemDetail() {
                   {item.active ? "Active" : "Inactive"}
                 </span>
                 {item.category && (
-                  <span className="text-[12px] text-[#6B7280]">{item.category}{item.subcategory ? ` · ${item.subcategory}` : ""}</span>
+                  <>
+                    <div className="w-px h-6 bg-[#E5E7EB] mx-1" />
+                    <span className="text-[14px] text-[#1A2332]">{item.category}{item.subcategory ? ` · ${item.subcategory}` : ""}</span>
+                  </>
                 )}
                 {item.brand && (
-                  <span className="text-[12px] text-[#6B7280]">Mfg: {item.brand}</span>
+                  <>
+                    <div className="w-px h-6 bg-[#E5E7EB] mx-1" />
+                    <span className="text-[14px] text-[#1A2332]">Mfg: {item.brand}</span>
+                  </>
                 )}
               </div>
             </div>
 
             {/* Right: key stats */}
-            <div className="flex items-center gap-8 border-l border-[#E5E7EB] pl-8">
-              <div className="flex flex-col gap-1">
-                <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Retail Price</div>
-                <div className="text-[18px] text-[#16A34A] leading-[28px]" style={{ fontWeight: 600 }}>
-                  ${item.rate.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            <div className="flex gap-2 shrink-0">
+              <div className="flex w-[128px] items-center justify-between gap-2 rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5" style={{ minHeight: 44 }}>
+                <div className="flex min-w-0 flex-col justify-center">
+                  <div className="truncate text-[15px] leading-tight tabular-nums text-[#1A2332]" style={{ fontWeight: 700 }}>
+                    ${item.rate.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </div>
+                  <div className="truncate text-[10px] text-[#546478]">Retail Price</div>
+                </div>
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md" style={{ backgroundColor: "#16A34A26" }}>
+                  <span className="material-icons" style={{ fontSize: "16px", color: "#16A34A" }}>sell</span>
                 </div>
               </div>
-              <div className="flex flex-col gap-1">
-                <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Cost</div>
-                <div className="text-[18px] text-[#374151] leading-[28px]" style={{ fontWeight: 500 }}>
-                  ${item.cost.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              <div className="flex w-[128px] items-center justify-between gap-2 rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5" style={{ minHeight: 44 }}>
+                <div className="flex min-w-0 flex-col justify-center">
+                  <div className="truncate text-[15px] leading-tight tabular-nums text-[#1A2332]" style={{ fontWeight: 700 }}>
+                    ${item.cost.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </div>
+                  <div className="truncate text-[10px] text-[#546478]">Cost</div>
+                </div>
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md" style={{ backgroundColor: "#4A6FA526" }}>
+                  <span className="material-icons" style={{ fontSize: "16px", color: "#4A6FA5" }}>receipt_long</span>
                 </div>
               </div>
-              <div className="flex flex-col gap-1">
-                <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Margin</div>
-                <div
-                  className="text-[18px] leading-[28px]"
-                  style={{ fontWeight: 600, color: margin >= 0 ? "#16A34A" : "#DC2626" }}
-                >
-                  {margin.toFixed(1)}%
+              <div className="flex w-[128px] items-center justify-between gap-2 rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5" style={{ minHeight: 44 }}>
+                <div className="flex min-w-0 flex-col justify-center">
+                  <div className="truncate text-[15px] leading-tight tabular-nums" style={{ fontWeight: 700, color: margin >= 0 ? "#16A34A" : "#DC2626" }}>
+                    {margin.toFixed(1)}%
+                  </div>
+                  <div className="truncate text-[10px] text-[#546478]">Margin</div>
+                </div>
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md" style={{ backgroundColor: `${margin >= 0 ? "#16A34A" : "#DC2626"}26` }}>
+                  <span className="material-icons" style={{ fontSize: "16px", color: margin >= 0 ? "#16A34A" : "#DC2626" }}>query_stats</span>
                 </div>
               </div>
               {item.tracking && (
-                <div className="flex flex-col gap-1">
-                  <div className="text-[11px] text-[#9CA3AF] leading-[16px]">On Hand</div>
-                  <div className="text-[18px] text-[#1A2332] leading-[28px]" style={{ fontWeight: 600 }}>
-                    {item.onHand}
+                <div className="flex w-[128px] items-center justify-between gap-2 rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5" style={{ minHeight: 44 }}>
+                  <div className="flex min-w-0 flex-col justify-center">
+                    <div className="truncate text-[15px] leading-tight tabular-nums text-[#1A2332]" style={{ fontWeight: 700 }}>
+                      {item.onHand}
+                    </div>
+                    <div className="truncate text-[10px] text-[#546478]">On Hand</div>
+                  </div>
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md" style={{ backgroundColor: "#6B728026" }}>
+                    <span className="material-icons" style={{ fontSize: "16px", color: "#6B7280" }}>inventory_2</span>
                   </div>
                 </div>
               )}
             </div>
-          </div>
         </div>
 
         {/* ── UNIFIED TAB BAR ── */}
-        <DetailTabs tabs={TABS} activeTab={activeTab} onChange={setActiveTab} tabSuffix={<TabSettingsButton />} className="mt-6" />
+        <DetailTabs
+          tabs={TABS}
+          activeTab={activeTab}
+          onChange={setActiveTab}
+          tabSuffix={<TabSettingsButton />}
+          trailing={
+            <>
+              <button className="border border-[#E5E7EB] text-[#546478] hover:bg-[#EDF0F5] h-9 px-2.5 rounded-md flex items-center justify-center bg-white">
+                <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
+              </button>
+              <KebabMenu triggerClassName="h-9 w-9 border border-[#E5E7EB] rounded-md hover:bg-[#EDF0F5] flex items-center justify-center bg-white">
+                <KebabItem icon="content_copy">Duplicate Item</KebabItem>
+                <KebabSeparator />
+                <KebabItem icon="block" destructive>Inactivate Item</KebabItem>
+              </KebabMenu>
+            </>
+          }
+          className="mt-5"
+        />
 
         {/* ── CONTENT ── */}
         <div className="mt-4 space-y-4">
