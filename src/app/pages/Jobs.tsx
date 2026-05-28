@@ -234,84 +234,86 @@ export function Jobs() {
 
       {/* ── Table ── */}
       <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
-        {/* Filter Bar */}
-        <div className="flex items-center gap-2 px-4 py-3 bg-white border-b border-[#E5E7EB]">
-          <div className="relative">
-            <span className="material-icons absolute left-2.5 top-1/2 -translate-y-1/2 text-[#9AA3AF]" style={{ fontSize: "16px" }}>search</span>
-            <input type="text" placeholder="Search jobs..." value={searchQuery}
-              onChange={e => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-              className="h-8 pl-8 pr-3 w-[220px] border border-[#E5E7EB] rounded-lg text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5]" />
-          </div>
-          <div className="w-px h-5 bg-[#E5E7EB] mx-1" />
-          <div className="flex items-center gap-2">
-            <select value={qfStatus} onChange={e => { setQfStatus(e.target.value); setCurrentPage(1); }} className={qfClass(qfStatus !== "All")}>
-              <option value="All">Status: All</option>
-              <option value="Scheduled">Scheduled</option>
-              <option value="In Progress">In Progress</option>
-              <option value="On Review">On Review</option>
-              <option value="Completed">Completed</option>
-            </select>
-            <select value={qfType} onChange={e => { setQfType(e.target.value); setCurrentPage(1); }} className={qfClass(qfType !== "All")}>
-              <option value="All">Type: All</option>
-              <option value="One-off">One-off</option>
-              <option value="Recurring">Recurring</option>
-            </select>
-            <select value={qfDate} onChange={e => { setQfDate(e.target.value); setCurrentPage(1); }} className={qfClass(qfDate !== "all_time")}>
-              <option value="all_time">Date: All time</option>
-              <option value="today">Today</option>
-              <option value="this_week">This week</option>
-              <option value="this_month">This month</option>
-            </select>
-            <div className="w-px h-5 bg-[#E5E7EB] mx-1" />
-            <button
-              onClick={() => { setPendingFilters({ ...filterState }); setFilterPanelOpen(true); }}
-              className={`h-8 px-3 rounded-lg border text-[13px] flex items-center gap-1.5 transition-colors ${
-                activeFilterCount > 0
-                  ? "border-[#4A6FA5] text-[#4A6FA5] bg-[#EEF3FA]"
-                  : "border-[#E5E7EB] text-[#546478] hover:bg-[#F5F7FA] hover:border-[#C5CEDD]"
-              }`}
-              style={{ fontWeight: 500 }}
-            >
-              <span className="material-icons" style={{ fontSize: "16px" }}>filter_alt</span>
-              Filter
-              {activeFilterCount > 0 && (
-                <span className="w-4 h-4 bg-[#4A6FA5] text-white text-[10px] rounded-full flex items-center justify-center" style={{ fontWeight: 700 }}>
-                  {activeFilterCount}
-                </span>
-              )}
-            </button>
-          </div>
-          <div className="ml-auto flex items-center gap-2">
-            <CreateActionButton onClick={() => navigate("/jobs/new")}>
-              Create Job
-            </CreateActionButton>
-            <KebabMenu triggerClassName="w-10 h-10 border border-[#D8DEE8] rounded-xl bg-white">
-              <KebabItem icon="view_column">Edit Columns</KebabItem>
-              <KebabItem icon="swap_horiz">Change Status</KebabItem>
-              <KebabItem icon="content_copy">Manage Duplicates</KebabItem>
-              <KebabSeparator />
-              <KebabItem icon="file_upload">Import</KebabItem>
-              <KebabItem icon="file_download">Export</KebabItem>
-            </KebabMenu>
-          </div>
-        </div>
-        <SelectionBar
-          count={selectedJobs.size}
-          onDeselect={() => setSelectedJobs(new Set())}
-          actions={[
-            {
-              label: "Archive selected",
-              icon: "archive",
-              destructive: true,
-              onClick: () => {
-                setJobs(prev => prev.filter(j => !selectedJobs.has(j.id)));
-                setSelectedJobs(new Set());
+        {/* Filter Bar / Selection Bar (mutually exclusive — matches Figma) */}
+        {selectedJobs.size > 0 ? (
+          <SelectionBar
+            count={selectedJobs.size}
+            onDeselect={() => setSelectedJobs(new Set())}
+            actions={[
+              {
+                label: "Inactivate",
+                icon: "block",
+                destructive: true,
+                onClick: () => {
+                  setJobs(prev => prev.filter(j => !selectedJobs.has(j.id)));
+                  setSelectedJobs(new Set());
+                },
               },
-            },
-            { label: "Change status", icon: "swap_horiz", onClick: () => {} },
-            { label: "Export", icon: "file_download", onClick: () => {} },
-          ]}
-        />
+              { label: "Change status", icon: "swap_horiz", onClick: () => {} },
+              { label: "Export selected", icon: "file_download", onClick: () => {} },
+            ]}
+          />
+        ) : (
+          <div className="flex items-center gap-2 px-4 py-3 bg-white border-b border-[#E5E7EB]">
+            <div className="relative">
+              <span className="material-icons absolute left-2.5 top-1/2 -translate-y-1/2 text-[#9AA3AF]" style={{ fontSize: "16px" }}>search</span>
+              <input type="text" placeholder="Search jobs..." value={searchQuery}
+                onChange={e => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+                className="h-8 pl-8 pr-3 w-[220px] border border-[#E5E7EB] rounded-lg text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5]" />
+            </div>
+            <div className="w-px h-5 bg-[#E5E7EB] mx-1" />
+            <div className="flex items-center gap-2">
+              <select value={qfStatus} onChange={e => { setQfStatus(e.target.value); setCurrentPage(1); }} className={qfClass(qfStatus !== "All")}>
+                <option value="All">Status: All</option>
+                <option value="Scheduled">Scheduled</option>
+                <option value="In Progress">In Progress</option>
+                <option value="On Review">On Review</option>
+                <option value="Completed">Completed</option>
+              </select>
+              <select value={qfType} onChange={e => { setQfType(e.target.value); setCurrentPage(1); }} className={qfClass(qfType !== "All")}>
+                <option value="All">Type: All</option>
+                <option value="One-off">One-off</option>
+                <option value="Recurring">Recurring</option>
+              </select>
+              <select value={qfDate} onChange={e => { setQfDate(e.target.value); setCurrentPage(1); }} className={qfClass(qfDate !== "all_time")}>
+                <option value="all_time">Date: All time</option>
+                <option value="today">Today</option>
+                <option value="this_week">This week</option>
+                <option value="this_month">This month</option>
+              </select>
+              <div className="w-px h-5 bg-[#E5E7EB] mx-1" />
+              <button
+                onClick={() => { setPendingFilters({ ...filterState }); setFilterPanelOpen(true); }}
+                className={`h-8 px-3 rounded-lg border text-[13px] flex items-center gap-1.5 transition-colors ${
+                  activeFilterCount > 0
+                    ? "border-[#4A6FA5] text-[#4A6FA5] bg-[#EEF3FA]"
+                    : "border-[#E5E7EB] text-[#546478] hover:bg-[#F5F7FA] hover:border-[#C5CEDD]"
+                }`}
+                style={{ fontWeight: 500 }}
+              >
+                <span className="material-icons" style={{ fontSize: "16px" }}>filter_alt</span>
+                Filter
+                {activeFilterCount > 0 && (
+                  <span className="w-4 h-4 bg-[#4A6FA5] text-white text-[10px] rounded-full flex items-center justify-center" style={{ fontWeight: 700 }}>
+                    {activeFilterCount}
+                  </span>
+                )}
+              </button>
+            </div>
+            <div className="ml-auto flex items-center gap-2">
+              <CreateActionButton onClick={() => navigate("/jobs/new")}>
+                Create Job
+              </CreateActionButton>
+              <KebabMenu triggerClassName="w-10 h-10 border border-[#D8DEE8] rounded-xl bg-white">
+                <KebabItem icon="view_column">Edit columns</KebabItem>
+                <KebabItem icon="content_copy">Manage duplicates</KebabItem>
+                <KebabSeparator />
+                <KebabItem icon="file_upload">Import</KebabItem>
+                <KebabItem icon="file_download">Export</KebabItem>
+              </KebabMenu>
+            </div>
+          </div>
+        )}
         <table className="w-full">
           <thead className="bg-[#F5F7FA]">
             <tr className="border-b border-[#E5E7EB]">
@@ -385,11 +387,11 @@ export function Jobs() {
                 })}
                 <td className="px-4 py-4" onClick={e => e.stopPropagation()}>
                   <KebabMenu>
-                    <KebabItem icon="edit" onSelect={() => navigate(`/jobs/${job.id}`)}>Edit</KebabItem>
                     <KebabItem icon="content_copy">Duplicate</KebabItem>
-                    <KebabItem icon="open_in_new" onSelect={() => window.open(`/jobs/${job.id}`, "_blank")}>Open in New Tab</KebabItem>
+                    <KebabItem icon="swap_horiz">Change status</KebabItem>
+                    <KebabItem icon="block">Inactivate</KebabItem>
                     <KebabSeparator />
-                    <KebabItem icon="archive" destructive>Archive</KebabItem>
+                    <KebabItem icon="open_in_new" onSelect={() => window.open(`/jobs/${job.id}`, "_blank")}>Open in New Tab</KebabItem>
                   </KebabMenu>
                 </td>
               </tr>
@@ -435,85 +437,126 @@ export function Jobs() {
       </div>
     </div>
 
-    {/* ── Advanced Filter Slide-over ── */}
+    {/* ── Filter Slide-over ── */}
     {filterPanelOpen && (
       <div className="fixed inset-0 z-50 flex justify-end">
         <div className="absolute inset-0 bg-black/30" onClick={() => setFilterPanelOpen(false)} />
-        <div className="relative bg-white w-[340px] h-full shadow-2xl flex flex-col overflow-hidden">
-          <div className="flex items-center justify-between px-6 py-5 border-b border-[#E5E7EB]">
-            <h2 className="text-[18px] text-[#1A2332]" style={{ fontWeight: 700 }}>Advanced Filters</h2>
-            <button onClick={() => setFilterPanelOpen(false)} className="text-[#546478] hover:text-[#1A2332]">
-              <span className="material-icons" style={{ fontSize: "22px" }}>close</span>
+        <div className="relative bg-white w-[400px] h-full flex flex-col overflow-hidden shadow-[0px_10px_15px_-3px_rgba(0,0,0,0.1),0px_4px_6px_-4px_rgba(0,0,0,0.1)]">
+
+          {/* Header */}
+          <div className="flex items-center px-4 py-4">
+            <h2 className="flex-1 text-[#1A2332]" style={{ fontFamily: "Geist, sans-serif", fontWeight: 600, fontSize: 20, lineHeight: 1.35 }}>Filter</h2>
+            <button onClick={() => setFilterPanelOpen(false)}
+              className="flex items-center justify-center w-6 h-6 rounded text-[#546478] hover:bg-[#F3F4F6] hover:text-[#1A2332] transition-colors">
+              <span className="material-icons" style={{ fontSize: "16px" }}>close</span>
             </button>
           </div>
-          <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
 
-            {/* Job type */}
-            <div>
-              <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>Job type</label>
-              <select value={pendingFilters.jobType} onChange={e => setPendingFilters(p => ({ ...p, jobType: e.target.value }))}
-                className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] text-[#374151] bg-white focus:outline-none focus:border-[#4A6FA5]">
-                <option value="">All</option>
-                <option value="One-off">One-off</option>
-                <option value="Recurring">Recurring</option>
-              </select>
-            </div>
+          {/* Body */}
+          <div className="flex-1 overflow-y-auto px-4 py-1 flex flex-col gap-2">
 
-            {/* Client */}
-            <div>
-              <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>Client</label>
-              <input type="text" placeholder="e.g. John Smith" value={pendingFilters.client}
-                onChange={e => setPendingFilters(p => ({ ...p, client: e.target.value }))}
-                className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5]" />
-            </div>
+            {/* Section 1: Job type · Client · City dropdown */}
+            <div className="flex flex-col gap-4 pb-4 border-b border-[#E5E7EB]">
+              {/* Job type */}
+              <div className="flex flex-col gap-1">
+                <label className="text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist, sans-serif", fontWeight: 500, lineHeight: "20px" }}>Job type</label>
+                <select value={pendingFilters.jobType} onChange={e => setPendingFilters(p => ({ ...p, jobType: e.target.value }))}
+                  className="min-h-[36px] pl-3 pr-8 py-2 border border-[#E5E7EB] rounded-[8px] text-[14px] text-[#1A2332] bg-white focus:outline-none focus:border-[#4A6FA5] shadow-[0px_1px_1px_rgba(0,0,0,0.05)]"
+                  style={{ fontFamily: "Geist, sans-serif", fontWeight: 400 }}>
+                  <option value="">All</option>
+                  <option value="One-off">One-off</option>
+                  <option value="Recurring">Recurring</option>
+                </select>
+              </div>
 
-            {/* City */}
-            <div>
-              <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>City</label>
-              <input type="text" placeholder="e.g. Tampa, Orlando" value={pendingFilters.city}
-                onChange={e => setPendingFilters(p => ({ ...p, city: e.target.value }))}
-                className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5]" />
-            </div>
+              {/* Client */}
+              <div className="flex flex-col gap-1">
+                <label className="text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist, sans-serif", fontWeight: 500, lineHeight: "20px" }}>Client</label>
+                <select value={pendingFilters.client} onChange={e => setPendingFilters(p => ({ ...p, client: e.target.value }))}
+                  className="min-h-[36px] pl-3 pr-8 py-2 border border-[#E5E7EB] rounded-[8px] text-[14px] text-[#1A2332] bg-white focus:outline-none focus:border-[#4A6FA5] shadow-[0px_1px_1px_rgba(0,0,0,0.05)]"
+                  style={{ fontFamily: "Geist, sans-serif", fontWeight: 400 }}>
+                  <option value="">All</option>
+                  {[...new Set(mockJobs.map(j => j.client))].map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
 
-            <div className="border-t border-[#E5E7EB] pt-5">
-              <h3 className="text-[13px] text-[#374151] mb-4" style={{ fontWeight: 600 }}>Schedule Date</h3>
-            </div>
-
-            {/* Schedule date range */}
-            <div>
-              <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>From — To</label>
-              <div className="flex gap-2">
-                <input type="date" value={pendingFilters.scheduleFrom}
-                  onChange={e => setPendingFilters(p => ({ ...p, scheduleFrom: e.target.value }))}
-                  className="flex-1 h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5]" />
-                <input type="date" value={pendingFilters.scheduleTo}
-                  onChange={e => setPendingFilters(p => ({ ...p, scheduleTo: e.target.value }))}
-                  className="flex-1 h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5]" />
+              {/* City dropdown */}
+              <div className="flex flex-col gap-1">
+                <label className="text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist, sans-serif", fontWeight: 500, lineHeight: "20px" }}>City</label>
+                <select value={pendingFilters.city} onChange={e => setPendingFilters(p => ({ ...p, city: e.target.value }))}
+                  className="min-h-[36px] pl-3 pr-8 py-2 border border-[#E5E7EB] rounded-[8px] text-[14px] text-[#1A2332] bg-white focus:outline-none focus:border-[#4A6FA5] shadow-[0px_1px_1px_rgba(0,0,0,0.05)]"
+                  style={{ fontFamily: "Geist, sans-serif", fontWeight: 400 }}>
+                  <option value="">All</option>
+                  {[...new Set(mockJobs.map(j => { const m = j.address.match(/,\s*([^,]+),\s*[A-Z]{2}/); return m ? m[1].trim() : null; }).filter((c): c is string => Boolean(c)))].map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
               </div>
             </div>
 
-            <div className="border-t border-[#E5E7EB] pt-5">
-              <h3 className="text-[13px] text-[#374151] mb-4" style={{ fontWeight: 600 }}>Total Amount</h3>
+            {/* Section 2: Scheduled date */}
+            <div className="flex flex-col gap-4 pb-4 pt-2 border-b border-[#E5E7EB]">
+              <div className="flex gap-4 items-end">
+                <div className="flex flex-1 flex-col gap-1">
+                  <label className="text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist, sans-serif", fontWeight: 500, lineHeight: "20px" }}>Scheduled date</label>
+                  <div className="relative">
+                    <input type="text" placeholder="DD-MM-YYYY" value={pendingFilters.scheduleFrom}
+                      onChange={e => setPendingFilters(p => ({ ...p, scheduleFrom: e.target.value }))}
+                      className="w-full min-h-[36px] pl-3 pr-8 py-2 border border-[#E5E7EB] rounded-[8px] text-[14px] text-[#1A2332] placeholder-[#6B7280] bg-white focus:outline-none focus:border-[#4A6FA5] shadow-[0px_1px_1px_rgba(0,0,0,0.05)]"
+                      style={{ fontFamily: "Geist, sans-serif", fontWeight: 400 }} />
+                    <span className="material-icons absolute right-2.5 top-1/2 -translate-y-1/2 text-[#6B7280] pointer-events-none" style={{ fontSize: "16px" }}>calendar_today</span>
+                  </div>
+                </div>
+                <div className="flex flex-1 flex-col">
+                  <div className="relative">
+                    <input type="text" placeholder="DD-MM-YYYY" value={pendingFilters.scheduleTo}
+                      onChange={e => setPendingFilters(p => ({ ...p, scheduleTo: e.target.value }))}
+                      className="w-full min-h-[36px] pl-3 pr-8 py-2 border border-[#E5E7EB] rounded-[8px] text-[14px] text-[#1A2332] placeholder-[#6B7280] bg-white focus:outline-none focus:border-[#4A6FA5] shadow-[0px_1px_1px_rgba(0,0,0,0.05)]"
+                      style={{ fontFamily: "Geist, sans-serif", fontWeight: 400 }} />
+                    <span className="material-icons absolute right-2.5 top-1/2 -translate-y-1/2 text-[#6B7280] pointer-events-none" style={{ fontSize: "16px" }}>calendar_today</span>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            {/* Total range */}
-            <div>
-              <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>Min — Max</label>
-              <div className="flex items-center gap-2">
-                <input type="number" placeholder="Min" value={pendingFilters.totalMin}
-                  onChange={e => setPendingFilters(p => ({ ...p, totalMin: e.target.value }))}
-                  className="flex-1 h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5]" />
-                <span className="text-[#546478] text-[13px]">—</span>
-                <input type="number" placeholder="Max" value={pendingFilters.totalMax}
-                  onChange={e => setPendingFilters(p => ({ ...p, totalMax: e.target.value }))}
-                  className="flex-1 h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5]" />
+            {/* Section 3: Total amount + City text */}
+            <div className="flex flex-col gap-4 pb-4 pt-2 border-b border-[#E5E7EB]">
+              <div className="flex gap-4 items-end">
+                <div className="flex flex-1 flex-col gap-1">
+                  <label className="text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist, sans-serif", fontWeight: 500, lineHeight: "20px" }}>Total amount</label>
+                  <input type="number" placeholder="min" value={pendingFilters.totalMin}
+                    onChange={e => setPendingFilters(p => ({ ...p, totalMin: e.target.value }))}
+                    className="min-h-[36px] px-3 py-2 border border-[#E5E7EB] rounded-[8px] text-[14px] text-[#1A2332] placeholder-[#6B7280] bg-white focus:outline-none focus:border-[#4A6FA5] shadow-[0px_1px_1px_rgba(0,0,0,0.05)]"
+                    style={{ fontFamily: "Geist, sans-serif", fontWeight: 400 }} />
+                </div>
+                <div className="flex flex-1 flex-col">
+                  <input type="number" placeholder="max" value={pendingFilters.totalMax}
+                    onChange={e => setPendingFilters(p => ({ ...p, totalMax: e.target.value }))}
+                    className="min-h-[36px] px-3 py-2 border border-[#E5E7EB] rounded-[8px] text-[14px] text-[#1A2332] placeholder-[#6B7280] bg-white focus:outline-none focus:border-[#4A6FA5] shadow-[0px_1px_1px_rgba(0,0,0,0.05)]"
+                    style={{ fontFamily: "Geist, sans-serif", fontWeight: 400 }} />
+                </div>
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist, sans-serif", fontWeight: 500, lineHeight: "20px" }}>City</label>
+                <input type="text" placeholder="e.g. Tampa, Orlando" value={pendingFilters.city}
+                  onChange={e => setPendingFilters(p => ({ ...p, city: e.target.value }))}
+                  className="min-h-[36px] px-3 py-2 border border-[#E5E7EB] rounded-[8px] text-[14px] text-[#1A2332] placeholder-[#6B7280] bg-white focus:outline-none focus:border-[#4A6FA5] shadow-[0px_1px_1px_rgba(0,0,0,0.05)]"
+                  style={{ fontFamily: "Geist, sans-serif", fontWeight: 400 }} />
               </div>
             </div>
 
           </div>
-          <div className="px-6 py-4 border-t border-[#E5E7EB] flex items-center gap-3">
-            <button onClick={handleClearFilters} className="flex-1 h-10 border border-[#E5E7EB] rounded-lg text-[13px] text-[#546478] hover:bg-[#EDF0F5] transition-colors" style={{ fontWeight: 500 }}>Clear all</button>
-            <button onClick={handleApplyFilters} className="flex-1 h-10 bg-[#4A6FA5] hover:bg-[#3d5a85] rounded-lg text-[13px] text-white transition-colors" style={{ fontWeight: 500 }}>Apply</button>
+
+          {/* Footer */}
+          <div className="flex items-center justify-end gap-2 p-4">
+            <button onClick={handleClearFilters}
+              className="min-h-[36px] px-4 py-2 border border-[#E5E7EB] rounded-[8px] text-[14px] text-[#1A2332] bg-white hover:bg-[#F9FAFB] transition-colors"
+              style={{ fontFamily: "Geist, sans-serif", fontWeight: 500 }}>
+              Clear All
+            </button>
+            <button onClick={handleApplyFilters}
+              className="min-h-[36px] px-4 py-2 rounded-[8px] text-[14px] text-white bg-[#4A6FA5] hover:bg-[#3d5a85] transition-colors"
+              style={{ fontFamily: "Geist, sans-serif", fontWeight: 500 }}>
+              Apply
+            </button>
           </div>
         </div>
       </div>

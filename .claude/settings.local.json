@@ -53,7 +53,10 @@
       "Bash(brew install *)",
       "Bash(pandoc --version)",
       "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\mykha\\\\Documents\\\\Vision360\\\\src\\\\app\\\\pages\" -Filter \"*.tsx\" -Name)",
-      "Bash(mkdir -p \"/Users/solomiyahavrylyshyn/Vision360 \\(1\\)/src/assets/designs\" && cp \"/Users/solomiyahavrylyshyn/Downloads/Нова папка з елементами/\"*.png \"/Users/solomiyahavrylyshyn/Vision360 \\(1\\)/src/assets/designs/\" && echo \"Copied: $\\(ls \"/Users/solomiyahavrylyshyn/Vision360 \\(1\\)/src/assets/designs/\" | wc -l\\) files\")"
+      "Bash(mkdir -p \"/Users/solomiyahavrylyshyn/Vision360 \\(1\\)/src/assets/designs\" && cp \"/Users/solomiyahavrylyshyn/Downloads/Нова папка з елементами/\"*.png \"/Users/solomiyahavrylyshyn/Vision360 \\(1\\)/src/assets/designs/\" && echo \"Copied: $\\(ls \"/Users/solomiyahavrylyshyn/Vision360 \\(1\\)/src/assets/designs/\" | wc -l\\) files\")",
+      "mcp__figma-desktop__get_metadata",
+      "mcp__figma-desktop__get_design_context",
+      "mcp__figma-desktop__get_screenshot"
     ]
   }
 }

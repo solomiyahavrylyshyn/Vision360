@@ -33,31 +33,27 @@ export function SelectionBar({
   if (count === 0) return null;
 
   return (
-    <div className="flex items-center gap-3 px-3 h-[60px] bg-white border-b border-[#E5E7EB]">
+    <div className="flex items-center gap-3 p-3 bg-white border-b border-[#E5E7EB]">
       <span
-        className="text-[14px] text-[#4A6FA5]"
-        style={{ fontWeight: 600 }}
+        className="flex-1 text-[14px] leading-[20px] text-[#4A6FA5]"
+        style={{ fontFamily: "Geist", fontWeight: 600 }}
       >
         {count} selected
       </span>
 
-      <span className="text-[#9CA3AF] text-[14px] select-none">·</span>
-
-      <div className="flex-1" />
-
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
         {actions.map((a, i) => (
           <button
             key={i}
             type="button"
             onClick={a.onClick}
-            className="inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-lg border border-[#E5E7EB] bg-white text-[13px] text-[#1A2332] hover:bg-[#F9FAFB] transition-colors"
-            style={{ fontWeight: 500 }}
+            className="inline-flex items-center justify-center gap-2 min-h-9 px-4 py-2 rounded-lg border border-[#E5E7EB] bg-white text-[14px] leading-[20px] text-[#1A2332] hover:bg-[#F9FAFB] transition-colors whitespace-nowrap"
+            style={{ fontFamily: "Geist", fontWeight: 500 }}
           >
             {a.icon && (
               <span
                 className="material-icons"
-                style={{ fontSize: "15px" }}
+                style={{ fontSize: "16px" }}
               >
                 {a.icon}
               </span>
@@ -72,8 +68,8 @@ export function SelectionBar({
       <button
         type="button"
         onClick={onDeselect}
-        className="inline-flex items-center justify-center h-9 px-4 rounded-lg text-[14px] text-[#1A2332] hover:bg-[#F9FAFB] transition-colors"
-        style={{ fontWeight: 500 }}
+        className="inline-flex items-center justify-center min-h-9 px-4 py-2 rounded-lg text-[14px] leading-[20px] text-[#1A2332] hover:bg-[#F9FAFB] transition-colors"
+        style={{ fontFamily: "Geist", fontWeight: 500 }}
       >
         {cancelLabel}
       </button>
