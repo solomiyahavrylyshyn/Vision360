@@ -11,6 +11,9 @@ import { DetailTabs, TabSettingsButton } from "../components/ui/detail-tabs";
 import { PlusIcon } from "../components/ui/plus-icon";
 import { DocumentPreview } from "../components/DocumentPreview";
 import { toast } from "sonner";
+import acServicePhoto from "../../assets/documents/33897-cu.jpg";
+import waterHeaterPhoto from "../../assets/documents/34285-install-water-heater.jpg";
+import installAcPhoto from "../../assets/documents/34689-install-ac.jpg";
 
 interface Expense {
   id: number;
@@ -58,6 +61,53 @@ const INITIAL_DOCS: DocFile[] = [
 ];
 
 const mockJobData: Record<string, any> = {
+  "5": {
+    id: 5, title: "AC Estimate", client: "Mike Delgado", clientId: "10245", clientInitials: "MD",
+    address: "2105 West Hills Avenue", city: "Tampa", state: "FL", zip: "33606",
+    gateCode: "2486",
+    phone: "813-286-7572", email: "mjdelgado84@yahoo.com",
+    jobNumber: "10245", jobType: "Estimate", jobFrequency: "Recurring",
+    assignedTo: "Peter Novak",
+    startedOn: "Mar 30, 2026", endsOn: "Mar 30, 2026",
+    startTime: "9:00 AM", endTime: "11:00 AM",
+    status: "Scheduled" as const,
+    priority: "Low" as const,
+    customerSince: "Jul 2021",
+    membership: "Silver - Exp. Dec 2027",
+    lastService: "Jun 2025",
+    tags: ["Recurring", "Estimate"],
+    notes: [
+      { id: 1, text: "Prefers morning appointments.", date: "Mar 10, 2026" },
+      { id: 2, text: "Requested annual maintenance plan.", date: "Mar 10, 2026" },
+      { id: 3, text: "Requested annual maintenance plan.", date: "Mar 10, 2026" },
+      { id: 4, text: "Requested annual maintenance plan.", date: "Mar 10, 2026" },
+      { id: 5, text: "Requested annual maintenance plan.", date: "Mar 10, 2026" },
+    ] as NoteEntry[],
+    fieldNotes: [
+      { id: 1, text: "Verify outdoor condenser clearance before quoting.", date: "Mar 10, 2026" },
+      { id: 2, text: "Customer asked for equipment options by efficiency tier.", date: "Mar 10, 2026" },
+      { id: 3, text: "Existing ductwork needs photo documentation.", date: "Mar 10, 2026" },
+    ] as NoteEntry[],
+    internalNotes: [
+      { id: 1, text: "Check service agreement eligibility.", date: "Mar 10, 2026" },
+      { id: 2, text: "Confirm financing options before estimate is sent.", date: "Mar 10, 2026" },
+      { id: 3, text: "Previous service history imported from legacy account.", date: "Mar 10, 2026" },
+      { id: 4, text: "Coordinate quote review with Peter Novak.", date: "Mar 10, 2026" },
+    ] as NoteEntry[],
+    lineItems: [{ name: "AC Estimate", description: "System evaluation and replacement estimate.", quantity: 1, unitCost: 7995.82, unitPrice: 45230, total: 45230 }],
+    totalCost: 7995.82, totalPrice: 45230,
+    expenses: [
+      { id: 1, item: "Site Visit", description: "Technician assessment", date: "Mar 30, 2026", amount: 320.00 },
+      { id: 2, item: "Materials Review", description: "Quote preparation", date: "Mar 30, 2026", amount: 231.70 },
+      { id: 3, item: "Permit Research", description: "Local permit check", date: "Mar 29, 2026", amount: 120.00 },
+      { id: 4, item: "Photo Documentation", description: "Field media capture", date: "Mar 29, 2026", amount: 85.00 },
+    ] as Expense[],
+    expenseTotal: 756.70,
+    visits: [{ id: 1, dateTime: "Mar 30, 2026 - 9:00 AM", title: "Mike Delgado - AC Estimate", status: "Scheduled" }] as Visit[],
+    profitability: { totalPrice: 45230, lineItemCost: 7995.82, labor: 14526.75, expenses: 551.70, profit: 23407.93, margin: 51.75 },
+    linkedEstimate: { id: 1, title: "Estimate #10245-E02", status: "Draft" },
+    linkedInvoice: null,
+  },
   "1": {
     id: 1, title: "AC Estimate", client: "Travis Jones", clientId: "10245", clientInitials: "TJ",
     address: "4405 North Clark Avenue", city: "Tampa", state: "FL", zip: "33614",
@@ -150,28 +200,25 @@ type TabKey = "details" | "appointments" | "checklist" | "documents" | "items" |
 
 const BASE_TABS: { key: TabKey; label: string }[] = [
   { key: "details",       label: "Details" },
-  { key: "appointments",  label: "Appointments" },
-  { key: "checklist",     label: "Checklist" },
-  { key: "documents",     label: "Documents" },
+  { key: "appointments",  label: "Estimates (5)" },
+  { key: "checklist",     label: "Invoices" },
   { key: "items",         label: "Items" },
-  { key: "labor",         label: "Labor" },
-  { key: "expense",       label: "Expense" },
-  { key: "finance",       label: "Finance" },
+  { key: "expense",       label: "Expenses (4)" },
 ];
 
 /* 11 placeholder photos for the Attachments panel */
 const MOCK_PHOTOS = [
-  { id: "p1",  gradient: "linear-gradient(135deg,#bfdbfe,#3b82f6)",  tag: "Frame" },
-  { id: "p2",  gradient: "linear-gradient(135deg,#d1fae5,#10b981)",  tag: null },
-  { id: "p3",  gradient: "linear-gradient(135deg,#fde68a,#f59e0b)",  tag: null },
-  { id: "p4",  gradient: "linear-gradient(135deg,#e9d5ff,#8b5cf6)",  tag: null },
-  { id: "p5",  gradient: "linear-gradient(135deg,#fed7d7,#f87171)",  tag: null },
-  { id: "p6",  gradient: "linear-gradient(135deg,#bfdbfe,#6366f1)",  tag: null },
-  { id: "p7",  gradient: "linear-gradient(135deg,#fde68a,#d97706)",  tag: null },
-  { id: "p8",  gradient: "linear-gradient(135deg,#d1fae5,#059669)",  tag: null },
-  { id: "p9",  gradient: "linear-gradient(135deg,#fed7d7,#dc2626)",  tag: null },
-  { id: "p10", gradient: "linear-gradient(135deg,#e0e7ff,#4f46e5)",  tag: null },
-  { id: "p11", gradient: "linear-gradient(135deg,#fce7f3,#ec4899)",  tag: null },
+  { id: "p1", previewUrl: acServicePhoto, tag: null },
+  { id: "p2", previewUrl: installAcPhoto, tag: null },
+  { id: "p3", previewUrl: waterHeaterPhoto, tag: null },
+  { id: "p4", previewUrl: acServicePhoto, tag: null },
+  { id: "p5", previewUrl: installAcPhoto, tag: null },
+  { id: "p6", previewUrl: waterHeaterPhoto, tag: null },
+  { id: "p7", previewUrl: acServicePhoto, tag: null },
+  { id: "p8", previewUrl: installAcPhoto, tag: null },
+  { id: "p9", previewUrl: waterHeaterPhoto, tag: null },
+  { id: "p10", previewUrl: acServicePhoto, tag: null },
+  { id: "p11", previewUrl: installAcPhoto, tag: null },
 ];
 
 /* ──────────────────────────────────────────
@@ -543,9 +590,9 @@ export function JobDetail() {
 
   const renderDetailsTab = () => {
     const noteTabs = [
-      { key: "office"   as const, label: "Office",   notes: job.notes         },
-      { key: "internal" as const, label: "Internal", notes: job.internalNotes },
+      { key: "office"   as const, label: "Job",      notes: job.notes         },
       { key: "field"    as const, label: "Field",    notes: job.fieldNotes    },
+      { key: "internal" as const, label: "Internal", notes: job.internalNotes },
     ];
     const activeNotes = noteTabs.find(t => t.key === noteTab)?.notes ?? [];
     const SHOW_N = 4;
@@ -563,102 +610,69 @@ export function JobDetail() {
 
         {/* ── Col 1: Job Overview + Job Date & Time (separate cards) ── */}
         <div className="w-[270px] shrink-0 flex flex-col gap-3">
-
-          {/* Job Overview */}
-          <div className="bg-white border border-[#E5E7EB] rounded-lg p-4 flex flex-col gap-3">
+          <div className="bg-white border border-[#E5E7EB] rounded-lg p-4 flex flex-col gap-3.5">
             <div className="flex items-center justify-between">
-              <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>Job Overview</span>
-              <button onClick={() => openEdit("overview")} className="text-[#9CA3AF] hover:text-[#6B7280]">
+              <span className="text-[16px] text-[#1A2332]" style={{ fontWeight: 600 }}>Job overview</span>
+              <button onClick={() => openEdit("overview")} className="h-9 w-9 rounded-lg border border-[#E5E7EB] text-[#546478] hover:bg-[#F5F7FA]">
                 <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
               </button>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <div className="text-[11px] text-[#9CA3AF]">Job Title</div>
-                <div className="text-[13px] text-[#374151] mt-0.5" style={{ fontWeight: 500 }}>{job.title}</div>
-              </div>
-              <div>
-                <div className="text-[11px] text-[#9CA3AF]">Job Type</div>
-                <div className="text-[13px] text-[#374151] mt-0.5">{job.jobType}</div>
-              </div>
             </div>
             <div>
-              <div className="text-[11px] text-[#9CA3AF]">Service Address</div>
-              <div className="flex items-start gap-1.5 mt-0.5">
-                <span className="material-icons text-[#6B7280] mt-0.5" style={{ fontSize: "14px" }}>location_on</span>
-                <div className="text-[13px] text-[#374151] leading-[19px]">
-                  {job.address}<br />{job.city}, {job.state} {job.zip}
-                  {job.gateCode && <><br /><span className="text-[#9CA3AF]">Gate code: {job.gateCode}</span></>}
-                </div>
+              <div className="text-[13px] text-[#8899AA]">Job frequency</div>
+              <div className="text-[14px] text-[#1A2332] mt-0.5" style={{ fontWeight: 600 }}>{job.jobFrequency || "One-time"}</div>
+            </div>
+            <div>
+              <div className="text-[13px] text-[#8899AA]">Job title</div>
+              <div className="text-[14px] text-[#1A2332] mt-0.5" style={{ fontWeight: 600 }}>{job.title}</div>
+            </div>
+            <div>
+              <div className="text-[13px] text-[#8899AA]">Job Type</div>
+              <div className="text-[14px] text-[#1A2332] mt-0.5" style={{ fontWeight: 600 }}>{job.jobType}</div>
+            </div>
+            <div>
+              <div className="text-[13px] text-[#8899AA]">Assigned to</div>
+              <div className="text-[14px] text-[#1A2332] mt-0.5" style={{ fontWeight: 600 }}>{assignedTo || "Unassigned"}{assignedTo ? " - Technician" : ""}</div>
+            </div>
+            <div>
+              <div className="text-[13px] text-[#8899AA]">Service Address</div>
+              <div className="text-[14px] text-[#1A2332] leading-[20px] mt-0.5" style={{ fontWeight: 600 }}>
+                {job.address}<br />{job.city}, {job.state} {job.zip}
+                {job.gateCode && <><br /><span className="text-[#8899AA]" style={{ fontWeight: 500 }}>Gate code: {job.gateCode}</span></>}
               </div>
             </div>
-          </div>
-
-          {/* Job Date & Time */}
-          <div className="bg-white border border-[#E5E7EB] rounded-lg p-4 flex flex-col gap-3">
+            <div className="h-px bg-[#E5E7EB]" />
             <div className="flex items-center justify-between">
-              <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>Job Date & Time</span>
-              <button onClick={() => openEdit("schedule")} className="text-[#9CA3AF] hover:text-[#6B7280]">
+              <span className="text-[16px] text-[#1A2332]" style={{ fontWeight: 600 }}>Job date & time</span>
+              <button onClick={() => openEdit("schedule")} className="h-9 w-9 rounded-lg border border-[#E5E7EB] text-[#546478] hover:bg-[#F5F7FA]">
                 <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
               </button>
             </div>
-            <div className="grid grid-cols-3 gap-x-3 gap-y-3">
+            <div className="grid grid-cols-2 gap-x-6 gap-y-3">
               <div>
-                <div className="text-[11px] text-[#9CA3AF]">Start Date</div>
-                <div className="text-[13px] text-[#374151] mt-0.5" style={{ fontWeight: 500 }}>{job.startedOn}</div>
+                <div className="text-[13px] text-[#8899AA]">Start Date</div>
+                <div className="text-[14px] text-[#1A2332] mt-0.5" style={{ fontWeight: 600 }}>{job.startedOn}</div>
               </div>
               <div>
-                <div className="text-[11px] text-[#9CA3AF]">End Date</div>
-                <div className="text-[13px] text-[#374151] mt-0.5" style={{ fontWeight: 500 }}>{job.endsOn}</div>
-              </div>
-              <div className="row-span-2">
-                <div className="text-[11px] text-[#9CA3AF]">Assigned To</div>
-                <div className="relative mt-0.5">
-                  <button
-                    onClick={() => setAssignedToOpen(!assignedToOpen)}
-                    className="flex items-center gap-0.5 text-[13px] text-[#374151] hover:text-[#4A6FA5] transition-colors"
-                    style={{ fontWeight: 500 }}
-                  >
-                    {assignedTo || <span className="text-[#9CA3AF]">Unassigned</span>}
-                    <span className="material-icons" style={{ fontSize: "14px", color: "#9CA3AF" }}>arrow_drop_down</span>
-                  </button>
-                  {assignedTo && <div className="text-[11px] text-[#9CA3AF] mt-0.5">Technician</div>}
-                  {assignedToOpen && (
-                    <div className="absolute left-0 top-full mt-1 bg-white border border-[#E5E7EB] rounded-md shadow-lg z-50 w-[180px] py-1">
-                      <button
-                        onClick={() => { setAssignedTo(""); setAssignedToOpen(false); }}
-                        className="w-full text-left px-3 py-2 text-[13px] text-[#9CA3AF] hover:bg-[#F3F4F6] italic"
-                      >Unassigned</button>
-                      {FIELD_EMPLOYEES.map((name) => (
-                        <button key={name} onClick={() => { setAssignedTo(name); setAssignedToOpen(false); }}
-                          className="w-full text-left px-3 py-2 text-[13px] text-[#374151] hover:bg-[#F3F4F6] flex items-center gap-2">
-                          <span className="w-6 h-6 rounded-full bg-[#4A6FA5] flex items-center justify-center text-white text-[10px]" style={{ fontWeight: 600 }}>
-                            {name.split(" ").map((n) => n[0]).join("")}
-                          </span>
-                          {name}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                <div className="text-[13px] text-[#8899AA]">End Date</div>
+                <div className="text-[14px] text-[#1A2332] mt-0.5" style={{ fontWeight: 600 }}>{job.endsOn}</div>
               </div>
               <div>
-                <div className="text-[11px] text-[#9CA3AF]">Start Time</div>
-                <div className="text-[13px] text-[#374151] mt-0.5" style={{ fontWeight: 500 }}>{job.startTime}</div>
+                <div className="text-[13px] text-[#8899AA]">Start Time</div>
+                <div className="text-[14px] text-[#1A2332] mt-0.5" style={{ fontWeight: 600 }}>{job.startTime}</div>
               </div>
               <div>
-                <div className="text-[11px] text-[#9CA3AF]">End Time</div>
-                <div className="text-[13px] text-[#374151] mt-0.5" style={{ fontWeight: 500 }}>{job.endTime}</div>
+                <div className="text-[13px] text-[#8899AA]">End Time</div>
+                <div className="text-[14px] text-[#1A2332] mt-0.5" style={{ fontWeight: 600 }}>{job.endTime}</div>
               </div>
             </div>
           </div>
         </div>
 
         {/* ── Col 2: Notes panel with sub-tabs ── */}
-        <div className="w-[400px] shrink-0 bg-white border border-[#E5E7EB] rounded-lg overflow-hidden">
+        <div className="w-[380px] shrink-0 bg-white border border-[#E5E7EB] rounded-lg overflow-hidden">
           {/* Header: "Notes" label + sub-tabs + "+" */}
           <div className="flex items-center border-b border-[#E5E7EB] px-4 gap-1">
-            <span className="text-[13px] text-[#1A2332] mr-2 py-3" style={{ fontWeight: 600 }}>Notes</span>
+            <span className="sr-only">Notes</span>
             {noteTabs.map(tab => (
               <button
                 key={tab.key}
@@ -704,8 +718,8 @@ export function JobDetail() {
             <div className="divide-y divide-[#F3F4F6]">
               {shownNotes.map((note: NoteEntry) => (
                 <div key={note.id} className="px-4 py-3 group">
-                  <p className="text-[13px] text-[#1A2332] leading-[20px]" style={{ fontWeight: 500 }}>{note.text}</p>
-                  <div className="text-[11px] text-[#9CA3AF] mt-1">{note.date}</div>
+                  <div className="text-[12px] text-[#8899AA] mb-1">Added {note.date}</div>
+                  <p className="text-[13px] text-[#1A2332] leading-[20px]" style={{ fontWeight: 600 }}>{note.text}</p>
                 </div>
               ))}
             </div>
@@ -725,10 +739,10 @@ export function JobDetail() {
         </div>
 
         {/* ── Col 3: Attachments (Media / Files) ── */}
-        <div className="w-[440px] shrink-0 bg-white border border-[#E5E7EB] rounded-lg overflow-hidden">
+        <div className="w-[540px] shrink-0 bg-white border border-[#E5E7EB] rounded-lg overflow-hidden">
           {/* Header */}
           <div className="flex items-center border-b border-[#E5E7EB] px-4 py-2.5 gap-3">
-            <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>Attachments</span>
+            <span className="sr-only">Attachments</span>
             <div className="flex items-center gap-1 ml-1">
               {(["media", "files"] as const).map(t => (
                 <button
@@ -748,9 +762,9 @@ export function JobDetail() {
 
           {/* Media tab */}
           {mediaTab === "media" && (
-            <div className="flex" style={{ minHeight: 260 }}>
+            <div className="flex" style={{ minHeight: 360 }}>
               {/* Thumbnail grid (2 cols) */}
-              <div className="w-[110px] shrink-0 p-2 border-r border-[#F3F4F6] grid grid-cols-2 gap-1 content-start overflow-y-auto" style={{ maxHeight: 320 }}>
+              <div className="w-[122px] shrink-0 p-2 border-r border-[#F3F4F6] grid grid-cols-2 gap-1.5 content-start overflow-y-auto" style={{ maxHeight: 360 }}>
                 {MOCK_PHOTOS.map((photo, idx) => (
                   <button
                     key={photo.id}
@@ -759,7 +773,7 @@ export function JobDetail() {
                       idx === mediaPreviewIdx ? "border-[#4A6FA5]" : "border-transparent hover:border-[#C5D5EC]"
                     }`}
                   >
-                    <div className="w-full h-full" style={{ background: photo.gradient }} />
+                    <img src={photo.previewUrl} alt="" className="h-full w-full object-cover" />
                   </button>
                 ))}
               </div>
@@ -772,8 +786,8 @@ export function JobDetail() {
                 >
                   <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>chevron_left</span>
                 </button>
-                <div className="w-full aspect-[4/3] rounded-lg overflow-hidden relative">
-                  <div className="w-full h-full" style={{ background: MOCK_PHOTOS[mediaPreviewIdx]?.gradient }} />
+                <div className="w-[220px] aspect-[4/3] rounded-lg overflow-hidden relative">
+                  <img src={MOCK_PHOTOS[mediaPreviewIdx]?.previewUrl} alt="" className="h-full w-full object-cover" />
                   {MOCK_PHOTOS[mediaPreviewIdx]?.tag && (
                     <span className="absolute left-2 bottom-2 px-2 py-0.5 rounded text-[10px] text-white bg-[#16A34A]" style={{ fontWeight: 600 }}>
                       {MOCK_PHOTOS[mediaPreviewIdx].tag}
@@ -1223,29 +1237,29 @@ export function JobDetail() {
   return (
     <div className="min-h-screen bg-[#F5F7FA]">
       {/* ── PAGE HEADER (back arrow + actions on gray, outside the white card) ── */}
-      <div className="px-6 pt-6 pb-4 flex items-center justify-between gap-3">
+      <div className="px-6 pt-6 pb-4 flex items-center gap-4">
         <button
           onClick={() => navigate("/jobs")}
-          className="inline-flex items-center gap-1.5 text-[13px] text-[#4A6FA5] hover:text-[#3d5a85] transition-colors"
+          className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[#546478] hover:bg-[#EDF0F5] transition-colors"
           style={{ fontWeight: 500 }}
           aria-label="Back to Jobs"
           title="Back to Jobs"
         >
           <span className="material-icons" style={{ fontSize: "18px" }}>arrow_back</span>
-          <span>Back to Jobs</span>
         </button>
+        <h1 className="text-[24px] leading-[32px] text-[#1A2332]" style={{ fontWeight: 700 }}>Job details</h1>
       </div>
 
       {/* ── ONE BIG WHITE CARD CONTAINING EVERYTHING ── */}
-      <div className="relative mx-6 mb-6 bg-white border border-[#E5E7EB] rounded-xl p-4">
+      <div className="relative mx-6 mb-6 bg-white border border-[#E5E7EB] rounded-xl p-4 overflow-x-auto">
 
         {/* Summary content — left column has title/contact row, right column has compact KPIs */}
-        <div className="flex items-start gap-4">
+        <div className="flex min-w-[1190px] items-start gap-4">
           <div className="flex-1 min-w-0 flex flex-col gap-1.5">
             {/* Row 1: Job number + status */}
             <div className="flex items-center gap-2">
               <h2 className="text-[20px] text-[#1A2332] leading-[27px]" style={{ fontFamily: "Geist", fontWeight: 600 }}>
-                Job #{job.jobNumber}
+                {job.client} <span className="text-[#6B7280]" style={{ fontWeight: 500 }}>({job.jobNumber})</span>
               </h2>
               {/* Status dropdown */}
               <div className="relative">
@@ -1277,31 +1291,20 @@ export function JobDetail() {
 
             {/* Row 2: Contact icon row — client name | phone icon | email icon | address | job title */}
             <div className="flex items-center gap-0.5 flex-wrap">
-              <button
-                onClick={() => navigate(`/clients/${job.clientId}`)}
-                className="flex items-center gap-1.5 pr-2 hover:text-[#4A6FA5] transition-colors"
-              >
-                <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "15px" }}>person</span>
-                <span className="text-[13px] text-[#374151]" style={{ fontWeight: 500 }}>{job.client}</span>
-              </button>
+              <div className="flex items-center gap-1 px-1.5">
+                <span className="material-icons text-[#6B7280]" style={{ fontSize: "16px" }}>location_on</span>
+                <span className="text-[13px] text-[#374151]">{job.address}, {job.city}, {job.state} {job.zip}</span>
+              </div>
               <div className="w-px h-4 bg-[#E5E7EB]" />
-              <a href={`tel:${job.phone}`} className="flex items-center justify-center w-7 h-7 rounded-lg hover:bg-[#F5F7FA] transition-colors" title={job.phone}>
+              <a href={`tel:${job.phone}`} className="flex items-center gap-1 px-2 rounded-lg hover:bg-[#F5F7FA] transition-colors" title={job.phone}>
                 <span className="material-icons text-[#6B7280]" style={{ fontSize: "16px" }}>phone</span>
+                <span className="text-[13px] text-[#4A6FA5]" style={{ fontWeight: 600 }}>{job.phone}</span>
               </a>
               <div className="w-px h-4 bg-[#E5E7EB]" />
-              <a href={`mailto:${job.email}`} className="flex items-center justify-center w-7 h-7 rounded-lg hover:bg-[#F5F7FA] transition-colors" title={job.email}>
+              <a href={`mailto:${job.email}`} className="flex items-center gap-1 px-2 rounded-lg hover:bg-[#F5F7FA] transition-colors" title={job.email}>
                 <span className="material-icons text-[#6B7280]" style={{ fontSize: "16px" }}>mail</span>
+                <span className="text-[13px] text-[#4A6FA5]" style={{ fontWeight: 600 }}>{job.email}</span>
               </a>
-              <div className="w-px h-4 bg-[#E5E7EB]" />
-              <div className="flex items-center gap-1 px-1.5">
-                <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "15px" }}>location_on</span>
-                <span className="text-[13px] text-[#546478]">{job.address}, {job.city}, {job.state} {job.zip}</span>
-              </div>
-              <div className="w-px h-4 bg-[#E5E7EB]" />
-              <div className="flex items-center gap-1 px-1.5">
-                <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "15px" }}>work</span>
-                <span className="text-[13px] text-[#546478]">{job.title}</span>
-              </div>
             </div>
 
             {/* Row 3: Secondary metadata strip (grayed) — client since · last visit · notes preview */}
@@ -1343,7 +1346,7 @@ export function JobDetail() {
             <div className="flex w-[128px] items-center justify-between gap-2 rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5" style={{ minHeight: 44 }}>
               <div className="min-w-0">
                 <div className="truncate text-[15px] leading-tight tabular-nums" style={{ fontWeight: 700, color: "#16A34A" }}>
-                  ${Math.round(job.profitability.totalPrice).toLocaleString("en-US")}
+                  ${job.profitability.totalPrice.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
                 <div className="truncate text-[10px]" style={{ color: "#546478" }}>Total Price</div>
               </div>
@@ -1367,7 +1370,7 @@ export function JobDetail() {
             <div className="flex w-[128px] items-center justify-between gap-2 rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5" style={{ minHeight: 44 }}>
               <div className="min-w-0">
                 <div className="truncate text-[15px] leading-tight tabular-nums text-[#1A2332]" style={{ fontWeight: 700 }}>
-                  ${Math.round(job.profitability.lineItemCost + job.profitability.expenses).toLocaleString("en-US")}
+                  ${(job.profitability.lineItemCost + job.profitability.expenses).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
                 <div className="truncate text-[10px]" style={{ color: "#546478" }}>All Expenses</div>
               </div>
@@ -1379,7 +1382,7 @@ export function JobDetail() {
             <div className="flex w-[128px] items-center justify-between gap-2 rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5" style={{ minHeight: 44 }}>
               <div className="min-w-0">
                 <div className="truncate text-[15px] leading-tight tabular-nums" style={{ fontWeight: 700, color: job.profitability.margin < 0 ? "#DC2626" : "#16A34A" }}>
-                  {Math.round(job.profitability.margin)}%
+                  {job.profitability.margin.toFixed(2)}%
                 </div>
                 <div className="flex items-center gap-1">
                   <div className="truncate text-[10px]" style={{ color: "#546478" }}>Profit Margin</div>
