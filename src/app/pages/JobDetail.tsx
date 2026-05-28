@@ -146,14 +146,17 @@ const priorityColors: Record<string, { bg: string; text: string }> = {
   High: { bg: "#FEF2F2", text: "#DC2626" },
 };
 
-type TabKey = "details" | "estimate" | "invoices" | "items" | "expenses" | "documents" | "notes";
+type TabKey = "details" | "appointments" | "checklist" | "documents" | "items" | "labor" | "expense" | "finance";
 
 const BASE_TABS: { key: TabKey; label: string }[] = [
-  { key: "details",   label: "Details" },
-  { key: "estimate",  label: "Estimate" },
-  { key: "invoices",  label: "Invoices" },
-  { key: "items",     label: "Items" },
-  { key: "expenses",  label: "Expense" },
+  { key: "details",       label: "Details" },
+  { key: "appointments",  label: "Appointments" },
+  { key: "checklist",     label: "Checklist" },
+  { key: "documents",     label: "Documents" },
+  { key: "items",         label: "Items" },
+  { key: "labor",         label: "Labor" },
+  { key: "expense",       label: "Expense" },
+  { key: "finance",       label: "Finance" },
 ];
 
 /* 11 placeholder photos for the Attachments panel */
@@ -419,11 +422,10 @@ export function JobDetail() {
   /* ── Tab counts ── */
   const getTabCount = (key: TabKey): number | undefined => {
     const counts: Partial<Record<TabKey, number>> = {
-      notes: job.notes.length + job.internalNotes.length + job.fieldNotes.length,
-      estimate: job.linkedEstimate ? 1 : 0,
-      invoices: job.linkedInvoice ? 1 : 0,
-      expenses: job.expenses.length,
+      appointments: job.visits.length,
       documents: documents.length,
+      items: job.lineItems.length,
+      expense: job.expenses.length,
     };
     return counts[key];
   };
@@ -812,134 +814,18 @@ export function JobDetail() {
     );
   };
 
-  const renderEstimateTab = () => (
-    <>
-      <div className="flex items-center justify-between mb-5">
-        <h3 className="text-[15px] text-[#1A2332]" style={{ fontWeight: 600 }}>Estimates</h3>
-        <button
-          onClick={() => navigate("/estimates/create")}
-          className="h-8 px-3 gap-1.5 text-[13px] bg-[#4A6FA5] hover:bg-[#3d5a85] text-white rounded-md inline-flex items-center justify-center transition-colors"
-          style={{ fontWeight: 600 }}
-        >
-          <PlusIcon className="h-4 w-4" />
-          Create estimate
-        </button>
-      </div>
-      {job.linkedEstimate ? (
-        <table className="w-full text-[13px]">
-          <thead>
-            <tr className="border-b border-[#E5E7EB]">
-              <th className="text-left py-2 text-[11px] uppercase tracking-wide text-[#9CA3AF]" style={{ fontWeight: 600 }}>Estimate</th>
-              <th className="text-left py-2 text-[11px] uppercase tracking-wide text-[#9CA3AF]" style={{ fontWeight: 600 }}>Status</th>
-              <th className="py-2"></th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr className="border-b border-[#F3F4F6]">
-              <td className="py-3">
-                <div className="flex items-center gap-2">
-                  <span className="material-icons text-[#6B7280]" style={{ fontSize: "18px" }}>request_quote</span>
-                  <button
-                    onClick={() => navigate(`/estimates/${job.linkedEstimate.id}`)}
-                    className="text-[#4A6FA5] hover:underline"
-                    style={{ fontWeight: 500 }}
-                  >
-                    {job.linkedEstimate.title}
-                  </button>
-                </div>
-              </td>
-              <td className="py-3">
-                <span className="px-1.5 py-0.5 rounded text-[11px] bg-[#F3F4F6] text-[#6B7280]" style={{ fontWeight: 500 }}>
-                  {job.linkedEstimate.status}
-                </span>
-              </td>
-              <td className="py-3 text-right">
-                <button className="text-[12px] text-[#6B7280] hover:text-[#374151]">
-                  <span className="material-icons" style={{ fontSize: "18px" }}>open_in_new</span>
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      ) : (
-        <div className="text-center py-8">
-          <span className="material-icons text-[#D1D5DB] mb-2 block" style={{ fontSize: "40px" }}>request_quote</span>
-          <div className="text-[13px] text-[#9CA3AF]">No estimates yet</div>
-          <button
-            onClick={() => navigate("/estimates/create")}
-            className="mt-3 h-8 px-3 gap-1.5 text-[13px] bg-[#4A6FA5] hover:bg-[#3d5a85] text-white rounded-md inline-flex items-center justify-center transition-colors"
-            style={{ fontWeight: 600 }}
-          >
-            Create the first estimate
-          </button>
-        </div>
-      )}
-    </>
+  const renderAppointmentsTab = () => (
+    <div className="text-center py-12">
+      <span className="material-icons text-[#D1D5DB] mb-2 block" style={{ fontSize: "40px" }}>schedule</span>
+      <div className="text-[13px] text-[#9CA3AF]">Appointments feature coming soon</div>
+    </div>
   );
 
-  const renderInvoicesTab = () => (
-    <>
-      <div className="flex items-center justify-between mb-5">
-        <h3 className="text-[15px] text-[#1A2332]" style={{ fontWeight: 600 }}>Invoices</h3>
-        <button
-          onClick={() => navigate(`/invoices/create?job=${encodeURIComponent(job.jobNumber)}&client=${encodeURIComponent(job.client || "")}`)}
-          className="h-8 px-3 gap-1.5 text-[13px] bg-[#4A6FA5] hover:bg-[#3d5a85] text-white rounded-md inline-flex items-center justify-center transition-colors"
-          style={{ fontWeight: 600 }}
-        >
-          <PlusIcon className="h-4 w-4" />
-          Create invoice
-        </button>
-      </div>
-      {job.linkedInvoice ? (
-        <table className="w-full text-[13px]">
-          <thead>
-            <tr className="border-b border-[#E5E7EB]">
-              <th className="text-left py-2 text-[11px] uppercase tracking-wide text-[#9CA3AF]" style={{ fontWeight: 600 }}>Invoice</th>
-              <th className="text-left py-2 text-[11px] uppercase tracking-wide text-[#9CA3AF]" style={{ fontWeight: 600 }}>Status</th>
-              <th className="py-2"></th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr className="border-b border-[#F3F4F6]">
-              <td className="py-3">
-                <div className="flex items-center gap-2">
-                  <span className="material-icons text-[#6B7280]" style={{ fontSize: "18px" }}>receipt</span>
-                  <button
-                    onClick={() => navigate(`/invoices/${job.linkedInvoice.id}`)}
-                    className="text-[#4A6FA5] hover:underline"
-                    style={{ fontWeight: 500 }}
-                  >
-                    {job.linkedInvoice.title}
-                  </button>
-                </div>
-              </td>
-              <td className="py-3">
-                <span className="px-1.5 py-0.5 rounded text-[11px] bg-[#F3F4F6] text-[#6B7280]" style={{ fontWeight: 500 }}>
-                  {job.linkedInvoice.status}
-                </span>
-              </td>
-              <td className="py-3 text-right">
-                <button className="text-[12px] text-[#6B7280] hover:text-[#374151]">
-                  <span className="material-icons" style={{ fontSize: "18px" }}>open_in_new</span>
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      ) : (
-        <div className="text-center py-8">
-          <span className="material-icons text-[#D1D5DB] mb-2 block" style={{ fontSize: "40px" }}>receipt</span>
-          <div className="text-[13px] text-[#9CA3AF]">No invoices yet</div>
-          <button
-            onClick={() => navigate("/invoices/create")}
-            className="mt-3 h-8 px-3 gap-1.5 text-[13px] bg-[#4A6FA5] hover:bg-[#3d5a85] text-white rounded-md inline-flex items-center justify-center transition-colors"
-            style={{ fontWeight: 600 }}
-          >
-            Create the first invoice
-          </button>
-        </div>
-      )}
-    </>
+  const renderChecklistTab = () => (
+    <div className="text-center py-12">
+      <span className="material-icons text-[#D1D5DB] mb-2 block" style={{ fontSize: "40px" }}>checklist</span>
+      <div className="text-[13px] text-[#9CA3AF]">Checklist feature coming soon</div>
+    </div>
   );
 
   const renderItemsTab = () => (
@@ -989,7 +875,7 @@ export function JobDetail() {
     </>
   );
 
-  const renderExpensesTab = () => (
+  const renderExpenseTab = () => (
     <>
       <div className="flex items-center justify-between mb-5">
         <h3 className="text-[15px] text-[#1A2332]" style={{ fontWeight: 600 }}>Expenses</h3>
@@ -1043,6 +929,20 @@ export function JobDetail() {
         </div>
       )}
     </>
+  );
+
+  const renderLaborTab = () => (
+    <div className="text-center py-12">
+      <span className="material-icons text-[#D1D5DB] mb-2 block" style={{ fontSize: "40px" }}>engineering</span>
+      <div className="text-[13px] text-[#9CA3AF]">Labor details coming soon</div>
+    </div>
+  );
+
+  const renderFinanceTab = () => (
+    <div className="text-center py-12">
+      <span className="material-icons text-[#D1D5DB] mb-2 block" style={{ fontSize: "40px" }}>attach_money</span>
+      <div className="text-[13px] text-[#9CA3AF]">Financial summary coming soon</div>
+    </div>
   );
 
   const renderDocumentsTab = () => (
@@ -1305,13 +1205,14 @@ export function JobDetail() {
 
   const renderContent = () => {
     switch (activeTab) {
-      case "details":   return renderDetailsTab();
-      case "estimate":  return renderEstimateTab();
-      case "invoices":  return renderInvoicesTab();
-      case "items":     return renderItemsTab();
-      case "expenses":  return renderExpensesTab();
-      case "documents": return renderDocumentsTab();
-      case "notes":     return <NoteColumn title="Notes" initialNotes={[...job.notes, ...job.fieldNotes, ...job.internalNotes]} />;
+      case "details":       return renderDetailsTab();
+      case "appointments":  return renderAppointmentsTab();
+      case "checklist":     return renderChecklistTab();
+      case "documents":     return renderDocumentsTab();
+      case "items":         return renderItemsTab();
+      case "labor":         return renderLaborTab();
+      case "expense":       return renderExpenseTab();
+      case "finance":       return renderFinanceTab();
       default: return null;
     }
   };

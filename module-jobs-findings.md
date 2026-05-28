@@ -20,16 +20,16 @@
 
 ## ❌ Failing
 
-**JB-01** — Job detail tabs are severely incomplete. PRD §7.8 requires 8 tabs: Details, Appointments, Checklist, Documents, Items, Labor, Expense, Finance. Implementation has only 5: Job Details, Estimate, Invoices, Items, Expenses. **Missing: Appointments, Checklist, Documents, Labor, Finance**.  
+**JB-01** — ✅ FIXED: Job detail tabs now match PRD §7.8 with correct 8 tabs: Details, Appointments, Checklist, Documents, Items, Labor, Expense, Finance.  
 *File*: `JobDetail.tsx:151–157`
 
-**JB-02** — "Job Details" tab label should be "Details" per PRD §7.8.  
+**JB-02** — ✅ FIXED: "Details" label is correct.  
 *File*: `JobDetail.tsx:151`
 
-**JB-03** — "Expenses" tab label should be "Expense" (singular) per PRD §7.8.  
+**JB-03** — ✅ FIXED: "Expense" tab label is now singular per PRD §7.8.  
 *File*: `JobDetail.tsx`
 
-**JB-04** — Extra "Estimate" and "Invoices" tabs not in PRD §7.8 tab list.  
+**JB-04** — ✅ FIXED: Removed extra "Estimate" and "Invoices" tabs.  
 *File*: `JobDetail.tsx`
 
 **JB-05** — "Inactivate Selected" is in SelectionBar but NOT in kebab menu. PRD §7.20 requires it in the kebab.
