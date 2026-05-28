@@ -35,10 +35,10 @@ export function StatCard({
       title={description}
     >
       <div className="flex min-w-0 flex-col justify-center">
-        <div className="truncate text-[18px] leading-tight text-[#1A2332]" style={{ fontWeight: 700 }}>
+        <div className="truncate text-[20px] text-[#1A2332]" style={{ fontWeight: 600, lineHeight: "27px" }}>
           {value}
         </div>
-        <div className="mt-0.5 truncate text-[11px] text-[#546478]">
+        <div className="mt-0.5 truncate text-[14px] text-[#6B7280]" style={{ fontWeight: 600, lineHeight: "20px" }}>
           {label}
         </div>
       </div>

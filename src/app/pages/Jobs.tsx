@@ -24,34 +24,45 @@ interface Job {
   address: string;
   schedule: string;
   scheduleDateSort: string;
-  status: "Scheduled" | "In Progress" | "Completed";
+  status: "Scheduled" | "In Progress" | "Completed" | "On Review";
   jobType: "One-off" | "Recurring";
   total: number;
 }
 
 const mockJobs: Job[] = [
-  { id: 1, jobNumber: "10245-J01", title: "AC Estimate", client: "Travis Jones", clientId: "10245", address: "4405 North Clark Avenue, Tampa, Florida 33614", schedule: "March 30, 2026", scheduleDateSort: "2026-03-30", status: "Scheduled", jobType: "One-off", total: 0.0 },
-  { id: 2, jobNumber: "10246-J01", title: "Tree Removal", client: "Sarah Johnson", clientId: "10246", address: "1220 Elm Street, Orlando, Florida 32801", schedule: "April 10, 2026", scheduleDateSort: "2026-04-10", status: "In Progress", jobType: "One-off", total: 450.0 },
-  { id: 3, jobNumber: "10247-J03", title: "Monthly Lawn Care", client: "Mike Davis", clientId: "10247", address: "890 Oak Drive, Miami, Florida 33101", schedule: "April 15, 2026", scheduleDateSort: "2026-04-15", status: "Scheduled", jobType: "Recurring", total: 120.0 },
-  { id: 4, jobNumber: "10255-J01", title: "Plumbing Repair", client: "Lisa Brown", clientId: "10255", address: "567 Pine Road, Jacksonville, Florida 32099", schedule: "April 6, 2026", scheduleDateSort: "2026-04-06", status: "Completed", jobType: "One-off", total: 275.0 },
+  { id: 1,  jobNumber: "10234-J01", title: "AC Estimate",        client: "Travis Jones",   clientId: "10234", address: "854 Maple St, Fort Worth, TX 76107",        schedule: "March 30, 2026", scheduleDateSort: "2026-03-30", status: "Scheduled",  jobType: "One-off",   total: 375.01 },
+  { id: 2,  jobNumber: "10234-J02", title: "AC Estimate",        client: "Travis Jones",   clientId: "10234", address: "854 Maple St, Fort Worth, TX 76107",        schedule: "March 30, 2026", scheduleDateSort: "2026-03-30", status: "Scheduled",  jobType: "One-off",   total: 375.01 },
+  { id: 3,  jobNumber: "10234-J03", title: "AC Estimate",        client: "Travis Jones",   clientId: "10234", address: "854 Maple St, Fort Worth, TX 76107",        schedule: "March 30, 2026", scheduleDateSort: "2026-03-30", status: "In Progress", jobType: "One-off",   total: 375.01 },
+  { id: 4,  jobNumber: "10234-J04", title: "AC Estimate",        client: "Travis Jones",   clientId: "10234", address: "854 Maple St, Fort Worth, TX 76107",        schedule: "March 30, 2026", scheduleDateSort: "2026-03-30", status: "On Review",  jobType: "One-off",   total: 375.01 },
+  { id: 5,  jobNumber: "10234-J05", title: "AC Estimate",        client: "Travis Jones",   clientId: "10234", address: "854 Maple St, Fort Worth, TX 76107",        schedule: "March 30, 2026", scheduleDateSort: "2026-03-30", status: "Completed",  jobType: "One-off",   total: 375.01 },
+  { id: 6,  jobNumber: "10234-J06", title: "AC Estimate",        client: "Travis Jones",   clientId: "10234", address: "854 Maple St, Fort Worth, TX 76107",        schedule: "March 30, 2026", scheduleDateSort: "2026-03-30", status: "Scheduled",  jobType: "One-off",   total: 375.01 },
+  { id: 7,  jobNumber: "10234-J07", title: "AC Estimate",        client: "Travis Jones",   clientId: "10234", address: "854 Maple St, Fort Worth, TX 76107",        schedule: "March 30, 2026", scheduleDateSort: "2026-03-30", status: "In Progress", jobType: "Recurring", total: 375.01 },
+  { id: 8,  jobNumber: "10234-J08", title: "AC Estimate",        client: "Travis Jones",   clientId: "10234", address: "854 Maple St, Fort Worth, TX 76107",        schedule: "March 30, 2026", scheduleDateSort: "2026-03-30", status: "On Review",  jobType: "One-off",   total: 375.01 },
+  { id: 9,  jobNumber: "10234-J09", title: "AC Estimate",        client: "Travis Jones",   clientId: "10234", address: "854 Maple St, Fort Worth, TX 76107",        schedule: "March 30, 2026", scheduleDateSort: "2026-03-30", status: "Completed",  jobType: "One-off",   total: 375.01 },
+  { id: 10, jobNumber: "10255-J01", title: "Plumbing Repair",    client: "Lisa Brown",     clientId: "10255", address: "567 Pine Road, Jacksonville, FL 32099",     schedule: "April 6, 2026",  scheduleDateSort: "2026-04-06", status: "Completed",  jobType: "One-off",   total: 275.00 },
+  { id: 11, jobNumber: "10246-J01", title: "Tree Removal",       client: "Sarah Johnson",  clientId: "10246", address: "1220 Elm Street, Orlando, FL 32801",        schedule: "April 10, 2026", scheduleDateSort: "2026-04-10", status: "In Progress", jobType: "One-off",   total: 450.00 },
+  { id: 12, jobNumber: "10247-J03", title: "Monthly Lawn Care",  client: "Mike Davis",     clientId: "10247", address: "890 Oak Drive, Miami, FL 33101",            schedule: "April 15, 2026", scheduleDateSort: "2026-04-15", status: "Scheduled",  jobType: "Recurring", total: 120.00 },
 ];
 
 const statusColors: Record<string, string> = {
   Scheduled: "#4A6FA5",
   "In Progress": "#D97706",
   Completed: "#16A34A",
+  "On Review": "#B45309",
 };
 
 const statusBg: Record<string, string> = {
   Scheduled: "#EBF0F8",
   "In Progress": "#FEF3C7",
   Completed: "#DCFCE7",
+  "On Review": "#FEF9C3",
 };
 
 const statusIcons: Record<string, string> = {
   Scheduled: "event_note",
   "In Progress": "autorenew",
   Completed: "check_circle",
+  "On Review": "rate_review",
 };
 
 type SortField = "id" | "address" | "schedule" | "status" | "total" | "client";
@@ -155,7 +166,12 @@ export function Jobs() {
   const handleSelectAll = (checked: boolean) => setSelectedJobs(checked ? new Set(sorted.map(j => j.id)) : new Set());
   const handleSelect = (id: number, checked: boolean) => { const s = new Set(selectedJobs); checked ? s.add(id) : s.delete(id); setSelectedJobs(s); };
 
-  const statusCounts = { Scheduled: jobs.filter(j => j.status === "Scheduled").length, "In Progress": jobs.filter(j => j.status === "In Progress").length, Completed: jobs.filter(j => j.status === "Completed").length };
+  const statusCounts = {
+    Scheduled: jobs.filter(j => j.status === "Scheduled").length,
+    "In Progress": jobs.filter(j => j.status === "In Progress").length,
+    "On Review": jobs.filter(j => j.status === "On Review").length,
+    Completed: jobs.filter(j => j.status === "Completed").length,
+  };
 
   const SortIcon = ({ field }: { field: SortField }) => (
     <span className="material-icons text-[#9AA3AF] ml-0.5" style={{ fontSize: "14px" }}>
@@ -175,15 +191,6 @@ export function Jobs() {
 
       {/* ── Stats Cards (Clients-template style) ── */}
       <div className="mb-4 grid grid-cols-4 gap-3">
-        <StatCard
-          value={String(statusCounts["Scheduled"])}
-          label="Scheduled"
-          sub="upcoming"
-          change="+8%"
-          changeUp
-          period="vs last week"
-          data={[2, 3, 4, 3, 5, 4, 6]}
-        />
         <StatCard
           value={String(statusCounts["In Progress"])}
           label="In progress"
@@ -205,7 +212,17 @@ export function Jobs() {
           sparklineColor="#16A34A"
         />
         <StatCard
-          value={`$${jobs.reduce((sum, j) => sum + (j.total ?? 0), 0).toLocaleString("en-US")}`}
+          value={String(statusCounts["On Review"])}
+          label="On Review"
+          sub="pending review"
+          change="+5%"
+          changeUp
+          period="vs last week"
+          data={[1, 1, 2, 2, 3, 2, 3]}
+          sparklineColor="#B45309"
+        />
+        <StatCard
+          value={`$${jobs.reduce((sum, j) => sum + (j.total ?? 0), 0).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
           label="Revenue"
           sub="this month"
           change="+18%"
@@ -231,6 +248,7 @@ export function Jobs() {
               <option value="All">Status: All</option>
               <option value="Scheduled">Scheduled</option>
               <option value="In Progress">In Progress</option>
+              <option value="On Review">On Review</option>
               <option value="Completed">Completed</option>
             </select>
             <select value={qfType} onChange={e => { setQfType(e.target.value); setCurrentPage(1); }} className={qfClass(qfType !== "All")}>
@@ -384,11 +402,11 @@ export function Jobs() {
           <div className="flex items-center gap-3">
             <span className="text-[14px] text-[#6B7280]" style={{ fontWeight: 400 }}>Rows per page:</span>
             <Select value={String(rowsPerPage)} onValueChange={v => { setRowsPerPage(Number(v)); setCurrentPage(1); }}>
-              <SelectTrigger className="h-9 w-[59px] border-[#E5E7EB] text-[14px] text-[#1A2332]" style={{ fontWeight: 400, boxShadow: "0px 1px 2px rgba(0,0,0,0.05)" }}>
+              <SelectTrigger className="h-9 w-[72px] border-[#E5E7EB] text-[14px] text-[#1A2332]" style={{ fontWeight: 400, boxShadow: "0px 1px 2px rgba(0,0,0,0.05)" }}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {[10, 25, 50, 100].map(n => <SelectItem key={n} value={String(n)}>{n}</SelectItem>)}
+                {[5, 10, 25, 50, 100].map(n => <SelectItem key={n} value={String(n)}>{n}</SelectItem>)}
               </SelectContent>
             </Select>
             <span className="text-[14px] text-[#6B7280]" style={{ fontWeight: 400 }}>

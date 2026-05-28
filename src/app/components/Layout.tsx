@@ -7,19 +7,24 @@ import { Dialer } from "./Dialer";
 import { HelpCenter } from "./HelpCenter";
 import { ProfileMenu } from "./ProfileMenu";
 import { PlusIcon } from "./ui/plus-icon";
+import {
+  HomeIcon, ScheduleIcon, ClientsIcon, JobsIcon, EstimatesIcon,
+  InvoicesIcon, PaymentsIcon, ExpensesIcon, ItemsIcon,
+  CollapseIcon, BellIcon, HelpIcon, SettingsGearIcon, SearchIcon,
+} from "./ui/nav-icons";
 import { applyStoredBrandTheme, BRAND_LOGO_EVENT, getStoredBrandLogo } from "../utils/brandTheme";
 import { formatTrialDate, getTrialDaysRemaining, isTrialActive, trialStore } from "../stores/trialStore";
 
 const navItems = [
-  { to: "/", icon: "home", label: "Home" },
-  { to: "/calendar", icon: "calendar_today", label: "Schedule" },
-  { to: "/clients", icon: "people", label: "Clients" },
-  { to: "/jobs", icon: "work", label: "Jobs" },
-  { to: "/estimates", icon: "description", label: "Estimates" },
-  { to: "/invoices", icon: "receipt", label: "Invoices" },
-  { to: "/payments", icon: "credit_card", label: "Payments" },
-  { to: "/expenses", icon: "attach_money", label: "Expenses" },
-  { to: "/items", icon: "inventory_2", label: "Items" },
+  { to: "/", icon: HomeIcon, label: "Home" },
+  { to: "/calendar", icon: ScheduleIcon, label: "Schedule" },
+  { to: "/clients", icon: ClientsIcon, label: "Clients" },
+  { to: "/jobs", icon: JobsIcon, label: "Jobs" },
+  { to: "/estimates", icon: EstimatesIcon, label: "Estimates" },
+  { to: "/invoices", icon: InvoicesIcon, label: "Invoices" },
+  { to: "/payments", icon: PaymentsIcon, label: "Payments" },
+  { to: "/expenses", icon: ExpensesIcon, label: "Expenses" },
+  { to: "/items", icon: ItemsIcon, label: "Items" },
 ];
 
 export function Layout() {
@@ -265,12 +270,11 @@ export function Layout() {
                 }`
               }
             >
-              <span
-                className="material-icons flex-shrink-0"
-                style={{ fontSize: sidebarCollapsed ? "22px" : "16px" }}
-              >
-                {item.icon}
-              </span>
+              <item.icon
+                className="flex-shrink-0"
+                width={sidebarCollapsed ? 22 : 16}
+                height={sidebarCollapsed ? 22 : 16}
+              />
               {sidebarCollapsed ? (
                 <span
                   className="text-[11px] text-center"
@@ -298,15 +302,12 @@ export function Layout() {
                 : "h-8 flex-row items-center w-full px-3 py-1 gap-2"
             }`}
           >
-            <span
-              className="material-icons flex-shrink-0 transition-transform duration-[240ms] ease-[cubic-bezier(0.4,0,0.2,1)]"
-              style={{
-                fontSize: sidebarCollapsed ? "22px" : "16px",
-                transform: sidebarCollapsed ? "rotate(180deg)" : "rotate(0deg)",
-              }}
-            >
-              first_page
-            </span>
+            <CollapseIcon
+              className="flex-shrink-0 transition-transform duration-[240ms] ease-[cubic-bezier(0.4,0,0.2,1)]"
+              width={sidebarCollapsed ? 22 : 16}
+              height={sidebarCollapsed ? 22 : 16}
+              style={{ transform: sidebarCollapsed ? "rotate(180deg)" : "rotate(0deg)" }}
+            />
             {sidebarCollapsed ? (
               <span className="text-[11px] text-center" style={{ fontWeight: 500, lineHeight: "14px" }}>
                 Collapse
@@ -337,7 +338,7 @@ export function Layout() {
               }}
               className="w-full h-9 flex items-center gap-2 px-3 border border-[#E5E7EB] rounded-lg bg-white hover:border-[#B0BEC5] transition-all cursor-text shadow-[0px_1px_2px_rgba(0,0,0,0.05)]"
             >
-              <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "18px" }}>search</span>
+              <SearchIcon width={18} height={18} className="text-[#9CA3AF] flex-shrink-0" />
               <span className="text-[13px] text-[#9CA3AF] flex-1 text-left">Search customers, jobs, invoices...</span>
               <span className="text-[11px] text-[#9CA3AF] border border-[#E5E7EB] rounded px-1.5 py-0.5">⌘K</span>
             </button>
@@ -348,7 +349,7 @@ export function Layout() {
             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[680px] bg-white border border-[#E5E7EB] rounded-xl shadow-[0_20px_60px_-12px_rgba(0,0,0,0.2)] z-[2000] overflow-hidden">
               {/* Search Input Row */}
               <div className="flex items-center gap-2.5 px-4 py-3 border-b border-[#E5E7EB]">
-                <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "20px" }}>search</span>
+                <SearchIcon width={20} height={20} className="text-[#9CA3AF] flex-shrink-0" />
                 <input
                   ref={searchInputRef}
                   type="text"
@@ -594,16 +595,16 @@ export function Layout() {
               setProfileMenuOpen(false);
             }}
               className="relative w-9 h-9 p-2 rounded-lg flex items-center justify-center text-[#1A2332] hover:bg-[#F5F7FA] transition-colors">
-              <span className="material-icons-outlined" style={{ fontSize: "20px" }}>notifications</span>
+              <BellIcon width={20} height={20} />
               <span className="absolute top-1.5 right-1.5 w-[7px] h-[7px] rounded-full bg-[#DC2626] border border-white" />
             </button>
             <button title="Help Center" onClick={() => setHelpCenterOpen(true)}
               className="w-9 h-9 p-2 rounded-lg flex items-center justify-center text-[#1A2332] hover:bg-[#F5F7FA] transition-colors">
-              <span className="material-icons-outlined" style={{ fontSize: "20px" }}>help_outline</span>
+              <HelpIcon width={20} height={20} />
             </button>
             <button title="Settings" onClick={() => navigate("/settings")}
               className="w-9 h-9 p-2 rounded-lg flex items-center justify-center text-[#1A2332] hover:bg-[#F5F7FA] transition-colors">
-              <span className="material-icons-outlined" style={{ fontSize: "20px" }}>settings</span>
+              <SettingsGearIcon width={20} height={20} />
             </button>
           </div>
 
