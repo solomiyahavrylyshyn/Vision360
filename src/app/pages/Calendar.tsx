@@ -851,7 +851,7 @@ export function Calendar() {
                   const dayOpen = openWeekDayIndexes.has(dayI);
                   const dayCollapsed = collapsedWeekDays.has(dayI);
                   const showLanes = dayOpen && !dayCollapsed;
-                  const ROW_H = 112;
+                  const ROW_H = 72;
 
                   return (
                     <div key={dayI} ref={isToday ? weekTodayRef : undefined}>
@@ -995,8 +995,8 @@ export function Calendar() {
                                     style={{
                                       left,
                                       width: Math.max(width, 70),
-                                      top: 12,
-                                      height: 88,
+                                      top: 8,
+                                      height: 56,
                                       backgroundColor: job.bg,
                                       borderLeft: `3px solid ${job.border}`,
                                       boxShadow: isSelected ? `0 0 0 2px ${job.border}` : "none",
@@ -1007,22 +1007,17 @@ export function Calendar() {
                                     onDoubleClick={(event) => event.stopPropagation()}
                                   >
                                     <div className="flex flex-col h-full px-2 py-1">
-                                      <div className="flex items-center justify-between gap-2 text-[9px] text-[#9CA3AF] tabular-nums shrink-0">
-                                        <span>{formatRegionalTime(job.start, regionalSettings)} - {formatRegionalTime(job.end, regionalSettings)}</span>
-                                        <span className="flex h-4 w-4 items-center justify-center rounded-full text-[9px] text-white" style={{ backgroundColor: member.color, fontWeight: 700 }}>
+                                      <div className="flex items-center justify-between gap-1 text-[9px] text-[#9CA3AF] tabular-nums shrink-0">
+                                        <span className="truncate">{formatRegionalTime(job.start, regionalSettings)} - {formatRegionalTime(job.end, regionalSettings)}</span>
+                                        <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full text-[8px] text-white shrink-0" style={{ backgroundColor: member.color, fontWeight: 700 }}>
                                           {routeNumber}
                                         </span>
                                       </div>
                                       <div className="text-[11px] leading-tight truncate shrink-0" style={{ fontWeight: 700, color: "#1A2332" }}>{job.client}</div>
-                                      <div className="text-[10px] text-[#546478] truncate shrink-0">{job.service}</div>
-                                      <div className="flex items-center justify-between mt-auto shrink-0">
-                                        {job.amount > 0 ? (
-                                          <span className="text-[10px] tabular-nums" style={{ fontWeight: 700, color: job.border }}>${job.amount.toLocaleString()}</span>
-                                        ) : (
-                                          <span className="text-[10px] text-[#9CA3AF]">-</span>
-                                        )}
+                                      <div className="flex items-center gap-1 mt-auto shrink-0">
+                                        <span className="text-[9px] text-[#546478] truncate flex-1">{job.service}</span>
                                         <button
-                                          className="px-1.5 py-0.5 rounded-full text-[9px] max-w-[88px] truncate shrink-0"
+                                          className="px-1.5 py-0.5 rounded-full text-[9px] shrink-0"
                                           style={{ backgroundColor: statusStyle.bg, color: statusStyle.color, fontWeight: 700 }}
                                           onClick={(event) => {
                                             event.stopPropagation();
