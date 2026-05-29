@@ -68,7 +68,10 @@
       "Bash(curl -s -o \"C:\\\\Users\\\\mykha\\\\Documents\\\\Vision360\\\\src\\\\assets\\\\route-map.png\" \"https://www.figma.com/api/mcp/asset/5df85293-0dee-4257-bab3-2ad575daa357\")",
       "Bash(curl -s -o \"C:\\\\Users\\\\mykha\\\\Documents\\\\Vision360\\\\.tmp_map_pins.png\" \"https://www.figma.com/api/mcp/asset/f4592433-8423-4a36-a116-0a9cdaea480e\")",
       "Bash(curl -s -o \"C:\\\\Users\\\\mykha\\\\Documents\\\\Vision360\\\\.tmp_day_figma.png\" \"https://www.figma.com/api/mcp/asset/7470bdbb-8186-4ef0-8c71-90ae2fdbad6a\")",
-      "mcp__plugin_figma_figma__get_variable_defs"
+      "mcp__plugin_figma_figma__get_variable_defs",
+      "Bash(curl -s -o \"C:\\\\Users\\\\mykha\\\\Documents\\\\Vision360\\\\.tmp_month_figma.png\" \"https://www.figma.com/api/mcp/asset/14c5fc75-7e97-457c-aaf7-c4e35e8ca6cb\")",
+      "Bash(curl -s -o \"C:\\\\Users\\\\mykha\\\\Documents\\\\Vision360\\\\.tmp_jobdrawer_figma.png\" \"https://www.figma.com/api/mcp/asset/0ce15857-2176-44f2-b605-d4f4b5206015\")",
+      "Bash(curl -s -o \"C:\\\\Users\\\\mykha\\\\Documents\\\\Vision360\\\\.tmp_header_figma.png\" \"https://www.figma.com/api/mcp/asset/9af4cff1-4001-4d11-ad0f-dbb7ef649c82\")"
     ]
   }
 }

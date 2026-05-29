@@ -3,6 +3,7 @@ import { useNavigate } from "react-router";
 import { PageHeader } from "../components/ui/page-header";
 import { scheduleSettingsStore } from "../stores/scheduleSettingsStore";
 import { businessHoursStore, isDateOpenForBusiness } from "../stores/businessHoursStore";
+import { jobTypesStore } from "../stores/jobTypesStore";
 import { formatRegionalDate, formatRegionalTime, getWeekStartsOn, regionalSettingsStore } from "../stores/regionalSettingsStore";
 import {
   format,
@@ -77,6 +78,16 @@ const mockEvents: CalendarEvent[] = [
   { id: 8,  title: "Lawn Service",          client: "Emily Clark",   date: new Date(2026, 3, 13), startHour: 8,  duration: 2,   color: "green",  status: "Scheduled",   property: "88 Willow Dr",     amount: 95   },
   { id: 9,  title: "Roof Inspection",       client: "David Park",    date: new Date(2026, 3, 15), startHour: 10, duration: 2.5, color: "blue",   status: "Scheduled",   property: "321 Aspen Blvd",  amount: 250  },
   { id: 10, title: "Window Install",        client: "Karen White",   date: new Date(2026, 3, 20), startHour: 9,  duration: 5,   color: "purple", status: "Scheduled",   property: "45 Spruce Rd",     amount: 1450 },
+];
+
+// Customers and their saved service locations — powers the create-job customer/address pickers.
+const CUSTOMERS: { name: string; locations: string[] }[] = [
+  { name: "John Smith",    locations: ["123 Main St, Tampa, FL 33602", "4820 Cypress Creek Blvd, Tampa, FL 33613"] },
+  { name: "Sarah Johnson", locations: ["1220 Elm St, Tampa, FL 33606"] },
+  { name: "Mike Davis",    locations: ["890 Oak Dr, Tampa, FL 33611", "910 Harbour Island Blvd, Tampa, FL 33602"] },
+  { name: "Robert Lee",    locations: ["567 Pine Rd, Brandon, FL 33510"] },
+  { name: "Emily Parker",  locations: ["234 Maple Ln, Riverview, FL 33578", "56 Birch Ct, Riverview, FL 33578", "12 Cedar Way, Riverview, FL 33579"] },
+  { name: "Tom Carter",    locations: ["321 Aspen Blvd, Tampa, FL 33647"] },
 ];
 
 const dispatchJobs: DispatchJob[] = [
@@ -190,6 +201,7 @@ export function Calendar() {
   const scheduleSettings = useSyncExternalStore(scheduleSettingsStore.subscribe, scheduleSettingsStore.getSnapshot);
   const businessHours = useSyncExternalStore(businessHoursStore.subscribe, businessHoursStore.getSnapshot);
   const regionalSettings = useSyncExternalStore(regionalSettingsStore.subscribe, regionalSettingsStore.getSnapshot);
+  const jobTypes = useSyncExternalStore(jobTypesStore.subscribe, jobTypesStore.getJobTypes);
   const GANTT_START_HOUR = scheduleSettings.startHour;
   const GANTT_END_HOUR = scheduleSettings.endHour;
   const SLOT_HOURS = scheduleSettings.slotMinutes / 60;
@@ -198,9 +210,9 @@ export function Calendar() {
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [selectedDispatchJob, setSelectedDispatchJob] = useState<DispatchJob | null>(null);
   const [selectedDayJob, setSelectedDayJob] = useState<DayJob | null>(null);
-  const [hoveredDay, setHoveredDay] = useState<Date | null>(null);
   const [weekJobs, setWeekJobs] = useState<DispatchJob[]>(dispatchJobs);
   const [dayJobs, setDayJobs] = useState<DayJob[]>(DAY_JOBS);
+  const [monthEvents, setMonthEvents] = useState<CalendarEvent[]>(mockEvents);
   const [dropPreview, setDropPreview] = useState<DropPreview | null>(null);
   const [quickJobDraft, setQuickJobDraft] = useState<QuickJobDraft | null>(null);
   const [conflictMessage, setConflictMessage] = useState<string | null>(null);
@@ -229,7 +241,7 @@ export function Calendar() {
   useEffect(() => {
     setSidebarTab("Details");
     setNoteDraft("");
-  }, [selectedDispatchJob?.id, selectedDayJob?.id]);
+  }, [selectedDispatchJob?.id, selectedDayJob?.id, selectedEvent?.id]);
 
   // Week view: auto-scroll today's section into view when entering the view or changing weeks.
   // The active vertical scroller may be the gantt itself or a page-level container (the card
@@ -283,6 +295,8 @@ export function Calendar() {
     ? `dispatch:${selectedDispatchJob.id}`
     : selectedDayJob
     ? `day:${selectedDayJob.id}`
+    : selectedEvent
+    ? `event:${selectedEvent.id}`
     : null;
   const notesForActive = activeJobKey ? jobNotes[activeJobKey] ?? [] : [];
   const addNote = () => {
@@ -304,9 +318,13 @@ export function Calendar() {
       entries.push({ when: "Today", label: `Status: ${selectedDayJob.status}` });
       entries.push({ when: "Today", label: `Assigned to ${TEAM.find((t) => t.id === selectedDayJob.technicianId)?.name ?? "Unassigned"}` });
       entries.push({ when: "On create", label: "Job scheduled" });
+    } else if (selectedEvent) {
+      entries.push({ when: "Today", label: `Status: ${selectedEvent.status}` });
+      entries.push({ when: "Today", label: `Assigned to ${TEAM[(selectedEvent.id - 1) % TEAM.length].name}` });
+      entries.push({ when: "On create", label: "Job scheduled" });
     }
     return entries;
-  }, [selectedDispatchJob, selectedDayJob]);
+  }, [selectedDispatchJob, selectedDayJob, selectedEvent]);
 
   // Quick contact actions: phone -> tel link, chat -> messaging center
   const handlePhoneClick = (e: MouseEvent<HTMLButtonElement>) => {
@@ -333,7 +351,7 @@ export function Calendar() {
 
   const isCurrentDateOpen = isDateOpenForBusiness(currentDate, businessHours);
   const getEventsForDay = (day: Date) => isDateOpenForBusiness(day, businessHours)
-    ? mockEvents.filter(e => isSameDay(e.date, day))
+    ? monthEvents.filter(e => isSameDay(e.date, day))
     : [];
   const getC = (color: string) => COLORS[color as keyof typeof COLORS] || COLORS.blue;
 
@@ -347,7 +365,7 @@ export function Calendar() {
   const ganttHours = Array.from({ length: GANTT_END_HOUR - GANTT_START_HOUR + 1 }, (_, i) => GANTT_START_HOUR + i);
   const ganttTotalWidth = (GANTT_END_HOUR - GANTT_START_HOUR) * HOUR_WIDTH;
   const openWeekDayIndexes = new Set(weekDays.map((day, index) => isDateOpenForBusiness(day, businessHours) ? index : -1).filter(index => index >= 0));
-  const filteredMonthEvents = mockEvents.filter(event => isDateOpenForBusiness(event.date, businessHours));
+  const filteredMonthEvents = monthEvents.filter(event => isDateOpenForBusiness(event.date, businessHours));
   const filteredWeekJobs = weekJobs.filter(job => openWeekDayIndexes.has(job.dayIdx));
   const filteredDayJobs = isCurrentDateOpen ? dayJobs : [];
   const monthRevenue = filteredMonthEvents.reduce((sum, event) => sum + event.amount, 0);
@@ -400,6 +418,11 @@ export function Calendar() {
     setSelectedDispatchJob((job) => job?.id === jobId ? { ...job, status } : job);
   };
 
+  const updateEventStatus = (eventId: number, status: JobStatus) => {
+    setMonthEvents((events) => events.map((ev) => ev.id === eventId ? { ...ev, status } : ev));
+    setSelectedEvent((ev) => ev?.id === eventId ? { ...ev, status } : ev);
+  };
+
   const openQuickCreate = (view: "day" | "week", date: Date, startHour: number, technicianId: string, dayIdx?: number) => {
     if (!isDateOpenForBusiness(date, businessHours)) {
       setToast("This day is closed in business hours.");
@@ -414,9 +437,9 @@ export function Calendar() {
       technicianId,
       start,
       end: Math.min(GANTT_END_HOUR, start + Math.max(1, SLOT_HOURS)),
-      client: "",
-      service: "Service Call",
-      address: "",
+      client: CUSTOMERS[0].name,
+      service: jobTypes[0] ?? "Service",
+      address: CUSTOMERS[0].locations[0] ?? "",
       amount: "0",
     });
   };
@@ -606,48 +629,143 @@ export function Calendar() {
   }, [viewMode, currentDate, quickJobDraft, selectedEvent, selectedDispatchJob, selectedDayJob]);
 
   const EventPopover = ({ event, onClose }: { event: CalendarEvent; onClose: () => void }) => {
-    const c = getC(event.color);
     const eventEndHour = event.startHour + event.duration;
-    const eventTimeLabel = `${formatRegionalDate(event.date, regionalSettings)} · ${formatRegionalTime(event.startHour, regionalSettings)} - ${formatRegionalTime(eventEndHour, regionalSettings)}`;
+    const tech = TEAM[(event.id - 1) % TEAM.length];
+    const statusStyle = STATUS_STYLES[event.status];
+    const primaryLabel = event.status === "Scheduled" ? "Start Job" : event.status === "In Progress" ? "Complete Job" : "Reopen Job";
     return (
-      <div className="fixed inset-0 z-50 flex justify-end" onClick={onClose}>
-        <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
-        <div className="relative bg-white shadow-2xl w-[380px] h-full overflow-hidden border-l border-[#E5E7EB] flex flex-col" onClick={e => e.stopPropagation()}>
-          <div className="h-1" style={{ backgroundColor: c.border }} />
-          <div className="p-5 flex-1 overflow-y-auto">
-            <div className="flex items-start justify-between mb-4 pb-4 border-b border-[#E5E7EB]">
-              <div>
-                <div className="text-[10px] uppercase tracking-wider text-[#9CA3AF] mb-1" style={{ fontWeight: 600 }}>{event.status}</div>
-                <h3 className="text-[18px] text-[#1A2332]" style={{ fontWeight: 700 }}>{event.title}</h3>
-              </div>
-              <button onClick={onClose} className="w-7 h-7 rounded-lg hover:bg-[#F5F7FA] flex items-center justify-center transition-colors">
-                <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "18px" }}>close</span>
-              </button>
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+        <div className="absolute inset-0 bg-black/10" />
+        <div className="relative bg-white shadow-2xl w-[400px] max-h-[85vh] overflow-hidden rounded-2xl border border-[#E5E7EB] flex flex-col" onClick={e => e.stopPropagation()}>
+          {/* Header */}
+          <div className="flex items-center justify-between gap-2 px-4 py-4 border-b border-[#E5E7EB] shrink-0">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-[20px] text-[#1A2332] truncate leading-tight" style={{ fontWeight: 600 }}>Job #{event.id}</span>
+              <span className="px-2 py-0.5 rounded-lg text-[12px] shrink-0" style={{ fontWeight: 500, backgroundColor: statusStyle.bg, color: statusStyle.color }}>{event.status}</span>
             </div>
-            <div className="space-y-2.5">
-              <div className="flex items-center gap-2.5">
-                <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "17px" }}>person</span>
-                <span className="text-[#1A2332] text-sm" style={{ fontWeight: 500 }}>{event.client}</span>
+            <button onClick={onClose} aria-label="Close" className="w-7 h-7 rounded-lg hover:bg-[#F5F7FA] flex items-center justify-center transition-colors shrink-0">
+              <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>close</span>
+            </button>
+          </div>
+
+          {/* Tabs */}
+          <div className="flex border-b border-[#E5E7EB] shrink-0" role="tablist" aria-label="Job tabs">
+            {(["Details", "Notes", "History"] as SidebarTab[]).map((tab) => {
+              const active = sidebarTab === tab;
+              return (
+                <button
+                  key={tab}
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => setSidebarTab(tab)}
+                  className={`flex-1 py-3 text-[13px] relative transition-colors ${active ? "text-[#4A6FA5]" : "text-[#546478] hover:text-[#1A2332]"}`}
+                  style={{ fontWeight: active ? 600 : 500 }}
+                >
+                  {tab}
+                  {active && <span className="absolute left-0 right-0 bottom-0 h-0.5 bg-[#4A6FA5]" />}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Content */}
+          <div className="flex-1 min-h-0 overflow-y-auto p-4">
+            {sidebarTab === "Details" && (
+              <div className="rounded-xl border border-[#E5E7EB] p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="text-[16px] text-[#1A2332] truncate" style={{ fontWeight: 700 }}>{event.client}</div>
+                    <div className="text-[14px] text-[#546478] mt-0.5 truncate">{event.title}</div>
+                    <div className="text-[14px] text-[#8899AA] mt-0.5 truncate">{event.property}</div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button onClick={handlePhoneClick} aria-label="Call customer" className="w-8 h-8 rounded-lg border border-[#E5E7EB] flex items-center justify-center hover:bg-[#F5F7FA] transition-colors">
+                      <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>call</span>
+                    </button>
+                    <button onClick={handleChatClick} aria-label="Message customer" className="w-8 h-8 rounded-lg border border-[#E5E7EB] flex items-center justify-center hover:bg-[#F5F7FA] transition-colors">
+                      <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>mail</span>
+                    </button>
+                  </div>
+                </div>
+                <div className="h-px bg-[#E5E7EB] my-3.5" />
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2.5 text-[14px]">
+                    <span className="material-icons text-[#8899AA] shrink-0" style={{ fontSize: "17px" }}>build</span>
+                    <span className="text-[#546478]">Technician:</span>
+                    <span className="text-[#1A2332]" style={{ fontWeight: 600 }}>{tech.name}</span>
+                  </div>
+                  <div className="flex items-center gap-2.5 text-[14px]">
+                    <span className="material-icons text-[#8899AA] shrink-0" style={{ fontSize: "17px" }}>schedule</span>
+                    <span className="text-[#546478]">Scheduled:</span>
+                    <span className="text-[#1A2332]" style={{ fontWeight: 600 }}>{formatRegionalTime(event.startHour, regionalSettings)} - {formatRegionalTime(eventEndHour, regionalSettings)}</span>
+                  </div>
+                  <div className="flex items-center gap-2.5 text-[14px]">
+                    <span className="material-icons text-[#8899AA] shrink-0" style={{ fontSize: "17px" }}>paid</span>
+                    <span className="text-[#546478]">Amount:</span>
+                    <span className="text-[#1A2332] tabular-nums" style={{ fontWeight: 600 }}>${event.amount.toLocaleString("en-US")}</span>
+                  </div>
+                </div>
               </div>
-              <div className="flex items-center gap-2.5">
-                <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "17px" }}>schedule</span>
-                <span className="text-[#546478] text-[12px]">{eventTimeLabel}</span>
+            )}
+            {sidebarTab === "Notes" && (
+              <div className="space-y-3">
+                <div className="bg-white rounded-xl border border-[#E5E7EB] p-3">
+                  <textarea
+                    value={noteDraft}
+                    onChange={(e) => setNoteDraft(e.target.value)}
+                    placeholder="Add a note for this job…"
+                    className="w-full text-[13px] text-[#1A2332] resize-none outline-none placeholder:text-[#9CA3AF] min-h-[64px]"
+                  />
+                  <div className="flex justify-end">
+                    <button onClick={addNote} disabled={!noteDraft.trim()} className="px-3 py-1.5 rounded-lg bg-[#4A6FA5] text-white text-[12px] disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#3d5a85]" style={{ fontWeight: 600 }}>
+                      Save note
+                    </button>
+                  </div>
+                </div>
+                {notesForActive.length === 0 ? (
+                  <div className="text-center text-[12px] text-[#9CA3AF] py-4">No notes yet</div>
+                ) : (
+                  notesForActive.map((note, i) => (
+                    <div key={i} className="bg-white rounded-xl border border-[#E5E7EB] p-3 text-[13px] text-[#1A2332]">{note}</div>
+                  ))
+                )}
               </div>
-              <div className="flex items-center gap-2.5">
-                <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "17px" }}>location_on</span>
-                <span className="text-[#546478] text-[12px]">{event.property}</span>
+            )}
+            {sidebarTab === "History" && (
+              <div className="space-y-2">
+                {historyForActive.map((entry, i) => (
+                  <div key={i} className="bg-white rounded-xl border border-[#E5E7EB] p-3">
+                    <div className="text-[10px] uppercase tracking-wide text-[#9CA3AF]" style={{ fontWeight: 700 }}>{entry.when}</div>
+                    <div className="text-[13px] text-[#1A2332] mt-1">{entry.label}</div>
+                  </div>
+                ))}
               </div>
-              <div className="flex items-center gap-2.5">
-                <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "17px" }}>attach_money</span>
-                <span className="text-[#1A2332] text-[13px] tabular-nums" style={{ fontWeight: 700 }}>${event.amount.toLocaleString()}</span>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 mt-5">
-              <button className="flex-1 px-4 py-2.5 bg-[#4A6FA5] text-white rounded-lg text-[13px] hover:bg-[#3d5a85] transition-colors" style={{ fontWeight: 600 }}>
-                View Job
-              </button>
-              <button className="px-3 py-2.5 border border-[#E5E7EB] text-[#546478] rounded-lg text-[13px] hover:bg-[#F5F7FA] transition-colors" style={{ fontWeight: 500 }}>
+            )}
+          </div>
+
+          {/* Footer */}
+          <div className="flex items-center justify-between gap-2 px-4 py-3.5 border-t border-[#E5E7EB] shrink-0 bg-white">
+            <button
+              onClick={() => { setCurrentDate(event.date); setViewMode("day"); onClose(); }}
+              className="px-4 py-2 border border-[#E5E7EB] text-[#546478] rounded-lg text-[13px] hover:bg-[#F5F7FA] transition-colors"
+              style={{ fontWeight: 500 }}
+            >
+              Reschedule
+            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => navigate(`/jobs/${event.id}`)}
+                className="px-4 py-2 border border-[#E5E7EB] text-[#546478] rounded-lg text-[13px] hover:bg-[#F5F7FA] transition-colors"
+                style={{ fontWeight: 500 }}
+              >
                 Edit
+              </button>
+              <button
+                onClick={() => updateEventStatus(event.id, nextStatus(event.status))}
+                className="px-4 py-2 bg-[#4A6FA5] text-white rounded-lg text-[13px] hover:bg-[#3d5a85] transition-colors"
+                style={{ fontWeight: 600 }}
+              >
+                {primaryLabel}
               </button>
             </div>
           </div>
@@ -741,34 +859,45 @@ export function Calendar() {
         {/* ── MONTH VIEW ── */}
         {viewMode === "month" && (
           <div className="flex-1 flex flex-col overflow-hidden" role="region" aria-label="Month calendar">
+            {/* Weekday header — Closed badge on non-business days (matches Figma) */}
             <div className="grid grid-cols-7 border-b border-[#E5E7EB] bg-[#FAFBFC] shrink-0" role="row">
-              {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
-                <div key={d} role="columnheader" className="py-2.5 text-center text-[11px] text-[#8899AA] uppercase tracking-wide" style={{ fontWeight: 600 }}>{d}</div>
-              ))}
+              {monthDays.slice(0, 7).map((day, i) => {
+                const open = isDateOpenForBusiness(day, businessHours);
+                return (
+                  <div key={i} role="columnheader" className="flex items-center justify-center gap-1.5 h-9 text-[13px] text-[#546478]" style={{ fontWeight: 600 }}>
+                    <span>{format(day, "EEE")}</span>
+                    {!open && (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] bg-[#FEE2E2] text-[#DC2626]" style={{ fontWeight: 700 }}>Closed</span>
+                    )}
+                  </div>
+                );
+              })}
             </div>
             <div className="flex-1 overflow-auto" role="grid" aria-label="Month grid">
-              <div className="grid grid-cols-7" style={{ gridTemplateRows: `repeat(${Math.ceil(monthDays.length / 7)}, minmax(110px, 1fr))` }}>
+              <div className="grid grid-cols-7" style={{ gridTemplateRows: `repeat(${Math.ceil(monthDays.length / 7)}, minmax(121px, 1fr))` }}>
                 {monthDays.map((day, idx) => {
                   const events = getEventsForDay(day);
                   const isCurrentMo = isSameMonth(day, currentDate);
-                  const isTodayD = isToday(day) || isSameDay(day, new Date(2026, 3, 6));
-                  const isHovered = hoveredDay && isSameDay(day, hoveredDay);
+                  const open = isDateOpenForBusiness(day, businessHours);
+                  const isTodayD = isSameDay(day, WEEK_TODAY);
+                  const dim = !isCurrentMo || !open;
                   return (
                     <div
                       key={idx}
                       role="gridcell"
                       aria-label={`${format(day, "EEEE, MMMM d")}, ${events.length} event${events.length === 1 ? "" : "s"}`}
-                      className={`border-b border-r border-[#E5E7EB] p-2 transition-colors cursor-pointer ${
-                        !isCurrentMo ? "bg-[#FAFBFC]" : isHovered ? "bg-[#F9FAFB]" : "bg-white"
+                      className={`border-b border-r border-[#E5E7EB] p-2 overflow-hidden transition-colors cursor-pointer ${
+                        !open ? "bg-[#FAFBFC]" : "bg-white hover:bg-[#F9FAFB]"
                       }`}
-                      onMouseEnter={() => setHoveredDay(day)}
-                      onMouseLeave={() => setHoveredDay(null)}
                       onClick={() => { setCurrentDate(day); setViewMode("day"); }}
                     >
-                      <div className={`flex items-center justify-center w-6 h-6 rounded-full mb-1.5 text-[12px] ${
-                        isTodayD ? "bg-[#4A6FA5] text-white" : !isCurrentMo ? "text-[#D1D5DB]" : "text-[#1A2332]"
-                      }`} style={{ fontWeight: isTodayD ? 700 : 500 }}>
-                        {format(day, "d")}
+                      <div className="px-1 mb-1">
+                        <span
+                          className="text-[14px] tabular-nums"
+                          style={{ fontWeight: isTodayD ? 700 : 500, color: isTodayD ? "#4A6FA5" : dim ? "#B8BEC9" : "#1A2332" }}
+                        >
+                          {format(day, "d")}
+                        </span>
                       </div>
                       <div className="space-y-1">
                         {events.slice(0, 3).map((ev) => {
@@ -777,15 +906,15 @@ export function Calendar() {
                             <div
                               key={ev.id}
                               onClick={(e) => { e.stopPropagation(); setSelectedEvent(ev); }}
-                              className="px-1.5 py-1 rounded text-[10px] truncate cursor-pointer hover:shadow-sm transition-shadow"
-                              style={{ backgroundColor: c.bg, color: c.text, borderLeft: `3px solid ${c.border}`, fontWeight: 600 }}
+                              className="rounded-lg px-3 py-2 text-[14px] leading-5 truncate cursor-pointer hover:shadow-sm transition-shadow"
+                              style={{ backgroundColor: `color-mix(in srgb, ${c.border} 6%, white)`, color: "#1A2332", borderLeft: `3px solid ${c.border}`, fontWeight: 600 }}
                             >
                               {ev.title}
                             </div>
                           );
                         })}
                         {events.length > 3 && (
-                          <div className="text-[10px] text-[#9CA3AF] pl-1.5" style={{ fontWeight: 500 }}>+{events.length - 3} more</div>
+                          <div className="text-[11px] text-[#9CA3AF] px-1" style={{ fontWeight: 500 }}>+{events.length - 3} more</div>
                         )}
                       </div>
                     </div>
