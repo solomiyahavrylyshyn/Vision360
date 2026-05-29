@@ -1,7 +1,6 @@
 import { useState, useMemo, useRef, useSyncExternalStore, useEffect, type DragEvent, type FormEvent, type MouseEvent } from "react";
 import { useNavigate } from "react-router";
 import { PageHeader } from "../components/ui/page-header";
-import { CreateActionButton } from "../components/ui/create-action-button";
 import { scheduleSettingsStore } from "../stores/scheduleSettingsStore";
 import { businessHoursStore, isDateOpenForBusiness } from "../stores/businessHoursStore";
 import { formatRegionalDate, formatRegionalTime, getWeekStartsOn, regionalSettingsStore } from "../stores/regionalSettingsStore";
@@ -56,9 +55,9 @@ const COLORS = {
 };
 
 const STATUS_STYLES: Record<JobStatus, { bg: string; color: string }> = {
-  Scheduled: { bg: "#EBF0F8", color: "#4A6FA5" },
-  "In Progress": { bg: "#FEF3C7", color: "#D97706" },
-  Completed: { bg: "#D1FAE5", color: "#16A34A" },
+  Scheduled: { bg: "rgba(74,111,165,0.15)", color: "#4A6FA5" },
+  "In Progress": { bg: "rgba(245,158,11,0.15)", color: "#F59E0B" },
+  Completed: { bg: "rgba(22,163,74,0.15)", color: "#16A34A" },
 };
 
 const nextStatus = (status: JobStatus): JobStatus => {
@@ -139,8 +138,8 @@ const TEAM: { id: string; name: string; initial: string; color: string }[] = [
 ];
 
 const DAY_JOBS: DayJob[] = [
-  { id: 1,  technicianId: "peter",  start: 8,    end: 10,   client: "Miller Residence",  service: "AC Repair",          address: "862 Pine St",          status: "Scheduled",   amount: 420,  bg: "#FEF3C7", border: "#D97706" },
-  { id: 2,  technicianId: "peter",  start: 10.5, end: 12,   client: "Taylor Home",       service: "Water Heater",       address: "852 Bay St",           status: "In Progress", amount: 1150, bg: "#EDE9FE", border: "#7C3AED" },
+  { id: 1,  technicianId: "peter",  start: 8,    end: 10,   client: "Miller Residence",  service: "AC Repair",          address: "862 Pine St",          status: "Scheduled",   amount: 420,  bg: "#FEF3C7", border: "#F59E0B" },
+  { id: 2,  technicianId: "peter",  start: 10.5, end: 12,   client: "Taylor Home",       service: "Water Heater",       address: "852 Bay St",           status: "In Progress", amount: 1150, bg: "#EBF0F8", border: "#4A6FA5" },
   { id: 3,  technicianId: "peter",  start: 13,   end: 15,   client: "Clark Residence",   service: "Receiver Upgrade",   address: "951 Hillside Dr",      status: "Scheduled",   amount: 2400, bg: "#EBF0F8", border: "#4A6FA5" },
   { id: 4,  technicianId: "peter",  start: 15,   end: 17,   client: "Johnson Residence", service: "AC Not Cooling",     address: "1250 Oak Dr",          status: "Completed",   amount: 750,  bg: "#D1FAE5", border: "#16A34A" },
   { id: 5,  technicianId: "travis", start: 8,    end: 10,   client: "Williams Home",     service: "Install New System", address: "5332 Pine Ridge Rd",   status: "Scheduled",   amount: 1800, bg: "#D1FAE5", border: "#16A34A" },
@@ -376,11 +375,11 @@ export function Calendar() {
     { value: `${completionRate}%`, label: "Completion rate", icon: "check_circle", color: "#7C3AED", bg: "#EDE9FE" },
   ];
 
-  const hourFromPointer = (event: SlotPointerEvent) => {
+  const hourFromPointer = (event: SlotPointerEvent, snap = SLOT_HOURS) => {
     const rect = event.currentTarget.getBoundingClientRect();
     const x = Math.max(0, Math.min(event.clientX - rect.left, ganttTotalWidth - 1));
-    const snappedOffset = Math.round((x / HOUR_WIDTH) / SLOT_HOURS) * SLOT_HOURS;
-    return Math.max(GANTT_START_HOUR, Math.min(GANTT_END_HOUR - SLOT_HOURS, GANTT_START_HOUR + snappedOffset));
+    const snappedOffset = Math.floor((x / HOUR_WIDTH) / snap) * snap;
+    return Math.max(GANTT_START_HOUR, Math.min(GANTT_END_HOUR - snap, GANTT_START_HOUR + snappedOffset));
   };
 
   const hasOverlap = (start: number, end: number, otherStart: number, otherEnd: number) => start < otherEnd && end > otherStart;
@@ -551,16 +550,16 @@ export function Calendar() {
     setDropPreview({ view: "day", technicianId, start: hourFromPointer(event) });
   };
 
-  const handleWeekSlotDoubleClick = (event: MouseEvent<HTMLDivElement>, date: Date, technicianId: string, dayIdx: number) => {
+  const handleWeekSlotClick = (event: MouseEvent<HTMLDivElement>, date: Date, technicianId: string, dayIdx: number) => {
     if ((event.target as HTMLElement).closest("[data-job-card='true']")) return;
     if (!openWeekDayIndexes.has(dayIdx)) return;
-    openQuickCreate("week", date, hourFromPointer(event), technicianId, dayIdx);
+    openQuickCreate("week", date, hourFromPointer(event, 1), technicianId, dayIdx);
   };
 
-  const handleDaySlotDoubleClick = (event: MouseEvent<HTMLDivElement>, technicianId: string) => {
+  const handleDaySlotClick = (event: MouseEvent<HTMLDivElement>, technicianId: string) => {
     if ((event.target as HTMLElement).closest("[data-job-card='true']")) return;
     if (!isCurrentDateOpen) return;
-    openQuickCreate("day", currentDate, hourFromPointer(event), technicianId);
+    openQuickCreate("day", currentDate, hourFromPointer(event, 1), technicianId);
   };
 
   const openHeaderQuickCreate = () => {
@@ -663,25 +662,20 @@ export function Calendar() {
         title="Schedule"
         className="mb-4"
         actions={
-          <>
-            <div className="flex bg-[#F0F2F5] rounded-lg overflow-hidden p-0.5">
-              {(["day", "week", "month"] as ViewMode[]).map((mode) => (
-                <button
-                  key={mode}
-                  onClick={() => setViewMode(mode)}
-                  className={`px-4 py-1.5 text-xs rounded-md capitalize transition-all ${
-                    viewMode === mode ? "bg-white text-[#1A2332] shadow-sm" : "text-[#546478] hover:text-[#1A2332]"
-                  }`}
-                  style={{ fontWeight: 600 }}
-                >
-                  {mode}
-                </button>
-              ))}
-            </div>
-            <CreateActionButton onClick={openHeaderQuickCreate}>
-              Create Job
-            </CreateActionButton>
-          </>
+          <div className="flex bg-[#F0F2F5] rounded-lg overflow-hidden p-0.5">
+            {(["day", "week", "month"] as ViewMode[]).map((mode) => (
+              <button
+                key={mode}
+                onClick={() => setViewMode(mode)}
+                className={`px-4 py-1.5 text-xs rounded-md capitalize transition-all ${
+                  viewMode === mode ? "bg-white text-[#1A2332] shadow-sm" : "text-[#546478] hover:text-[#1A2332]"
+                }`}
+                style={{ fontWeight: 600 }}
+              >
+                {mode}
+              </button>
+            ))}
+          </div>
         }
       />
 
@@ -851,7 +845,7 @@ export function Calendar() {
                   const dayOpen = openWeekDayIndexes.has(dayI);
                   const dayCollapsed = collapsedWeekDays.has(dayI);
                   const showLanes = dayOpen && !dayCollapsed;
-                  const ROW_H = 72;
+                  const ROW_H = 92;
 
                   return (
                     <div key={dayI} ref={isToday ? weekTodayRef : undefined}>
@@ -939,7 +933,7 @@ export function Calendar() {
                               onDragOver={(event) => handleWeekDragOver(event, dayI, member.id)}
                               onDragLeave={() => setDropPreview(null)}
                               onDrop={(event) => handleWeekDrop(event, dayI, member.id)}
-                              onDoubleClick={(event) => handleWeekSlotDoubleClick(event, d, member.id, dayI)}
+                              onClick={(event) => handleWeekSlotClick(event, d, member.id, dayI)}
                             >
                               {ganttHours.slice(0, -1).map((h) => (
                                 <div
@@ -960,6 +954,14 @@ export function Calendar() {
                                 <div
                                   className="absolute top-2 bottom-2 rounded-lg border-2 border-dashed border-[#4A6FA5] bg-[#4A6FA5]/10 pointer-events-none"
                                   style={{ left: (dropPreview.start - GANTT_START_HOUR) * HOUR_WIDTH + 4, width: HOUR_WIDTH - 8 }}
+                                />
+                              )}
+
+                              {/* Highlighted target slot while the create-job modal is open */}
+                              {quickJobDraft?.view === "week" && quickJobDraft.dayIdx === dayI && quickJobDraft.technicianId === member.id && (
+                                <div
+                                  className="absolute top-2 bottom-2 rounded-lg border-2 border-[#4A6FA5] bg-[#4A6FA5]/25 pointer-events-none z-20"
+                                  style={{ left: (quickJobDraft.start - GANTT_START_HOUR) * HOUR_WIDTH + 4, width: Math.max((quickJobDraft.end - quickJobDraft.start) * HOUR_WIDTH - 8, HOUR_WIDTH - 8) }}
                                 />
                               )}
 
@@ -996,7 +998,7 @@ export function Calendar() {
                                       left,
                                       width: Math.max(width, 70),
                                       top: 8,
-                                      height: 56,
+                                      height: 76,
                                       backgroundColor: job.bg,
                                       borderLeft: `3px solid ${job.border}`,
                                       boxShadow: isSelected ? `0 0 0 2px ${job.border}` : "none",
@@ -1009,13 +1011,18 @@ export function Calendar() {
                                     <div className="flex flex-col h-full px-2 py-1">
                                       <div className="flex items-center justify-between gap-1 text-[9px] text-[#9CA3AF] tabular-nums shrink-0">
                                         <span className="truncate">{formatRegionalTime(job.start, regionalSettings)} - {formatRegionalTime(job.end, regionalSettings)}</span>
-                                        <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full text-[8px] text-white shrink-0" style={{ backgroundColor: member.color, fontWeight: 700 }}>
+                                        <span className="flex h-4 w-4 items-center justify-center rounded-full text-[9px] text-white shrink-0" style={{ backgroundColor: member.color, fontWeight: 700 }}>
                                           {routeNumber}
                                         </span>
                                       </div>
                                       <div className="text-[11px] leading-tight truncate shrink-0" style={{ fontWeight: 700, color: "#1A2332" }}>{job.client}</div>
-                                      <div className="flex items-center gap-1 mt-auto shrink-0">
-                                        <span className="text-[9px] text-[#546478] truncate flex-1">{job.service}</span>
+                                      <div className="text-[9px] text-[#546478] truncate shrink-0">{job.service}</div>
+                                      <div className="flex items-center justify-between gap-1 mt-auto shrink-0">
+                                        {job.amount > 0 ? (
+                                          <span className="text-[10px] tabular-nums" style={{ fontWeight: 700, color: job.border }}>${job.amount.toLocaleString()}</span>
+                                        ) : (
+                                          <span className="text-[10px] text-[#9CA3AF]">-</span>
+                                        )}
                                         <button
                                           className="px-1.5 py-0.5 rounded-full text-[9px] shrink-0"
                                           style={{ backgroundColor: statusStyle.bg, color: statusStyle.color, fontWeight: 700 }}
@@ -1172,7 +1179,7 @@ export function Calendar() {
                 <div
                   key={member.id}
                   className="flex items-center gap-2.5 px-3 border-b border-[#E5E7EB]"
-                  style={{ height: 112 }}
+                  style={{ height: 121 }}
                 >
                   <div
                     className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[12px] shrink-0"
@@ -1236,11 +1243,11 @@ export function Calendar() {
                       <div
                         key={member.id}
                         className="relative border-b border-[#E5E7EB]"
-                        style={{ height: 112 }}
+                        style={{ height: 121 }}
                         onDragOver={(event) => handleDayDragOver(event, member.id)}
                         onDragLeave={() => setDropPreview(null)}
                         onDrop={(event) => handleDayDrop(event, member.id)}
-                        onDoubleClick={(event) => handleDaySlotDoubleClick(event, member.id)}
+                        onClick={(event) => handleDaySlotClick(event, member.id)}
                       >
                         {!isCurrentDateOpen && (
                           <div className="absolute inset-0 z-20 flex items-center justify-center bg-[#F8FAFC]/85 text-[12px] text-[#8899AA]" style={{ fontWeight: 700 }}>
@@ -1273,6 +1280,14 @@ export function Calendar() {
                           />
                         )}
 
+                        {/* Highlighted target slot while the create-job modal is open */}
+                        {quickJobDraft?.view === "day" && quickJobDraft.technicianId === member.id && (
+                          <div
+                            className="absolute top-3 bottom-3 rounded-lg border-2 border-[#4A6FA5] bg-[#4A6FA5]/25 pointer-events-none z-20"
+                            style={{ left: (quickJobDraft.start - GANTT_START_HOUR) * HOUR_WIDTH + 4, width: Math.max((quickJobDraft.end - quickJobDraft.start) * HOUR_WIDTH - 8, HOUR_WIDTH - 8) }}
+                          />
+                        )}
+
                         {memberJobs.map((job, idx) => {
                           const left = (job.start - GANTT_START_HOUR) * HOUR_WIDTH + 3;
                           const width = (job.end - job.start) * HOUR_WIDTH - 6;
@@ -1290,9 +1305,9 @@ export function Calendar() {
                               style={{
                                 left,
                                 width: Math.max(width, 60),
-                                top: 12,
-                                height: 88,
-                                backgroundColor: job.bg,
+                                top: 15,
+                                height: 92,
+                                backgroundColor: `color-mix(in srgb, ${job.border} 6%, white)`,
                                 borderLeft: `3px solid ${job.border}`,
                                 boxShadow: selectedDayJob?.id === job.id ? `0 0 0 2px ${job.border}` : "none",
                               }}
@@ -1304,24 +1319,26 @@ export function Calendar() {
                               onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setSelectedDayJob(job); setSelectedMapJobId(job.id); } }}
                               onDoubleClick={(event) => event.stopPropagation()}
                             >
-                              <div className="flex flex-col h-full px-2 py-1">
-                                <div className="flex items-center justify-between gap-2 text-[9px] text-[#9CA3AF] tabular-nums shrink-0">
-                                  <span>{formatRegionalTime(job.start, regionalSettings)} - {formatRegionalTime(job.end, regionalSettings)}</span>
-                                  <span className="flex h-4 w-4 items-center justify-center rounded-full text-[9px] text-white" style={{ backgroundColor: member.color, fontWeight: 700 }}>
+                              <div className="flex flex-col h-full px-3 py-2">
+                                <div className="flex items-center gap-2 w-full shrink-0">
+                                  <span className="flex-1 min-w-0 truncate text-[12px] leading-4 text-[#6B7280]" style={{ fontWeight: 400 }}>
+                                    {formatRegionalTime(job.start, regionalSettings)} - {formatRegionalTime(job.end, regionalSettings)}
+                                  </span>
+                                  <span className="flex h-4 min-w-[16px] px-1 items-center justify-center rounded-full text-[12px] leading-4 text-white shrink-0" style={{ backgroundColor: member.color, fontWeight: 500 }}>
                                     {routeNumber}
                                   </span>
                                 </div>
-                                <div className="text-[11px] leading-tight truncate shrink-0" style={{ fontWeight: 700, color: "#1A2332" }}>{job.client}</div>
-                                <div className="text-[10px] text-[#546478] truncate shrink-0">{job.service}</div>
-                                <div className="flex items-center justify-between mt-auto shrink-0">
+                                <div className="text-[14px] leading-5 text-[#1A2332] truncate shrink-0" style={{ fontWeight: 600 }}>{job.client}</div>
+                                <div className="text-[14px] leading-5 text-[#6B7280] truncate shrink-0" style={{ fontWeight: 500 }}>{job.service}</div>
+                                <div className="flex items-center justify-between gap-2 mt-auto shrink-0">
                                   {job.amount > 0 ? (
-                                    <span className="text-[10px] tabular-nums" style={{ fontWeight: 700, color: job.border }}>${job.amount.toLocaleString()}</span>
+                                    <span className="text-[14px] leading-5 tabular-nums shrink-0" style={{ fontWeight: 500, color: job.border }}>${job.amount.toLocaleString()}</span>
                                   ) : (
-                                    <span className="text-[10px] text-[#9CA3AF]">-</span>
+                                    <span className="text-[14px] leading-5 text-[#9CA3AF] shrink-0" style={{ fontWeight: 500 }}>—</span>
                                   )}
                                   <button
-                                    className="px-1.5 py-0.5 rounded-full text-[9px] max-w-[88px] truncate"
-                                    style={{ backgroundColor: statusStyle.bg, color: statusStyle.color, fontWeight: 700 }}
+                                    className="px-2 py-0.5 rounded-lg text-[12px] leading-4 shrink-0 truncate max-w-[120px]"
+                                    style={{ backgroundColor: statusStyle.bg, color: statusStyle.color, fontWeight: 500 }}
                                     onClick={(event) => {
                                       event.stopPropagation();
                                       updateDayStatus(job.id, nextStatus(job.status));
@@ -1514,7 +1531,7 @@ export function Calendar() {
 
       {quickJobDraft && (
         <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={() => setQuickJobDraft(null)}>
-          <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
+          <div className="absolute inset-0 bg-black/10" />
           <form
             onSubmit={submitQuickJob}
             className="relative w-[420px] bg-white rounded-xl shadow-2xl border border-[#E5E7EB] overflow-hidden"
