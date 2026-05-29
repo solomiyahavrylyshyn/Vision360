@@ -1,4 +1,4 @@
-import { useState, useMemo, useSyncExternalStore, useEffect, type DragEvent, type FormEvent, type MouseEvent } from "react";
+import { useState, useMemo, useRef, useSyncExternalStore, useEffect, type DragEvent, type FormEvent, type MouseEvent } from "react";
 import { useNavigate } from "react-router";
 import { PageHeader } from "../components/ui/page-header";
 import { CreateActionButton } from "../components/ui/create-action-button";
@@ -11,6 +11,7 @@ import {
   isSameMonth, isToday, isSameDay, addMonths, subMonths, addWeeks, subWeeks,
   addDays, subDays,
 } from "date-fns";
+import routeMapImg from "../../assets/route-map.png";
 
 type JobStatus = "Scheduled" | "In Progress" | "Completed";
 
@@ -157,6 +158,21 @@ const GANTT_END_HOUR   = 18;  // 6 PM (exclusive label at 18)
 const HOUR_WIDTH       = 120; // px per hour (matches Figma schedule columns)
 const CURRENT_TIME     = 10.5; // 10:30 AM
 const WEEK_LABEL_WIDTH = 180; // matches the day-view technician column
+const WEEK_TODAY = new Date(2026, 3, 14); // demo "today" highlighted in the week view
+
+// Route-map pin layout — matches the Figma day view (node 746:71297). left/top are
+// percentages of the map container; n is each technician's stop order on the route.
+const ROUTE_MAP_PINS: { technicianId: string; n: number; left: number; top: number }[] = [
+  { technicianId: "travis", n: 1, left: 12.9, top: 33.2 },
+  { technicianId: "maria",  n: 1, left: 37.2, top: 24.7 },
+  { technicianId: "maria",  n: 2, left: 57.4, top: 34.2 },
+  { technicianId: "peter",  n: 1, left: 77.8, top: 20.5 },
+  { technicianId: "travis", n: 3, left: 96.2, top: 10.0 },
+  { technicianId: "maria",  n: 3, left: 37.2, top: 68.4 },
+  { technicianId: "travis", n: 2, left: 65.7, top: 69.7 },
+  { technicianId: "peter",  n: 2, left: 91.4, top: 61.3 },
+  { technicianId: "peter",  n: 3, left: 52.5, top: 85.5 },
+];
 
 type ViewMode = "month" | "week" | "day";
 type SidebarTab = "Details" | "Notes" | "History";
@@ -194,6 +210,9 @@ export function Calendar() {
   const [jobNotes, setJobNotes] = useState<Record<string, string[]>>({});
   const [noteDraft, setNoteDraft] = useState("");
   const [toast, setToast] = useState<string | null>(null);
+  const [collapsedWeekDays, setCollapsedWeekDays] = useState<Set<number>>(() => new Set());
+  const weekScrollRef = useRef<HTMLDivElement>(null);
+  const weekTodayRef = useRef<HTMLDivElement>(null);
 
   const setViewMode = (mode: ViewMode) => {
     setViewModeState(mode);
@@ -213,6 +232,35 @@ export function Calendar() {
     setNoteDraft("");
   }, [selectedDispatchJob?.id, selectedDayJob?.id]);
 
+  // Week view: auto-scroll today's section into view when entering the view or changing weeks.
+  // The active vertical scroller may be the gantt itself or a page-level container (the card
+  // grows to fit content), so walk up to the nearest scrollable ancestor and scroll that.
+  useEffect(() => {
+    if (viewMode !== "week") return;
+    const target = weekTodayRef.current;
+    if (!target) return;
+    const raf = requestAnimationFrame(() => {
+      let el: HTMLElement | null = target.parentElement;
+      let scroller: HTMLElement | null = null;
+      while (el) {
+        const oy = getComputedStyle(el).overflowY;
+        if ((oy === "auto" || oy === "scroll") && el.scrollHeight > el.clientHeight + 4) {
+          scroller = el;
+          break;
+        }
+        el = el.parentElement;
+      }
+      if (scroller) {
+        const cRect = scroller.getBoundingClientRect();
+        const tRect = target.getBoundingClientRect();
+        scroller.scrollTop += tRect.top - cRect.top - 12;
+      } else {
+        target.scrollIntoView({ block: "start" });
+      }
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [viewMode, currentDate]);
+
   const goBack = () => {
     if (viewMode === "month") setCurrentDate(subMonths(currentDate, 1));
     else if (viewMode === "week") setCurrentDate(subWeeks(currentDate, 1));
@@ -224,6 +272,12 @@ export function Calendar() {
     else setCurrentDate(addDays(currentDate, 1));
   };
   const goToday = () => setCurrentDate(new Date(2026, 3, 12));
+  const toggleWeekDay = (dayI: number) =>
+    setCollapsedWeekDays((prev) => {
+      const next = new Set(prev);
+      if (next.has(dayI)) next.delete(dayI); else next.add(dayI);
+      return next;
+    });
 
   // Notes / history helpers
   const activeJobKey = selectedDispatchJob
@@ -522,7 +576,6 @@ export function Calendar() {
     openQuickCreate("day", currentDate, GANTT_START_HOUR, TEAM[0].id);
   };
 
-  const selectedMapJob = filteredDayJobs.find((job) => job.id === selectedMapJobId) ?? filteredDayJobs[0];
 
   // Keyboard shortcuts: ← → navigate, T today, D/W/M view, N new job, Esc close
   useEffect(() => {
@@ -754,7 +807,7 @@ export function Calendar() {
           <div className="flex-1 flex overflow-hidden" style={{ minHeight: 0 }}>
 
             {/* Main: sticky-col + sticky-header scrollable grid */}
-            <div className="flex-1 overflow-auto" style={{ minWidth: 0 }}>
+            <div ref={weekScrollRef} className="flex-1 overflow-auto" style={{ minWidth: 0 }}>
               <div style={{ width: ganttTotalWidth + WEEK_LABEL_WIDTH, minWidth: "100%" }}>
 
                 {/* Sticky header: [Day-col spacer] [Hours] */}
@@ -794,18 +847,38 @@ export function Calendar() {
 
                 {/* Day sections — one per weekday (matches Figma: full-width day header + technician lanes) */}
                 {weekDays.map((d, dayI) => {
-                  const isToday = isSameDay(d, new Date(2026, 3, 14));
+                  const isToday = isSameDay(d, WEEK_TODAY);
                   const dayOpen = openWeekDayIndexes.has(dayI);
+                  const dayCollapsed = collapsedWeekDays.has(dayI);
+                  const showLanes = dayOpen && !dayCollapsed;
                   const ROW_H = 112;
 
                   return (
-                    <div key={dayI}>
+                    <div key={dayI} ref={isToday ? weekTodayRef : undefined}>
                       {/* Day header row — full width, sticky label */}
                       <div
                         className="border-b border-[#E5E7EB]"
                         style={{ minWidth: ganttTotalWidth + WEEK_LABEL_WIDTH, backgroundColor: isToday ? "#EBF0F8" : "#F8F9FB" }}
                       >
-                        <div className="sticky left-0 flex items-center gap-2 px-3" style={{ height: 36, width: "max-content" }}>
+                        <div className="sticky left-0 flex items-center gap-1.5 px-3" style={{ height: 36, width: "max-content" }}>
+                          {dayOpen ? (
+                            <button
+                              type="button"
+                              onClick={() => toggleWeekDay(dayI)}
+                              aria-label={dayCollapsed ? `Expand ${format(d, "EEEE")}` : `Collapse ${format(d, "EEEE")}`}
+                              aria-expanded={!dayCollapsed}
+                              className="-ml-1 w-5 h-5 flex items-center justify-center rounded text-[#546478] hover:bg-black/5 hover:text-[#1A2332]"
+                            >
+                              <span
+                                className="material-icons"
+                                style={{ fontSize: "20px", transition: "transform 0.15s ease", transform: dayCollapsed ? "rotate(-90deg)" : "none" }}
+                              >
+                                expand_more
+                              </span>
+                            </button>
+                          ) : (
+                            <span className="-ml-1 w-5 h-5 shrink-0" />
+                          )}
                           <span className={`text-[13px] ${isToday ? "text-[#4A6FA5]" : "text-[#1A2332]"}`} style={{ fontWeight: 700 }}>
                             {format(d, "EEE")} {formatRegionalDate(d, regionalSettings)}
                           </span>
@@ -815,11 +888,14 @@ export function Calendar() {
                           {!dayOpen && (
                             <span className="px-2 py-0.5 rounded-full text-[10px] bg-[#FEE2E2] text-[#DC2626]" style={{ fontWeight: 700 }}>Closed</span>
                           )}
+                          {dayOpen && dayCollapsed && (
+                            <span className="text-[12px] text-[#8899AA]" style={{ fontWeight: 500 }}>collapsed</span>
+                          )}
                         </div>
                       </div>
 
-                      {/* Technician lanes — only for open days */}
-                      {dayOpen && TEAM.map((member, memberIdx) => {
+                      {/* Technician lanes — open days that aren't manually collapsed */}
+                      {showLanes && TEAM.map((member, memberIdx) => {
                         const memberJobs = filteredWeekJobs
                           .filter((job) => job.dayIdx === dayI && job.technicianId === member.id)
                           .sort((a, b) => a.start - b.start);
@@ -1399,57 +1475,43 @@ export function Calendar() {
             <div className="px-4 pt-4 pb-3">
               <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 700 }}>Route map</div>
             </div>
-            <div className="mx-4 mb-4 rounded-xl border border-[#D8DCE6] bg-[#EEF3F8] overflow-hidden relative" style={{ height: 320 }}>
-              <div className="absolute inset-0 opacity-70">
-                <div className="absolute left-0 right-0 top-[32%] h-[2px] bg-white" />
-                <div className="absolute left-0 right-0 top-[64%] h-[2px] bg-white" />
-                <div className="absolute top-0 bottom-0 left-[24%] w-[2px] bg-white" />
-                <div className="absolute top-0 bottom-0 left-[52%] w-[2px] bg-white" />
-                <div className="absolute top-0 bottom-0 left-[78%] w-[2px] bg-white" />
-                <div className="absolute -left-10 top-10 h-32 w-[120%] rotate-[-8deg] border-y-2 border-white/80" />
-              </div>
-              {filteredDayJobs.map((job) => {
-                const member = TEAM.find((person) => person.id === job.technicianId) ?? TEAM[0];
-                const memberJobs = filteredDayJobs.filter((item) => item.technicianId === job.technicianId).sort((a, b) => a.start - b.start);
-                const routeNumber = memberJobs.findIndex((item) => item.id === job.id) + 1;
-                const left = 13 + ((job.id * 19 + Math.round(job.start * 7)) % 74);
-                const top = 20 + ((job.id * 23 + Math.round(job.end * 11)) % 58);
+            <div className="mx-4 mb-4 rounded-xl border border-[#D8DCE6] bg-[#EAEFF3] overflow-hidden relative" style={{ height: 380 }}>
+              <img
+                src={routeMapImg}
+                alt="Route map"
+                draggable={false}
+                className="absolute inset-0 w-full h-full object-cover select-none pointer-events-none"
+              />
+              {ROUTE_MAP_PINS.map((pin, idx) => {
+                const member = TEAM.find((person) => person.id === pin.technicianId) ?? TEAM[0];
+                const techJobs = filteredDayJobs
+                  .filter((job) => job.technicianId === pin.technicianId)
+                  .sort((a, b) => a.start - b.start);
+                const job = techJobs[pin.n - 1];
+                const isSelected = job ? selectedMapJobId === job.id : false;
                 return (
                   <button
-                    key={job.id}
-                    className="absolute h-8 w-8 rounded-full text-white text-[12px] shadow-md border-2 border-white hover:scale-105 transition-transform"
-                    style={{ left: `${left}%`, top: `${top}%`, backgroundColor: member.color, fontWeight: 800 }}
+                    key={idx}
+                    className="absolute h-8 w-8 rounded-full text-white text-[12px] border-2 border-white shadow-md hover:scale-110 transition-transform focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1A2332]"
+                    style={{
+                      left: `${pin.left}%`,
+                      top: `${pin.top}%`,
+                      backgroundColor: member.color,
+                      fontWeight: 800,
+                      zIndex: isSelected ? 2 : 1,
+                      boxShadow: isSelected ? "0 0 0 3px rgba(26,35,50,0.35), 0 2px 6px rgba(0,0,0,0.35)" : undefined,
+                    }}
                     onClick={() => {
+                      if (!job) return;
                       setSelectedMapJobId(job.id);
                       setSelectedDayJob(job);
                     }}
-                    title={`${member.name}: ${job.client}`}
+                    title={job ? `${member.name}: ${job.client}` : `${member.name}: Stop ${pin.n}`}
                   >
-                    {routeNumber}
+                    {pin.n}
                   </button>
                 );
               })}
-              {selectedMapJob && (
-                <div className="absolute right-4 bottom-4 w-[280px] rounded-xl bg-white border border-[#E5E7EB] p-3 shadow-sm">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="text-[13px] text-[#1A2332] truncate" style={{ fontWeight: 700 }}>{selectedMapJob.client}</div>
-                      <div className="text-[12px] text-[#546478] mt-0.5 truncate">{selectedMapJob.service}</div>
-                      <div className="text-[11px] text-[#8899AA] mt-1 truncate">{selectedMapJob.address}</div>
-                    </div>
-                    <span
-                      className="px-2 py-0.5 rounded-full text-[10px] shrink-0"
-                      style={{ backgroundColor: STATUS_STYLES[selectedMapJob.status].bg, color: STATUS_STYLES[selectedMapJob.status].color, fontWeight: 700 }}
-                    >
-                      {selectedMapJob.status}
-                    </span>
-                  </div>
-                  <div className="mt-2 flex items-center justify-between text-[11px] text-[#546478]">
-                    <span>{formatRegionalTime(selectedMapJob.start, regionalSettings)} - {formatRegionalTime(selectedMapJob.end, regionalSettings)}</span>
-                    <span className="tabular-nums" style={{ color: "#16A34A", fontWeight: 700 }}>${selectedMapJob.amount.toLocaleString("en-US")}</span>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         )}

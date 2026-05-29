@@ -63,7 +63,10 @@
       "Bash(curl -s -o \"C:\\\\Users\\\\mykha\\\\Documents\\\\Vision360\\\\.tmp_schedule.png\" \"https://www.figma.com/api/mcp/asset/40181b6e-737c-4855-ad51-f583c0bdbeca\")",
       "Bash(curl -s -o \"C:\\\\Users\\\\mykha\\\\Documents\\\\Vision360\\\\.tmp_schedule_figma.png\" \"https://www.figma.com/api/mcp/asset/c46f8908-2b12-4726-8d85-1c21eedc35a2\")",
       "Bash(curl -s -o \"C:\\\\Users\\\\mykha\\\\Documents\\\\Vision360\\\\.tmp_week_figma.png\" \"https://www.figma.com/api/mcp/asset/9a75bbb9-1345-43b1-a70a-c81d3310113f\")",
-      "Bash(curl -s -o \"C:\\\\Users\\\\mykha\\\\Documents\\\\Vision360\\\\.tmp_week_figma.png\" \"https://www.figma.com/api/mcp/asset/17c7e4cb-5b27-4f3f-9597-396e1ce075b8\")"
+      "Bash(curl -s -o \"C:\\\\Users\\\\mykha\\\\Documents\\\\Vision360\\\\.tmp_week_figma.png\" \"https://www.figma.com/api/mcp/asset/17c7e4cb-5b27-4f3f-9597-396e1ce075b8\")",
+      "Bash(curl -s -o \"C:\\\\Users\\\\mykha\\\\Documents\\\\Vision360\\\\.tmp_map_figma.png\" \"https://www.figma.com/api/mcp/asset/bd5dea91-7a9d-4cb2-b286-8231c1469dbf\")",
+      "Bash(curl -s -o \"C:\\\\Users\\\\mykha\\\\Documents\\\\Vision360\\\\src\\\\assets\\\\route-map.png\" \"https://www.figma.com/api/mcp/asset/5df85293-0dee-4257-bab3-2ad575daa357\")",
+      "Bash(curl -s -o \"C:\\\\Users\\\\mykha\\\\Documents\\\\Vision360\\\\.tmp_map_pins.png\" \"https://www.figma.com/api/mcp/asset/f4592433-8423-4a36-a116-0a9cdaea480e\")"
     ]
   }
 }
