@@ -24,7 +24,7 @@ interface Job {
   address: string;
   schedule: string;
   scheduleDateSort: string;
-  status: "Scheduled" | "In Progress" | "Completed" | "On Review";
+  status: "Scheduled" | "In Progress" | "Completed";
   jobType: "One-off" | "Recurring";
   total: number;
 }
@@ -33,11 +33,11 @@ const mockJobs: Job[] = [
   { id: 1,  jobNumber: "10234-J01", title: "AC Estimate",        client: "Travis Jones",   clientId: "10234", address: "854 Maple St, Fort Worth, TX 76107",        schedule: "March 30, 2026", scheduleDateSort: "2026-03-30", status: "Scheduled",  jobType: "One-off",   total: 375.01 },
   { id: 2,  jobNumber: "10234-J02", title: "AC Estimate",        client: "Travis Jones",   clientId: "10234", address: "854 Maple St, Fort Worth, TX 76107",        schedule: "March 30, 2026", scheduleDateSort: "2026-03-30", status: "Scheduled",  jobType: "One-off",   total: 375.01 },
   { id: 3,  jobNumber: "10234-J03", title: "AC Estimate",        client: "Travis Jones",   clientId: "10234", address: "854 Maple St, Fort Worth, TX 76107",        schedule: "March 30, 2026", scheduleDateSort: "2026-03-30", status: "In Progress", jobType: "One-off",   total: 375.01 },
-  { id: 4,  jobNumber: "10234-J04", title: "AC Estimate",        client: "Travis Jones",   clientId: "10234", address: "854 Maple St, Fort Worth, TX 76107",        schedule: "March 30, 2026", scheduleDateSort: "2026-03-30", status: "On Review",  jobType: "One-off",   total: 375.01 },
+  { id: 4,  jobNumber: "10234-J04", title: "AC Estimate",        client: "Travis Jones",   clientId: "10234", address: "854 Maple St, Fort Worth, TX 76107",        schedule: "March 30, 2026", scheduleDateSort: "2026-03-30", status: "Scheduled",  jobType: "One-off",   total: 375.01 },
   { id: 5,  jobNumber: "10234-J05", title: "AC Estimate",        client: "Travis Jones",   clientId: "10234", address: "854 Maple St, Fort Worth, TX 76107",        schedule: "March 30, 2026", scheduleDateSort: "2026-03-30", status: "Completed",  jobType: "One-off",   total: 375.01 },
   { id: 6,  jobNumber: "10234-J06", title: "AC Estimate",        client: "Travis Jones",   clientId: "10234", address: "854 Maple St, Fort Worth, TX 76107",        schedule: "March 30, 2026", scheduleDateSort: "2026-03-30", status: "Scheduled",  jobType: "One-off",   total: 375.01 },
   { id: 7,  jobNumber: "10234-J07", title: "AC Estimate",        client: "Travis Jones",   clientId: "10234", address: "854 Maple St, Fort Worth, TX 76107",        schedule: "March 30, 2026", scheduleDateSort: "2026-03-30", status: "In Progress", jobType: "Recurring", total: 375.01 },
-  { id: 8,  jobNumber: "10234-J08", title: "AC Estimate",        client: "Travis Jones",   clientId: "10234", address: "854 Maple St, Fort Worth, TX 76107",        schedule: "March 30, 2026", scheduleDateSort: "2026-03-30", status: "On Review",  jobType: "One-off",   total: 375.01 },
+  { id: 8,  jobNumber: "10234-J08", title: "AC Estimate",        client: "Travis Jones",   clientId: "10234", address: "854 Maple St, Fort Worth, TX 76107",        schedule: "March 30, 2026", scheduleDateSort: "2026-03-30", status: "Scheduled",  jobType: "One-off",   total: 375.01 },
   { id: 9,  jobNumber: "10234-J09", title: "AC Estimate",        client: "Travis Jones",   clientId: "10234", address: "854 Maple St, Fort Worth, TX 76107",        schedule: "March 30, 2026", scheduleDateSort: "2026-03-30", status: "Completed",  jobType: "One-off",   total: 375.01 },
   { id: 10, jobNumber: "10255-J01", title: "Plumbing Repair",    client: "Lisa Brown",     clientId: "10255", address: "567 Pine Road, Jacksonville, FL 32099",     schedule: "April 6, 2026",  scheduleDateSort: "2026-04-06", status: "Completed",  jobType: "One-off",   total: 275.00 },
   { id: 11, jobNumber: "10246-J01", title: "Tree Removal",       client: "Sarah Johnson",  clientId: "10246", address: "1220 Elm Street, Orlando, FL 32801",        schedule: "April 10, 2026", scheduleDateSort: "2026-04-10", status: "In Progress", jobType: "One-off",   total: 450.00 },
@@ -48,21 +48,18 @@ const statusColors: Record<string, string> = {
   Scheduled: "#4A6FA5",
   "In Progress": "#D97706",
   Completed: "#16A34A",
-  "On Review": "#B45309",
 };
 
 const statusBg: Record<string, string> = {
   Scheduled: "#EBF0F8",
   "In Progress": "#FEF3C7",
   Completed: "#DCFCE7",
-  "On Review": "#FEF9C3",
 };
 
 const statusIcons: Record<string, string> = {
   Scheduled: "event_note",
   "In Progress": "autorenew",
   Completed: "check_circle",
-  "On Review": "rate_review",
 };
 
 type SortField = "id" | "address" | "schedule" | "status" | "total" | "client";
@@ -169,7 +166,6 @@ export function Jobs() {
   const statusCounts = {
     Scheduled: jobs.filter(j => j.status === "Scheduled").length,
     "In Progress": jobs.filter(j => j.status === "In Progress").length,
-    "On Review": jobs.filter(j => j.status === "On Review").length,
     Completed: jobs.filter(j => j.status === "Completed").length,
   };
 
@@ -190,7 +186,7 @@ export function Jobs() {
       />
 
       {/* ── Stats Cards (Clients-template style) ── */}
-      <div className="mb-4 grid grid-cols-4 gap-3">
+      <div className="mb-4 grid grid-cols-3 gap-3">
         <StatCard
           value={String(statusCounts["In Progress"])}
           label="In progress"
@@ -210,16 +206,6 @@ export function Jobs() {
           period="vs prev. month"
           data={[5, 6, 7, 8, 9, 10, 12]}
           sparklineColor="#16A34A"
-        />
-        <StatCard
-          value={String(statusCounts["On Review"])}
-          label="On Review"
-          sub="pending review"
-          change="+5%"
-          changeUp
-          period="vs last week"
-          data={[1, 1, 2, 2, 3, 2, 3]}
-          sparklineColor="#B45309"
         />
         <StatCard
           value={`$${jobs.reduce((sum, j) => sum + (j.total ?? 0), 0).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
@@ -267,7 +253,6 @@ export function Jobs() {
                 <option value="All">Status: All</option>
                 <option value="Scheduled">Scheduled</option>
                 <option value="In Progress">In Progress</option>
-                <option value="On Review">On Review</option>
                 <option value="Completed">Completed</option>
               </select>
               <select value={qfType} onChange={e => { setQfType(e.target.value); setCurrentPage(1); }} className={qfClass(qfType !== "All")}>

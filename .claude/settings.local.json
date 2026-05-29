@@ -56,7 +56,14 @@
       "Bash(mkdir -p \"/Users/solomiyahavrylyshyn/Vision360 \\(1\\)/src/assets/designs\" && cp \"/Users/solomiyahavrylyshyn/Downloads/Нова папка з елементами/\"*.png \"/Users/solomiyahavrylyshyn/Vision360 \\(1\\)/src/assets/designs/\" && echo \"Copied: $\\(ls \"/Users/solomiyahavrylyshyn/Vision360 \\(1\\)/src/assets/designs/\" | wc -l\\) files\")",
       "mcp__figma-desktop__get_metadata",
       "mcp__figma-desktop__get_design_context",
-      "mcp__figma-desktop__get_screenshot"
+      "mcp__figma-desktop__get_screenshot",
+      "mcp__Figma__get_screenshot",
+      "mcp__Figma__get_metadata",
+      "mcp__plugin_figma_figma__get_screenshot",
+      "Bash(curl -s -o \"C:\\\\Users\\\\mykha\\\\Documents\\\\Vision360\\\\.tmp_schedule.png\" \"https://www.figma.com/api/mcp/asset/40181b6e-737c-4855-ad51-f583c0bdbeca\")",
+      "Bash(curl -s -o \"C:\\\\Users\\\\mykha\\\\Documents\\\\Vision360\\\\.tmp_schedule_figma.png\" \"https://www.figma.com/api/mcp/asset/c46f8908-2b12-4726-8d85-1c21eedc35a2\")",
+      "Bash(curl -s -o \"C:\\\\Users\\\\mykha\\\\Documents\\\\Vision360\\\\.tmp_week_figma.png\" \"https://www.figma.com/api/mcp/asset/9a75bbb9-1345-43b1-a70a-c81d3310113f\")",
+      "Bash(curl -s -o \"C:\\\\Users\\\\mykha\\\\Documents\\\\Vision360\\\\.tmp_week_figma.png\" \"https://www.figma.com/api/mcp/asset/17c7e4cb-5b27-4f3f-9597-396e1ce075b8\")"
     ]
   }
 }

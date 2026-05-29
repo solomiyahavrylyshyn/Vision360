@@ -239,8 +239,8 @@ export function Layout() {
               alt="Company Logo"
               className="object-contain mix-blend-hard-light"
               style={{
-                height: sidebarCollapsed ? "40px" : "24px",
-                width: sidebarCollapsed ? "40px" : "120px",
+                height: sidebarCollapsed ? "44px" : "48px",
+                width: sidebarCollapsed ? "44px" : "180px",
                 objectPosition: sidebarCollapsed ? "center" : "left center",
               }}
             />

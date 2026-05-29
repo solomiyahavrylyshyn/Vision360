@@ -154,9 +154,9 @@ const DAY_JOBS: DayJob[] = [
 // Day view constants
 const GANTT_START_HOUR = 7;   // 7 AM
 const GANTT_END_HOUR   = 18;  // 6 PM (exclusive label at 18)
-const HOUR_WIDTH       = 90;  // px per hour
+const HOUR_WIDTH       = 120; // px per hour (matches Figma schedule columns)
 const CURRENT_TIME     = 10.5; // 10:30 AM
-const WEEK_LABEL_WIDTH = 220;
+const WEEK_LABEL_WIDTH = 180; // matches the day-view technician column
 
 type ViewMode = "month" | "week" | "day";
 type SidebarTab = "Details" | "Notes" | "History";
@@ -313,13 +313,13 @@ export function Calendar() {
     : viewMode === "week"
     ? filteredWeekJobs.filter((job) => job.status === "In Progress").length
     : filteredDayJobs.filter((job) => job.status === "In Progress").length;
-  const completionRate = scheduleJobCount > 0 ? Math.round((completedJobCount / scheduleJobCount) * 100) : 0;
+  const completionRate = scheduleJobCount > 0 ? Math.round((completedJobCount / scheduleJobCount) * 1000) / 10 : 0;
   const scopedJobLabel = viewMode === "month" ? "Jobs this month" : viewMode === "week" ? "Jobs this week" : "Jobs today";
   const scheduleKpis = [
-    { value: `$${topRevenue.toLocaleString("en-US")}`, label: topRevenueLabel, icon: "attach_money", color: "#16A34A", bg: "#D1FAE5" },
-    { value: String(scheduleJobCount), label: scopedJobLabel, icon: "event_available", color: "#4A6FA5", bg: "#EBF0F8" },
-    { value: String(inProgressJobCount), label: "In progress", icon: "pending_actions", color: "#D97706", bg: "#FEF3C7" },
-    { value: `${completionRate}%`, label: "Completion rate", icon: "task_alt", color: "#16A34A", bg: "#DCFCE7" },
+    { value: `$${topRevenue.toLocaleString("en-US")}`, label: topRevenueLabel, icon: "payments", color: "#16A34A", bg: "#D1FAE5" },
+    { value: String(scheduleJobCount), label: scopedJobLabel, icon: "work", color: "#4A6FA5", bg: "#EBF0F8" },
+    { value: String(inProgressJobCount), label: "In progress", icon: "schedule", color: "#D97706", bg: "#FEF3C7" },
+    { value: `${completionRate}%`, label: "Completion rate", icon: "check_circle", color: "#7C3AED", bg: "#EDE9FE" },
   ];
 
   const hourFromPointer = (event: SlotPointerEvent) => {
@@ -608,22 +608,6 @@ export function Calendar() {
     <div className="px-7 py-5 bg-[#F5F7FA] min-h-full flex flex-col">
       <PageHeader
         title="Schedule"
-        subtitle={
-          <div className="flex items-center gap-3 ml-4">
-            <div className="flex items-center gap-1">
-              <button onClick={goBack} className="w-8 h-8 rounded-lg hover:bg-white flex items-center justify-center">
-                <span className="material-icons text-[#546478]" style={{ fontSize: "20px" }}>chevron_left</span>
-              </button>
-              <button onClick={goToday} className="px-3 py-1.5 text-[13px] text-[#4A6FA5] hover:bg-[#EBF0F8] rounded-lg" style={{ fontWeight: 600 }}>
-                Today
-              </button>
-              <button onClick={goForward} className="w-8 h-8 rounded-lg hover:bg-white flex items-center justify-center">
-                <span className="material-icons text-[#546478]" style={{ fontSize: "20px" }}>chevron_right</span>
-              </button>
-            </div>
-            <span className="text-[15px] text-[#1A2332]" style={{ fontWeight: 600 }}>{headerLabel}</span>
-          </div>
-        }
         className="mb-4"
         actions={
           <>
@@ -649,15 +633,15 @@ export function Calendar() {
       />
 
       {/* Stat cards */}
-      <div className="grid grid-cols-4 gap-3 mb-4">
+      <div className="grid grid-cols-4 gap-4 mb-4">
         {scheduleKpis.map(s => (
-          <div key={s.label} className="flex items-center justify-between gap-3 bg-white border border-[#E5E7EB] rounded-xl px-4 py-3 min-w-0" style={{ minHeight: 56 }}>
-            <div className="flex flex-col justify-center">
-              <div className="text-[18px] text-[#1A2332] leading-tight" style={{ fontWeight: 700 }}>{s.value}</div>
-              <div className="text-[11px] text-[#546478] mt-0.5 whitespace-nowrap">{s.label}</div>
+          <div key={s.label} className="flex items-center justify-between gap-3 bg-white border border-[#E5E7EB] rounded-xl px-4 py-4 min-w-0" style={{ minHeight: 92 }}>
+            <div className="flex flex-col justify-center min-w-0">
+              <div className="text-[26px] text-[#1A2332] leading-none tabular-nums" style={{ fontWeight: 700 }}>{s.value}</div>
+              <div className="text-[14px] text-[#546478] mt-1.5 whitespace-nowrap">{s.label}</div>
             </div>
-            <div className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center" style={{ fontSize: "18px", color: s.color, backgroundColor: s.bg }}>
-              <span className="material-icons" style={{ fontSize: "18px" }}>{s.icon}</span>
+            <div className="shrink-0 w-10 h-10 rounded-xl flex items-center justify-center" style={{ color: s.color, backgroundColor: s.bg }}>
+              <span className="material-icons" style={{ fontSize: "22px" }}>{s.icon}</span>
             </div>
           </div>
         ))}
@@ -675,6 +659,37 @@ export function Calendar() {
         className={`bg-white border border-[#E5E7EB] rounded-xl overflow-hidden flex flex-col ${viewMode === "day" ? "" : "flex-1"}`}
         style={{ minHeight: 0 }}
       >
+
+        {/* ── Card header bar: date nav (left) + job-type legend (right), matches Figma schedule header ── */}
+        <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-[#E5E7EB] bg-white shrink-0">
+          {/* Date navigation */}
+          <div className="flex items-center gap-1 shrink-0">
+            <button onClick={goBack} aria-label="Previous" className="w-9 h-9 rounded-lg hover:bg-[#F0F2F5] flex items-center justify-center">
+              <span className="material-icons text-[#546478]" style={{ fontSize: "20px" }}>chevron_left</span>
+            </button>
+            <button onClick={goToday} title="Jump to today" className="px-2 text-[15px] text-[#1A2332] hover:text-[#4A6FA5] whitespace-nowrap" style={{ fontWeight: 600 }}>
+              {headerLabel}
+            </button>
+            <button onClick={goForward} aria-label="Next" className="w-9 h-9 rounded-lg hover:bg-[#F0F2F5] flex items-center justify-center">
+              <span className="material-icons text-[#546478]" style={{ fontSize: "20px" }}>chevron_right</span>
+            </button>
+          </div>
+          {/* Job-type legend */}
+          <div className="flex items-center gap-3 flex-wrap justify-end">
+            {[
+              { label: "Service",      color: "#F59E0B" },
+              { label: "Maintenance",  color: "#16A34A" },
+              { label: "Installation", color: "#4A6FA5" },
+              { label: "Estimate",     color: "#6B7280" },
+              { label: "Emergency",    color: "#DC2626" },
+            ].map((item) => (
+              <div key={item.label} className="flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-sm shrink-0" style={{ backgroundColor: item.color }} />
+                <span className="text-[13px] text-[#6B7280] whitespace-nowrap" style={{ fontWeight: 500 }}>{item.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
 
         {/* ── MONTH VIEW ── */}
         {viewMode === "month" && (
@@ -747,16 +762,11 @@ export function Calendar() {
                   className="flex sticky top-0 z-20 border-b border-[#E5E7EB] bg-[#FAFBFC]"
                   style={{ height: 40 }}
                 >
-                  {/* Corner spacer — sticky left */}
+                  {/* Corner spacer — sticky left (blank tech-column header) */}
                   <div
                     className="shrink-0 sticky left-0 z-30 bg-[#FAFBFC] border-r border-[#E5E7EB]"
                     style={{ width: WEEK_LABEL_WIDTH, minWidth: WEEK_LABEL_WIDTH }}
-                  >
-                    <div className="grid h-full" style={{ gridTemplateColumns: "96px 1fr" }}>
-                      <div className="flex items-center px-4 text-[10px] uppercase tracking-wide text-[#8899AA]" style={{ fontWeight: 700 }}>Day</div>
-                      <div className="flex items-center px-3 border-l border-[#E5E7EB] text-[10px] uppercase tracking-wide text-[#8899AA]" style={{ fontWeight: 700 }}>Person</div>
-                    </div>
-                  </div>
+                  />
                   {/* Hour labels */}
                   {ganttHours.map((h) => {
                     const isCurrentHour = h === Math.floor(CURRENT_TIME);
@@ -782,108 +792,79 @@ export function Calendar() {
                   })}
                 </div>
 
-                {/* Day rows */}
+                {/* Day sections — one per weekday (matches Figma: full-width day header + technician lanes) */}
                 {weekDays.map((d, dayI) => {
                   const isToday = isSameDay(d, new Date(2026, 3, 14));
-                  const isWeekend = dayI === 0 || dayI === 6;
                   const dayOpen = openWeekDayIndexes.has(dayI);
-                  const labelBg = isToday ? "#DDE8F5" : isWeekend ? "#ECEEF3" : "#F8F9FB";
-                  // Per Marek: shorter schedule rows so the map below gets more space
-                  // (only 3 techs in MVP — wasted vertical space under each lane).
-                  const ROW_H = 72;
+                  const ROW_H = 112;
 
                   return (
                     <div key={dayI}>
+                      {/* Day header row — full width, sticky label */}
                       <div
-                        style={{
-                          height: 3,
-                          minWidth: ganttTotalWidth + WEEK_LABEL_WIDTH,
-                          background: isToday
-                            ? `linear-gradient(90deg,#4A6FA5 ${WEEK_LABEL_WIDTH}px,#B8CADF ${WEEK_LABEL_WIDTH}px)`
-                            : isWeekend
-                            ? "#D4D8E2"
-                            : "#DDE1E9",
-                        }}
-                      />
+                        className="border-b border-[#E5E7EB]"
+                        style={{ minWidth: ganttTotalWidth + WEEK_LABEL_WIDTH, backgroundColor: isToday ? "#EBF0F8" : "#F8F9FB" }}
+                      >
+                        <div className="sticky left-0 flex items-center gap-2 px-3" style={{ height: 36, width: "max-content" }}>
+                          <span className={`text-[13px] ${isToday ? "text-[#4A6FA5]" : "text-[#1A2332]"}`} style={{ fontWeight: 700 }}>
+                            {format(d, "EEE")} {formatRegionalDate(d, regionalSettings)}
+                          </span>
+                          {isToday && (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] bg-[#4A6FA5] text-white" style={{ fontWeight: 700 }}>Today</span>
+                          )}
+                          {!dayOpen && (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] bg-[#FEE2E2] text-[#DC2626]" style={{ fontWeight: 700 }}>Closed</span>
+                          )}
+                        </div>
+                      </div>
 
-                      {TEAM.map((member, memberIdx) => {
+                      {/* Technician lanes — only for open days */}
+                      {dayOpen && TEAM.map((member, memberIdx) => {
                         const memberJobs = filteredWeekJobs
                           .filter((job) => job.dayIdx === dayI && job.technicianId === member.id)
                           .sort((a, b) => a.start - b.start);
                         const memberTotal = memberJobs.reduce((sum, job) => sum + job.amount, 0);
-                        const rowBg = isToday ? "#EBF0F8" : isWeekend ? "#F4F5F8" : "#FFFFFF";
+                        const isLastMember = memberIdx === TEAM.length - 1;
 
                         return (
                           <div key={`${dayI}-${member.id}`} className="flex" style={{ height: ROW_H }}>
                             <div
-                              className="shrink-0 sticky left-0 z-10"
+                              className="shrink-0 sticky left-0 z-10 flex items-center gap-2.5 px-3 bg-white"
                               style={{
                                 width: WEEK_LABEL_WIDTH,
                                 minWidth: WEEK_LABEL_WIDTH,
                                 height: ROW_H,
-                                backgroundColor: labelBg,
-                                borderRight: "1px solid #D8DCE6",
-                                borderBottom: memberIdx === TEAM.length - 1 ? "0" : "1px solid #E5E7EB",
+                                borderRight: "1px solid #E5E7EB",
+                                borderBottom: isLastMember ? "0" : "1px solid #F0F2F5",
                               }}
                             >
-                              <div className="grid h-full" style={{ gridTemplateColumns: "96px 1fr" }}>
-                                <div className="flex flex-col justify-center px-4">
-                                  {memberIdx === 0 && (
-                                    <>
-                                      <div
-                                        className={`text-[13px] ${isToday ? "text-[#4A6FA5]" : isWeekend ? "text-[#8899AA]" : "text-[#1A2332]"}`}
-                                        style={{ fontWeight: isToday ? 700 : 600 }}
-                                      >
-                                        {format(d, "EEE")}
-                                      </div>
-                                      <div className={`text-[12px] mt-0.5 ${isToday ? "text-[#4A6FA5]" : "text-[#9CA3AF]"}`} style={{ fontWeight: isToday ? 600 : 400 }}>
-                                        {formatRegionalDate(d, regionalSettings)}
-                                      </div>
-                                      {!dayOpen && (
-                                        <div className="text-[10px] mt-1 text-[#DC2626]" style={{ fontWeight: 700 }}>Closed</div>
-                                      )}
-                                    </>
-                                  )}
-                                  {memberIdx !== 0 && !dayOpen && (
-                                    <span className="text-[11px] text-[#8899AA]" style={{ fontWeight: 600 }}>Closed</span>
-                                  )}
-                                </div>
-                                <div className="flex items-center gap-2 px-3 border-l border-[#D8DCE6]">
-                                  {dayOpen ? (
-                                    <>
-                                      <div
-                                        className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[12px] shrink-0"
-                                        style={{ backgroundColor: member.color, fontWeight: 700 }}
-                                      >
-                                        {member.initial}
-                                      </div>
-                                      <div className="min-w-0">
-                                        <div className="text-[13px] text-[#1A2332] truncate" style={{ fontWeight: 700 }}>{member.name}</div>
-                                        <div className="text-[11px] text-[#16A34A] tabular-nums" style={{ fontWeight: 600 }}>
-                                          ${memberTotal.toLocaleString("en-US")}
-                                        </div>
-                                      </div>
-                                    </>
-                                  ) : (
-                                    <span className="text-[12px] text-[#8899AA]" style={{ fontWeight: 700 }}>Unavailable</span>
-                                  )}
+                              <div
+                                className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[12px] shrink-0"
+                                style={{ backgroundColor: member.color, fontWeight: 700 }}
+                              >
+                                {member.initial}
+                              </div>
+                              <div className="min-w-0">
+                                <div className="text-[14px] text-[#1A2332] truncate" style={{ fontWeight: 600 }}>{member.name}</div>
+                                <div className="text-[13px] text-[#546478] tabular-nums mt-0.5" style={{ fontWeight: 600 }}>
+                                  ${memberTotal.toLocaleString("en-US")}
                                 </div>
                               </div>
                             </div>
 
                             <div
                               className="relative"
-                              style={{ minWidth: ganttTotalWidth, height: ROW_H, backgroundColor: rowBg }}
+                              style={{
+                                minWidth: ganttTotalWidth,
+                                height: ROW_H,
+                                backgroundColor: isToday ? "#F7FAFE" : "#FFFFFF",
+                                borderBottom: isLastMember ? "0" : "1px solid #F0F2F5",
+                              }}
                               onDragOver={(event) => handleWeekDragOver(event, dayI, member.id)}
                               onDragLeave={() => setDropPreview(null)}
                               onDrop={(event) => handleWeekDrop(event, dayI, member.id)}
                               onDoubleClick={(event) => handleWeekSlotDoubleClick(event, d, member.id, dayI)}
                             >
-                              {!dayOpen && (
-                                <div className="absolute inset-0 z-10 flex items-center justify-center bg-[#F8FAFC]/80 text-[12px] text-[#8899AA]" style={{ fontWeight: 700 }}>
-                                  Closed
-                                </div>
-                              )}
                               {ganttHours.slice(0, -1).map((h) => (
                                 <div
                                   key={h}
@@ -906,7 +887,7 @@ export function Calendar() {
                                 />
                               )}
 
-                              {dayOpen && memberJobs.length === 0 && (
+                              {memberJobs.length === 0 && (
                                 <button
                                   type="button"
                                   onClick={(event) => {
@@ -938,8 +919,8 @@ export function Calendar() {
                                     style={{
                                       left,
                                       width: Math.max(width, 70),
-                                      top: 10,
-                                      height: 52,
+                                      top: 12,
+                                      height: 88,
                                       backgroundColor: job.bg,
                                       borderLeft: `3px solid ${job.border}`,
                                       boxShadow: isSelected ? `0 0 0 2px ${job.border}` : "none",
@@ -956,11 +937,16 @@ export function Calendar() {
                                           {routeNumber}
                                         </span>
                                       </div>
-                                      <div className="text-[11px] leading-tight truncate" style={{ fontWeight: 700, color: "#1A2332" }}>{job.client}</div>
-                                      <div className="flex items-center gap-1 mt-auto shrink-0">
-                                        <span className="text-[10px] text-[#546478] truncate flex-1">{job.service}</span>
+                                      <div className="text-[11px] leading-tight truncate shrink-0" style={{ fontWeight: 700, color: "#1A2332" }}>{job.client}</div>
+                                      <div className="text-[10px] text-[#546478] truncate shrink-0">{job.service}</div>
+                                      <div className="flex items-center justify-between mt-auto shrink-0">
+                                        {job.amount > 0 ? (
+                                          <span className="text-[10px] tabular-nums" style={{ fontWeight: 700, color: job.border }}>${job.amount.toLocaleString()}</span>
+                                        ) : (
+                                          <span className="text-[10px] text-[#9CA3AF]">-</span>
+                                        )}
                                         <button
-                                          className="px-1.5 py-0.5 rounded-full text-[9px] shrink-0"
+                                          className="px-1.5 py-0.5 rounded-full text-[9px] max-w-[88px] truncate shrink-0"
                                           style={{ backgroundColor: statusStyle.bg, color: statusStyle.color, fontWeight: 700 }}
                                           onClick={(event) => {
                                             event.stopPropagation();
@@ -1108,25 +1094,25 @@ export function Calendar() {
           <div className="flex overflow-hidden">
 
             {/* Left: sticky team-member column */}
-            <div className="shrink-0 flex flex-col bg-white border-r border-[#E5E7EB]" style={{ width: 140 }}>
+            <div className="shrink-0 flex flex-col bg-white border-r border-[#E5E7EB]" style={{ width: 180 }}>
               {/* Spacer aligns with time header */}
               <div className="border-b border-[#E5E7EB] bg-[#FAFBFC]" style={{ height: 40 }} />
               {TEAM.map((member) => (
                 <div
                   key={member.id}
-                  className="flex items-center gap-2 px-3 border-b border-[#E5E7EB]"
-                  style={{ height: 96 }}
+                  className="flex items-center gap-2.5 px-3 border-b border-[#E5E7EB]"
+                  style={{ height: 112 }}
                 >
                   <div
-                    className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[12px] shrink-0"
+                    className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[12px] shrink-0"
                     style={{ backgroundColor: member.color, fontWeight: 700 }}
                   >
                     {member.initial}
                   </div>
                   <div className="min-w-0">
-                    <div className="text-[13px] text-[#1A2332] truncate" style={{ fontWeight: 600 }}>{member.name}</div>
-                    <div className="text-[11px] text-[#16A34A] tabular-nums" style={{ fontWeight: 600 }}>
-                      ${filteredDayJobs.filter((job) => job.technicianId === member.id).reduce((sum, job) => sum + job.amount, 0).toLocaleString("en-US")} today
+                    <div className="text-[14px] text-[#1A2332] truncate" style={{ fontWeight: 600 }}>{member.name}</div>
+                    <div className="text-[13px] text-[#546478] tabular-nums mt-0.5" style={{ fontWeight: 600 }}>
+                      ${filteredDayJobs.filter((job) => job.technicianId === member.id).reduce((sum, job) => sum + job.amount, 0).toLocaleString("en-US")}
                     </div>
                   </div>
                 </div>
@@ -1179,7 +1165,7 @@ export function Calendar() {
                       <div
                         key={member.id}
                         className="relative border-b border-[#E5E7EB]"
-                        style={{ height: 96 }}
+                        style={{ height: 112 }}
                         onDragOver={(event) => handleDayDragOver(event, member.id)}
                         onDragLeave={() => setDropPreview(null)}
                         onDrop={(event) => handleDayDrop(event, member.id)}
@@ -1233,8 +1219,8 @@ export function Calendar() {
                               style={{
                                 left,
                                 width: Math.max(width, 60),
-                                top: 10,
-                                height: 72,
+                                top: 12,
+                                height: 88,
                                 backgroundColor: job.bg,
                                 borderLeft: `3px solid ${job.border}`,
                                 boxShadow: selectedDayJob?.id === job.id ? `0 0 0 2px ${job.border}` : "none",
@@ -1406,89 +1392,67 @@ export function Calendar() {
 
           </div>
         )}
-      </div>
 
-      {/* Map — below main card, only in Day view. When the job sidebar is
-          open, narrow the map by the sidebar width so the calendar block as
-          a whole (schedule card + map) appears next to the sidebar rather
-          than under it. */}
-      {viewMode === "day" && (
-        <div
-          className="mt-4 rounded-xl border border-[#D8DCE6] bg-[#EEF3F8] overflow-hidden shrink-0 relative transition-[margin] duration-200"
-          style={{ height: 240, marginRight: selectedDayJob ? 316 : 0 }}
-        >
-          <div className="absolute inset-0 opacity-70">
-            <div className="absolute left-0 right-0 top-[32%] h-[2px] bg-white" />
-            <div className="absolute left-0 right-0 top-[64%] h-[2px] bg-white" />
-            <div className="absolute top-0 bottom-0 left-[24%] w-[2px] bg-white" />
-            <div className="absolute top-0 bottom-0 left-[52%] w-[2px] bg-white" />
-            <div className="absolute top-0 bottom-0 left-[78%] w-[2px] bg-white" />
-            <div className="absolute -left-10 top-10 h-32 w-[120%] rotate-[-8deg] border-y-2 border-white/80" />
-          </div>
-          <div className="absolute left-4 top-4 rounded-lg bg-white/95 border border-[#E5E7EB] px-3 py-2 shadow-sm">
-            <div className="text-[12px] text-[#1A2332]" style={{ fontWeight: 700 }}>Route map</div>
-            <div className="text-[11px] text-[#546478]">Pins match schedule route numbers</div>
-          </div>
-          {filteredDayJobs.map((job) => {
-            const member = TEAM.find((person) => person.id === job.technicianId) ?? TEAM[0];
-            const memberJobs = filteredDayJobs.filter((item) => item.technicianId === job.technicianId).sort((a, b) => a.start - b.start);
-            const routeNumber = memberJobs.findIndex((item) => item.id === job.id) + 1;
-            const left = 13 + ((job.id * 19 + Math.round(job.start * 7)) % 74);
-            const top = 20 + ((job.id * 23 + Math.round(job.end * 11)) % 58);
-            return (
-              <button
-                key={job.id}
-                className="absolute h-8 w-8 rounded-full text-white text-[12px] shadow-md border-2 border-white hover:scale-105 transition-transform"
-                style={{ left: `${left}%`, top: `${top}%`, backgroundColor: member.color, fontWeight: 800 }}
-                onClick={() => {
-                  setSelectedMapJobId(job.id);
-                  setSelectedDayJob(job);
-                }}
-                title={`${member.name}: ${job.client}`}
-              >
-                {routeNumber}
-              </button>
-            );
-          })}
-          {selectedMapJob && (
-            <div className="absolute right-4 bottom-4 w-[280px] rounded-xl bg-white border border-[#E5E7EB] p-3 shadow-sm">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="text-[13px] text-[#1A2332] truncate" style={{ fontWeight: 700 }}>{selectedMapJob.client}</div>
-                  <div className="text-[12px] text-[#546478] mt-0.5 truncate">{selectedMapJob.service}</div>
-                  <div className="text-[11px] text-[#8899AA] mt-1 truncate">{selectedMapJob.address}</div>
-                </div>
-                <span
-                  className="px-2 py-0.5 rounded-full text-[10px] shrink-0"
-                  style={{ backgroundColor: STATUS_STYLES[selectedMapJob.status].bg, color: STATUS_STYLES[selectedMapJob.status].color, fontWeight: 700 }}
-                >
-                  {selectedMapJob.status}
-                </span>
-              </div>
-              <div className="mt-2 flex items-center justify-between text-[11px] text-[#546478]">
-                <span>{formatRegionalTime(selectedMapJob.start, regionalSettings)} - {formatRegionalTime(selectedMapJob.end, regionalSettings)}</span>
-                <span className="tabular-nums" style={{ color: "#16A34A", fontWeight: 700 }}>${selectedMapJob.amount.toLocaleString("en-US")}</span>
-              </div>
+        {/* ── Route map nested inside the schedule card (day view), matches Figma ── */}
+        {viewMode === "day" && (
+          <div className="border-t border-[#E5E7EB] bg-white shrink-0">
+            <div className="px-4 pt-4 pb-3">
+              <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 700 }}>Route map</div>
             </div>
-          )}
-        </div>
-      )}
-
-      {/* Legend bar — bottom, outside main card */}
-      <div className="mt-4 bg-white border border-[#E5E7EB] rounded-xl px-5 py-3 flex flex-wrap items-center gap-x-5 gap-y-2 shrink-0">
-        <span className="text-[11px] text-[#8899AA] uppercase tracking-wide mr-1" style={{ fontWeight: 600 }}>Legend:</span>
-        {[
-          { label: "Service",     color: "#D97706" },
-          { label: "Maintenance", color: "#16A34A" },
-          { label: "Installation",color: "#4A6FA5" },
-          { label: "Estimate",    color: "#6B7280" },
-          { label: "Emergency",   color: "#DC2626" },
-        ].map(item => (
-          <div key={item.label} className="flex items-center gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ backgroundColor: item.color }} />
-            <span className="text-[11px] text-[#546478]" style={{ fontWeight: 500 }}>{item.label}</span>
+            <div className="mx-4 mb-4 rounded-xl border border-[#D8DCE6] bg-[#EEF3F8] overflow-hidden relative" style={{ height: 320 }}>
+              <div className="absolute inset-0 opacity-70">
+                <div className="absolute left-0 right-0 top-[32%] h-[2px] bg-white" />
+                <div className="absolute left-0 right-0 top-[64%] h-[2px] bg-white" />
+                <div className="absolute top-0 bottom-0 left-[24%] w-[2px] bg-white" />
+                <div className="absolute top-0 bottom-0 left-[52%] w-[2px] bg-white" />
+                <div className="absolute top-0 bottom-0 left-[78%] w-[2px] bg-white" />
+                <div className="absolute -left-10 top-10 h-32 w-[120%] rotate-[-8deg] border-y-2 border-white/80" />
+              </div>
+              {filteredDayJobs.map((job) => {
+                const member = TEAM.find((person) => person.id === job.technicianId) ?? TEAM[0];
+                const memberJobs = filteredDayJobs.filter((item) => item.technicianId === job.technicianId).sort((a, b) => a.start - b.start);
+                const routeNumber = memberJobs.findIndex((item) => item.id === job.id) + 1;
+                const left = 13 + ((job.id * 19 + Math.round(job.start * 7)) % 74);
+                const top = 20 + ((job.id * 23 + Math.round(job.end * 11)) % 58);
+                return (
+                  <button
+                    key={job.id}
+                    className="absolute h-8 w-8 rounded-full text-white text-[12px] shadow-md border-2 border-white hover:scale-105 transition-transform"
+                    style={{ left: `${left}%`, top: `${top}%`, backgroundColor: member.color, fontWeight: 800 }}
+                    onClick={() => {
+                      setSelectedMapJobId(job.id);
+                      setSelectedDayJob(job);
+                    }}
+                    title={`${member.name}: ${job.client}`}
+                  >
+                    {routeNumber}
+                  </button>
+                );
+              })}
+              {selectedMapJob && (
+                <div className="absolute right-4 bottom-4 w-[280px] rounded-xl bg-white border border-[#E5E7EB] p-3 shadow-sm">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="text-[13px] text-[#1A2332] truncate" style={{ fontWeight: 700 }}>{selectedMapJob.client}</div>
+                      <div className="text-[12px] text-[#546478] mt-0.5 truncate">{selectedMapJob.service}</div>
+                      <div className="text-[11px] text-[#8899AA] mt-1 truncate">{selectedMapJob.address}</div>
+                    </div>
+                    <span
+                      className="px-2 py-0.5 rounded-full text-[10px] shrink-0"
+                      style={{ backgroundColor: STATUS_STYLES[selectedMapJob.status].bg, color: STATUS_STYLES[selectedMapJob.status].color, fontWeight: 700 }}
+                    >
+                      {selectedMapJob.status}
+                    </span>
+                  </div>
+                  <div className="mt-2 flex items-center justify-between text-[11px] text-[#546478]">
+                    <span>{formatRegionalTime(selectedMapJob.start, regionalSettings)} - {formatRegionalTime(selectedMapJob.end, regionalSettings)}</span>
+                    <span className="tabular-nums" style={{ color: "#16A34A", fontWeight: 700 }}>${selectedMapJob.amount.toLocaleString("en-US")}</span>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
-        ))}
+        )}
       </div>
 
       {quickJobDraft && (

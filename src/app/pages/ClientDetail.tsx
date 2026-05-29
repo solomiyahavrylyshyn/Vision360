@@ -303,6 +303,9 @@ export function ClientDetail() {
 
   const [isEditing, setIsEditing] = useState(false);
   const [editingSection, setEditingSection] = useState<null | "name" | "contact" | "finance">(null);
+  const [clientStatus, setClientStatus] = useState<"Prospect" | "Active" | "Inactive">("Active");
+  const [clientStatusOpen, setClientStatusOpen] = useState(false);
+  const clientStatusColors: Record<string, string> = { Prospect: "#4A6FA5", Active: "#16A34A", Inactive: "#6B7280" };
   const [notesExpanded, setNotesExpanded] = useState(false);
   const [addingNote, setAddingNote] = useState(false);
   const [newNoteText, setNewNoteText] = useState("");
@@ -1881,6 +1884,32 @@ export function ClientDetail() {
               <span className="text-[16px] text-[#6B7280] leading-[24px]" style={{ fontWeight: 400 }}>
                 ({client.customerId.replace(/^C-/, "")})
               </span>
+              {/* Status chip — same as Jobs detail */}
+              <div className="relative">
+                <button
+                  onClick={() => setClientStatusOpen(!clientStatusOpen)}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[13px] transition-colors"
+                  style={{ fontWeight: 600, backgroundColor: `${clientStatusColors[clientStatus]}18`, color: clientStatusColors[clientStatus] }}
+                >
+                  <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: clientStatusColors[clientStatus] }} />
+                  {clientStatus}
+                  <span className="material-icons" style={{ fontSize: "14px" }}>arrow_drop_down</span>
+                </button>
+                {clientStatusOpen && (
+                  <div className="absolute left-0 top-full mt-1 bg-white border border-[#E5E7EB] rounded-md shadow-lg z-50 w-[160px] py-1">
+                    {(["Prospect", "Active", "Inactive"] as const).map((s) => (
+                      <button
+                        key={s}
+                        onClick={() => { setClientStatus(s); setClientStatusOpen(false); }}
+                        className="w-full text-left px-3 py-2 text-[13px] hover:bg-[#F3F4F6] flex items-center gap-2"
+                      >
+                        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: clientStatusColors[s] }} />
+                        <span style={{ color: clientStatusColors[s], fontWeight: 500 }}>{s}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Address · Phone · Email — single inline row with separators */}
