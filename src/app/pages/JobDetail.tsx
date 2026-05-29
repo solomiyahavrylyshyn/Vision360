@@ -9,6 +9,7 @@ import {
 } from "../components/ui/dropdown-menu";
 import { DetailTabs, TabSettingsButton } from "../components/ui/detail-tabs";
 import { PlusIcon } from "../components/ui/plus-icon";
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "../components/ui/resizable";
 import { DocumentPreview } from "../components/DocumentPreview";
 import { toast } from "sonner";
 import acServicePhoto from "../../assets/documents/33897-cu.jpg";
@@ -605,12 +606,19 @@ export function JobDetail() {
       setNotesNewText("");
     };
 
+    const panelHandle = (
+      <ResizableHandle
+        withHandle
+        className="mx-2 w-1 rounded-full bg-transparent transition-colors hover:bg-[#D8DEE8] data-[resize-handle-active]:bg-[#C5D5EC] after:w-3"
+      />
+    );
+
     return (
-      <div className="flex gap-4 items-start">
+      <ResizablePanelGroup direction="horizontal" className="min-h-[440px] items-stretch">
 
         {/* ── Col 1: Job Overview + Job Date & Time (separate cards) ── */}
-        <div className="w-[270px] shrink-0 flex flex-col gap-3">
-          <div className="bg-white border border-[#E5E7EB] rounded-lg p-4 flex flex-col gap-3.5">
+        <ResizablePanel defaultSize={22} minSize={16} maxSize={32} className="min-w-0">
+          <div className="h-full bg-white border border-[#E5E7EB] rounded-lg p-4 flex flex-col gap-3.5">
             <div className="flex items-center justify-between">
               <span className="text-[16px] text-[#1A2332]" style={{ fontWeight: 600 }}>Job overview</span>
               <button onClick={() => openEdit("overview")} className="h-9 w-9 rounded-lg border border-[#E5E7EB] text-[#546478] hover:bg-[#F5F7FA]">
@@ -666,12 +674,15 @@ export function JobDetail() {
               </div>
             </div>
           </div>
-        </div>
+        </ResizablePanel>
+
+        {panelHandle}
 
         {/* ── Col 2: Notes panel with sub-tabs ── */}
-        <div className="w-[380px] shrink-0 bg-white border border-[#E5E7EB] rounded-lg overflow-hidden">
+        <ResizablePanel defaultSize={31} minSize={22} maxSize={48} className="min-w-0">
+        <div className="h-full bg-white border border-[#E5E7EB] rounded-lg overflow-hidden flex flex-col">
           {/* Header: "Notes" label + sub-tabs + "+" */}
-          <div className="flex items-center border-b border-[#E5E7EB] px-4 gap-1">
+          <div className="flex items-center border-b border-[#E5E7EB] px-4 gap-1 shrink-0">
             <span className="sr-only">Notes</span>
             {noteTabs.map(tab => (
               <button
@@ -715,7 +726,7 @@ export function JobDetail() {
           {activeNotes.length === 0 && !notesAdding ? (
             <div className="py-8 text-center text-[12px] text-[#9CA3AF]">No {noteTabs.find(t=>t.key===noteTab)?.label.toLowerCase()} notes yet</div>
           ) : (
-            <div className="divide-y divide-[#F3F4F6]">
+            <div className="divide-y divide-[#F3F4F6] flex-1 overflow-y-auto">
               {shownNotes.map((note: NoteEntry) => (
                 <div key={note.id} className="px-4 py-3 group">
                   <div className="text-[12px] text-[#8899AA] mb-1">Added {note.date}</div>
@@ -737,11 +748,15 @@ export function JobDetail() {
             </button>
           )}
         </div>
+        </ResizablePanel>
+
+        {panelHandle}
 
         {/* ── Col 3: Attachments (Media / Files) ── */}
-        <div className="w-[540px] shrink-0 bg-white border border-[#E5E7EB] rounded-lg overflow-hidden">
+        <ResizablePanel defaultSize={47} minSize={30} className="min-w-0">
+        <div className="h-full bg-white border border-[#E5E7EB] rounded-lg overflow-hidden flex flex-col">
           {/* Header */}
-          <div className="flex items-center border-b border-[#E5E7EB] px-4 py-2.5 gap-3">
+          <div className="flex items-center border-b border-[#E5E7EB] px-4 py-2.5 gap-3 shrink-0">
             <span className="sr-only">Attachments</span>
             <div className="flex items-center gap-1 ml-1">
               {(["media", "files"] as const).map(t => (
@@ -762,9 +777,9 @@ export function JobDetail() {
 
           {/* Media tab */}
           {mediaTab === "media" && (
-            <div className="flex" style={{ minHeight: 360 }}>
+            <div className="flex flex-1 min-h-[420px]">
               {/* Thumbnail grid (2 cols) */}
-              <div className="w-[122px] shrink-0 p-2 border-r border-[#F3F4F6] grid grid-cols-2 gap-1.5 content-start overflow-y-auto" style={{ maxHeight: 360 }}>
+              <div className="w-[132px] sm:w-[148px] shrink-0 p-2 border-r border-[#F3F4F6] grid grid-cols-2 gap-1.5 content-start overflow-y-auto">
                 {MOCK_PHOTOS.map((photo, idx) => (
                   <button
                     key={photo.id}
@@ -779,14 +794,14 @@ export function JobDetail() {
               </div>
 
               {/* Large preview */}
-              <div className="flex-1 relative flex items-center justify-center p-3 bg-[#FAFBFC]">
+              <div className="flex-1 min-w-0 relative flex items-center justify-center p-4 bg-[#FAFBFC]">
                 <button
                   onClick={() => setMediaPreviewIdx(i => (i - 1 + MOCK_PHOTOS.length) % MOCK_PHOTOS.length)}
                   className="absolute left-2 top-1/2 -translate-y-1/2 z-10 w-7 h-7 rounded-full bg-white border border-[#E5E7EB] shadow flex items-center justify-center hover:bg-[#F5F7FA]"
                 >
                   <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>chevron_left</span>
                 </button>
-                <div className="w-[220px] aspect-[4/3] rounded-lg overflow-hidden relative">
+                <div className="w-full max-w-[620px] aspect-[4/3] rounded-lg overflow-hidden relative bg-white shadow-sm">
                   <img src={MOCK_PHOTOS[mediaPreviewIdx]?.previewUrl} alt="" className="h-full w-full object-cover" />
                   {MOCK_PHOTOS[mediaPreviewIdx]?.tag && (
                     <span className="absolute left-2 bottom-2 px-2 py-0.5 rounded text-[10px] text-white bg-[#16A34A]" style={{ fontWeight: 600 }}>
@@ -809,7 +824,7 @@ export function JobDetail() {
 
           {/* Files tab */}
           {mediaTab === "files" && (
-            <div className="divide-y divide-[#F3F4F6]">
+            <div className="divide-y divide-[#F3F4F6] flex-1 overflow-y-auto min-h-[420px]">
               {documents.filter(d => !d.isImage).length === 0 ? (
                 <div className="py-8 text-center text-[13px] text-[#9CA3AF]">No files yet</div>
               ) : documents.filter(d => !d.isImage).map(f => (
@@ -824,7 +839,8 @@ export function JobDetail() {
             </div>
           )}
         </div>
-      </div>
+        </ResizablePanel>
+      </ResizablePanelGroup>
     );
   };
 

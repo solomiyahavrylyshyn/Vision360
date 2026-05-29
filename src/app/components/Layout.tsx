@@ -222,12 +222,12 @@ export function Layout() {
       {/* ── Full-height Sidebar ── */}
       <aside
         className={`bg-[#1C2B3A] flex flex-col flex-shrink-0 transition-all duration-[240ms] ease-[cubic-bezier(0.4,0,0.2,1)] ${
-          sidebarCollapsed ? "w-[96px]" : "w-[240px]"
+          sidebarCollapsed ? "w-[96px] p-2 gap-4" : "w-[240px] p-4 gap-6"
         }`}
         style={{ overflowX: "hidden" }}
       >
         {/* Logo area */}
-        <div className={`flex items-center flex-shrink-0 -mt-6 -mb-6 ${sidebarCollapsed ? "justify-center px-2" : "px-4"}`}>
+        <div className={`flex flex-shrink-0 ${sidebarCollapsed ? "justify-center items-center" : "items-center"}`}>
           <button
             type="button"
             aria-label="Open branding settings"
@@ -237,10 +237,10 @@ export function Layout() {
             <img
               src={companyLogoSrc}
               alt="Company Logo"
-              className="object-contain"
+              className="object-contain mix-blend-hard-light"
               style={{
-                height: sidebarCollapsed ? "116px" : "152px",
-                maxWidth: sidebarCollapsed ? "116px" : "208px",
+                height: sidebarCollapsed ? "40px" : "24px",
+                width: sidebarCollapsed ? "40px" : "120px",
                 objectPosition: sidebarCollapsed ? "center" : "left center",
               }}
             />
@@ -250,7 +250,7 @@ export function Layout() {
         {/* Navigation */}
         <nav
           className={`flex-1 flex flex-col overflow-y-auto ${
-            sidebarCollapsed ? "gap-0.5 px-2" : "gap-2 px-4"
+            sidebarCollapsed ? "gap-0.5" : "gap-2"
           }`}
         >
           {navItems.map((item) => (
@@ -291,8 +291,8 @@ export function Layout() {
           ))}
         </nav>
 
-        {/* Collapse button at bottom */}
-        <div className={`flex-shrink-0 pb-4 ${sidebarCollapsed ? "px-2" : "px-4"}`}>
+        {/* Collapse button at bottom — separated by a subtle top border */}
+        <div className="flex-shrink-0 border-t border-[rgba(255,255,255,0.1)] pt-1">
           <button
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
             title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}

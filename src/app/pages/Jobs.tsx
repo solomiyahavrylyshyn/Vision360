@@ -534,13 +534,6 @@ export function Jobs() {
                     style={{ fontFamily: "Geist, sans-serif", fontWeight: 400 }} />
                 </div>
               </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist, sans-serif", fontWeight: 500, lineHeight: "20px" }}>City</label>
-                <input type="text" placeholder="e.g. Tampa, Orlando" value={pendingFilters.city}
-                  onChange={e => setPendingFilters(p => ({ ...p, city: e.target.value }))}
-                  className="min-h-[36px] px-3 py-2 border border-[#E5E7EB] rounded-[8px] text-[14px] text-[#1A2332] placeholder-[#6B7280] bg-white focus:outline-none focus:border-[#4A6FA5] shadow-[0px_1px_1px_rgba(0,0,0,0.05)]"
-                  style={{ fontFamily: "Geist, sans-serif", fontWeight: 400 }} />
-              </div>
             </div>
 
           </div>

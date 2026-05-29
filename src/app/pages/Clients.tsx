@@ -44,16 +44,17 @@ interface Client {
 
 const initialClients: Client[] = [
   { id: "10245", initials: "JS", avatarColor: "#4A6FA5", name: "John Smith", company: null, email: "john.smith@email.com", phone: "(555) 123-4567", address: "123 Main St, Austin, TX 78701", tags: ["Residential", "VIP"], lastActivity: "Invoice Sent • 2 days ago", totalJobs: 5, totalBilled: 12450.00 },
-  { id: "10246", initials: "SJ", avatarColor: "#3B82F6", name: "Sarah Johnson", company: "Johnson & Partners", email: "sarah.j@email.com", phone: "(555) 234-5678", address: "456 Oak Ave, Dallas, TX 75201", tags: ["Commercial"], lastActivity: "Estimate Sent • 5 days ago", totalJobs: 0, totalBilled: 0, status: "Prospect" },
-  { id: "10247", initials: "MD", avatarColor: "#8B5CF6", name: "Mike Davis", company: "Davis Construction", email: "mike@davis.com", phone: "(555) 345-6789", address: "789 Pine Rd, Houston, TX 77001", tags: ["Residential", "Repeat"], lastActivity: "Invoice Overdue • 18 days", totalJobs: 3, totalBilled: 8750.50, pastDue: 1250.00, daysOverdue: 18 },
+  { id: "10246", initials: "SJ", avatarColor: "#3B82F6", name: "Sarah Johnson", company: "Johnson & Partners", email: "sarah.j@email.com", phone: "(555) 234-5678", address: "456 Oak Ave, Dallas, TX 75201", tags: ["Commercial"], lastActivity: "Estimate Sent • 5 days ago", totalJobs: 0, totalBilled: 0 },
+  { id: "10247", initials: "MD", avatarColor: "#8B5CF6", name: "Mike Davis", company: "Davis Construction", email: "mike@davis.com", phone: "(555) 345-6789", address: "789 Pine Rd, Houston, TX 77001", tags: ["Residential", "Repeat"], lastActivity: "Invoice Overdue • 18 days", totalJobs: 3, totalBilled: 8750.50, pastDue: 1250.00, daysOverdue: 18, status: "Inactive" },
   { id: "10248", initials: "RL", avatarColor: "#D97706", name: "Robert Lee", company: "Lee & Associates", email: "robert.l@email.com", phone: "(555) 456-7890", address: "321 Elm St, San Antonio, TX 78201", tags: ["Commercial", "New"], lastActivity: "Contacted • 3 days ago", totalJobs: 0, totalBilled: 0 },
   { id: "10249", initials: "EP", avatarColor: "#10B981", name: "Emily Parker", company: null, email: "e.parker@email.com", phone: "(555) 567-8901", address: "654 Maple Dr, Fort Worth, TX 76101", tags: ["Residential"], lastActivity: "Payment Received • 4 days ago", totalJobs: 2, totalBilled: 5320.00 },
-  { id: "10250", initials: "TC", avatarColor: "#DC2626", name: "Tom Carter", company: null, email: "tom.c@email.com", phone: "(555) 678-9012", address: "987 Cedar Ln, Plano, TX 75023", tags: ["Commercial", "Priority"], lastActivity: "Quote Requested • today", totalJobs: 0, totalBilled: 0, status: "Prospect" },
+  { id: "10250", initials: "TC", avatarColor: "#DC2626", name: "Tom Carter", company: null, email: "tom.c@email.com", phone: "(555) 678-9012", address: "987 Cedar Ln, Plano, TX 75023", tags: ["Commercial", "Priority"], lastActivity: "Quote Requested • today", totalJobs: 0, totalBilled: 0 },
 ];
 
 
 const CLIENTS_COLS = [
-  { key: "name",         label: "Name",         sortable: true  },
+  { key: "name",         label: "Name",          sortable: true  },
+  { key: "status",       label: "Status",        sortable: true  },
   { key: "address",      label: "Address",       sortable: false },
   { key: "totalBilled",  label: "Total billed",  sortable: true  },
   { key: "lastActivity", label: "Last activity", sortable: true  },
@@ -72,7 +73,7 @@ export function Clients() {
   // Quick filters
   const [qfDate, setQfDate] = useState("all_time");
   const [qfBalance, setQfBalance] = useState("all");
-  const [qfStatus] = useState<"All">("All");
+  const [qfStatus, setQfStatus] = useState<"All" | "Prospect" | "Active" | "Inactive">("All");
 
   const marketingSources = useSyncExternalStore(marketingSourcesStore.subscribe, marketingSourcesStore.getSources);
   const availableTags = useSyncExternalStore(tagsStore.subscribe, tagsStore.getTags);
@@ -101,13 +102,16 @@ export function Clients() {
   const rightCols = columnDefs.slice(11);
 
   // Sorting
-  type SortField = "name" | "phone" | "city" | "zip" | "lastActivity" | "totalBilled";
+  type SortField = "name" | "status" | "phone" | "city" | "zip" | "lastActivity" | "totalBilled";
   const [sortField, setSortField] = useState<SortField>("name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const toggleSort = (f: SortField) => {
     if (sortField === f) setSortDir(d => d === "asc" ? "desc" : "asc");
     else { setSortField(f); setSortDir("asc"); }
   };
+
+  // QuickBooks integration modal
+  const [qbModalOpen, setQbModalOpen] = useState(false);
 
   // Advanced filter panel state
   const [filterPanelOpen, setFilterPanelOpen] = useState(false);
@@ -134,6 +138,13 @@ export function Clients() {
     setPendingFilters(empty); setFilterState(empty); setFilterPanelOpen(false); setCurrentPage(1);
   };
 
+  /** Derive status: explicit Inactive wins; then Prospect if no jobs; else Active */
+  const getClientStatus = (c: Client): "Prospect" | "Active" | "Inactive" => {
+    if (c.status === "Inactive") return "Inactive";
+    if (c.status === "Prospect" || c.totalJobs === 0) return "Prospect";
+    return "Active";
+  };
+
   const filteredClients = clients.filter(client => {
     const matchesSearch = !searchQuery || client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       client.phone.includes(searchQuery) || client.address.toLowerCase().includes(searchQuery.toLowerCase());
@@ -142,8 +153,7 @@ export function Clients() {
       qfBalance === "with_balance" ? client.totalBilled > 0 :
       qfBalance === "without_balance" ? client.totalBilled === 0 :
       true;
-    const clientStatus = client.status ?? "Active";
-    const matchesStatus = qfStatus === "All" || clientStatus === qfStatus;
+    const matchesStatus = qfStatus === "All" || getClientStatus(client) === qfStatus;
 
     // Advanced filters
     const matchesCustomerType = !filterState.customerType || (filterState.customerType === "residential" ? client.tags.includes("Residential") : client.tags.includes("Commercial"));
@@ -162,6 +172,7 @@ export function Clients() {
   const sortedClients = [...filteredClients].sort((a, b) => {
     const dir = sortDir === "asc" ? 1 : -1;
     if (sortField === "name") return a.name.localeCompare(b.name) * dir;
+    if (sortField === "status") return getClientStatus(a).localeCompare(getClientStatus(b)) * dir;
     if (sortField === "totalBilled") return (a.totalBilled - b.totalBilled) * dir;
     if (sortField === "lastActivity") return a.lastActivity.localeCompare(b.lastActivity) * dir;
     return 0;
@@ -196,6 +207,26 @@ export function Clients() {
   const SortIcon = ({ field }: { field: SortField }) => (
     <span className="material-icons text-[#9AA3AF] ml-0.5" style={{ fontSize: "14px" }}>
       {sortField === field ? (sortDir === "asc" ? "arrow_upward" : "arrow_downward") : "unfold_more"}
+    </span>
+  );
+
+  const clientStatusColors: Record<string, string> = {
+    Prospect: "#4A6FA5",
+    Active:   "#16A34A",
+    Inactive: "#6B7280",
+  };
+  const clientStatusBg: Record<string, string> = {
+    Prospect: "#EBF0F8",
+    Active:   "#DCFCE7",
+    Inactive: "#F3F4F6",
+  };
+
+  const ClientStatusBadge = ({ status }: { status: "Prospect" | "Active" | "Inactive" }) => (
+    <span
+      className="inline-flex items-center justify-center min-w-[80px] px-2.5 py-1 rounded-md text-[12px] shrink-0"
+      style={{ fontWeight: 500, color: clientStatusColors[status], backgroundColor: clientStatusBg[status] }}
+    >
+      {status}
     </span>
   );
 
@@ -336,6 +367,7 @@ export function Clients() {
               </div>
               <div className="relative shrink-0">
                 <button
+                  onClick={() => setQbModalOpen(true)}
                   className="inline-flex items-center justify-center rounded-lg bg-[#4A6FA5] text-white transition-colors hover:bg-[#3d5a85]"
                   style={{ width: 80, height: 24, minHeight: 24, padding: "3px 8px", fontSize: 12, fontWeight: 500, lineHeight: "16px" }}
                 >
@@ -584,6 +616,17 @@ export function Clients() {
                   { value: "without_balance", label: "Without balance" },
                 ]}
               />
+              <QuickFilterSelect
+                prefix="Status:"
+                value={qfStatus}
+                onChange={v => { setQfStatus(v as typeof qfStatus); setCurrentPage(1); }}
+                options={[
+                  { value: "All",      label: "All" },
+                  { value: "Prospect", label: "Prospect" },
+                  { value: "Active",   label: "Active" },
+                  { value: "Inactive", label: "Inactive" },
+                ]}
+              />
               <div className="w-px h-5 bg-[#E5E7EB] mx-1" />
               <button
                 onClick={() => { setPendingFilters({ ...filterState }); setFilterPanelOpen(true); }}
@@ -646,11 +689,27 @@ export function Clients() {
             onDeselect={() => setSelectedClients(new Set())}
             actions={[
               {
-                label: qfStatus === "Inactive" ? "Activate" : "Inactivate",
-                icon: qfStatus === "Inactive" ? "check_circle" : "block",
+                label: "Set as Active",
+                icon: "check_circle",
                 onClick: () => {
-                  const nextStatus = qfStatus === "Inactive" ? "Active" : "Inactive";
-                  setClients(prev => prev.map(c => selectedClients.has(c.id) ? { ...c, status: nextStatus } : c));
+                  setClients(prev => prev.map(c => selectedClients.has(c.id) ? { ...c, status: "Active", totalJobs: c.totalJobs === 0 ? 1 : c.totalJobs } : c));
+                  setSelectedClients(new Set());
+                },
+              },
+              {
+                label: "Set as Prospect",
+                icon: "person_search",
+                onClick: () => {
+                  setClients(prev => prev.map(c => selectedClients.has(c.id) ? { ...c, status: "Prospect" } : c));
+                  setSelectedClients(new Set());
+                },
+              },
+              {
+                label: "Inactivate",
+                icon: "block",
+                destructive: true,
+                onClick: () => {
+                  setClients(prev => prev.map(c => selectedClients.has(c.id) ? { ...c, status: "Inactive" } : c));
                   setSelectedClients(new Set());
                 },
               },
@@ -714,7 +773,13 @@ export function Clients() {
                         return (
                           <td key="name" className="px-4 py-4">
                             <div className="text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist", fontStyle: "normal", fontWeight: 400, lineHeight: "20px" }}>{client.name}</div>
-                            {client.company && <div className="text-[12px] text-[#8899AA]">{client.company}</div>}
+                            {client.company && <div className="text-[12px] text-[#8899AA] mt-0.5">{client.company}</div>}
+                          </td>
+                        );
+                      case "status":
+                        return (
+                          <td key="status" className="px-4 py-4">
+                            <ClientStatusBadge status={getClientStatus(client)} />
                           </td>
                         );
                       case "address":
@@ -735,11 +800,16 @@ export function Clients() {
                   })}
                   <td className="px-4 py-4">
                     <KebabMenu>
-                      {(client.status ?? "Active") === "Inactive" ? (
-                        <KebabItem icon="check_circle" onSelect={e => { e.preventDefault(); setClients(prev => prev.map(c => c.id === client.id ? { ...c, status: "Active" } : c)); }}>Activate</KebabItem>
-                      ) : (
-                        <KebabItem icon="block" onSelect={e => { e.preventDefault(); setClients(prev => prev.map(c => c.id === client.id ? { ...c, status: "Inactive" } : c)); }}>Inactivate</KebabItem>
+                      {getClientStatus(client) !== "Prospect" && (
+                        <KebabItem icon="person_search" onSelect={e => { e.preventDefault(); setClients(prev => prev.map(c => c.id === client.id ? { ...c, status: "Prospect" } : c)); }}>Set as Prospect</KebabItem>
                       )}
+                      {getClientStatus(client) !== "Active" && (
+                        <KebabItem icon="check_circle" onSelect={e => { e.preventDefault(); setClients(prev => prev.map(c => c.id === client.id ? { ...c, status: "Active", totalJobs: c.totalJobs === 0 ? 1 : c.totalJobs } : c)); }}>Set as Active</KebabItem>
+                      )}
+                      {getClientStatus(client) !== "Inactive" && (
+                        <KebabItem icon="block" destructive onSelect={e => { e.preventDefault(); setClients(prev => prev.map(c => c.id === client.id ? { ...c, status: "Inactive" } : c)); }}>Inactivate</KebabItem>
+                      )}
+                      <KebabSeparator />
                       <KebabItem icon="open_in_new" onSelect={e => { e.preventDefault(); window.open(`/clients/${client.id}`, "_blank"); }}>Open in New Tab</KebabItem>
                     </KebabMenu>
                   </td>
@@ -817,6 +887,111 @@ export function Clients() {
               </div>
               <div className="px-8 py-5 border-t border-[#E5E7EB] flex justify-end">
                 <button onClick={() => { setVisibleColumns(new Set(pendingColumns)); setEditColumnsOpen(false); }} className="px-6 py-2 bg-[#4A6FA5] hover:bg-[#3d5a85] text-white rounded-lg text-[14px] transition-colors" style={{ fontWeight: 500 }}>Done</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── QuickBooks Integration Modal (preview / under construction) ── */}
+        {qbModalOpen && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/40" onClick={() => setQbModalOpen(false)} />
+            <div className="relative bg-white rounded-2xl shadow-2xl w-[540px] max-h-[88vh] flex flex-col overflow-hidden">
+              {/* Header — QuickBooks brand green */}
+              <div className="relative px-7 pt-7 pb-6" style={{ background: "linear-gradient(135deg, #2CA01C 0%, #108000 100%)" }}>
+                <button
+                  onClick={() => setQbModalOpen(false)}
+                  className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full text-white/80 hover:bg-white/15 hover:text-white transition-colors"
+                  aria-label="Close"
+                >
+                  <span className="material-icons" style={{ fontSize: "20px" }}>close</span>
+                </button>
+                <div className="flex items-center gap-3.5">
+                  {/* QB logo mark */}
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-sm">
+                    <span className="text-[22px] leading-none" style={{ fontWeight: 800, color: "#2CA01C", fontFamily: "Geist, sans-serif" }}>qb</span>
+                  </div>
+                  <div>
+                    <div className="text-[20px] text-white" style={{ fontWeight: 700, fontFamily: "Geist, sans-serif" }}>QuickBooks Online</div>
+                    <div className="text-[13px] text-white/85">Accounting integration</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Body */}
+              <div className="flex-1 overflow-y-auto px-7 py-6">
+                {/* Under-construction notice */}
+                <div className="flex items-start gap-3 rounded-xl border border-[#FCE3B4] bg-[#FFF8EC] px-4 py-3.5">
+                  <span className="material-icons text-[#B45309] mt-0.5" style={{ fontSize: "20px" }}>construction</span>
+                  <div>
+                    <div className="text-[13px] text-[#92400E]" style={{ fontWeight: 700 }}>Feature under construction</div>
+                    <p className="mt-0.5 text-[12.5px] leading-5 text-[#9A6A1E]">
+                      The QuickBooks integration isn't available just yet. We're putting the finishing touches on it — here's a preview of what's coming.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Value props */}
+                <h3 className="mt-6 text-[15px] text-[#1A2332]" style={{ fontWeight: 700 }}>Connect Vision360 to QuickBooks</h3>
+                <p className="mt-1 text-[13px] leading-5 text-[#546478]">
+                  Keep your books in sync automatically — no more double entry.
+                </p>
+
+                <div className="mt-4 space-y-3">
+                  {[
+                    { icon: "groups",       title: "Sync customers",      copy: "Match Vision360 clients with QuickBooks customers." },
+                    { icon: "receipt_long", title: "Push invoices",       copy: "Send invoices to QuickBooks the moment they're created." },
+                    { icon: "payments",     title: "Reconcile payments",  copy: "Payments flow back into your accounting ledger." },
+                    { icon: "sync",         title: "Two-way sync",        copy: "Changes stay consistent across both systems." },
+                  ].map(f => (
+                    <div key={f.title} className="flex items-start gap-3 rounded-xl border border-[#E5E7EB] bg-[#FBFCFE] px-4 py-3">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: "#E8F6E4", color: "#2CA01C" }}>
+                        <span className="material-icons" style={{ fontSize: "18px" }}>{f.icon}</span>
+                      </div>
+                      <div className="flex-1">
+                        <div className="text-[13.5px] text-[#1A2332]" style={{ fontWeight: 600 }}>{f.title}</div>
+                        <div className="mt-0.5 text-[12.5px] leading-5 text-[#6B7280]">{f.copy}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Setup steps preview (locked) */}
+                <div className="mt-6 rounded-xl border border-dashed border-[#CBD5E1] bg-[#F8FAFC] px-4 py-4">
+                  <div className="flex items-center gap-2 text-[12px] uppercase tracking-wide text-[#94A3B8]" style={{ fontWeight: 700 }}>
+                    <span className="material-icons" style={{ fontSize: "16px" }}>lock</span>
+                    Setup — coming soon
+                  </div>
+                  <div className="mt-3 space-y-2.5">
+                    {["Sign in to your Intuit account", "Choose a QuickBooks company file", "Map accounts & tax codes"].map((s, i) => (
+                      <div key={s} className="flex items-center gap-3">
+                        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#E2E8F0] text-[11px] text-[#94A3B8]" style={{ fontWeight: 700 }}>{i + 1}</span>
+                        <span className="text-[13px] text-[#94A3B8]">{s}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="flex items-center justify-end gap-3 border-t border-[#E5E7EB] px-7 py-4">
+                <button
+                  onClick={() => setQbModalOpen(false)}
+                  className="h-10 rounded-lg border border-[#E5E7EB] px-5 text-[14px] text-[#374151] bg-white hover:bg-[#F5F7FA] transition-colors"
+                  style={{ fontWeight: 500 }}
+                >
+                  Close
+                </button>
+                <button
+                  onClick={() => setQbModalOpen(false)}
+                  className="inline-flex h-10 items-center gap-2 rounded-lg px-5 text-[14px] text-white transition-colors"
+                  style={{ fontWeight: 600, backgroundColor: "#2CA01C" }}
+                  onMouseEnter={e => (e.currentTarget.style.backgroundColor = "#108000")}
+                  onMouseLeave={e => (e.currentTarget.style.backgroundColor = "#2CA01C")}
+                >
+                  <span className="material-icons" style={{ fontSize: "18px" }}>notifications_active</span>
+                  Notify me when it's ready
+                </button>
               </div>
             </div>
           </div>
