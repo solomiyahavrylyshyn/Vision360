@@ -14,6 +14,7 @@ import {
 import { toast } from "sonner";
 import { countiesStore } from "../stores/countiesStore";
 import { relationshipsStore } from "../stores/relationshipsStore";
+import { clientsStore } from "../stores/clientsStore";
 import { useSyncExternalStore } from "react";
 
 interface AdditionalContact {
@@ -208,6 +209,57 @@ export function CreateClient() {
     return null;
   };
 
+  const persistClient = (): string => {
+    const existing = clientsStore.getSnapshot();
+    const id = String(Math.max(10250, ...existing.map((c) => Number(c.id) || 0)) + 1);
+    const initials = ((formData.firstName[0] || "") + (formData.lastName[0] || "")).toUpperCase() || "C";
+    const palette = ["#4A6FA5", "#3B82F6", "#8B5CF6", "#D97706", "#10B981", "#DC2626"];
+    const today = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    clientsStore.addClient(
+      clientsStore.makeRecord({
+        id,
+        name: `${formData.firstName} ${formData.lastName}`.trim(),
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        initials,
+        avatarColor: palette[Number(id) % palette.length],
+        email: formData.email,
+        mobilePhone: formData.mobilePhone,
+        address: formData.address,
+        city: formData.city,
+        state: formData.state,
+        zip: formData.zip,
+        title: formData.title,
+        middleInitial: formData.middleInitial,
+        preferredName: formData.preferredName,
+        company: formData.company,
+        role: formData.role,
+        customerType: formData.customerType,
+        type: formData.customerType === "business" ? "Commercial" : "Residential",
+        mobilePhoneExt: formData.mobilePhoneExt,
+        workPhone: formData.workPhone,
+        workPhoneExt: formData.workPhoneExt,
+        website: formData.website,
+        unit: formData.unit,
+        county: formData.county,
+        country: formData.country,
+        marketingSource: formData.marketingSource,
+        notes: formData.notes,
+        notesArray: formData.notes.trim() ? [{ id: 1, text: formData.notes.trim(), date: `Added ${today}` }] : [],
+        additionalContacts: formData.additionalContacts.map((a, i) => ({ id: i + 1, firstName: a.firstName, lastName: a.lastName, phone: a.phone, email: a.email, relationship: a.relationship })),
+        status: "Prospect",
+        customerSince: today,
+        lastActivity: "Created • today",
+        billingAddress: formData.address,
+        billingCity: formData.city,
+        billingState: formData.state,
+        billingZip: formData.zip,
+        billingCounty: formData.county,
+      }),
+    );
+    return id;
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const error = validate();
@@ -215,8 +267,8 @@ export function CreateClient() {
       toast.error(error);
       return;
     }
-    const newClientId = Math.random().toString(36).substr(2, 9);
-    console.log("Saving client:", formData);
+    const newClientId = persistClient();
+    toast.success("Client created");
     navigate(`/clients/${newClientId}`);
   };
 
@@ -226,8 +278,8 @@ export function CreateClient() {
       toast.error(error);
       return;
     }
-    console.log("Saving client:", formData);
-    toast.success("Saved");
+    persistClient();
+    toast.success("Client created");
     setFormData(initialFormData);
   };
 

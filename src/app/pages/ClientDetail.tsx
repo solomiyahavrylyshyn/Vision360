@@ -1,4 +1,4 @@
-import { useState, useSyncExternalStore, useCallback, useRef, type ReactNode } from "react";
+import { useState, useEffect, useMemo, useSyncExternalStore, useCallback, useRef, type ReactNode } from "react";
 import { DocumentPreview } from "../components/DocumentPreview";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
@@ -28,6 +28,7 @@ import {
 import { KebabMenu as KebabMenuShared, KebabItem } from "../components/ui/kebab-menu";
 import { DetailTabs, TabSettingsButton } from "../components/ui/detail-tabs";
 import { toast } from "sonner";
+import { clientsStore } from "../stores/clientsStore";
 import { tagsStore } from "../stores/tagsStore";
 import { customFieldsStore } from "../stores/customFieldsStore";
 import installHeatingSystem1Photo from "../../assets/documents/33702-install-heating-system-1.jpg";
@@ -278,7 +279,7 @@ function PaymentTable() {
 
 export function ClientDetail() {
   const navigate = useNavigate();
-  useParams<{ id: string }>();
+  const { id: routeId } = useParams<{ id: string }>();
   const [activeTab, setActiveTab] = useState<TabKey>("details");
   const [tabs] = useState(DEFAULT_TABS);
   const [hiddenTabs, setHiddenTabs] = useState<Set<TabKey>>(new Set());
@@ -302,7 +303,7 @@ export function ClientDetail() {
   };
 
   const [isEditing, setIsEditing] = useState(false);
-  const [editingSection, setEditingSection] = useState<null | "name" | "contact" | "finance">(null);
+  const [editingSection, setEditingSection] = useState<null | "name" | "contact" | "addresses" | "finance">(null);
   const [clientStatus, setClientStatus] = useState<"Prospect" | "Active" | "Inactive">("Active");
   const [clientStatusOpen, setClientStatusOpen] = useState(false);
   const clientStatusColors: Record<string, string> = { Prospect: "#4A6FA5", Active: "#16A34A", Inactive: "#6B7280" };
@@ -344,14 +345,6 @@ export function ClientDetail() {
   // Selected file for the right-side preview panel (rename / download / delete)
   const [previewFileId, setPreviewFileId] = useState<string | null>(null);
   const previewFile = documents.find(d => d.id === previewFileId) ?? null;
-  // Visible tabs with live counts overlaid, matching how Properties and Jobs show their counts.
-  const visibleTabs = tabs
-    .filter(t => !hiddenTabs.has(t.key))
-    .map(t => {
-      if (t.key === "documents") return { ...t, count: documents.length };
-      if (t.key === "payments") return { ...t, count: paymentRows.length };
-      return t;
-    });
   // Batch selection state
   const [selectedDocs, setSelectedDocs] = useState<Set<string>>(new Set());
   const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
@@ -458,73 +451,18 @@ export function ClientDetail() {
     tagsStore.getTags
   );
 
-  const client = {
-    name: "Mike Delgado",
-    customerId: "10245",
-    title: "Mr.",
-    firstName: "Mike",
-    middleInitial: "J",
-    lastName: "Delgado",
-    preferredName: "Michael",
-    company: "Delgado Property Solutions",
-    role: "Property Owner",
-    customerType: "homeowner" as const,
-    customerSince: "Apr 12, 2022",
-    lastService: "Jun-25",
-    isBillingSameAsService: true,
-    isTaxable: true,
-    paymentTerms: "Net 30",
-    paymentMethod: "ACH",
-    creditLimit: 10000,
-    department: "Sarasota Branch",
-    salesRep: "Travis Jones",
-    accManager: "Anne Blue",
-    type: "Residential",
-    customField1: "",
-    customField2: "",
-    mobilePhone: "813-286-7572",
-    mobilePhoneExt: "457",
-    workPhone: "(833) 555-9999",
-    workPhoneExt: "456",
-    website: "https://smithplumbing.com",
-    email: "mjdelgado84@yahoo.com",
-    address: "2105 West Hills Avenue",
-    unit: "Suite 201",
-    city: "Tampa",
-    state: "FL",
-    zip: "33606",
-    country: "United States",
-    county: "Hillsborough",
-    billingAddress: "2105 West Hills Avenue",
-    billingUnit: "Suite 201",
-    billingCity: "Tampa",
-    billingState: "FL",
-    billingZip: "33606",
-    billingCounty: "Hillsborough",
-    marketingSource: "Google",
-    notes: "Prefers morning appointments. Has three properties requiring service.",
-    gateCode: "2486",
-    notesArray: [
-      { id: 1, text: "Prefers morning appointments.", date: "Added Mar 10, 2026" },
-      { id: 2, text: "Has three properties requiring service.", date: "Added Jan 15, 2024" },
-      { id: 3, text: "Requested annual maintenance plan.", date: "Added Dec 5, 2023" },
-      { id: 4, text: "Prefers email communication over phone.", date: "Added Oct 20, 2023" },
-      { id: 5, text: "Has two dogs, please close gates.", date: "Added Jul 15, 2021" },
-    ],
-    additionalContacts: [
-      { id: "1", firstName: "Sandra", lastName: "Delgado", phone: "(813) 555-0011", email: "sandra@delgadoprop.com", relationship: "Spouse" },
-    ],
-    tags: ["New Homeowner", "Self-Generated Lead", "VIP Customer"],
-    membership: "Silver",
-    membershipExpiry: "Dec-27",
-    totalRevenue: 45230.0,
-    estimatesTotal: 12300.0,
-    openBalance: 2450.0,
-    pastDueBalance: 850.0,
-    balance: 1214.0,
-  };
+  // Single source of truth: load THIS client from the shared store by URL :id.
+  const allClients = useSyncExternalStore(clientsStore.subscribe, clientsStore.getSnapshot);
+  const client = useMemo(
+    () => allClients.find((c) => c.id === routeId) ?? allClients[0],
+    [allClients, routeId],
+  );
 
   const [editedClient, setEditedClient] = useState(client);
+  // Re-seed the edit form whenever the active client changes (id switch or store update).
+  useEffect(() => { setEditedClient(client); }, [client]);
+  // Status chip reflects the real client status (was hardcoded "Active").
+  useEffect(() => { setClientStatus(client.status); }, [client]);
 
   const handleEditClick = () => {
     setIsEditing(true);
@@ -533,6 +471,7 @@ export function ClientDetail() {
   };
 
   const handleSaveClick = () => {
+    clientsStore.updateClient(client.id, editedClient);
     toast.success("Client updated successfully");
     setIsEditing(false);
   };
@@ -553,6 +492,17 @@ export function ClientDetail() {
   const estimateItems = [
     { id: 3, type: "estimate", title: "Estimate #1", subtitle: "AC Unit Replacement", date: "Created Mar 28, 2026", amount: "$2,450.00" },
   ];
+
+  // Visible tabs with LIVE counts derived from the actual data arrays (no hardcoded literals).
+  const visibleTabs = tabs
+    .filter((t) => !hiddenTabs.has(t.key))
+    .map((t) => {
+      if (t.key === "addresses") return { ...t, count: serviceAddresses.length };
+      if (t.key === "jobs") return { ...t, count: jobItems.length };
+      if (t.key === "documents") return { ...t, count: documents.length };
+      if (t.key === "payments") return { ...t, count: paymentRows.length };
+      return t;
+    });
 
   const getInitials = (name: string) =>
     name.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase();
@@ -700,7 +650,7 @@ export function ClientDetail() {
           <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>location_on</span>
           <span className="flex-1 text-[13px] font-semibold text-[#1A2332]">Addresses</span>
           <button
-            onClick={() => { setEditedClient(client); setEditingSection("contact"); }}
+            onClick={() => { setEditedClient(client); setEditingSection("addresses"); }}
             className="w-7 h-7 flex items-center justify-center hover:bg-[#F5F7FA] rounded-md transition-colors"
             aria-label="Edit addresses"
           >
@@ -827,7 +777,7 @@ export function ClientDetail() {
                   const today = new Date();
                   const dateStr = `Added ${today.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
                   const newId = Math.max(0, ...clientData.notesArray.map(n => n.id)) + 1;
-                  setClientData(prev => ({ ...prev, notesArray: [{ id: newId, text: trimmed, date: dateStr }, ...prev.notesArray] }));
+                  clientsStore.updateClient(client.id, { notesArray: [{ id: newId, text: trimmed, date: dateStr }, ...client.notesArray] });
                   setAddingNote(false);
                   setNewNoteText("");
                 }}
@@ -873,7 +823,7 @@ export function ClientDetail() {
                         onClick={() => {
                           const trimmed = editingNoteText.trim();
                           if (!trimmed) return;
-                          setClientData(prev => ({ ...prev, notesArray: prev.notesArray.map(n => n.id === note.id ? { ...n, text: trimmed } : n) }));
+                          clientsStore.updateClient(client.id, { notesArray: client.notesArray.map(n => n.id === note.id ? { ...n, text: trimmed } : n) });
                           setEditingNoteId(null);
                         }}
                         disabled={!editingNoteText.trim()}
@@ -910,7 +860,7 @@ export function ClientDetail() {
                         </button>
                         <button
                           onClick={() => {
-                            setClientData(prev => ({ ...prev, notesArray: prev.notesArray.filter(n => n.id !== note.id) }));
+                            clientsStore.updateClient(client.id, { notesArray: client.notesArray.filter(n => n.id !== note.id) });
                             setExpandedNoteIds(prev => { const s = new Set(prev); s.delete(note.id); return s; });
                           }}
                           className="w-6 h-6 flex items-center justify-center hover:bg-[#FEF2F2] rounded transition-colors"
@@ -1194,9 +1144,11 @@ export function ClientDetail() {
      HANDLE CHECKBOX CHANGES IN VIEW MODE
   ────────────────────────────────────────── */
   const [clientData, setClientData] = useState(client);
+  // Keep the interactive Details widgets (notes, checkboxes) in sync with the active client.
+  useEffect(() => { setClientData(client); }, [client]);
 
   const handleCheckboxChange = (field: string, value: boolean) => {
-    setClientData((prev) => ({ ...prev, [field]: value }));
+    clientsStore.updateClient(client.id, { [field]: value });
     toast.success("Setting updated");
   };
 
@@ -1798,8 +1750,10 @@ export function ClientDetail() {
               {client.notesArray.map((note) => (
                 <div key={note.id} className="border border-[#E5E7EB] rounded-lg p-4 hover:bg-[#F9FAFB] transition-colors">
                   <div className="flex items-center gap-2 mb-2">
-                    <div className="w-6 h-6 rounded-full bg-[#4A6FA5] flex items-center justify-center text-white text-[10px]" style={{ fontWeight: 600 }}>MS</div>
-                    <span className="text-[12px] text-[#6B7280]">Marek Stroz · {note.date}</span>
+                    <div className="w-6 h-6 rounded-full bg-[#EEF2F7] flex items-center justify-center text-[#4A6FA5]">
+                      <span className="material-icons" style={{ fontSize: "14px" }}>sticky_note_2</span>
+                    </div>
+                    <span className="text-[12px] text-[#6B7280]">{note.date}</span>
                   </div>
                   <p className="text-[14px] text-[#374151] leading-[21px]">{note.text}</p>
                 </div>
@@ -1874,17 +1828,18 @@ export function ClientDetail() {
       {/* ── ONE BIG WHITE CARD CONTAINING EVERYTHING (per Figma spec) ── */}
       <div className="mx-6 mb-6 bg-white border border-[#E5E7EB] rounded-xl p-4">
 
-        {/* Header row: name + contact on the LEFT, KPI tiles on the RIGHT, kebab pinned far-right */}
-        <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0 flex flex-col gap-1">
-            <div className="flex items-center gap-2">
-              <h2 className="text-[20px] text-[#1A2332] leading-[27px]" style={{ fontWeight: 600 }}>
+        {/* Header — Figma 746:54312: title + stats on row 1, contact details on row 2 */}
+        <div className="flex flex-col gap-3">
+          {/* Row 1: title (left) + stats (right) */}
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-center gap-2 min-w-0">
+              <h2 className="text-[20px] text-[#1A2332] leading-[27px] whitespace-nowrap" style={{ fontWeight: 600 }}>
                 {client.name}
               </h2>
               <span className="text-[16px] text-[#6B7280] leading-[24px]" style={{ fontWeight: 400 }}>
                 ({client.customerId.replace(/^C-/, "")})
               </span>
-              {/* Status chip — same as Jobs detail */}
+              {/* Status chip — functional (changes client status) */}
               <div className="relative">
                 <button
                   onClick={() => setClientStatusOpen(!clientStatusOpen)}
@@ -1900,7 +1855,7 @@ export function ClientDetail() {
                     {(["Prospect", "Active", "Inactive"] as const).map((s) => (
                       <button
                         key={s}
-                        onClick={() => { setClientStatus(s); setClientStatusOpen(false); }}
+                        onClick={() => { clientsStore.updateClient(client.id, { status: s }); setClientStatusOpen(false); }}
                         className="w-full text-left px-3 py-2 text-[13px] hover:bg-[#F3F4F6] flex items-center gap-2"
                       >
                         <span className="w-2 h-2 rounded-full" style={{ backgroundColor: clientStatusColors[s] }} />
@@ -1912,46 +1867,46 @@ export function ClientDetail() {
               </div>
             </div>
 
-            {/* Address · Phone · Email — single inline row with separators */}
-            <div className="flex items-center gap-0.5 flex-wrap">
-              <div className="flex items-center gap-2 pr-2">
-                <span className="material-icons text-[#1A2332]" style={{ fontSize: "16px" }}>location_on</span>
-                <span className="text-[14px] text-[#1A2332]">{client.address}, {client.city}, {client.state} {client.zip}</span>
-              </div>
-              <div className="w-px h-6 bg-[#E5E7EB]" />
-              <a href={`tel:${client.mobilePhone}`} className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-[#F5F7FA] text-[14px] text-[#4A6FA5]" style={{ fontWeight: 500 }}>
-                <span className="material-icons" style={{ fontSize: "16px" }}>phone</span>
-                {client.mobilePhone}
-              </a>
-              <div className="w-px h-6 bg-[#E5E7EB]" />
-              <a href={`mailto:${client.email}`} className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-[#F5F7FA] text-[14px] text-[#4A6FA5]" style={{ fontWeight: 500 }}>
-                <span className="material-icons" style={{ fontSize: "16px" }}>mail</span>
-                {client.email}
-              </a>
+            {/* Stats — borderless, copy left / tinted icon right, 1px dividers (Figma) */}
+            <div className="flex items-center gap-4 shrink-0">
+              {[
+                { label: "Total revenue", value: `$${Math.round(client.totalRevenue).toLocaleString("en-US")}`, icon: "trending_up", iconColor: "#16A34A" },
+                { label: "Balance",       value: `$${client.openBalance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,    icon: "paid",     iconColor: "#4A6FA5" },
+                { label: "Past due",      value: `$${client.pastDueBalance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, icon: "schedule", iconColor: "#DC2626" },
+                { label: "Open jobs",     value: String(client.openJobs), icon: "work", iconColor: "#6B7280" },
+              ].map(({ label, value, icon, iconColor }, i) => (
+                <div key={label} className="flex items-center gap-4">
+                  {i > 0 && <div className="w-px h-6 bg-[#E5E7EB] shrink-0" />}
+                  <div className="flex items-center gap-3">
+                    <div className="flex flex-col">
+                      <div className="text-[18px] leading-none tabular-nums text-[#1A2332] whitespace-nowrap" style={{ fontWeight: 600 }}>{value}</div>
+                      <div className="text-[14px] leading-[20px] text-[#6B7280] mt-1 whitespace-nowrap">{label}</div>
+                    </div>
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: `${iconColor}26` }}>
+                      <span className="material-icons" style={{ fontSize: "20px", color: iconColor }}>{icon}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 
-          {/* Right side: 4 compact KPI tiles */}
-          <div className="flex gap-2 shrink-0">
-            {[
-              { label: "Total revenue", value: `$${Math.round(client.totalRevenue).toLocaleString("en-US")}`,    icon: "trending_up", iconColor: "#16A34A" },
-              { label: "Balance",       value: `$${Math.round(client.openBalance).toLocaleString("en-US")}`,     icon: "paid",        iconColor: "#4A6FA5" },
-              { label: "Past Due",      value: `$${Math.round(client.pastDueBalance).toLocaleString("en-US")}`,  icon: "schedule",    iconColor: "#DC2626" },
-              { label: "Open Jobs",     value: "3", icon: "work", iconColor: "#6B7280" },
-            ].map(({ label, value, icon, iconColor }) => (
-              <div key={label} className="flex w-[128px] items-center justify-between gap-2 rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5" style={{ minHeight: 44 }}>
-                <div className="flex min-w-0 flex-col justify-center">
-                  <div className="truncate text-[15px] leading-tight tabular-nums text-[#1A2332]" style={{ fontWeight: 700 }}>{value}</div>
-                  <div className="truncate text-[10px] text-[#546478]">{label}</div>
-                </div>
-                <div
-                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md"
-                  style={{ backgroundColor: `${iconColor}26` }}
-                >
-                  <span className="material-icons" style={{ fontSize: "16px", color: iconColor }}>{icon}</span>
-                </div>
-              </div>
-            ))}
+          {/* Row 2: Address · Phone · Email */}
+          <div className="flex items-center gap-1 flex-wrap">
+            <div className="flex items-center gap-2 pr-2">
+              <span className="material-icons text-[#1A2332]" style={{ fontSize: "16px" }}>location_on</span>
+              <span className="text-[14px] text-[#1A2332]">{client.address}, {client.city}, {client.state} {client.zip}</span>
+            </div>
+            <div className="w-px h-6 bg-[#E5E7EB]" />
+            <a href={`tel:${client.mobilePhone}`} className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-[#F5F7FA] text-[14px] text-[#4A6FA5]" style={{ fontWeight: 500 }}>
+              <span className="material-icons" style={{ fontSize: "16px" }}>phone</span>
+              {client.mobilePhone}
+            </a>
+            <div className="w-px h-6 bg-[#E5E7EB]" />
+            <a href={`mailto:${client.email}`} className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-[#F5F7FA] text-[14px] text-[#4A6FA5]" style={{ fontWeight: 500 }}>
+              <span className="material-icons" style={{ fontSize: "16px" }}>mail</span>
+              {client.email}
+            </a>
           </div>
         </div>
 
@@ -1988,7 +1943,8 @@ export function ClientDetail() {
             <div className="flex items-center justify-between px-6 py-4 border-b border-[#E5E7EB]">
               <h2 className="text-[16px] text-[#111827]" style={{ fontWeight: 600 }}>
                 {editingSection === "name" && "Edit name & role"}
-                {editingSection === "contact" && "Edit address & contact"}
+                {editingSection === "contact" && "Edit contact information"}
+                {editingSection === "addresses" && "Edit addresses"}
                 {editingSection === "finance" && "Edit finance details"}
               </h2>
               <button
@@ -2033,7 +1989,46 @@ export function ClientDetail() {
               {editingSection === "contact" && (
                 <>
                   <div>
-                    <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Billing Address</Label>
+                    <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Primary phone number</Label>
+                    <div className="grid grid-cols-[1fr_88px] gap-2">
+                      <Input value={editedClient.mobilePhone} onChange={(e) => handleFieldChange("mobilePhone", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
+                      <Input placeholder="EXT" value={editedClient.mobilePhoneExt} onChange={(e) => handleFieldChange("mobilePhoneExt", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Secondary phone number</Label>
+                    <div className="grid grid-cols-[1fr_88px] gap-2">
+                      <Input value={editedClient.workPhone} onChange={(e) => handleFieldChange("workPhone", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
+                      <Input placeholder="EXT" value={editedClient.workPhoneExt} onChange={(e) => handleFieldChange("workPhoneExt", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Email</Label>
+                      <Input type="email" value={editedClient.email} onChange={(e) => handleFieldChange("email", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
+                    </div>
+                    <div>
+                      <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Website</Label>
+                      <Input value={editedClient.website} onChange={(e) => handleFieldChange("website", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Company name</Label>
+                      <Input value={editedClient.company} onChange={(e) => handleFieldChange("company", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
+                    </div>
+                    <div>
+                      <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Role</Label>
+                      <Input value={editedClient.role} onChange={(e) => handleFieldChange("role", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {editingSection === "addresses" && (
+                <>
+                  <div>
+                    <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Service address</Label>
                     <Input placeholder="Street address" value={editedClient.address} onChange={(e) => handleFieldChange("address", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px] mb-2" />
                     <Input placeholder="Unit / Suite" value={editedClient.unit} onChange={(e) => handleFieldChange("unit", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
                   </div>
@@ -2051,37 +2046,9 @@ export function ClientDetail() {
                       <Input value={editedClient.zip} onChange={(e) => handleFieldChange("zip", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
                     </div>
                   </div>
-                  <div className="grid grid-cols-[1fr_100px] gap-3">
-                    <div>
-                      <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Primary phone</Label>
-                      <Input value={editedClient.mobilePhone} onChange={(e) => handleFieldChange("mobilePhone", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
-                    </div>
-                    <div>
-                      <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Ext.</Label>
-                      <Input value={editedClient.mobilePhoneExt} onChange={(e) => handleFieldChange("mobilePhoneExt", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-[1fr_100px] gap-3">
-                    <div>
-                      <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Secondary phone</Label>
-                      <Input value={editedClient.workPhone} onChange={(e) => handleFieldChange("workPhone", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
-                    </div>
-                    <div>
-                      <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Ext.</Label>
-                      <Input value={editedClient.workPhoneExt} onChange={(e) => handleFieldChange("workPhoneExt", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
-                    </div>
-                  </div>
                   <div>
-                    <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Email</Label>
-                    <Input type="email" value={editedClient.email} onChange={(e) => handleFieldChange("email", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
-                  </div>
-                  <div>
-                    <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Website</Label>
-                    <Input value={editedClient.website} onChange={(e) => handleFieldChange("website", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
-                  </div>
-                  <div>
-                    <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Company name</Label>
-                    <Input value={editedClient.company} onChange={(e) => handleFieldChange("company", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
+                    <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Address notes</Label>
+                    <Input placeholder="Gate code, access instructions…" value={editedClient.gateCode} onChange={(e) => handleFieldChange("gateCode", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
                   </div>
                 </>
               )}
@@ -2148,6 +2115,7 @@ export function ClientDetail() {
               </Button>
               <Button
                 onClick={() => {
+                  clientsStore.updateClient(client.id, editedClient);
                   toast.success("Changes saved");
                   setEditingSection(null);
                 }}

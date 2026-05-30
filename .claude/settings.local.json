@@ -71,7 +71,12 @@
       "mcp__plugin_figma_figma__get_variable_defs",
       "Bash(curl -s -o \"C:\\\\Users\\\\mykha\\\\Documents\\\\Vision360\\\\.tmp_month_figma.png\" \"https://www.figma.com/api/mcp/asset/14c5fc75-7e97-457c-aaf7-c4e35e8ca6cb\")",
       "Bash(curl -s -o \"C:\\\\Users\\\\mykha\\\\Documents\\\\Vision360\\\\.tmp_jobdrawer_figma.png\" \"https://www.figma.com/api/mcp/asset/0ce15857-2176-44f2-b605-d4f4b5206015\")",
-      "Bash(curl -s -o \"C:\\\\Users\\\\mykha\\\\Documents\\\\Vision360\\\\.tmp_header_figma.png\" \"https://www.figma.com/api/mcp/asset/9af4cff1-4001-4d11-ad0f-dbb7ef649c82\")"
+      "Bash(curl -s -o \"C:\\\\Users\\\\mykha\\\\Documents\\\\Vision360\\\\.tmp_header_figma.png\" \"https://www.figma.com/api/mcp/asset/9af4cff1-4001-4d11-ad0f-dbb7ef649c82\")",
+      "Bash(curl -s -o \"C:\\\\Users\\\\mykha\\\\Documents\\\\Vision360\\\\.tmp_clientdetail_figma.png\" \"https://www.figma.com/api/mcp/asset/bc70d2b7-1d3c-402a-afcf-e2e113137c3d\")",
+      "Bash(curl -s -o \"C:\\\\Users\\\\mykha\\\\Documents\\\\Vision360\\\\.tmp_clientmodal_figma.png\" \"https://www.figma.com/api/mcp/asset/cc1e5068-3450-4946-8b96-3d300d795d0a\")",
+      "Bash(xargs grep -l \"useClientStore\\\\|clientStore\\\\|clientSlice\")",
+      "Bash(curl -sL \"https://www.figma.com/api/mcp/asset/23cb5aef-a0cf-4d0f-ad4f-75205d52b1e5\" -o .tmp_logo_asset)",
+      "Read(//c/c/Users/mykha/Documents/Vision360/src/assets/**)"
     ]
   }
 }

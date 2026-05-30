@@ -1659,44 +1659,46 @@ export function Calendar() {
       </div>
 
       {quickJobDraft && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={() => setQuickJobDraft(null)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setQuickJobDraft(null)}>
           <div className="absolute inset-0 bg-black/10" />
           <form
             onSubmit={submitQuickJob}
-            className="relative w-[420px] bg-white rounded-xl shadow-2xl border border-[#E5E7EB] overflow-hidden"
+            className="relative w-[400px] max-h-[85vh] overflow-auto bg-white rounded-2xl shadow-2xl border border-[#E5E7EB]"
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="px-5 py-4 border-b border-[#E5E7EB] flex items-center justify-between">
-              <div>
-                <div className="text-[15px] text-[#1A2332]" style={{ fontWeight: 700 }}>Create job</div>
-                <div className="text-[12px] text-[#546478] mt-0.5">
-                  {formatRegionalDate(quickJobDraft.date, regionalSettings)} · {formatRegionalTime(quickJobDraft.start, regionalSettings)} · {TEAM.find((member) => member.id === quickJobDraft.technicianId)?.name}
-                </div>
-              </div>
-              <button type="button" onClick={() => setQuickJobDraft(null)} className="w-8 h-8 rounded-lg hover:bg-[#F5F7FA] flex items-center justify-center">
-                <span className="material-icons text-[#8899AA]" style={{ fontSize: "18px" }}>close</span>
+            <div className="px-5 py-4 border-b border-[#E5E7EB] flex items-center justify-between sticky top-0 bg-white z-10">
+              <div className="text-[18px] text-[#1A2332]" style={{ fontWeight: 600 }}>Create job</div>
+              <button type="button" onClick={() => setQuickJobDraft(null)} aria-label="Close" className="w-8 h-8 rounded-lg hover:bg-[#F5F7FA] flex items-center justify-center">
+                <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>close</span>
               </button>
             </div>
 
             <div className="p-5 space-y-3">
               <label className="block">
                 <span className="block text-[11px] text-[#8899AA] mb-1" style={{ fontWeight: 700 }}>Customer</span>
-                <input
+                <select
                   autoFocus
                   value={quickJobDraft.client}
-                  onChange={(event) => setQuickJobDraft({ ...quickJobDraft, client: event.target.value })}
-                  className="w-full h-10 rounded-lg border border-[#D8DCE6] px-3 text-[13px] outline-none focus:border-[#4A6FA5]"
-                  placeholder="Customer name"
-                />
+                  onChange={(event) => {
+                    const name = event.target.value;
+                    const locs = CUSTOMERS.find((c) => c.name === name)?.locations ?? [];
+                    setQuickJobDraft({ ...quickJobDraft, client: name, address: locs[0] ?? "" });
+                  }}
+                  className="w-full h-10 rounded-lg border border-[#D8DCE6] px-3 text-[13px] outline-none focus:border-[#4A6FA5] bg-white"
+                >
+                  {CUSTOMERS.map((c) => (<option key={c.name} value={c.name}>{c.name}</option>))}
+                </select>
               </label>
               <div className="grid grid-cols-2 gap-3">
                 <label className="block">
                   <span className="block text-[11px] text-[#8899AA] mb-1" style={{ fontWeight: 700 }}>Service</span>
-                  <input
+                  <select
                     value={quickJobDraft.service}
                     onChange={(event) => setQuickJobDraft({ ...quickJobDraft, service: event.target.value })}
-                    className="w-full h-10 rounded-lg border border-[#D8DCE6] px-3 text-[13px] outline-none focus:border-[#4A6FA5]"
-                  />
+                    className="w-full h-10 rounded-lg border border-[#D8DCE6] px-3 text-[13px] outline-none focus:border-[#4A6FA5] bg-white"
+                  >
+                    {jobTypes.map((t) => (<option key={t} value={t}>{t}</option>))}
+                  </select>
                 </label>
                 <label className="block">
                   <span className="block text-[11px] text-[#8899AA] mb-1" style={{ fontWeight: 700 }}>Person</span>
@@ -1711,51 +1713,45 @@ export function Calendar() {
                   </select>
                 </label>
               </div>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 gap-3">
                 <label className="block">
-                  <span className="block text-[11px] text-[#8899AA] mb-1" style={{ fontWeight: 700 }}>Start</span>
+                  <span className="block text-[11px] text-[#8899AA] mb-1" style={{ fontWeight: 700 }}>Start date</span>
                   <input
-                    type="number"
-                    min={GANTT_START_HOUR}
-                    max={GANTT_END_HOUR - SLOT_HOURS}
-                    step={SLOT_HOURS}
-                    value={quickJobDraft.start}
-                    onChange={(event) => setQuickJobDraft({ ...quickJobDraft, start: Number(event.target.value) })}
-                    className="w-full h-10 rounded-lg border border-[#D8DCE6] px-3 text-[13px] outline-none focus:border-[#4A6FA5]"
-                  />
-                </label>
-                <label className="block">
-                  <span className="block text-[11px] text-[#8899AA] mb-1" style={{ fontWeight: 700 }}>End</span>
-                  <input
-                    type="number"
-                    min={GANTT_START_HOUR + SLOT_HOURS}
-                    max={GANTT_END_HOUR}
-                    step={SLOT_HOURS}
-                    value={quickJobDraft.end}
-                    onChange={(event) => setQuickJobDraft({ ...quickJobDraft, end: Number(event.target.value) })}
+                    type="date"
+                    value={format(quickJobDraft.date, "yyyy-MM-dd")}
+                    onChange={(event) => {
+                      const [y, m, d] = event.target.value.split("-").map(Number);
+                      if (y && m && d) setQuickJobDraft({ ...quickJobDraft, date: new Date(y, m - 1, d) });
+                    }}
                     className="w-full h-10 rounded-lg border border-[#D8DCE6] px-3 text-[13px] outline-none focus:border-[#4A6FA5]"
                   />
                 </label>
                 <label className="block">
                   <span className="block text-[11px] text-[#8899AA] mb-1" style={{ fontWeight: 700 }}>Revenue</span>
-                  <input
-                    type="number"
-                    min={0}
-                    step={1}
-                    value={quickJobDraft.amount}
-                    onChange={(event) => setQuickJobDraft({ ...quickJobDraft, amount: event.target.value })}
-                    className="w-full h-10 rounded-lg border border-[#D8DCE6] px-3 text-[13px] outline-none focus:border-[#4A6FA5]"
-                  />
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-[#8899AA] pointer-events-none">$</span>
+                    <input
+                      type="number"
+                      min={0}
+                      step={1}
+                      value={quickJobDraft.amount}
+                      onChange={(event) => setQuickJobDraft({ ...quickJobDraft, amount: event.target.value })}
+                      className="w-full h-10 rounded-lg border border-[#D8DCE6] pl-6 pr-3 text-[13px] outline-none focus:border-[#4A6FA5]"
+                    />
+                  </div>
                 </label>
               </div>
               <label className="block">
                 <span className="block text-[11px] text-[#8899AA] mb-1" style={{ fontWeight: 700 }}>Address</span>
-                <input
+                <select
                   value={quickJobDraft.address}
                   onChange={(event) => setQuickJobDraft({ ...quickJobDraft, address: event.target.value })}
-                  className="w-full h-10 rounded-lg border border-[#D8DCE6] px-3 text-[13px] outline-none focus:border-[#4A6FA5]"
-                  placeholder="Job location"
-                />
+                  className="w-full h-10 rounded-lg border border-[#D8DCE6] px-3 text-[13px] outline-none focus:border-[#4A6FA5] bg-white"
+                >
+                  {(CUSTOMERS.find((c) => c.name === quickJobDraft.client)?.locations ?? []).map((loc) => (
+                    <option key={loc} value={loc}>{loc}</option>
+                  ))}
+                </select>
               </label>
               {conflictMessage && (
                 <div className="rounded-lg bg-[#FEF2F2] border border-[#FCA5A5] px-3 py-2 text-[12px] text-[#B91C1C]" style={{ fontWeight: 600 }}>

@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useSyncExternalStore } from "react";
 import { Outlet, NavLink, useNavigate } from "react-router";
 import logoImg from "../../assets/vision360-logo.svg";
+import wordmarkLogo from "../../assets/vision360-wordmark.png";
 import { MessagingCenter } from "./MessagingCenter";
 import { AiAssistant } from "./AiAssistant";
 import { Dialer } from "./Dialer";
@@ -43,18 +44,18 @@ export function Layout() {
   const [dialerOpen, setDialerOpen] = useState(false);
   const [helpCenterOpen, setHelpCenterOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
-  const [companyLogoSrc, setCompanyLogoSrc] = useState(() => getStoredBrandLogo() || logoImg);
+  const [companyLogoSrc, setCompanyLogoSrc] = useState(() => getStoredBrandLogo() || wordmarkLogo);
   const trial = useSyncExternalStore(trialStore.subscribe, trialStore.getSnapshot);
   const showTrialBanner = isTrialActive(trial);
   const trialDaysRemaining = getTrialDaysRemaining(trial);
 
   useEffect(() => {
     applyStoredBrandTheme();
-    setCompanyLogoSrc(getStoredBrandLogo() || logoImg);
+    setCompanyLogoSrc(getStoredBrandLogo() || wordmarkLogo);
 
     const handleLogoChange = (event: Event) => {
       const nextLogo = (event as CustomEvent<string>).detail;
-      setCompanyLogoSrc(nextLogo || logoImg);
+      setCompanyLogoSrc(nextLogo || wordmarkLogo);
     };
 
     window.addEventListener(BRAND_LOGO_EVENT, handleLogoChange);
@@ -237,10 +238,11 @@ export function Layout() {
             <img
               src={companyLogoSrc}
               alt="Company Logo"
-              className="object-contain mix-blend-hard-light"
+              className="pointer-events-none select-none mix-blend-hard-light"
               style={{
-                height: sidebarCollapsed ? "44px" : "48px",
-                width: sidebarCollapsed ? "44px" : "180px",
+                height: sidebarCollapsed ? "20px" : "24px",
+                width: sidebarCollapsed ? "44px" : "120px",
+                objectFit: companyLogoSrc === wordmarkLogo && !sidebarCollapsed ? "cover" : "contain",
                 objectPosition: sidebarCollapsed ? "center" : "left center",
               }}
             />

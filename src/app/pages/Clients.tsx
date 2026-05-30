@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useSyncExternalStore, useCallback } from "react";
+import { useState, useRef, useEffect, useMemo, useSyncExternalStore, useCallback } from "react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { useNavigate } from "react-router";
@@ -10,6 +10,7 @@ import { QuickFilterSelect } from "../components/ui/quick-filter-select";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { useDraggableColumns, DraggableTh } from "../components/ui/draggable-columns";
+import { clientsStore } from "../stores/clientsStore";
 import {
   Select,
   SelectContent,
@@ -63,7 +64,32 @@ const CLIENTS_COLS = [
 export function Clients() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
-  const [clients, setClients] = useState<Client[]>(initialClients);
+  // Derive the list from the shared store so new clients + edits show up live.
+  const storeClients = useSyncExternalStore(clientsStore.subscribe, clientsStore.getSnapshot);
+  const clients = useMemo<Client[]>(
+    () => storeClients.map((c) => ({
+      id: c.id,
+      initials: c.initials,
+      avatarColor: c.avatarColor,
+      name: c.name,
+      company: c.company || null,
+      email: c.email,
+      phone: c.phone || c.mobilePhone,
+      address: `${c.address}, ${c.city}, ${c.state} ${c.zip}`,
+      tags: c.tags,
+      lastActivity: c.lastActivity,
+      totalJobs: c.totalJobs,
+      totalBilled: c.totalBilled,
+      status: c.status,
+      pastDue: c.pastDue || undefined,
+      daysOverdue: c.daysOverdue || undefined,
+    })),
+    [storeClients],
+  );
+  const setClientStatusInStore = (id: string, status: "Prospect" | "Active" | "Inactive") => {
+    const rec = clientsStore.getClient(id);
+    clientsStore.updateClient(id, status === "Active" && rec && rec.totalJobs === 0 ? { status, totalJobs: 1 } : { status });
+  };
   const [selectedClients, setSelectedClients] = useState<Set<string>>(new Set());
   const [showEmptyStatePreview, setShowEmptyStatePreview] = useState(false);
   const [rowsPerPage, setRowsPerPage] = useState(50);
@@ -692,7 +718,7 @@ export function Clients() {
                 label: "Set as Active",
                 icon: "check_circle",
                 onClick: () => {
-                  setClients(prev => prev.map(c => selectedClients.has(c.id) ? { ...c, status: "Active", totalJobs: c.totalJobs === 0 ? 1 : c.totalJobs } : c));
+                  [...selectedClients].forEach(id => setClientStatusInStore(id, "Active"));
                   setSelectedClients(new Set());
                 },
               },
@@ -700,7 +726,7 @@ export function Clients() {
                 label: "Set as Prospect",
                 icon: "person_search",
                 onClick: () => {
-                  setClients(prev => prev.map(c => selectedClients.has(c.id) ? { ...c, status: "Prospect" } : c));
+                  [...selectedClients].forEach(id => setClientStatusInStore(id, "Prospect"));
                   setSelectedClients(new Set());
                 },
               },
@@ -709,7 +735,7 @@ export function Clients() {
                 icon: "block",
                 destructive: true,
                 onClick: () => {
-                  setClients(prev => prev.map(c => selectedClients.has(c.id) ? { ...c, status: "Inactive" } : c));
+                  [...selectedClients].forEach(id => setClientStatusInStore(id, "Inactive"));
                   setSelectedClients(new Set());
                 },
               },
@@ -798,16 +824,16 @@ export function Clients() {
                         return null;
                     }
                   })}
-                  <td className="px-4 py-4">
+                  <td className="px-4 py-4" onClick={e => e.stopPropagation()}>
                     <KebabMenu>
                       {getClientStatus(client) !== "Prospect" && (
-                        <KebabItem icon="person_search" onSelect={e => { e.preventDefault(); setClients(prev => prev.map(c => c.id === client.id ? { ...c, status: "Prospect" } : c)); }}>Set as Prospect</KebabItem>
+                        <KebabItem icon="person_search" onSelect={() => setClientStatusInStore(client.id, "Prospect")}>Set as Prospect</KebabItem>
                       )}
                       {getClientStatus(client) !== "Active" && (
-                        <KebabItem icon="check_circle" onSelect={e => { e.preventDefault(); setClients(prev => prev.map(c => c.id === client.id ? { ...c, status: "Active", totalJobs: c.totalJobs === 0 ? 1 : c.totalJobs } : c)); }}>Set as Active</KebabItem>
+                        <KebabItem icon="check_circle" onSelect={() => setClientStatusInStore(client.id, "Active")}>Set as Active</KebabItem>
                       )}
                       {getClientStatus(client) !== "Inactive" && (
-                        <KebabItem icon="block" destructive onSelect={e => { e.preventDefault(); setClients(prev => prev.map(c => c.id === client.id ? { ...c, status: "Inactive" } : c)); }}>Inactivate</KebabItem>
+                        <KebabItem icon="block" destructive onSelect={() => setClientStatusInStore(client.id, "Inactive")}>Inactivate</KebabItem>
                       )}
                       <KebabSeparator />
                       <KebabItem icon="open_in_new" onSelect={e => { e.preventDefault(); window.open(`/clients/${client.id}`, "_blank"); }}>Open in New Tab</KebabItem>
