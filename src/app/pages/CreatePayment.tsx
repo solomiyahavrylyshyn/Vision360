@@ -10,6 +10,8 @@ export function CreatePayment() {
   const prefilledClient = searchParams.get("client") || "";
   const prefilledClientId = searchParams.get("clientId") || "";
   const prefilledAmount = searchParams.get("amount") || "";
+  const returnTo = searchParams.get("returnTo");
+  const goBack = () => (returnTo ? navigate(returnTo) : navigate(-1));
 
   const [client, setClient] = useState(prefilledClient);
   const [amount, setAmount] = useState(prefilledAmount);
@@ -19,19 +21,19 @@ export function CreatePayment() {
   const [note, setNote] = useState("");
 
   const handleSave = () => {
-    navigate("/payments");
+    goBack();
   };
 
   return (
     <div className="min-h-screen bg-[#F5F7FA]">
       <div className="max-w-[960px] mx-auto py-8 px-6">
         <button
-          onClick={() => navigate(-1)}
+          onClick={goBack}
           className="inline-flex items-center gap-1.5 text-[13px] text-[#4A6FA5] hover:text-[#3d5a85] transition-colors mb-6"
           style={{ fontWeight: 500 }}
         >
           <span className="material-icons" style={{ fontSize: "18px" }}>arrow_back</span>
-          <span>Back</span>
+          <span>{returnTo ? "Back to client" : "Back"}</span>
         </button>
 
         <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
@@ -124,7 +126,7 @@ export function CreatePayment() {
             <Button
               type="button"
               variant="outline"
-              onClick={() => navigate(-1)}
+              onClick={goBack}
               className="border-[#E5E7EB] text-[#546478] hover:bg-[#EDF0F5] h-10 px-6"
             >
               Cancel

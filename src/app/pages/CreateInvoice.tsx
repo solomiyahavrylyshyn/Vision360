@@ -23,6 +23,7 @@ const mockEstimates = ["10245-E01: HVAC System Quote", "10246-E01: Kitchen Quote
 export function CreateInvoice() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const returnTo = searchParams.get("returnTo");
 
   const [client, setClient] = useState(searchParams.get("client") || "");
   const [invoiceNumber] = useState("10245-I02");
@@ -70,7 +71,7 @@ export function CreateInvoice() {
 
       <div className="max-w-[800px] mx-auto py-8 px-6">
         <button
-          onClick={() => navigate("/invoices")}
+          onClick={() => navigate(returnTo || "/invoices")}
           className="inline-flex items-center gap-1.5 text-[13px] text-[#4A6FA5] hover:text-[#3d5a85] transition-colors mb-6"
           style={{ fontWeight: 500 }}
         >
@@ -249,18 +250,18 @@ export function CreateInvoice() {
 
         {/* Actions */}
         <div className="flex items-center justify-end gap-3 pb-8">
-          <button onClick={() => navigate("/invoices")} className="px-6 py-2.5 text-sm text-[#546478] hover:text-[#1A2332]" style={{ fontWeight: 500 }}>
+          <button onClick={() => navigate(returnTo || "/invoices")} className="px-6 py-2.5 text-sm text-[#546478] hover:text-[#1A2332]" style={{ fontWeight: 500 }}>
             Cancel
           </button>
           <button
-            onClick={() => navigate("/invoices")}
+            onClick={() => navigate(returnTo || "/invoices")}
             className="px-6 py-2.5 border border-[#E5E7EB] rounded-md text-sm text-[#1A2332] hover:bg-[#F5F7FA]"
             style={{ fontWeight: 500 }}
           >
             Save as Draft
           </button>
           <button
-            onClick={() => navigate("/invoices")}
+            onClick={() => navigate(returnTo || "/invoices")}
             className="px-6 py-2.5 bg-[#4A6FA5] text-white rounded-md text-sm hover:bg-[#3d5a85]"
             style={{ fontWeight: 600 }}
           >
