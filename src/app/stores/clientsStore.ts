@@ -254,6 +254,31 @@ let clients: ClientRecord[] = [
   }),
 ];
 
+/* ── Browser durability cache ─────────────────────────────────────────────
+   Mirror the store to localStorage so a user's work (new clients, edits,
+   notes, status changes) survives a page reload even when the API/DB server
+   isn't running. Postgres stays the source of truth when configured — a
+   successful API hydrate overrides this cache and re-saves it. This is a
+   resilience cache, NOT the data model. */
+const LS_KEY = "vision360.clients.v1";
+function saveLS() {
+  try {
+    if (typeof localStorage !== "undefined") localStorage.setItem(LS_KEY, JSON.stringify(clients));
+  } catch {
+    /* storage unavailable / quota exceeded → ignore */
+  }
+}
+try {
+  const raw = typeof localStorage !== "undefined" ? localStorage.getItem(LS_KEY) : null;
+  if (raw) {
+    const parsed = JSON.parse(raw);
+    // Re-run mk() so any newly-added schema fields get sane defaults.
+    if (Array.isArray(parsed) && parsed.length) clients = parsed.map((r) => mk(r as ClientSeed));
+  }
+} catch {
+  /* corrupt cache → keep the seed above */
+}
+
 let listeners: Listener[] = [];
 const notify = () => listeners.forEach((l) => l());
 
@@ -277,6 +302,7 @@ async function hydrate() {
     const rows = (await res.json()) as ClientRecord[];
     if (Array.isArray(rows) && rows.length) {
       clients = rows.map((r) => mk(r as unknown as ClientSeed));
+      saveLS();
       notify();
     }
   } catch {
@@ -316,11 +342,13 @@ export const clientsStore = {
   },
   addClient: (record: ClientRecord) => {
     clients = [record, ...clients];
+    saveLS();
     notify();
     persistNew(record);
   },
   updateClient: (id: string, patch: Partial<ClientRecord>) => {
     clients = clients.map((c) => (c.id === id ? { ...c, ...patch } : c));
+    saveLS();
     notify();
     persistPatch(id, patch);
   },

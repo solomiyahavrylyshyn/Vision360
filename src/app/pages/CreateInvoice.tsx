@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { useNavigate, useSearchParams } from "react-router";
+import { clientsStore } from "../stores/clientsStore";
 import { ItemPicker, catalogItemToLineItem, type CatalogItem, type SelectedLineItem } from "../components/ItemPicker";
 import { PageHeader } from "../components/ui/page-header";
 import { PlusIcon } from "../components/ui/plus-icon";
@@ -16,7 +17,6 @@ const mockCatalogItems: CatalogItem[] = [
   { id: 1007, name: "Thermostat - Smart WiFi", itemDescription: "Smart thermostat with WiFi connectivity", salesDescription: "Smart WiFi Thermostat — professional installation included", brand: "Ecobee", modelNumber: "EB-STATE5-01", rate: 450, cost: 180, taxable: true, category: "HVAC", type: "Product" },
 ];
 
-const mockClients = ["John Doe", "Travis Jones", "Sarah Williams", "Mike Rodriguez", "Alex Turner"];
 const mockJobs = ["10245-J01: Kitchen Renovation", "10246-J01: Bathroom Remodel", "10247-J01: Plumbing Fix", "10248-J01: Electrical Work", "10250-J01: HVAC Install"];
 const mockEstimates = ["10245-E01: HVAC System Quote", "10246-E01: Kitchen Quote", "10248-E01: Electrical Quote"];
 
@@ -26,6 +26,10 @@ export function CreateInvoice() {
   const returnTo = searchParams.get("returnTo");
 
   const [client, setClient] = useState(searchParams.get("client") || "");
+  // Real client names from the shared store so the pre-selected client (passed
+  // from a client's profile) actually matches an option in the dropdown.
+  const clientNames = useSyncExternalStore(clientsStore.subscribe, clientsStore.getSnapshot).map((c) => c.name);
+  const clientOptions = client && !clientNames.includes(client) ? [client, ...clientNames] : clientNames;
   const [invoiceNumber] = useState("10245-I02");
   const [invoiceDate, setInvoiceDate] = useState("2026-04-07");
   const [dueDate, setDueDate] = useState("2026-05-07");
@@ -96,7 +100,7 @@ export function CreateInvoice() {
               className="w-full px-4 py-3 border border-[#E5E7EB] rounded-md text-sm focus:outline-none focus:border-[#4A6FA5] bg-white"
             >
               <option value="">Select a client</option>
-              {mockClients.map(c => <option key={c} value={c}>{c}</option>)}
+              {clientOptions.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
 

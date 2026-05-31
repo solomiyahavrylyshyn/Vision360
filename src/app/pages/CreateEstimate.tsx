@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { useNavigate, useSearchParams } from "react-router";
+import { clientsStore } from "../stores/clientsStore";
 import { ItemPicker, catalogItemToLineItem, type CatalogItem, type SelectedLineItem } from "../components/ItemPicker";
 import { PageHeader } from "../components/ui/page-header";
 import { PlusIcon } from "../components/ui/plus-icon";
@@ -14,8 +15,6 @@ const mockCatalogItems: CatalogItem[] = [
   { id: 1006, name: "Drain Cleaning Service", itemDescription: "Standard drain cleaning and snaking", salesDescription: "Professional drain cleaning service", brand: "", modelNumber: "", rate: 175, cost: 40, taxable: false, category: "Plumbing", type: "Service" },
   { id: 1007, name: "Thermostat - Smart WiFi", itemDescription: "Smart thermostat with WiFi connectivity", salesDescription: "Smart WiFi Thermostat — professional installation included", brand: "Ecobee", modelNumber: "EB-STATE5-01", rate: 450, cost: 180, taxable: true, category: "HVAC", type: "Product" },
 ];
-
-const mockClients = ["John Doe", "Travis Jones", "Sarah Williams", "Mike Rodriguez", "Alex Turner"];
 const mockJobs = ["Job-3: HVAC Replacement", "Job-4: Bathroom Remodel", "Job-5: Plumbing Fix", "Job-6: Electrical Work", "Job-8: HVAC Install"];
 const mockTeamMembers = ["Marek Stroz", "John Smith", "Sarah Johnson", "Alex Turner"];
 
@@ -33,6 +32,9 @@ export function CreateEstimate() {
   const returnTo = searchParams.get("returnTo");
 
   const [client, setClient] = useState(searchParams.get("client") || "");
+  // Real client names from the shared store so the pre-selected client matches an option.
+  const clientNames = useSyncExternalStore(clientsStore.subscribe, clientsStore.getSnapshot).map((c) => c.name);
+  const clientOptions = client && !clientNames.includes(client) ? [client, ...clientNames] : clientNames;
   const [serviceAddress, setServiceAddress] = useState("");
   const [estimateName, setEstimateName] = useState("");
   const [estimateNumber] = useState("10245-E03");
@@ -105,8 +107,9 @@ export function CreateEstimate() {
         <div className="mb-5">
           <label className={labelClass}>Client</label>
           <select value={client} onChange={(e) => { setClient(e.target.value); setServiceAddress(""); }} className={fieldClass}>
+            {/* options below come from the real client store */}
             <option value="">Select a client</option>
-            {mockClients.map(c => <option key={c} value={c}>{c}</option>)}
+            {clientOptions.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
         </div>
 

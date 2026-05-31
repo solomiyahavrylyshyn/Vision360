@@ -82,6 +82,17 @@ const DEFAULT_TABS: { key: TabKey; label: string; count?: number }[] = [
   { key: "documents", label: "Documents" },
 ];
 
+// Only allow http(s) URLs to be rendered as clickable links. Anything with a
+// different explicit scheme (javascript:, data:, vbscript:, file:, …) is unsafe
+// and returns null so the caller renders it as inert text instead of an <a>.
+function safeExternalHref(url: string): string | null {
+  const u = (url || "").trim();
+  if (!u) return null;
+  if (/^https?:\/\//i.test(u)) return u;
+  if (/^[a-z][a-z0-9+.\-]*:/i.test(u)) return null; // some other scheme → block
+  return `https://${u}`; // scheme-less (e.g. "example.com") → assume https
+}
+
 /* ── WorkTable: reusable draggable-column table for jobs/estimates/invoices ── */
 interface WorkItem {
   id: number; type: string; title: string; subtitle: string;
@@ -187,7 +198,7 @@ const invoiceRows: InvoiceRow[] = [
   { id: 4, invoiceNo: "INV-2025-0177", jobNo: "J-0981", type: "Installation", date: "Sep 8, 2025",  total: "$3,750.00", balance: "$0.00",     dueDate: "Oct 8, 2025"  },
   { id: 5, invoiceNo: "INV-2026-0048", jobNo: "J-1054", type: "Service",      date: "Apr 28, 2026", total: "$560.00",   balance: "$560.00",   dueDate: "May 28, 2026" },
 ];
-function InvoiceTable() {
+function InvoiceTable({ rows }: { rows: InvoiceRow[] }) {
   const [cols, moveCols] = useDraggableColumns([...INVOICE_COLS]);
   return (
     <DndProvider backend={HTML5Backend}>
@@ -203,7 +214,7 @@ function InvoiceTable() {
           </tr>
         </thead>
         <tbody>
-          {invoiceRows.map(row => (
+          {rows.map(row => (
             <tr key={row.id} className="border-b border-[#E5E7EB] last:border-0 hover:bg-[#F9FAFB] cursor-pointer">
               {cols.map(col => {
                 switch (col.key) {
@@ -243,7 +254,7 @@ const paymentRows: PaymentRow[] = [
   { id: 3, date: "Oct 7, 2025",  invoiceNo: "INV-2025-0177", amount: "$2,000.00", method: "Check",       note: "Partial - check #4421" },
   { id: 4, date: "Oct 20, 2025", invoiceNo: "INV-2025-0177", amount: "$1,750.00", method: "ACH",         note: "Final balance" },
 ];
-function PaymentTable() {
+function PaymentTable({ rows }: { rows: PaymentRow[] }) {
   const [cols, moveCols] = useDraggableColumns([...PAYMENT_COLS]);
   return (
     <DndProvider backend={HTML5Backend}>
@@ -259,7 +270,7 @@ function PaymentTable() {
           </tr>
         </thead>
         <tbody>
-          {paymentRows.map(row => (
+          {rows.map(row => (
             <tr key={row.id} className="border-b border-[#E5E7EB] last:border-0 hover:bg-[#F9FAFB] cursor-pointer">
               {cols.map(col => {
                 switch (col.key) {
@@ -535,12 +546,20 @@ export function ClientDetail() {
   // Per-client service addresses from the unified record (mutations persist via the store).
   const serviceAddresses = client.serviceAddresses ?? [];
 
-  const jobItems = [
-    { id: 2, type: "job", title: "Job #1", subtitle: "AC Estimate", date: "Scheduled for Mar 30, 2026", amount: "$0.00" },
-  ];
-  const estimateItems = [
-    { id: 3, type: "estimate", title: "Estimate #1", subtitle: "AC Unit Replacement", date: "Created Mar 28, 2026", amount: "$2,450.00" },
-  ];
+  // Per-client work data: only show sample rows for clients that actually have
+  // the corresponding activity, so a brand-new client reads 0 across the board
+  // instead of inheriting shared demo rows.
+  const hasJobs = client.totalJobs > 0;
+  const hasEstimates = (client.estimatesTotal ?? 0) > 0;
+  const hasBilling = (client.totalBilled ?? 0) > 0;
+  const jobItems = hasJobs
+    ? [{ id: 2, type: "job", title: "Job #1", subtitle: "AC Estimate", date: "Scheduled for Mar 30, 2026", amount: "$0.00" }]
+    : [];
+  const estimateItems = hasEstimates
+    ? [{ id: 3, type: "estimate", title: "Estimate #1", subtitle: "AC Unit Replacement", date: "Created Mar 28, 2026", amount: "$2,450.00" }]
+    : [];
+  const clientInvoiceRows = hasBilling ? invoiceRows : [];
+  const clientPaymentRows = hasBilling ? paymentRows : [];
 
   // Visible tabs with LIVE counts derived from the actual data arrays (no hardcoded literals).
   const visibleTabs = tabs
@@ -549,9 +568,9 @@ export function ClientDetail() {
       if (t.key === "addresses") return { ...t, count: serviceAddresses.length };
       if (t.key === "jobs") return { ...t, count: jobItems.length };
       if (t.key === "estimates") return { ...t, count: estimateItems.length };
-      if (t.key === "invoices") return { ...t, count: invoiceRows.length };
+      if (t.key === "invoices") return { ...t, count: clientInvoiceRows.length };
       if (t.key === "documents") return { ...t, count: documents.length };
-      if (t.key === "payments") return { ...t, count: paymentRows.length };
+      if (t.key === "payments") return { ...t, count: clientPaymentRows.length };
       return t;
     });
 
@@ -656,10 +675,10 @@ export function ClientDetail() {
             <div key={label}>
               <div className="text-[14px] text-[#6B7280] leading-[20px]">{label}</div>
               {value ? (
-                isLink ? (
-                  <a href={value} target="_blank" rel="noopener noreferrer" className="text-[14px] text-[#4A6FA5] hover:underline" style={{ fontWeight: 500 }}>{value}</a>
+                isLink && safeExternalHref(value) ? (
+                  <a href={safeExternalHref(value)!} target="_blank" rel="noopener noreferrer nofollow" className="text-[14px] text-[#4A6FA5] hover:underline break-all" style={{ fontWeight: 500 }}>{value}</a>
                 ) : (
-                  <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>{value}</div>
+                  <div className="text-[14px] text-[#1A2332] break-all" style={{ fontWeight: 500 }}>{value}</div>
                 )
               ) : (
                 <div className="text-[14px] text-[#9CA3AF]" style={{ fontWeight: 500 }}>—</div>
@@ -1298,20 +1317,28 @@ export function ClientDetail() {
       case "invoices":
         return (
           <>
-            <TabHeader title="Invoices" count={invoiceRows.length} onAdd={() => navigate(createUrl("/invoices/new", "invoices"))} addLabel="Create invoice" />
-            <div className="overflow-x-auto">
-              <InvoiceTable />
-            </div>
+            <TabHeader title="Invoices" count={clientInvoiceRows.length} onAdd={() => navigate(createUrl("/invoices/new", "invoices"))} addLabel="Create invoice" />
+            {clientInvoiceRows.length === 0 ? (
+              <EmptyState icon="receipt_long" message="No invoices yet for this client." />
+            ) : (
+              <div className="overflow-x-auto">
+                <InvoiceTable rows={clientInvoiceRows} />
+              </div>
+            )}
           </>
         );
 
       case "payments":
         return (
           <>
-            <TabHeader title="Payments" count={paymentRows.length} onAdd={() => navigate(createUrl("/payments/new", "payments", { amount: String(client.openBalance) }))} addLabel="Collect payment" />
-            <div className="overflow-x-auto">
-              <PaymentTable />
-            </div>
+            <TabHeader title="Payments" count={clientPaymentRows.length} onAdd={() => navigate(createUrl("/payments/new", "payments", { amount: String(client.openBalance) }))} addLabel="Collect payment" />
+            {clientPaymentRows.length === 0 ? (
+              <EmptyState icon="payments" message="No payments yet for this client." />
+            ) : (
+              <div className="overflow-x-auto">
+                <PaymentTable rows={clientPaymentRows} />
+              </div>
+            )}
           </>
         );
 
