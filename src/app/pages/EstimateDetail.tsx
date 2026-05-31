@@ -988,15 +988,15 @@ export function EstimateDetail() {
               </div>
             </div>
 
-            {/* Right side: compact KPI tile */}
-            <div className="flex gap-2 shrink-0">
-              <div className="flex w-[128px] items-center justify-between gap-2 rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5" style={{ minHeight: 44 }}>
-                <div className="flex min-w-0 flex-col justify-center">
-                  <div className="truncate text-[15px] leading-tight tabular-nums text-[#1A2332]" style={{ fontWeight: 700 }}>${fmt(total)}</div>
-                  <div className="truncate text-[10px] text-[#546478]">Total (USD)</div>
+            {/* Right: KPI strip — Client-style (borderless, dark value, tinted icon) */}
+            <div className="flex items-center gap-4 shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="flex flex-col">
+                  <div className="text-[18px] leading-none tabular-nums text-[#1A2332] whitespace-nowrap" style={{ fontWeight: 600 }}>${fmt(total)}</div>
+                  <div className="text-[14px] leading-[20px] text-[#6B7280] mt-1 whitespace-nowrap">Total (USD)</div>
                 </div>
-                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md" style={{ backgroundColor: "#4A6FA526" }}>
-                  <span className="material-icons" style={{ fontSize: "16px", color: "#4A6FA5" }}>request_quote</span>
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: "#4A6FA526" }}>
+                  <span className="material-icons" style={{ fontSize: "20px", color: "#4A6FA5" }}>request_quote</span>
                 </div>
               </div>
             </div>

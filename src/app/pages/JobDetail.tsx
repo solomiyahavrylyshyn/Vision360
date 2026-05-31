@@ -1371,64 +1371,35 @@ export function JobDetail() {
             )}
           </div>
 
-          {/* Right column: Financial KPI cards — compact, no decimals, aligned to the right */}
-          <div className="shrink-0 flex gap-2">
-            {/* Total Price (green) */}
-            <div className="flex items-center justify-between gap-2 rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5" style={{ minHeight: 44 }}>
-              <div className="min-w-0">
-                <div className="text-[15px] leading-tight tabular-nums whitespace-nowrap" style={{ fontWeight: 700, color: "#16A34A" }}>
-                  ${job.profitability.totalPrice.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </div>
-                <div className="truncate text-[10px]" style={{ color: "#546478" }}>Total Price</div>
-              </div>
-              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md" style={{ backgroundColor: "#16A34A26" }}>
-                <span className="material-icons" style={{ fontSize: "16px", color: "#16A34A" }}>trending_up</span>
-              </div>
-            </div>
-            {/* Compensation (red — expenses-style cost) */}
-            <div className="flex items-center justify-between gap-2 rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5" style={{ minHeight: 44 }}>
-              <div className="min-w-0">
-                <div className="text-[15px] leading-tight tabular-nums whitespace-nowrap" style={{ fontWeight: 700, color: "#DC2626" }}>
-                  ${Math.round(job.profitability.labor).toLocaleString("en-US")}
-                </div>
-                <div className="truncate text-[10px]" style={{ color: "#546478" }}>Compensation</div>
-              </div>
-              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md" style={{ backgroundColor: "#DC262626" }}>
-                <span className="material-icons" style={{ fontSize: "16px", color: "#DC2626" }}>payments</span>
-              </div>
-            </div>
-            {/* All Expenses (dark gray) */}
-            <div className="flex items-center justify-between gap-2 rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5" style={{ minHeight: 44 }}>
-              <div className="min-w-0">
-                <div className="truncate text-[15px] leading-tight tabular-nums text-[#1A2332]" style={{ fontWeight: 700 }}>
-                  ${(job.profitability.lineItemCost + job.profitability.expenses).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </div>
-                <div className="truncate text-[10px]" style={{ color: "#546478" }}>All Expenses</div>
-              </div>
-              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md" style={{ backgroundColor: "#4A6FA526" }}>
-                <span className="material-icons" style={{ fontSize: "16px", color: "#4A6FA5" }}>receipt_long</span>
-              </div>
-            </div>
-            {/* Profit Margin (green if positive, red if negative) */}
-            <div className="flex items-center justify-between gap-2 rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5" style={{ minHeight: 44 }}>
-              <div className="min-w-0">
-                <div className="text-[15px] leading-tight tabular-nums whitespace-nowrap" style={{ fontWeight: 700, color: job.profitability.margin < 0 ? "#DC2626" : "#16A34A" }}>
-                  {job.profitability.margin.toFixed(2)}%
-                </div>
-                <div className="flex items-center gap-1">
-                  <div className="truncate text-[10px]" style={{ color: "#546478" }}>Profit Margin</div>
-                  <div className="relative group">
-                    <span className="material-icons cursor-help" style={{ fontSize: "12px", color: "#9CA3AF" }}>info</span>
-                    <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden group-hover:block bg-white border border-[#E5E7EB] rounded-md shadow-lg px-3 py-2 z-50 whitespace-nowrap">
-                      <div className="text-[12px]" style={{ color: "#1A2332" }}>(Total Price − Costs) / Total Price</div>
+          {/* Right: Financial KPI strip — borderless, mirror of ClientDetail header KPIs */}
+          <div className="flex items-center gap-4 shrink-0">
+            {[
+              { label: "Total Price",   value: `$${job.profitability.totalPrice.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,                                          icon: "trending_up", iconColor: "#16A34A" },
+              { label: "Compensation",  value: `$${Math.round(job.profitability.labor).toLocaleString("en-US")}`,                                                                                          icon: "payments",    iconColor: "#DC2626" },
+              { label: "All Expenses",  value: `$${(job.profitability.lineItemCost + job.profitability.expenses).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,         icon: "receipt_long", iconColor: "#4A6FA5" },
+              { label: "Profit Margin", value: `${job.profitability.margin.toFixed(2)}%`,                                                                                                                   icon: "query_stats", iconColor: job.profitability.margin < 0 ? "#DC2626" : "#16A34A", hint: "(Total Price − Costs) / Total Price" },
+            ].map(({ label, value, icon, iconColor, hint }, i) => (
+              <div key={label} className="flex items-center gap-4">
+                {i > 0 && <div className="w-px h-6 bg-[#E5E7EB] shrink-0" />}
+                <div className="flex items-center gap-3">
+                  <div className="flex flex-col">
+                    <div className="text-[18px] leading-none tabular-nums text-[#1A2332] whitespace-nowrap" style={{ fontWeight: 600 }}>{value}</div>
+                    <div className="text-[14px] leading-[20px] text-[#6B7280] mt-1 whitespace-nowrap flex items-center gap-1">
+                      {label}
+                      {hint && (
+                        <span className="relative group inline-flex">
+                          <span className="material-icons cursor-help" style={{ fontSize: "13px", color: "#9CA3AF" }}>info</span>
+                          <span className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden group-hover:block bg-white border border-[#E5E7EB] rounded-md shadow-lg px-3 py-2 z-50 whitespace-nowrap text-[12px] text-[#1A2332]">{hint}</span>
+                        </span>
+                      )}
                     </div>
+                  </div>
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: `${iconColor}26` }}>
+                    <span className="material-icons" style={{ fontSize: "20px", color: iconColor }}>{icon}</span>
                   </div>
                 </div>
               </div>
-              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md" style={{ backgroundColor: `${job.profitability.margin < 0 ? "#DC2626" : "#16A34A"}26` }}>
-                <span className="material-icons" style={{ fontSize: "16px", color: job.profitability.margin < 0 ? "#DC2626" : "#16A34A" }}>query_stats</span>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
 

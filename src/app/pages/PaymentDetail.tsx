@@ -446,33 +446,26 @@ export function PaymentDetail() {
             </div>
           </div>
 
-          {/* Right: Total Price KPI */}
-          <div
-            className="flex w-[128px] items-center justify-between gap-2 rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5 shrink-0"
-            style={{ minHeight: 44 }}
-          >
-            <div className="min-w-0">
-              <div
-                className="truncate text-[15px] leading-tight tabular-nums"
-                style={{ fontWeight: 700, color: payment.status === "Refunded" ? "#8B5CF6" : "#16A34A" }}
-              >
-                {payment.status === "Refunded" ? "−" : ""}${Math.round(payment.amount).toLocaleString("en-US")}
+          {/* Right: KPI strip — Client-style (borderless, dark value, tinted icon) */}
+          <div className="flex items-center gap-4 shrink-0">
+            <div className="flex items-center gap-3">
+              <div className="flex flex-col">
+                <div className="text-[18px] leading-none tabular-nums text-[#1A2332] whitespace-nowrap" style={{ fontWeight: 600 }}>
+                  {payment.status === "Refunded" ? "−" : ""}${Math.round(payment.amount).toLocaleString("en-US")}
+                </div>
+                <div className="text-[14px] leading-[20px] text-[#6B7280] mt-1 whitespace-nowrap">Total Price</div>
               </div>
-              <div className="truncate text-[10px] text-[#546478]">Total Price</div>
-            </div>
-            <div
-              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md"
-              style={{ backgroundColor: payment.status === "Refunded" ? "#EDE9FE" : "#DCFCE7" }}
-            >
-              <span
-                className="material-icons"
-                style={{
-                  fontSize: "16px",
-                  color: payment.status === "Refunded" ? "#8B5CF6" : "#16A34A",
-                }}
+              <div
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
+                style={{ backgroundColor: `${payment.status === "Refunded" ? "#8B5CF6" : "#16A34A"}26` }}
               >
-                {payment.status === "Refunded" ? "trending_down" : "trending_up"}
-              </span>
+                <span
+                  className="material-icons"
+                  style={{ fontSize: "20px", color: payment.status === "Refunded" ? "#8B5CF6" : "#16A34A" }}
+                >
+                  {payment.status === "Refunded" ? "trending_down" : "trending_up"}
+                </span>
+              </div>
             </div>
           </div>
         </div>
