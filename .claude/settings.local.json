@@ -108,7 +108,9 @@
       "Bash(awk 'NR>=1595 && NR<=1610 {print NR\": \"$0}' src/app/pages/Calendar.tsx)",
       "Bash(awk 'NR>=1730 && NR<=1745 {print NR\": \"$0}' src/app/pages/Calendar.tsx)",
       "Bash(npx --no-install babel src/app/pages/Calendar.tsx --presets=@babel/preset-typescript,@babel/preset-react -o /tmp/calendar.out.js)",
-      "Bash(rm -f C:/Users/mykha/Documents/Vision360/.git/worktrees/musing-boyd-546eca/index.lock)"
+      "Bash(rm -f C:/Users/mykha/Documents/Vision360/.git/worktrees/musing-boyd-546eca/index.lock)",
+      "Bash(py -c ' *)",
+      "Bash(node -e ' *)"
     ]
   }
 }

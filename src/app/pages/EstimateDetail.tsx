@@ -5,6 +5,7 @@ import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-men
 import { DetailTabs, TabSettingsButton } from "../components/ui/detail-tabs";
 import { PlusIcon } from "../components/ui/plus-icon";
 import { DocumentPreview } from "../components/DocumentPreview";
+import { DocumentsGallery } from "../components/DocumentsGallery";
 import { formatRegionalDate } from "../stores/regionalSettingsStore";
 import installHeatingSystem1Photo from "../../assets/documents/33702-install-heating-system-1.jpg";
 import installHeatingSystemPhoto from "../../assets/documents/33702-install-heating-system.jpg";
@@ -207,6 +208,9 @@ export function EstimateDetail() {
   const previewFile = documents.find(d => d.id === previewFileId) ?? null;
   const [selectedDocs, setSelectedDocs] = useState<Set<string>>(new Set());
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // Lets the card header trigger DocumentsGallery's file picker without it
+  // having to render its own Upload button (matches JobDetail).
+  const docsUploadRef = useRef<(() => void) | null>(null);
   const toggleDocSelected = (docId: string) => setSelectedDocs(prev => { const n = new Set(prev); n.has(docId) ? n.delete(docId) : n.add(docId); return n; });
   const handleFilesAdded = (files: FileList | null) => {
     if (!files) return;
@@ -426,176 +430,35 @@ export function EstimateDetail() {
         )}
       </div>
 
-      {/* ── Col 2: Documents (Photos / Files) with inline preview ── */}
-      {(() => {
-        const photoDocs = documents.filter(d => d.isImage);
-        const fileDocs = documents.filter(d => !d.isImage);
-        const list = docKind === "photos" ? photoDocs : fileDocs;
-        const safeIdx = Math.min(docPreviewIdx, Math.max(0, list.length - 1));
-        const current = list[safeIdx];
-        return (
-          <div className="flex-1 min-w-0 bg-white border border-[#E5E7EB] rounded-xl overflow-hidden flex flex-col">
-            {/* Header */}
-            <div className="px-5 py-3.5 border-b border-[#E5E7EB] flex items-center gap-2">
-              <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>
-                Documents <span className="text-[#9CA3AF]" style={{ fontWeight: 500 }}>({documents.length})</span>
-              </h3>
-              <div className="flex-1" />
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="h-8 px-3 flex items-center gap-1.5 border border-[#E5E7EB] bg-white hover:bg-[#F5F7FA] text-[#546478] rounded-md text-[13px] transition-colors"
-                style={{ fontWeight: 500 }}
-              >
-                <span className="material-icons" style={{ fontSize: "16px" }}>upload</span>
-                Upload
-              </button>
-            </div>
+      {/* ── Col 2: Documents — same shell + gallery as JobDetail ── */}
+      <div className="flex-1 min-w-0 bg-white border border-[#E5E7EB] rounded-xl overflow-hidden flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-[#E5E7EB] px-4 py-2.5 shrink-0">
+          <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>
+            Documents <span className="text-[#9CA3AF]" style={{ fontWeight: 400 }}>({documents.length})</span>
+          </span>
+          <button
+            type="button"
+            onClick={() => docsUploadRef.current?.()}
+            aria-label="Upload documents"
+            title="Upload documents"
+            className="w-7 h-7 flex items-center justify-center rounded-md text-[#4A6FA5] hover:bg-[#EDF0F5] transition-colors"
+          >
+            <span className="material-icons" style={{ fontSize: 20 }}>upload</span>
+          </button>
+        </div>
 
-            <input ref={fileInputRef} type="file" multiple className="hidden" onChange={e => handleFilesAdded(e.target.files)} />
+        {/* Reuses the Clients-style gallery the rest of the app uses */}
+        <div className="flex-1 overflow-y-auto min-h-[420px]">
+          <DocumentsGallery
+            documents={documents}
+            onChange={setDocuments}
+            hideToolbarUpload
+            uploadTriggerRef={docsUploadRef}
+          />
+        </div>
+      </div>
 
-            {/* Sub-tabs: Photos / Files */}
-            <div className="flex border-b border-[#E5E7EB] px-5">
-              {[
-                { key: "photos" as const, label: `Photos (${photoDocs.length})` },
-                { key: "files" as const,  label: `Files (${fileDocs.length})` },
-              ].map(t => (
-                <button
-                  key={t.key}
-                  onClick={() => { setDocKind(t.key); setDocPreviewIdx(0); }}
-                  className={`relative py-2.5 px-1 mr-5 text-[13px] transition-colors ${docKind === t.key ? "text-[#4A6FA5]" : "text-[#6B7280] hover:text-[#374151]"}`}
-                  style={{ fontWeight: docKind === t.key ? 600 : 500 }}
-                >
-                  {t.label}
-                  {docKind === t.key && <span className="absolute left-0 right-0 -bottom-px h-0.5 bg-[#4A6FA5] rounded-full" />}
-                </button>
-              ))}
-            </div>
-
-            {/* Inline preview */}
-            {list.length === 0 ? (
-              <div className="py-12 flex flex-col items-center justify-center">
-                <span className="material-icons text-[#D1D5DB] mb-2" style={{ fontSize: "40px" }}>folder_open</span>
-                <div className="text-[13px] text-[#9CA3AF]">No {docKind} yet</div>
-                <button onClick={() => fileInputRef.current?.click()} className="text-[13px] text-[#4A6FA5] hover:underline mt-1" style={{ fontWeight: 500 }}>+ Upload</button>
-              </div>
-            ) : (
-              <>
-                <div className="relative bg-[#FAFBFC] p-4 flex items-center justify-center" style={{ minHeight: "300px" }}>
-                  {/* prev arrow */}
-                  <button
-                    onClick={() => setDocPreviewIdx(i => (i - 1 + list.length) % list.length)}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 z-10 h-9 w-9 rounded-full bg-white border border-[#E5E7EB] shadow-sm hover:bg-[#F5F7FA] flex items-center justify-center transition-colors"
-                    title="Previous"
-                  >
-                    <span className="material-icons text-[#546478]" style={{ fontSize: "20px" }}>chevron_left</span>
-                  </button>
-
-                  {/* main image / file */}
-                  <div className="relative w-full max-w-[520px] aspect-[4/3] rounded-lg overflow-hidden bg-white border border-[#E5E7EB] flex items-center justify-center">
-                    {current?.isImage && current.previewUrl ? (
-                      <img src={current.previewUrl} alt={current.name} className="w-full h-full object-cover" />
-                    ) : current ? (
-                      <div className="flex flex-col items-center gap-2 text-center px-6">
-                        <span className="material-icons" style={{ fontSize: "64px", color: current.iconColor, opacity: 0.85 }}>{current.icon}</span>
-                        <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{current.name}</div>
-                        <div className="text-[12px] text-[#9CA3AF]">{current.size} · {current.date}</div>
-                      </div>
-                    ) : null}
-
-                    {/* expand button */}
-                    {current && (
-                      <button
-                        onClick={() => setPreviewFileId(current.id)}
-                        className="absolute top-2 right-2 h-8 w-8 rounded-md bg-white/90 hover:bg-white border border-[#E5E7EB] flex items-center justify-center transition-colors"
-                        title="Open full preview"
-                      >
-                        <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>open_in_full</span>
-                      </button>
-                    )}
-
-                    {/* "After" / category tag overlay */}
-                    {current?.category && (
-                      <span className="absolute left-2 bottom-2 px-2 py-0.5 rounded-md text-[11px] text-white bg-[#16A34A]" style={{ fontWeight: 600 }}>
-                        {current.category === "Photos" ? "After" : current.category}
-                      </span>
-                    )}
-                    {/* page counter */}
-                    <span className="absolute right-2 bottom-2 px-2 py-0.5 rounded-md text-[11px] text-white bg-black/60" style={{ fontWeight: 500 }}>
-                      {safeIdx + 1} / {list.length}
-                    </span>
-                  </div>
-
-                  {/* next arrow */}
-                  <button
-                    onClick={() => setDocPreviewIdx(i => (i + 1) % list.length)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 z-10 h-9 w-9 rounded-full bg-white border border-[#E5E7EB] shadow-sm hover:bg-[#F5F7FA] flex items-center justify-center transition-colors"
-                    title="Next"
-                  >
-                    <span className="material-icons text-[#546478]" style={{ fontSize: "20px" }}>chevron_right</span>
-                  </button>
-                </div>
-
-                {/* Caption */}
-                {current && (
-                  <div className="px-4 py-2 border-t border-[#F3F4F6] text-[12px] text-[#6B7280] truncate" title={current.name}>
-                    {current.name}
-                  </div>
-                )}
-
-                {/* Thumbnails strip (2 rows) */}
-                <div className="p-3 border-t border-[#F3F4F6]">
-                  <div className="grid grid-cols-5 gap-1.5">
-                    {list.slice(docsPage * DOCS_PER_PAGE, docsPage * DOCS_PER_PAGE + DOCS_PER_PAGE).map((file) => {
-                      const globalIdx = list.indexOf(file);
-                      const isActive = globalIdx === safeIdx;
-                      return (
-                        <button
-                          key={file.id}
-                          onClick={() => setDocPreviewIdx(globalIdx)}
-                          className={`relative aspect-[4/3] rounded-md overflow-hidden border transition-all ${isActive ? "border-[#4A6FA5] ring-2 ring-[#4A6FA5]/40" : "border-[#E5E7EB] hover:border-[#C5D5EC]"}`}
-                          title={file.name}
-                        >
-                          {file.isImage && file.previewUrl ? (
-                            <img src={file.previewUrl} alt={file.name} className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: file.iconColor + "12" }}>
-                              <span className="material-icons" style={{ fontSize: "22px", color: file.iconColor }}>{file.icon}</span>
-                            </div>
-                          )}
-                          {file.category && (
-                            <span className="absolute left-1 bottom-1 px-1 rounded text-[9px] text-white bg-[#16A34A]/80" style={{ fontWeight: 600 }}>
-                              {file.category === "Photos" ? "A" : file.category.charAt(0)}
-                            </span>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  {list.length > DOCS_PER_PAGE && (
-                    <div className="mt-2.5 flex items-center justify-between text-[12px] text-[#6B7280]">
-                      <button
-                        onClick={() => setDocsPage(p => Math.max(0, p - 1))}
-                        disabled={docsPage === 0}
-                        className="px-2 py-1 disabled:opacity-40 hover:text-[#374151]"
-                      >
-                        Prev
-                      </button>
-                      <span className="tabular-nums">{docsPage + 1} / {Math.ceil(list.length / DOCS_PER_PAGE)}</span>
-                      <button
-                        onClick={() => setDocsPage(p => Math.min(Math.ceil(list.length / DOCS_PER_PAGE) - 1, p + 1))}
-                        disabled={docsPage >= Math.ceil(list.length / DOCS_PER_PAGE) - 1}
-                        className="px-2 py-1 disabled:opacity-40 hover:text-[#374151]"
-                      >
-                        Next
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
-          </div>
-        );
-      })()}
 
       {/* ── Col 3: Notes (narrow, sticky-style above the fold) ── */}
       <div className="w-[280px] shrink-0 flex flex-col gap-4">
