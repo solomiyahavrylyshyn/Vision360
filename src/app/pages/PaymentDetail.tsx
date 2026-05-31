@@ -477,6 +477,9 @@ export function PaymentDetail() {
           </div>
         </div>
 
+        {/* Divider separating the payment header from the tab bar */}
+        <div className="-mx-4 mt-4 border-t border-[#E5E7EB]" />
+
         <DetailTabs
           tabs={[
             { key: "details", label: "Details" },

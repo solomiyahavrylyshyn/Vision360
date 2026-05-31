@@ -1002,6 +1002,9 @@ export function EstimateDetail() {
             </div>
         </div>
 
+        {/* Divider separating the estimate header from the tab bar */}
+        <div className="-mx-4 mt-4 border-t border-[#E5E7EB]" />
+
         <DetailTabs
           tabs={TABS.map(t => ({
             ...t,

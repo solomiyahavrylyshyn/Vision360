@@ -1414,6 +1414,9 @@ export function JobDetail() {
           </div>
         </div>
 
+        {/* Divider separating the job header from the tab bar */}
+        <div className="-mx-4 mt-4 border-t border-[#E5E7EB]" />
+
         <DetailTabs
           tabs={visibleTabs}
           activeTab={activeTab}
