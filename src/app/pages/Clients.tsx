@@ -171,6 +171,15 @@ export function Clients() {
     return "Active";
   };
 
+  // Parse "…• 2 days ago" / "…• today" / "…• 18 days" into a number of days.
+  const daysAgoFromActivity = (activity: string): number => {
+    const s = activity.toLowerCase();
+    if (s.includes("today")) return 0;
+    if (s.includes("yesterday")) return 1;
+    const m = s.match(/(\d+)\s*days?/);
+    return m ? parseInt(m[1], 10) : Infinity; // unknown recency → treated as very old
+  };
+
   const filteredClients = clients.filter(client => {
     const matchesSearch = !searchQuery || client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       client.phone.includes(searchQuery) || client.address.toLowerCase().includes(searchQuery.toLowerCase());
@@ -180,6 +189,15 @@ export function Clients() {
       qfBalance === "without_balance" ? client.totalBilled === 0 :
       true;
     const matchesStatus = qfStatus === "All" || getClientStatus(client) === qfStatus;
+
+    // Date quick-filter — filters by last-activity recency (was previously ignored).
+    const days = daysAgoFromActivity(client.lastActivity);
+    const matchesQfDate =
+      qfDate === "today" ? days === 0 :
+      qfDate === "yesterday" ? days === 1 :
+      qfDate === "last_14" ? days <= 14 :
+      qfDate === "this_month" ? days <= 30 :
+      true; // all_time (and any unknown value)
 
     // Advanced filters
     const matchesCustomerType = !filterState.customerType || (filterState.customerType === "residential" ? client.tags.includes("Residential") : client.tags.includes("Commercial"));
@@ -191,7 +209,7 @@ export function Clients() {
     if (filterState.lifetimeMax !== "") matchesLifetime = matchesLifetime && client.totalBilled <= Number(filterState.lifetimeMax);
     const matchesCity = !filterState.city || client.address.toLowerCase().includes(filterState.city.toLowerCase());
 
-    return matchesSearch && matchesQfBalance && matchesStatus && matchesCustomerType && matchesTags && matchesLeadSource && matchesHasCompany && matchesLifetime && matchesCity;
+    return matchesSearch && matchesQfDate && matchesQfBalance && matchesStatus && matchesCustomerType && matchesTags && matchesLeadSource && matchesHasCompany && matchesLifetime && matchesCity;
   });
 
   // Sort
