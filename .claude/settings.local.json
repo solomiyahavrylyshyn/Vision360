@@ -92,7 +92,22 @@
       "Bash(awk '{printf \"%8.0f KB  %s\\\\n\", $5/1024, $9}')",
       "Bash(grep -rnE \"\\(api[_-]?key|secret|bearer|password|token\\)\\\\s*[:=]\\\\s*[\\\\\"'][A-Za-z0-9_\\\\-]{16,}\" src/app)",
       "Bash(grep -rnE \"AIza[0-9A-Za-z_\\\\-]{20,}|sk_live_|sk_test_|AKIA[0-9A-Z]{16}|ghp_[A-Za-z0-9]{30,}\" src)",
-      "Bash(git revert *)"
+      "Bash(git revert *)",
+      "Bash(pkill -f \"vite preview\")",
+      "Bash(rm -rf dist)",
+      "Bash(echo \"started pid $!\")",
+      "Bash(netstat -ano)",
+      "Bash(curl -s http://localhost:5174/ -o /tmp/page.html)",
+      "Bash(curl -s http://localhost:5174/src/main.tsx -o /tmp/main.tsx)",
+      "Bash(git -c user.name=Solomiya -c user.email=solomiyahavrylysyn@gmail.com commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(awk 'NR>=1505 && NR<=1535 {print NR\": \"$0}' src/app/pages/Calendar.tsx)",
+      "Bash(awk 'NR>=1555 && NR<=1565 {print NR\": \"$0}' src/app/pages/Calendar.tsx)",
+      "Bash(awk 'NR==1344,/^        \\\\\\)\\\\}$/' src/app/pages/Calendar.tsx)",
+      "Bash(awk '/^        \\\\{viewMode === \"day\" && \\\\\\(/{print NR\": \"$0; inblock=1; depth=0; next} inblock{ if\\(match\\($0,/^        \\\\\\)\\\\}$/\\)\\){ print NR\": \"$0; exit }}' src/app/pages/Calendar.tsx)",
+      "Bash(awk 'NR>=1595 && NR<=1610 {print NR\": \"$0}' src/app/pages/Calendar.tsx)",
+      "Bash(awk 'NR>=1730 && NR<=1745 {print NR\": \"$0}' src/app/pages/Calendar.tsx)",
+      "Bash(npx --no-install babel src/app/pages/Calendar.tsx --presets=@babel/preset-typescript,@babel/preset-react -o /tmp/calendar.out.js)"
     ]
   }
 }

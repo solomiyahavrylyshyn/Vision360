@@ -538,7 +538,7 @@ export function Calendar() {
         return { ...job, dayIdx, technicianId, start: dropStart, end: dropEnd };
       });
       const movedJob = nextJobs.find((job) => job.id === jobId) ?? null;
-      setSelectedDispatchJob(movedJob);
+      // Don't auto-open the detail modal — leave the job in place; user can click it to open.
       if (movedJob) setToast(`Moved to ${formatRegionalTime(movedJob.start, regionalSettings)}`);
       return nextJobs;
     });
@@ -576,7 +576,7 @@ export function Calendar() {
         return { ...job, technicianId, start: dropStart, end: dropEnd };
       });
       const movedJob = nextJobs.find((job) => job.id === jobId) ?? null;
-      setSelectedDayJob(movedJob);
+      // Don't auto-open the detail modal — leave the job in place; user can click it to open.
       if (movedJob) setToast(`Moved to ${formatRegionalTime(movedJob.start, regionalSettings)}`);
       return nextJobs;
     });
