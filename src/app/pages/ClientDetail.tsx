@@ -2069,6 +2069,9 @@ export function ClientDetail() {
           </div>
         </div>
 
+        {/* Divider separating the client header from the tab bar */}
+        <div className="-mx-4 mt-4 border-t border-[#E5E7EB]" />
+
         {/* Unified detail-page tab bar */}
         <DetailTabs
           tabs={visibleTabs}
@@ -2081,7 +2084,7 @@ export function ClientDetail() {
               <KebabMenu />
             </>
           }
-          className="mt-5"
+          className="mt-3"
         />
 
         {/* Tab content */}
