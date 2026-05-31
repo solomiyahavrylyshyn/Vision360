@@ -454,7 +454,8 @@ export function JobDetail() {
     })),
     ...INITIAL_DOCS.filter((d) => !d.isImage),
   ]);
-  const [mediaCollapsed, setMediaCollapsed] = useState(false);
+  // Documents card no longer collapses — header icon triggers upload directly.
+  const docsUploadRef = useRef<(() => void) | null>(null);
   const [docSearch, setDocSearch] = useState("");
   const [docDate, setDocDate] = useState("all");
   const [docCategory, setDocCategory] = useState("all");
@@ -780,20 +781,25 @@ export function JobDetail() {
               Documents <span className="text-[#9CA3AF]" style={{ fontWeight: 400 }}>({attachments.length})</span>
             </span>
             <button
-              onClick={() => setMediaCollapsed(c => !c)}
-              aria-label={mediaCollapsed ? "Expand documents" : "Collapse documents"}
-              className="w-7 h-7 flex items-center justify-center rounded-md text-[#9CA3AF] hover:text-[#4A6FA5] hover:bg-[#F5F7FA] transition-colors"
+              type="button"
+              onClick={() => docsUploadRef.current?.()}
+              aria-label="Upload documents"
+              title="Upload documents"
+              className="w-7 h-7 flex items-center justify-center rounded-md text-[#4A6FA5] hover:bg-[#EDF0F5] transition-colors"
             >
-              <span className="material-icons" style={{ fontSize: "20px" }}>{mediaCollapsed ? "expand_more" : "expand_less"}</span>
+              <span className="material-icons" style={{ fontSize: "20px" }}>upload</span>
             </button>
           </div>
 
           {/* Documents gallery — reuses the client Documents tab experience */}
-          {!mediaCollapsed && (
-            <div className="flex-1 overflow-y-auto min-h-[420px]">
-              <DocumentsGallery documents={attachments} onChange={setAttachments} />
-            </div>
-          )}
+          <div className="flex-1 overflow-y-auto min-h-[420px]">
+            <DocumentsGallery
+              documents={attachments}
+              onChange={setAttachments}
+              hideToolbarUpload
+              uploadTriggerRef={docsUploadRef}
+            />
+          </div>
         </div>
         </ResizablePanel>
       </ResizablePanelGroup>

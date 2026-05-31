@@ -25,9 +25,15 @@ const DOCS_PER_PAGE = 24;
 export function DocumentsGallery({
   documents,
   onChange,
+  hideToolbarUpload = false,
+  uploadTriggerRef,
 }: {
   documents: PreviewableDoc[];
   onChange: (next: PreviewableDoc[]) => void;
+  /** Hide the Upload button inside the toolbar (when the host renders its own trigger). */
+  hideToolbarUpload?: boolean;
+  /** Host can store a callback here and invoke it to open the file picker. */
+  uploadTriggerRef?: React.MutableRefObject<(() => void) | null>;
 }) {
   // Filters
   const [search, setSearch] = useState("");
@@ -49,6 +55,14 @@ export function DocumentsGallery({
   const [fullPreviewId, setFullPreviewId] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Expose the file-picker trigger to the host so a header icon can drive uploads.
+  useEffect(() => {
+    if (uploadTriggerRef) {
+      uploadTriggerRef.current = () => fileInputRef.current?.click();
+      return () => { if (uploadTriggerRef) uploadTriggerRef.current = null; };
+    }
+  }, [uploadTriggerRef]);
 
   const uploaderOptions = useMemo(
     () => Array.from(new Set(documents.map((d) => d.uploadedBy).filter(Boolean) as string[])),
@@ -236,15 +250,17 @@ export function DocumentsGallery({
           </DropdownMenuContent>
         </DropdownMenu>
         <div className="flex-1" />
-        <button
-          type="button"
-          onClick={() => fileInputRef.current?.click()}
-          className="h-8 px-3 gap-1.5 text-[13px] bg-[#4A6FA5] hover:bg-[#3d5a85] text-white rounded-md inline-flex items-center justify-center transition-colors shrink-0"
-          style={{ fontWeight: 600 }}
-        >
-          <span className="material-icons" style={{ fontSize: "16px" }}>upload</span>
-          Upload
-        </button>
+        {!hideToolbarUpload && (
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="h-8 px-3 gap-1.5 text-[13px] bg-[#4A6FA5] hover:bg-[#3d5a85] text-white rounded-md inline-flex items-center justify-center transition-colors shrink-0"
+            style={{ fontWeight: 600 }}
+          >
+            <span className="material-icons" style={{ fontSize: "16px" }}>upload</span>
+            Upload
+          </button>
+        )}
         <input ref={fileInputRef} type="file" multiple className="hidden" onChange={(e) => handleFiles(e.target.files)} />
       </div>
 
