@@ -90,6 +90,7 @@ export function CreateEstimate() {
       estimateName,
       clientName: client.trim(),
       clientEmail: selectedClientEmail,
+      serviceAddress,
       createdDate: todayLabel,
       addedBy: createdBy,
       amount: Math.round(computedTotal * 100) / 100,
@@ -101,6 +102,20 @@ export function CreateEstimate() {
       teamMember: teamMember || createdBy,
       source: linkedJob || "Manual",
       depositDue: 0,
+      // Snapshot line items + tax so the EstimateDetail page can rebuild the
+      // exact document the user just created (DEF-M01-05).
+      items: lineItems.map((li) => ({
+        id: li.id,
+        name: li.name,
+        description: li.description,
+        quantity: li.quantity,
+        price: li.unitPrice,
+        cost: li.unitCost,
+        amount: li.total,
+        taxable: li.taxable,
+      })),
+      taxRate,
+      notes: internalNote,
     });
     toast.success(successMessage);
     navigate(returnTo || "/estimates");

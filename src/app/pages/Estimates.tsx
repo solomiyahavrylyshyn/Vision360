@@ -357,7 +357,8 @@ export function Estimates() {
     !clientSearch || c.name.toLowerCase().includes(clientSearch.toLowerCase()) || c.email.toLowerCase().includes(clientSearch.toLowerCase()) || c.phone.includes(clientSearch)
   );
 
-  const fmt = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  // 2-decimal amount so the list matches what EstimateDetail shows (DEF-M01-07).
+  const fmt = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   return (
     <DndProvider backend={HTML5Backend}>

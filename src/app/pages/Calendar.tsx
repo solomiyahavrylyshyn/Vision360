@@ -848,16 +848,20 @@ export function Calendar() {
         }
       />
 
-      {/* Stat cards */}
+      {/* Stat cards — same 80px height as every other list page */}
       <div className="grid grid-cols-4 gap-4 mb-4">
         {scheduleKpis.map(s => (
-          <div key={s.label} className="flex items-center justify-between gap-3 bg-white border border-[#E5E7EB] rounded-xl px-4 py-4 min-w-0" style={{ minHeight: 92 }}>
+          <div
+            key={s.label}
+            className="flex h-[80px] items-center justify-between gap-3 bg-white border border-[#E5E7EB] rounded-xl px-4 py-3 min-w-0"
+            style={{ boxShadow: "0px 1px 2px rgba(0,0,0,0.05)" }}
+          >
             <div className="flex flex-col justify-center min-w-0">
-              <div className="text-[26px] text-[#1A2332] leading-none tabular-nums" style={{ fontWeight: 700 }}>{s.value}</div>
-              <div className="text-[14px] text-[#546478] mt-1.5 whitespace-nowrap">{s.label}</div>
+              <div className="truncate text-[20px] text-[#1A2332] tabular-nums" style={{ fontWeight: 600, lineHeight: "27px" }}>{s.value}</div>
+              <div className="mt-0.5 truncate text-[14px] text-[#6B7280]" style={{ fontWeight: 600, lineHeight: "20px" }}>{s.label}</div>
             </div>
-            <div className="shrink-0 w-10 h-10 rounded-xl flex items-center justify-center" style={{ color: s.color, backgroundColor: s.bg }}>
-              <span className="material-icons" style={{ fontSize: "22px" }}>{s.icon}</span>
+            <div className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center" style={{ color: s.color, backgroundColor: s.bg }}>
+              <span className="material-icons" style={{ fontSize: "18px" }}>{s.icon}</span>
             </div>
           </div>
         ))}

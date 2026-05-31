@@ -7,6 +7,7 @@ import { PlusIcon } from "../components/ui/plus-icon";
 import { DocumentPreview } from "../components/DocumentPreview";
 import { DocumentsGallery } from "../components/DocumentsGallery";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "../components/ui/resizable";
+import { estimatesStore, type EstimateRecord } from "../stores/estimatesStore";
 import { formatRegionalDate } from "../stores/regionalSettingsStore";
 import installHeatingSystem1Photo from "../../assets/documents/33702-install-heating-system-1.jpg";
 import installHeatingSystemPhoto from "../../assets/documents/33702-install-heating-system.jpg";
@@ -167,11 +168,65 @@ const catalogItems = [
   { id: 107, name: "Electrical Panel Upgrade 200A", price: 2800, cost: 1100 },
 ];
 
+// Bridges the store's EstimateRecord into the richer EstimateData shape this
+// page uses. Missing fields fall back to empty/sane defaults so the page renders
+// even for minimally-created drafts.
+function recordToEstimateData(r: EstimateRecord): EstimateData {
+  return {
+    id: r.id,
+    estimateNumber: r.estimateNumber,
+    estimateName: r.estimateName,
+    clientName: r.clientName,
+    clientEmail: r.clientEmail,
+    clientPhone: r.clientPhone ?? "",
+    clientAddress: r.clientAddress ?? "",
+    serviceAddress: r.serviceAddress ?? r.clientAddress ?? "",
+    dateCreated: r.createdDate,
+    expirationDate: r.expirationDate ?? "",
+    sentDate: r.sentDate || "Not Sent",
+    status: r.status,
+    teamMember: r.teamMember ?? "",
+    job: r.jobTitle || r.job || "",
+    jobId: r.jobId ?? null,
+    items: (r.items ?? []).map((it) => ({
+      id: it.id, name: it.name, description: it.description,
+      quantity: it.quantity, price: it.price, cost: it.cost,
+      amount: it.amount, taxable: it.taxable,
+    })),
+    notes: r.notes ?? "",
+    internalNotes: r.internalNotes ?? "",
+    taxRate: r.taxRate ?? 0,
+    depositRequired: r.depositRequired ?? false,
+    depositType: r.depositType ?? "amount",
+    depositValue: r.depositValue ?? 0,
+    activity: [{
+      id: 1,
+      date: `${r.createdDate || "—"} 09:00`,
+      action: "Estimate created",
+      detail: `Created by ${r.addedBy || "You"}`,
+      icon: "add_circle",
+    }],
+  };
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 export function EstimateDetail() {
   const navigate = useNavigate();
   const { id } = useParams();
-  const initial = mockEstimates[id || ""] || mockEstimates["1"];
+  // Resolve the estimate by id (1) from the persistent store first — that's
+  // where user-created records live; (2) by estimateNumber as a fallback so
+  // direct links like /estimates/10245-E03 also work; (3) from the seed
+  // mockEstimates table for legacy demo rows. If nothing matches, fall
+  // through to the first seed so the page never crashes.
+  const initial: EstimateData = (() => {
+    const seed = mockEstimates[id || ""];
+    if (seed) return seed;
+    const allStored = estimatesStore.getSnapshot();
+    const byId = allStored.find((e) => String(e.id) === id);
+    const byNumber = byId ?? allStored.find((e) => e.estimateNumber === id);
+    if (byNumber) return recordToEstimateData(byNumber);
+    return mockEstimates["1"];
+  })();
   const [estimate, setEstimate] = useState<EstimateData>({ ...initial });
   const [activeTab, setActiveTab] = useState<TabKey>("details");
   const [statusOpen, setStatusOpen] = useState(false);
@@ -212,6 +267,9 @@ export function EstimateDetail() {
   // Lets the card header trigger DocumentsGallery's file picker without it
   // having to render its own Upload button (matches JobDetail).
   const docsUploadRef = useRef<(() => void) | null>(null);
+  // Notes editor — `+` in the notes header focuses the active textarea so the
+  // user can start typing immediately, mirroring the JobDetail notes pattern.
+  const noteTextareaRef = useRef<HTMLTextAreaElement>(null);
   const toggleDocSelected = (docId: string) => setSelectedDocs(prev => { const n = new Set(prev); n.has(docId) ? n.delete(docId) : n.add(docId); return n; });
   const handleFilesAdded = (files: FileList | null) => {
     if (!files) return;
@@ -338,11 +396,15 @@ export function EstimateDetail() {
       {/* ── Col 1: Line Items ── */}
       <ResizablePanel defaultSize={44} minSize={28} className="min-w-0">
       <div className="h-full flex flex-col gap-0 bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-[#E5E7EB]">
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#E5E7EB]">
           <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Line Items</h3>
-          <button onClick={() => setAddItemOpen(true)}
-            className="px-4 py-2 bg-[#4A6FA5] text-white rounded-lg text-[13px] hover:bg-[#3d5a85] flex items-center gap-1.5" style={{ fontWeight: 600 }}>
-            <PlusIcon className="h-4 w-4" /> Add Item
+          <button
+            onClick={() => setAddItemOpen(true)}
+            aria-label="Add item"
+            title="Add item"
+            className="w-7 h-7 flex items-center justify-center rounded hover:bg-[#F5F7FA] transition-colors"
+          >
+            <PlusIcon className="h-3.5 w-3.5 text-[#9CA3AF]" />
           </button>
         </div>
 
@@ -477,7 +539,7 @@ export function EstimateDetail() {
 
         {/* Notes card with Client/Internal sub-tabs */}
         <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
-          <div className="flex border-b border-[#E5E7EB] px-4">
+          <div className="flex items-center border-b border-[#E5E7EB] px-4 gap-1">
             {[
               { key: "client" as const, label: "Note to Client" },
               { key: "internal" as const, label: "Internal" },
@@ -492,18 +554,25 @@ export function EstimateDetail() {
                 {noteTab === t.key && <span className="absolute left-0 right-0 -bottom-px h-0.5 bg-[#4A6FA5] rounded-full" />}
               </button>
             ))}
+            <button
+              type="button"
+              onClick={() => noteTextareaRef.current?.focus()}
+              aria-label="Add note"
+              title="Add note"
+              className="ml-auto w-7 h-7 flex items-center justify-center rounded hover:bg-[#F5F7FA] transition-colors"
+            >
+              <PlusIcon className="h-3.5 w-3.5 text-[#9CA3AF]" />
+            </button>
           </div>
           {noteTab === "client" ? (
             <div className="p-4 flex flex-col gap-2.5">
-              {estimate.notes ? (
-                <div className="text-[13px] text-[#374151] leading-relaxed">{estimate.notes}</div>
-              ) : (
-                <div className="text-[12px] text-[#9CA3AF]">No note for this estimate.</div>
-              )}
-              <button className="self-start inline-flex items-center gap-1 text-[12px] text-[#4A6FA5] hover:underline" style={{ fontWeight: 500 }}>
-                <span className="material-icons" style={{ fontSize: "14px" }}>edit</span>
-                Edit note
-              </button>
+              <textarea
+                ref={noteTextareaRef}
+                value={estimate.notes}
+                onChange={(e) => setEstimate(prev => ({ ...prev, notes: e.target.value }))}
+                className="w-full text-[13px] text-[#374151] leading-relaxed resize-none border border-[#E5E7EB] rounded-md focus:outline-none focus:border-[#4A6FA5] p-2.5 min-h-[100px]"
+                placeholder="Add a note for the client…"
+              />
               <p className="text-[11px] text-[#9CA3AF] mt-1">
                 Per-estimate notes only. Defaults like "Thank you" live in{" "}
                 <span className="text-[#4A6FA5] cursor-pointer hover:underline" onClick={() => navigate("/settings?section=estimates")}>Settings</span>.
@@ -512,6 +581,7 @@ export function EstimateDetail() {
           ) : (
             <div className="p-4 flex flex-col gap-2.5">
               <textarea
+                ref={noteTextareaRef}
                 value={estimate.internalNotes}
                 onChange={(e) => setEstimate(prev => ({ ...prev, internalNotes: e.target.value }))}
                 className="w-full text-[13px] text-[#374151] leading-relaxed resize-none border border-[#E5E7EB] rounded-md focus:outline-none focus:border-[#4A6FA5] p-2.5 min-h-[100px]"

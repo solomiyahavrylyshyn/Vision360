@@ -9,12 +9,29 @@ type Listener = () => void;
 export type EstimateStatus =
   | "Draft" | "Sent" | "Viewed" | "Approved" | "Rejected" | "Expired" | "Archived";
 
+// Line items are stored alongside the record so EstimateDetail can rebuild the
+// document without falling back to seed data when the user opens an estimate
+// they just created.
+export interface EstimateLineItem {
+  id: number;
+  name: string;
+  description: string;
+  quantity: number;
+  price: number;
+  cost: number;
+  amount: number;
+  taxable: boolean;
+}
+
 export interface EstimateRecord {
   id: number;
   estimateNumber: string;
   estimateName: string;
   clientName: string;
   clientEmail: string;
+  clientPhone?: string;
+  clientAddress?: string;
+  serviceAddress?: string;
   createdDate: string;
   addedBy: string;
   option?: string;
@@ -22,12 +39,21 @@ export interface EstimateRecord {
   status: EstimateStatus;
   job?: string;
   jobTitle?: string;
+  jobId?: number;
   sentDate?: string;
   expirationDate?: string;
   teamMember?: string;
   source: string;
   depositDue: number;
   updatedDate?: string;
+  // Optional payload so detail pages can rebuild the document.
+  items?: EstimateLineItem[];
+  taxRate?: number;
+  notes?: string;
+  internalNotes?: string;
+  depositRequired?: boolean;
+  depositType?: "amount" | "percentage";
+  depositValue?: number;
 }
 
 const LS_KEY = "vision360.estimates.v1";
@@ -91,6 +117,9 @@ export const estimatesStore = {
       estimateName: partial.estimateName ?? "",
       clientName: partial.clientName,
       clientEmail: partial.clientEmail ?? "",
+      clientPhone: partial.clientPhone,
+      clientAddress: partial.clientAddress,
+      serviceAddress: partial.serviceAddress,
       createdDate: partial.createdDate ?? "",
       addedBy: partial.addedBy ?? "You",
       option: partial.option,
@@ -98,12 +127,20 @@ export const estimatesStore = {
       status: partial.status ?? "Draft",
       job: partial.job ?? "",
       jobTitle: partial.jobTitle ?? "",
+      jobId: partial.jobId,
       sentDate: partial.sentDate ?? "",
       expirationDate: partial.expirationDate ?? "",
       teamMember: partial.teamMember ?? "Marek Stroz",
       source: partial.source ?? "",
       depositDue: partial.depositDue ?? 0,
       updatedDate: partial.updatedDate,
+      items: partial.items,
+      taxRate: partial.taxRate,
+      notes: partial.notes,
+      internalNotes: partial.internalNotes,
+      depositRequired: partial.depositRequired,
+      depositType: partial.depositType,
+      depositValue: partial.depositValue,
     };
     estimates = [record, ...estimates];
     saveLS();
