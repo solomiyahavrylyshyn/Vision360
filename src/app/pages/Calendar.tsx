@@ -224,6 +224,9 @@ export function Calendar() {
   // Right-side "Unassigned" panel: open by default so dispatchers see what
   // still needs an owner. Toggle from the schedule header chip.
   const [unassignedPanelOpen, setUnassignedPanelOpen] = useState(true);
+  // Derive unassigned jobs once per render — used by the header chip badge
+  // AND the right-side panel content.
+  const unassignedDayJobs = dayJobs.filter(j => !j.technicianId);
   const [monthEvents, setMonthEvents] = useState<CalendarEvent[]>(mockEvents);
   const [dropPreview, setDropPreview] = useState<DropPreview | null>(null);
   const [quickJobDraft, setQuickJobDraft] = useState<QuickJobDraft | null>(null);
@@ -852,32 +855,29 @@ export function Calendar() {
               <span className="material-icons text-[#546478]" style={{ fontSize: "20px" }}>chevron_right</span>
             </button>
             {/* Unassigned toggle chip — only relevant on Day view */}
-            {viewMode === "day" && (() => {
-              const unassignedCount = dayJobs.filter(j => !j.technicianId).length;
-              return (
-                <button
-                  onClick={() => setUnassignedPanelOpen(o => !o)}
-                  title={unassignedPanelOpen ? "Hide unassigned panel" : "Show unassigned panel"}
-                  className={`ml-2 inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-[13px] transition-colors ${
-                    unassignedPanelOpen
-                      ? "bg-[#EEF3FA] border border-[#C5D5EC] text-[#4A6FA5]"
-                      : "border border-[#E5E7EB] text-[#546478] hover:bg-[#F5F7FA]"
-                  }`}
-                  style={{ fontWeight: 500 }}
-                >
-                  <span className="material-icons" style={{ fontSize: "16px" }}>inbox</span>
-                  Unassigned
-                  {unassignedCount > 0 && (
-                    <span
-                      className="ml-0.5 px-1.5 rounded-full text-[11px] text-white"
-                      style={{ background: "#DC2626", fontWeight: 700, minWidth: 18, textAlign: "center" }}
-                    >
-                      {unassignedCount}
-                    </span>
-                  )}
-                </button>
-              );
-            })()}
+            {viewMode === "day" && (
+              <button
+                onClick={() => setUnassignedPanelOpen(o => !o)}
+                title={unassignedPanelOpen ? "Hide unassigned panel" : "Show unassigned panel"}
+                className={`ml-2 inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-[13px] transition-colors ${
+                  unassignedPanelOpen
+                    ? "bg-[#EEF3FA] border border-[#C5D5EC] text-[#4A6FA5]"
+                    : "border border-[#E5E7EB] text-[#546478] hover:bg-[#F5F7FA]"
+                }`}
+                style={{ fontWeight: 500 }}
+              >
+                <span className="material-icons" style={{ fontSize: "16px" }}>inbox</span>
+                Unassigned
+                {unassignedDayJobs.length > 0 && (
+                  <span
+                    className="ml-0.5 px-1.5 rounded-full text-[11px] text-white"
+                    style={{ background: "#DC2626", fontWeight: 700, minWidth: 18, textAlign: "center" }}
+                  >
+                    {unassignedDayJobs.length}
+                  </span>
+                )}
+              </button>
+            )}
           </div>
           {/* Job-type legend */}
           <div className="flex items-center gap-3 flex-wrap justify-end">
@@ -1533,75 +1533,69 @@ export function Calendar() {
 
             {/* Right: Unassigned jobs panel — shrinks the time grid to make room.
                 Each card is draggable onto a tech lane to assign + schedule. */}
-            {unassignedPanelOpen && (() => {
-              const unassigned = dayJobs.filter(j => !j.technicianId);
-              return (
-                <aside className="shrink-0 flex flex-col bg-[#FAFBFC] border-l border-[#E5E7EB]" style={{ width: 280 }}>
-                  <div className="flex items-center gap-2 px-4 border-b border-[#E5E7EB] bg-white" style={{ height: 40 }}>
-                    <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "18px" }}>inbox</span>
-                    <span className="flex-1 text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>
-                      Unassigned{unassigned.length > 0 ? ` (${unassigned.length})` : ""}
-                    </span>
-                    <button
-                      onClick={() => setUnassignedPanelOpen(false)}
-                      className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-[#F0F2F5] text-[#6B7280]"
-                      title="Hide panel"
-                      aria-label="Hide unassigned panel"
-                    >
-                      <span className="material-icons" style={{ fontSize: "18px" }}>close</span>
-                    </button>
-                  </div>
-                  <div className="flex-1 overflow-y-auto p-3 space-y-2">
-                    {unassigned.length === 0 ? (
-                      <div className="py-10 text-center">
-                        <span className="material-icons text-[#D1D5DB] mb-1 block" style={{ fontSize: "32px" }}>check_circle</span>
-                        <div className="text-[12px] text-[#9CA3AF]">All jobs assigned</div>
-                      </div>
-                    ) : (
-                      unassigned.map((job) => {
-                        const statusStyle = STATUS_STYLES[job.status];
-                        return (
-                          <div
-                            key={job.id}
-                            data-job-card="true"
-                            draggable
-                            onDragStart={(event) => event.dataTransfer.setData("text/plain", `day:${job.id}`)}
-                            onClick={() => setSelectedDayJob(job)}
-                            className="bg-white border border-[#E5E7EB] rounded-lg p-2.5 cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow"
-                            style={{ borderLeft: `3px solid ${job.border}` }}
-                            title="Drag onto a technician's lane to assign"
+            {unassignedPanelOpen && (
+              <aside className="shrink-0 flex flex-col bg-[#FAFBFC] border-l border-[#E5E7EB]" style={{ width: 280 }}>
+                <div className="flex items-center gap-2 px-4 border-b border-[#E5E7EB] bg-white" style={{ height: 40 }}>
+                  <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "18px" }}>inbox</span>
+                  <span className="flex-1 text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>
+                    Unassigned{unassignedDayJobs.length > 0 ? ` (${unassignedDayJobs.length})` : ""}
+                  </span>
+                  <button
+                    onClick={() => setUnassignedPanelOpen(false)}
+                    className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-[#F0F2F5] text-[#6B7280]"
+                    title="Hide panel"
+                    aria-label="Hide unassigned panel"
+                  >
+                    <span className="material-icons" style={{ fontSize: "18px" }}>close</span>
+                  </button>
+                </div>
+                <div className="flex-1 overflow-y-auto p-3 space-y-2">
+                  {unassignedDayJobs.length === 0 ? (
+                    <div className="py-10 text-center">
+                      <span className="material-icons text-[#D1D5DB] mb-1 block" style={{ fontSize: "32px" }}>check_circle</span>
+                      <div className="text-[12px] text-[#9CA3AF]">All jobs assigned</div>
+                    </div>
+                  ) : (
+                    unassignedDayJobs.map((job) => (
+                      <div
+                        key={job.id}
+                        data-job-card="true"
+                        draggable
+                        onDragStart={(event) => event.dataTransfer.setData("text/plain", `day:${job.id}`)}
+                        onClick={() => setSelectedDayJob(job)}
+                        className="bg-white border border-[#E5E7EB] rounded-lg p-2.5 cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow"
+                        style={{ borderLeft: `3px solid ${job.border}` }}
+                        title="Drag onto a technician's lane to assign"
+                      >
+                        <div className="flex items-center justify-between gap-2 text-[10px] text-[#9CA3AF] tabular-nums">
+                          <span>{fmtHour(job.start)} – {fmtHour(job.end)}</span>
+                          <span
+                            className="px-1.5 py-0.5 rounded-full text-[9px] max-w-[88px] truncate"
+                            style={{ backgroundColor: STATUS_STYLES[job.status].bg, color: STATUS_STYLES[job.status].color, fontWeight: 700 }}
                           >
-                            <div className="flex items-center justify-between gap-2 text-[10px] text-[#9CA3AF] tabular-nums">
-                              <span>{fmtHour(job.start)} – {fmtHour(job.end)}</span>
-                              <span
-                                className="px-1.5 py-0.5 rounded-full text-[9px] max-w-[88px] truncate"
-                                style={{ backgroundColor: statusStyle.bg, color: statusStyle.color, fontWeight: 700 }}
-                              >
-                                {job.status}
-                              </span>
-                            </div>
-                            <div className="text-[12px] text-[#1A2332] mt-1 truncate" style={{ fontWeight: 700 }}>{job.client}</div>
-                            <div className="text-[11px] text-[#546478] truncate">{job.service}</div>
-                            <div className="text-[11px] text-[#9CA3AF] truncate mt-0.5">{job.address}</div>
-                            <div className="mt-1 flex items-center justify-between gap-2">
-                              {job.amount > 0 ? (
-                                <span className="text-[11px] tabular-nums" style={{ fontWeight: 700, color: job.border }}>${job.amount.toLocaleString()}</span>
-                              ) : (
-                                <span className="text-[11px] text-[#9CA3AF]">—</span>
-                              )}
-                              <span className="text-[10px] text-[#9CA3AF] flex items-center gap-1">
-                                <span className="material-icons" style={{ fontSize: "12px" }}>drag_indicator</span>
-                                drag to assign
-                              </span>
-                            </div>
-                          </div>
-                        );
-                      })
-                    )}
-                  </div>
-                </aside>
-              );
-            })()}
+                            {job.status}
+                          </span>
+                        </div>
+                        <div className="text-[12px] text-[#1A2332] mt-1 truncate" style={{ fontWeight: 700 }}>{job.client}</div>
+                        <div className="text-[11px] text-[#546478] truncate">{job.service}</div>
+                        <div className="text-[11px] text-[#9CA3AF] truncate mt-0.5">{job.address}</div>
+                        <div className="mt-1 flex items-center justify-between gap-2">
+                          {job.amount > 0 ? (
+                            <span className="text-[11px] tabular-nums" style={{ fontWeight: 700, color: job.border }}>${job.amount.toLocaleString()}</span>
+                          ) : (
+                            <span className="text-[11px] text-[#9CA3AF]">—</span>
+                          )}
+                          <span className="text-[10px] text-[#9CA3AF] flex items-center gap-1">
+                            <span className="material-icons" style={{ fontSize: "12px" }}>drag_indicator</span>
+                            drag to assign
+                          </span>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </aside>
+            )}
 
             {selectedDayJob ? (
               <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setSelectedDayJob(null)}>
