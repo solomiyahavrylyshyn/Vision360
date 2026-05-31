@@ -455,13 +455,6 @@ export function DocumentsGallery({
                 >
                   <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>close</span>
                 </button>
-                <button
-                  onClick={() => setPreviewIdx((i) => (i - 1 + sorted.length) % sorted.length)}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 z-10 h-9 w-9 rounded-full bg-white border border-[#E5E7EB] shadow-sm hover:bg-[#F5F7FA] flex items-center justify-center transition-colors"
-                  title="Previous"
-                >
-                  <span className="material-icons text-[#546478]" style={{ fontSize: "20px" }}>chevron_left</span>
-                </button>
                 <div className="relative w-full max-w-[680px] aspect-[4/3] rounded-lg overflow-hidden bg-white border border-[#E5E7EB] flex items-center justify-center">
                   {current?.isImage && current.previewUrl ? (
                     <img src={current.previewUrl} alt={current.name} className="w-full h-full object-cover" />
@@ -490,18 +483,34 @@ export function DocumentsGallery({
                       {current.category}
                     </span>
                   )}
-                  <span className="absolute right-2 bottom-2 px-2 py-0.5 rounded-md text-[11px] text-white bg-black/60" style={{ fontWeight: 500 }}>
+                </div>
+              </div>
+              {/* Navigation row below the image — dark pills so they stay
+                  visible against the light gallery background, and they no
+                  longer overlap the photo. */}
+              {sorted.length > 1 && (
+                <div className="flex items-center justify-center gap-3 px-4 pt-3 pb-1">
+                  <button
+                    onClick={() => setPreviewIdx((i) => (i - 1 + sorted.length) % sorted.length)}
+                    className="h-9 w-9 rounded-full bg-[#1A2332] hover:bg-[#0f1620] text-white flex items-center justify-center transition-colors shadow-sm"
+                    title="Previous"
+                    aria-label="Previous"
+                  >
+                    <span className="material-icons" style={{ fontSize: "20px" }}>chevron_left</span>
+                  </button>
+                  <span className="text-[12px] tabular-nums text-[#6B7280]" style={{ fontWeight: 500 }}>
                     {safeIdx + 1} / {sorted.length}
                   </span>
+                  <button
+                    onClick={() => setPreviewIdx((i) => (i + 1) % sorted.length)}
+                    className="h-9 w-9 rounded-full bg-[#1A2332] hover:bg-[#0f1620] text-white flex items-center justify-center transition-colors shadow-sm"
+                    title="Next"
+                    aria-label="Next"
+                  >
+                    <span className="material-icons" style={{ fontSize: "20px" }}>chevron_right</span>
+                  </button>
                 </div>
-                <button
-                  onClick={() => setPreviewIdx((i) => (i + 1) % sorted.length)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 z-10 h-9 w-9 rounded-full bg-white border border-[#E5E7EB] shadow-sm hover:bg-[#F5F7FA] flex items-center justify-center transition-colors"
-                  title="Next"
-                >
-                  <span className="material-icons text-[#546478]" style={{ fontSize: "20px" }}>chevron_right</span>
-                </button>
-              </div>
+              )}
               {current && (
                 <div className="px-4 py-2 border-t border-[#F3F4F6] text-[12px] text-[#6B7280] truncate" title={current.name}>
                   {current.name}
