@@ -6,6 +6,7 @@ import { Card } from "../components/ui/card";
 import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
 import { useDraggableColumns, DraggableTh } from "../components/ui/draggable-columns";
 import { PageHeader } from "../components/ui/page-header";
+import { StatCard } from "../components/ui/stat-card";
 import { SelectionBar } from "../components/ui/selection-bar";
 import { CreateActionButton } from "../components/ui/create-action-button";
 import { AdvancedFilterField, AdvancedFilterPanel, advancedInputClass, advancedSelectClass } from "../components/ui/advanced-filters";
@@ -152,6 +153,23 @@ export function Expenses() {
 
   const totalAmount = filtered.reduce((s, e) => s + e.amount, 0);
   const uniqueJobs = Array.from(new Set(expenses.filter((e) => e.jobId).map((e) => e.jobId!)));
+
+  // ── KPI metrics ───────────────────────────────────────────────────────────
+  // Computed off `filtered` so they reflect whatever the user has filtered to.
+  const thisMonthTotal = filtered
+    .filter((e) => matchesDatePreset(e.date, "this_month"))
+    .reduce((s, e) => s + e.amount, 0);
+  const avgPerExpense = filtered.length > 0 ? totalAmount / filtered.length : 0;
+  const billableCount = filtered.filter((e) => e.jobId).length;
+  const billablePct = filtered.length > 0 ? Math.round((billableCount / filtered.length) * 100) : 0;
+  // Top category by spend
+  const categoryTotals = filtered.reduce<Record<string, number>>((acc, e) => {
+    acc[e.category] = (acc[e.category] || 0) + e.amount;
+    return acc;
+  }, {});
+  const topCategoryEntry = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1])[0];
+  const topCategoryName = topCategoryEntry?.[0] ?? "—";
+  const topCategoryAmount = topCategoryEntry?.[1] ?? 0;
   const allSelected = filtered.length > 0 && filtered.every(e => selectedIds.has(e.id));
 
   return (
@@ -163,19 +181,36 @@ export function Expenses() {
         count={selectedIds.size > 0 ? `${filtered.length} · ${selectedIds.size} selected` : filtered.length}
       />
 
-      {/* Summary Card */}
-      <div className="mb-4 grid grid-cols-4 gap-3">
-        <Card className="flex min-h-[56px] min-w-0 items-center justify-between gap-3 rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
-          <div className="flex min-w-0 flex-col justify-center">
-            <div className="truncate text-[18px] leading-tight text-[#1A2332]" style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
-              ${totalAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-            </div>
-            <div className="mt-0.5 truncate text-[11px] text-[#546478]">Total Expenses</div>
-          </div>
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg" style={{ background: "#FEF2F2" }}>
-            <span className="material-icons" style={{ fontSize: "18px", color: "#DC2626" }}>receipt_long</span>
-          </div>
-        </Card>
+      {/* KPI strip — mirrors Clients/Jobs/Estimates/Invoices/Payments */}
+      <div className="mb-6 grid grid-cols-4 gap-4">
+        <StatCard
+          value={`$${totalAmount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          label="Total expenses"
+          sub={`${filtered.length} record${filtered.length === 1 ? "" : "s"}`}
+          data={[120, 180, 140, 260, 220, 310, 280]}
+          sparklineColor="#DC2626"
+        />
+        <StatCard
+          value={`$${thisMonthTotal.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          label="This month"
+          sub="So far this period"
+          data={[40, 90, 60, 110, 95, 140, 130]}
+          sparklineColor="#D97706"
+        />
+        <StatCard
+          value={`$${avgPerExpense.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          label="Avg per expense"
+          sub="Across filtered set"
+          data={[200, 260, 220, 300, 250, 280, 320]}
+          sparklineColor="#4A6FA5"
+        />
+        <StatCard
+          value={topCategoryName}
+          label="Top category"
+          sub={topCategoryEntry ? `$${topCategoryAmount.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })} · ${billablePct}% billable` : "—"}
+          data={[60, 80, 75, 100, 110, 95, 130]}
+          sparklineColor={expenseCategoryColors[topCategoryName] || "#4A6FA5"}
+        />
       </div>
 
       {/* Table */}
