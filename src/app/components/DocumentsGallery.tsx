@@ -178,8 +178,8 @@ export function DocumentsGallery({
             type="text"
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(0); }}
-            placeholder="Search documents…"
-            className="h-8 pl-8 pr-3 w-[180px] rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] text-[13px] text-[#1A2332] placeholder:text-[#9CA3AF] outline-none focus:border-[#4A6FA5] focus:bg-white"
+            placeholder="Search files…"
+            className="h-8 pl-8 pr-3 w-[140px] rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] text-[13px] text-[#1A2332] placeholder:text-[#9CA3AF] outline-none focus:border-[#4A6FA5] focus:bg-white"
           />
         </div>
         <select
