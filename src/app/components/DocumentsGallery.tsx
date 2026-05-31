@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { DocumentPreview, type PreviewableDoc } from "./DocumentPreview";
+import { formatRegionalDate } from "../stores/regionalSettingsStore";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -147,7 +148,7 @@ export function DocumentsGallery({
 
   const handleFiles = (files: FileList | null) => {
     if (!files) return;
-    const today = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    const today = formatRegionalDate(new Date());
     const additions: PreviewableDoc[] = [];
     Array.from(files).forEach((f) => {
       const docId = String(Date.now() + Math.random());

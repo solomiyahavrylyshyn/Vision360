@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
 import { DetailTabs, TabSettingsButton } from "../components/ui/detail-tabs";
 import { mockPayments, paymentStatusColors, paymentMethodIcons, type Payment } from "./Payments";
+import { formatRegionalDate } from "../stores/regionalSettingsStore";
 
 interface PaymentAttachment {
   id: string;
@@ -24,10 +25,7 @@ type TabKey = "details" | "activity";
 const fmt = (n: number) =>
   n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-const fmtDate = (d: string) => {
-  const dt = new Date(d + "T12:00:00");
-  return dt.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-};
+const fmtDate = (d: string) => formatRegionalDate(new Date(d + "T12:00:00"));
 
 /* Extra fields not in the Payment type — keyed by payment id */
 const MOCK_EXTRAS: Record<number, {

@@ -5,6 +5,7 @@ import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-men
 import { DetailTabs, TabSettingsButton } from "../components/ui/detail-tabs";
 import { PlusIcon } from "../components/ui/plus-icon";
 import { DocumentPreview } from "../components/DocumentPreview";
+import { formatRegionalDate } from "../stores/regionalSettingsStore";
 import installHeatingSystem1Photo from "../../assets/documents/33702-install-heating-system-1.jpg";
 import installHeatingSystemPhoto from "../../assets/documents/33702-install-heating-system.jpg";
 import installDuctsVentsPhoto from "../../assets/documents/33805-install-ducts-vents.jpg";
@@ -211,7 +212,7 @@ export function EstimateDetail() {
     if (!files) return;
     Array.from(files).forEach(file => {
       const isImg = file.type.startsWith("image/");
-      const newDoc: DocFile = { id: `upload-${Date.now()}-${file.name}`, name: file.name, size: file.size > 1048576 ? `${(file.size/1048576).toFixed(1)} MB` : `${Math.round(file.size/1024)} KB`, date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }), icon: isImg ? "image" : "insert_drive_file", iconColor: isImg ? "#F59E0B" : "#6B7280", isImage: isImg, uploadedBy: "You", category: isImg ? "Photos" : "Documents" };
+      const newDoc: DocFile = { id: `upload-${Date.now()}-${file.name}`, name: file.name, size: file.size > 1048576 ? `${(file.size/1048576).toFixed(1)} MB` : `${Math.round(file.size/1024)} KB`, date: formatRegionalDate(new Date()), icon: isImg ? "image" : "insert_drive_file", iconColor: isImg ? "#F59E0B" : "#6B7280", isImage: isImg, uploadedBy: "You", category: isImg ? "Photos" : "Documents" };
       if (isImg) { const reader = new FileReader(); reader.onload = e => setDocuments(prev => prev.map(d => d.id === newDoc.id ? { ...d, previewUrl: e.target?.result as string } : d)); reader.readAsDataURL(file); }
       setDocuments(prev => [newDoc, ...prev]);
     });

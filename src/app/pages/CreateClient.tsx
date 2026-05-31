@@ -16,6 +16,7 @@ import { countiesStore } from "../stores/countiesStore";
 import { relationshipsStore } from "../stores/relationshipsStore";
 import { clientsStore } from "../stores/clientsStore";
 import { useSyncExternalStore } from "react";
+import { formatRegionalDate } from "../stores/regionalSettingsStore";
 
 interface AdditionalContact {
   id: string;
@@ -230,7 +231,7 @@ export function CreateClient() {
     const id = String(Math.max(10250, ...existing.map((c) => Number(c.id) || 0)) + 1);
     const initials = ((formData.firstName[0] || "") + (formData.lastName[0] || "")).toUpperCase() || "C";
     const palette = ["#4A6FA5", "#3B82F6", "#8B5CF6", "#D97706", "#10B981", "#DC2626"];
-    const today = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    const today = formatRegionalDate(new Date());
     clientsStore.addClient(
       clientsStore.makeRecord({
         id,

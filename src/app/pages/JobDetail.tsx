@@ -13,6 +13,7 @@ import { DocumentsGallery } from "../components/DocumentsGallery";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "../components/ui/resizable";
 import { DocumentPreview } from "../components/DocumentPreview";
 import { toast } from "sonner";
+import { formatRegionalDate } from "../stores/regionalSettingsStore";
 import acServicePhoto from "../../assets/documents/33897-cu.jpg";
 import waterHeaterPhoto from "../../assets/documents/34285-install-water-heater.jpg";
 import installAcPhoto from "../../assets/documents/34689-install-ac.jpg";
@@ -242,8 +243,7 @@ function NoteColumn({ title, initialNotes }: { title: string; initialNotes: Note
   const handleSaveNote = () => {
     const trimmed = newText.trim();
     if (!trimmed) return;
-    const today = new Date();
-    const dateStr = today.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    const dateStr = formatRegionalDate(new Date());
     const newId = Math.max(0, ...notes.map(n => n.id)) + 1;
     setNotes(prev => [{ id: newId, text: trimmed, date: dateStr }, ...prev]);
     setAdding(false);
@@ -542,7 +542,7 @@ export function JobDetail() {
 
   const handleFilesAdded = (files: FileList | null) => {
     if (!files) return;
-    const today = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    const today = formatRegionalDate(new Date());
     const imageExts = ["jpg", "jpeg", "png", "gif", "webp"];
     Array.from(files).forEach((f) => {
       const docId = String(Date.now() + Math.random());

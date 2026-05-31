@@ -1,6 +1,7 @@
 import * as React from "react";
 import { useState, useSyncExternalStore } from "react";
 import { companyStore } from "../stores/companyStore";
+import { formatRegionalDate } from "../stores/regionalSettingsStore";
 import { ColumnSettingsIcon } from "../components/ui/column-settings-icon";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -1074,7 +1075,7 @@ function ReportsTab({ generateOpen, setGenerateOpen }: { generateOpen: boolean; 
                     <div>
                       <div className="text-[9px] text-[#9CA3AF] uppercase tracking-widest mb-0.5">Omega Home Services</div>
                       <div className="text-[18px] font-bold text-[#1A2332]" style={{ fontFamily: "Georgia, serif" }}>{previewReport.name}</div>
-                      <div className="text-[10px] text-[#546478] mt-0.5">Period: May 1 – May 31, 2025 &nbsp;|&nbsp; Generated: {new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</div>
+                      <div className="text-[10px] text-[#546478] mt-0.5">Period: May 1 – May 31, 2025 &nbsp;|&nbsp; Generated: {formatRegionalDate(new Date())}</div>
                     </div>
                     <div className="text-right">
                       <div className="text-[9px] text-[#9CA3AF] uppercase tracking-widest">Format</div>

@@ -10,6 +10,7 @@ import { SelectionBar } from "../components/ui/selection-bar";
 import { CreateActionButton } from "../components/ui/create-action-button";
 import { StatCard } from "../components/ui/stat-card";
 import { AdvancedFilterField, AdvancedFilterPanel, advancedInputClass, advancedSelectClass } from "../components/ui/advanced-filters";
+import { formatRegionalDate } from "../stores/regionalSettingsStore";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 export type PaymentMethod = "Cash" | "Check" | "Credit Card" | "Debit Card" | "Bank Transfer" | "Other";
@@ -121,10 +122,7 @@ export function Payments() {
 
 
   const fmt = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-  const fmtDate = (d: string) => {
-    const dt = new Date(d + "T12:00:00");
-    return dt.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-  };
+  const fmtDate = (d: string) => formatRegionalDate(new Date(d + "T12:00:00"));
 
   // Summary
   const summary = useMemo(() => {

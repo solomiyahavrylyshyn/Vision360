@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router";
 import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
 import { DetailTabs, TabSettingsButton } from "../components/ui/detail-tabs";
 import { PlusIcon } from "../components/ui/plus-icon";
+import { formatRegionalDate } from "../stores/regionalSettingsStore";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type InvoiceStatus =
@@ -292,11 +293,7 @@ export function InvoiceDetail() {
   const [voidConfirm, setVoidConfirm] = useState(false);
 
   const fmt = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-  const fmtDate = (d: string) => {
-    if (!d) return "";
-    const dt = new Date(d + "T12:00:00");
-    return dt.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-  };
+  const fmtDate = (d: string) => d ? formatRegionalDate(new Date(d + "T12:00:00")) : "";
 
   // Calculations
   const subtotal = data.items.reduce((s: number, i: any) => s + i.qty * i.unitPrice, 0);

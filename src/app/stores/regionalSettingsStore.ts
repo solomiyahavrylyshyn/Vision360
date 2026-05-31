@@ -16,7 +16,10 @@ export const DEFAULT_REGIONAL_SETTINGS: RegionalSettings = {
   country: "United States",
   language: "English",
   timeZone: "America/New_York",
-  dateFormat: "MM-DD-YYYY",
+  // Default to long-form American ("May 31, 2026") so dates read naturally
+  // across the app. Users can switch to MM-DD-YYYY / DD-MM-YYYY / YYYY-MM-DD
+  // in Settings → Localization.
+  dateFormat: "MMM D, YYYY",
   timeFormat: "12h",
   firstDayOfWeek: "Sunday",
 };

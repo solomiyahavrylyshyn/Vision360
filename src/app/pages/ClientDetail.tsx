@@ -28,6 +28,7 @@ import {
 import { KebabMenu as KebabMenuShared, KebabItem } from "../components/ui/kebab-menu";
 import { DetailTabs, TabSettingsButton } from "../components/ui/detail-tabs";
 import { toast } from "sonner";
+import { formatRegionalDate } from "../stores/regionalSettingsStore";
 import { clientsStore } from "../stores/clientsStore";
 import { tagsStore } from "../stores/tagsStore";
 import { customFieldsStore } from "../stores/customFieldsStore";
@@ -464,7 +465,7 @@ export function ClientDetail() {
 
   const handleFilesAdded = (files: FileList | null) => {
     if (!files) return;
-    const today = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    const today = formatRegionalDate(new Date());
     const imageExts = ["jpg", "jpeg", "png", "gif", "webp"];
     Array.from(files).forEach((f) => {
       const ext = f.name.split(".").pop()?.toLowerCase() ?? "";
@@ -2537,8 +2538,7 @@ export function ClientDetail() {
                 onClick={() => {
                   const trimmed = newNoteText.trim();
                   if (!trimmed) return;
-                  const today = new Date();
-                  const dateStr = `Added ${today.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
+                  const dateStr = `Added ${formatRegionalDate(new Date())}`;
                   const newId = Math.max(0, ...client.notesArray.map((n) => n.id)) + 1;
                   clientsStore.updateClient(client.id, { notesArray: [{ id: newId, text: trimmed, date: dateStr }, ...client.notesArray] });
                   setAddingNote(false);
