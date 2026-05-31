@@ -34,6 +34,22 @@ export default defineConfig({
   // File types to support raw imports. Never add .css, .tsx, or .ts files to this.
   assetsInclude: ['**/*.svg', '**/*.csv'],
 
+  build: {
+    // Split rarely-changing vendor libraries into their own cacheable chunks so
+    // the main app bundle is smaller and the vendor code is cached across deploys.
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return;
+          if (id.includes('react-dnd') || id.includes('dnd-core')) return 'vendor-dnd';
+          if (id.includes('recharts') || id.includes('d3-')) return 'vendor-charts';
+          if (id.includes('react-router') || id.includes('react-dom') || id.includes('/react/') || id.includes('scheduler')) return 'vendor-react';
+          return 'vendor';
+        },
+      },
+    },
+  },
+
   // Forward /api calls to the local Express + Postgres server (npm run server).
   // If the server isn't running, requests fail and the stores fall back to seed.
   server: {

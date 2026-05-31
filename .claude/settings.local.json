@@ -88,7 +88,10 @@
       "Bash(curl -s -o .tmp_fig_66157.png \"https://www.figma.com/api/mcp/asset/54f5ef07-b2c6-40b2-bddd-d9ef26937622\")",
       "Bash(curl -s -o .tmp_jobs_28657.png \"https://www.figma.com/api/mcp/asset/bb353c84-a086-4192-bae7-e825c6e57d50\")",
       "Bash(curl -s -o .tmp_jobs_32674.png \"https://www.figma.com/api/mcp/asset/9dc617b0-69cd-4baa-a289-649b75b94519\")",
-      "Bash(grep -rn \"navigate\\(\\\\`/items\\\\|/items/\\\\|onClick.*item\\\\|\\\\.id}\\\\`\" src/app/pages/Items.tsx)"
+      "Bash(grep -rn \"navigate\\(\\\\`/items\\\\|/items/\\\\|onClick.*item\\\\|\\\\.id}\\\\`\" src/app/pages/Items.tsx)",
+      "Bash(awk '{printf \"%8.0f KB  %s\\\\n\", $5/1024, $9}')",
+      "Bash(grep -rnE \"\\(api[_-]?key|secret|bearer|password|token\\)\\\\s*[:=]\\\\s*[\\\\\"'][A-Za-z0-9_\\\\-]{16,}\" src/app)",
+      "Bash(grep -rnE \"AIza[0-9A-Za-z_\\\\-]{20,}|sk_live_|sk_test_|AKIA[0-9A-Z]{16}|ghp_[A-Za-z0-9]{30,}\" src)"
     ]
   }
 }

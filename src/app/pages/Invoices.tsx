@@ -123,7 +123,7 @@ const initialInvoices: Invoice[] = [
     status: "Paid",
     clientName: "Travis Jones", customerEmail: "travis.j@email.com", phone: "(512) 555-0142",
     jobNumber: "10245", jobName: "Kitchen Renovation",
-    total: 10502.00, balance: 0,
+    total: 9480.50, balance: 0,
     linkedEstimate: "EST-001", poNumber: "PO-77821", memo: "Final billing for kitchen reno",
     billingAddress: "123 Main St", billingCity: "Austin", billingCounty: "Travis", billingState: "TX", billingZip: "78701",
     serviceAddress: "123 Main St", serviceCity: "Austin", serviceCounty: "Travis", serviceState: "TX", serviceZip: "78701",
