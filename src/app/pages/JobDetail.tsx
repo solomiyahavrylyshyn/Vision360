@@ -9,6 +9,7 @@ import {
 } from "../components/ui/dropdown-menu";
 import { DetailTabs, TabSettingsButton } from "../components/ui/detail-tabs";
 import { PlusIcon } from "../components/ui/plus-icon";
+import { DocumentsGallery } from "../components/DocumentsGallery";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "../components/ui/resizable";
 import { DocumentPreview } from "../components/DocumentPreview";
 import { toast } from "sonner";
@@ -436,6 +437,23 @@ export function JobDetail() {
 
   // Documents state
   const [documents, setDocuments] = useState<DocFile[]>(INITIAL_DOCS);
+  // Unified attachment list (media photos + files) powering the reusable DocumentsGallery,
+  // mirroring the client Documents tab experience.
+  const [attachments, setAttachments] = useState<DocFile[]>(() => [
+    ...MOCK_PHOTOS.map((p, i) => ({
+      id: p.id,
+      name: `Job photo ${i + 1}.jpg`,
+      size: "2.4 MB",
+      date: "May 19, 2026",
+      icon: "image",
+      iconColor: "#F59E0B",
+      isImage: true,
+      previewUrl: p.previewUrl,
+      category: "Photos",
+    })),
+    ...INITIAL_DOCS.filter((d) => !d.isImage),
+  ]);
+  const [mediaCollapsed, setMediaCollapsed] = useState(false);
   const [docSearch, setDocSearch] = useState("");
   const [docDate, setDocDate] = useState("all");
   const [docCategory, setDocCategory] = useState("all");

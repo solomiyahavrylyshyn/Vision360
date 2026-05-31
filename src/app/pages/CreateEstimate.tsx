@@ -1,5 +1,6 @@
 import { useState, useSyncExternalStore } from "react";
 import { useNavigate, useSearchParams } from "react-router";
+import { toast } from "sonner";
 import { clientsStore } from "../stores/clientsStore";
 import { ItemPicker, catalogItemToLineItem, type CatalogItem, type SelectedLineItem } from "../components/ItemPicker";
 import { PageHeader } from "../components/ui/page-header";
@@ -71,6 +72,19 @@ export function CreateEstimate() {
 
   const subtotal = lineItems.reduce((sum, li) => sum + li.total, 0);
   const taxableAmount = lineItems.filter(li => li.taxable).reduce((sum, li) => sum + li.total, 0);
+
+  // Save handlers with validation + feedback (was a silent redirect with no checks).
+  const handleSaveEstimate = () => {
+    if (!client.trim()) { toast.error("Select a client before saving the estimate."); return; }
+    if (lineItems.length === 0) { toast.error("Add at least one line item before saving."); return; }
+    toast.success("Estimate created");
+    navigate(returnTo || "/estimates");
+  };
+  const handleSaveDraft = () => {
+    if (!client.trim() && lineItems.length === 0) { toast.error("Add a client or a line item before saving a draft."); return; }
+    toast.success("Draft saved");
+    navigate(returnTo || "/estimates");
+  };
   const taxAmount = taxableAmount * (taxRate / 100);
   const total = subtotal + taxAmount;
   const fmt = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -318,14 +332,14 @@ export function CreateEstimate() {
             Cancel
           </button>
           <button
-            onClick={() => navigate(returnTo || "/estimates")}
+            onClick={handleSaveDraft}
             className="px-6 py-2.5 border border-[#E5E7EB] rounded-md text-[13px] text-[#1A2332] hover:bg-[#F5F7FA]"
             style={{ fontWeight: 500 }}
           >
             Save as Draft
           </button>
           <button
-            onClick={() => navigate(returnTo || "/estimates")}
+            onClick={handleSaveEstimate}
             className="px-6 py-2.5 bg-[#4A6FA5] text-white rounded-md text-[13px] hover:bg-[#3d5a85]"
             style={{ fontWeight: 600 }}
           >
