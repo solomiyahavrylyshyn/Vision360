@@ -3,7 +3,7 @@ import { DocumentPreview } from "../components/DocumentPreview";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { useDraggableColumns, DraggableTh } from "../components/ui/draggable-columns";
-import { useNavigate, useParams } from "react-router";
+import { useNavigate, useParams, useSearchParams } from "react-router";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
@@ -282,7 +282,16 @@ function PaymentTable() {
 export function ClientDetail() {
   const navigate = useNavigate();
   const { id: routeId } = useParams<{ id: string }>();
-  const [activeTab, setActiveTab] = useState<TabKey>("details");
+  const [searchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState<TabKey>(() => {
+    const t = searchParams.get("tab") as TabKey | null;
+    return t && DEFAULT_TABS.some((d) => d.key === t) ? t : "details";
+  });
+  // Restore the active tab when returning from a create page (?tab=jobs etc.)
+  useEffect(() => {
+    const t = searchParams.get("tab") as TabKey | null;
+    if (t && DEFAULT_TABS.some((d) => d.key === t)) setActiveTab(t);
+  }, [searchParams]);
   const [tabs] = useState(DEFAULT_TABS);
   const [hiddenTabs, setHiddenTabs] = useState<Set<TabKey>>(new Set());
   const [showTabSettings, setShowTabSettings] = useState(false);
@@ -470,6 +479,25 @@ export function ClientDetail() {
     () => allClients.find((c) => c.id === routeId) ?? allClients[0],
     [allClients, routeId],
   );
+  // Whether the URL :id actually resolves to a real client. When it doesn't
+  // (e.g. a stale/never-persisted id), we render a "not found" screen instead
+  // of silently falling back to the first client (which masked the mismatch).
+  const clientExists = useMemo(
+    () => allClients.some((c) => c.id === routeId),
+    [allClients, routeId],
+  );
+
+  // Build a create-page URL pre-populated with this client + a return path that
+  // brings the user back to the originating tab after they save/cancel.
+  const createUrl = (path: string, tab: TabKey, extra: Record<string, string> = {}) => {
+    const params = new URLSearchParams({
+      client: client.name,
+      clientId: client.customerId,
+      returnTo: `/clients/${client.id}?tab=${tab}`,
+      ...extra,
+    });
+    return `${path}?${params.toString()}`;
+  };
 
   const [editedClient, setEditedClient] = useState(client);
   // Re-seed the edit form whenever the active client changes (id switch or store update).
@@ -828,46 +856,6 @@ export function ClientDetail() {
             <PlusIcon className="h-4 w-4 text-[#9CA3AF]" />
           </button>
         </div>
-
-        {/* Add note form */}
-        {addingNote && (
-          <div className="px-5 py-3 border-b border-[#E5E7EB] bg-[#F9FAFB]">
-            <textarea
-              autoFocus
-              value={newNoteText}
-              onChange={e => setNewNoteText(e.target.value)}
-              placeholder="Write a note…"
-              rows={3}
-              className="w-full text-[13px] text-[#1A2332] border border-[#E5E7EB] rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-[#4A6FA5] bg-white placeholder:text-[#9CA3AF]"
-            />
-            <div className="flex gap-2 mt-2">
-              <button
-                onClick={() => {
-                  const trimmed = newNoteText.trim();
-                  if (!trimmed) return;
-                  const today = new Date();
-                  const dateStr = `Added ${today.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
-                  const newId = Math.max(0, ...clientData.notesArray.map(n => n.id)) + 1;
-                  clientsStore.updateClient(client.id, { notesArray: [{ id: newId, text: trimmed, date: dateStr }, ...client.notesArray] });
-                  setAddingNote(false);
-                  setNewNoteText("");
-                }}
-                disabled={!newNoteText.trim()}
-                className="h-7 px-3 bg-[#4A6FA5] hover:bg-[#3d5a85] disabled:opacity-40 text-white text-[12px] rounded-md transition-colors"
-                style={{ fontWeight: 500 }}
-              >
-                Save
-              </button>
-              <button
-                onClick={() => { setAddingNote(false); setNewNoteText(""); }}
-                className="h-7 px-3 text-[#546478] hover:bg-[#EDF0F5] text-[12px] rounded-md transition-colors"
-                style={{ fontWeight: 500 }}
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        )}
 
         <div className="px-5 pt-2 pb-1">
           {clientData.notesArray.length === 0 && !addingNote && (
@@ -1250,6 +1238,26 @@ export function ClientDetail() {
     </button>
   );
 
+  // Tab content header: title (+ optional count) followed by a small "+" icon that
+  // opens the matching create page — simpler than a full button, matching the Notes card.
+  const TabHeader = ({ title, count, onAdd, addLabel }: { title: string; count?: number; onAdd: () => void; addLabel: string }) => (
+    <div className="flex items-center gap-2 mb-5">
+      <h3 className="text-[15px] text-[#1A2332]" style={{ fontWeight: 600 }}>{title}</h3>
+      {typeof count === "number" && (
+        <span className="text-[13px] text-[#9CA3AF]" style={{ fontWeight: 400 }}>({count})</span>
+      )}
+      <button
+        type="button"
+        onClick={onAdd}
+        aria-label={addLabel}
+        title={addLabel}
+        className="w-7 h-7 flex items-center justify-center rounded-md text-[#9CA3AF] hover:text-[#4A6FA5] hover:bg-[#F5F7FA] transition-colors"
+      >
+        <PlusIcon className="h-4 w-4" />
+      </button>
+    </div>
+  );
+
   const renderContent = () => {
     switch (activeTab) {
       case "details":
@@ -1267,10 +1275,7 @@ export function ClientDetail() {
       case "jobs":
         return (
           <>
-            <div className="flex items-center justify-between mb-5">
-              <h3 className="text-[15px] text-[#1A2332]" style={{ fontWeight: 600 }}>Jobs</h3>
-              <TabActionButton onClick={() => navigate("/jobs/new")}>Create job</TabActionButton>
-            </div>
+            <TabHeader title="Jobs" onAdd={() => navigate(createUrl("/jobs/new", "jobs"))} addLabel="Create job" />
             <WorkTable items={jobItems} emptyIcon="work" emptyLabel="No jobs yet for this client." />
           </>
         );
@@ -1278,10 +1283,7 @@ export function ClientDetail() {
       case "estimates":
         return (
           <>
-            <div className="flex items-center justify-between mb-5">
-              <h3 className="text-[15px] text-[#1A2332]" style={{ fontWeight: 600 }}>Estimates</h3>
-              <TabActionButton onClick={() => navigate("/estimates/new")}>Create estimate</TabActionButton>
-            </div>
+            <TabHeader title="Estimates" count={estimateItems.length} onAdd={() => navigate(createUrl("/estimates/new", "estimates"))} addLabel="Create estimate" />
             <WorkTable items={estimateItems} emptyIcon="request_quote" emptyLabel="No estimates yet for this client." />
           </>
         );
@@ -1289,13 +1291,7 @@ export function ClientDetail() {
       case "invoices":
         return (
           <>
-            <div className="flex items-center justify-between mb-5">
-              <div className="flex items-center gap-3">
-                <h3 className="text-[15px] text-[#1A2332]" style={{ fontWeight: 600 }}>Invoices</h3>
-                <span className="text-[12px] text-[#6B7280]">{invoiceRows.length} invoices</span>
-              </div>
-              <TabActionButton onClick={() => navigate("/invoices/new")}>Create invoice</TabActionButton>
-            </div>
+            <TabHeader title="Invoices" count={invoiceRows.length} onAdd={() => navigate(createUrl("/invoices/new", "invoices"))} addLabel="Create invoice" />
             <div className="overflow-x-auto">
               <InvoiceTable />
             </div>
@@ -1305,13 +1301,7 @@ export function ClientDetail() {
       case "payments":
         return (
           <>
-            <div className="flex items-center justify-between mb-5">
-              <div className="flex items-center gap-3">
-                <h3 className="text-[15px] text-[#1A2332]" style={{ fontWeight: 600 }}>Payments</h3>
-                <span className="text-[12px] text-[#6B7280]">{paymentRows.length} payments</span>
-              </div>
-              <TabActionButton onClick={() => navigate(`/payments/new?client=${encodeURIComponent(client.name)}&clientId=${encodeURIComponent(client.customerId)}&amount=${client.openBalance}`)}>Collect payment</TabActionButton>
-            </div>
+            <TabHeader title="Payments" count={paymentRows.length} onAdd={() => navigate(createUrl("/payments/new", "payments", { amount: String(client.openBalance) }))} addLabel="Collect payment" />
             <div className="overflow-x-auto">
               <PaymentTable />
             </div>
@@ -1815,6 +1805,41 @@ export function ClientDetail() {
   /* ──────────────────────────────────────────
      RENDER
   ────────────────────────────────────────── */
+  // Unknown / stale id → explicit not-found screen (no silent fallback to client #0).
+  if (!clientExists) {
+    return (
+      <div className="min-h-screen bg-[#F5F7FA]">
+        <div className="px-6 pt-6 pb-4">
+          <button
+            onClick={() => navigate("/clients")}
+            className="inline-flex items-center gap-1.5 text-[13px] text-[#4A6FA5] hover:text-[#3d5a85] transition-colors"
+            style={{ fontWeight: 500 }}
+          >
+            <span className="material-icons" style={{ fontSize: "18px" }}>arrow_back</span>
+            <span>Back to Clients</span>
+          </button>
+        </div>
+        <div className="px-6">
+          <div className="bg-white border border-[#E5E7EB] rounded-xl py-20 flex flex-col items-center text-center">
+            <span className="material-icons text-[#D1D5DB] mb-3" style={{ fontSize: "48px" }}>person_off</span>
+            <h2 className="text-[18px] text-[#1A2332]" style={{ fontWeight: 600 }}>Client not found</h2>
+            <p className="text-[14px] text-[#6B7280] mt-1 max-w-[420px]">
+              No client matches ID <span className="font-mono text-[#1A2332]">{routeId}</span>. It may have been removed,
+              or hasn’t been saved to the database yet.
+            </p>
+            <button
+              onClick={() => navigate("/clients")}
+              className="mt-5 inline-flex items-center gap-1.5 h-9 px-4 rounded-lg bg-[#4A6FA5] hover:bg-[#3d5a85] text-white text-[14px]"
+              style={{ fontWeight: 500 }}
+            >
+              Go to Clients list
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#F5F7FA]">
 
@@ -2365,6 +2390,51 @@ export function ClientDetail() {
             <div className="flex items-center justify-end gap-2 px-4 py-4 mt-2">
               <Button variant="outline" onClick={() => setEditNotesOpen(false)} className="border-[#E5E7EB] text-[#1A2332] hover:bg-[#F5F7FA] h-9 px-4 text-[14px] rounded-lg">Cancel</Button>
               <Button onClick={() => { clientsStore.updateClient(client.id, { gateCode: notesDraft }); setEditNotesOpen(false); }} className="bg-[#4A6FA5] hover:bg-[#3d5a85] text-white h-9 px-4 text-[14px] rounded-lg">Save</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Add note modal (Figma 489:36795) ──
+          Textarea is UNCONTROLLED (defaultValue + onChange syncing state only for
+          the disabled/save check) so React never re-sets the DOM value mid-keystroke.
+          That eliminates the cursor-reset that made fast typing appear reversed. */}
+      {addingNote && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={() => { setAddingNote(false); setNewNoteText(""); }}>
+          <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" />
+          <div className="relative bg-white rounded-xl shadow-2xl w-[600px] max-w-[92vw] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-4 py-4">
+              <h2 className="text-[20px] text-[#1A2332]" style={{ fontWeight: 600, lineHeight: "1.35" }}>Add note</h2>
+              <button onClick={() => { setAddingNote(false); setNewNoteText(""); }} className="w-6 h-6 flex items-center justify-center rounded hover:bg-[#F3F4F6] text-[#6B7280]" aria-label="Close">
+                <span className="material-icons" style={{ fontSize: "18px" }}>close</span>
+              </button>
+            </div>
+            <div className="px-4">
+              <Label className="text-[14px] text-[#1A2332] mb-1 block" style={{ fontWeight: 500 }}>Note</Label>
+              <Textarea
+                autoFocus
+                defaultValue=""
+                onChange={(e) => setNewNoteText(e.target.value)}
+                placeholder="Add any relevant notes…"
+                className="border-[#E5E7EB] bg-white text-[14px] min-h-[96px]"
+              />
+            </div>
+            <div className="flex items-center justify-end gap-2 px-4 py-4 mt-2">
+              <Button variant="outline" onClick={() => { setAddingNote(false); setNewNoteText(""); }} className="border-[#E5E7EB] text-[#1A2332] hover:bg-[#F5F7FA] h-9 px-4 text-[14px] rounded-lg">Cancel</Button>
+              <Button
+                disabled={!newNoteText.trim()}
+                onClick={() => {
+                  const trimmed = newNoteText.trim();
+                  if (!trimmed) return;
+                  const today = new Date();
+                  const dateStr = `Added ${today.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
+                  const newId = Math.max(0, ...client.notesArray.map((n) => n.id)) + 1;
+                  clientsStore.updateClient(client.id, { notesArray: [{ id: newId, text: trimmed, date: dateStr }, ...client.notesArray] });
+                  setAddingNote(false);
+                  setNewNoteText("");
+                }}
+                className="bg-[#4A6FA5] hover:bg-[#3d5a85] text-white h-9 px-4 text-[14px] rounded-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#4A6FA5]"
+              >Save</Button>
             </div>
           </div>
         </div>

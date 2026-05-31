@@ -1,5 +1,5 @@
 import { useState, useSyncExternalStore } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import { ItemPicker, catalogItemToLineItem, type CatalogItem, type SelectedLineItem } from "../components/ItemPicker";
 import { jobTypesStore } from "../stores/jobTypesStore";
 import { PageHeader } from "../components/ui/page-header";
@@ -28,8 +28,12 @@ const mockClients = [
 
 export function CreateJob() {
   const navigate = useNavigate();
+  // When opened from a client's Jobs tab, the URL carries the client + a return path.
+  const [sp] = useSearchParams();
+  const returnTo = sp.get("returnTo");
+  const goBack = () => navigate(returnTo || "/jobs");
   const [title, setTitle] = useState("");
-  const [client, setClient] = useState("");
+  const [client, setClient] = useState(sp.get("client") ?? "");
   const [clientSearch, setClientSearch] = useState("");
   const [clientPickerOpen, setClientPickerOpen] = useState(false);
   const [jobNumber, setJobNumber] = useState("10245-J02");
@@ -96,7 +100,7 @@ export function CreateJob() {
   const fmt = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   const handleSave = () => {
-    navigate("/jobs");
+    goBack();
   };
 
   return (
@@ -105,12 +109,12 @@ export function CreateJob() {
 
       <div className="max-w-[1180px] mx-auto py-8 px-6">
         <button
-          onClick={() => navigate("/jobs")}
+          onClick={goBack}
           className="inline-flex items-center gap-1.5 text-[13px] text-[#4A6FA5] hover:text-[#3d5a85] transition-colors mb-6"
           style={{ fontWeight: 500 }}
         >
           <span className="material-icons" style={{ fontSize: "18px" }}>arrow_back</span>
-          <span>Back to Jobs</span>
+          <span>{returnTo ? "Back to client" : "Back to Jobs"}</span>
         </button>
         {/* Header */}
         <PageHeader title="Create Job" icon="work" className="mb-6" />
@@ -369,7 +373,7 @@ export function CreateJob() {
 
         {/* Actions */}
         <div className="flex items-center justify-end gap-3 pb-8">
-          <button onClick={() => navigate("/jobs")} className="px-6 py-2.5 text-sm text-[#546478] hover:text-[#1A2332]" style={{ fontWeight: 500 }}>
+          <button onClick={goBack} className="px-6 py-2.5 text-sm text-[#546478] hover:text-[#1A2332]" style={{ fontWeight: 500 }}>
             Cancel
           </button>
           <button
