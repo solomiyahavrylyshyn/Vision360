@@ -76,7 +76,11 @@
       "Bash(curl -s -o \"C:\\\\Users\\\\mykha\\\\Documents\\\\Vision360\\\\.tmp_clientmodal_figma.png\" \"https://www.figma.com/api/mcp/asset/cc1e5068-3450-4946-8b96-3d300d795d0a\")",
       "Bash(xargs grep -l \"useClientStore\\\\|clientStore\\\\|clientSlice\")",
       "Bash(curl -sL \"https://www.figma.com/api/mcp/asset/23cb5aef-a0cf-4d0f-ad4f-75205d52b1e5\" -o .tmp_logo_asset)",
-      "Read(//c/c/Users/mykha/Documents/Vision360/src/assets/**)"
+      "Read(//c/c/Users/mykha/Documents/Vision360/src/assets/**)",
+      "Bash(node .tmp_pgprobe.mjs)",
+      "Bash(curl -s http://localhost:4000/api/health)",
+      "Bash(curl -s -w \" [HTTP %{http_code}]\" http://localhost:4000/api/clients)",
+      "Bash(curl -s -w \" [HTTP %{http_code}]\" http://localhost:4000/api/widgets)"
     ]
   }
 }

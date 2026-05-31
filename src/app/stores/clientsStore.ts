@@ -17,6 +17,18 @@ export interface AdditionalContact {
   relationship: string;
 }
 
+export interface ServiceAddress {
+  id: string;
+  street: string;
+  unit: string;
+  city: string;
+  state: string;
+  zip: string;
+  county: string;
+  notes: string;
+  isPrimary: boolean;
+}
+
 export type ClientStatus = "Prospect" | "Active" | "Inactive";
 
 export interface ClientRecord {
@@ -89,6 +101,8 @@ export interface ClientRecord {
   notes: string;
   notesArray: NoteEntry[];
   additionalContacts: AdditionalContact[];
+  serviceAddresses: ServiceAddress[];
+  customFields: Record<string, string>;
   tags: string[];
 }
 
@@ -161,6 +175,20 @@ const mk = (s: ClientSeed): ClientRecord => {
     notes: "",
     notesArray: [],
     additionalContacts: [],
+    serviceAddresses: [
+      {
+        id: "1",
+        street: s.address,
+        unit: s.unit ?? "",
+        city: s.city,
+        state: s.state,
+        zip: s.zip,
+        county: s.county ?? "",
+        notes: s.gateCode ? `Gate code: ${s.gateCode}` : "",
+        isPrimary: true,
+      },
+    ],
+    customFields: {},
     tags: [],
   };
   return { ...base, ...s, customerId: s.customerId ?? s.id, phone: s.phone ?? s.mobilePhone };
@@ -229,11 +257,59 @@ let clients: ClientRecord[] = [
 let listeners: Listener[] = [];
 const notify = () => listeners.forEach((l) => l());
 
+/* ──────────────────────────────────────────────────────────────────────
+   Postgres-backed persistence (via the /api proxy → Express + pg server).
+   The store keeps a SYNCHRONOUS in-memory cache so the UI never blocks and
+   needs no loading states. On first mount it hydrates from the API; every
+   mutation writes through. If the API/DB is unavailable it silently falls
+   back to the seed data above, so the app keeps working without the DB.
+   ────────────────────────────────────────────────────────────────────── */
+const API = "/api/clients";
+let hydrated = false;
+
+async function hydrate() {
+  if (hydrated) return;
+  hydrated = true;
+  try {
+    const res = await fetch(API, { headers: { Accept: "application/json" } });
+    const ct = res.headers.get("content-type") || "";
+    if (!res.ok || !ct.includes("application/json")) return; // no server/proxy → keep seed
+    const rows = (await res.json()) as ClientRecord[];
+    if (Array.isArray(rows) && rows.length) {
+      clients = rows.map((r) => mk(r as unknown as ClientSeed));
+      notify();
+    }
+  } catch {
+    /* DB not running / not configured → keep seed */
+  }
+}
+
+function persistNew(record: ClientRecord) {
+  fetch(API, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(record),
+  }).catch(() => {
+    /* best-effort; record stays in the in-memory cache */
+  });
+}
+
+function persistPatch(id: string, patch: Partial<ClientRecord>) {
+  fetch(`${API}/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(patch),
+  }).catch(() => {
+    /* best-effort */
+  });
+}
+
 export const clientsStore = {
   getSnapshot: (): ClientRecord[] => clients,
   getClient: (id: string | undefined): ClientRecord | undefined => clients.find((c) => c.id === id),
   subscribe: (listener: Listener) => {
     listeners.push(listener);
+    hydrate(); // lazy: pull from Postgres the first time any view mounts
     return () => {
       listeners = listeners.filter((l) => l !== listener);
     };
@@ -241,10 +317,12 @@ export const clientsStore = {
   addClient: (record: ClientRecord) => {
     clients = [record, ...clients];
     notify();
+    persistNew(record);
   },
   updateClient: (id: string, patch: Partial<ClientRecord>) => {
     clients = clients.map((c) => (c.id === id ? { ...c, ...patch } : c));
     notify();
+    persistPatch(id, patch);
   },
   makeRecord: mk,
 };

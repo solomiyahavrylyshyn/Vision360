@@ -1,6 +1,11 @@
 /node_modules/
 /.claude/worktrees/
 
+# Environment files — DB credentials live here, never commit them.
+.env
+.env.local
+.env.*.local
+
 # Per-developer Claude launch config (paths differ Windows vs macOS).
 # A template is kept at .claude/launch.example.json — copy it locally.
 /.claude/launch.json

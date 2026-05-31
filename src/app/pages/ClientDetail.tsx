@@ -318,11 +318,8 @@ export function ClientDetail() {
     id: string; street: string; unit: string; city: string; state: string;
     zip: string; county: string; notes: string; isPrimary: boolean;
   }
-  const [serviceAddresses, setServiceAddresses] = useState<ServiceAddress[]>([
-    { id: "1", street: "2105 West Hills Avenue", unit: "Suite 201", city: "Tampa",       state: "FL", zip: "33606", county: "Hillsborough", notes: "Gate code: 2486",         isPrimary: true  },
-    { id: "2", street: "4820 Cypress Creek Blvd", unit: "",          city: "Tampa",       state: "FL", zip: "33613", county: "Hillsborough", notes: "Side entrance only",      isPrimary: false },
-    { id: "3", street: "910 Harbour Island Blvd", unit: "Apt 305",   city: "Tampa",       state: "FL", zip: "33602", county: "Hillsborough", notes: "",                        isPrimary: false },
-  ]);
+  // serviceAddresses now lives on the unified client record (per-client, persisted
+  // to Postgres). Derived from `client` below, once it's in scope.
   const [showAddAddress, setShowAddAddress] = useState(false);
   const [newAddr, setNewAddr] = useState({ street: "", unit: "", city: "", state: "", zip: "", county: "", notes: "" });
 
@@ -486,6 +483,9 @@ export function ClientDetail() {
   };
 
   /* ── work data ── */
+  // Per-client service addresses from the unified record (mutations persist via the store).
+  const serviceAddresses = client.serviceAddresses ?? [];
+
   const jobItems = [
     { id: 2, type: "job", title: "Job #1", subtitle: "AC Estimate", date: "Scheduled for Mar 30, 2026", amount: "$0.00" },
   ];
@@ -708,13 +708,41 @@ export function ClientDetail() {
               return (
                 <div className="space-y-3">
                   {configured.map((field, idx) => {
-                    const cfValue = (clientData as Record<string, string>)[`cf_${idx}`] ?? "";
+                    const key = String(idx);
+                    const cfValue = client.customFields?.[key] ?? "";
+                    const save = (v: string) =>
+                      clientsStore.updateClient(client.id, { customFields: { ...(client.customFields ?? {}), [key]: v } });
                     return (
                       <div key={idx}>
                         <div className="text-[12px] text-[#6B7280] mb-0.5">{field.label}</div>
-                        <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>
-                          {cfValue || <span className="text-[#9CA3AF]">—</span>}
-                        </div>
+                        {field.type === "dropdown" ? (
+                          <select
+                            value={cfValue}
+                            onChange={(e) => save(e.target.value)}
+                            className="w-full h-9 px-2 text-[13px] text-[#1A2332] border border-[#E5E7EB] rounded-md bg-white"
+                          >
+                            <option value="">—</option>
+                            {field.options.map((o) => <option key={o} value={o}>{o}</option>)}
+                          </select>
+                        ) : field.type === "checkbox" ? (
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={cfValue === "true"}
+                              onChange={(e) => save(e.target.checked ? "true" : "false")}
+                              className="w-4 h-4 accent-[#4A6FA5]"
+                            />
+                            <span className="text-[13px] text-[#1A2332]">{cfValue === "true" ? "Yes" : "No"}</span>
+                          </label>
+                        ) : (
+                          <input
+                            type={field.type === "number" ? "number" : field.type === "date" ? "date" : "text"}
+                            value={cfValue}
+                            onChange={(e) => save(e.target.value)}
+                            placeholder="—"
+                            className="w-full h-9 px-2 text-[13px] text-[#1A2332] border border-[#E5E7EB] rounded-md bg-white placeholder:text-[#9CA3AF]"
+                          />
+                        )}
                       </div>
                     );
                   })}
@@ -1279,14 +1307,14 @@ export function ClientDetail() {
                       <button
                         className="text-[11px] text-[#4A6FA5] hover:underline px-2 py-1 rounded hover:bg-[#EEF2F8]"
                         style={{ fontWeight: 500 }}
-                        onClick={() => setServiceAddresses(prev => prev.map(a => ({ ...a, isPrimary: a.id === addr.id })))}
+                        onClick={() => clientsStore.updateClient(client.id, { serviceAddresses: serviceAddresses.map(a => ({ ...a, isPrimary: a.id === addr.id })) })}
                       >
                         Set primary
                       </button>
                     )}
                     <button
                       className="w-7 h-7 flex items-center justify-center rounded hover:bg-[#FEF2F2] text-[#9CA3AF] hover:text-[#DC2626] transition-colors"
-                      onClick={() => setServiceAddresses(prev => prev.filter(a => a.id !== addr.id))}
+                      onClick={() => clientsStore.updateClient(client.id, { serviceAddresses: serviceAddresses.filter(a => a.id !== addr.id) })}
                     >
                       <span className="material-icons" style={{ fontSize: "16px" }}>delete_outline</span>
                     </button>
@@ -1322,11 +1350,12 @@ export function ClientDetail() {
                     className="bg-[#4A6FA5] hover:bg-[#3d5a85] text-white"
                     onClick={() => {
                       if (!newAddr.street.trim()) return;
-                      setServiceAddresses(prev => [...prev, {
-                        id: Math.random().toString(36).slice(2),
-                        ...newAddr,
-                        isPrimary: prev.length === 0,
-                      }]);
+                      clientsStore.updateClient(client.id, {
+                        serviceAddresses: [
+                          ...serviceAddresses,
+                          { id: Math.random().toString(36).slice(2), ...newAddr, isPrimary: serviceAddresses.length === 0 },
+                        ],
+                      });
                       setShowAddAddress(false);
                     }}
                   >
