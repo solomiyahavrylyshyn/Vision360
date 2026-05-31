@@ -12,6 +12,7 @@ import {
   SelectTrigger, SelectValue,
 } from "../components/ui/select";
 import { CreateActionButton } from "../components/ui/create-action-button";
+import { StatCard } from "../components/ui/stat-card";
 import { formatRegionalDate, regionalSettingsStore } from "../stores/regionalSettingsStore";
 
 interface Job {
@@ -353,12 +354,12 @@ export function Jobs() {
         onChange={(e) => { const f = e.target.files?.[0]; if (f) handleImportFile(f); e.target.value = ""; }}
       />
 
-      {/* ── Stats Cards — 4 cards: number + label + sparkline (Figma 495:41108) ── */}
+      {/* ── Stats Cards — shared StatCard so every list page is the same height ── */}
       <div className="mb-4 grid grid-cols-4 gap-4">
-        <JobStat value={String(statusCounts["Scheduled"])} label="Scheduled" data={[3, 4, 3, 5, 4, 6, 5]} color="#4A6FA5" />
-        <JobStat value={String(statusCounts["In Progress"])} label="In progress" data={[1, 2, 2, 3, 4, 3, 5]} color="#D97706" />
-        <JobStat value={String(statusCounts["Completed"])} label="Completed" data={[5, 6, 7, 8, 9, 10, 12]} color="#16A34A" />
-        <JobStat value={`$${revenue.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`} label="Revenue" data={[3, 4, 4, 5, 6, 6, 7]} color="#4A6FA5" />
+        <StatCard value={String(statusCounts["Scheduled"])}                                                                       label="Scheduled"   sub="current" data={[3, 4, 3, 5, 4, 6, 5]}    sparklineColor="#4A6FA5" />
+        <StatCard value={String(statusCounts["In Progress"])}                                                                     label="In progress" sub="current" data={[1, 2, 2, 3, 4, 3, 5]}    sparklineColor="#D97706" />
+        <StatCard value={String(statusCounts["Completed"])}                                                                       label="Completed"   sub="current" data={[5, 6, 7, 8, 9, 10, 12]}  sparklineColor="#16A34A" />
+        <StatCard value={`$${revenue.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}            label="Revenue"     sub="current" data={[3, 4, 4, 5, 6, 6, 7]}    sparklineColor="#4A6FA5" />
       </div>
 
       {/* ── Table ── */}

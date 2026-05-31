@@ -92,7 +92,7 @@ export function Dashboard() {
 
       {/* Quick Stat Cards */}
       <div className="mb-4 grid grid-cols-3 gap-3">
-        <Card className="flex min-h-[56px] min-w-0 items-center justify-between gap-3 rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 shadow-[0_1px_2px_rgba(0,0,0,0.05)]" title={`${inProgressCount} in progress`}>
+        <Card className="flex h-[80px] min-w-0 items-center justify-between gap-3 rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 shadow-[0_1px_2px_rgba(0,0,0,0.05)]" title={`${inProgressCount} in progress`}>
           <div className="flex items-center justify-between">
             <div className="flex min-w-0 flex-col justify-center">
               <div className="truncate text-[18px] leading-tight text-[#1A2332]" style={{ fontWeight: 700 }}>{jobCount}</div>
@@ -101,7 +101,7 @@ export function Dashboard() {
           </div>
         </Card>
 
-        <Card className="flex min-h-[56px] min-w-0 items-center justify-between gap-3 rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 shadow-[0_1px_2px_rgba(0,0,0,0.05)]" title="4 unpaid">
+        <Card className="flex h-[80px] min-w-0 items-center justify-between gap-3 rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 shadow-[0_1px_2px_rgba(0,0,0,0.05)]" title="4 unpaid">
           <div className="flex items-center justify-between">
             <div className="flex min-w-0 flex-col justify-center">
               <div className="truncate text-[18px] leading-tight text-[#1A2332]" style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>$3,480</div>
@@ -110,7 +110,7 @@ export function Dashboard() {
           </div>
         </Card>
 
-        <Card className="flex min-h-[56px] min-w-0 items-center justify-between gap-3 rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 shadow-[0_1px_2px_rgba(0,0,0,0.05)]" title="+12% vs last week">
+        <Card className="flex h-[80px] min-w-0 items-center justify-between gap-3 rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 shadow-[0_1px_2px_rgba(0,0,0,0.05)]" title="+12% vs last week">
           <div className="flex items-center justify-between">
             <div className="flex min-w-0 flex-col justify-center">
               <div className="truncate text-[18px] leading-tight text-[#1A2332]" style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>$6,240</div>

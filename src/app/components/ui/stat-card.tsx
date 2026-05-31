@@ -29,7 +29,7 @@ export function StatCard({
 
   return (
     <div
-      className="flex min-h-[56px] min-w-0 items-center justify-between gap-3 rounded-xl border border-[#E5E7EB] bg-white px-4 py-3"
+      className="flex h-[80px] min-w-0 items-center justify-between gap-3 rounded-xl border border-[#E5E7EB] bg-white px-4 py-3"
       style={{ boxShadow: "0px 1px 2px rgba(0,0,0,0.05)" }}
       aria-label={description}
       title={description}

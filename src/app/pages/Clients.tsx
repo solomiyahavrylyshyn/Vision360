@@ -348,7 +348,7 @@ export function Clients() {
             {summaryCards.map(card => (
               <div
                 key={card.label}
-                className="flex min-h-[56px] min-w-0 items-center justify-between gap-3 rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
+                className="flex h-[80px] min-w-0 items-center justify-between gap-3 rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
                 title={`${card.label}: ${card.value}. ${card.detail}`}
               >
                 <div className="flex min-w-0 flex-col justify-center">
@@ -371,7 +371,7 @@ export function Clients() {
 
             {/* What's New — QuickBooks integration tile */}
             <div
-              className="group relative flex min-h-[56px] min-w-0 items-center justify-between gap-3 overflow-hidden rounded-xl border border-[#E5E7EB] px-4 py-3"
+              className="group relative flex h-[80px] min-w-0 items-center justify-between gap-3 overflow-hidden rounded-xl border border-[#E5E7EB] px-4 py-3"
               style={{ background: "#1C2B3A", boxShadow: "0px 1px 2px rgba(0,0,0,0.05)" }}
             >
               {/* Blur glow ellipses */}
