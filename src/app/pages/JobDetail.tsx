@@ -636,61 +636,79 @@ export function JobDetail() {
     return (
       <ResizablePanelGroup direction="horizontal" className="min-h-[440px] items-stretch">
 
-        {/* ── Col 1: Job Overview + Job Date & Time (separate cards) ── */}
+        {/* ── Col 1: Job Overview + Job Date & Time (stacked cards) ── */}
         <ResizablePanel defaultSize={22} minSize={16} maxSize={32} className="min-w-0">
-          <div className="h-full bg-white border border-[#E5E7EB] rounded-lg p-4 flex flex-col gap-3.5">
-            <div className="flex items-center justify-between">
-              <span className="text-[16px] text-[#1A2332]" style={{ fontWeight: 600 }}>Job overview</span>
-              <button onClick={() => openEdit("overview")} className="h-9 w-9 rounded-lg border border-[#E5E7EB] text-[#546478] hover:bg-[#F5F7FA]">
-                <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
-              </button>
-            </div>
-            <div>
-              <div className="text-[13px] text-[#8899AA]">Job frequency</div>
-              <div className="text-[14px] text-[#1A2332] mt-0.5" style={{ fontWeight: 600 }}>{job.jobFrequency || "One-time"}</div>
-            </div>
-            <div>
-              <div className="text-[13px] text-[#8899AA]">Job title</div>
-              <div className="text-[14px] text-[#1A2332] mt-0.5" style={{ fontWeight: 600 }}>{job.title}</div>
-            </div>
-            <div>
-              <div className="text-[13px] text-[#8899AA]">Job Type</div>
-              <div className="text-[14px] text-[#1A2332] mt-0.5" style={{ fontWeight: 600 }}>{job.jobType}</div>
-            </div>
-            <div>
-              <div className="text-[13px] text-[#8899AA]">Assigned to</div>
-              <div className="text-[14px] text-[#1A2332] mt-0.5" style={{ fontWeight: 600 }}>{assignedTo || "Unassigned"}{assignedTo ? " - Technician" : ""}</div>
-            </div>
-            <div>
-              <div className="text-[13px] text-[#8899AA]">Service Address</div>
-              <div className="text-[14px] text-[#1A2332] leading-[20px] mt-0.5" style={{ fontWeight: 600 }}>
-                {job.address}<br />{job.city}, {job.state} {job.zip}
-                {job.gateCode && <><br /><span className="text-[#8899AA]" style={{ fontWeight: 500 }}>Gate code: {job.gateCode}</span></>}
+          <div className="h-full flex flex-col gap-4">
+            {/* Job overview card — mirrors the Contact Information card on ClientDetail */}
+            <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
+              <div className="flex items-center gap-2 px-5 py-3.5 border-b border-[#E5E7EB]">
+                <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>work_outline</span>
+                <span className="flex-1 text-[13px] font-semibold text-[#1A2332]">Job overview</span>
+                <button
+                  onClick={() => openEdit("overview")}
+                  className="w-7 h-7 flex items-center justify-center hover:bg-[#F5F7FA] rounded-md transition-colors"
+                  aria-label="Edit job overview"
+                >
+                  <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "16px" }}>edit</span>
+                </button>
+              </div>
+              <div className="p-5 space-y-4">
+                <div>
+                  <div className="text-[14px] text-[#6B7280] leading-[20px]">Job frequency</div>
+                  <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>{job.jobFrequency || "One-time"}</div>
+                </div>
+                <div>
+                  <div className="text-[14px] text-[#6B7280] leading-[20px]">Job title</div>
+                  <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>{job.title}</div>
+                </div>
+                <div>
+                  <div className="text-[14px] text-[#6B7280] leading-[20px]">Job Type</div>
+                  <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>{job.jobType}</div>
+                </div>
+                <div>
+                  <div className="text-[14px] text-[#6B7280] leading-[20px]">Assigned to</div>
+                  <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>{assignedTo || "Unassigned"}{assignedTo ? " - Technician" : ""}</div>
+                </div>
+                <div>
+                  <div className="text-[14px] text-[#6B7280] leading-[20px]">Service Address</div>
+                  <div className="text-[14px] text-[#1A2332] leading-[20px]" style={{ fontWeight: 500 }}>
+                    {job.address}<br />{job.city}, {job.state} {job.zip}
+                    {job.gateCode && <><br /><span className="text-[#6B7280]" style={{ fontWeight: 400 }}>Gate code: {job.gateCode}</span></>}
+                  </div>
+                </div>
               </div>
             </div>
-            <div className="h-px bg-[#E5E7EB]" />
-            <div className="flex items-center justify-between">
-              <span className="text-[16px] text-[#1A2332]" style={{ fontWeight: 600 }}>Job date & time</span>
-              <button onClick={() => openEdit("schedule")} className="h-9 w-9 rounded-lg border border-[#E5E7EB] text-[#546478] hover:bg-[#F5F7FA]">
-                <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
-              </button>
-            </div>
-            <div className="grid grid-cols-2 gap-x-6 gap-y-3">
-              <div>
-                <div className="text-[13px] text-[#8899AA]">Start Date</div>
-                <div className="text-[14px] text-[#1A2332] mt-0.5" style={{ fontWeight: 600 }}>{job.startedOn}</div>
+
+            {/* Job date & time card */}
+            <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
+              <div className="flex items-center gap-2 px-5 py-3.5 border-b border-[#E5E7EB]">
+                <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>event</span>
+                <span className="flex-1 text-[13px] font-semibold text-[#1A2332]">Job date & time</span>
+                <button
+                  onClick={() => openEdit("schedule")}
+                  className="w-7 h-7 flex items-center justify-center hover:bg-[#F5F7FA] rounded-md transition-colors"
+                  aria-label="Edit job schedule"
+                >
+                  <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "16px" }}>edit</span>
+                </button>
               </div>
-              <div>
-                <div className="text-[13px] text-[#8899AA]">End Date</div>
-                <div className="text-[14px] text-[#1A2332] mt-0.5" style={{ fontWeight: 600 }}>{job.endsOn}</div>
-              </div>
-              <div>
-                <div className="text-[13px] text-[#8899AA]">Start Time</div>
-                <div className="text-[14px] text-[#1A2332] mt-0.5" style={{ fontWeight: 600 }}>{job.startTime}</div>
-              </div>
-              <div>
-                <div className="text-[13px] text-[#8899AA]">End Time</div>
-                <div className="text-[14px] text-[#1A2332] mt-0.5" style={{ fontWeight: 600 }}>{job.endTime}</div>
+              <div className="p-5 grid grid-cols-2 gap-x-6 gap-y-4">
+                <div>
+                  <div className="text-[14px] text-[#6B7280] leading-[20px]">Start Date</div>
+                  <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>{job.startedOn}</div>
+                </div>
+                <div>
+                  <div className="text-[14px] text-[#6B7280] leading-[20px]">End Date</div>
+                  <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>{job.endsOn}</div>
+                </div>
+                <div>
+                  <div className="text-[14px] text-[#6B7280] leading-[20px]">Start Time</div>
+                  <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>{job.startTime}</div>
+                </div>
+                <div>
+                  <div className="text-[14px] text-[#6B7280] leading-[20px]">End Time</div>
+                  <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>{job.endTime}</div>
+                </div>
               </div>
             </div>
           </div>
