@@ -492,7 +492,7 @@ export function DocumentsGallery({
                 <div className="flex items-center justify-center gap-3 px-4 pt-3 pb-1">
                   <button
                     onClick={() => setPreviewIdx((i) => (i - 1 + sorted.length) % sorted.length)}
-                    className="h-9 w-9 rounded-full bg-[#1A2332] hover:bg-[#0f1620] text-white flex items-center justify-center transition-colors shadow-sm"
+                    className="h-9 w-9 rounded-full bg-[#4A6FA5] hover:bg-[#3d5a85] text-white flex items-center justify-center transition-colors shadow-sm"
                     title="Previous"
                     aria-label="Previous"
                   >
@@ -503,7 +503,7 @@ export function DocumentsGallery({
                   </span>
                   <button
                     onClick={() => setPreviewIdx((i) => (i + 1) % sorted.length)}
-                    className="h-9 w-9 rounded-full bg-[#1A2332] hover:bg-[#0f1620] text-white flex items-center justify-center transition-colors shadow-sm"
+                    className="h-9 w-9 rounded-full bg-[#4A6FA5] hover:bg-[#3d5a85] text-white flex items-center justify-center transition-colors shadow-sm"
                     title="Next"
                     aria-label="Next"
                   >

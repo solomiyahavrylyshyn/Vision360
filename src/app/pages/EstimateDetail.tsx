@@ -1,8 +1,11 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { getStoredBrandLogo, BRAND_LOGO_EVENT } from "../utils/brandTheme";
-import { useNavigate, useParams } from "react-router";
+import { useNavigate, useParams, useSearchParams } from "react-router";
 import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
 import { DetailTabs, TabSettingsButton } from "../components/ui/detail-tabs";
+import { Button } from "../components/ui/button";
+import { Textarea } from "../components/ui/textarea";
+import { Label } from "../components/ui/label";
 import { PlusIcon } from "../components/ui/plus-icon";
 import { DocumentPreview } from "../components/DocumentPreview";
 import { DocumentsGallery } from "../components/DocumentsGallery";
@@ -33,6 +36,13 @@ interface LineItem {
 
 interface MockPhoto { id: number; tag: "Before" | "After"; group: "A" | "B"; color: string; }
 
+interface NoteEntry {
+  id: number;
+  text: string;
+  date: string;
+  kind: "client" | "internal";
+}
+
 interface EstimateData {
   id: number; estimateNumber: string; estimateName: string;
   clientName: string; clientEmail: string; clientPhone: string;
@@ -40,6 +50,7 @@ interface EstimateData {
   dateCreated: string; expirationDate: string; sentDate: string;
   status: EstimateStatus; teamMember: string; job: string; jobId: number | null;
   items: LineItem[]; notes: string; internalNotes: string; taxRate: number;
+  notesList?: NoteEntry[];
   depositRequired: boolean; depositType: "amount" | "percentage"; depositValue: number;
   photos?: MockPhoto[];
   activity: { id: number; date: string; action: string; detail: string; icon: string }[];
@@ -213,6 +224,7 @@ function recordToEstimateData(r: EstimateRecord): EstimateData {
 export function EstimateDetail() {
   const navigate = useNavigate();
   const { id } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   // Resolve the estimate by id (1) from the persistent store first — that's
   // where user-created records live; (2) by estimateNumber as a fallback so
   // direct links like /estimates/10245-E03 also work; (3) from the seed
@@ -228,7 +240,14 @@ export function EstimateDetail() {
     return mockEstimates["1"];
   })();
   const [estimate, setEstimate] = useState<EstimateData>({ ...initial });
-  const [activeTab, setActiveTab] = useState<TabKey>("details");
+  const initialTabKey = (searchParams.get("tab") as TabKey) || "details";
+  const [activeTab, setActiveTabState] = useState<TabKey>(initialTabKey);
+  const setActiveTab = (key: TabKey) => {
+    setActiveTabState(key);
+    const next = new URLSearchParams(searchParams);
+    if (key === "details") next.delete("tab"); else next.set("tab", key);
+    setSearchParams(next, { replace: true });
+  };
   const [statusOpen, setStatusOpen] = useState(false);
   const [addItemOpen, setAddItemOpen] = useState(false);
   const [customerPreviewOpen, setCustomerPreviewOpen] = useState(false);
@@ -267,9 +286,27 @@ export function EstimateDetail() {
   // Lets the card header trigger DocumentsGallery's file picker without it
   // having to render its own Upload button (matches JobDetail).
   const docsUploadRef = useRef<(() => void) | null>(null);
-  // Notes editor — `+` in the notes header focuses the active textarea so the
-  // user can start typing immediately, mirroring the JobDetail notes pattern.
-  const noteTextareaRef = useRef<HTMLTextAreaElement>(null);
+  // Notes — modal-driven add, list-driven display (mirrors ClientDetail).
+  const [addingNote, setAddingNote] = useState(false);
+  const [newNoteText, setNewNoteText] = useState("");
+  const notesList: NoteEntry[] = estimate.notesList ?? [];
+  const activeNotes = notesList.filter((n) => n.kind === noteTab);
+  const addNote = () => {
+    const trimmed = newNoteText.trim();
+    if (!trimmed) return;
+    const newId = (notesList.length ? Math.max(...notesList.map((n) => n.id)) : 0) + 1;
+    const entry: NoteEntry = {
+      id: newId,
+      text: trimmed,
+      date: formatRegionalDate(new Date()),
+      kind: noteTab,
+    };
+    setEstimate(prev => ({ ...prev, notesList: [entry, ...(prev.notesList ?? [])] }));
+    setNewNoteText("");
+    setAddingNote(false);
+  };
+  const deleteNote = (id: number) =>
+    setEstimate(prev => ({ ...prev, notesList: (prev.notesList ?? []).filter((n) => n.id !== id) }));
   const toggleDocSelected = (docId: string) => setSelectedDocs(prev => { const n = new Set(prev); n.has(docId) ? n.delete(docId) : n.add(docId); return n; });
   const handleFilesAdded = (files: FileList | null) => {
     if (!files) return;
@@ -556,7 +593,7 @@ export function EstimateDetail() {
             ))}
             <button
               type="button"
-              onClick={() => noteTextareaRef.current?.focus()}
+              onClick={() => { setAddingNote(true); setNewNoteText(""); }}
               aria-label="Add note"
               title="Add note"
               className="ml-auto w-7 h-7 flex items-center justify-center rounded hover:bg-[#F5F7FA] transition-colors"
@@ -564,33 +601,28 @@ export function EstimateDetail() {
               <PlusIcon className="h-3.5 w-3.5 text-[#9CA3AF]" />
             </button>
           </div>
-          {noteTab === "client" ? (
-            <div className="p-4 flex flex-col gap-2.5">
-              <textarea
-                ref={noteTextareaRef}
-                value={estimate.notes}
-                onChange={(e) => setEstimate(prev => ({ ...prev, notes: e.target.value }))}
-                className="w-full text-[13px] text-[#374151] leading-relaxed resize-none border border-[#E5E7EB] rounded-md focus:outline-none focus:border-[#4A6FA5] p-2.5 min-h-[100px]"
-                placeholder="Add a note for the client…"
-              />
-              <p className="text-[11px] text-[#9CA3AF] mt-1">
-                Per-estimate notes only. Defaults like "Thank you" live in{" "}
-                <span className="text-[#4A6FA5] cursor-pointer hover:underline" onClick={() => navigate("/settings?section=estimates")}>Settings</span>.
-              </p>
+          {activeNotes.length === 0 ? (
+            <div className="py-8 text-center text-[12px] text-[#9CA3AF]">
+              No {noteTab === "client" ? "client" : "internal"} notes yet
             </div>
           ) : (
-            <div className="p-4 flex flex-col gap-2.5">
-              <textarea
-                ref={noteTextareaRef}
-                value={estimate.internalNotes}
-                onChange={(e) => setEstimate(prev => ({ ...prev, internalNotes: e.target.value }))}
-                className="w-full text-[13px] text-[#374151] leading-relaxed resize-none border border-[#E5E7EB] rounded-md focus:outline-none focus:border-[#4A6FA5] p-2.5 min-h-[100px]"
-                placeholder="Internal notes — e.g. 'Dog on right side'..."
-              />
-              <p className="text-[11px] text-[#9CA3AF]">
-                Manage defaults in{" "}
-                <span className="text-[#4A6FA5] cursor-pointer hover:underline" onClick={() => navigate("/settings?section=estimates")}>Settings → Estimate Preferences</span>
-              </p>
+            <div className="divide-y divide-[#F3F4F6]">
+              {activeNotes.map((note) => (
+                <div key={note.id} className="px-4 py-3 group flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[12px] text-[#8899AA] mb-1">Added {note.date}</div>
+                    <p className="text-[13px] text-[#1A2332] leading-[20px]" style={{ fontWeight: 500 }}>{note.text}</p>
+                  </div>
+                  <button
+                    onClick={() => deleteNote(note.id)}
+                    aria-label="Delete note"
+                    title="Delete"
+                    className="opacity-0 group-hover:opacity-100 w-7 h-7 flex items-center justify-center rounded hover:bg-[#FEE2E2] text-[#9CA3AF] hover:text-[#DC2626] transition-colors"
+                  >
+                    <span className="material-icons" style={{ fontSize: "16px" }}>delete_outline</span>
+                  </button>
+                </div>
+              ))}
             </div>
           )}
         </div>
@@ -604,6 +636,41 @@ export function EstimateDetail() {
         onRename={(id, newName) => setDocuments(prev => prev.map(d => d.id === id ? { ...d, name: newName } : d))}
         onDelete={(id) => setDocuments(prev => prev.filter(d => d.id !== id))}
       />
+
+      {/* ── Add-note modal (same as ClientDetail) ───────────────────────────── */}
+      {addingNote && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={() => { setAddingNote(false); setNewNoteText(""); }}>
+          <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" />
+          <div className="relative bg-white rounded-xl shadow-2xl w-[600px] max-w-[92vw] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-4 py-4">
+              <h2 className="text-[20px] text-[#1A2332]" style={{ fontWeight: 600, lineHeight: "1.35" }}>
+                Add {noteTab === "client" ? "note to client" : "internal note"}
+              </h2>
+              <button onClick={() => { setAddingNote(false); setNewNoteText(""); }} className="w-6 h-6 flex items-center justify-center rounded hover:bg-[#F3F4F6] text-[#6B7280]" aria-label="Close">
+                <span className="material-icons" style={{ fontSize: "18px" }}>close</span>
+              </button>
+            </div>
+            <div className="px-4">
+              <Label className="text-[14px] text-[#1A2332] mb-1 block" style={{ fontWeight: 500 }}>Note</Label>
+              <Textarea
+                autoFocus
+                value={newNoteText}
+                onChange={(e) => setNewNoteText(e.target.value)}
+                placeholder={noteTab === "client" ? "Add a note for the client…" : "Internal note — e.g. 'Dog on right side'…"}
+                className="border-[#E5E7EB] bg-white text-[14px] min-h-[96px]"
+              />
+            </div>
+            <div className="flex items-center justify-end gap-2 px-4 py-4 mt-2">
+              <Button variant="outline" onClick={() => { setAddingNote(false); setNewNoteText(""); }} className="border-[#E5E7EB] text-[#1A2332] hover:bg-[#F5F7FA] h-9 px-4 text-[14px] rounded-lg">Cancel</Button>
+              <Button
+                disabled={!newNoteText.trim()}
+                onClick={addNote}
+                className="bg-[#4A6FA5] hover:bg-[#3d5a85] text-white h-9 px-4 text-[14px] rounded-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#4A6FA5]"
+              >Save</Button>
+            </div>
+          </div>
+        </div>
+      )}
     </ResizablePanelGroup>
   );
 

@@ -295,15 +295,22 @@ function PaymentTable({ rows }: { rows: PaymentRow[] }) {
 export function ClientDetail() {
   const navigate = useNavigate();
   const { id: routeId } = useParams<{ id: string }>();
-  const [searchParams] = useSearchParams();
-  const [activeTab, setActiveTab] = useState<TabKey>(() => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeTab, setActiveTabRaw] = useState<TabKey>(() => {
     const t = searchParams.get("tab") as TabKey | null;
     return t && DEFAULT_TABS.some((d) => d.key === t) ? t : "details";
   });
-  // Restore the active tab when returning from a create page (?tab=jobs etc.)
+  // Keep ?tab= in sync so the URL is always shareable and the browser back
+  // button lands on the right tab after a create-page round-trip.
+  const setActiveTab = (key: TabKey) => {
+    setActiveTabRaw(key);
+    const next = new URLSearchParams(searchParams);
+    if (key === "details") next.delete("tab"); else next.set("tab", key);
+    setSearchParams(next, { replace: true });
+  };
   useEffect(() => {
     const t = searchParams.get("tab") as TabKey | null;
-    if (t && DEFAULT_TABS.some((d) => d.key === t)) setActiveTab(t);
+    if (t && DEFAULT_TABS.some((d) => d.key === t)) setActiveTabRaw(t);
   }, [searchParams]);
   const [tabs] = useState(DEFAULT_TABS);
   const [hiddenTabs, setHiddenTabs] = useState<Set<TabKey>>(new Set());

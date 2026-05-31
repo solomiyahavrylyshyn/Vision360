@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { useNavigate, useParams } from "react-router";
+import { useNavigate, useParams, useSearchParams } from "react-router";
 import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
 import {
   DropdownMenu,
@@ -413,9 +413,19 @@ function NoteColumn({ title, initialNotes }: { title: string; initialNotes: Note
 export function JobDetail() {
   const navigate = useNavigate();
   const { id } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const job = mockJobData[id || "1"] || mockJobData["1"];
 
-  const [activeTab, setActiveTab] = useState<TabKey>("details");
+  // Honor ?tab=<key> so deep-links and round-trip create flows land on the
+  // tab the user was on (e.g. JobDetail → Create Estimate → back).
+  const initialTab = (searchParams.get("tab") as TabKey) || "details";
+  const [activeTab, setActiveTabState] = useState<TabKey>(initialTab);
+  const setActiveTab = (key: TabKey) => {
+    setActiveTabState(key);
+    const next = new URLSearchParams(searchParams);
+    if (key === "details") next.delete("tab"); else next.set("tab", key);
+    setSearchParams(next, { replace: true });
+  };
   const [hiddenTabs, setHiddenTabs] = useState<Set<TabKey>>(new Set());
   const [showTabSettings, setShowTabSettings] = useState(false);
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
@@ -925,7 +935,7 @@ export function JobDetail() {
         <h3 className="text-[15px] text-[#1A2332]" style={{ fontWeight: 600 }}>Expenses</h3>
         <button
           type="button"
-          onClick={() => navigate(`/expenses/new?fromJob=${encodeURIComponent(job.jobNumber)}${job.linkedInvoice ? `&fromInvoice=${encodeURIComponent(job.linkedInvoice.id)}` : ""}&returnTo=${encodeURIComponent("/jobs/" + id)}`)}
+          onClick={() => navigate(`/expenses/new?fromJob=${encodeURIComponent(job.jobNumber)}${job.linkedInvoice ? `&fromInvoice=${encodeURIComponent(job.linkedInvoice.id)}` : ""}&returnTo=${encodeURIComponent("/jobs/" + id + "?tab=" + activeTab)}`)}
           aria-label="Add expense"
           title="Add expense"
           className="w-7 h-7 flex items-center justify-center rounded-md text-[#9CA3AF] hover:text-[#4A6FA5] hover:bg-[#F5F7FA] transition-colors"
@@ -1427,14 +1437,14 @@ export function JobDetail() {
               <DropdownMenuContent align="end" className="w-[180px] p-1">
                 <DropdownMenuItem
                   className="h-9 px-3 text-[13px] text-[#374151] flex items-center gap-2.5 cursor-pointer"
-                  onClick={() => navigate(`/estimates/new?client=${encodeURIComponent(job.client)}&returnTo=${encodeURIComponent("/jobs/" + id)}`)}
+                  onClick={() => navigate(`/estimates/new?client=${encodeURIComponent(job.client)}&returnTo=${encodeURIComponent("/jobs/" + id + "?tab=" + activeTab)}`)}
                 >
                   <span className="material-icons text-[#6B7280]" style={{ fontSize: "16px" }}>request_quote</span>
                   Create Estimate
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   className="h-9 px-3 text-[13px] text-[#374151] flex items-center gap-2.5 cursor-pointer"
-                  onClick={() => navigate(`/invoices/new?client=${encodeURIComponent(job.client)}&returnTo=${encodeURIComponent("/jobs/" + id)}`)}
+                  onClick={() => navigate(`/invoices/new?client=${encodeURIComponent(job.client)}&returnTo=${encodeURIComponent("/jobs/" + id + "?tab=" + activeTab)}`)}
                 >
                   <span className="material-icons text-[#6B7280]" style={{ fontSize: "16px" }}>receipt</span>
                   Create Invoice

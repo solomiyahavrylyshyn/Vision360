@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
@@ -189,6 +189,8 @@ const STATE_NAMES: Record<string, string> = {
 
 export function CreateClient() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const returnTo = searchParams.get("returnTo");
   const [formData, setFormData] =
     useState<ClientFormData>(initialFormData);
   const counties = useSyncExternalStore(
@@ -286,7 +288,7 @@ export function CreateClient() {
     }
     const newClientId = persistClient();
     toast.success("Client created");
-    navigate(`/clients/${newClientId}`);
+    navigate(returnTo || `/clients/${newClientId}`);
   };
 
   const handleSaveAndCreateAnother = () => {
@@ -308,7 +310,7 @@ export function CreateClient() {
   };
 
   const handleCancel = () => {
-    navigate("/clients");
+    navigate(returnTo || "/clients");
   };
 
   const addAdditionalContact = () => {
