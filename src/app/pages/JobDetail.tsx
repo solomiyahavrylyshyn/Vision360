@@ -432,8 +432,6 @@ export function JobDetail() {
   const [notesAdding,    setNotesAdding]    = useState(false);
   const [notesNewText,   setNotesNewText]   = useState("");
   const [notesExpanded,  setNotesExpanded]  = useState(false);
-  const [mediaPreviewIdx, setMediaPreviewIdx] = useState(0);
-  const [mediaTab,       setMediaTab]       = useState<"media" | "files">("media");
 
   // Documents state
   const [documents, setDocuments] = useState<DocFile[]>(INITIAL_DOCS);
