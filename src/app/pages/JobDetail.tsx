@@ -774,86 +774,23 @@ export function JobDetail() {
         <ResizablePanel defaultSize={47} minSize={30} className="min-w-0">
         <div className="h-full bg-white border border-[#E5E7EB] rounded-lg overflow-hidden flex flex-col">
           {/* Header */}
-          <div className="flex items-center border-b border-[#E5E7EB] px-4 py-2.5 gap-3 shrink-0">
-            <span className="sr-only">Attachments</span>
-            <div className="flex items-center gap-1 ml-1">
-              {(["media", "files"] as const).map(t => (
-                <button
-                  key={t}
-                  onClick={() => setMediaTab(t)}
-                  className={`relative px-2 py-1 text-[13px] transition-colors capitalize ${
-                    mediaTab === t ? "text-[#4A6FA5]" : "text-[#6B7280] hover:text-[#1A2332]"
-                  }`}
-                  style={{ fontWeight: mediaTab === t ? 500 : 400 }}
-                >
-                  {t === "media" ? `Media (${MOCK_PHOTOS.length})` : `Files (${documents.filter(d => !d.isImage).length})`}
-                  {mediaTab === t && <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#4A6FA5] rounded-full" />}
-                </button>
-              ))}
-            </div>
+          <div className="flex items-center justify-between border-b border-[#E5E7EB] px-4 py-2.5 shrink-0">
+            <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>
+              Documents <span className="text-[#9CA3AF]" style={{ fontWeight: 400 }}>({attachments.length})</span>
+            </span>
+            <button
+              onClick={() => setMediaCollapsed(c => !c)}
+              aria-label={mediaCollapsed ? "Expand documents" : "Collapse documents"}
+              className="w-7 h-7 flex items-center justify-center rounded-md text-[#9CA3AF] hover:text-[#4A6FA5] hover:bg-[#F5F7FA] transition-colors"
+            >
+              <span className="material-icons" style={{ fontSize: "20px" }}>{mediaCollapsed ? "expand_more" : "expand_less"}</span>
+            </button>
           </div>
 
-          {/* Media tab */}
-          {mediaTab === "media" && (
-            <div className="flex flex-1 min-h-[420px]">
-              {/* Thumbnail grid (2 cols) */}
-              <div className="w-[132px] sm:w-[148px] shrink-0 p-2 border-r border-[#F3F4F6] grid grid-cols-2 gap-1.5 content-start overflow-y-auto">
-                {MOCK_PHOTOS.map((photo, idx) => (
-                  <button
-                    key={photo.id}
-                    onClick={() => setMediaPreviewIdx(idx)}
-                    className={`aspect-square rounded overflow-hidden border-2 transition-all ${
-                      idx === mediaPreviewIdx ? "border-[#4A6FA5]" : "border-transparent hover:border-[#C5D5EC]"
-                    }`}
-                  >
-                    <img src={photo.previewUrl} alt="" className="h-full w-full object-cover" />
-                  </button>
-                ))}
-              </div>
-
-              {/* Large preview */}
-              <div className="flex-1 min-w-0 relative flex items-center justify-center p-4 bg-[#FAFBFC]">
-                <button
-                  onClick={() => setMediaPreviewIdx(i => (i - 1 + MOCK_PHOTOS.length) % MOCK_PHOTOS.length)}
-                  className="absolute left-2 top-1/2 -translate-y-1/2 z-10 w-7 h-7 rounded-full bg-white border border-[#E5E7EB] shadow flex items-center justify-center hover:bg-[#F5F7FA]"
-                >
-                  <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>chevron_left</span>
-                </button>
-                <div className="w-full max-w-[620px] aspect-[4/3] rounded-lg overflow-hidden relative bg-white shadow-sm">
-                  <img src={MOCK_PHOTOS[mediaPreviewIdx]?.previewUrl} alt="" className="h-full w-full object-cover" />
-                  {MOCK_PHOTOS[mediaPreviewIdx]?.tag && (
-                    <span className="absolute left-2 bottom-2 px-2 py-0.5 rounded text-[10px] text-white bg-[#16A34A]" style={{ fontWeight: 600 }}>
-                      {MOCK_PHOTOS[mediaPreviewIdx].tag}
-                    </span>
-                  )}
-                  <span className="absolute right-2 bottom-2 px-2 py-0.5 rounded text-[10px] text-white bg-black/60" style={{ fontWeight: 500 }}>
-                    {mediaPreviewIdx + 1}/{MOCK_PHOTOS.length}
-                  </span>
-                  <button
-                    onClick={() => setMediaPreviewIdx(i => (i + 1) % MOCK_PHOTOS.length)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 z-10 w-7 h-7 rounded-full bg-white border border-[#E5E7EB] shadow flex items-center justify-center hover:bg-[#F5F7FA]"
-                  >
-                    <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>chevron_right</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Files tab */}
-          {mediaTab === "files" && (
-            <div className="divide-y divide-[#F3F4F6] flex-1 overflow-y-auto min-h-[420px]">
-              {documents.filter(d => !d.isImage).length === 0 ? (
-                <div className="py-8 text-center text-[13px] text-[#9CA3AF]">No files yet</div>
-              ) : documents.filter(d => !d.isImage).map(f => (
-                <div key={f.id} className="flex items-center gap-3 px-4 py-2.5 hover:bg-[#F9FBFD]">
-                  <span className="material-icons" style={{ fontSize: "20px", color: f.iconColor }}>{f.icon}</span>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[13px] text-[#1A2332] truncate" style={{ fontWeight: 500 }}>{f.name}</div>
-                    <div className="text-[11px] text-[#9CA3AF]">{f.size} · {f.date}</div>
-                  </div>
-                </div>
-              ))}
+          {/* Documents gallery — reuses the client Documents tab experience */}
+          {!mediaCollapsed && (
+            <div className="flex-1 overflow-y-auto min-h-[420px]">
+              <DocumentsGallery documents={attachments} onChange={setAttachments} />
             </div>
           )}
         </div>
