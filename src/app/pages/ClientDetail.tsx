@@ -30,6 +30,7 @@ import { DetailTabs, TabSettingsButton } from "../components/ui/detail-tabs";
 import { toast } from "sonner";
 import { formatRegionalDate } from "../stores/regionalSettingsStore";
 import { clientsStore } from "../stores/clientsStore";
+import { estimatesStore } from "../stores/estimatesStore";
 import { tagsStore } from "../stores/tagsStore";
 import { customFieldsStore } from "../stores/customFieldsStore";
 import { relationshipsStore } from "../stores/relationshipsStore";
@@ -573,9 +574,26 @@ export function ClientDetail() {
     date: i < client.openJobs ? "Scheduled for Mar 30, 2026" : "Completed Mar 15, 2026",
     amount: "$0.00",
   }));
-  const estimateItems = hasEstimates
-    ? [{ id: 3, type: "estimate", title: "Estimate #1", subtitle: "AC Unit Replacement", date: "Created Mar 28, 2026", amount: "$2,450.00" }]
-    : [];
+  // Live estimates for this client from the persistent estimatesStore so newly
+  // created estimates land here immediately. We fall back to a single demo row
+  // for legacy clients that have a non-zero `estimatesTotal` but no store entry.
+  const allEstimates = useSyncExternalStore(estimatesStore.subscribe, estimatesStore.getSnapshot);
+  const liveClientEstimates = allEstimates
+    .filter((e) => e.clientName === client.name)
+    .map((e) => ({
+      id: e.id,
+      type: "estimate",
+      title: `Estimate ${e.estimateNumber}`,
+      subtitle: e.estimateName || e.jobTitle || "—",
+      date: e.createdDate ? `Created ${e.createdDate}` : "",
+      amount: `$${e.amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      _estimateId: e.id,
+    }));
+  const estimateItems = liveClientEstimates.length > 0
+    ? liveClientEstimates
+    : hasEstimates
+      ? [{ id: 3, type: "estimate", title: "Estimate #1", subtitle: "AC Unit Replacement", date: "Created Mar 28, 2026", amount: "$2,450.00" }]
+      : [];
   const clientInvoiceRows = hasBilling ? invoiceRows : [];
   const clientPaymentRows = hasBilling ? paymentRows : [];
 

@@ -1,4 +1,6 @@
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo, useRef, useEffect, useSyncExternalStore } from "react";
+import { estimatesStore } from "../stores/estimatesStore";
+import { clientsStore } from "../stores/clientsStore";
 import { useNavigate } from "react-router";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
@@ -206,7 +208,9 @@ function InlineStatusSelect({ status, onChange }: { status: EstimateStatus; onCh
 export function Estimates() {
   const navigate = useNavigate();
   const [cols, moveCol] = useDraggableColumns([...ESTIMATES_COLS]);
-  const [estimates, setEstimates] = useState<Estimate[]>(initialEstimates);
+  // Estimates are sourced from the persistent estimatesStore so newly created
+  // drafts survive a refresh and show up everywhere they're referenced.
+  const estimates = useSyncExternalStore(estimatesStore.subscribe, estimatesStore.getSnapshot) as Estimate[];
 
   // Quick filters
   const [qfStatus, setQfStatus] = useState<"All" | EstimateStatus>("All");
@@ -329,16 +333,27 @@ export function Estimates() {
   const allSelected = paginated.length > 0 && paginated.every(e => selectedIds.has(e.id));
 
   const handleStatusChange = (id: number, newStatus: EstimateStatus) => {
-    setEstimates(prev => prev.map(e => e.id === id ? { ...e, status: newStatus, updatedDate: "Apr 06, 2026" } : e));
+    estimatesStore.update(id, { status: newStatus, updatedDate: "Apr 06, 2026" });
   };
 
   const handleBulkDelete = () => {
-    setEstimates(prev => prev.filter(e => !selectedIds.has(e.id)));
+    estimatesStore.removeMany(selectedIds);
     setSelectedIds(new Set());
     setDeleteConfirm(null);
   };
 
-  const filteredClients = mockClients.filter(c =>
+  // Source the client picker from the live clientsStore so freshly created
+  // clients show up immediately (DEF-M01-02). mockClients is kept only as a
+  // type-shape reference for the table below.
+  const liveClients = useSyncExternalStore(clientsStore.subscribe, clientsStore.getSnapshot);
+  const pickerClients: Client[] = liveClients.map((c, idx) => ({
+    id: Number(c.id) || idx + 1,
+    name: c.name,
+    email: c.email,
+    phone: c.mobilePhone || c.phone || "",
+    address: [c.address, c.city, c.state, c.zip].filter(Boolean).join(", "),
+  }));
+  const filteredClients = pickerClients.filter(c =>
     !clientSearch || c.name.toLowerCase().includes(clientSearch.toLowerCase()) || c.email.toLowerCase().includes(clientSearch.toLowerCase()) || c.phone.includes(clientSearch)
   );
 

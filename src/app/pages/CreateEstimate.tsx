@@ -2,6 +2,8 @@ import { useState, useSyncExternalStore } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { toast } from "sonner";
 import { clientsStore } from "../stores/clientsStore";
+import { estimatesStore, type EstimateStatus } from "../stores/estimatesStore";
+import { formatRegionalDate } from "../stores/regionalSettingsStore";
 import { ItemPicker, catalogItemToLineItem, type CatalogItem, type SelectedLineItem } from "../components/ItemPicker";
 import { PageHeader } from "../components/ui/page-header";
 import { PlusIcon } from "../components/ui/plus-icon";
@@ -33,9 +35,12 @@ export function CreateEstimate() {
   const returnTo = searchParams.get("returnTo");
 
   const [client, setClient] = useState(searchParams.get("client") || "");
-  // Real client names from the shared store so the pre-selected client matches an option.
-  const clientNames = useSyncExternalStore(clientsStore.subscribe, clientsStore.getSnapshot).map((c) => c.name);
+  // Real client list from the shared store so the pre-selected client matches an option.
+  const liveClients = useSyncExternalStore(clientsStore.subscribe, clientsStore.getSnapshot);
+  const clientNames = liveClients.map((c) => c.name);
   const clientOptions = client && !clientNames.includes(client) ? [client, ...clientNames] : clientNames;
+  // Resolve the selected client's email so the saved estimate can carry it.
+  const selectedClientEmail = liveClients.find((c) => c.name === client)?.email ?? "";
   const [serviceAddress, setServiceAddress] = useState("");
   const [estimateName, setEstimateName] = useState("");
   const [estimateNumber] = useState("10245-E03");
@@ -73,17 +78,43 @@ export function CreateEstimate() {
   const subtotal = lineItems.reduce((sum, li) => sum + li.total, 0);
   const taxableAmount = lineItems.filter(li => li.taxable).reduce((sum, li) => sum + li.total, 0);
 
-  // Save handlers with validation + feedback (was a silent redirect with no checks).
+  // Total used in the persisted record (kept above the save handlers so they
+  // can grab it without depending on declaration order below).
+  const persistEstimate = (status: EstimateStatus, successMessage: string) => {
+    const todayLabel = formatRegionalDate(new Date());
+    const computedSubtotal = lineItems.reduce((sum, li) => sum + li.total, 0);
+    const computedTaxable = lineItems.filter((li) => li.taxable).reduce((sum, li) => sum + li.total, 0);
+    const computedTotal = computedSubtotal + computedTaxable * (taxRate / 100);
+    estimatesStore.add({
+      estimateNumber,
+      estimateName,
+      clientName: client.trim(),
+      clientEmail: selectedClientEmail,
+      createdDate: todayLabel,
+      addedBy: createdBy,
+      amount: Math.round(computedTotal * 100) / 100,
+      status,
+      job: linkedJob,
+      jobTitle: linkedJob,
+      sentDate: status === "Sent" ? todayLabel : "",
+      expirationDate: expirationDate ? formatRegionalDate(new Date(expirationDate + "T12:00:00")) : "",
+      teamMember: teamMember || createdBy,
+      source: linkedJob || "Manual",
+      depositDue: 0,
+    });
+    toast.success(successMessage);
+    navigate(returnTo || "/estimates");
+  };
+
   const handleSaveEstimate = () => {
     if (!client.trim()) { toast.error("Select a client before saving the estimate."); return; }
     if (lineItems.length === 0) { toast.error("Add at least one line item before saving."); return; }
-    toast.success("Estimate created");
-    navigate(returnTo || "/estimates");
+    persistEstimate("Sent", "Estimate created");
   };
   const handleSaveDraft = () => {
     if (!client.trim() && lineItems.length === 0) { toast.error("Add a client or a line item before saving a draft."); return; }
-    toast.success("Draft saved");
-    navigate(returnTo || "/estimates");
+    if (!client.trim()) { toast.error("Select a client before saving the draft."); return; }
+    persistEstimate("Draft", "Draft saved");
   };
   const taxAmount = taxableAmount * (taxRate / 100);
   const total = subtotal + taxAmount;
