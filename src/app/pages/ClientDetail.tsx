@@ -333,7 +333,7 @@ export function ClientDetail() {
   // Edit address / Edit address notes modals (Figma 489:35769 / 489:36354)
   const [editAddressId, setEditAddressId] = useState<string | null>(null); // null = editing the main service address
   const [editAddressOpen, setEditAddressOpen] = useState(false);
-  const [addressForm, setAddressForm] = useState({ street: "", unit: "", city: "", state: "", zip: "", county: "", country: "United States" });
+  const [addressForm, setAddressForm] = useState({ street: "", unit: "", city: "", state: "", zip: "", county: "", country: "United States", notes: "" });
   const [editNotesOpen, setEditNotesOpen] = useState(false);
   const [notesDraft, setNotesDraft] = useState("");
   // Reusable delete confirmation (Figma 489:34912)
@@ -684,7 +684,7 @@ export function ClientDetail() {
           <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>location_on</span>
           <span className="flex-1 text-[13px] font-semibold text-[#1A2332]">Addresses</span>
           <button
-            onClick={() => { setEditAddressId(null); setAddressForm({ street: client.address, unit: client.unit, city: client.city, state: client.state, zip: client.zip, county: client.county, country: client.country || "United States" }); setEditAddressOpen(true); }}
+            onClick={() => { setEditAddressId(null); setAddressForm({ street: client.address, unit: client.unit, city: client.city, state: client.state, zip: client.zip, county: client.county, country: client.country || "United States", notes: client.gateCode }); setEditAddressOpen(true); }}
             className="w-7 h-7 flex items-center justify-center hover:bg-[#F5F7FA] rounded-md transition-colors"
             aria-label="Edit address"
           >
@@ -1320,100 +1320,47 @@ export function ClientDetail() {
 
       case "addresses":
         return (
-          <div className="space-y-4">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-1">
-              <h3 className="text-[15px] text-[#1A2332]" style={{ fontWeight: 600 }}>Service Addresses</h3>
-              <TabActionButton onClick={() => { setShowAddAddress(true); setNewAddr({ street: "", unit: "", city: "", state: "", zip: "", county: "", notes: "" }); }}>Add address</TabActionButton>
+          <div className="space-y-3">
+            {/* Header — Figma 112:12940 */}
+            <div className="flex items-center justify-between">
+              <h3 className="text-[16px] text-[#1A2332]" style={{ fontWeight: 600 }}>Service address</h3>
+              <button
+                onClick={() => { setEditAddressId("__new__"); setAddressForm({ street: "", unit: "", city: client.city, state: client.state, zip: "", county: client.county, country: client.country || "United States", notes: "" }); setEditAddressOpen(true); }}
+                className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg bg-[#4A6FA5] hover:bg-[#3d5a85] text-white text-[14px]"
+                style={{ fontWeight: 500 }}
+              >
+                <span className="material-icons" style={{ fontSize: "16px" }}>add_location_alt</span>
+                Create address
+              </button>
             </div>
 
-            {/* Address cards */}
-            <div className="space-y-3">
-              {serviceAddresses.map((addr) => (
-                <div key={addr.id} className="bg-white border border-[#E5E7EB] rounded-lg p-5 flex items-start gap-3 hover:bg-[#F9FAFB] transition-colors group">
-                  <span className="material-icons text-[#4A6FA5] mt-0.5 shrink-0" style={{ fontSize: "20px" }}>location_on</span>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>
-                        {addr.street}{addr.unit ? `, ${addr.unit}` : ""}
-                      </div>
+            {/* Address list — borderless rows, separated by bottom borders */}
+            <div className="flex flex-col gap-4 pt-3">
+              {serviceAddresses.map((addr, i) => (
+                <div key={addr.id} className={`flex items-start justify-between gap-3 ${i < serviceAddresses.length - 1 ? "border-b border-[#E5E7EB] pb-4" : ""}`}>
+                  <div className="flex flex-col gap-2 min-w-0">
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>{addr.street}{addr.unit ? `, ${addr.unit}` : ""}</span>
                       {addr.isPrimary && (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded bg-[#D1FAE5] text-[#16A34A] text-[11px]" style={{ fontWeight: 500 }}>Primary</span>
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-lg bg-[rgba(22,163,74,0.15)] text-[#16A34A] text-[12px]" style={{ fontWeight: 500 }}>Primary</span>
                       )}
                     </div>
-                    <div className="text-[13px] text-[#6B7280]">{addr.city}, {addr.state} {addr.zip}</div>
-                    {addr.county && <div className="text-[12px] text-[#9CA3AF] mt-0.5">{addr.county} County</div>}
-                    {addr.notes && <div className="text-[12px] text-[#6B7280] mt-1 italic">{addr.notes}</div>}
+                    <div className="flex items-center gap-2 text-[14px] flex-wrap">
+                      <span className="text-[#1A2332]" style={{ fontWeight: 500 }}>{addr.city}, {addr.state}, {addr.zip}</span>
+                      {addr.county && <span className="text-[#6B7280]">{addr.county} County</span>}
+                    </div>
+                    <div className="text-[14px] text-[#6B7280]">{addr.notes || "No notes added"}</div>
                   </div>
-                  <div className="flex items-center gap-1 shrink-0">
+                  <KebabMenuShared>
                     {!addr.isPrimary && (
-                      <button
-                        className="text-[11px] text-[#4A6FA5] hover:underline px-2 py-1 rounded hover:bg-[#EEF2F8]"
-                        style={{ fontWeight: 500 }}
-                        onClick={() => clientsStore.updateClient(client.id, { serviceAddresses: serviceAddresses.map(a => ({ ...a, isPrimary: a.id === addr.id })) })}
-                      >
-                        Set primary
-                      </button>
+                      <KebabItem icon="push_pin" onSelect={() => clientsStore.updateClient(client.id, { serviceAddresses: serviceAddresses.map(a => ({ ...a, isPrimary: a.id === addr.id })) })}>Set primary</KebabItem>
                     )}
-                    <button
-                      className="w-7 h-7 flex items-center justify-center rounded hover:bg-[#EEF2F8] text-[#9CA3AF] hover:text-[#4A6FA5] transition-colors"
-                      aria-label="Edit address"
-                      onClick={() => { setEditAddressId(addr.id); setAddressForm({ street: addr.street, unit: addr.unit, city: addr.city, state: addr.state, zip: addr.zip, county: addr.county, country: "United States" }); setEditAddressOpen(true); }}
-                    >
-                      <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
-                    </button>
-                    <button
-                      className="w-7 h-7 flex items-center justify-center rounded hover:bg-[#FEF2F2] text-[#9CA3AF] hover:text-[#DC2626] transition-colors"
-                      onClick={() => setPendingDelete(() => () => clientsStore.updateClient(client.id, { serviceAddresses: serviceAddresses.filter(a => a.id !== addr.id) }))}
-                    >
-                      <span className="material-icons" style={{ fontSize: "16px" }}>delete_outline</span>
-                    </button>
-                  </div>
+                    <KebabItem icon="edit" onSelect={() => { setEditAddressId(addr.id); setAddressForm({ street: addr.street, unit: addr.unit, city: addr.city, state: addr.state, zip: addr.zip, county: addr.county, country: "United States", notes: addr.notes }); setEditAddressOpen(true); }}>Edit</KebabItem>
+                    <KebabItem icon="delete_outline" destructive onSelect={() => setPendingDelete(() => () => clientsStore.updateClient(client.id, { serviceAddresses: serviceAddresses.filter(a => a.id !== addr.id) }))}>Delete</KebabItem>
+                  </KebabMenuShared>
                 </div>
               ))}
             </div>
-
-            {/* Add address form */}
-            {showAddAddress && (
-              <div className="bg-white border border-[#4A6FA5] rounded-lg p-6 space-y-4">
-                <div className="flex items-center justify-between mb-1">
-                  <h4 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>New Service Address</h4>
-                  <button onClick={() => setShowAddAddress(false)} className="text-[#9CA3AF] hover:text-[#374151]">
-                    <span className="material-icons" style={{ fontSize: "18px" }}>close</span>
-                  </button>
-                </div>
-                <div className="flex gap-3">
-                  <Input placeholder="Street address" value={newAddr.street} onChange={(e) => setNewAddr(p => ({ ...p, street: e.target.value }))} className="border-[#E5E7EB] bg-white h-10 text-[14px] flex-1" />
-                  <Input placeholder="Unit" value={newAddr.unit} onChange={(e) => setNewAddr(p => ({ ...p, unit: e.target.value }))} className="border-[#E5E7EB] bg-white h-10 text-[14px] w-[100px]" />
-                </div>
-                <div className="grid grid-cols-3 gap-3">
-                  <Input placeholder="City" value={newAddr.city} onChange={(e) => setNewAddr(p => ({ ...p, city: e.target.value }))} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
-                  <Input placeholder="State" value={newAddr.state} onChange={(e) => setNewAddr(p => ({ ...p, state: e.target.value }))} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
-                  <Input placeholder="ZIP" value={newAddr.zip} onChange={(e) => setNewAddr(p => ({ ...p, zip: e.target.value }))} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
-                </div>
-                <Input placeholder="County" value={newAddr.county} onChange={(e) => setNewAddr(p => ({ ...p, county: e.target.value }))} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
-                <Input placeholder="Notes (gate code, access instructions…)" value={newAddr.notes} onChange={(e) => setNewAddr(p => ({ ...p, notes: e.target.value }))} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
-                <div className="flex justify-end gap-2 pt-1">
-                  <Button variant="outline" size="sm" className="border-[#E5E7EB] text-[#546478]" onClick={() => setShowAddAddress(false)}>Cancel</Button>
-                  <Button
-                    size="sm"
-                    className="bg-[#4A6FA5] hover:bg-[#3d5a85] text-white"
-                    onClick={() => {
-                      if (!newAddr.street.trim()) return;
-                      clientsStore.updateClient(client.id, {
-                        serviceAddresses: [
-                          ...serviceAddresses,
-                          { id: Math.random().toString(36).slice(2), ...newAddr, isPrimary: serviceAddresses.length === 0 },
-                        ],
-                      });
-                      setShowAddAddress(false);
-                    }}
-                  >
-                    Save Address
-                  </Button>
-                </div>
-              </div>
-            )}
           </div>
         );
 
@@ -2317,7 +2264,7 @@ export function ClientDetail() {
           <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" />
           <div className="relative bg-white rounded-xl shadow-2xl w-[600px] max-w-[92vw] overflow-hidden" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-4 py-4">
-              <h2 className="text-[20px] text-[#1A2332]" style={{ fontWeight: 600, lineHeight: "1.35" }}>Edit address</h2>
+              <h2 className="text-[20px] text-[#1A2332]" style={{ fontWeight: 600, lineHeight: "1.35" }}>{editAddressId === "__new__" ? "Create address" : "Edit address"}</h2>
               <button onClick={() => setEditAddressOpen(false)} className="w-6 h-6 flex items-center justify-center rounded hover:bg-[#F3F4F6] text-[#6B7280]" aria-label="Close">
                 <span className="material-icons" style={{ fontSize: "18px" }}>close</span>
               </button>
@@ -2360,6 +2307,10 @@ export function ClientDetail() {
                   <Input value={addressForm.zip} onChange={(e) => setAddressForm((p) => ({ ...p, zip: e.target.value }))} className="border-[#E5E7EB] bg-white h-9 text-[14px]" />
                 </div>
               </div>
+              <div>
+                <Label className="text-[14px] text-[#1A2332] mb-1 block" style={{ fontWeight: 500 }}>Address notes</Label>
+                <Textarea value={addressForm.notes} onChange={(e) => setAddressForm((p) => ({ ...p, notes: e.target.value }))} className="border-[#E5E7EB] bg-white text-[14px] min-h-[64px]" placeholder="Gate code, access instructions…" />
+              </div>
             </div>
             <div className="flex items-center justify-end gap-2 px-4 py-4 mt-1">
               <Button variant="outline" onClick={() => setEditAddressOpen(false)} className="border-[#E5E7EB] text-[#1A2332] hover:bg-[#F5F7FA] h-9 px-4 text-[14px] rounded-lg">Cancel</Button>
@@ -2368,12 +2319,20 @@ export function ClientDetail() {
                   if (editAddressId == null) {
                     clientsStore.updateClient(client.id, {
                       address: addressForm.street, unit: addressForm.unit, city: addressForm.city,
-                      state: addressForm.state, zip: addressForm.zip, county: addressForm.county, country: addressForm.country,
+                      state: addressForm.state, zip: addressForm.zip, county: addressForm.county, country: addressForm.country, gateCode: addressForm.notes,
+                    });
+                  } else if (editAddressId === "__new__") {
+                    if (!addressForm.street.trim()) return;
+                    clientsStore.updateClient(client.id, {
+                      serviceAddresses: [
+                        ...serviceAddresses,
+                        { id: Math.random().toString(36).slice(2), street: addressForm.street, unit: addressForm.unit, city: addressForm.city, state: addressForm.state, zip: addressForm.zip, county: addressForm.county, notes: addressForm.notes, isPrimary: serviceAddresses.length === 0 },
+                      ],
                     });
                   } else {
                     clientsStore.updateClient(client.id, {
                       serviceAddresses: serviceAddresses.map((a) => a.id === editAddressId
-                        ? { ...a, street: addressForm.street, unit: addressForm.unit, city: addressForm.city, state: addressForm.state, zip: addressForm.zip, county: addressForm.county }
+                        ? { ...a, street: addressForm.street, unit: addressForm.unit, city: addressForm.city, state: addressForm.state, zip: addressForm.zip, county: addressForm.county, notes: addressForm.notes }
                         : a),
                     });
                   }
