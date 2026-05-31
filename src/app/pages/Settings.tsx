@@ -318,13 +318,11 @@ function TaxSettingsCard() {
   const [taxIdName, setTaxIdName] = useState("GST");
   const [taxIdNumber, setTaxIdNumber] = useState("123456789");
   const [rates, setRates] = useState<TaxRateRow[]>([
-    { id: "r1", name: "Flor",      rate: "6.0", description: "Sales Tax" },
-    { id: "r2", name: "Flor",      rate: "6.0", description: "Sales Tax" },
-    { id: "r3", name: "Tampa Tax", rate: "0.5", description: "Sales Tax" },
+    { id: "r1", name: "Florida State Tax", rate: "6.0", description: "Sales Tax" },
+    { id: "r3", name: "Tampa Tax",         rate: "0.5", description: "Sales Tax" },
   ]);
   const [profiles, setProfiles] = useState<TaxProfileRow[]>([
-    { id: "g1", name: "Hillsborough County", description: "Tpa+G=Hilld", rateIds: ["r1", "r3"] },
-    { id: "g2", name: "Hillsborough County", description: "Tpa+G=Hilld", rateIds: ["r1", "r3"] },
+    { id: "g1", name: "Hillsborough County", description: "Combined Florida + Tampa", rateIds: ["r1", "r3"] },
   ]);
   const [defaultId, setDefaultId] = useState<string>("r1");
   const [editingProfile, setEditingProfile] = useState<string | null>(null);
@@ -352,6 +350,26 @@ function TaxSettingsCard() {
   };
   const updateRate = (id: string, patch: Partial<TaxRateRow>) =>
     setRates(prev => prev.map(r => r.id === id ? { ...r, ...patch } : r));
+
+  // Validation: rate must be 0-100, and rate names must be unique across rows.
+  const rateErrors: Record<string, string | null> = {};
+  const lowerNames = rates.map(r => r.name.trim().toLowerCase()).filter(Boolean);
+  rates.forEach(r => {
+    const raw = r.rate.trim();
+    if (!raw) { rateErrors[r.id] = null; return; }
+    const n = Number(raw);
+    if (!Number.isFinite(n)) rateErrors[r.id] = "Enter a number";
+    else if (n < 0) rateErrors[r.id] = "Cannot be negative";
+    else if (n > 100) rateErrors[r.id] = "Cannot exceed 100%";
+    else rateErrors[r.id] = null;
+  });
+  const nameErrors: Record<string, string | null> = {};
+  rates.forEach(r => {
+    const key = r.name.trim().toLowerCase();
+    if (!key) { nameErrors[r.id] = null; return; }
+    if (lowerNames.filter(n => n === key).length > 1) nameErrors[r.id] = "Duplicate name";
+    else nameErrors[r.id] = null;
+  });
   const updateProfile = (id: string, patch: Partial<TaxProfileRow>) =>
     setProfiles(prev => prev.map(profile => profile.id === id ? { ...profile, ...patch } : profile));
 
@@ -431,6 +449,8 @@ function TaxSettingsCard() {
               name={rate.name}
               rateValue={rate.rate}
               description={rate.description}
+              rateError={rateErrors[rate.id] ?? null}
+              nameError={nameErrors[rate.id] ?? null}
               onNameChange={v => updateRate(rate.id, { name: v })}
               onRateChange={v => updateRate(rate.id, { rate: v })}
               onDescriptionChange={v => updateRate(rate.id, { description: v })}
@@ -546,6 +566,7 @@ function TaxSettingsCard() {
 function TaxRow({
   kind, checked, onCheck, onRemove,
   nameLabel, rateLabel, name, rateValue, description, rateLocked,
+  rateError, nameError,
   onNameChange, onRateChange, onDescriptionChange,
 }: {
   kind: "rate" | "profile";
@@ -558,6 +579,8 @@ function TaxRow({
   rateValue: string;
   description: string;
   rateLocked?: boolean;
+  rateError?: string | null;
+  nameError?: string | null;
   onNameChange: (v: string) => void;
   onRateChange?: (v: string) => void;
   onDescriptionChange: (v: string) => void;
@@ -579,7 +602,12 @@ function TaxRow({
       <div className="flex flex-1 items-end gap-4">
         <div className="flex flex-col gap-1" style={{ width: 246 }}>
           <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>{nameLabel}</span>
-          <input value={name} onChange={e => onNameChange(e.target.value)} className={inputCls} />
+          <input
+            value={name}
+            onChange={e => onNameChange(e.target.value)}
+            className={`${inputCls} ${nameError ? "border-[#DC2626] focus:border-[#DC2626]" : ""}`}
+          />
+          {nameError && <span className="text-[12px] text-[#DC2626] mt-0.5">{nameError}</span>}
         </div>
         <div className="flex flex-col gap-1" style={{ width: 118 }}>
           <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>{rateLabel}</span>
@@ -587,8 +615,12 @@ function TaxRow({
             value={rateValue}
             readOnly={rateLocked}
             onChange={e => onRateChange?.(e.target.value)}
-            className={`${inputCls} ${rateLocked ? "bg-[#F9FAFB]" : ""}`}
+            inputMode="decimal"
+            min={0}
+            max={100}
+            className={`${inputCls} ${rateLocked ? "bg-[#F9FAFB]" : ""} ${rateError ? "border-[#DC2626] focus:border-[#DC2626]" : ""}`}
           />
+          {rateError && <span className="text-[12px] text-[#DC2626] mt-0.5">{rateError}</span>}
         </div>
         <div className="flex flex-col gap-1 flex-1">
           <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Internal tax description</span>
@@ -1670,6 +1702,10 @@ function FinanceCenterSection() {
   const [bankName, setBankName] = useState("Bank of America");
   const [bankAcct, setBankAcct] = useState("8821");
   const [routing, setRouting] = useState("026009593");
+  const [routingVisible, setRoutingVisible] = useState(false);
+  const maskedRouting = routing.length > 4
+    ? `${"•".repeat(Math.max(0, routing.length - 4))}${routing.slice(-4)}`
+    : routing;
 
   return (
     <>
@@ -1713,7 +1749,22 @@ function FinanceCenterSection() {
             </div>
             <div>
               <label className="block text-[13px] text-[#1A2332] mb-1.5" style={{ fontWeight: 600 }}>Routing</label>
-              <Input value={routing} onChange={e => setRouting(e.target.value.replace(/\D/g, "").slice(0, 9))} className="h-9 border-[#D8DEE8]" />
+              <div className="relative">
+                <Input
+                  value={routingVisible ? routing : maskedRouting}
+                  onChange={e => setRouting(e.target.value.replace(/\D/g, "").slice(0, 9))}
+                  readOnly={!routingVisible}
+                  className="h-9 border-[#D8DEE8] pr-9"
+                />
+                <button
+                  type="button"
+                  onClick={() => setRoutingVisible(v => !v)}
+                  aria-label={routingVisible ? "Hide routing number" : "Show routing number"}
+                  className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 flex items-center justify-center rounded text-[#546478] hover:bg-[#F5F7FA]"
+                >
+                  <span className="material-icons" style={{ fontSize: 16 }}>{routingVisible ? "visibility_off" : "visibility"}</span>
+                </button>
+              </div>
             </div>
           </div>
           <p className="mt-3 text-[12px] text-[#6B7280]">
@@ -2086,6 +2137,37 @@ export function Settings() {
   };
   const [cfEntity, setCfEntity] = useState<CfEntity>("clients");
   const [companyInfoTab, setCompanyInfoTab] = useState<"profile" | "branding">("profile");
+  // ── Company info: validation + dirty-state ──
+  const [companyNameDraft, setCompanyNameDraft] = useState(companyName);
+  const [companyEmailDraft, setCompanyEmailDraft] = useState("office@omega-home.com");
+  const [companyEmailSaved, setCompanyEmailSaved] = useState("office@omega-home.com");
+  const [companyInfoErrors, setCompanyInfoErrors] = useState<{ name?: string; email?: string }>({});
+  // Keep the draft in sync if the store changes from another tab/page.
+  useEffect(() => { setCompanyNameDraft(companyName); }, [companyName]);
+  const companyInfoDirty =
+    companyNameDraft.trim() !== companyName.trim() ||
+    companyEmailDraft.trim() !== companyEmailSaved.trim();
+  const handleCompanyInfoSave = () => {
+    const errs: { name?: string; email?: string } = {};
+    const trimmedName = companyNameDraft.trim();
+    const trimmedEmail = companyEmailDraft.trim();
+    if (!trimmedName) errs.name = "Company name is required";
+    if (trimmedEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      errs.email = "Enter a valid email address";
+    }
+    setCompanyInfoErrors(errs);
+    if (Object.keys(errs).length > 0) {
+      toast.error("Please fix the highlighted fields");
+      return;
+    }
+    if (!companyInfoDirty) {
+      toast.message("No changes to save");
+      return;
+    }
+    companyStore.setCompanyName(trimmedName);
+    setCompanyEmailSaved(trimmedEmail);
+    toast.success("Company info saved");
+  };
   const [brandPrimary, setBrandPrimary] = useState(() => getStoredBrandTheme().primary);
   const [brandAccent, setBrandAccent] = useState(() => getStoredBrandTheme().accent);
   const [brandLogoPreview, setBrandLogoPreview] = useState(() => getStoredBrandLogo());
@@ -2336,13 +2418,34 @@ export function Settings() {
               <div className="space-y-4">
                 <SectionCard title="Company info" description="Core business information shown on documents, emails, and customer-facing records.">
                   <div className="grid grid-cols-2 gap-4">
-                    <Field label="Company name"><Input value={companyName} onChange={e => companyStore.setCompanyName(e.target.value)} className="h-9 border-[#D8DEE8]" /></Field>
+                    <Field label="Company name">
+                      <Input
+                        value={companyNameDraft}
+                        onChange={e => { setCompanyNameDraft(e.target.value); if (companyInfoErrors.name) setCompanyInfoErrors({ ...companyInfoErrors, name: undefined }); }}
+                        className={`h-9 ${companyInfoErrors.name ? "border-[#DC2626] focus-visible:border-[#DC2626] focus-visible:ring-[#DC2626]/30" : "border-[#D8DEE8]"}`}
+                        aria-invalid={!!companyInfoErrors.name}
+                      />
+                      {companyInfoErrors.name && (
+                        <span className="mt-1 block text-[12px] text-[#DC2626]">{companyInfoErrors.name}</span>
+                      )}
+                    </Field>
                     <Field label="Legal entity name"><Input defaultValue="Omega Home Services" className="h-9 border-[#D8DEE8]" /></Field>
                     <Field label="Business owner name"><Input defaultValue="Peter Novak" className="h-9 border-[#D8DEE8]" /></Field>
                     <Field label="Address"><Input defaultValue="123 Main Street, Suite 100, Tampa, FL 33606" className="h-9 border-[#D8DEE8]" /></Field>
                     <Field label="Phone number"><Input defaultValue="(813) 286-7572" className="h-9 border-[#D8DEE8]" /></Field>
                     <Field label="Website"><Input defaultValue="https://omega-home.com" className="h-9 border-[#D8DEE8]" /></Field>
-                    <Field label="Email"><Input defaultValue="office@omega-home.com" className="h-9 border-[#D8DEE8]" /></Field>
+                    <Field label="Email">
+                      <Input
+                        type="email"
+                        value={companyEmailDraft}
+                        onChange={e => { setCompanyEmailDraft(e.target.value); if (companyInfoErrors.email) setCompanyInfoErrors({ ...companyInfoErrors, email: undefined }); }}
+                        className={`h-9 ${companyInfoErrors.email ? "border-[#DC2626] focus-visible:border-[#DC2626] focus-visible:ring-[#DC2626]/30" : "border-[#D8DEE8]"}`}
+                        aria-invalid={!!companyInfoErrors.email}
+                      />
+                      {companyInfoErrors.email && (
+                        <span className="mt-1 block text-[12px] text-[#DC2626]">{companyInfoErrors.email}</span>
+                      )}
+                    </Field>
                     <Field label="EIN / tax ID"><Input defaultValue="12-3456789" className="h-9 border-[#D8DEE8]" /></Field>
                     <Field label="License number"><Input defaultValue="LIC-2486-FL" className="h-9 border-[#D8DEE8]" /></Field>
                   </div>
@@ -2351,9 +2454,10 @@ export function Settings() {
                 <div className="flex justify-end">
                   <Button
                     type="button"
-                    className="bg-[#4A6FA5] hover:bg-[#3d5a85] text-white h-9 px-4"
+                    disabled={!companyInfoDirty}
+                    className="bg-[#4A6FA5] hover:bg-[#3d5a85] text-white h-9 px-4 disabled:opacity-50 disabled:cursor-not-allowed"
                     style={{ fontWeight: 500 }}
-                    onClick={() => toast.success("Company info saved")}
+                    onClick={handleCompanyInfoSave}
                   >
                     Save changes
                   </Button>

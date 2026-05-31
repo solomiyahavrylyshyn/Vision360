@@ -13,7 +13,7 @@ import {
 } from "date-fns";
 import routeMapImg from "../../assets/route-map.png";
 
-type JobStatus = "Scheduled" | "In Progress" | "Completed";
+type JobStatus = "Scheduled" | "In Progress" | "Completed" | "Cancelled" | "Paused";
 
 interface CalendarEvent {
   id: number;
@@ -59,12 +59,47 @@ const STATUS_STYLES: Record<JobStatus, { bg: string; color: string }> = {
   Scheduled: { bg: "rgba(74,111,165,0.15)", color: "#4A6FA5" },
   "In Progress": { bg: "rgba(245,158,11,0.15)", color: "#F59E0B" },
   Completed: { bg: "rgba(22,163,74,0.15)", color: "#16A34A" },
+  Cancelled: { bg: "rgba(220,38,38,0.12)", color: "#DC2626" },
+  Paused: { bg: "rgba(168,86,247,0.12)", color: "#A856F7" },
 };
+
+// All statuses surfaced in the Scheduling status dropdown. Mirrors what's
+// configured in Settings → Jobs → Custom statuses (BUG-S05).
+const ALL_JOB_STATUSES: JobStatus[] = ["Scheduled", "In Progress", "Completed", "Cancelled", "Paused"];
+
+// Pill-styled <select> used in job-detail popovers so dispatchers can flip
+// status to Cancelled / Paused without leaving the schedule (BUG-S05).
+function StatusPillSelect({ value, onChange }: { value: JobStatus; onChange: (next: JobStatus) => void }) {
+  const styles = STATUS_STYLES[value];
+  return (
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value as JobStatus)}
+      aria-label="Change job status"
+      className="appearance-none cursor-pointer rounded-full px-2 pr-5 py-0.5 text-[10px] outline-none focus:ring-2 focus:ring-[#4A6FA5]/30 bg-no-repeat"
+      style={{
+        fontWeight: 600,
+        backgroundColor: styles.bg,
+        color: styles.color,
+        backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='${encodeURIComponent(styles.color)}'><path d='M3 4.5l3 3 3-3'/></svg>")`,
+        backgroundPosition: "right 4px center",
+        backgroundSize: "8px 8px",
+      }}
+    >
+      {ALL_JOB_STATUSES.map((s) => (
+        <option key={s} value={s}>{s}</option>
+      ))}
+    </select>
+  );
+}
 
 const nextStatus = (status: JobStatus): JobStatus => {
   if (status === "Scheduled") return "In Progress";
   if (status === "In Progress") return "Completed";
-  return "Scheduled";
+  if (status === "Completed") return "Scheduled";
+  if (status === "Paused") return "In Progress";
+  // Cancelled stays Cancelled when click-cycled; user must explicitly pick another via the dropdown.
+  return status;
 };
 
 // Demo events anchored relative to today so the schedule always opens on a populated week.
@@ -1225,7 +1260,10 @@ export function Calendar() {
 	                <div className="flex items-center justify-between px-4 py-3.5 border-b border-[#E5E7EB] shrink-0">
 	                  <div className="flex items-center gap-2">
 	                    <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 700 }}>Job #{selectedDispatchJob.num}</span>
-	                    <span className="px-2 py-0.5 rounded-full text-[10px]" style={{ fontWeight: 600, backgroundColor: STATUS_STYLES[selectedDispatchJob.status].bg, color: STATUS_STYLES[selectedDispatchJob.status].color }}>{selectedDispatchJob.status}</span>
+	                    <StatusPillSelect
+	                      value={selectedDispatchJob.status}
+	                      onChange={(next) => updateWeekStatus(selectedDispatchJob.id, next)}
+	                    />
 	                  </div>
                   <button onClick={() => setSelectedDispatchJob(null)} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-[#F5F7FA]">
                     <span className="material-icons text-[#8899AA]" style={{ fontSize: "18px" }}>close</span>
@@ -1604,12 +1642,10 @@ export function Calendar() {
                 <div className="flex items-center justify-between px-4 py-3.5 border-b border-[#E5E7EB] shrink-0">
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="text-[14px] text-[#1A2332] truncate" style={{ fontWeight: 700 }}>Job #{selectedDayJob.id}</span>
-                    <span
-                      className="px-2 py-0.5 rounded-full text-[10px] shrink-0"
-                      style={{ fontWeight: 600, backgroundColor: STATUS_STYLES[selectedDayJob.status].bg, color: STATUS_STYLES[selectedDayJob.status].color }}
-                    >
-                      {selectedDayJob.status}
-                    </span>
+                    <StatusPillSelect
+                      value={selectedDayJob.status}
+                      onChange={(next) => updateDayStatus(selectedDayJob.id, next)}
+                    />
                   </div>
                   <button onClick={() => setSelectedDayJob(null)} aria-label="Close job details" className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-[#F5F7FA]">
                     <span className="material-icons text-[#8899AA]" style={{ fontSize: "18px" }}>close</span>
