@@ -25,6 +25,7 @@ export function CompanySetup() {
     const nextErrors: SetupErrors = {};
 
     if (!companyName.trim()) nextErrors.companyName = "Company name is required.";
+    else if (companyName.trim().length < 2) nextErrors.companyName = "Company name must be at least 2 characters.";
     if (!firstName.trim()) nextErrors.firstName = "First name is required.";
     if (!lastName.trim()) nextErrors.lastName = "Last name is required.";
     if (!phone.trim()) nextErrors.phone = "Business phone is required.";

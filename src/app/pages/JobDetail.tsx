@@ -201,8 +201,8 @@ type TabKey = "details" | "appointments" | "checklist" | "documents" | "items" |
 
 const BASE_TABS: { key: TabKey; label: string }[] = [
   { key: "details",       label: "Details" },
-  { key: "appointments",  label: "Estimates (5)" },
-  { key: "checklist",     label: "Invoices" },
+  { key: "estimates",     label: "Estimates (5)" },
+  { key: "invoices",      label: "Invoices" },
   { key: "items",         label: "Items" },
   { key: "expense",       label: "Expenses (4)" },
 ];
@@ -844,18 +844,48 @@ export function JobDetail() {
     );
   };
 
-  const renderAppointmentsTab = () => (
-    <div className="text-center py-12">
-      <span className="material-icons text-[#D1D5DB] mb-2 block" style={{ fontSize: "40px" }}>schedule</span>
-      <div className="text-[13px] text-[#9CA3AF]">Appointments feature coming soon</div>
-    </div>
+  const renderEstimatesTab = () => (
+    <>
+      <div className="flex items-center gap-2 mb-5">
+        <h3 className="text-[15px] text-[#1A2332]" style={{ fontWeight: 600 }}>Estimates</h3>
+        <button type="button" aria-label="Create estimate" title="Create estimate"
+          onClick={() => navigate(`/estimates/new?client=${encodeURIComponent(job.client)}`)}
+          className="w-7 h-7 flex items-center justify-center rounded-md text-[#9CA3AF] hover:text-[#4A6FA5] hover:bg-[#F5F7FA] transition-colors">
+          <PlusIcon className="h-4 w-4" />
+        </button>
+      </div>
+      <div className="text-center py-12">
+        <span className="material-icons text-[#D1D5DB] mb-2 block" style={{ fontSize: "40px" }}>request_quote</span>
+        <div className="text-[13px] text-[#9CA3AF]">No estimates linked to this job yet.</div>
+      </div>
+    </>
   );
 
-  const renderChecklistTab = () => (
-    <div className="text-center py-12">
-      <span className="material-icons text-[#D1D5DB] mb-2 block" style={{ fontSize: "40px" }}>checklist</span>
-      <div className="text-[13px] text-[#9CA3AF]">Checklist feature coming soon</div>
-    </div>
+  const renderInvoicesTab = () => (
+    <>
+      <div className="flex items-center gap-2 mb-5">
+        <h3 className="text-[15px] text-[#1A2332]" style={{ fontWeight: 600 }}>Invoices</h3>
+        <button type="button" aria-label="Create invoice" title="Create invoice"
+          onClick={() => navigate(`/invoices/new?client=${encodeURIComponent(job.client)}`)}
+          className="w-7 h-7 flex items-center justify-center rounded-md text-[#9CA3AF] hover:text-[#4A6FA5] hover:bg-[#F5F7FA] transition-colors">
+          <PlusIcon className="h-4 w-4" />
+        </button>
+      </div>
+      {job.linkedInvoice ? (
+        <button onClick={() => navigate(`/invoices/${job.linkedInvoice.id}`)} className="w-full flex items-center justify-between border border-[#E5E7EB] rounded-lg px-4 py-3 hover:bg-[#F9FAFB] text-left transition-colors">
+          <div>
+            <div className="text-[14px] text-[#4A6FA5]" style={{ fontWeight: 500 }}>{job.linkedInvoice.id}</div>
+            <div className="text-[12px] text-[#6B7280]">{job.linkedInvoice.status ?? "Invoice"}</div>
+          </div>
+          <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "18px" }}>chevron_right</span>
+        </button>
+      ) : (
+        <div className="text-center py-12">
+          <span className="material-icons text-[#D1D5DB] mb-2 block" style={{ fontSize: "40px" }}>receipt_long</span>
+          <div className="text-[13px] text-[#9CA3AF]">No invoices for this job yet.</div>
+        </div>
+      )}
+    </>
   );
 
   const renderItemsTab = () => (
@@ -1241,8 +1271,8 @@ export function JobDetail() {
   const renderContent = () => {
     switch (activeTab) {
       case "details":       return renderDetailsTab();
-      case "appointments":  return renderAppointmentsTab();
-      case "checklist":     return renderChecklistTab();
+      case "estimates":     return renderEstimatesTab();
+      case "invoices":      return renderInvoicesTab();
       case "documents":     return renderDocumentsTab();
       case "items":         return renderItemsTab();
       case "labor":         return renderLaborTab();

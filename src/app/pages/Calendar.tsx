@@ -67,17 +67,21 @@ const nextStatus = (status: JobStatus): JobStatus => {
   return "Scheduled";
 };
 
+// Demo events anchored relative to today so the schedule always opens on a populated week.
+const _schedBase = new Date(); _schedBase.setHours(0, 0, 0, 0);
+const schedDay = (offset: number) => { const d = new Date(_schedBase); d.setDate(d.getDate() + offset); return d; };
+
 const mockEvents: CalendarEvent[] = [
-  { id: 1,  title: "AC Installation",      client: "Travis Jones",  date: new Date(2026, 3, 6),  startHour: 9,  duration: 2,   color: "blue",   status: "Scheduled",   property: "4405 N Clark Ave", amount: 2850 },
-  { id: 2,  title: "Plumbing Repair",       client: "Sarah Johnson", date: new Date(2026, 3, 6),  startHour: 13, duration: 1.5, color: "amber",  status: "In Progress", property: "1220 Elm St",      amount: 425  },
-  { id: 3,  title: "HVAC Maintenance",      client: "Mike Davis",    date: new Date(2026, 3, 6),  startHour: 15, duration: 1,   color: "green",  status: "Completed",   property: "890 Oak Dr",       amount: 129  },
-  { id: 4,  title: "Electrical Inspection", client: "Lisa Brown",    date: new Date(2026, 3, 7),  startHour: 10, duration: 2,   color: "purple", status: "Scheduled",   property: "567 Pine Rd",      amount: 175  },
-  { id: 5,  title: "Tree Removal",          client: "James Wilson",  date: new Date(2026, 3, 8),  startHour: 8,  duration: 4,   color: "red",    status: "Scheduled",   property: "234 Maple Ln",     amount: 850  },
-  { id: 6,  title: "Gutter Cleaning",       client: "Anna Lee",      date: new Date(2026, 3, 9),  startHour: 11, duration: 1.5, color: "blue",   status: "Scheduled",   property: "56 Birch Ct",      amount: 180  },
-  { id: 7,  title: "Fence Repair",          client: "Tom Richards",  date: new Date(2026, 3, 10), startHour: 9,  duration: 3,   color: "amber",  status: "Scheduled",   property: "12 Cedar Way",     amount: 625  },
-  { id: 8,  title: "Lawn Service",          client: "Emily Clark",   date: new Date(2026, 3, 13), startHour: 8,  duration: 2,   color: "green",  status: "Scheduled",   property: "88 Willow Dr",     amount: 95   },
-  { id: 9,  title: "Roof Inspection",       client: "David Park",    date: new Date(2026, 3, 15), startHour: 10, duration: 2.5, color: "blue",   status: "Scheduled",   property: "321 Aspen Blvd",  amount: 250  },
-  { id: 10, title: "Window Install",        client: "Karen White",   date: new Date(2026, 3, 20), startHour: 9,  duration: 5,   color: "purple", status: "Scheduled",   property: "45 Spruce Rd",     amount: 1450 },
+  { id: 1,  title: "AC Installation",      client: "Travis Jones",  date: schedDay(0),  startHour: 9,  duration: 2,   color: "blue",   status: "Scheduled",   property: "4405 N Clark Ave", amount: 2850 },
+  { id: 2,  title: "Plumbing Repair",       client: "Sarah Johnson", date: schedDay(0),  startHour: 13, duration: 1.5, color: "amber",  status: "In Progress", property: "1220 Elm St",      amount: 425  },
+  { id: 3,  title: "HVAC Maintenance",      client: "Mike Davis",    date: schedDay(0),  startHour: 15, duration: 1,   color: "green",  status: "Completed",   property: "890 Oak Dr",       amount: 129  },
+  { id: 4,  title: "Electrical Inspection", client: "Lisa Brown",    date: schedDay(1),  startHour: 10, duration: 2,   color: "purple", status: "Scheduled",   property: "567 Pine Rd",      amount: 175  },
+  { id: 5,  title: "Tree Removal",          client: "James Wilson",  date: schedDay(2),  startHour: 8,  duration: 4,   color: "red",    status: "Scheduled",   property: "234 Maple Ln",     amount: 850  },
+  { id: 6,  title: "Gutter Cleaning",       client: "Anna Lee",      date: schedDay(3),  startHour: 11, duration: 1.5, color: "blue",   status: "Scheduled",   property: "56 Birch Ct",      amount: 180  },
+  { id: 7,  title: "Fence Repair",          client: "Tom Richards",  date: schedDay(-1), startHour: 9,  duration: 3,   color: "amber",  status: "Scheduled",   property: "12 Cedar Way",     amount: 625  },
+  { id: 8,  title: "Lawn Service",          client: "Emily Clark",   date: schedDay(-2), startHour: 8,  duration: 2,   color: "green",  status: "Scheduled",   property: "88 Willow Dr",     amount: 95   },
+  { id: 9,  title: "Roof Inspection",       client: "David Park",    date: schedDay(2),  startHour: 10, duration: 2.5, color: "blue",   status: "Scheduled",   property: "321 Aspen Blvd",  amount: 250  },
+  { id: 10, title: "Window Install",        client: "Karen White",   date: schedDay(5),  startHour: 9,  duration: 5,   color: "purple", status: "Scheduled",   property: "45 Spruce Rd",     amount: 1450 },
 ];
 
 // Customers and their saved service locations — powers the create-job customer/address pickers.
@@ -168,7 +172,7 @@ const GANTT_END_HOUR   = 18;  // 6 PM (exclusive label at 18)
 const HOUR_WIDTH       = 120; // px per hour (matches Figma schedule columns)
 const CURRENT_TIME     = 10.5; // 10:30 AM
 const WEEK_LABEL_WIDTH = 180; // matches the day-view technician column
-const WEEK_TODAY = new Date(2026, 3, 14); // demo "today" highlighted in the week view
+const WEEK_TODAY = _schedBase; // today, highlighted in the week view
 
 // Route-map pin layout — matches the Figma day view (node 746:71297). left/top are
 // percentages of the map container; n is each technician's stop order on the route.
@@ -205,7 +209,7 @@ export function Calendar() {
   const GANTT_START_HOUR = scheduleSettings.startHour;
   const GANTT_END_HOUR = scheduleSettings.endHour;
   const SLOT_HOURS = scheduleSettings.slotMinutes / 60;
-  const [currentDate, setCurrentDate] = useState(new Date(2026, 3, 12));
+  const [currentDate, setCurrentDate] = useState(() => new Date());
   const [viewMode, setViewModeState] = useState<ViewMode>(() => readPersistedViewMode());
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [selectedDispatchJob, setSelectedDispatchJob] = useState<DispatchJob | null>(null);
