@@ -31,6 +31,8 @@ import { toast } from "sonner";
 import { clientsStore } from "../stores/clientsStore";
 import { tagsStore } from "../stores/tagsStore";
 import { customFieldsStore } from "../stores/customFieldsStore";
+import { relationshipsStore } from "../stores/relationshipsStore";
+import { ConfirmDialog } from "../components/ui/confirm-dialog";
 import installHeatingSystem1Photo from "../../assets/documents/33702-install-heating-system-1.jpg";
 import installHeatingSystemPhoto from "../../assets/documents/33702-install-heating-system.jpg";
 import installDuctsVentsPhoto from "../../assets/documents/33805-install-ducts-vents.jpg";
@@ -284,6 +286,7 @@ export function ClientDetail() {
   const [tabs] = useState(DEFAULT_TABS);
   const [hiddenTabs, setHiddenTabs] = useState<Set<TabKey>>(new Set());
   const [showTabSettings, setShowTabSettings] = useState(false);
+  const [pendingHidden, setPendingHidden] = useState<Set<TabKey>>(new Set()); // staged edits for the Edit tabs modal
   const tabSettingsRef = useRef<HTMLDivElement>(null);
 
   const toggleTabVisibility = (key: TabKey) => {
@@ -322,6 +325,19 @@ export function ClientDetail() {
   // to Postgres). Derived from `client` below, once it's in scope.
   const [showAddAddress, setShowAddAddress] = useState(false);
   const [newAddr, setNewAddr] = useState({ street: "", unit: "", city: "", state: "", zip: "", county: "", notes: "" });
+  // Additional-contacts inline editor (Contact Information card)
+  const [contactFormOpen, setContactFormOpen] = useState(false);
+  const [editingContactId, setEditingContactId] = useState<number | null>(null);
+  const [contactForm, setContactForm] = useState({ firstName: "", lastName: "", phone: "", email: "", relationship: "" });
+  const relationships = useSyncExternalStore(relationshipsStore.subscribe, relationshipsStore.getRelationships);
+  // Edit address / Edit address notes modals (Figma 489:35769 / 489:36354)
+  const [editAddressId, setEditAddressId] = useState<string | null>(null); // null = editing the main service address
+  const [editAddressOpen, setEditAddressOpen] = useState(false);
+  const [addressForm, setAddressForm] = useState({ street: "", unit: "", city: "", state: "", zip: "", county: "", country: "United States" });
+  const [editNotesOpen, setEditNotesOpen] = useState(false);
+  const [notesDraft, setNotesDraft] = useState("");
+  // Reusable delete confirmation (Figma 489:34912)
+  const [pendingDelete, setPendingDelete] = useState<null | (() => void)>(null);
 
   interface DocFile { id: string; name: string; size: string; date: string; icon: string; iconColor: string; isImage?: boolean; previewUrl?: string; previewGradient?: string; uploadedBy?: string; category?: string; }
   const [documents, setDocuments] = useState<DocFile[]>([
@@ -590,56 +606,74 @@ export function ClientDetail() {
           </button>
         </div>
         <div className="p-5 space-y-4">
-          <div>
-            <div className="text-[11px] uppercase tracking-wider text-[#546478] font-semibold mb-0.5">Primary Phone</div>
-            <div className="text-[13px] text-[#1A2332] font-medium">{client.mobilePhone}</div>
-          </div>
-          {client.workPhone && (
-            <div>
-              <div className="text-[11px] uppercase tracking-wider text-[#546478] font-semibold mb-0.5">Secondary Phone</div>
-              <div className="text-[13px] text-[#1A2332] font-medium">{client.workPhone}{client.workPhoneExt ? ` ext. ${client.workPhoneExt}` : ""}</div>
+          {/* Fields — always shown to match Figma 488:31819 (empty → "—") */}
+          {(
+            [
+              ["Primary phone", client.mobilePhone, false],
+              ["Secondary phone", client.workPhone ? `${client.workPhone}${client.workPhoneExt ? ` ext. ${client.workPhoneExt}` : ""}` : "", false],
+              ["Email", client.email, false],
+              ["Website", client.website, true],
+              ["Company name", client.company, false],
+              ["Role", client.role, false],
+              ["Customer since", client.customerSince, false],
+            ] as [string, string, boolean][]
+          ).map(([label, value, isLink]) => (
+            <div key={label}>
+              <div className="text-[14px] text-[#6B7280] leading-[20px]">{label}</div>
+              {value ? (
+                isLink ? (
+                  <a href={value} target="_blank" rel="noopener noreferrer" className="text-[14px] text-[#4A6FA5] hover:underline" style={{ fontWeight: 500 }}>{value}</a>
+                ) : (
+                  <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>{value}</div>
+                )
+              ) : (
+                <div className="text-[14px] text-[#9CA3AF]" style={{ fontWeight: 500 }}>—</div>
+              )}
             </div>
-          )}
-          <div>
-            <div className="text-[11px] uppercase tracking-wider text-[#546478] font-semibold mb-0.5">Email</div>
-            <div className="text-[13px] text-[#1A2332] font-medium">{client.email}</div>
-          </div>
-          {client.website && (
-            <div>
-              <div className="text-[11px] uppercase tracking-wider text-[#546478] font-semibold mb-0.5">Website</div>
-              <a href={client.website} target="_blank" rel="noopener noreferrer" className="text-[13px] text-[#4A6FA5] hover:underline font-medium">{client.website}</a>
-            </div>
-          )}
-          <div>
-            <div className="text-[11px] uppercase tracking-wider text-[#546478] font-semibold mb-0.5">Company Name</div>
-            <div className="text-[13px] text-[#1A2332] font-medium">{client.company}</div>
-          </div>
-          {client.role && (
-            <div>
-              <div className="text-[11px] uppercase tracking-wider text-[#546478] font-semibold mb-0.5">Role</div>
-              <div className="text-[13px] text-[#1A2332] font-medium">{client.role}</div>
-            </div>
-          )}
-          <div>
-            <div className="text-[11px] uppercase tracking-wider text-[#546478] font-semibold mb-0.5">Customer Since</div>
-            <div className="text-[13px] text-[#1A2332] font-medium">{client.customerSince}</div>
-          </div>
-          {client.additionalContacts && client.additionalContacts.length > 0 && (
-            <div className="pt-3 border-t border-[#E5E7EB]">
-              <div className="text-[11px] uppercase tracking-wider text-[#546478] font-semibold mb-2">Additional Contacts</div>
-              <div className="space-y-3">
-                {client.additionalContacts.map((c) => (
-                  <div key={c.id} className="space-y-0.5">
-                    <div className="text-[13px] text-[#1A2332] font-medium">{c.firstName} {c.lastName}
-                      {c.relationship && <span className="text-[12px] text-[#6B7280] font-normal ml-1.5">· {c.relationship}</span>}
-                    </div>
-                    {c.phone && <div className="text-[12px] text-[#546478]">{c.phone}</div>}
-                    {c.email && <div className="text-[12px] text-[#546478]">{c.email}</div>}
+          ))}
+
+          {/* Additional contacts — add / edit / delete (Figma 488:31847) */}
+          <div className="pt-4 border-t border-[#E5E7EB] space-y-3">
+            <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Additional contacts</div>
+
+            {(client.additionalContacts ?? []).map((c) => (
+              <div key={c.id} className="group flex items-start gap-2">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>{c.firstName} {c.lastName}</span>
+                    {c.relationship && <span className="text-[14px] text-[#6B7280]">{c.relationship}</span>}
                   </div>
-                ))}
+                  {c.phone && <div className="text-[14px] text-[#6B7280] leading-[20px]">{c.phone}</div>}
+                  {c.email && <div className="text-[14px] text-[#6B7280] leading-[20px]">{c.email}</div>}
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    aria-label="Edit contact"
+                    className="w-6 h-6 flex items-center justify-center rounded hover:bg-[#F5F7FA] text-[#9CA3AF] hover:text-[#4A6FA5]"
+                    onClick={() => { setEditingContactId(c.id); setContactForm({ firstName: c.firstName, lastName: c.lastName, phone: c.phone, email: c.email, relationship: c.relationship }); setContactFormOpen(true); }}
+                  >
+                    <span className="material-icons" style={{ fontSize: "15px" }}>edit</span>
+                  </button>
+                  <button
+                    aria-label="Delete contact"
+                    className="w-6 h-6 flex items-center justify-center rounded hover:bg-[#FEF2F2] text-[#9CA3AF] hover:text-[#DC2626]"
+                    onClick={() => setPendingDelete(() => () => clientsStore.updateClient(client.id, { additionalContacts: (client.additionalContacts ?? []).filter((x) => x.id !== c.id) }))}
+                  >
+                    <span className="material-icons" style={{ fontSize: "15px" }}>delete_outline</span>
+                  </button>
+                </div>
               </div>
-            </div>
-          )}
+            ))}
+
+            <button
+              onClick={() => { setEditingContactId(null); setContactForm({ firstName: "", lastName: "", phone: "", email: "", relationship: "" }); setContactFormOpen(true); }}
+              className="flex items-center gap-2 text-[14px] text-[#4A6FA5] hover:underline"
+              style={{ fontWeight: 500 }}
+            >
+              <span className="material-icons" style={{ fontSize: "16px" }}>add_circle_outline</span>
+              Add additional contact
+            </button>
+          </div>
         </div>
       </div>
 
@@ -650,9 +684,9 @@ export function ClientDetail() {
           <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>location_on</span>
           <span className="flex-1 text-[13px] font-semibold text-[#1A2332]">Addresses</span>
           <button
-            onClick={() => { setEditedClient(client); setEditingSection("addresses"); }}
+            onClick={() => { setEditAddressId(null); setAddressForm({ street: client.address, unit: client.unit, city: client.city, state: client.state, zip: client.zip, county: client.county, country: client.country || "United States" }); setEditAddressOpen(true); }}
             className="w-7 h-7 flex items-center justify-center hover:bg-[#F5F7FA] rounded-md transition-colors"
-            aria-label="Edit addresses"
+            aria-label="Edit address"
           >
             <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "16px" }}>edit</span>
           </button>
@@ -680,9 +714,18 @@ export function ClientDetail() {
             <div className="text-[13px] text-[#1A2332] font-medium leading-[20px]">{client.city}, {client.state} {client.zip}</div>
           </div>
           <div>
-            <div className="text-[13px] text-[#1A2332] mb-1" style={{ fontWeight: 600 }}>Address notes</div>
+            <div className="flex items-center justify-between mb-1">
+              <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>Address notes</div>
+              <button
+                onClick={() => { setNotesDraft(client.gateCode || ""); setEditNotesOpen(true); }}
+                className="w-6 h-6 flex items-center justify-center hover:bg-[#F5F7FA] rounded-md transition-colors text-[#9CA3AF]"
+                aria-label="Edit address notes"
+              >
+                <span className="material-icons" style={{ fontSize: "15px" }}>edit</span>
+              </button>
+            </div>
             <div className="text-[13px] text-[#1A2332]">
-              {client.gateCode ? `Gate code: ${client.gateCode}` : <span className="text-[#9CA3AF]">—</span>}
+              {client.gateCode || <span className="text-[#9CA3AF]">—</span>}
             </div>
           </div>
 
@@ -878,7 +921,7 @@ export function ClientDetail() {
                         {note.text}
                       </p>
                       {/* Actions — visible on hover */}
-                      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-0.5">
+                      <div className="flex items-center gap-0.5 shrink-0 mt-0.5">
                         <button
                           onClick={() => { setEditingNoteId(note.id); setEditingNoteText(note.text); }}
                           className="w-6 h-6 flex items-center justify-center hover:bg-[#EDF0F5] rounded transition-colors"
@@ -887,10 +930,10 @@ export function ClientDetail() {
                           <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "14px" }}>edit</span>
                         </button>
                         <button
-                          onClick={() => {
+                          onClick={() => setPendingDelete(() => () => {
                             clientsStore.updateClient(client.id, { notesArray: client.notesArray.filter(n => n.id !== note.id) });
                             setExpandedNoteIds(prev => { const s = new Set(prev); s.delete(note.id); return s; });
-                          }}
+                          })}
                           className="w-6 h-6 flex items-center justify-center hover:bg-[#FEF2F2] rounded transition-colors"
                           title="Delete"
                         >
@@ -1302,7 +1345,7 @@ export function ClientDetail() {
                     {addr.county && <div className="text-[12px] text-[#9CA3AF] mt-0.5">{addr.county} County</div>}
                     {addr.notes && <div className="text-[12px] text-[#6B7280] mt-1 italic">{addr.notes}</div>}
                   </div>
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                  <div className="flex items-center gap-1 shrink-0">
                     {!addr.isPrimary && (
                       <button
                         className="text-[11px] text-[#4A6FA5] hover:underline px-2 py-1 rounded hover:bg-[#EEF2F8]"
@@ -1313,8 +1356,15 @@ export function ClientDetail() {
                       </button>
                     )}
                     <button
+                      className="w-7 h-7 flex items-center justify-center rounded hover:bg-[#EEF2F8] text-[#9CA3AF] hover:text-[#4A6FA5] transition-colors"
+                      aria-label="Edit address"
+                      onClick={() => { setEditAddressId(addr.id); setAddressForm({ street: addr.street, unit: addr.unit, city: addr.city, state: addr.state, zip: addr.zip, county: addr.county, country: "United States" }); setEditAddressOpen(true); }}
+                    >
+                      <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
+                    </button>
+                    <button
                       className="w-7 h-7 flex items-center justify-center rounded hover:bg-[#FEF2F2] text-[#9CA3AF] hover:text-[#DC2626] transition-colors"
-                      onClick={() => clientsStore.updateClient(client.id, { serviceAddresses: serviceAddresses.filter(a => a.id !== addr.id) })}
+                      onClick={() => setPendingDelete(() => () => clientsStore.updateClient(client.id, { serviceAddresses: serviceAddresses.filter(a => a.id !== addr.id) }))}
                     >
                       <span className="material-icons" style={{ fontSize: "16px" }}>delete_outline</span>
                     </button>
@@ -1944,7 +1994,7 @@ export function ClientDetail() {
           tabs={visibleTabs}
           activeTab={activeTab}
           onChange={(key) => { setActiveTab(key); if (isEditing) setIsEditing(false); }}
-          tabSuffix={<TabSettingsButton onClick={() => setShowTabSettings(true)} />}
+          tabSuffix={<TabSettingsButton onClick={() => { setPendingHidden(new Set(hiddenTabs)); setShowTabSettings(true); }} />}
           trailing={
             <>
               <CreateDropdown />
@@ -1970,7 +2020,7 @@ export function ClientDetail() {
           >
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-[#E5E7EB]">
-              <h2 className="text-[16px] text-[#111827]" style={{ fontWeight: 600 }}>
+              <h2 className="text-[20px] text-[#1A2332]" style={{ fontWeight: 600, lineHeight: "1.35" }}>
                 {editingSection === "name" && "Edit name & role"}
                 {editingSection === "contact" && "Edit contact information"}
                 {editingSection === "addresses" && "Edit addresses"}
@@ -2157,33 +2207,216 @@ export function ClientDetail() {
         </div>
       )}
 
-      {/* ── Tab Settings Modal ── */}
-      {showTabSettings && (
-        <>
-          <div className="fixed inset-0 z-40" onClick={() => setShowTabSettings(false)} />
-          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 bg-white border border-[#E5E7EB] rounded-xl shadow-2xl w-[260px] py-3">
-            <div className="px-4 pb-2 pt-1 flex items-center justify-between">
-              <p className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>Show / Hide Tabs</p>
-              <button onClick={() => setShowTabSettings(false)} className="text-[#9CA3AF] hover:text-[#374151]">
+      {/* ── Add / Edit additional contact modal (Figma 489:34357 / 489:33802) ── */}
+      {contactFormOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={() => { setContactFormOpen(false); setEditingContactId(null); }}>
+          <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" />
+          <div className="relative bg-white rounded-xl shadow-2xl w-[600px] max-w-[92vw] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-4 py-4">
+              <h2 className="text-[20px] text-[#1A2332]" style={{ fontWeight: 600, lineHeight: "1.35" }}>
+                {editingContactId != null ? "Edit additional contact" : "Add additional contact"}
+              </h2>
+              <button onClick={() => { setContactFormOpen(false); setEditingContactId(null); }} className="w-6 h-6 flex items-center justify-center rounded hover:bg-[#F3F4F6] text-[#6B7280]" aria-label="Close">
                 <span className="material-icons" style={{ fontSize: "18px" }}>close</span>
               </button>
             </div>
-            <div className="border-t border-[#F3F4F6] pt-1">
+            <div className="px-4 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-[14px] text-[#1A2332] mb-1 block" style={{ fontWeight: 500 }}>First name</Label>
+                  <Input placeholder="First name" value={contactForm.firstName} onChange={(e) => setContactForm((p) => ({ ...p, firstName: e.target.value }))} className="border-[#E5E7EB] bg-white h-9 text-[14px]" />
+                </div>
+                <div>
+                  <Label className="text-[14px] text-[#1A2332] mb-1 block" style={{ fontWeight: 500 }}>Last name</Label>
+                  <Input placeholder="Last name" value={contactForm.lastName} onChange={(e) => setContactForm((p) => ({ ...p, lastName: e.target.value }))} className="border-[#E5E7EB] bg-white h-9 text-[14px]" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-[14px] text-[#1A2332] mb-1 block" style={{ fontWeight: 500 }}>Phone</Label>
+                  <Input placeholder="e.g. (555) 456-7890" value={contactForm.phone} onChange={(e) => setContactForm((p) => ({ ...p, phone: e.target.value }))} className="border-[#E5E7EB] bg-white h-9 text-[14px]" />
+                </div>
+                <div>
+                  <Label className="text-[14px] text-[#1A2332] mb-1 block" style={{ fontWeight: 500 }}>Email</Label>
+                  <Input placeholder="e.g. john@example.com" value={contactForm.email} onChange={(e) => setContactForm((p) => ({ ...p, email: e.target.value }))} className="border-[#E5E7EB] bg-white h-9 text-[14px]" />
+                </div>
+              </div>
+              <div>
+                <Label className="text-[14px] text-[#1A2332] mb-1 block" style={{ fontWeight: 500 }}>Relationship</Label>
+                <Select value={contactForm.relationship || undefined} onValueChange={(v) => setContactForm((p) => ({ ...p, relationship: v }))}>
+                  <SelectTrigger className="border-[#E5E7EB] bg-white h-9 text-[14px]"><SelectValue placeholder="Select relationship" /></SelectTrigger>
+                  <SelectContent>
+                    {(contactForm.relationship && !relationships.includes(contactForm.relationship)
+                      ? [contactForm.relationship, ...relationships]
+                      : relationships
+                    ).map((r) => (
+                      <SelectItem key={r} value={r}>{r}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-2 px-4 py-4 mt-1">
+              <Button variant="outline" onClick={() => { setContactFormOpen(false); setEditingContactId(null); }} className="border-[#E5E7EB] text-[#1A2332] hover:bg-[#F5F7FA] h-9 px-4 text-[14px] rounded-lg">Cancel</Button>
+              <Button
+                disabled={!(contactForm.firstName.trim() && contactForm.lastName.trim() && contactForm.phone.trim() && contactForm.email.trim() && contactForm.relationship.trim())}
+                onClick={() => {
+                  const list = client.additionalContacts ?? [];
+                  const next =
+                    editingContactId != null
+                      ? list.map((x) => (x.id === editingContactId ? { ...x, ...contactForm } : x))
+                      : [...list, { id: list.reduce((m, x) => Math.max(m, x.id), 0) + 1, ...contactForm }];
+                  clientsStore.updateClient(client.id, { additionalContacts: next });
+                  setContactFormOpen(false);
+                  setEditingContactId(null);
+                }}
+                className="bg-[#4A6FA5] hover:bg-[#3d5a85] text-white h-9 px-4 text-[14px] rounded-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#4A6FA5]"
+              >
+                Save
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Edit tabs modal (Figma) ── */}
+      {showTabSettings && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={() => setShowTabSettings(false)}>
+          <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" />
+          <div className="relative bg-white rounded-xl shadow-2xl w-[460px] max-w-[92vw] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-4 py-4">
+              <h2 className="text-[20px] text-[#1A2332]" style={{ fontWeight: 600, lineHeight: "1.35" }}>Edit tabs</h2>
+              <button onClick={() => setShowTabSettings(false)} className="w-6 h-6 flex items-center justify-center rounded hover:bg-[#F3F4F6] text-[#6B7280]" aria-label="Close">
+                <span className="material-icons" style={{ fontSize: "18px" }}>close</span>
+              </button>
+            </div>
+            <div className="px-4 grid grid-cols-2 grid-rows-4 grid-flow-col gap-x-6 gap-y-3">
               {tabs.map(({ key, label }) => (
-                <label key={key} className="flex items-center gap-2.5 px-4 py-2 hover:bg-[#F9FAFB] cursor-pointer">
+                <label key={key} className="flex items-center gap-2.5 cursor-pointer">
                   <input
                     type="checkbox"
-                    checked={!hiddenTabs.has(key)}
-                    onChange={() => toggleTabVisibility(key)}
+                    checked={!pendingHidden.has(key)}
+                    onChange={() => setPendingHidden((prev) => { const n = new Set(prev); if (n.has(key)) n.delete(key); else n.add(key); return n; })}
                     className="w-4 h-4 accent-[#4A6FA5]"
                   />
-                  <span className="text-[13px] text-[#374151]" style={{ fontWeight: 500 }}>{label}</span>
+                  <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>{label}</span>
                 </label>
               ))}
             </div>
+            <div className="flex items-center justify-end gap-2 px-4 py-4 mt-2">
+              <Button variant="outline" onClick={() => setShowTabSettings(false)} className="border-[#E5E7EB] text-[#1A2332] hover:bg-[#F5F7FA] h-9 px-4 text-[14px] rounded-lg">Cancel</Button>
+              <Button onClick={() => { setHiddenTabs(new Set(pendingHidden)); setShowTabSettings(false); }} className="bg-[#4A6FA5] hover:bg-[#3d5a85] text-white h-9 px-4 text-[14px] rounded-lg">Save</Button>
+            </div>
           </div>
-        </>
+        </div>
       )}
+
+      {/* ── Edit address modal (Figma 489:35769) ── */}
+      {editAddressOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={() => setEditAddressOpen(false)}>
+          <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" />
+          <div className="relative bg-white rounded-xl shadow-2xl w-[600px] max-w-[92vw] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-4 py-4">
+              <h2 className="text-[20px] text-[#1A2332]" style={{ fontWeight: 600, lineHeight: "1.35" }}>Edit address</h2>
+              <button onClick={() => setEditAddressOpen(false)} className="w-6 h-6 flex items-center justify-center rounded hover:bg-[#F3F4F6] text-[#6B7280]" aria-label="Close">
+                <span className="material-icons" style={{ fontSize: "18px" }}>close</span>
+              </button>
+            </div>
+            <div className="px-4 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-[14px] text-[#1A2332] mb-1 block" style={{ fontWeight: 500 }}>Country</Label>
+                  <Select value={addressForm.country || undefined} onValueChange={(v) => setAddressForm((p) => ({ ...p, country: v }))}>
+                    <SelectTrigger className="border-[#E5E7EB] bg-white h-9 text-[14px]"><SelectValue placeholder="Country" /></SelectTrigger>
+                    <SelectContent>{["United States", "Canada", "Mexico"].map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-[14px] text-[#1A2332] mb-1 block" style={{ fontWeight: 500 }}>State</Label>
+                  <Select value={addressForm.state || undefined} onValueChange={(v) => setAddressForm((p) => ({ ...p, state: v }))}>
+                    <SelectTrigger className="border-[#E5E7EB] bg-white h-9 text-[14px]"><SelectValue placeholder="State" /></SelectTrigger>
+                    <SelectContent className="max-h-[260px]">{US_STATES.map((st) => <SelectItem key={st} value={st}>{st}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div>
+                <Label className="text-[14px] text-[#1A2332] mb-1 block" style={{ fontWeight: 500 }}>City</Label>
+                <Input value={addressForm.city} onChange={(e) => setAddressForm((p) => ({ ...p, city: e.target.value }))} className="border-[#E5E7EB] bg-white h-9 text-[14px]" />
+              </div>
+              <div className="flex gap-3 items-end">
+                <div className="flex-1">
+                  <Label className="text-[14px] text-[#1A2332] mb-1 block" style={{ fontWeight: 500 }}>Address</Label>
+                  <Input value={addressForm.street} onChange={(e) => setAddressForm((p) => ({ ...p, street: e.target.value }))} className="border-[#E5E7EB] bg-white h-9 text-[14px]" />
+                </div>
+                <Input placeholder="Unit" value={addressForm.unit} onChange={(e) => setAddressForm((p) => ({ ...p, unit: e.target.value }))} className="border-[#E5E7EB] bg-white h-9 text-[14px] w-[80px]" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-[14px] text-[#1A2332] mb-1 block" style={{ fontWeight: 500 }}>County</Label>
+                  <Input value={addressForm.county} onChange={(e) => setAddressForm((p) => ({ ...p, county: e.target.value }))} className="border-[#E5E7EB] bg-white h-9 text-[14px]" />
+                </div>
+                <div>
+                  <Label className="text-[14px] text-[#1A2332] mb-1 block" style={{ fontWeight: 500 }}>ZIP Code</Label>
+                  <Input value={addressForm.zip} onChange={(e) => setAddressForm((p) => ({ ...p, zip: e.target.value }))} className="border-[#E5E7EB] bg-white h-9 text-[14px]" />
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-2 px-4 py-4 mt-1">
+              <Button variant="outline" onClick={() => setEditAddressOpen(false)} className="border-[#E5E7EB] text-[#1A2332] hover:bg-[#F5F7FA] h-9 px-4 text-[14px] rounded-lg">Cancel</Button>
+              <Button
+                onClick={() => {
+                  if (editAddressId == null) {
+                    clientsStore.updateClient(client.id, {
+                      address: addressForm.street, unit: addressForm.unit, city: addressForm.city,
+                      state: addressForm.state, zip: addressForm.zip, county: addressForm.county, country: addressForm.country,
+                    });
+                  } else {
+                    clientsStore.updateClient(client.id, {
+                      serviceAddresses: serviceAddresses.map((a) => a.id === editAddressId
+                        ? { ...a, street: addressForm.street, unit: addressForm.unit, city: addressForm.city, state: addressForm.state, zip: addressForm.zip, county: addressForm.county }
+                        : a),
+                    });
+                  }
+                  setEditAddressOpen(false);
+                }}
+                className="bg-[#4A6FA5] hover:bg-[#3d5a85] text-white h-9 px-4 text-[14px] rounded-lg"
+              >
+                Save
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Edit address notes modal (Figma 489:36354) ── */}
+      {editNotesOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={() => setEditNotesOpen(false)}>
+          <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" />
+          <div className="relative bg-white rounded-xl shadow-2xl w-[600px] max-w-[92vw] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-4 py-4">
+              <h2 className="text-[20px] text-[#1A2332]" style={{ fontWeight: 600, lineHeight: "1.35" }}>Edit address notes</h2>
+              <button onClick={() => setEditNotesOpen(false)} className="w-6 h-6 flex items-center justify-center rounded hover:bg-[#F3F4F6] text-[#6B7280]" aria-label="Close">
+                <span className="material-icons" style={{ fontSize: "18px" }}>close</span>
+              </button>
+            </div>
+            <div className="px-4">
+              <Label className="text-[14px] text-[#1A2332] mb-1 block" style={{ fontWeight: 500 }}>Address notes</Label>
+              <Textarea value={notesDraft} onChange={(e) => setNotesDraft(e.target.value)} className="border-[#E5E7EB] bg-white text-[14px] min-h-[76px]" placeholder="Gate code, access instructions…" />
+            </div>
+            <div className="flex items-center justify-end gap-2 px-4 py-4 mt-2">
+              <Button variant="outline" onClick={() => setEditNotesOpen(false)} className="border-[#E5E7EB] text-[#1A2332] hover:bg-[#F5F7FA] h-9 px-4 text-[14px] rounded-lg">Cancel</Button>
+              <Button onClick={() => { clientsStore.updateClient(client.id, { gateCode: notesDraft }); setEditNotesOpen(false); }} className="bg-[#4A6FA5] hover:bg-[#3d5a85] text-white h-9 px-4 text-[14px] rounded-lg">Save</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Delete confirmation (Figma 489:34912) ── */}
+      <ConfirmDialog
+        open={pendingDelete != null}
+        onConfirm={() => { pendingDelete?.(); setPendingDelete(null); }}
+        onCancel={() => setPendingDelete(null)}
+      />
     </div>
   );
 }
