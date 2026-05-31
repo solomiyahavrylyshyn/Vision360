@@ -1,5 +1,6 @@
 import { useState, useSyncExternalStore } from "react";
 import { useNavigate, useSearchParams } from "react-router";
+import { toast } from "sonner";
 import { clientsStore } from "../stores/clientsStore";
 import { ItemPicker, catalogItemToLineItem, type CatalogItem, type SelectedLineItem } from "../components/ItemPicker";
 import { PageHeader } from "../components/ui/page-header";
@@ -60,6 +61,19 @@ export function CreateInvoice() {
     const newId = lineItems.length > 0 ? Math.max(...lineItems.map(li => li.id)) + 1 : 1;
     setLineItems([...lineItems, catalogItemToLineItem(catalogItem, newId, 1)]);
     setItemPickerOpen(false);
+  };
+
+  // Save handlers with validation + feedback (was a silent redirect with no checks).
+  const handleSaveInvoice = () => {
+    if (!client.trim()) { toast.error("Select a client before saving the invoice."); return; }
+    if (lineItems.length === 0) { toast.error("Add at least one line item before saving."); return; }
+    toast.success("Invoice created");
+    navigate(returnTo || "/invoices");
+  };
+  const handleSaveDraft = () => {
+    if (!client.trim() && lineItems.length === 0) { toast.error("Add a client or a line item before saving a draft."); return; }
+    toast.success("Draft saved");
+    navigate(returnTo || "/invoices");
   };
 
   const subtotal = lineItems.reduce((sum, li) => sum + li.total, 0);
@@ -258,14 +272,14 @@ export function CreateInvoice() {
             Cancel
           </button>
           <button
-            onClick={() => navigate(returnTo || "/invoices")}
+            onClick={handleSaveDraft}
             className="px-6 py-2.5 border border-[#E5E7EB] rounded-md text-sm text-[#1A2332] hover:bg-[#F5F7FA]"
             style={{ fontWeight: 500 }}
           >
             Save as Draft
           </button>
           <button
-            onClick={() => navigate(returnTo || "/invoices")}
+            onClick={handleSaveInvoice}
             className="px-6 py-2.5 bg-[#4A6FA5] text-white rounded-md text-sm hover:bg-[#3d5a85]"
             style={{ fontWeight: 600 }}
           >

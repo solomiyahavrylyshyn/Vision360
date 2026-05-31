@@ -15,6 +15,7 @@ import {
 } from "./ui/nav-icons";
 import { applyStoredBrandTheme, BRAND_LOGO_EVENT, getStoredBrandLogo } from "../utils/brandTheme";
 import { formatTrialDate, getTrialDaysRemaining, isTrialActive, trialStore } from "../stores/trialStore";
+import { clientsStore } from "../stores/clientsStore";
 
 const navItems = [
   { to: "/", icon: HomeIcon, label: "Home" },
@@ -46,6 +47,8 @@ export function Layout() {
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [companyLogoSrc, setCompanyLogoSrc] = useState(() => getStoredBrandLogo() || wordmarkLogo);
   const trial = useSyncExternalStore(trialStore.subscribe, trialStore.getSnapshot);
+  // Real clients for global search (was a hardcoded mock that didn't match the actual data).
+  const allClients = useSyncExternalStore(clientsStore.subscribe, clientsStore.getSnapshot);
   const showTrialBanner = isTrialActive(trial);
   const trialDaysRemaining = getTrialDaysRemaining(trial);
 
@@ -98,14 +101,15 @@ export function Layout() {
     const results: any[] = [];
 
     if (searchFilter === "All" || searchFilter === "Clients") {
-      mockSearchData.clients
-        .filter(c => c.name.toLowerCase().includes(query) || c.email.toLowerCase().includes(query))
-        .forEach(c => results.push({ type: "client", data: c }));
+      allClients
+        .filter(c => c.name.toLowerCase().includes(query) || (c.email || "").toLowerCase().includes(query) || (c.phone || c.mobilePhone || "").includes(query))
+        .slice(0, 8)
+        .forEach(c => results.push({ type: "client", data: { id: c.id, name: c.name, email: c.email, phone: c.phone || c.mobilePhone, address: `${c.address}, ${c.city}, ${c.state} ${c.zip}` } }));
     }
 
     if (searchFilter === "All" || searchFilter === "Jobs") {
       mockSearchData.jobs
-        .filter(j => j.title.toLowerCase().includes(query) || j.jobNumber.toLowerCase().includes(query))
+        .filter(j => j.title.toLowerCase().includes(query) || j.jobNumber.toLowerCase().includes(query) || j.client.toLowerCase().includes(query))
         .forEach(j => results.push({ type: "job", data: j }));
     }
 
