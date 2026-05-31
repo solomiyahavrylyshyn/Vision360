@@ -37,6 +37,7 @@ type SettingsSection =
   | "business"
   | "security"
   | "taxes"
+  | "localization"
   | "relationships";
 
 const sectionAliases: Partial<Record<SettingsSection, SettingsSection>> = {
@@ -67,6 +68,7 @@ const navGroups: Array<{
     icon: "settings",
     items: [
       { id: "general", label: "General", description: "Industry, custom fields, legal texts" },
+      { id: "localization", label: "Localization", description: "Language, date / time format, time zone, week start" },
       { id: "jobs", label: "Jobs", description: "Job types, schedule, signatures, notes" },
       { id: "estimates", label: "Estimates", description: "Templates, deposits, terms" },
       { id: "invoices", label: "Invoices", description: "Templates, signatures, receipt notes" },
@@ -3421,6 +3423,18 @@ export function Settings() {
                     <Button className="mt-3 h-8 bg-[#4A6FA5] px-4 text-[13px] hover:bg-[#3d5a85]">Save</Button>
                   </SectionCard>
                 ))}
+              </div>
+            </>
+          )}
+
+          {activeSection === "localization" && (
+            <>
+              <SectionHeader
+                title="Localization"
+                description="Country, language, time zone, date / time format, and week start. These apply across the app — calendar, documents, and any timestamp the user sees."
+              />
+              <div className="space-y-4 pb-6">
+                <RegionalSettingsCard />
               </div>
             </>
           )}
