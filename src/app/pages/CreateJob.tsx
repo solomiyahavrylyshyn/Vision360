@@ -40,7 +40,8 @@ export function CreateJob() {
   const [jobType, setJobType] = useState<"one-off" | "recurring">("one-off");
   const [jobCategory, setJobCategory] = useState("");
   const availableJobTypes = useSyncExternalStore(jobTypesStore.subscribe, jobTypesStore.getJobTypes);
-  const fieldEmployees = ["Peter Novak", "Travis Webb", "Ernesto Reyes", "Alex Kim"];
+  // Keep in sync with Calendar TEAM and JobDetail FIELD_EMPLOYEES (QA BUG-09)
+  const fieldEmployees = ["Peter Novak", "Travis Brown", "Maria Garcia"];
   const [serviceCountry, setServiceCountry] = useState("United States");
   const [serviceStreet, setServiceStreet] = useState("");
   const [serviceCity, setServiceCity] = useState("");

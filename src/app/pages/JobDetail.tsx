@@ -164,7 +164,7 @@ const mockJobData: Record<string, any> = {
     gateCode: "",
     phone: "(407) 555-1234", email: "sarah.j@email.com",
     jobNumber: "10246-J01", jobType: "Install",
-    assignedTo: "Travis Webb",
+    assignedTo: "Travis Brown",
     startedOn: "Apr 10, 2026", endsOn: "Apr 10, 2026",
     startTime: "9:00 AM", endTime: "1:00 PM",
     status: "In Progress" as const,
@@ -423,7 +423,10 @@ export function JobDetail() {
   const [editingSection, setEditingSection] = useState<null | "address" | "schedule" | "overview">(null);
   const [editJob, setEditJob] = useState<any>(job);
 
-  const FIELD_EMPLOYEES = ["Peter Novak", "Travis Webb", "Ernesto Reyes", "Alex Kim"];
+  // Must stay in sync with Calendar.tsx TEAM list — mismatched names caused
+  // QA BUG-09 where the Assigned-To dropdown showed people who didn't exist
+  // on the schedule board.
+  const FIELD_EMPLOYEES = ["Peter Novak", "Travis Brown", "Maria Garcia"];
   const [assignedTo, setAssignedTo] = useState<string>(job.assignedTo || "");
   const [assignedToOpen, setAssignedToOpen] = useState(false);
 

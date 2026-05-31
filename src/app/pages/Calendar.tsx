@@ -1568,7 +1568,7 @@ export function Calendar() {
                         title="Drag onto a technician's lane to assign"
                       >
                         <div className="flex items-center justify-between gap-2 text-[10px] text-[#9CA3AF] tabular-nums">
-                          <span>{fmtHour(job.start)} – {fmtHour(job.end)}</span>
+                          <span>{formatRegionalTime(job.start, regionalSettings)} – {formatRegionalTime(job.end, regionalSettings)}</span>
                           <span
                             className="px-1.5 py-0.5 rounded-full text-[9px] max-w-[88px] truncate"
                             style={{ backgroundColor: STATUS_STYLES[job.status].bg, color: STATUS_STYLES[job.status].color, fontWeight: 700 }}
