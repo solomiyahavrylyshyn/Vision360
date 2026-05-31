@@ -71,6 +71,9 @@ export function CreateExpense() {
   // Section 7.2 — batch entry shortcut: read context from query params
   const initialJobId = searchParams.get("fromJob") || "";
   const initialInvoiceId = searchParams.get("fromInvoice") || "";
+  // Return to the page this was opened from (job/client/etc.), falling back to the list.
+  const returnTo = searchParams.get("returnTo");
+  const expenseHome = returnTo || "/expenses";
 
   const [merchant, setMerchant] = useState("");
   const [category, setCategory] = useState("");
@@ -178,7 +181,7 @@ export function CreateExpense() {
 
   const handleSave = () => {
     setSaving(true);
-    setTimeout(() => navigate("/expenses"), 600);
+    setTimeout(() => navigate(expenseHome), 600);
   };
 
   // Section 7.2 — Save and Create Another: persist + clear non-context fields,
@@ -216,7 +219,7 @@ export function CreateExpense() {
           <div className="flex items-start justify-between">
             <div className="flex flex-col gap-2">
               <button
-                onClick={() => navigate("/expenses")}
+                onClick={() => navigate(expenseHome)}
                 className="inline-flex items-center gap-1.5 text-[13px] text-[#4A6FA5] hover:text-[#3d5a85] transition-colors self-start"
                 style={{ fontWeight: 500 }}
               >
@@ -233,7 +236,7 @@ export function CreateExpense() {
             </div>
             <div className="flex items-center gap-2.5 flex-shrink-0">
               <button
-                onClick={() => navigate("/expenses")}
+                onClick={() => navigate(expenseHome)}
                 className="h-10 px-5 rounded-lg border border-[#E5E7EB] bg-white text-[13px] text-[#546478] hover:bg-[#F5F7FA] transition-colors"
                 style={{ fontWeight: 500 }}
               >
@@ -935,20 +938,7 @@ export function CreateExpense() {
                     >
                       upload_file
                     </span>
-                    Upload
-                  </button>
-                  <button
-                    onClick={() => cameraInputRef.current?.click()}
-                    className="flex-1 flex items-center justify-center gap-2 h-10 border border-[#E5E7EB] rounded-lg text-[13px] text-[#1A2332] hover:bg-[#F5F7FA] transition-colors"
-                    style={{ fontWeight: 500 }}
-                  >
-                    <span
-                      className="material-icons text-[#4A6FA5]"
-                      style={{ fontSize: "18px" }}
-                    >
-                      photo_camera
-                    </span>
-                    Take Photo
+                    Upload file
                   </button>
                 </div>
 
@@ -1130,7 +1120,7 @@ export function CreateExpense() {
       {/* ── Mobile sticky save bar ── */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-[#E5E7EB] px-4 py-3 z-30 flex gap-3">
         <button
-          onClick={() => navigate("/expenses")}
+          onClick={() => navigate(expenseHome)}
           className="flex-1 h-11 rounded-lg border border-[#E5E7EB] text-[14px] text-[#546478] hover:bg-[#F5F7FA] transition-colors"
           style={{ fontWeight: 500 }}
         >

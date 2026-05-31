@@ -48,8 +48,8 @@ export function CreateJob() {
   const [serviceZip, setServiceZip] = useState("");
   const [serviceCounty, setServiceCounty] = useState("");
   const [gateCode, setGateCode] = useState("");
-  const [startDate, setStartDate] = useState("2026-04-06");
-  const [endDate, setEndDate] = useState("2026-04-06");
+  const [startDate, setStartDate] = useState(() => new Date().toISOString().split("T")[0]);
+  const [endDate, setEndDate] = useState(() => new Date().toISOString().split("T")[0]);
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const [assignedTo, setAssignedTo] = useState("");

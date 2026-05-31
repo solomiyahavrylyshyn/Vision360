@@ -682,14 +682,10 @@ export function Calendar() {
                     <div className="text-[14px] text-[#546478] mt-0.5 truncate">{event.title}</div>
                     <div className="text-[14px] text-[#8899AA] mt-0.5 truncate">{event.property}</div>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <button onClick={handlePhoneClick} aria-label="Call customer" className="w-8 h-8 rounded-lg border border-[#E5E7EB] flex items-center justify-center hover:bg-[#F5F7FA] transition-colors">
-                      <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>call</span>
-                    </button>
-                    <button onClick={handleChatClick} aria-label="Message customer" className="w-8 h-8 rounded-lg border border-[#E5E7EB] flex items-center justify-center hover:bg-[#F5F7FA] transition-colors">
-                      <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>mail</span>
-                    </button>
-                  </div>
+                  <a href="tel:+18132867572" className="flex items-center gap-1.5 shrink-0 text-[13px] text-[#4A6FA5] hover:underline" style={{ fontWeight: 500 }}>
+                    <span className="material-icons" style={{ fontSize: "16px" }}>call</span>
+                    (813) 286-7572
+                  </a>
                 </div>
                 <div className="h-px bg-[#E5E7EB] my-3.5" />
                 <div className="space-y-3">
@@ -713,6 +709,11 @@ export function Calendar() {
             )}
             {sidebarTab === "Notes" && (
               <div className="space-y-3">
+                <div className="flex items-center gap-1.5 text-[12px] text-[#6B7280]">
+                  <span className="material-icons" style={{ fontSize: "15px" }}>work_outline</span>
+                  <span style={{ fontWeight: 600 }}>Job notes</span>
+                  <span>· visible to your team on this job</span>
+                </div>
                 <div className="bg-white rounded-xl border border-[#E5E7EB] p-3">
                   <textarea
                     value={noteDraft}
@@ -1222,14 +1223,10 @@ export function Calendar() {
                           <div className="text-[12px] text-[#546478] mt-0.5">{selectedDispatchJob.service}</div>
                           <div className="text-[11px] text-[#8899AA] mt-1">{selectedDispatchJob.address}</div>
                         </div>
-                        <div className="flex gap-1.5 shrink-0">
-                          <button onClick={handlePhoneClick} aria-label="Call client" className="w-8 h-8 rounded-lg border border-[#E5E7EB] flex items-center justify-center hover:bg-[#F5F7FA] transition-colors">
-                            <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "17px" }}>phone</span>
-                          </button>
-                          <button onClick={handleChatClick} aria-label="Open chat" className="w-8 h-8 rounded-lg border border-[#E5E7EB] flex items-center justify-center hover:bg-[#F5F7FA] transition-colors">
-                            <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "17px" }}>chat</span>
-                          </button>
-                        </div>
+                        <a href="tel:+18132867572" className="flex items-center gap-1.5 shrink-0 text-[12px] text-[#4A6FA5] hover:underline" style={{ fontWeight: 500 }}>
+                          <span className="material-icons" style={{ fontSize: "15px" }}>phone</span>
+                          (813) 286-7572
+                        </a>
                       </div>
                       <div className="border-t border-[#E5E7EB] pt-3 mt-3">
                         {[
@@ -1248,6 +1245,11 @@ export function Calendar() {
                   )}
                   {sidebarTab === "Notes" && (
                     <div className="p-3 space-y-3">
+                      <div className="flex items-center gap-1.5 text-[12px] text-[#6B7280]">
+                        <span className="material-icons" style={{ fontSize: "15px" }}>work_outline</span>
+                        <span style={{ fontWeight: 600 }}>Job notes</span>
+                        <span>· visible to your team on this job</span>
+                      </div>
                       <div className="bg-white rounded-xl border border-[#E5E7EB] p-3">
                         <textarea
                           value={noteDraft}
@@ -1540,14 +1542,10 @@ export function Calendar() {
                             <div className="text-[12px] text-[#546478] mt-0.5">{selectedDayJob.service}</div>
                             <div className="text-[11px] text-[#8899AA] mt-1">{selectedDayJob.address}</div>
                           </div>
-                          <div className="flex gap-1.5 shrink-0">
-                            <button onClick={handlePhoneClick} aria-label="Call client" className="w-8 h-8 rounded-lg border border-[#E5E7EB] flex items-center justify-center hover:bg-[#F5F7FA] transition-colors">
-                              <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "17px" }}>phone</span>
-                            </button>
-                            <button onClick={handleChatClick} aria-label="Open chat" className="w-8 h-8 rounded-lg border border-[#E5E7EB] flex items-center justify-center hover:bg-[#F5F7FA] transition-colors">
-                              <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "17px" }}>chat</span>
-                            </button>
-                          </div>
+                          <a href="tel:+18132867572" className="flex items-center gap-1.5 shrink-0 text-[12px] text-[#4A6FA5] hover:underline" style={{ fontWeight: 500 }}>
+                            <span className="material-icons" style={{ fontSize: "15px" }}>phone</span>
+                            (813) 286-7572
+                          </a>
                         </div>
                         <div className="border-t border-[#E5E7EB] pt-3 mt-3">
                           {[
@@ -1567,6 +1565,11 @@ export function Calendar() {
                   )}
                   {sidebarTab === "Notes" && (
                     <div className="p-3 space-y-3">
+                      <div className="flex items-center gap-1.5 text-[12px] text-[#6B7280]">
+                        <span className="material-icons" style={{ fontSize: "15px" }}>work_outline</span>
+                        <span style={{ fontWeight: 600 }}>Job notes</span>
+                        <span>· visible to your team on this job</span>
+                      </div>
                       <div className="bg-white rounded-xl border border-[#E5E7EB] p-3">
                         <textarea
                           value={noteDraft}

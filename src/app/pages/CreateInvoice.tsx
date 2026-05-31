@@ -32,8 +32,8 @@ export function CreateInvoice() {
   const clientNames = useSyncExternalStore(clientsStore.subscribe, clientsStore.getSnapshot).map((c) => c.name);
   const clientOptions = client && !clientNames.includes(client) ? [client, ...clientNames] : clientNames;
   const [invoiceNumber] = useState("10245-I02");
-  const [invoiceDate, setInvoiceDate] = useState("2026-04-07");
-  const [dueDate, setDueDate] = useState("2026-05-07");
+  const [invoiceDate, setInvoiceDate] = useState(() => new Date().toISOString().split("T")[0]);
+  const [dueDate, setDueDate] = useState(() => { const d = new Date(); d.setDate(d.getDate() + 30); return d.toISOString().split("T")[0]; });
   const [linkedJob, setLinkedJob] = useState(searchParams.get("job") || "");
   const [linkedEstimate, setLinkedEstimate] = useState(searchParams.get("estimate") || "");
   const [lineItems, setLineItems] = useState<SelectedLineItem[]>([]);

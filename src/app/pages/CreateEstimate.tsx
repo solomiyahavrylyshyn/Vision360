@@ -38,7 +38,7 @@ export function CreateEstimate() {
   const [serviceAddress, setServiceAddress] = useState("");
   const [estimateName, setEstimateName] = useState("");
   const [estimateNumber] = useState("10245-E03");
-  const [dateCreated] = useState("2026-04-27");
+  const [dateCreated] = useState(() => new Date().toISOString().split("T")[0]);
   const [createdBy] = useState("Marek Stroz");
   const [expirationDate, setExpirationDate] = useState("");
   const [linkedJob, setLinkedJob] = useState(searchParams.get("job") || "");

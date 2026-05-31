@@ -201,10 +201,10 @@ type TabKey = "details" | "appointments" | "checklist" | "documents" | "items" |
 
 const BASE_TABS: { key: TabKey; label: string }[] = [
   { key: "details",       label: "Details" },
-  { key: "estimates",     label: "Estimates (5)" },
+  { key: "estimates",     label: "Estimates" },
   { key: "invoices",      label: "Invoices" },
   { key: "items",         label: "Items" },
-  { key: "expense",       label: "Expenses (4)" },
+  { key: "expense",       label: "Expenses" },
 ];
 
 /* 11 placeholder photos for the Attachments panel */
@@ -945,7 +945,7 @@ export function JobDetail() {
         <h3 className="text-[15px] text-[#1A2332]" style={{ fontWeight: 600 }}>Expenses</h3>
         <button
           type="button"
-          onClick={() => navigate(`/expenses/new?fromJob=${encodeURIComponent(job.jobNumber)}${job.linkedInvoice ? `&fromInvoice=${encodeURIComponent(job.linkedInvoice.id)}` : ""}`)}
+          onClick={() => navigate(`/expenses/new?fromJob=${encodeURIComponent(job.jobNumber)}${job.linkedInvoice ? `&fromInvoice=${encodeURIComponent(job.linkedInvoice.id)}` : ""}&returnTo=${encodeURIComponent("/jobs/" + id)}`)}
           aria-label="Add expense"
           title="Add expense"
           className="w-7 h-7 flex items-center justify-center rounded-md text-[#9CA3AF] hover:text-[#4A6FA5] hover:bg-[#F5F7FA] transition-colors"
@@ -1473,14 +1473,14 @@ export function JobDetail() {
               <DropdownMenuContent align="end" className="w-[180px] p-1">
                 <DropdownMenuItem
                   className="h-9 px-3 text-[13px] text-[#374151] flex items-center gap-2.5 cursor-pointer"
-                  onClick={() => navigate(`/estimates/create?fromJob=${job.id}&client=${encodeURIComponent(job.client)}`)}
+                  onClick={() => navigate(`/estimates/new?client=${encodeURIComponent(job.client)}&returnTo=${encodeURIComponent("/jobs/" + id)}`)}
                 >
                   <span className="material-icons text-[#6B7280]" style={{ fontSize: "16px" }}>request_quote</span>
                   Create Estimate
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   className="h-9 px-3 text-[13px] text-[#374151] flex items-center gap-2.5 cursor-pointer"
-                  onClick={() => navigate(`/invoices/create?job=${job.jobNumber}&client=${encodeURIComponent(job.client)}`)}
+                  onClick={() => navigate(`/invoices/new?client=${encodeURIComponent(job.client)}&returnTo=${encodeURIComponent("/jobs/" + id)}`)}
                 >
                   <span className="material-icons text-[#6B7280]" style={{ fontSize: "16px" }}>receipt</span>
                   Create Invoice
