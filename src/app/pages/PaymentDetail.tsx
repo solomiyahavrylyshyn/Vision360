@@ -3,7 +3,8 @@ import { useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
 import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
 import { DetailTabs, TabSettingsButton } from "../components/ui/detail-tabs";
-import { mockPayments, paymentStatusColors, paymentMethodIcons, type Payment } from "./Payments";
+import { paymentStatusColors, paymentMethodIcons, type Payment } from "./Payments";
+import { paymentsStore } from "../stores/paymentsStore";
 import { formatRegionalDate } from "../stores/regionalSettingsStore";
 
 interface PaymentAttachment {
@@ -92,7 +93,7 @@ export function PaymentDetail() {
     });
   };
 
-  const payment: Payment | undefined = mockPayments.find(p => String(p.id) === id);
+  const payment: Payment | undefined = paymentsStore.getById(Number(id));
 
   if (!payment) {
     return (

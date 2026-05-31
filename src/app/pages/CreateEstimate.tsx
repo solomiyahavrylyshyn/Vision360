@@ -124,7 +124,9 @@ export function CreateEstimate() {
   const handleSaveEstimate = () => {
     if (!client.trim()) { toast.error("Select a client before saving the estimate."); return; }
     if (lineItems.length === 0) { toast.error("Add at least one line item before saving."); return; }
-    persistEstimate("Sent", "Estimate created");
+    // Save as Draft — the user sends it explicitly from EstimateDetail (DEF-M01-06).
+    // The previous "Sent" default meant Draft→Sent could never be tested separately.
+    persistEstimate("Draft", "Estimate created");
   };
   const handleSaveDraft = () => {
     if (!client.trim() && lineItems.length === 0) { toast.error("Add a client or a line item before saving a draft."); return; }

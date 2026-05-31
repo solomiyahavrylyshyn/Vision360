@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { Button } from "../components/ui/button";
+import { toast } from "sonner";
+import { paymentsStore } from "../stores/paymentsStore";
+import type { PaymentMethod, PaymentStatus } from "./Payments";
 
 const paymentMethods = ["Cash", "Check", "Credit Card", "Debit Card", "Bank Transfer", "Other"];
 
@@ -11,7 +14,7 @@ export function CreatePayment() {
   const prefilledClientId = searchParams.get("clientId") || "";
   const prefilledAmount = searchParams.get("amount") || "";
   const returnTo = searchParams.get("returnTo");
-  const goBack = () => (returnTo ? navigate(returnTo) : navigate(-1));
+  const goBack = () => navigate(returnTo || "/payments");
 
   const [client, setClient] = useState(prefilledClient);
   const [amount, setAmount] = useState(prefilledAmount);
@@ -21,7 +24,26 @@ export function CreatePayment() {
   const [note, setNote] = useState("");
 
   const handleSave = () => {
-    goBack();
+    const trimmedClient = client.trim();
+    if (!trimmedClient) { toast.error("Select a customer"); return; }
+    const parsedAmount = parseFloat(amount);
+    if (!amount || isNaN(parsedAmount) || parsedAmount <= 0) { toast.error("Enter a valid amount"); return; }
+
+    const record = paymentsStore.add({
+      date: paymentDate,
+      amount: parsedAmount,
+      method: method as PaymentMethod,
+      status: "Completed" as PaymentStatus,
+      clientName: trimmedClient,
+      clientEmail: searchParams.get("clientEmail") || "",
+      invoiceId: Number(searchParams.get("invoiceId")) || 0,
+      invoiceNumber: searchParams.get("invoice") || "—",
+      jobId: searchParams.get("job") || "",
+      note: note.trim(),
+      createdBy: "You",
+    });
+    toast.success("Payment recorded");
+    navigate(returnTo || `/payments/${record.id}`);
   };
 
   return (

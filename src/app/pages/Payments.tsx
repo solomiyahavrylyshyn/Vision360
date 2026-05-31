@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useSyncExternalStore } from "react";
 import { useNavigate } from "react-router";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
@@ -11,6 +11,7 @@ import { CreateActionButton } from "../components/ui/create-action-button";
 import { StatCard } from "../components/ui/stat-card";
 import { AdvancedFilterField, AdvancedFilterPanel, advancedInputClass, advancedSelectClass } from "../components/ui/advanced-filters";
 import { formatRegionalDate } from "../stores/regionalSettingsStore";
+import { paymentsStore } from "../stores/paymentsStore";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 export type PaymentMethod = "Cash" | "Check" | "Credit Card" | "Debit Card" | "Bank Transfer" | "Other";
@@ -99,7 +100,7 @@ function matchesDatePreset(date: string, preset: string) {
 export function Payments() {
   const navigate = useNavigate();
   const [cols, moveCol] = useDraggableColumns([...PAYMENTS_COLS]);
-  const [payments, setPayments] = useState(mockPayments);
+  const payments = useSyncExternalStore(paymentsStore.subscribe, paymentsStore.getSnapshot);
   const [search, setSearch] = useState("");
 
   // Quick filters
@@ -347,7 +348,7 @@ export function Payments() {
                 icon: "undo",
                 destructive: true,
                 onClick: () => {
-                  setPayments(prev => prev.map(p => selectedIds.has(p.id) ? { ...p, status: "Refunded" } : p));
+                  selectedIds.forEach(id => paymentsStore.update(id, { status: "Refunded" }));
                   setSelectedIds(new Set());
                 },
               },
@@ -460,7 +461,7 @@ export function Payments() {
                           <KebabItem icon="receipt" onSelect={() => navigate(`/invoices/${p.invoiceId}`)}>Open invoice</KebabItem>
                           <KebabSeparator />
                           <KebabItem icon="undo" destructive onSelect={() => {
-                            setPayments(prev => prev.map(pp => pp.id === p.id ? { ...pp, status: "Refunded" } : pp));
+                            paymentsStore.update(p.id, { status: "Refunded" });
                           }}>Refund</KebabItem>
                         </KebabMenu>
                       </td>

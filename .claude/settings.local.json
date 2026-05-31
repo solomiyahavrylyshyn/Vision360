@@ -110,7 +110,8 @@
       "Bash(npx --no-install babel src/app/pages/Calendar.tsx --presets=@babel/preset-typescript,@babel/preset-react -o /tmp/calendar.out.js)",
       "Bash(rm -f C:/Users/mykha/Documents/Vision360/.git/worktrees/musing-boyd-546eca/index.lock)",
       "Bash(py -c ' *)",
-      "Bash(node -e ' *)"
+      "Bash(node -e ' *)",
+      "Bash(grep -v \"^$\")"
     ]
   }
 }

@@ -240,6 +240,16 @@ export function EstimateDetail() {
     return mockEstimates["1"];
   })();
   const [estimate, setEstimate] = useState<EstimateData>({ ...initial });
+  // Keep in sync with the store for fields that can be changed elsewhere
+  // (e.g. status changed from the Estimates list page). Only re-sync the
+  // status so the user's in-page edits (items, notes) aren't blown away.
+  const latestRecord = estimatesStore.getById(estimate.id);
+  useEffect(() => {
+    if (latestRecord && latestRecord.status !== estimate.status) {
+      setEstimate(prev => ({ ...prev, status: latestRecord.status }));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [latestRecord?.status]);
   const initialTabKey = (searchParams.get("tab") as TabKey) || "details";
   const [activeTab, setActiveTabState] = useState<TabKey>(initialTabKey);
   const setActiveTab = (key: TabKey) => {
@@ -260,19 +270,25 @@ export function EstimateDetail() {
     return () => window.removeEventListener(BRAND_LOGO_EVENT, handleBrandLogoChange);
   }, [handleBrandLogoChange]);
   interface DocFile { id: string; name: string; size: string; date: string; icon: string; iconColor: string; isImage?: boolean; previewUrl?: string; previewGradient?: string; uploadedBy?: string; category?: string; }
-  const [documents, setDocuments] = useState<DocFile[]>([
-    { id: "photo-34610", name: "Copy of 34610 Install outlet outdoor electrical panel.jpg", size: "3.4 MB", date: "May 19, 2026", icon: "image", iconColor: "#F59E0B", isImage: true, previewUrl: outdoorElectricalPanelPhoto, uploadedBy: "Field Crew", category: "Photos" },
-    { id: "photo-33841", name: "Copy of 33841 Install AC.jpg", size: "2.4 MB", date: "May 19, 2026", icon: "image", iconColor: "#F59E0B", isImage: true, previewUrl: installAc33841Photo, uploadedBy: "Field Crew", category: "Photos" },
-    { id: "photo-34689-tankless", name: "Copy of 34689 Install Water Heater Tankless.jpg", size: "1.8 MB", date: "May 19, 2026", icon: "image", iconColor: "#F59E0B", isImage: true, previewUrl: installWaterHeaterTanklessPhoto, uploadedBy: "Field Crew", category: "Photos" },
-    { id: "photo-34689-ac", name: "Copy of 34689 Install AC.jpg", size: "2.7 MB", date: "May 19, 2026", icon: "image", iconColor: "#F59E0B", isImage: true, previewUrl: installAcPhoto, uploadedBy: "Field Crew", category: "Photos" },
-    { id: "photo-34285", name: "Copy of 34285 Install Water Heater.jpg", size: "1.8 MB", date: "May 19, 2026", icon: "image", iconColor: "#F59E0B", isImage: true, previewUrl: installWaterHeaterPhoto, uploadedBy: "Field Crew", category: "Photos" },
-    { id: "photo-33897", name: "Copy of 33897 cu.jpg", size: "2.8 MB", date: "May 19, 2026", icon: "image", iconColor: "#F59E0B", isImage: true, previewUrl: cuPhoto, uploadedBy: "Field Crew", category: "Photos" },
-    { id: "photo-33805", name: "Copy of 33805 Install ducts & vents.jpg", size: "2.8 MB", date: "May 19, 2026", icon: "image", iconColor: "#F59E0B", isImage: true, previewUrl: installDuctsVentsPhoto, uploadedBy: "Field Crew", category: "Photos" },
-    { id: "photo-33702-1", name: "Copy of 33702 Install heating system (1).jpg", size: "1.6 MB", date: "May 19, 2026", icon: "image", iconColor: "#F59E0B", isImage: true, previewUrl: installHeatingSystem1Photo, uploadedBy: "Field Crew", category: "Photos" },
-    { id: "photo-33702", name: "Copy of 33702 Install heating system.jpg", size: "1.6 MB", date: "May 19, 2026", icon: "image", iconColor: "#F59E0B", isImage: true, previewUrl: installHeatingSystemPhoto, uploadedBy: "Field Crew", category: "Photos" },
-    { id: "photo-87970", name: "87970_20241208_113711.png", size: "10.0 MB", date: "May 19, 2026", icon: "image", iconColor: "#F59E0B", isImage: true, previewUrl: job87970Photo, uploadedBy: "Field Crew", category: "Photos" },
-    { id: "photo-44644", name: "44644_IMG_20241210_123749.png", size: "9.5 MB", date: "May 19, 2026", icon: "image", iconColor: "#F59E0B", isImage: true, previewUrl: job44644Photo, uploadedBy: "Field Crew", category: "Photos" },
-  ]);
+  // Seed documents only for legacy mock estimates that already have photos
+  // (IDs "5", "6", "7", "8" in mockEstimates). User-created estimates start
+  // with an empty gallery so QA doesn't see 11 unrelated job photos (DEF-M01-09).
+  const seedDocs: DocFile[] = Object.keys(mockEstimates).includes(id || "")
+    ? [
+        { id: "photo-34610", name: "Copy of 34610 Install outlet outdoor electrical panel.jpg", size: "3.4 MB", date: "May 19, 2026", icon: "image", iconColor: "#F59E0B", isImage: true, previewUrl: outdoorElectricalPanelPhoto, uploadedBy: "Field Crew", category: "Photos" },
+        { id: "photo-33841", name: "Copy of 33841 Install AC.jpg", size: "2.4 MB", date: "May 19, 2026", icon: "image", iconColor: "#F59E0B", isImage: true, previewUrl: installAc33841Photo, uploadedBy: "Field Crew", category: "Photos" },
+        { id: "photo-34689-tankless", name: "Copy of 34689 Install Water Heater Tankless.jpg", size: "1.8 MB", date: "May 19, 2026", icon: "image", iconColor: "#F59E0B", isImage: true, previewUrl: installWaterHeaterTanklessPhoto, uploadedBy: "Field Crew", category: "Photos" },
+        { id: "photo-34689-ac", name: "Copy of 34689 Install AC.jpg", size: "2.7 MB", date: "May 19, 2026", icon: "image", iconColor: "#F59E0B", isImage: true, previewUrl: installAcPhoto, uploadedBy: "Field Crew", category: "Photos" },
+        { id: "photo-34285", name: "Copy of 34285 Install Water Heater.jpg", size: "1.8 MB", date: "May 19, 2026", icon: "image", iconColor: "#F59E0B", isImage: true, previewUrl: installWaterHeaterPhoto, uploadedBy: "Field Crew", category: "Photos" },
+        { id: "photo-33897", name: "Copy of 33897 cu.jpg", size: "2.8 MB", date: "May 19, 2026", icon: "image", iconColor: "#F59E0B", isImage: true, previewUrl: cuPhoto, uploadedBy: "Field Crew", category: "Photos" },
+        { id: "photo-33805", name: "Copy of 33805 Install ducts & vents.jpg", size: "2.8 MB", date: "May 19, 2026", icon: "image", iconColor: "#F59E0B", isImage: true, previewUrl: installDuctsVentsPhoto, uploadedBy: "Field Crew", category: "Photos" },
+        { id: "photo-33702-1", name: "Copy of 33702 Install heating system (1).jpg", size: "1.6 MB", date: "May 19, 2026", icon: "image", iconColor: "#F59E0B", isImage: true, previewUrl: installHeatingSystem1Photo, uploadedBy: "Field Crew", category: "Photos" },
+        { id: "photo-33702", name: "Copy of 33702 Install heating system.jpg", size: "1.6 MB", date: "May 19, 2026", icon: "image", iconColor: "#F59E0B", isImage: true, previewUrl: installHeatingSystemPhoto, uploadedBy: "Field Crew", category: "Photos" },
+        { id: "photo-87970", name: "87970_20241208_113711.png", size: "10.0 MB", date: "May 19, 2026", icon: "image", iconColor: "#F59E0B", isImage: true, previewUrl: job87970Photo, uploadedBy: "Field Crew", category: "Photos" },
+        { id: "photo-44644", name: "44644_IMG_20241210_123749.png", size: "9.5 MB", date: "May 19, 2026", icon: "image", iconColor: "#F59E0B", isImage: true, previewUrl: job44644Photo, uploadedBy: "Field Crew", category: "Photos" },
+      ]
+    : [];
+  const [documents, setDocuments] = useState<DocFile[]>(seedDocs);
   const [previewFileId, setPreviewFileId] = useState<string | null>(null);
   const [docsPage, setDocsPage] = useState(0);
   const [createMenuOpen, setCreateMenuOpen] = useState(false);
@@ -918,7 +934,7 @@ export function EstimateDetail() {
                   {statusOpen && (
                     <div className="absolute left-0 top-[calc(100%+4px)] w-[200px] bg-white border border-[#E5E7EB] rounded-xl shadow-lg z-40 py-1.5">
                       {primaryStatuses.map(s => (
-                        <button key={s} onClick={() => { setEstimate(prev => ({ ...prev, status: s })); setStatusOpen(false); }}
+                        <button key={s} onClick={() => { setEstimate(prev => ({ ...prev, status: s })); estimatesStore.update(estimate.id, { status: s }); setStatusOpen(false); }}
                           className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-[13px] transition-colors ${s === estimate.status ? "bg-[#EEF3FA]" : "hover:bg-[#F5F7FA]"}`}
                           style={{ fontWeight: s === estimate.status ? 600 : 400, color: s === estimate.status ? "#4A6FA5" : "#1A2332" }}>
                           <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: statusColors[s] }} />
@@ -931,7 +947,7 @@ export function EstimateDetail() {
                         <span className="text-[10px] uppercase tracking-wider text-[#9CA3AF]" style={{ fontWeight: 600 }}>Other</span>
                       </div>
                       {otherStatuses.map(s => (
-                        <button key={s} onClick={() => { setEstimate(prev => ({ ...prev, status: s })); setStatusOpen(false); }}
+                        <button key={s} onClick={() => { setEstimate(prev => ({ ...prev, status: s })); estimatesStore.update(estimate.id, { status: s }); setStatusOpen(false); }}
                           className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-[13px] transition-colors ${s === estimate.status ? "bg-[#EEF3FA]" : "hover:bg-[#F5F7FA]"}`}
                           style={{ fontWeight: s === estimate.status ? 600 : 400, color: s === estimate.status ? "#4A6FA5" : "#1A2332" }}>
                           <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: statusColors[s] }} />
