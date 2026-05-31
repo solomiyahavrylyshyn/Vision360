@@ -83,7 +83,9 @@
       "Bash(curl -s -w \" [HTTP %{http_code}]\" http://localhost:4000/api/widgets)",
       "Bash(node -e \"require\\('@babel/helper-compilation-targets'\\); require\\('lru-cache'\\); require\\('yallist'\\); console.log\\('OK: babel→lru-cache→yallist chain resolves'\\)\")",
       "Bash(curl -s http://localhost:5199/src/main.tsx -o /tmp/main_transform.txt -w \"HTTP %{http_code}\\\\n\")",
-      "Read(//tmp/**)"
+      "Read(//tmp/**)",
+      "Bash(curl -s -o .tmp_fig_66146.png \"https://www.figma.com/api/mcp/asset/d7412728-b571-4b83-acba-a2824a00cecf\")",
+      "Bash(curl -s -o .tmp_fig_66157.png \"https://www.figma.com/api/mcp/asset/54f5ef07-b2c6-40b2-bddd-d9ef26937622\")"
     ]
   }
 }

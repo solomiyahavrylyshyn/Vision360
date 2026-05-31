@@ -347,6 +347,11 @@ export function ClientDetail() {
   const [notesDraft, setNotesDraft] = useState("");
   // Reusable delete confirmation (Figma 489:34912)
   const [pendingDelete, setPendingDelete] = useState<null | (() => void)>(null);
+  // Guard modal shown when trying to delete the only remaining service address.
+  const [lastAddressGuardOpen, setLastAddressGuardOpen] = useState(false);
+  // Document rename modal
+  const [renameDocId, setRenameDocId] = useState<string | null>(null);
+  const [renameDocDraft, setRenameDocDraft] = useState("");
 
   interface DocFile { id: string; name: string; size: string; date: string; icon: string; iconColor: string; isImage?: boolean; previewUrl?: string; previewGradient?: string; uploadedBy?: string; category?: string; }
   const [documents, setDocuments] = useState<DocFile[]>([
@@ -543,6 +548,8 @@ export function ClientDetail() {
     .map((t) => {
       if (t.key === "addresses") return { ...t, count: serviceAddresses.length };
       if (t.key === "jobs") return { ...t, count: jobItems.length };
+      if (t.key === "estimates") return { ...t, count: estimateItems.length };
+      if (t.key === "invoices") return { ...t, count: invoiceRows.length };
       if (t.key === "documents") return { ...t, count: documents.length };
       if (t.key === "payments") return { ...t, count: paymentRows.length };
       return t;
@@ -1308,24 +1315,27 @@ export function ClientDetail() {
           </>
         );
 
-      case "addresses":
+      case "addresses": {
+        const openCreateAddress = () => { setEditAddressId("__new__"); setAddressForm({ street: "", unit: "", city: client.city, state: client.state, zip: "", county: client.county, country: client.country || "United States", notes: "" }); setEditAddressOpen(true); };
         return (
-          <div className="space-y-3">
-            {/* Header — Figma 112:12940 */}
-            <div className="flex items-center justify-between">
+          <div>
+            {/* Header — title + "+" icon (consistent with the Jobs tab) */}
+            <div className="flex items-center gap-2">
               <h3 className="text-[16px] text-[#1A2332]" style={{ fontWeight: 600 }}>Service address</h3>
+              <span className="text-[14px] text-[#9CA3AF]" style={{ fontWeight: 400 }}>({serviceAddresses.length})</span>
               <button
-                onClick={() => { setEditAddressId("__new__"); setAddressForm({ street: "", unit: "", city: client.city, state: client.state, zip: "", county: client.county, country: client.country || "United States", notes: "" }); setEditAddressOpen(true); }}
-                className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg bg-[#4A6FA5] hover:bg-[#3d5a85] text-white text-[14px]"
-                style={{ fontWeight: 500 }}
+                type="button"
+                onClick={openCreateAddress}
+                aria-label="Create address"
+                title="Create address"
+                className="w-7 h-7 flex items-center justify-center rounded-md text-[#9CA3AF] hover:text-[#4A6FA5] hover:bg-[#F5F7FA] transition-colors"
               >
-                <span className="material-icons" style={{ fontSize: "16px" }}>add_location_alt</span>
-                Create address
+                <PlusIcon className="h-4 w-4" />
               </button>
             </div>
 
-            {/* Address list — borderless rows, separated by bottom borders */}
-            <div className="flex flex-col gap-4 pt-3">
+            {/* Address list — divider separates the header from the rows */}
+            <div className="flex flex-col gap-5 mt-4 pt-5 border-t border-[#E5E7EB]">
               {serviceAddresses.map((addr, i) => (
                 <div key={addr.id} className={`flex items-start justify-between gap-3 ${i < serviceAddresses.length - 1 ? "border-b border-[#E5E7EB] pb-4" : ""}`}>
                   <div className="flex flex-col gap-2 min-w-0">
@@ -1346,13 +1356,25 @@ export function ClientDetail() {
                       <KebabItem icon="push_pin" onSelect={() => clientsStore.updateClient(client.id, { serviceAddresses: serviceAddresses.map(a => ({ ...a, isPrimary: a.id === addr.id })) })}>Set primary</KebabItem>
                     )}
                     <KebabItem icon="edit" onSelect={() => { setEditAddressId(addr.id); setAddressForm({ street: addr.street, unit: addr.unit, city: addr.city, state: addr.state, zip: addr.zip, county: addr.county, country: "United States", notes: addr.notes }); setEditAddressOpen(true); }}>Edit</KebabItem>
-                    <KebabItem icon="delete_outline" destructive onSelect={() => setPendingDelete(() => () => clientsStore.updateClient(client.id, { serviceAddresses: serviceAddresses.filter(a => a.id !== addr.id) }))}>Delete</KebabItem>
+                    <KebabItem icon="delete_outline" destructive onSelect={() => {
+                      // A client must always keep at least one service address.
+                      if (serviceAddresses.length <= 1) { setLastAddressGuardOpen(true); return; }
+                      setPendingDelete(() => () => {
+                        let remaining = serviceAddresses.filter(a => a.id !== addr.id);
+                        // If we removed the primary, promote the first remaining address.
+                        if (addr.isPrimary && remaining.length && !remaining.some(a => a.isPrimary)) {
+                          remaining = remaining.map((a, idx) => (idx === 0 ? { ...a, isPrimary: true } : a));
+                        }
+                        clientsStore.updateClient(client.id, { serviceAddresses: remaining });
+                      });
+                    }}>Delete</KebabItem>
                   </KebabMenuShared>
                 </div>
               ))}
             </div>
           </div>
         );
+      }
 
       case "documents":
         return (
@@ -1539,8 +1561,17 @@ export function ClientDetail() {
                           const isActive = globalIdx === safeIdx;
                           const isSelected = selectedDocs.has(file.id);
                           return (
-                            <button
+                            <div
                               key={file.id}
+                              role="button"
+                              tabIndex={0}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" || e.key === " ") {
+                                  e.preventDefault();
+                                  setDocPreviewIdx(globalIdx);
+                                  if (!docPreviewPaneOpen) setDocPreviewPaneOpen(true);
+                                }
+                              }}
                               onClick={(e) => {
                                 if (e.metaKey || e.ctrlKey || e.shiftKey || selectedDocs.size > 0) {
                                   toggleSelected(file.id);
@@ -1549,7 +1580,7 @@ export function ClientDetail() {
                                   if (!docPreviewPaneOpen) setDocPreviewPaneOpen(true);
                                 }
                               }}
-                              className={`group relative aspect-[4/3] rounded overflow-hidden border transition-all ${
+                              className={`group relative aspect-[4/3] rounded overflow-hidden border transition-all cursor-pointer ${
                                 isActive
                                   ? "border-[#4A6FA5] ring-2 ring-[#4A6FA5]/40"
                                   : isSelected
@@ -1593,7 +1624,40 @@ export function ClientDetail() {
                                   aria-label={`Select ${file.name}`}
                                 />
                               </span>
-                            </button>
+                              {/* Hover kebab → rename / delete (no right-side drawer needed) */}
+                              {selectedDocs.size === 0 && (
+                                <span className="absolute top-0.5 right-0.5 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <button
+                                        type="button"
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="h-5 w-5 flex items-center justify-center rounded bg-white/95 hover:bg-white border border-[#E5E7EB] text-[#546478] shadow-sm"
+                                        aria-label={`Options for ${file.name}`}
+                                      >
+                                        <span className="material-icons" style={{ fontSize: "14px" }}>more_vert</span>
+                                      </button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" className="w-[160px] p-1">
+                                      <DropdownMenuItem
+                                        className="h-9 px-3 text-[13px] text-[#374151] flex items-center gap-2.5 cursor-pointer"
+                                        onClick={() => { setRenameDocId(file.id); setRenameDocDraft(file.name); }}
+                                      >
+                                        <span className="material-icons text-[#546478]" style={{ fontSize: "16px" }}>edit</span>
+                                        Rename
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        className="h-9 px-3 text-[13px] text-[#DC2626] flex items-center gap-2.5 cursor-pointer"
+                                        onClick={() => setDocuments((prev) => prev.filter((d) => d.id !== file.id))}
+                                      >
+                                        <span className="material-icons" style={{ fontSize: "16px" }}>delete_outline</span>
+                                        Delete
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                </span>
+                              )}
+                            </div>
                           );
                         })}
                       </div>
@@ -2446,6 +2510,85 @@ export function ClientDetail() {
         onConfirm={() => { pendingDelete?.(); setPendingDelete(null); }}
         onCancel={() => setPendingDelete(null)}
       />
+
+      {/* ── Guard: can't delete the only service address ── */}
+      {lastAddressGuardOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center" onClick={() => setLastAddressGuardOpen(false)}>
+          <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" />
+          <div className="relative bg-white border border-[#E5E7EB] rounded-xl shadow-2xl w-[480px] max-w-[92vw] p-7 flex flex-col gap-4" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-[#EEF3FA] flex items-center justify-center shrink-0">
+                <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "20px" }}>wrong_location</span>
+              </div>
+              <div>
+                <h2 className="text-[18px] text-[#1A2332]" style={{ fontWeight: 600, lineHeight: "1.35" }}>Keep at least one address</h2>
+                <p className="text-[14px] text-[#6B7280] leading-[20px] mt-1">A client must always have at least one service address. Edit this address, or add a new one — then you’ll be able to delete this one.</p>
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-2 mt-1">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  const a = serviceAddresses[0];
+                  if (a) { setEditAddressId(a.id); setAddressForm({ street: a.street, unit: a.unit, city: a.city, state: a.state, zip: a.zip, county: a.county, country: "United States", notes: a.notes }); setEditAddressOpen(true); }
+                  setLastAddressGuardOpen(false);
+                }}
+                className="border-[#E5E7EB] text-[#1A2332] hover:bg-[#F5F7FA] h-9 px-4 text-[14px] rounded-lg"
+              >Edit this address</Button>
+              <Button
+                onClick={() => {
+                  setEditAddressId("__new__");
+                  setAddressForm({ street: "", unit: "", city: client.city, state: client.state, zip: "", county: client.county, country: client.country || "United States", notes: "" });
+                  setEditAddressOpen(true);
+                  setLastAddressGuardOpen(false);
+                }}
+                className="bg-[#4A6FA5] hover:bg-[#3d5a85] text-white h-9 px-4 text-[14px] rounded-lg"
+              >Add new address</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Rename document modal ── */}
+      {renameDocId != null && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center" onClick={() => setRenameDocId(null)}>
+          <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" />
+          <div className="relative bg-white rounded-xl shadow-2xl w-[480px] max-w-[92vw] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-4 py-4">
+              <h2 className="text-[20px] text-[#1A2332]" style={{ fontWeight: 600, lineHeight: "1.35" }}>Rename document</h2>
+              <button onClick={() => setRenameDocId(null)} className="w-6 h-6 flex items-center justify-center rounded hover:bg-[#F3F4F6] text-[#6B7280]" aria-label="Close">
+                <span className="material-icons" style={{ fontSize: "18px" }}>close</span>
+              </button>
+            </div>
+            <div className="px-4">
+              <Label className="text-[14px] text-[#1A2332] mb-1 block" style={{ fontWeight: 500 }}>Name</Label>
+              <Input
+                autoFocus
+                value={renameDocDraft}
+                onChange={(e) => setRenameDocDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && renameDocDraft.trim()) {
+                    setDocuments((prev) => prev.map((d) => (d.id === renameDocId ? { ...d, name: renameDocDraft.trim() } : d)));
+                    setRenameDocId(null);
+                  }
+                }}
+                className="border-[#E5E7EB] bg-white text-[14px]"
+              />
+            </div>
+            <div className="flex items-center justify-end gap-2 px-4 py-4 mt-2">
+              <Button variant="outline" onClick={() => setRenameDocId(null)} className="border-[#E5E7EB] text-[#1A2332] hover:bg-[#F5F7FA] h-9 px-4 text-[14px] rounded-lg">Cancel</Button>
+              <Button
+                disabled={!renameDocDraft.trim()}
+                onClick={() => {
+                  setDocuments((prev) => prev.map((d) => (d.id === renameDocId ? { ...d, name: renameDocDraft.trim() } : d)));
+                  setRenameDocId(null);
+                }}
+                className="bg-[#4A6FA5] hover:bg-[#3d5a85] text-white h-9 px-4 text-[14px] rounded-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#4A6FA5]"
+              >Save</Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

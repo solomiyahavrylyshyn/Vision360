@@ -200,12 +200,28 @@ export function CreateClient() {
   );
 
   const validate = (): string | null => {
+    const digitCount = (s: string) => (s.match(/\d/g) || []).length;
+
     if (!formData.firstName.trim()) return "First name is required";
     if (!formData.lastName.trim()) return "Last name is required";
+
+    // Primary phone — required + must look like a real phone number.
     if (!formData.mobilePhone.trim()) return "Primary phone is required";
+    if (digitCount(formData.mobilePhone) < 10) return "Enter a valid primary phone number (at least 10 digits)";
+    // Secondary phone — optional, but validated when present.
+    if (formData.workPhone.trim() && digitCount(formData.workPhone) < 10) return "Enter a valid secondary phone number (at least 10 digits)";
+
+    // Email — required + format.
     if (!formData.email.trim()) return "Email is required";
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) return "Enter a valid email address";
+
+    // Website — optional, but must be an http(s) URL when present (rejects e.g. ftp://…).
+    if (formData.website.trim() && !/^https?:\/\/[^\s.]+\.[^\s]+$/.test(formData.website.trim())) return "Website must be a valid URL (e.g. https://example.com)";
+
+    // Address + ZIP — required, ZIP must be a US 5-digit (or ZIP+4) code.
     if (!formData.address.trim()) return "Billing address is required";
     if (!formData.zip.trim()) return "ZIP code is required";
+    if (!/^\d{5}(-\d{4})?$/.test(formData.zip.trim())) return "Enter a valid ZIP code (e.g. 78701)";
     return null;
   };
 
@@ -680,8 +696,7 @@ export function CreateClient() {
                     Billing Address <span className="text-[#DC2626]">*</span>
                   </h2>
                   <p className="text-[12px] text-[#6B7280]">
-                    {/* TODO: integrate Google Places API to auto-populate fields from ZIP */}
-                    ZIP code is required; address fields will auto-fill once Google Places is wired up.
+                    Enter the client’s billing address. A valid 5-digit ZIP code is required.
                   </p>
                 </div>
                 <div className="space-y-4 max-w-[600px]">

@@ -113,19 +113,21 @@ export function Clients() {
   const [editColumnsOpen, setEditColumnsOpen] = useState(false);
   const [pendingColumns, setPendingColumns] = useState<Set<ColKey>>(new Set<ColKey>(["address", "totalBilled", "lastActivity"]));
 
+  // Only columns backed by a field we actually store on the client record.
+  // (Dropped Home phone, Notifications enabled, Customer-is-contractor, Date acquired,
+  //  Lifetime value and Tags — none of those are stored on a client.)
   const columnDefs: { key: ColKey; label: string }[] = [
     { key: "first", label: "First" }, { key: "last", label: "Last" }, { key: "role", label: "Role" },
     { key: "company", label: "Company" }, { key: "address", label: "Address" }, { key: "mobile", label: "Mobile" },
-    { key: "home", label: "Home" }, { key: "work", label: "Work" }, { key: "email", label: "Email" },
-    { key: "notificationsEnabled", label: "Notifications enabled" }, { key: "isContractor", label: "Customer is contractor" },
+    { key: "work", label: "Work" }, { key: "email", label: "Email" },
     { key: "customerType", label: "Customer type" }, { key: "leadSource", label: "Lead source" },
-    { key: "dateCreated", label: "Date created at" }, { key: "dateAcquired", label: "Date acquired" },
-    { key: "lastServiceDate", label: "Last service date" }, { key: "totalBilled", label: "Total Billed" },
-    { key: "lifetimeValue", label: "Lifetime value" }, { key: "tags", label: "Tags" },
-    { key: "notes", label: "Notes" }, { key: "lastActivity", label: "Last Activity" },
+    { key: "dateCreated", label: "Date created at" }, { key: "lastServiceDate", label: "Last service date" },
+    { key: "totalBilled", label: "Total Billed" }, { key: "notes", label: "Notes" },
+    { key: "lastActivity", label: "Last Activity" },
   ];
-  const leftCols = columnDefs.slice(0, 11);
-  const rightCols = columnDefs.slice(11);
+  const half = Math.ceil(columnDefs.length / 2);
+  const leftCols = columnDefs.slice(0, half);
+  const rightCols = columnDefs.slice(half);
 
   // Sorting
   type SortField = "name" | "status" | "phone" | "city" | "zip" | "lastActivity" | "totalBilled";
@@ -365,9 +367,9 @@ export function Clients() {
         ) : (
           <div className="mb-4 grid grid-cols-4 gap-3">
             {[
-              { value: "4", label: "New prospects",  sub: "last 30 days", change: "+100%", changeUp: true, period: "vs prev. period", data: [2, 3, 2, 4, 3, 5, 4] },
-              { value: "1", label: "New contacts",   sub: "last 30 days", change: "+25%",  changeUp: true, period: "vs prev. period", data: [0, 1, 0, 1, 1, 0, 1] },
-              { value: "6", label: "Total contacts", sub: "year to date", change: "+50%",  changeUp: true, period: "vs prev. year",   data: [3, 4, 4, 5, 5, 6, 6] },
+              { value: String(clients.filter(c => getClientStatus(c) === "Prospect").length), label: "Prospects",     sub: "current",      change: "+100%", changeUp: true, period: "vs prev. period", data: [2, 3, 2, 4, 3, 5, 4] },
+              { value: String(clients.filter(c => getClientStatus(c) === "Active").length),   label: "Active clients", sub: "current",      change: "+25%",  changeUp: true, period: "vs prev. period", data: [0, 1, 0, 1, 1, 0, 1] },
+              { value: String(clients.length),                                                 label: "Total contacts", sub: "all clients",  change: "+50%",  changeUp: true, period: "vs prev. year",   data: [3, 4, 4, 5, 5, 6, 6] },
             ].map(c => <StatCard key={c.label} {...c} />)}
 
             {/* What's New — QuickBooks integration tile */}
