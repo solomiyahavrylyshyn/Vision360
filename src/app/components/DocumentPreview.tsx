@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-// Right-side preview panel for a document/photo.
+// Centered modal preview for a document/photo.
 // Supports: open preview (image inline / icon for non-image),
 // rename, download, and delete-with-confirmation.
 
@@ -82,19 +82,22 @@ export function DocumentPreview({ file, onClose, onRename, onDelete, onDownload 
 
   return (
     <>
-      {/* Backdrop */}
+      {/* Centered modal */}
       <div
-        className="fixed inset-0 z-40 bg-black/30 backdrop-blur-[1px]"
-        onClick={onClose}
-        aria-hidden
-      />
-
-      {/* Right-side panel */}
-      <aside
-        className="fixed top-0 right-0 bottom-0 z-50 w-[480px] max-w-[100vw] bg-white border-l border-[#E5E7EB] shadow-2xl flex flex-col"
+        className="fixed inset-0 z-50 flex items-center justify-center p-4"
         role="dialog"
+        aria-modal="true"
         aria-label={`Preview: ${file.name}`}
       >
+        {/* Backdrop */}
+        <div
+          className="absolute inset-0 bg-black/30 backdrop-blur-[1px]"
+          onClick={onClose}
+          aria-hidden
+        />
+
+        {/* Modal card */}
+        <div className="relative bg-white rounded-xl border border-[#E5E7EB] shadow-2xl w-[680px] max-w-[92vw] max-h-[88vh] flex flex-col overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between gap-2 px-5 h-14 border-b border-[#E5E7EB] shrink-0">
           <div className="flex items-center gap-2 min-w-0">
@@ -233,7 +236,8 @@ export function DocumentPreview({ file, onClose, onRename, onDelete, onDownload 
             Delete
           </button>
         </div>
-      </aside>
+        </div>
+      </div>
 
       {/* Delete confirmation modal */}
       {confirmDelete && (

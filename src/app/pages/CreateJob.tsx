@@ -41,10 +41,12 @@ export function CreateJob() {
   const [jobCategory, setJobCategory] = useState("");
   const availableJobTypes = useSyncExternalStore(jobTypesStore.subscribe, jobTypesStore.getJobTypes);
   const fieldEmployees = ["Peter Novak", "Travis Webb", "Ernesto Reyes", "Alex Kim"];
+  const [serviceCountry, setServiceCountry] = useState("United States");
   const [serviceStreet, setServiceStreet] = useState("");
   const [serviceCity, setServiceCity] = useState("");
   const [serviceState, setServiceState] = useState("");
   const [serviceZip, setServiceZip] = useState("");
+  const [serviceCounty, setServiceCounty] = useState("");
   const [gateCode, setGateCode] = useState("");
   const [startDate, setStartDate] = useState("2026-04-06");
   const [endDate, setEndDate] = useState("2026-04-06");
@@ -117,7 +119,7 @@ export function CreateJob() {
           <span>{returnTo ? "Back to client" : "Back to Jobs"}</span>
         </button>
         {/* Header */}
-        <PageHeader title="Create Job" icon="work" className="mb-6" />
+        <PageHeader title="Create Job" className="mb-6" />
 
         {/* Job details layout mirrors the Job Details page */}
         <div className="grid grid-cols-[minmax(0,1fr)_420px] gap-4 mb-6">
@@ -213,15 +215,30 @@ export function CreateJob() {
                   <label className="text-[11px] text-[#9CA3AF] mb-1 block">Job #</label>
                   <input type="text" value={jobNumber} onChange={(e) => setJobNumber(e.target.value)} className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] focus:outline-none focus:border-[#4A6FA5]" />
                 </div>
+                <div>
+                  <label className="text-[11px] text-[#9CA3AF] mb-1 block">Assigned To</label>
+                  <select value={assignedTo} onChange={(e) => setAssignedTo(e.target.value)} className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5]">
+                    <option value="">Unassigned</option>
+                    {fieldEmployees.map((name) => <option key={name} value={name}>{name}</option>)}
+                  </select>
+                </div>
               </div>
 
               <div>
                 <label className="text-[11px] text-[#9CA3AF] mb-1 block">Service Address</label>
+                <select value={serviceCountry} onChange={(e) => setServiceCountry(e.target.value)} className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] text-[#1A2332] bg-white focus:outline-none focus:border-[#4A6FA5] mb-2">
+                  <option value="United States">United States</option>
+                  <option value="Canada">Canada</option>
+                  <option value="Mexico">Mexico</option>
+                </select>
                 <input type="text" placeholder="Street address" value={serviceStreet} onChange={(e) => setServiceStreet(e.target.value)} className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] focus:outline-none focus:border-[#4A6FA5] mb-2" />
-                <div className="grid grid-cols-[1fr_90px_110px_120px] gap-2">
+                <div className="grid grid-cols-3 gap-2 mb-2">
                   <input type="text" placeholder="City" value={serviceCity} onChange={(e) => setServiceCity(e.target.value)} className="h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] focus:outline-none focus:border-[#4A6FA5]" />
                   <input type="text" placeholder="State" value={serviceState} onChange={(e) => setServiceState(e.target.value)} className="h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] focus:outline-none focus:border-[#4A6FA5]" />
                   <input type="text" placeholder="Zip" value={serviceZip} onChange={(e) => setServiceZip(e.target.value)} className="h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] focus:outline-none focus:border-[#4A6FA5]" />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <input type="text" placeholder="County" value={serviceCounty} onChange={(e) => setServiceCounty(e.target.value)} className="h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] focus:outline-none focus:border-[#4A6FA5]" />
                   <input type="text" placeholder="Gate code" value={gateCode} onChange={(e) => setGateCode(e.target.value)} className="h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] focus:outline-none focus:border-[#4A6FA5]" />
                 </div>
               </div>
@@ -239,13 +256,6 @@ export function CreateJob() {
                 <div>
                   <label className="text-[11px] text-[#9CA3AF] mb-1 block">End Date</label>
                   <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] focus:outline-none focus:border-[#4A6FA5]" />
-                </div>
-                <div>
-                  <label className="text-[11px] text-[#9CA3AF] mb-1 block">Assigned To</label>
-                  <select value={assignedTo} onChange={(e) => setAssignedTo(e.target.value)} className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5]">
-                    <option value="">Unassigned</option>
-                    {fieldEmployees.map((name) => <option key={name} value={name}>{name}</option>)}
-                  </select>
                 </div>
                 <div>
                   <label className="text-[11px] text-[#9CA3AF] mb-1 block">Start Time</label>

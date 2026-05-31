@@ -105,25 +105,22 @@ export function Clients() {
   const availableTags = useSyncExternalStore(tagsStore.subscribe, tagsStore.getTags);
   const availableCounties = useSyncExternalStore(countiesStore.subscribe, countiesStore.getCounties);
 
-  type ColKey = "company" | "address" | "mobile" | "email" | "totalBilled" | "lastActivity" | "tags"
-    | "first" | "last" | "role" | "home" | "work" | "notificationsEnabled" | "isContractor"
-    | "customerType" | "leadSource" | "dateCreated" | "dateAcquired" | "lastServiceDate" | "lifetimeValue" | "notes";
+  type ColKey = "address" | "mobile" | "email" | "website" | "status"
+    | "dateCreated" | "lastServiceDate" | "totalBilled" | "notes" | "lastActivity";
 
   const [visibleColumns, setVisibleColumns] = useState<Set<ColKey>>(new Set<ColKey>(["address", "totalBilled", "lastActivity"]));
   const [editColumnsOpen, setEditColumnsOpen] = useState(false);
   const [pendingColumns, setPendingColumns] = useState<Set<ColKey>>(new Set<ColKey>(["address", "totalBilled", "lastActivity"]));
 
-  // Only columns backed by a field we actually store on the client record.
-  // (Dropped Home phone, Notifications enabled, Customer-is-contractor, Date acquired,
-  //  Lifetime value and Tags — none of those are stored on a client.)
+  // Columns offered in the picker. Display name (which already shows the company
+  // under it) is always on, so First/Last/Role/Company are dropped; Work phone and
+  // Lead source removed; Website added; Customer type replaced by Status.
   const columnDefs: { key: ColKey; label: string }[] = [
-    { key: "first", label: "First" }, { key: "last", label: "Last" }, { key: "role", label: "Role" },
-    { key: "company", label: "Company" }, { key: "address", label: "Address" }, { key: "mobile", label: "Mobile" },
-    { key: "work", label: "Work" }, { key: "email", label: "Email" },
-    { key: "customerType", label: "Customer type" }, { key: "leadSource", label: "Lead source" },
-    { key: "dateCreated", label: "Date created at" }, { key: "lastServiceDate", label: "Last service date" },
-    { key: "totalBilled", label: "Total Billed" }, { key: "notes", label: "Notes" },
-    { key: "lastActivity", label: "Last Activity" },
+    { key: "address", label: "Address" }, { key: "mobile", label: "Mobile" },
+    { key: "email", label: "Email" }, { key: "website", label: "Website" },
+    { key: "status", label: "Status" }, { key: "dateCreated", label: "Date created at" },
+    { key: "lastServiceDate", label: "Last service date" }, { key: "totalBilled", label: "Total Billed" },
+    { key: "notes", label: "Notes" }, { key: "lastActivity", label: "Last Activity" },
   ];
   const half = Math.ceil(columnDefs.length / 2);
   const leftCols = columnDefs.slice(0, half);

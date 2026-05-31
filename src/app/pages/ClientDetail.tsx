@@ -365,7 +365,9 @@ export function ClientDetail() {
   const [renameDocDraft, setRenameDocDraft] = useState("");
 
   interface DocFile { id: string; name: string; size: string; date: string; icon: string; iconColor: string; isImage?: boolean; previewUrl?: string; previewGradient?: string; uploadedBy?: string; category?: string; }
-  const [documents, setDocuments] = useState<DocFile[]>([
+  // Sample media — shown only for clients with real activity. A brand-new client
+  // (no jobs/billing/revenue) starts with an empty Documents tab (was a phantom 11).
+  const SEED_DOCUMENTS: DocFile[] = [
     { id: "photo-34610-outdoor-electrical-panel", name: "Copy of 34610 Install outlet outdoor electrical panel.jpg", size: "3.4 MB", date: "May 19, 2026", icon: "image", iconColor: "#F59E0B", isImage: true, previewUrl: outdoorElectricalPanelPhoto, uploadedBy: "Field Crew", category: "Photos" },
     { id: "photo-33841-ac", name: "Copy of 33841 Install AC.jpg", size: "2.4 MB", date: "May 19, 2026", icon: "image", iconColor: "#F59E0B", isImage: true, previewUrl: installAc33841Photo, uploadedBy: "Field Crew", category: "Photos" },
     { id: "photo-34689-tankless", name: "Copy of 34689 Install Water Heater Tankless.jpg", size: "1.8 MB", date: "May 19, 2026", icon: "image", iconColor: "#F59E0B", isImage: true, previewUrl: installWaterHeaterTanklessPhoto, uploadedBy: "Field Crew", category: "Photos" },
@@ -377,7 +379,12 @@ export function ClientDetail() {
     { id: "photo-33702-heating", name: "Copy of 33702 Install heating system.jpg", size: "1.6 MB", date: "May 19, 2026", icon: "image", iconColor: "#F59E0B", isImage: true, previewUrl: installHeatingSystemPhoto, uploadedBy: "Field Crew", category: "Photos" },
     { id: "photo-87970", name: "87970_20241208_113711.png", size: "10.0 MB", date: "May 19, 2026", icon: "image", iconColor: "#F59E0B", isImage: true, previewUrl: job87970Photo, uploadedBy: "Field Crew", category: "Photos" },
     { id: "photo-44644", name: "44644_IMG_20241210_123749.png", size: "9.5 MB", date: "May 19, 2026", icon: "image", iconColor: "#F59E0B", isImage: true, previewUrl: job44644Photo, uploadedBy: "Field Crew", category: "Photos" },
-  ]);
+  ];
+  const hasDocActivity = (c?: { totalJobs?: number; totalBilled?: number; totalRevenue?: number }) =>
+    !!c && ((c.totalJobs ?? 0) > 0 || (c.totalBilled ?? 0) > 0 || (c.totalRevenue ?? 0) > 0);
+  const [documents, setDocuments] = useState<DocFile[]>(() =>
+    hasDocActivity(clientsStore.getClient(routeId)) ? SEED_DOCUMENTS : [],
+  );
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   // Selected file for the right-side preview panel (rename / download / delete)
@@ -520,6 +527,9 @@ export function ClientDetail() {
   useEffect(() => { setEditedClient(client); }, [client]);
   // Status chip reflects the real client status (was hardcoded "Active").
   useEffect(() => { setClientStatus(client.status); }, [client]);
+  // Reset the (sample) documents per client so navigating to a fresh client
+  // doesn't carry over the previous client's media. New clients → empty.
+  useEffect(() => { setDocuments(hasDocActivity(client) ? SEED_DOCUMENTS : []); /* eslint-disable-line react-hooks/exhaustive-deps */ }, [client.id]);
 
   const handleEditClick = () => {
     setIsEditing(true);
@@ -549,12 +559,19 @@ export function ClientDetail() {
   // Per-client work data: only show sample rows for clients that actually have
   // the corresponding activity, so a brand-new client reads 0 across the board
   // instead of inheriting shared demo rows.
-  const hasJobs = client.totalJobs > 0;
   const hasEstimates = (client.estimatesTotal ?? 0) > 0;
   const hasBilling = (client.totalBilled ?? 0) > 0;
-  const jobItems = hasJobs
-    ? [{ id: 2, type: "job", title: "Job #1", subtitle: "AC Estimate", date: "Scheduled for Mar 30, 2026", amount: "$0.00" }]
-    : [];
+  // Jobs list sized to the client's real job counts so the Jobs tab badge
+  // (= totalJobs) and the header "Open jobs" KPI (= openJobs) are consistent
+  // and both trace to the client record — no more orphan "1".
+  const jobItems = Array.from({ length: client.totalJobs }, (_, i) => ({
+    id: i + 2,
+    type: "job",
+    title: `Job #${i + 1}`,
+    subtitle: "AC Estimate",
+    date: i < client.openJobs ? "Scheduled for Mar 30, 2026" : "Completed Mar 15, 2026",
+    amount: "$0.00",
+  }));
   const estimateItems = hasEstimates
     ? [{ id: 3, type: "estimate", title: "Estimate #1", subtitle: "AC Unit Replacement", date: "Created Mar 28, 2026", amount: "$2,450.00" }]
     : [];
@@ -779,7 +796,7 @@ export function ClientDetail() {
               </button>
             </div>
             <div className="text-[13px] text-[#1A2332]">
-              {client.gateCode || <span className="text-[#9CA3AF]">—</span>}
+              {client.gateCode ? `Gate code: ${client.gateCode}` : <span className="text-[#9CA3AF]">—</span>}
             </div>
           </div>
 

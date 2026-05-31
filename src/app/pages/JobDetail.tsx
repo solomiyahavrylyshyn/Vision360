@@ -860,11 +860,15 @@ export function JobDetail() {
 
   const renderItemsTab = () => (
     <>
-      <div className="flex items-center justify-between mb-5">
+      <div className="flex items-center gap-2 mb-5">
         <h3 className="text-[15px] text-[#1A2332]" style={{ fontWeight: 600 }}>Products & Services</h3>
-        <button className="h-8 px-3 gap-1.5 text-[13px] bg-[#4A6FA5] hover:bg-[#3d5a85] text-white rounded-md inline-flex items-center justify-center transition-colors" style={{ fontWeight: 600 }}>
+        <button
+          type="button"
+          aria-label="Add line item"
+          title="Add line item"
+          className="w-7 h-7 flex items-center justify-center rounded-md text-[#9CA3AF] hover:text-[#4A6FA5] hover:bg-[#F5F7FA] transition-colors"
+        >
           <PlusIcon className="h-4 w-4" />
-          Add line item
         </button>
       </div>
       <table className="w-full text-[13px]">
@@ -907,15 +911,16 @@ export function JobDetail() {
 
   const renderExpenseTab = () => (
     <>
-      <div className="flex items-center justify-between mb-5">
+      <div className="flex items-center gap-2 mb-5">
         <h3 className="text-[15px] text-[#1A2332]" style={{ fontWeight: 600 }}>Expenses</h3>
         <button
+          type="button"
           onClick={() => navigate(`/expenses/new?fromJob=${encodeURIComponent(job.jobNumber)}${job.linkedInvoice ? `&fromInvoice=${encodeURIComponent(job.linkedInvoice.id)}` : ""}`)}
-          className="h-8 px-3 gap-1.5 text-[13px] bg-[#4A6FA5] hover:bg-[#3d5a85] text-white rounded-md inline-flex items-center justify-center transition-colors"
-          style={{ fontWeight: 600 }}
+          aria-label="Add expense"
+          title="Add expense"
+          className="w-7 h-7 flex items-center justify-center rounded-md text-[#9CA3AF] hover:text-[#4A6FA5] hover:bg-[#F5F7FA] transition-colors"
         >
           <PlusIcon className="h-4 w-4" />
-          Add expense
         </button>
       </div>
       {job.expenses.length > 0 ? (
@@ -1359,9 +1364,9 @@ export function JobDetail() {
           {/* Right column: Financial KPI cards — compact, no decimals, aligned to the right */}
           <div className="shrink-0 flex gap-2">
             {/* Total Price (green) */}
-            <div className="flex w-[128px] items-center justify-between gap-2 rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5" style={{ minHeight: 44 }}>
+            <div className="flex items-center justify-between gap-2 rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5" style={{ minHeight: 44 }}>
               <div className="min-w-0">
-                <div className="truncate text-[15px] leading-tight tabular-nums" style={{ fontWeight: 700, color: "#16A34A" }}>
+                <div className="text-[15px] leading-tight tabular-nums whitespace-nowrap" style={{ fontWeight: 700, color: "#16A34A" }}>
                   ${job.profitability.totalPrice.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
                 <div className="truncate text-[10px]" style={{ color: "#546478" }}>Total Price</div>
@@ -1371,9 +1376,9 @@ export function JobDetail() {
               </div>
             </div>
             {/* Compensation (red — expenses-style cost) */}
-            <div className="flex w-[128px] items-center justify-between gap-2 rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5" style={{ minHeight: 44 }}>
+            <div className="flex items-center justify-between gap-2 rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5" style={{ minHeight: 44 }}>
               <div className="min-w-0">
-                <div className="truncate text-[15px] leading-tight tabular-nums" style={{ fontWeight: 700, color: "#DC2626" }}>
+                <div className="text-[15px] leading-tight tabular-nums whitespace-nowrap" style={{ fontWeight: 700, color: "#DC2626" }}>
                   ${Math.round(job.profitability.labor).toLocaleString("en-US")}
                 </div>
                 <div className="truncate text-[10px]" style={{ color: "#546478" }}>Compensation</div>
@@ -1383,7 +1388,7 @@ export function JobDetail() {
               </div>
             </div>
             {/* All Expenses (dark gray) */}
-            <div className="flex w-[128px] items-center justify-between gap-2 rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5" style={{ minHeight: 44 }}>
+            <div className="flex items-center justify-between gap-2 rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5" style={{ minHeight: 44 }}>
               <div className="min-w-0">
                 <div className="truncate text-[15px] leading-tight tabular-nums text-[#1A2332]" style={{ fontWeight: 700 }}>
                   ${(job.profitability.lineItemCost + job.profitability.expenses).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -1395,9 +1400,9 @@ export function JobDetail() {
               </div>
             </div>
             {/* Profit Margin (green if positive, red if negative) */}
-            <div className="flex w-[128px] items-center justify-between gap-2 rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5" style={{ minHeight: 44 }}>
+            <div className="flex items-center justify-between gap-2 rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5" style={{ minHeight: 44 }}>
               <div className="min-w-0">
-                <div className="truncate text-[15px] leading-tight tabular-nums" style={{ fontWeight: 700, color: job.profitability.margin < 0 ? "#DC2626" : "#16A34A" }}>
+                <div className="text-[15px] leading-tight tabular-nums whitespace-nowrap" style={{ fontWeight: 700, color: job.profitability.margin < 0 ? "#DC2626" : "#16A34A" }}>
                   {job.profitability.margin.toFixed(2)}%
                 </div>
                 <div className="flex items-center gap-1">
@@ -1602,18 +1607,6 @@ export function JobDetail() {
                         <option value="Maintenance">Maintenance</option>
                       </select>
                     </div>
-                    <div>
-                      <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>Priority</label>
-                      <select
-                        value={editJob.priority || "Low"}
-                        onChange={(e) => setEditField("priority", e.target.value)}
-                        className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
-                      >
-                        <option value="Low">Low</option>
-                        <option value="Medium">Medium</option>
-                        <option value="High">High</option>
-                      </select>
-                    </div>
                   </div>
                   <div>
                     <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>Assigned To</label>
@@ -1635,6 +1628,34 @@ export function JobDetail() {
                       readOnly
                       className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[14px] bg-[#F9FAFB] text-[#6B7280]"
                     />
+                  </div>
+                  {/* Service Address (matches Figma edit-job modal) */}
+                  <div>
+                    <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>Service Address</label>
+                    <select
+                      value={editJob.country || "United States"}
+                      onChange={(e) => setEditField("country", e.target.value)}
+                      className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5] mb-2"
+                    >
+                      <option value="United States">United States</option>
+                      <option value="Canada">Canada</option>
+                      <option value="Mexico">Mexico</option>
+                    </select>
+                    <input
+                      value={editJob.address || ""}
+                      onChange={(e) => setEditField("address", e.target.value)}
+                      placeholder="Street address"
+                      className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5] mb-2"
+                    />
+                    <div className="grid grid-cols-3 gap-2 mb-2">
+                      <input value={editJob.city || ""} onChange={(e) => setEditField("city", e.target.value)} placeholder="City" className="h-10 px-3 border border-[#E5E7EB] rounded-md text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]" />
+                      <input value={editJob.state || ""} onChange={(e) => setEditField("state", e.target.value)} placeholder="State" className="h-10 px-3 border border-[#E5E7EB] rounded-md text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]" />
+                      <input value={editJob.zip || ""} onChange={(e) => setEditField("zip", e.target.value)} placeholder="Zip" className="h-10 px-3 border border-[#E5E7EB] rounded-md text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <input value={editJob.county || ""} onChange={(e) => setEditField("county", e.target.value)} placeholder="County" className="h-10 px-3 border border-[#E5E7EB] rounded-md text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]" />
+                      <input value={editJob.gateCode || ""} onChange={(e) => setEditField("gateCode", e.target.value)} placeholder="Gate code" className="h-10 px-3 border border-[#E5E7EB] rounded-md text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]" />
+                    </div>
                   </div>
                 </>
               )}

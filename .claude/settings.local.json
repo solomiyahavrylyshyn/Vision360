@@ -85,7 +85,9 @@
       "Bash(curl -s http://localhost:5199/src/main.tsx -o /tmp/main_transform.txt -w \"HTTP %{http_code}\\\\n\")",
       "Read(//tmp/**)",
       "Bash(curl -s -o .tmp_fig_66146.png \"https://www.figma.com/api/mcp/asset/d7412728-b571-4b83-acba-a2824a00cecf\")",
-      "Bash(curl -s -o .tmp_fig_66157.png \"https://www.figma.com/api/mcp/asset/54f5ef07-b2c6-40b2-bddd-d9ef26937622\")"
+      "Bash(curl -s -o .tmp_fig_66157.png \"https://www.figma.com/api/mcp/asset/54f5ef07-b2c6-40b2-bddd-d9ef26937622\")",
+      "Bash(curl -s -o .tmp_jobs_28657.png \"https://www.figma.com/api/mcp/asset/bb353c84-a086-4192-bae7-e825c6e57d50\")",
+      "Bash(curl -s -o .tmp_jobs_32674.png \"https://www.figma.com/api/mcp/asset/9dc617b0-69cd-4baa-a289-649b75b94519\")"
     ]
   }
 }

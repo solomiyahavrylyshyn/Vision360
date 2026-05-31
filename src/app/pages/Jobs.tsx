@@ -1,5 +1,6 @@
-import { useState, useSyncExternalStore } from "react";
+import { useState, useRef, useSyncExternalStore } from "react";
 import { useNavigate } from "react-router";
+import { toast } from "sonner";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
@@ -10,9 +11,7 @@ import {
   Select, SelectContent, SelectItem,
   SelectTrigger, SelectValue,
 } from "../components/ui/select";
-import { Card } from "../components/ui/card";
 import { CreateActionButton } from "../components/ui/create-action-button";
-import { StatCard } from "../components/ui/stat-card";
 import { formatRegionalDate, regionalSettingsStore } from "../stores/regionalSettingsStore";
 
 interface Job {
@@ -24,10 +23,12 @@ interface Job {
   address: string;
   schedule: string;
   scheduleDateSort: string;
-  status: "Scheduled" | "In Progress" | "Completed";
+  status: "Scheduled" | "In Progress" | "Completed" | "Inactive";
   jobType: "One-off" | "Recurring";
   total: number;
 }
+
+const JOB_STATUSES: Job["status"][] = ["Scheduled", "In Progress", "Completed", "Inactive"];
 
 const mockJobs: Job[] = [
   { id: 1,  jobNumber: "10234-J01", title: "AC Estimate",        client: "Travis Jones",   clientId: "10234", address: "854 Maple St, Fort Worth, TX 76107",        schedule: "March 30, 2026", scheduleDateSort: "2026-03-30", status: "Scheduled",  jobType: "One-off",   total: 375.01 },
@@ -48,19 +49,78 @@ const statusColors: Record<string, string> = {
   Scheduled: "#4A6FA5",
   "In Progress": "#D97706",
   Completed: "#16A34A",
+  Inactive: "#6B7280",
 };
 
+// Badge background = status colour at 15% opacity (matches Figma 358:28741).
 const statusBg: Record<string, string> = {
-  Scheduled: "#EBF0F8",
-  "In Progress": "#FEF3C7",
-  Completed: "#DCFCE7",
+  Scheduled: "rgba(74,111,165,0.15)",
+  "In Progress": "rgba(217,119,6,0.15)",
+  Completed: "rgba(22,163,74,0.15)",
+  Inactive: "rgba(107,114,128,0.15)",
 };
 
 const statusIcons: Record<string, string> = {
   Scheduled: "event_note",
   "In Progress": "autorenew",
   Completed: "check_circle",
+  Inactive: "block",
 };
+
+// ── Mini area-chart sparkline (Figma stat card "Area chart", 64×32) ──
+function Sparkline({ data, color = "#4A6FA5" }: { data: number[]; color?: string }) {
+  const w = 64, h = 32;
+  const max = Math.max(...data), min = Math.min(...data);
+  const range = max - min || 1;
+  const pts = data.map((d, i) => [(i / (data.length - 1)) * w, h - ((d - min) / range) * (h - 6) - 3]);
+  const line = pts.map(([x, y], i) => `${i === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`).join(" ");
+  const area = `${line} L${w},${h} L0,${h} Z`;
+  const gid = `spark-${color.replace(/[^a-z0-9]/gi, "")}`;
+  return (
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className="shrink-0">
+      <defs>
+        <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.35" />
+          <stop offset="100%" stopColor={color} stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <path d={area} fill={`url(#${gid})`} />
+      <path d={line} fill="none" stroke={color} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+// ── Jobs stat card — number + label + sparkline (Figma 495:41109) ──
+function JobStat({ value, label, data, color }: { value: string; label: string; data: number[]; color?: string }) {
+  return (
+    <div className="bg-white border border-[#E5E7EB] rounded-lg flex gap-2 items-center p-4 shadow-[0px_1px_2px_rgba(0,0,0,0.05)]">
+      <div className="flex-1 min-w-0 flex flex-col">
+        <span className="text-[20px] text-[#1A2332]" style={{ fontWeight: 600, lineHeight: 1.35 }}>{value}</span>
+        <span className="text-[14px] text-[#6B7280]" style={{ lineHeight: "20px" }}>{label}</span>
+      </div>
+      <Sparkline data={data} color={color} />
+    </div>
+  );
+}
+
+// Tolerant CSV parser (handles quoted fields, escaped quotes, commas in quotes).
+function parseCSV(text: string): string[][] {
+  return text.split(/\r?\n/).filter((l) => l.trim()).map((line) => {
+    const fields: string[] = [];
+    let cur = "", inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (inQ) {
+        if (ch === '"') { if (line[i + 1] === '"') { cur += '"'; i++; } else inQ = false; }
+        else cur += ch;
+      } else if (ch === '"') inQ = true;
+      else if (ch === ",") { fields.push(cur); cur = ""; }
+      else cur += ch;
+    }
+    fields.push(cur);
+    return fields;
+  });
+}
 
 type SortField = "id" | "address" | "schedule" | "status" | "total" | "client";
 type SortDir = "asc" | "desc";
@@ -72,7 +132,7 @@ function qfClass(active: boolean) {
 }
 
 const JOBS_COLS = [
-  { key: "id",       label: "Job",       sortable: true  },
+  { key: "id",       label: "Number",    sortable: true  },
   { key: "client",   label: "Client",    sortable: true  },
   { key: "address",  label: "Address",   sortable: false },
   { key: "schedule", label: "Scheduled", sortable: true  },
@@ -92,10 +152,42 @@ export function Jobs() {
   const [qfType, setQfType] = useState("All");
   const [qfDate, setQfDate] = useState("all_time");
 
-  // Pagination
-  const [rowsPerPage, setRowsPerPage] = useState(50);
+  // Pagination — default 10 rows (matches Figma "1-10 of …")
+  const [rowsPerPage, setRowsPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
   const [jobCols, moveJobCol] = useDraggableColumns(JOBS_COLS);
+
+  // Column visibility (Edit columns modal) — every column on by default.
+  const [visibleCols, setVisibleCols] = useState<Set<string>>(new Set(JOBS_COLS.map(c => c.key)));
+  const [editColsOpen, setEditColsOpen] = useState(false);
+  const [pendingCols, setPendingCols] = useState<Set<string>>(new Set(JOBS_COLS.map(c => c.key)));
+  // Change-status modal — holds the ids being updated (null = closed).
+  const [statusModalIds, setStatusModalIds] = useState<number[] | null>(null);
+  const [statusChoice, setStatusChoice] = useState<Job["status"]>("Scheduled");
+  // Manage-duplicates overlay
+  const [manageDupsOpen, setManageDupsOpen] = useState(false);
+  const [dupMatchField, setDupMatchField] = useState<"client" | "address" | "title">("client");
+  const [dismissedDupKeys, setDismissedDupKeys] = useState<Set<string>>(new Set());
+
+  const openStatusModal = (ids: number[]) => {
+    if (ids.length === 0) return;
+    const first = jobs.find(j => j.id === ids[0]);
+    setStatusChoice(first?.status ?? "Scheduled");
+    setStatusModalIds(ids);
+  };
+  const applyStatus = () => {
+    if (!statusModalIds) return;
+    const ids = new Set(statusModalIds);
+    setJobs(prev => prev.map(j => (ids.has(j.id) ? { ...j, status: statusChoice } : j)));
+    setStatusModalIds(null);
+    setSelectedJobs(new Set());
+  };
+  const duplicateJob = (job: Job) => {
+    const nextId = Math.max(0, ...jobs.map(j => j.id)) + 1;
+    setJobs(prev => [{ ...job, id: nextId, jobNumber: `${job.jobNumber}-COPY` }, ...prev]);
+    setCurrentPage(1);
+    toast.success(`Duplicated ${job.jobNumber}`);
+  };
 
   // Advanced filter panel
   const [filterPanelOpen, setFilterPanelOpen] = useState(false);
@@ -153,6 +245,18 @@ export function Jobs() {
     return 0;
   });
 
+  // Columns actually shown (Edit columns modal toggles visibility).
+  const shownCols = jobCols.filter((c) => visibleCols.has(c.key));
+
+  // Duplicate groups for the Manage-duplicates view — jobs that share the match field.
+  const dupGroups = (() => {
+    const keyOf = (j: Job) => (dupMatchField === "client" ? j.client : dupMatchField === "address" ? j.address : j.title);
+    const map = new Map<string, Job[]>();
+    for (const j of jobs) { const k = keyOf(j); if (!map.has(k)) map.set(k, []); map.get(k)!.push(j); }
+    return [...map.entries()].filter(([k, g]) => g.length > 1 && !dismissedDupKeys.has(k)).map(([k, g]) => ({ key: k, jobs: g }));
+  })();
+  const dupMatchLabel = dupMatchField === "client" ? "client" : dupMatchField === "address" ? "address" : "job title";
+
   const totalItems = sorted.length;
   const totalPages = Math.ceil(totalItems / rowsPerPage);
   const startIndex = (currentPage - 1) * rowsPerPage;
@@ -167,6 +271,60 @@ export function Jobs() {
     Scheduled: jobs.filter(j => j.status === "Scheduled").length,
     "In Progress": jobs.filter(j => j.status === "In Progress").length,
     Completed: jobs.filter(j => j.status === "Completed").length,
+  };
+  const revenue = jobs.reduce((sum, j) => sum + (j.total ?? 0), 0);
+
+  // ── Export / Import (kebab menu) ──
+  const importInputRef = useRef<HTMLInputElement>(null);
+  const exportJobs = (rows: Job[]) => {
+    if (rows.length === 0) { toast.info("Nothing to export"); return; }
+    const headers = ["Number", "Title", "Client", "Address", "Scheduled", "Status", "Type", "Total"];
+    const esc = (v: string | number) => `"${String(v).replace(/"/g, '""')}"`;
+    const csv = [
+      headers.join(","),
+      ...rows.map(j => [j.jobNumber, j.title, j.client, j.address, j.schedule, j.status, j.jobType, j.total.toFixed(2)].map(esc).join(",")),
+    ].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `jobs-export-${rows.length}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    toast.success(`Exported ${rows.length} job${rows.length === 1 ? "" : "s"} to CSV`);
+  };
+  const handleImportFile = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const parsed = parseCSV(String(reader.result));
+        const dataRows = parsed.slice(1).filter(r => r.some(c => c.trim()));
+        if (dataRows.length === 0) { toast.error("No rows found in that file"); return; }
+        const base = Date.now();
+        const imported: Job[] = dataRows.map((r, i) => ({
+          id: base + i,
+          jobNumber: r[0]?.trim() || `IMP-J${String(i + 1).padStart(2, "0")}`,
+          title: r[1]?.trim() || "Imported job",
+          client: r[2]?.trim() || "—",
+          clientId: "",
+          address: r[3]?.trim() || "",
+          schedule: r[4]?.trim() || "",
+          scheduleDateSort: "2026-01-01",
+          status: (["Scheduled", "In Progress", "Completed"].includes(r[5]?.trim()) ? r[5].trim() : "Scheduled") as Job["status"],
+          jobType: (r[6]?.trim() === "Recurring" ? "Recurring" : "One-off") as Job["jobType"],
+          total: Number(String(r[7] ?? "").replace(/[^0-9.]/g, "")) || 0,
+        }));
+        setJobs(prev => [...imported, ...prev]);
+        setCurrentPage(1);
+        toast.success(`Imported ${imported.length} job${imported.length === 1 ? "" : "s"} from ${file.name}`);
+      } catch {
+        toast.error("Couldn't parse that file — expected a CSV");
+      }
+    };
+    reader.onerror = () => toast.error("Couldn't read that file");
+    reader.readAsText(file);
   };
 
   const SortIcon = ({ field }: { field: SortField }) => (
@@ -183,39 +341,24 @@ export function Jobs() {
       <PageHeader
         title="Jobs"
         count={selectedJobs.size > 0 ? `${filtered.length} · ${selectedJobs.size} selected` : filtered.length}
+        countSuffix="records"
       />
 
-      {/* ── Stats Cards (Clients-template style) ── */}
-      <div className="mb-4 grid grid-cols-3 gap-3">
-        <StatCard
-          value={String(statusCounts["In Progress"])}
-          label="In progress"
-          sub="active right now"
-          change="+12%"
-          changeUp
-          period="vs last week"
-          data={[1, 2, 2, 3, 4, 3, 5]}
-          sparklineColor="#F59E0B"
-        />
-        <StatCard
-          value={String(statusCounts["Completed"])}
-          label="Completed"
-          sub="this month"
-          change="+24%"
-          changeUp
-          period="vs prev. month"
-          data={[5, 6, 7, 8, 9, 10, 12]}
-          sparklineColor="#16A34A"
-        />
-        <StatCard
-          value={`$${jobs.reduce((sum, j) => sum + (j.total ?? 0), 0).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
-          label="Revenue"
-          sub="this month"
-          change="+18%"
-          changeUp
-          period="vs prev. month"
-          data={[3, 4, 4, 5, 6, 6, 7]}
-        />
+      {/* Hidden CSV input for Import */}
+      <input
+        ref={importInputRef}
+        type="file"
+        accept=".csv,text/csv"
+        className="hidden"
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) handleImportFile(f); e.target.value = ""; }}
+      />
+
+      {/* ── Stats Cards — 4 cards: number + label + sparkline (Figma 495:41108) ── */}
+      <div className="mb-4 grid grid-cols-4 gap-4">
+        <JobStat value={String(statusCounts["Scheduled"])} label="Scheduled" data={[3, 4, 3, 5, 4, 6, 5]} color="#4A6FA5" />
+        <JobStat value={String(statusCounts["In Progress"])} label="In progress" data={[1, 2, 2, 3, 4, 3, 5]} color="#D97706" />
+        <JobStat value={String(statusCounts["Completed"])} label="Completed" data={[5, 6, 7, 8, 9, 10, 12]} color="#16A34A" />
+        <JobStat value={`$${revenue.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`} label="Revenue" data={[3, 4, 4, 5, 6, 6, 7]} color="#4A6FA5" />
       </div>
 
       {/* ── Table ── */}
@@ -231,19 +374,19 @@ export function Jobs() {
                 icon: "block",
                 destructive: true,
                 onClick: () => {
-                  setJobs(prev => prev.filter(j => !selectedJobs.has(j.id)));
+                  setJobs(prev => prev.map(j => (selectedJobs.has(j.id) ? { ...j, status: "Inactive" } : j)));
                   setSelectedJobs(new Set());
                 },
               },
-              { label: "Change status", icon: "swap_horiz", onClick: () => {} },
-              { label: "Export selected", icon: "file_download", onClick: () => {} },
+              { label: "Change status", icon: "swap_horiz", onClick: () => openStatusModal([...selectedJobs]) },
+              { label: "Export selected", icon: "file_download", onClick: () => exportJobs(jobs.filter(j => selectedJobs.has(j.id))) },
             ]}
           />
         ) : (
           <div className="flex items-center gap-2 px-4 py-3 bg-white border-b border-[#E5E7EB]">
             <div className="relative">
               <span className="material-icons absolute left-2.5 top-1/2 -translate-y-1/2 text-[#9AA3AF]" style={{ fontSize: "16px" }}>search</span>
-              <input type="text" placeholder="Search jobs..." value={searchQuery}
+              <input type="text" placeholder="Search clients" value={searchQuery}
                 onChange={e => { setSearchQuery(e.target.value); setCurrentPage(1); }}
                 className="h-8 pl-8 pr-3 w-[220px] border border-[#E5E7EB] rounded-lg text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5]" />
             </div>
@@ -290,11 +433,11 @@ export function Jobs() {
                 Create Job
               </CreateActionButton>
               <KebabMenu triggerClassName="w-10 h-10 border border-[#D8DEE8] rounded-xl bg-white">
-                <KebabItem icon="view_column">Edit columns</KebabItem>
-                <KebabItem icon="content_copy">Manage duplicates</KebabItem>
+                <KebabItem icon="view_column" onSelect={() => { setPendingCols(new Set(visibleCols)); setEditColsOpen(true); }}>Edit columns</KebabItem>
+                <KebabItem icon="content_copy" onSelect={() => setManageDupsOpen(true)}>Manage duplicates</KebabItem>
                 <KebabSeparator />
-                <KebabItem icon="file_upload">Import</KebabItem>
-                <KebabItem icon="file_download">Export</KebabItem>
+                <KebabItem icon="file_upload" onSelect={() => importInputRef.current?.click()}>Import</KebabItem>
+                <KebabItem icon="file_download" onSelect={() => exportJobs(sorted)}>Export</KebabItem>
               </KebabMenu>
             </div>
           </div>
@@ -305,16 +448,16 @@ export function Jobs() {
               <th className="px-4 py-3 w-10">
                 <input type="checkbox" checked={allSelected} onChange={e => handleSelectAll(e.target.checked)} className="w-4 h-4 rounded border-[#E5E7EB] cursor-pointer accent-[#4A6FA5]" />
               </th>
-              {jobCols.map(col => (
+              {shownCols.map(col => (
                 <DraggableTh
                   key={col.key}
                   colKey={col.key}
                   onMove={moveJobCol}
-                  className={`px-4 py-3 text-left text-[14px] text-[#1A2332] select-none${col.sortable ? " cursor-pointer" : ""}`}
+                  className={`px-4 py-3 ${col.key === "total" ? "text-right" : "text-left"} text-[14px] text-[#1A2332] select-none${col.sortable ? " cursor-pointer" : ""}`}
                   style={{ fontWeight: 500 }}
                   onClick={col.sortable ? () => toggleSort(col.key as SortField) : undefined}
                 >
-                  <div className="flex items-center">
+                  <div className={`flex items-center ${col.key === "total" ? "justify-end" : ""}`}>
                     {col.label}
                     {col.sortable && <SortIcon field={col.key as SortField} />}
                   </div>
@@ -325,7 +468,7 @@ export function Jobs() {
           </thead>
           <tbody>
             {paginated.length === 0 ? (
-              <tr><td colSpan={8} className="px-4 py-12 text-center text-[14px] text-[#8899AA]">No jobs found</td></tr>
+              <tr><td colSpan={shownCols.length + 2} className="px-4 py-12 text-center text-[14px] text-[#8899AA]">No jobs found</td></tr>
             ) : paginated.map(job => (
               <tr key={job.id}
                 className={`border-b border-[#E5E7EB] hover:bg-[#F9FAFB] cursor-pointer ${selectedJobs.has(job.id) ? "bg-[#EDF5FF]" : ""}`}
@@ -333,13 +476,13 @@ export function Jobs() {
                 <td className="px-4 py-4" onClick={e => e.stopPropagation()}>
                   <input type="checkbox" checked={selectedJobs.has(job.id)} onChange={e => handleSelect(job.id, e.target.checked)} className="w-4 h-4 rounded border-[#E5E7EB] cursor-pointer accent-[#4A6FA5]" />
                 </td>
-                {jobCols.map(col => {
+                {shownCols.map(col => {
                   switch (col.key) {
                     case "id":
                       return (
                         <td key="id" className="px-4 py-4">
-                          <div className="text-[14px] text-[#4A6FA5]" style={{ fontFamily: "Geist", fontWeight: 400, lineHeight: "20px" }}>{job.jobNumber}</div>
-                          <div className="text-[13px] text-[#546478]" style={{ fontFamily: "Geist", fontWeight: 400, lineHeight: "18px" }}>{job.title}</div>
+                          <div className="text-[12px] text-[#6B7280]" style={{ fontFamily: "Geist", fontWeight: 400, lineHeight: "16px" }}>{job.jobNumber}</div>
+                          <div className="text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist", fontWeight: 400, lineHeight: "20px" }}>{job.title}</div>
                         </td>
                       );
                     case "client":
@@ -348,33 +491,33 @@ export function Jobs() {
                           <button
                             onClick={() => navigate(`/clients/${job.clientId}`)}
                             className="text-[14px] text-[#4A6FA5] hover:underline hover:text-[#3d5a85] transition-colors text-left"
-                            style={{ fontFamily: "Geist", fontStyle: "normal", fontWeight: 400, lineHeight: "20px" }}
+                            style={{ fontFamily: "Geist", fontStyle: "normal", fontWeight: 500, lineHeight: "20px" }}
                           >
                             {job.client}
                           </button>
                         </td>
                       );
                     case "address":
-                      return <td key="address" className="px-4 py-4 text-[14px] text-[#546478]" style={{ fontFamily: "Geist", fontStyle: "normal", fontWeight: 400, lineHeight: "20px" }}>{job.address}</td>;
+                      return <td key="address" className="px-4 py-4 text-[14px] text-[#6B7280]" style={{ fontFamily: "Geist", fontStyle: "normal", fontWeight: 400, lineHeight: "20px" }}>{job.address}</td>;
                     case "schedule":
-                      return <td key="schedule" className="px-4 py-4 text-[14px] text-[#546478]" style={{ fontFamily: "Geist", fontStyle: "normal", fontWeight: 400, lineHeight: "20px" }}>{formatRegionalDate(job.scheduleDateSort, regionalSettings)}</td>;
+                      return <td key="schedule" className="px-4 py-4 text-[14px] text-[#6B7280]" style={{ fontFamily: "Geist", fontStyle: "normal", fontWeight: 400, lineHeight: "20px" }}>{formatRegionalDate(job.scheduleDateSort, regionalSettings)}</td>;
                     case "status":
                       return (
                         <td key="status" className="px-4 py-4">
-                          <span className="inline-flex items-center justify-center min-w-[86px] px-2.5 py-1 rounded-md text-[12px]" style={{ fontWeight: 500, color: statusColors[job.status], backgroundColor: statusBg[job.status] }}>{job.status}</span>
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-[12px]" style={{ fontWeight: 500, lineHeight: "16px", color: statusColors[job.status], backgroundColor: statusBg[job.status] }}>{job.status}</span>
                         </td>
                       );
                     case "total":
-                      return <td key="total" className="px-4 py-4 text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>${job.total.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</td>;
+                      return <td key="total" className="px-4 py-4 text-[14px] text-[#1A2332] text-right" style={{ fontWeight: 400, lineHeight: "20px" }}>${job.total.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>;
                     default:
                       return null;
                   }
                 })}
                 <td className="px-4 py-4" onClick={e => e.stopPropagation()}>
                   <KebabMenu>
-                    <KebabItem icon="content_copy">Duplicate</KebabItem>
-                    <KebabItem icon="swap_horiz">Change status</KebabItem>
-                    <KebabItem icon="block">Inactivate</KebabItem>
+                    <KebabItem icon="content_copy" onSelect={() => duplicateJob(job)}>Duplicate</KebabItem>
+                    <KebabItem icon="swap_horiz" onSelect={() => openStatusModal([job.id])}>Change status</KebabItem>
+                    <KebabItem icon="block" onSelect={() => setJobs(prev => prev.map(j => j.id === job.id ? { ...j, status: "Inactive" } : j))}>Inactivate</KebabItem>
                     <KebabSeparator />
                     <KebabItem icon="open_in_new" onSelect={() => window.open(`/jobs/${job.id}`, "_blank")}>Open in New Tab</KebabItem>
                   </KebabMenu>
@@ -536,6 +679,139 @@ export function Jobs() {
               Apply
             </button>
           </div>
+        </div>
+      </div>
+    )}
+
+    {/* ── Edit columns modal ── */}
+    {editColsOpen && (
+      <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" onClick={() => setEditColsOpen(false)}>
+        <div className="absolute inset-0 bg-black/30 backdrop-blur-[1px]" />
+        <div className="relative bg-white rounded-xl shadow-2xl w-[420px] max-w-[92vw] p-6" onClick={e => e.stopPropagation()}>
+          <h2 className="text-[18px] text-[#1A2332] mb-4" style={{ fontWeight: 600 }}>Edit columns</h2>
+          <div className="flex flex-col gap-0.5 mb-5">
+            {JOBS_COLS.map(col => (
+              <label key={col.key} className="flex items-center gap-2.5 py-1.5 px-1 rounded-md hover:bg-[#F5F7FA] cursor-pointer text-[14px] text-[#1A2332]">
+                <input
+                  type="checkbox"
+                  checked={pendingCols.has(col.key)}
+                  onChange={() => setPendingCols(prev => { const n = new Set(prev); if (n.has(col.key)) n.delete(col.key); else n.add(col.key); return n; })}
+                  className="w-4 h-4 rounded border-[#E5E7EB] accent-[#4A6FA5] cursor-pointer"
+                />
+                {col.label}
+              </label>
+            ))}
+          </div>
+          <div className="flex justify-end gap-2">
+            <button onClick={() => setEditColsOpen(false)} className="h-9 px-4 border border-[#E5E7EB] hover:bg-[#F5F7FA] text-[#546478] text-[14px] rounded-lg" style={{ fontWeight: 500 }}>Cancel</button>
+            <button onClick={() => { setVisibleCols(new Set(pendingCols.size ? pendingCols : JOBS_COLS.map(c => c.key))); setEditColsOpen(false); }} className="h-9 px-4 bg-[#4A6FA5] hover:bg-[#3d5a85] text-white text-[14px] rounded-lg" style={{ fontWeight: 500 }}>Done</button>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* ── Change status modal (radio + Inactive) ── */}
+    {statusModalIds !== null && (
+      <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" onClick={() => setStatusModalIds(null)}>
+        <div className="absolute inset-0 bg-black/30 backdrop-blur-[1px]" />
+        <div className="relative bg-white rounded-xl shadow-2xl w-[420px] max-w-[92vw] p-6" onClick={e => e.stopPropagation()}>
+          <h2 className="text-[18px] text-[#1A2332] mb-1" style={{ fontWeight: 600 }}>Change status</h2>
+          <p className="text-[13px] text-[#6B7280] mb-4">{statusModalIds.length === 1 ? "Update this job's status." : `Update ${statusModalIds.length} jobs.`}</p>
+          <div className="flex flex-col gap-0.5 mb-5">
+            {JOB_STATUSES.map(s => (
+              <label key={s} className="flex items-center gap-2.5 py-2 px-2 rounded-md hover:bg-[#F5F7FA] cursor-pointer">
+                <input type="radio" name="job-status" checked={statusChoice === s} onChange={() => setStatusChoice(s)} className="w-4 h-4 accent-[#4A6FA5] cursor-pointer" />
+                <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-[12px]" style={{ fontWeight: 500, lineHeight: "16px", color: statusColors[s], backgroundColor: statusBg[s] }}>{s}</span>
+              </label>
+            ))}
+          </div>
+          <div className="flex justify-end gap-2">
+            <button onClick={() => setStatusModalIds(null)} className="h-9 px-4 border border-[#E5E7EB] hover:bg-[#F5F7FA] text-[#546478] text-[14px] rounded-lg" style={{ fontWeight: 500 }}>Cancel</button>
+            <button onClick={applyStatus} className="h-9 px-4 bg-[#4A6FA5] hover:bg-[#3d5a85] text-white text-[14px] rounded-lg" style={{ fontWeight: 500 }}>Save</button>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* ── Manage duplicates overlay ── */}
+    {manageDupsOpen && (
+      <div className="fixed inset-0 z-[60] bg-[#F5F7FA] overflow-auto">
+        <div className="max-w-[1000px] mx-auto p-8">
+          <button onClick={() => setManageDupsOpen(false)} className="inline-flex items-center gap-1.5 text-[13px] text-[#4A6FA5] hover:text-[#3d5a85] mb-4" style={{ fontWeight: 500 }}>
+            <span className="material-icons" style={{ fontSize: "18px" }}>arrow_back</span>
+            Back to Jobs
+          </button>
+          <div className="flex items-center justify-between gap-3 mb-5">
+            <h1 className="text-[24px] text-[#1A2332]" style={{ fontWeight: 600 }}>Manage duplicates</h1>
+            <div className="flex items-center gap-2 text-[13px] text-[#546478]">
+              <span style={{ fontWeight: 500 }}>Match jobs on:</span>
+              <select value={dupMatchField} onChange={e => setDupMatchField(e.target.value as typeof dupMatchField)} className="h-9 px-3 border border-[#E5E7EB] rounded-lg text-[13px] bg-white text-[#1A2332] focus:outline-none focus:border-[#4A6FA5]">
+                <option value="client">Client</option>
+                <option value="address">Address</option>
+                <option value="title">Job title</option>
+              </select>
+            </div>
+          </div>
+
+          {dupGroups.length === 0 ? (
+            <div className="bg-white border border-[#E5E7EB] rounded-xl py-16 text-center">
+              <span className="material-icons text-[#16A34A] mb-2 block" style={{ fontSize: "40px" }}>check_circle</span>
+              <div className="text-[15px] text-[#1A2332]" style={{ fontWeight: 600 }}>No duplicates found</div>
+              <div className="text-[13px] text-[#6B7280] mt-1">No jobs share the same {dupMatchLabel}.</div>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-4">
+              {dupGroups.map(group => (
+                <div key={group.key} className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
+                  <div className="flex items-center justify-between px-5 py-3 border-b border-[#E5E7EB] bg-[#F9FAFB]">
+                    <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>
+                      {group.jobs.length} jobs match on {dupMatchLabel} <span className="text-[#6B7280]" style={{ fontWeight: 400 }}>“{group.key}”</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => { setDismissedDupKeys(prev => new Set(prev).add(group.key)); toast.info("Marked as not a duplicate"); }}
+                        className="h-8 px-3 border border-[#E5E7EB] hover:bg-[#F5F7FA] text-[#546478] text-[13px] rounded-lg" style={{ fontWeight: 500 }}
+                      >Mark as not duplicate</button>
+                      <button
+                        onClick={() => { setDismissedDupKeys(prev => new Set(prev).add(group.key)); toast.success("Keeping both — group dismissed"); }}
+                        className="h-8 px-3 border border-[#E5E7EB] hover:bg-[#F5F7FA] text-[#546478] text-[13px] rounded-lg" style={{ fontWeight: 500 }}
+                      >Keep both</button>
+                      <button
+                        onClick={() => { const keepId = group.jobs[0].id; const removeIds = new Set(group.jobs.slice(1).map(j => j.id)); setJobs(prev => prev.filter(j => !removeIds.has(j.id))); setDismissedDupKeys(prev => new Set(prev).add(group.key)); toast.success(`Archived ${removeIds.size} duplicate${removeIds.size === 1 ? "" : "s"}`); void keepId; }}
+                        className="h-8 px-3 border border-[#FCA5A5] bg-white hover:bg-[#FEF2F2] text-[#DC2626] text-[13px] rounded-lg" style={{ fontWeight: 500 }}
+                      >Archive duplicates</button>
+                      <button
+                        onClick={() => { const removeIds = new Set(group.jobs.slice(1).map(j => j.id)); setJobs(prev => prev.filter(j => !removeIds.has(j.id))); setDismissedDupKeys(prev => new Set(prev).add(group.key)); toast.success(`Merged ${group.jobs.length} jobs into one`); }}
+                        className="h-8 px-3 bg-[#4A6FA5] hover:bg-[#3d5a85] text-white text-[13px] rounded-lg" style={{ fontWeight: 500 }}
+                      >Merge</button>
+                    </div>
+                  </div>
+                  <table className="w-full">
+                    <thead className="bg-white">
+                      <tr className="border-b border-[#E5E7EB] text-left text-[12px] text-[#6B7280]">
+                        <th className="px-5 py-2" style={{ fontWeight: 500 }}>Number</th>
+                        <th className="px-5 py-2" style={{ fontWeight: 500 }}>Client</th>
+                        <th className="px-5 py-2" style={{ fontWeight: 500 }}>Address</th>
+                        <th className="px-5 py-2" style={{ fontWeight: 500 }}>Scheduled</th>
+                        <th className="px-5 py-2" style={{ fontWeight: 500 }}>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {group.jobs.map(j => (
+                        <tr key={j.id} className="border-b border-[#F3F4F6] last:border-0 text-[13px]">
+                          <td className="px-5 py-2.5 text-[#1A2332]">{j.jobNumber}</td>
+                          <td className="px-5 py-2.5 text-[#1A2332]">{j.client}</td>
+                          <td className="px-5 py-2.5 text-[#6B7280]">{j.address}</td>
+                          <td className="px-5 py-2.5 text-[#6B7280]">{j.schedule}</td>
+                          <td className="px-5 py-2.5"><span className="inline-flex items-center px-2 py-0.5 rounded-lg text-[12px]" style={{ fontWeight: 500, color: statusColors[j.status], backgroundColor: statusBg[j.status] }}>{j.status}</span></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     )}
