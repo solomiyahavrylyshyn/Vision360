@@ -1183,7 +1183,9 @@ export function Calendar() {
 
             {/* Right: Job detail panel */}
 	            {selectedDispatchJob ? (
-	              <div className="w-[300px] shrink-0 flex flex-col overflow-hidden border-l border-[#E5E7EB] bg-white">
+	              <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setSelectedDispatchJob(null)}>
+                <div className="absolute inset-0 bg-black/30 backdrop-blur-[1px]" />
+                <div className="relative w-[380px] max-w-[92vw] max-h-[85vh] shrink-0 flex flex-col overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white shadow-2xl" onClick={e => e.stopPropagation()}>
 	                <div className="flex items-center justify-between px-4 py-3.5 border-b border-[#E5E7EB] shrink-0">
 	                  <div className="flex items-center gap-2">
 	                    <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 700 }}>Job #{selectedDispatchJob.num}</span>
@@ -1291,6 +1293,7 @@ export function Calendar() {
                     <button onClick={() => navigate(`/jobs/${selectedDispatchJob.id}`)} className="flex-1 py-2 border border-[#E5E7EB] text-[#546478] rounded-lg text-[12px] hover:bg-[#F5F7FA] transition-colors" style={{ fontWeight: 500 }}>Edit</button>
                     <button onClick={() => openQuickCreate("week", weekDays[selectedDispatchJob.dayIdx] ?? weekDays[0], selectedDispatchJob.start, selectedDispatchJob.technicianId, selectedDispatchJob.dayIdx)} className="flex-1 py-2 border border-[#E5E7EB] text-[#546478] rounded-lg text-[12px] hover:bg-[#F5F7FA] transition-colors" style={{ fontWeight: 500 }}>Reschedule</button>
                   </div>
+                </div>
                 </div>
               </div>
             ) : null}
@@ -1492,7 +1495,9 @@ export function Calendar() {
             </div>
 
             {selectedDayJob ? (
-              <div className="w-[300px] shrink-0 flex flex-col overflow-hidden border-l border-[#E5E7EB] bg-white">
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setSelectedDayJob(null)}>
+                <div className="absolute inset-0 bg-black/30 backdrop-blur-[1px]" />
+                <div className="relative w-[380px] max-w-[92vw] max-h-[85vh] shrink-0 flex flex-col overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white shadow-2xl" onClick={e => e.stopPropagation()}>
                 <div className="flex items-center justify-between px-4 py-3.5 border-b border-[#E5E7EB] shrink-0">
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="text-[14px] text-[#1A2332] truncate" style={{ fontWeight: 700 }}>Job #{selectedDayJob.id}</span>
@@ -1607,6 +1612,7 @@ export function Calendar() {
                     <button onClick={() => navigate(`/jobs/${selectedDayJob.id}`)} className="flex-1 py-2 border border-[#E5E7EB] text-[#546478] rounded-lg text-[12px] hover:bg-[#F5F7FA] transition-colors" style={{ fontWeight: 500 }}>Edit</button>
                     <button onClick={() => openQuickCreate("day", currentDate, selectedDayJob.start, selectedDayJob.technicianId)} className="flex-1 py-2 border border-[#E5E7EB] text-[#546478] rounded-lg text-[12px] hover:bg-[#F5F7FA] transition-colors" style={{ fontWeight: 500 }}>Reschedule</button>
                   </div>
+                </div>
                 </div>
               </div>
             ) : null}
