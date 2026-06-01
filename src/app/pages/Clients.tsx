@@ -207,8 +207,12 @@ export function Clients() {
     if (filterState.lifetimeMin !== "") matchesLifetime = client.totalBilled >= Number(filterState.lifetimeMin);
     if (filterState.lifetimeMax !== "") matchesLifetime = matchesLifetime && client.totalBilled <= Number(filterState.lifetimeMax);
     const matchesCity = !filterState.city || client.address.toLowerCase().includes(filterState.city.toLowerCase());
+    const matchesPaymentTerms = !filterState.paymentTerms || client.paymentTerms === filterState.paymentTerms;
+    const matchesPaymentMethod = !filterState.paymentMethod || client.paymentMethod === filterState.paymentMethod;
+    const matchesTaxable = !filterState.taxable
+      || (filterState.taxable === "yes" ? client.isTaxable === true : client.isTaxable === false);
 
-    return matchesSearch && matchesQfDate && matchesQfBalance && matchesStatus && matchesCustomerType && matchesTags && matchesLeadSource && matchesHasCompany && matchesLifetime && matchesCity;
+    return matchesSearch && matchesQfDate && matchesQfBalance && matchesStatus && matchesCustomerType && matchesTags && matchesLeadSource && matchesHasCompany && matchesLifetime && matchesCity && matchesPaymentTerms && matchesPaymentMethod && matchesTaxable;
   });
 
   // Sort
@@ -521,7 +525,7 @@ export function Clients() {
                   <select value={pendingFilters.paymentTerms} onChange={e => setPendingFilters(p => ({ ...p, paymentTerms: e.target.value }))}
                     className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] text-[#374151] bg-white focus:outline-none focus:border-[#4A6FA5]">
                     <option value="">All</option>
-                    {["Due on receipt", "Net 15", "Net 30", "Net 60", "Net 90"].map(t => <option key={t} value={t}>{t}</option>)}
+                    {["Due on receipt", "Net 15", "Net 30", "Net 45", "Net 60"].map(t => <option key={t} value={t}>{t}</option>)}
                   </select>
                 </div>
 
@@ -531,7 +535,7 @@ export function Clients() {
                   <select value={pendingFilters.paymentMethod} onChange={e => setPendingFilters(p => ({ ...p, paymentMethod: e.target.value }))}
                     className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] text-[#374151] bg-white focus:outline-none focus:border-[#4A6FA5]">
                     <option value="">All</option>
-                    {["Cash", "Check", "Credit Card", "ACH", "Wire Transfer"].map(m => <option key={m} value={m}>{m}</option>)}
+                    {["Cash", "Check", "Credit Card", "Debit Card", "Bank Transfer", "Other"].map(m => <option key={m} value={m}>{m}</option>)}
                   </select>
                 </div>
 
