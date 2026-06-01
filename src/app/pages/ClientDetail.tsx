@@ -96,83 +96,138 @@ function safeExternalHref(url: string): string | null {
   return `https://${u}`; // scheme-less (e.g. "example.com") → assume https
 }
 
-/* ── WorkTable: reusable draggable-column table for jobs/estimates/invoices ── */
-interface WorkItem {
-  id: number; type: string; title: string; subtitle: string;
-  date: string; amount: string;
-}
-
-const WORK_COLS = [
-  { key: "item",   label: "Item"   },
-  { key: "date",   label: "Date"   },
-  { key: "amount", label: "Amount" },
+/* ── ClientJobsTable ─────────────────────────────────────────────────────── */
+const JOB_STATUS_COLORS: Record<string, { bg: string; color: string }> = {
+  Scheduled:   { bg: "rgba(74,111,165,0.12)",  color: "#4A6FA5" },
+  "In Progress":{ bg: "rgba(217,119,6,0.12)",  color: "#D97706" },
+  Completed:   { bg: "rgba(22,163,74,0.12)",   color: "#16A34A" },
+  Cancelled:   { bg: "rgba(220,38,38,0.12)",   color: "#DC2626" },
+  Paused:      { bg: "rgba(168,86,247,0.12)",  color: "#A856F7" },
+};
+const JOB_COLS = [
+  { key: "job",      label: "Job #"    },
+  { key: "title",    label: "Title"    },
+  { key: "schedule", label: "Date"     },
+  { key: "status",   label: "Status"   },
+  { key: "total",    label: "Total"    },
 ] as const;
 
-function WorkTable({ items, emptyIcon, emptyLabel }: {
-  items: WorkItem[]; emptyIcon: string; emptyLabel: string;
+function ClientJobsTable({ rows, onNavigate, onDelete }: {
+  rows: Array<{ id: number; jobNumber: string; title: string; startDate: string; status: string; totalPrice: number }>;
+  onNavigate: (id: number) => void;
+  onDelete?: (id: number) => void;
 }) {
-  const [cols, moveCols] = useDraggableColumns([...WORK_COLS]);
-
-  if (items.length === 0) {
-    return (
-      <div className="py-12 text-center">
-        <span className="material-icons text-[#D1D5DB] mb-2 block" style={{ fontSize: "36px" }}>{emptyIcon}</span>
-        <p className="text-[13px] text-[#9CA3AF]">{emptyLabel}</p>
-      </div>
-    );
-  }
-
+  const [cols, moveCols] = useDraggableColumns([...JOB_COLS]);
   return (
     <DndProvider backend={HTML5Backend}>
       <table className="w-full">
         <thead>
           <tr className="border-b border-[#E5E7EB]">
             {cols.map(col => (
-              <DraggableTh
-                key={col.key}
-                colKey={col.key}
-                onMove={moveCols}
-                className={`pb-3 text-[12px] text-[#6B7280] ${col.key === "amount" ? "text-right" : "text-left"}`}
-                style={{ fontWeight: 500 }}
-              >
-                {col.label}
-              </DraggableTh>
+              <DraggableTh key={col.key} colKey={col.key} onMove={moveCols}
+                className={`pb-3 text-[12px] text-[#6B7280] whitespace-nowrap ${col.key === "total" ? "text-right" : "text-left"}`}
+                style={{ fontWeight: 500 }}>{col.label}</DraggableTh>
             ))}
+            <th className="w-10" />
           </tr>
         </thead>
         <tbody>
-          {items.map(item => (
-            <tr key={item.id} className="border-b border-[#E5E7EB] hover:bg-[#F9FAFB] cursor-pointer">
-              {cols.map(col => {
-                switch (col.key) {
-                  case "item": return (
-                    <td key="item" className="py-4">
-                      <div className="flex items-center gap-3">
-                        <span className="material-icons text-[#546478]" style={{ fontSize: "20px" }}>
-                          {item.type === "estimate" ? "request_quote" : item.type === "invoice" ? "receipt" : "work"}
-                        </span>
-                        <div>
-                          <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>{item.title}</div>
-                          <div className="text-[12px] text-[#6B7280]">{item.subtitle}</div>
-                        </div>
-                      </div>
-                    </td>
-                  );
-                  case "date": return (
-                    <td key="date" className="py-4">
-                      <div className="text-[13px] text-[#6B7280]">{item.date}</div>
-                    </td>
-                  );
-                  case "amount": return (
-                    <td key="amount" className="py-4 text-right">
-                      <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>{item.amount || "—"}</div>
-                    </td>
-                  );
-                  default: return null;
-                }
-              })}
-            </tr>
-          ))}
+          {rows.map(row => {
+            const ss = JOB_STATUS_COLORS[row.status] ?? JOB_STATUS_COLORS["Scheduled"];
+            return (
+              <tr key={row.id} onClick={() => onNavigate(row.id)} className="border-b border-[#E5E7EB] last:border-0 hover:bg-[#F9FAFB] cursor-pointer">
+                {cols.map(col => {
+                  switch (col.key) {
+                    case "job":    return <td key="job"    className="py-3.5 pr-4"><span className="text-[13px] text-[#4A6FA5] font-medium">{row.jobNumber}</span></td>;
+                    case "title":  return <td key="title"  className="py-3.5 pr-4"><span className="text-[13px] text-[#1A2332]">{row.title || "—"}</span></td>;
+                    case "schedule":return <td key="schedule" className="py-3.5 pr-4"><span className="text-[13px] text-[#6B7280]">{row.startDate || "—"}</span></td>;
+                    case "status": return <td key="status" className="py-3.5 pr-4">
+                      <span className="px-2 py-0.5 rounded-md text-[12px]" style={{ fontWeight: 600, backgroundColor: ss.bg, color: ss.color }}>{row.status}</span>
+                    </td>;
+                    case "total":  return <td key="total"  className="py-3.5 text-right"><span className="text-[13px] text-[#1A2332] font-medium">${row.totalPrice.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></td>;
+                    default: return null;
+                  }
+                })}
+                <td className="py-3.5 pl-2 text-right" onClick={e => e.stopPropagation()}>
+                  {onDelete && (
+                    <KebabMenuShared>
+                      <KebabItem icon="open_in_new" onSelect={() => onNavigate(row.id)}>Open job</KebabItem>
+                      <KebabSeparator />
+                      <KebabItem icon="delete_outline" destructive onSelect={() => onDelete(row.id)}>Remove</KebabItem>
+                    </KebabMenuShared>
+                  )}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </DndProvider>
+  );
+}
+
+/* ── ClientEstimatesTable ────────────────────────────────────────────────── */
+const EST_STATUS_COLORS: Record<string, { bg: string; color: string }> = {
+  Draft:     { bg: "#F3F4F6", color: "#6B7280"  },
+  Sent:      { bg: "#DBEAFE", color: "#1E40AF"  },
+  Viewed:    { bg: "#FEF3C7", color: "#92400E"  },
+  Approved:  { bg: "#DCFCE7", color: "#166534"  },
+  Rejected:  { bg: "#FEE2E2", color: "#DC2626"  },
+  Expired:   { bg: "#F3F4F6", color: "#6B7280"  },
+  Converted: { bg: "#EBF0F8", color: "#4A6FA5"  },
+  Archived:  { bg: "#E5E7EB", color: "#4B5563"  },
+};
+const EST_COLS = [
+  { key: "number",  label: "Estimate #" },
+  { key: "name",    label: "Title"      },
+  { key: "date",    label: "Date"       },
+  { key: "status",  label: "Status"     },
+  { key: "amount",  label: "Total"      },
+] as const;
+
+function ClientEstimatesTable({ rows, onNavigate }: {
+  rows: Array<{ id: number; estimateNumber: string; estimateName: string; createdDate: string; status: string; amount: number }>;
+  onNavigate: (id: number) => void;
+}) {
+  const [cols, moveCols] = useDraggableColumns([...EST_COLS]);
+  return (
+    <DndProvider backend={HTML5Backend}>
+      <table className="w-full">
+        <thead>
+          <tr className="border-b border-[#E5E7EB]">
+            {cols.map(col => (
+              <DraggableTh key={col.key} colKey={col.key} onMove={moveCols}
+                className={`pb-3 text-[12px] text-[#6B7280] whitespace-nowrap ${col.key === "amount" ? "text-right" : "text-left"}`}
+                style={{ fontWeight: 500 }}>{col.label}</DraggableTh>
+            ))}
+            <th className="w-10" />
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map(row => {
+            const ss = EST_STATUS_COLORS[row.status] ?? EST_STATUS_COLORS["Draft"];
+            return (
+              <tr key={row.id} onClick={() => onNavigate(row.id)} className="border-b border-[#E5E7EB] last:border-0 hover:bg-[#F9FAFB] cursor-pointer">
+                {cols.map(col => {
+                  switch (col.key) {
+                    case "number": return <td key="number" className="py-3.5 pr-4"><span className="text-[13px] text-[#4A6FA5] font-medium">{row.estimateNumber}</span></td>;
+                    case "name":   return <td key="name"   className="py-3.5 pr-4"><span className="text-[13px] text-[#1A2332]">{row.estimateName || "—"}</span></td>;
+                    case "date":   return <td key="date"   className="py-3.5 pr-4"><span className="text-[13px] text-[#6B7280]">{row.createdDate || "—"}</span></td>;
+                    case "status": return <td key="status" className="py-3.5 pr-4">
+                      <span className="px-2 py-0.5 rounded-md text-[12px]" style={{ fontWeight: 600, backgroundColor: ss.bg, color: ss.color }}>{row.status}</span>
+                    </td>;
+                    case "amount": return <td key="amount" className="py-3.5 text-right"><span className="text-[13px] text-[#1A2332] font-medium">${row.amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></td>;
+                    default: return null;
+                  }
+                })}
+                <td className="py-3.5 pl-2 text-right" onClick={e => e.stopPropagation()}>
+                  <KebabMenuShared>
+                    <KebabItem icon="open_in_new" onSelect={() => onNavigate(row.id)}>Open estimate</KebabItem>
+                  </KebabMenuShared>
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </DndProvider>
@@ -618,21 +673,7 @@ export function ClientDetail() {
   const liveClientEstimates = allEstimates
     // Match by clientId when present (exact link); fall back to name only for
     // legacy records with no clientId — prevents same-name data bleed.
-    .filter((e) => e.clientId ? e.clientId === client.id : e.clientName === client.name)
-    .map((e) => ({
-      id: e.id,
-      type: "estimate",
-      title: `Estimate ${e.estimateNumber}`,
-      subtitle: e.estimateName || e.jobTitle || "—",
-      date: e.createdDate ? `Created ${e.createdDate}` : "",
-      amount: `$${e.amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-      _estimateId: e.id,
-    }));
-  const estimateItems = liveClientEstimates.length > 0
-    ? liveClientEstimates
-    : hasEstimates
-      ? [{ id: 3, type: "estimate", title: "Estimate #1", subtitle: "AC Unit Replacement", date: "Created Mar 28, 2026", amount: "$2,450.00" }]
-      : [];
+    .filter((e) => e.clientId ? e.clientId === client.id : e.clientName === client.name);
   const clientInvoiceRows = hasBilling ? invoiceRows : [];
   const clientPaymentRows = hasBilling ? paymentRows : [];
 
@@ -641,8 +682,8 @@ export function ClientDetail() {
     .filter((t) => !hiddenTabs.has(t.key))
     .map((t) => {
       if (t.key === "addresses") return { ...t, count: serviceAddresses.length };
-      if (t.key === "jobs") return { ...t, count: jobItems.length };
-      if (t.key === "estimates") return { ...t, count: estimateItems.length };
+      if (t.key === "jobs") return { ...t, count: liveClientJobs.length };
+      if (t.key === "estimates") return { ...t, count: liveClientEstimates.length };
       if (t.key === "invoices") return { ...t, count: clientInvoiceRows.length };
       if (t.key === "documents") return { ...t, count: documents.length };
       if (t.key === "payments") return { ...t, count: clientPaymentRows.length };
@@ -1431,16 +1472,34 @@ export function ClientDetail() {
       case "jobs":
         return (
           <>
-            <TabHeader title="Jobs" onAdd={() => navigate(createUrl("/jobs/new", "jobs"))} addLabel="Create job" />
-            <WorkTable items={jobItems} emptyIcon="work" emptyLabel="No jobs yet for this client." />
+            <TabHeader title="Jobs" count={liveClientJobs.length} onAdd={() => navigate(createUrl("/jobs/new", "jobs"))} addLabel="Create job" />
+            {liveClientJobs.length === 0 ? (
+              <EmptyState icon="work" message="No jobs yet for this client." />
+            ) : (
+              <div className="overflow-x-auto">
+                <ClientJobsTable
+                  rows={liveClientJobs}
+                  onNavigate={(id) => navigate(`/jobs/${id}?returnTo=${encodeURIComponent(`/clients/${client.id}?tab=jobs`)}`)}
+                />
+              </div>
+            )}
           </>
         );
 
       case "estimates":
         return (
           <>
-            <TabHeader title="Estimates" count={estimateItems.length} onAdd={() => navigate(createUrl("/estimates/new", "estimates"))} addLabel="Create estimate" />
-            <WorkTable items={estimateItems} emptyIcon="request_quote" emptyLabel="No estimates yet for this client." />
+            <TabHeader title="Estimates" count={liveClientEstimates.length} onAdd={() => navigate(createUrl("/estimates/new", "estimates"))} addLabel="Create estimate" />
+            {liveClientEstimates.length === 0 ? (
+              <EmptyState icon="request_quote" message="No estimates yet for this client." />
+            ) : (
+              <div className="overflow-x-auto">
+                <ClientEstimatesTable
+                  rows={liveClientEstimates}
+                  onNavigate={(id) => navigate(`/estimates/${id}?returnTo=${encodeURIComponent(`/clients/${client.id}?tab=estimates`)}`)}
+                />
+              </div>
+            )}
           </>
         );
 
