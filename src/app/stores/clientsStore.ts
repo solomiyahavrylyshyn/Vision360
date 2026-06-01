@@ -104,6 +104,9 @@ export interface ClientRecord {
   serviceAddresses: ServiceAddress[];
   customFields: Record<string, string>;
   tags: string[];
+  // Deduplication lifecycle fields
+  mergedIntoId?: string;   // set on the losing record after a merge
+  archivedAt?: string;     // ISO timestamp when soft-archived
 }
 
 type ClientSeed = Partial<ClientRecord> &
