@@ -916,12 +916,15 @@ export function ClientDetail() {
                   {clientData.paymentMethod || "—"}
                 </span>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-[13px] text-[#6B7280]">Taxable</span>
-                <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>
-                  {clientData.isTaxable ? "Yes" : "No"}
-                </span>
-              </div>
+              <label className="flex items-center gap-2.5 cursor-pointer pt-0.5">
+                <input
+                  type="checkbox"
+                  checked={clientData.isTaxable}
+                  onChange={(e) => handleCheckboxChange("isTaxable", e.target.checked)}
+                  className="w-4 h-4 accent-[#4A6FA5]"
+                />
+                <span className="text-[13px] text-[#4B5563]">Taxable Customer</span>
+              </label>
             </div>
           </div>
         </div>
@@ -2307,10 +2310,6 @@ export function ClientDetail() {
                         <SelectItem value="Net 90">Net 90</SelectItem>
                       </SelectContent>
                     </Select>
-                  </div>
-                  <div>
-                    <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Credit limit</Label>
-                    <Input type="number" placeholder="0" value={editedClient.creditLimit} onChange={(e) => handleFieldChange("creditLimit", parseFloat(e.target.value) || 0)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
                   </div>
                   <div>
                     <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Payment method</Label>
