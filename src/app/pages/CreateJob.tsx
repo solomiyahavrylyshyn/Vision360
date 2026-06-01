@@ -3,6 +3,10 @@ import { useNavigate, useSearchParams } from "react-router";
 import { ItemPicker, catalogItemToLineItem, type CatalogItem, type SelectedLineItem } from "../components/ItemPicker";
 import { jobTypesStore } from "../stores/jobTypesStore";
 import { clientsStore } from "../stores/clientsStore";
+import { jobsStore } from "../stores/jobsStore";
+import { estimatesStore } from "../stores/estimatesStore";
+import { toast } from "sonner";
+import { formatRegionalDate } from "../stores/regionalSettingsStore";
 import { PageHeader } from "../components/ui/page-header";
 import { PlusIcon } from "../components/ui/plus-icon";
 
@@ -56,6 +60,26 @@ export function CreateJob() {
   const [privateNotes, setPrivateNotes] = useState("");
   const [itemPickerOpen, setItemPickerOpen] = useState(false);
   const [taxRate, setTaxRate] = useState(7.5);
+  const fromEstimateId = Number(sp.get("fromEstimate") || 0);
+  // Pre-populate line items from the source estimate (Convert → Job flow).
+  useState(() => {
+    if (!fromEstimateId) return;
+    const est = estimatesStore.getById(fromEstimateId);
+    if (!est?.items?.length) return;
+    const preloaded = est.items.map((it, idx) => ({
+      id: idx + 1,
+      catalogItemId: 0,
+      name: it.name,
+      description: it.description,
+      quantity: it.quantity,
+      unitPrice: it.price,
+      unitCost: it.cost,
+      taxable: it.taxable,
+      total: it.amount,
+    }));
+    setLineItems(preloaded);
+    if (!title) setTitle(est.estimateName || "");
+  });
 
   const addLineItem = () => {
     setLineItems([...lineItems, { id: Date.now(), name: "", description: "", quantity: 1, unitCost: 0, unitPrice: 0 }]);
@@ -111,7 +135,53 @@ export function CreateJob() {
   const fmt = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   const handleSave = () => {
-    goBack();
+    if (!client.trim()) { toast.error("Select a client before saving the job."); return; }
+
+    const computedSubtotal = lineItems.reduce((s, li) => s + li.total, 0);
+    const computedTaxable = lineItems.filter((li) => li.taxable).reduce((s, li) => s + li.total, 0);
+    const computedTotal = computedSubtotal + computedTaxable * (taxRate / 100);
+    const today = formatRegionalDate(new Date());
+
+    const record = jobsStore.add({
+      jobNumber,
+      title: title.trim() || "Untitled Job",
+      client: client.trim(),
+      clientId: liveClients.find((c) => c.name === client.trim())?.id ?? "",
+      address: serviceStreet,
+      city: serviceCity,
+      state: serviceState,
+      zip: serviceZip,
+      gateCode,
+      assignedTo,
+      jobType: jobCategory || "Service",
+      jobCategory,
+      startDate,
+      endDate,
+      startTime,
+      endTime,
+      status: "Scheduled",
+      totalPrice: Math.round(computedTotal * 100) / 100,
+      notes,
+      fieldNotes,
+      privateNotes,
+      taxRate,
+      estimateId: fromEstimateId || undefined,
+      estimateNumber: fromEstimateId
+        ? estimatesStore.getById(fromEstimateId)?.estimateNumber
+        : undefined,
+    });
+
+    // Mark the source estimate as Converted.
+    if (fromEstimateId) {
+      estimatesStore.update(fromEstimateId, {
+        status: "Approved",
+        job: record.jobNumber,
+        jobTitle: record.title,
+      });
+    }
+
+    toast.success(`Job ${record.jobNumber} created`);
+    navigate(returnTo || `/jobs/${record.id}`);
   };
 
   return (

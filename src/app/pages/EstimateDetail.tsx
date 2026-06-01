@@ -323,6 +323,39 @@ export function EstimateDetail() {
   };
   const deleteNote = (id: number) =>
     setEstimate(prev => ({ ...prev, notesList: (prev.notesList ?? []).filter((n) => n.id !== id) }));
+
+  // Status change helper: updates local state + store, sets sentDate on Sent,
+  // and appends an Activity entry so the audit trail is complete (G6).
+  const changeStatus = (next: EstimateStatus) => {
+    const now = formatRegionalDate(new Date());
+    const actionLabel: Record<EstimateStatus, string> = {
+      Draft: "Reverted to Draft",
+      Sent: "Estimate sent",
+      Viewed: "Marked as Viewed",
+      Approved: "Estimate approved",
+      Rejected: "Estimate rejected",
+      Expired: "Marked as Expired",
+      Archived: "Archived",
+    };
+    const newActivity = {
+      id: (estimate.activity.length ? Math.max(...estimate.activity.map(a => a.id)) : 0) + 1,
+      date: `${now} — today`,
+      action: actionLabel[next] ?? `Status → ${next}`,
+      detail: `Changed by You`,
+      icon: next === "Sent" ? "send" : next === "Approved" ? "check_circle" : next === "Rejected" ? "cancel" : "swap_horiz",
+    };
+    const patch: Partial<typeof estimate> = {
+      status: next,
+      activity: [newActivity, ...estimate.activity],
+      sentDate: next === "Sent" ? now : estimate.sentDate,
+    };
+    setEstimate(prev => ({ ...prev, ...patch }));
+    estimatesStore.update(estimate.id, {
+      status: next,
+      sentDate: next === "Sent" ? now : undefined,
+    });
+    setStatusOpen(false);
+  };
   const toggleDocSelected = (docId: string) => setSelectedDocs(prev => { const n = new Set(prev); n.has(docId) ? n.delete(docId) : n.add(docId); return n; });
   const handleFilesAdded = (files: FileList | null) => {
     if (!files) return;
@@ -934,7 +967,7 @@ export function EstimateDetail() {
                   {statusOpen && (
                     <div className="absolute left-0 top-[calc(100%+4px)] w-[200px] bg-white border border-[#E5E7EB] rounded-xl shadow-lg z-40 py-1.5">
                       {primaryStatuses.map(s => (
-                        <button key={s} onClick={() => { setEstimate(prev => ({ ...prev, status: s })); estimatesStore.update(estimate.id, { status: s }); setStatusOpen(false); }}
+                        <button key={s} onClick={() => { changeStatus(s); }}
                           className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-[13px] transition-colors ${s === estimate.status ? "bg-[#EEF3FA]" : "hover:bg-[#F5F7FA]"}`}
                           style={{ fontWeight: s === estimate.status ? 600 : 400, color: s === estimate.status ? "#4A6FA5" : "#1A2332" }}>
                           <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: statusColors[s] }} />
@@ -947,7 +980,7 @@ export function EstimateDetail() {
                         <span className="text-[10px] uppercase tracking-wider text-[#9CA3AF]" style={{ fontWeight: 600 }}>Other</span>
                       </div>
                       {otherStatuses.map(s => (
-                        <button key={s} onClick={() => { setEstimate(prev => ({ ...prev, status: s })); estimatesStore.update(estimate.id, { status: s }); setStatusOpen(false); }}
+                        <button key={s} onClick={() => { changeStatus(s); }}
                           className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-[13px] transition-colors ${s === estimate.status ? "bg-[#EEF3FA]" : "hover:bg-[#F5F7FA]"}`}
                           style={{ fontWeight: s === estimate.status ? 600 : 400, color: s === estimate.status ? "#4A6FA5" : "#1A2332" }}>
                           <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: statusColors[s] }} />
@@ -1013,7 +1046,9 @@ export function EstimateDetail() {
                 <div className="w-px h-4 bg-[#E5E7EB]" />
                 <div className="flex items-center gap-1.5 px-3 text-[13px] text-[#6B7280]">
                   <span className="material-icons" style={{ fontSize: "14px" }}>mail</span>
-                  Sent {estimate.sentDate}
+                  {estimate.sentDate && estimate.sentDate !== "Not Sent"
+                    ? `Sent ${estimate.sentDate}`
+                    : "Not sent"}
                 </div>
               </div>
             </div>
