@@ -14,6 +14,7 @@ import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "../compone
 import { DocumentPreview } from "../components/DocumentPreview";
 import { toast } from "sonner";
 import { formatRegionalDate } from "../stores/regionalSettingsStore";
+import { jobsStore, type JobRecord } from "../stores/jobsStore";
 import acServicePhoto from "../../assets/documents/33897-cu.jpg";
 import waterHeaterPhoto from "../../assets/documents/34285-install-water-heater.jpg";
 import installAcPhoto from "../../assets/documents/34689-install-ac.jpg";
@@ -414,7 +415,60 @@ export function JobDetail() {
   const navigate = useNavigate();
   const { id } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
-  const job = mockJobData[id || "1"] || mockJobData["1"];
+
+  // Resolve the job: check jobsStore first (user-created jobs), then fall back
+  // to the hardcoded mockJobData so existing demo links still work.
+  const storeJob = jobsStore.getById(Number(id));
+  const mockFallback = mockJobData[id || "1"] || mockJobData["1"];
+
+  // Promote a jobsStore record to the shape JobDetail expects.
+  const jobFromStore = storeJob ? (() => {
+    const r: JobRecord = storeJob;
+    return {
+      ...mockFallback, // inherit all rich demo fields as defaults
+      id: r.id,
+      title: r.title,
+      client: r.client,
+      clientId: r.clientId,
+      address: r.address,
+      city: r.city,
+      state: r.state,
+      zip: r.zip,
+      gateCode: r.gateCode,
+      assignedTo: r.assignedTo,
+      jobNumber: r.jobNumber,
+      jobType: r.jobType || "Service",
+      jobFrequency: "One-time",
+      startedOn: r.startDate,
+      endsOn: r.endDate,
+      startTime: r.startTime || "",
+      endTime: r.endTime || "",
+      status: "Scheduled" as const,
+      notes: [] as NoteEntry[],
+      fieldNotes: [] as NoteEntry[],
+      internalNotes: [] as NoteEntry[],
+      lineItems: [],
+      totalPrice: r.totalPrice,
+      totalCost: 0,
+      expenses: [],
+      expenseTotal: 0,
+      visits: [],
+      profitability: {
+        totalPrice: r.totalPrice,
+        lineItemCost: 0,
+        labor: 0,
+        expenses: 0,
+        profit: r.totalPrice,
+        margin: 100,
+      },
+      linkedEstimate: r.estimateId
+        ? { id: r.estimateId, title: `Estimate #${r.estimateNumber ?? r.estimateId}`, status: "Approved" }
+        : null,
+      linkedInvoice: null,
+    };
+  })() : null;
+
+  const job = jobFromStore ?? mockFallback;
 
   // Honor ?tab=<key> so deep-links and round-trip create flows land on the
   // tab the user was on (e.g. JobDetail → Create Estimate → back).
@@ -436,7 +490,9 @@ export function JobDetail() {
   // Must stay in sync with Calendar.tsx TEAM list — mismatched names caused
   // QA BUG-09 where the Assigned-To dropdown showed people who didn't exist
   // on the schedule board.
-  const FIELD_EMPLOYEES = ["Peter Novak", "Travis Brown", "Maria Garcia"];
+  // Keep in sync with Calendar TEAM, CreateJob, and Settings → Manage Team.
+  // Emily Parker added per QA report — she exists as a team member.
+  const FIELD_EMPLOYEES = ["Peter Novak", "Travis Brown", "Maria Garcia", "Emily Parker"];
   const [assignedTo, setAssignedTo] = useState<string>(job.assignedTo || "");
   const [assignedToOpen, setAssignedToOpen] = useState(false);
 

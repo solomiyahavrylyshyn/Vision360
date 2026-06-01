@@ -40,8 +40,8 @@ export function CreateJob() {
   const availableJobTypes = useSyncExternalStore(jobTypesStore.subscribe, jobTypesStore.getJobTypes);
   // Live clients from the shared store — replaces the old hardcoded mockClients array.
   const liveClients = useSyncExternalStore(clientsStore.subscribe, clientsStore.getSnapshot);
-  // Keep in sync with Calendar TEAM and JobDetail FIELD_EMPLOYEES (QA BUG-09)
-  const fieldEmployees = ["Peter Novak", "Travis Brown", "Maria Garcia"];
+  // Keep in sync with Calendar TEAM and JobDetail FIELD_EMPLOYEES.
+  const fieldEmployees = ["Peter Novak", "Travis Brown", "Maria Garcia", "Emily Parker"];
   const [serviceCountry, setServiceCountry] = useState("United States");
   const [serviceStreet, setServiceStreet] = useState("");
   const [serviceCity, setServiceCity] = useState("");
