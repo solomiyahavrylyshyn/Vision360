@@ -31,6 +31,7 @@ import { toast } from "sonner";
 import { formatRegionalDate } from "../stores/regionalSettingsStore";
 import { clientsStore } from "../stores/clientsStore";
 import { estimatesStore } from "../stores/estimatesStore";
+import { jobsStore } from "../stores/jobsStore";
 import { tagsStore } from "../stores/tagsStore";
 import { customFieldsStore } from "../stores/customFieldsStore";
 import { relationshipsStore } from "../stores/relationshipsStore";
@@ -570,17 +571,32 @@ export function ClientDetail() {
   // instead of inheriting shared demo rows.
   const hasEstimates = (client.estimatesTotal ?? 0) > 0;
   const hasBilling = (client.totalBilled ?? 0) > 0;
-  // Jobs list sized to the client's real job counts so the Jobs tab badge
-  // (= totalJobs) and the header "Open jobs" KPI (= openJobs) are consistent
-  // and both trace to the client record — no more orphan "1".
-  const jobItems = Array.from({ length: client.totalJobs }, (_, i) => ({
-    id: i + 2,
-    type: "job",
-    title: `Job #${i + 1}`,
-    subtitle: "AC Estimate",
-    date: i < client.openJobs ? "Scheduled for Mar 30, 2026" : "Completed Mar 15, 2026",
-    amount: "$0.00",
-  }));
+  // Live jobs for this client from jobsStore — any job created via Convert or
+  // Create Job (linked by client name or clientId) appears here immediately.
+  const allStoreJobs = useSyncExternalStore(jobsStore.subscribe, jobsStore.getSnapshot);
+  const liveClientJobs = allStoreJobs.filter(
+    (j) => j.client === client.name || j.clientId === client.id
+  );
+  // Merge: show live store jobs, then fall back to legacy demo rows for clients
+  // that have `totalJobs > 0` but nothing in the store yet.
+  const jobItems = liveClientJobs.length > 0
+    ? liveClientJobs.map((j) => ({
+        id: j.id,
+        type: "job",
+        title: `Job ${j.jobNumber}`,
+        subtitle: j.title || "Service",
+        date: j.startDate ? `Scheduled for ${j.startDate}` : "",
+        amount: `$${j.totalPrice.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+        _jobId: j.id,
+      }))
+    : Array.from({ length: client.totalJobs }, (_, i) => ({
+        id: i + 2,
+        type: "job",
+        title: `Job #${i + 1}`,
+        subtitle: "AC Estimate",
+        date: i < client.openJobs ? "Scheduled for Mar 30, 2026" : "Completed Mar 15, 2026",
+        amount: "$0.00",
+      }));
   // Live estimates for this client from the persistent estimatesStore so newly
   // created estimates land here immediately. We fall back to a single demo row
   // for legacy clients that have a non-zero `estimatesTotal` but no store entry.

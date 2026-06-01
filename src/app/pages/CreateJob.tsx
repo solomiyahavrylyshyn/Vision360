@@ -171,10 +171,11 @@ export function CreateJob() {
         : undefined,
     });
 
-    // Mark the source estimate as Converted.
+    // Mark the source estimate as Converted and lock it to prevent
+    // duplicate conversions (V05.6 / V05.7).
     if (fromEstimateId) {
       estimatesStore.update(fromEstimateId, {
-        status: "Approved",
+        status: "Converted",
         job: record.jobNumber,
         jobTitle: record.title,
       });

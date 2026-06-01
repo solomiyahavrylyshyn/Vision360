@@ -15,6 +15,7 @@ import { DocumentPreview } from "../components/DocumentPreview";
 import { toast } from "sonner";
 import { formatRegionalDate } from "../stores/regionalSettingsStore";
 import { jobsStore, type JobRecord } from "../stores/jobsStore";
+import { clientsStore } from "../stores/clientsStore";
 import acServicePhoto from "../../assets/documents/33897-cu.jpg";
 import waterHeaterPhoto from "../../assets/documents/34285-install-water-heater.jpg";
 import installAcPhoto from "../../assets/documents/34689-install-ac.jpg";
@@ -424,16 +425,25 @@ export function JobDetail() {
   // Promote a jobsStore record to the shape JobDetail expects.
   const jobFromStore = storeJob ? (() => {
     const r: JobRecord = storeJob;
+    // Look up the real client from clientsStore so contact data is correct.
+    // (Previously it inherited contact info from the mock-data fallback, which
+    // belonged to a completely different client — QA M01 linkage bug.)
+    const realClient = clientsStore.getClient(r.clientId)
+      ?? clientsStore.getSnapshot().find(c => c.name === r.client);
     return {
-      ...mockFallback, // inherit all rich demo fields as defaults
+      ...mockFallback, // inherit rich demo defaults for fields the form doesn't capture
       id: r.id,
       title: r.title,
       client: r.client,
       clientId: r.clientId,
-      address: r.address,
-      city: r.city,
-      state: r.state,
-      zip: r.zip,
+      // Real contact data from the client record (not the mock's demo client).
+      phone: realClient?.mobilePhone || realClient?.phone || mockFallback.phone,
+      email: realClient?.email || mockFallback.email,
+      customerSince: realClient?.customerSince || mockFallback.customerSince,
+      address: r.address || realClient?.address || mockFallback.address,
+      city: r.city || realClient?.city || mockFallback.city,
+      state: r.state || realClient?.state || mockFallback.state,
+      zip: r.zip || realClient?.zip || mockFallback.zip,
       gateCode: r.gateCode,
       assignedTo: r.assignedTo,
       jobNumber: r.jobNumber,

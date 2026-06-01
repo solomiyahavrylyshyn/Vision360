@@ -1,4 +1,4 @@
-import { useState, useRef, useSyncExternalStore } from "react";
+import { useState, useRef, useSyncExternalStore, useMemo } from "react";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import { DndProvider } from "react-dnd";
@@ -14,6 +14,7 @@ import {
 import { CreateActionButton } from "../components/ui/create-action-button";
 import { StatCard } from "../components/ui/stat-card";
 import { formatRegionalDate, regionalSettingsStore } from "../stores/regionalSettingsStore";
+import { jobsStore } from "../stores/jobsStore";
 
 interface Job {
   id: number;
@@ -144,7 +145,30 @@ const JOBS_COLS = [
 export function Jobs() {
   const navigate = useNavigate();
   const regionalSettings = useSyncExternalStore(regionalSettingsStore.subscribe, regionalSettingsStore.getSnapshot);
+  // Merge store-created jobs on top of the seed demo rows so newly created
+  // jobs appear in the list while the demo data is still visible.
+  const storeJobs = useSyncExternalStore(jobsStore.subscribe, jobsStore.getSnapshot);
+  const storeJobIds = new Set(storeJobs.map(j => j.id));
+  const mergedJobs: Job[] = useMemo(() => {
+    const fromStore: Job[] = storeJobs.map(r => ({
+      id: r.id,
+      jobNumber: r.jobNumber,
+      title: r.title,
+      client: r.client,
+      clientId: r.clientId,
+      address: [r.address, r.city, r.state, r.zip].filter(Boolean).join(", "),
+      schedule: r.startDate,
+      scheduleDateSort: r.startDate,
+      status: r.status as Job["status"],
+      jobType: r.jobType || "One-off",
+      total: r.totalPrice,
+    }));
+    // Seed rows whose ID collides with a store row are dropped to avoid duplication.
+    const seedRows = mockJobs.filter(j => !storeJobIds.has(j.id));
+    return [...fromStore, ...seedRows];
+  }, [storeJobs]);
   const [jobs, setJobs] = useState<Job[]>(mockJobs);
+  const allJobs = mergedJobs;
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedJobs, setSelectedJobs] = useState<Set<number>>(new Set());
 
@@ -172,7 +196,7 @@ export function Jobs() {
 
   const openStatusModal = (ids: number[]) => {
     if (ids.length === 0) return;
-    const first = jobs.find(j => j.id === ids[0]);
+    const first = allJobs.find(j => j.id === ids[0]);
     setStatusChoice(first?.status ?? "Scheduled");
     setStatusModalIds(ids);
   };
@@ -184,7 +208,7 @@ export function Jobs() {
     setSelectedJobs(new Set());
   };
   const duplicateJob = (job: Job) => {
-    const nextId = Math.max(0, ...jobs.map(j => j.id)) + 1;
+    const nextId = Math.max(0, ...allJobs.map(j => j.id)) + 1;
     setJobs(prev => [{ ...job, id: nextId, jobNumber: `${job.jobNumber}-COPY` }, ...prev]);
     setCurrentPage(1);
     toast.success(`Duplicated ${job.jobNumber}`);
@@ -216,7 +240,7 @@ export function Jobs() {
     else { setSortField(field); setSortDir("asc"); }
   };
 
-  const filtered = jobs.filter(j => {
+  const filtered = allJobs.filter(j => {
     if (qfStatus !== "All" && j.status !== qfStatus) return false;
     if (qfType === "One-off" && j.jobType !== "One-off") return false;
     if (qfType === "Recurring" && j.jobType !== "Recurring") return false;
@@ -269,9 +293,9 @@ export function Jobs() {
   const handleSelect = (id: number, checked: boolean) => { const s = new Set(selectedJobs); checked ? s.add(id) : s.delete(id); setSelectedJobs(s); };
 
   const statusCounts = {
-    Scheduled: jobs.filter(j => j.status === "Scheduled").length,
-    "In Progress": jobs.filter(j => j.status === "In Progress").length,
-    Completed: jobs.filter(j => j.status === "Completed").length,
+    Scheduled: allJobs.filter(j => j.status === "Scheduled").length,
+    "In Progress": allJobs.filter(j => j.status === "In Progress").length,
+    Completed: allJobs.filter(j => j.status === "Completed").length,
   };
   const revenue = jobs.reduce((sum, j) => sum + (j.total ?? 0), 0);
 
@@ -380,7 +404,7 @@ export function Jobs() {
                 },
               },
               { label: "Change status", icon: "swap_horiz", onClick: () => openStatusModal([...selectedJobs]) },
-              { label: "Export selected", icon: "file_download", onClick: () => exportJobs(jobs.filter(j => selectedJobs.has(j.id))) },
+              { label: "Export selected", icon: "file_download", onClick: () => exportJobs(allJobs.filter(j => selectedJobs.has(j.id))) },
             ]}
           />
         ) : (
@@ -766,7 +790,7 @@ export function Jobs() {
                 <div key={group.key} className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
                   <div className="flex items-center justify-between px-5 py-3 border-b border-[#E5E7EB] bg-[#F9FAFB]">
                     <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>
-                      {group.jobs.length} jobs match on {dupMatchLabel} <span className="text-[#6B7280]" style={{ fontWeight: 400 }}>“{group.key}”</span>
+                      {group.allJobs.length} jobs match on {dupMatchLabel} <span className="text-[#6B7280]" style={{ fontWeight: 400 }}>“{group.key}”</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <button
@@ -782,7 +806,7 @@ export function Jobs() {
                         className="h-8 px-3 border border-[#FCA5A5] bg-white hover:bg-[#FEF2F2] text-[#DC2626] text-[13px] rounded-lg" style={{ fontWeight: 500 }}
                       >Archive duplicates</button>
                       <button
-                        onClick={() => { const removeIds = new Set(group.jobs.slice(1).map(j => j.id)); setJobs(prev => prev.filter(j => !removeIds.has(j.id))); setDismissedDupKeys(prev => new Set(prev).add(group.key)); toast.success(`Merged ${group.jobs.length} jobs into one`); }}
+                        onClick={() => { const removeIds = new Set(group.jobs.slice(1).map(j => j.id)); setJobs(prev => prev.filter(j => !removeIds.has(j.id))); setDismissedDupKeys(prev => new Set(prev).add(group.key)); toast.success(`Merged ${group.allJobs.length} jobs into one`); }}
                         className="h-8 px-3 bg-[#4A6FA5] hover:bg-[#3d5a85] text-white text-[13px] rounded-lg" style={{ fontWeight: 500 }}
                       >Merge</button>
                     </div>
@@ -798,7 +822,7 @@ export function Jobs() {
                       </tr>
                     </thead>
                     <tbody>
-                      {group.jobs.map(j => (
+                      {group.allJobs.map(j => (
                         <tr key={j.id} className="border-b border-[#F3F4F6] last:border-0 text-[13px]">
                           <td className="px-5 py-2.5 text-[#1A2332]">{j.jobNumber}</td>
                           <td className="px-5 py-2.5 text-[#1A2332]">{j.client}</td>

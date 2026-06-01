@@ -26,7 +26,7 @@ import job44644Photo from "../../assets/documents/44644-img-20241210-123749.png"
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type EstimateStatus =
-  | "Draft" | "Sent" | "Viewed" | "Approved" | "Rejected" | "Expired" | "Archived";
+  | "Draft" | "Sent" | "Viewed" | "Approved" | "Rejected" | "Expired" | "Archived" | "Converted";
 
 interface LineItem {
   id: number; name: string; description: string;
@@ -60,15 +60,19 @@ interface EstimateData {
 const statusColors: Record<EstimateStatus, string> = {
   Draft: "#6B7280", Sent: "#1E40AF", Viewed: "#92400E",
   Approved: "#166534", Rejected: "#DC2626", Expired: "#6B7280", Archived: "#4B5563",
+  Converted: "#4A6FA5",
 };
 const statusBg: Record<EstimateStatus, string> = {
   Draft: "#F3F4F6", Sent: "#DBEAFE", Viewed: "#FEF3C7",
   Approved: "#DCFCE7", Rejected: "#FEE2E2", Expired: "#F3F4F6", Archived: "#E5E7EB",
+  Converted: "#EBF0F8",
 };
 const primaryStatuses: EstimateStatus[] = [
   "Draft", "Sent", "Viewed", "Approved", "Rejected", "Expired",
 ];
 const otherStatuses: EstimateStatus[] = ["Archived"];
+// Converted is terminal — it's set automatically and not shown in the picker.
+const isConverted = (s: EstimateStatus) => s === "Converted";
 
 // ─── Mock data ────────────────────────────────────────────────────────────────
 const mockEstimates: Record<string, EstimateData> = {
@@ -1097,12 +1101,18 @@ export function EstimateDetail() {
               {createMenuOpen && (
                 <div className="absolute right-0 top-[calc(100%+4px)] w-[200px] bg-white border border-[#E5E7EB] rounded-xl shadow-lg z-40 py-1.5">
                   <button
-                    onClick={() => { setCreateMenuOpen(false); navigate(`/jobs/new?fromEstimate=${estimate.id}&client=${encodeURIComponent(estimate.clientName)}`); }}
-                    className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[13px] hover:bg-[#F5F7FA] transition-colors text-left"
+                    onClick={() => {
+                      if (isConverted(estimate.status)) return;
+                      setCreateMenuOpen(false);
+                      navigate(`/jobs/new?fromEstimate=${estimate.id}&client=${encodeURIComponent(estimate.clientName)}&returnTo=${encodeURIComponent(`/estimates/${estimate.id}`)}`);
+                    }}
+                    disabled={isConverted(estimate.status)}
+                    className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[13px] hover:bg-[#F5F7FA] transition-colors text-left disabled:opacity-40 disabled:cursor-not-allowed"
                     style={{ fontWeight: 500, color: "#1A2332" }}
+                    title={isConverted(estimate.status) ? "Already converted to a job" : ""}
                   >
                     <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "18px" }}>work</span>
-                    Create Job
+                    {isConverted(estimate.status) ? "Converted to Job" : "Create Job"}
                   </button>
                   <button
                     onClick={() => { setCreateMenuOpen(false); navigate(`/invoices/new?fromEstimate=${estimate.id}&client=${encodeURIComponent(estimate.clientName)}`); }}
