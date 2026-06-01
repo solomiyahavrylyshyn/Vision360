@@ -1,3 +1,7 @@
+/* Google Material Icons — @import must come before all other rules */
+@import url('https://fonts.googleapis.com/icon?family=Material+Icons');
+@import url('https://fonts.googleapis.com/icon?family=Material+Icons+Outlined');
+
 /* ── Print: hide everything except the open statement panel ── */
 @media print {
   body > *:not(:has(#client-statement-print)) { display: none !important; }
@@ -11,11 +15,7 @@
   .no-print { display: none !important; }
 }
 
-/* Google Material Icons */
-@import url('https://fonts.googleapis.com/icon?family=Material+Icons');
-@import url('https://fonts.googleapis.com/icon?family=Material+Icons+Outlined');
-
-/* Material Icons class */
+/* Material Icons class — requires ligatures to be explicitly enabled */
 .material-icons {
   font-family: 'Material Icons';
   font-weight: normal;
@@ -28,8 +28,11 @@
   white-space: nowrap;
   word-wrap: normal;
   direction: ltr;
+  font-feature-settings: 'liga';
   -webkit-font-feature-settings: 'liga';
+  text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 .material-icons-outlined {
@@ -44,6 +47,9 @@
   white-space: nowrap;
   word-wrap: normal;
   direction: ltr;
+  font-feature-settings: 'liga';
   -webkit-font-feature-settings: 'liga';
+  text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
