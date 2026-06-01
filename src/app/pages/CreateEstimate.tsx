@@ -7,8 +7,10 @@ import { formatRegionalDate } from "../stores/regionalSettingsStore";
 import { ItemPicker, catalogItemToLineItem, type CatalogItem, type SelectedLineItem } from "../components/ItemPicker";
 import { PageHeader } from "../components/ui/page-header";
 import { PlusIcon } from "../components/ui/plus-icon";
+import { itemsStore } from "../stores/itemsStore";
 
-const mockCatalogItems: CatalogItem[] = [
+// Legacy HVAC/plumbing options kept available alongside the live Items catalog.
+const legacyCatalogItems: CatalogItem[] = [
   { id: 1000, name: "Heat Pump Repair or Service", itemDescription: "Standard heat pump repair service call", salesDescription: "Heat pump diagnostic, repair and service", brand: "Carrier", modelNumber: "HP-2500", rate: 285, cost: 120, taxable: false, category: "HVAC", type: "Service" },
   { id: 1001, name: "SEER Heat Pump Condenser Unit", itemDescription: "SEER 16 heat pump condenser outdoor unit", salesDescription: "SEER Heat Pump Condenser — high efficiency outdoor unit", brand: "Trane", modelNumber: "XR16-048", rate: 3200, cost: 1800, taxable: true, category: "HVAC", type: "Product" },
   { id: 1002, name: "SEER Heat Pump Condenser Premium", itemDescription: "SEER 20 premium heat pump condenser", salesDescription: "SEER Premium Heat Pump Condenser — ultra high efficiency", brand: "Lennox", modelNumber: "XP25-048", rate: 4800, cost: 2900, taxable: true, category: "HVAC", type: "Product" },
@@ -35,12 +37,22 @@ export function CreateEstimate() {
   const returnTo = searchParams.get("returnTo");
 
   const [client, setClient] = useState(searchParams.get("client") || "");
+  // Catalog = live Items module items + legacy options not already present
+  // (so items created in the Items module appear here immediately).
+  const catalogStoreItems = useSyncExternalStore(itemsStore.subscribe, itemsStore.getSnapshot);
+  const catalogItems: CatalogItem[] = (() => {
+    const names = new Set(catalogStoreItems.map((i) => i.name.toLowerCase()));
+    return [...catalogStoreItems, ...legacyCatalogItems.filter((i) => !names.has(i.name.toLowerCase()))];
+  })();
   // Real client list from the shared store so the pre-selected client matches an option.
   const liveClients = useSyncExternalStore(clientsStore.subscribe, clientsStore.getSnapshot);
   const clientNames = liveClients.map((c) => c.name);
   const clientOptions = client && !clientNames.includes(client) ? [client, ...clientNames] : clientNames;
-  // Resolve the selected client's email so the saved estimate can carry it.
-  const selectedClientEmail = liveClients.find((c) => c.name === client)?.email ?? "";
+  // Resolve the selected client's record so the saved estimate carries the
+  // exact clientId + email (clientId prevents same-name data bleed).
+  const selectedClient = liveClients.find((c) => c.name === client);
+  const selectedClientEmail = selectedClient?.email ?? "";
+  const selectedClientId = searchParams.get("clientId") || selectedClient?.id || "";
   const [serviceAddress, setServiceAddress] = useState("");
   const [estimateName, setEstimateName] = useState("");
   const [estimateNumber] = useState("10245-E03");
@@ -51,7 +63,7 @@ export function CreateEstimate() {
   const [teamMember, setTeamMember] = useState("");
   const [lineItems, setLineItems] = useState<SelectedLineItem[]>([]);
   const [internalNote, setInternalNote] = useState("");
-  const [taxRate] = useState(7.5);
+  const [taxRate, setTaxRate] = useState(7.5);
   const [itemPickerOpen, setItemPickerOpen] = useState(false);
 
   const updateLineItem = (id: number, field: keyof SelectedLineItem, value: any) => {
@@ -89,6 +101,7 @@ export function CreateEstimate() {
       estimateNumber,
       estimateName,
       clientName: client.trim(),
+      clientId: selectedClientId,
       clientEmail: selectedClientEmail,
       serviceAddress,
       createdDate: todayLabel,
@@ -305,7 +318,14 @@ export function CreateEstimate() {
                             onChange={(e) => updateLineItem(item.id, "quantity", Number(e.target.value) || 0)}
                             className="w-20 px-2 py-1 border border-[#E5E7EB] rounded text-[13px] text-center focus:outline-none focus:border-[#4A6FA5]" />
                         </td>
-                        <td className="px-4 py-3 text-[13px] text-[#1A2332]" style={{ fontVariantNumeric: "tabular-nums" }}>${fmt(item.unitPrice)}</td>
+                        <td className="px-4 py-3">
+                          <div className="relative w-28">
+                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[13px] text-[#9CA3AF]">$</span>
+                            <input type="number" min="0" step="0.01" value={item.unitPrice}
+                              onChange={(e) => updateLineItem(item.id, "unitPrice", Number(e.target.value) || 0)}
+                              className="w-28 pl-5 pr-2 py-1 border border-[#E5E7EB] rounded text-[13px] tabular-nums focus:outline-none focus:border-[#4A6FA5]" />
+                          </div>
+                        </td>
                         <td className="px-4 py-3 text-[13px] text-[#546478]" style={{ fontVariantNumeric: "tabular-nums" }}>${fmt(item.unitCost)}</td>
                         <td className="px-4 py-3 text-[13px] text-[#1A2332]" style={{ fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>${fmt(item.total)}</td>
                         <td className="px-4 py-3">
@@ -332,7 +352,18 @@ export function CreateEstimate() {
                       <span className="text-[#1A2332]" style={{ fontVariantNumeric: "tabular-nums" }}>${fmt(taxableAmount)}</span>
                     </div>
                     <div className="flex items-center justify-between text-[13px]">
-                      <span className="text-[#546478]">Tax ({taxRate}%):</span>
+                      <span className="text-[#546478] flex items-center gap-1.5">
+                        Tax
+                        <span className="relative inline-flex items-center">
+                          <input
+                            type="number" min="0" max="100" step="0.1" value={taxRate}
+                            onChange={(e) => setTaxRate(Math.max(0, Math.min(100, Number(e.target.value) || 0)))}
+                            className="w-16 pl-2 pr-4 py-0.5 border border-[#E5E7EB] rounded text-[13px] tabular-nums text-right focus:outline-none focus:border-[#4A6FA5]"
+                            aria-label="Tax rate percent"
+                          />
+                          <span className="absolute right-1.5 text-[#9CA3AF] pointer-events-none">%</span>
+                        </span>
+                      </span>
                       <span className="text-[#1A2332]" style={{ fontVariantNumeric: "tabular-nums" }}>${fmt(taxAmount)}</span>
                     </div>
                     <div className="flex items-center justify-between pt-2 border-t border-[#E5E7EB]">
@@ -398,7 +429,7 @@ export function CreateEstimate() {
 
       {itemPickerOpen && (
         <ItemPicker
-          catalogItems={mockCatalogItems}
+          catalogItems={catalogItems}
           onSelect={handleSelectItem}
           onClose={() => setItemPickerOpen(false)}
         />

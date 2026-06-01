@@ -9,6 +9,16 @@ import { useDraggableColumns, DraggableTh } from "../components/ui/draggable-col
 import { PlusIcon } from "../components/ui/plus-icon";
 import { CreateActionButton } from "../components/ui/create-action-button";
 import { AdvancedFilterField, AdvancedFilterPanel, advancedInputClass, advancedSelectClass } from "../components/ui/advanced-filters";
+import { itemsStore, mapItemTypeToCatalog } from "../stores/itemsStore";
+import type { CatalogItem } from "../components/ItemPicker";
+
+// Project the rich Items-module record onto the catalog shape the
+// Estimate / Job pickers consume, so created items flow straight through.
+const toCatalogItem = (i: { id: number; name: string; description: string; salesDescription: string; brand: string; modelNumber: string; rate: number; cost: number; taxable: boolean; category: string; type: string }): CatalogItem => ({
+  id: i.id, name: i.name, itemDescription: i.description, salesDescription: i.salesDescription,
+  brand: i.brand, modelNumber: i.modelNumber, rate: i.rate, cost: i.cost, taxable: i.taxable,
+  category: i.category, type: mapItemTypeToCatalog(i.type),
+});
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type ItemType =
@@ -832,6 +842,7 @@ export function Items() {
                 destructive: true,
                 onClick: () => {
                   setItems(prev => prev.filter(i => !selectedItems.has(i.id)));
+                  itemsStore.removeMany(selectedItems);
                   setSelectedItems(new Set());
                 },
               },
@@ -1320,8 +1331,11 @@ export function Items() {
           onSave={(item) => {
             if (editingItem) {
               setItems(prev => prev.map(i => i.id === item.id ? item : i));
+              itemsStore.upsert(toCatalogItem(item));
             } else {
-              setItems(prev => [...prev, { ...item, id: Math.max(...prev.map(i => i.id), 999) + 1 }]);
+              const newItem = { ...item, id: Math.max(...items.map(i => i.id), 999) + 1 };
+              setItems(prev => [...prev, newItem]);
+              itemsStore.upsert(toCatalogItem(newItem));
             }
             setItemModalOpen(false);
           }}
@@ -1453,7 +1467,7 @@ export function Items() {
               <button
                 onClick={() => {
                   const { type, id } = deleteConfirm;
-                  if (type === "item") setItems(prev => prev.filter(i => i.id !== id));
+                  if (type === "item") { setItems(prev => prev.filter(i => i.id !== id)); itemsStore.remove(id); }
                   else if (type === "group") setGroups(prev => prev.filter(g => g.id !== id));
                   else if (type === "category") setCategories(prev => prev.filter(c => c.id !== id));
                   else if (type === "brand") setBrands(prev => prev.filter(b => b.id !== id));

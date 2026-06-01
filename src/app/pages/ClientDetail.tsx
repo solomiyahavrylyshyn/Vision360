@@ -575,8 +575,11 @@ export function ClientDetail() {
   // Create Job (linked by client name or clientId) appears here immediately.
   const allStoreJobs = useSyncExternalStore(jobsStore.subscribe, jobsStore.getSnapshot);
   const liveClientJobs = (() => {
-    const matched = allStoreJobs.filter(
-      (j) => j.client === client.name || j.clientId === client.id
+    // Match by clientId when the job carries one (exact link), otherwise fall
+    // back to name. This prevents two different clients that happen to share a
+    // display name from bleeding each other's jobs onto their pages.
+    const matched = allStoreJobs.filter((j) =>
+      j.clientId ? j.clientId === client.id : j.client === client.name
     );
     // Dedupe by jobNumber so a job that matched on both name AND id, or stale
     // duplicate records from earlier sessions, only render once.
@@ -613,7 +616,9 @@ export function ClientDetail() {
   // for legacy clients that have a non-zero `estimatesTotal` but no store entry.
   const allEstimates = useSyncExternalStore(estimatesStore.subscribe, estimatesStore.getSnapshot);
   const liveClientEstimates = allEstimates
-    .filter((e) => e.clientName === client.name)
+    // Match by clientId when present (exact link); fall back to name only for
+    // legacy records with no clientId — prevents same-name data bleed.
+    .filter((e) => e.clientId ? e.clientId === client.id : e.clientName === client.name)
     .map((e) => ({
       id: e.id,
       type: "estimate",

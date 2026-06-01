@@ -9,11 +9,12 @@ import { toast } from "sonner";
 import { formatRegionalDate } from "../stores/regionalSettingsStore";
 import { PageHeader } from "../components/ui/page-header";
 import { PlusIcon } from "../components/ui/plus-icon";
+import { itemsStore } from "../stores/itemsStore";
 
 // Note: mockClients is replaced by live clientsStore data — removed.
 
-// Mock catalog items (same as CreateEstimate)
-const mockCatalogItems: CatalogItem[] = [
+// Legacy HVAC/plumbing options kept available alongside the live Items catalog.
+const legacyCatalogItems: CatalogItem[] = [
   { id: 1000, name: "Heat Pump Repair or Service", itemDescription: "Standard heat pump repair service call", salesDescription: "Heat pump diagnostic, repair and service", brand: "Carrier", modelNumber: "HP-2500", rate: 285, cost: 120, taxable: false, category: "HVAC", type: "Service" },
   { id: 1001, name: "SEER Heat Pump Condenser Unit", itemDescription: "SEER 16 heat pump condenser outdoor unit", salesDescription: "SEER Heat Pump Condenser — high efficiency outdoor unit", brand: "Trane", modelNumber: "XR16-048", rate: 3200, cost: 1800, taxable: true, category: "HVAC", type: "Product" },
   { id: 1002, name: "SEER Heat Pump Condenser Premium", itemDescription: "SEER 20 premium heat pump condenser", salesDescription: "SEER Premium Heat Pump Condenser — ultra high efficiency", brand: "Lennox", modelNumber: "XP25-048", rate: 4800, cost: 2900, taxable: true, category: "HVAC", type: "Product" },
@@ -40,6 +41,12 @@ export function CreateJob() {
   const availableJobTypes = useSyncExternalStore(jobTypesStore.subscribe, jobTypesStore.getJobTypes);
   // Live clients from the shared store — replaces the old hardcoded mockClients array.
   const liveClients = useSyncExternalStore(clientsStore.subscribe, clientsStore.getSnapshot);
+  // Catalog = live Items module items + legacy options not already present.
+  const catalogStoreItems = useSyncExternalStore(itemsStore.subscribe, itemsStore.getSnapshot);
+  const catalogItems: CatalogItem[] = (() => {
+    const names = new Set(catalogStoreItems.map((i) => i.name.toLowerCase()));
+    return [...catalogStoreItems, ...legacyCatalogItems.filter((i) => !names.has(i.name.toLowerCase()))];
+  })();
   // Keep in sync with Calendar TEAM and JobDetail FIELD_EMPLOYEES.
   const fieldEmployees = ["Peter Novak", "Travis Brown", "Maria Garcia", "Emily Parker"];
   const [serviceCountry, setServiceCountry] = useState("United States");
@@ -479,7 +486,7 @@ export function CreateJob() {
       {/* Item Picker Modal */}
       {itemPickerOpen && (
         <ItemPicker
-          catalogItems={mockCatalogItems}
+          catalogItems={catalogItems}
           onSelect={handleSelectItem}
           onClose={() => setItemPickerOpen(false)}
         />
