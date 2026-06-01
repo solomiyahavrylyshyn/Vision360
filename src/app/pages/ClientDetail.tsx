@@ -891,33 +891,37 @@ export function ClientDetail() {
             })()}
           </div>
 
-          {/* Billing & payment — lives at the bottom of the Addresses card */}
-          <div className="pt-3 border-t border-[#E5E7EB] space-y-3">
-            {/* Taxable */}
-            <label className="flex items-center gap-2.5 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={clientData.isTaxable}
-                onChange={(e) => handleCheckboxChange("isTaxable", e.target.checked)}
-                className="w-4 h-4 accent-[#4A6FA5]"
-              />
-              <span className="text-[13px] text-[#1A2332]">Taxable Customer</span>
-            </label>
-
-            {/* Payment terms */}
-            <div className="flex items-center justify-between">
-              <span className="text-[14px] text-[#6B7280]">Payment terms</span>
-              <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>
-                {clientData.paymentTerms || "—"}
-              </span>
+          {/* Billing terms subsection */}
+          <div className="pt-3 border-t border-[#E5E7EB]">
+            <div className="flex items-center justify-between mb-3">
+              <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>Billing terms</div>
+              <button
+                onClick={() => { setEditedClient(client); setEditingSection("finance"); }}
+                className="w-6 h-6 flex items-center justify-center hover:bg-[#F5F7FA] rounded-md transition-colors text-[#9CA3AF]"
+                aria-label="Edit billing terms"
+              >
+                <span className="material-icons" style={{ fontSize: "15px" }}>edit</span>
+              </button>
             </div>
-
-            {/* Preferred payment method */}
-            <div className="flex items-center justify-between">
-              <span className="text-[14px] text-[#6B7280]">Preferred payment</span>
-              <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>
-                {clientData.paymentMethod || "—"}
-              </span>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[13px] text-[#6B7280]">Payment terms</span>
+                <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>
+                  {clientData.paymentTerms || "—"}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-[13px] text-[#6B7280]">Preferred method</span>
+                <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>
+                  {clientData.paymentMethod || "—"}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-[13px] text-[#6B7280]">Taxable</span>
+                <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>
+                  {clientData.isTaxable ? "Yes" : "No"}
+                </span>
+              </div>
             </div>
           </div>
         </div>
