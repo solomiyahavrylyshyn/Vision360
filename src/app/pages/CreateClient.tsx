@@ -51,6 +51,9 @@ interface ClientFormData {
   county: string;
   notes: string;
   marketingSource: string;
+  paymentTerms: string;
+  preferredPaymentMethod: string;
+  isTaxable: boolean;
   additionalContacts: AdditionalContact[];
 }
 
@@ -78,6 +81,9 @@ const initialFormData: ClientFormData = {
   county: "",
   notes: "",
   marketingSource: "",
+  paymentTerms: "Due on receipt",
+  preferredPaymentMethod: "",
+  isTaxable: true,
   additionalContacts: [],
 };
 
@@ -263,6 +269,9 @@ export function CreateClient() {
         county: formData.county,
         country: formData.country,
         marketingSource: formData.marketingSource,
+        paymentTerms: formData.paymentTerms,
+        paymentMethod: formData.preferredPaymentMethod,
+        isTaxable: formData.isTaxable,
         notes: formData.notes,
         notesArray: formData.notes.trim() ? [{ id: 1, text: formData.notes.trim(), date: `Added ${today}` }] : [],
         additionalContacts: formData.additionalContacts.map((a, i) => ({ id: i + 1, firstName: a.firstName, lastName: a.lastName, phone: a.phone, email: a.email, relationship: a.relationship })),
@@ -958,6 +967,84 @@ export function CreateClient() {
                     </span>
                     Add additional contact
                   </button>
+                </div>
+              </div>
+
+              {/* Billing & Payment section */}
+              <div className="grid grid-cols-[280px_1fr] gap-12">
+                <div>
+                  <h2 className="text-[16px] text-[#1A2332] mb-2" style={{ fontWeight: 600 }}>
+                    Billing &amp; payment
+                  </h2>
+                  <p className="text-[13px] text-[#6B7280] leading-[20px]">
+                    These defaults pre-fill every invoice and payment created for this client. You can override them per document.
+                  </p>
+                </div>
+                <div className="space-y-5 max-w-[600px]">
+                  <div className="grid grid-cols-2 gap-4">
+                    {/* Payment terms */}
+                    <div>
+                      <Label className="text-[13px] text-[#374151] mb-1.5 block" style={{ fontWeight: 500 }}>
+                        Payment terms
+                      </Label>
+                      <Select
+                        value={formData.paymentTerms}
+                        onValueChange={(v) => handleChange("paymentTerms", v)}
+                      >
+                        <SelectTrigger className="border-[#E5E7EB] bg-white h-10 text-[14px]">
+                          <SelectValue placeholder="Select terms" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {["Due on receipt", "Net 15", "Net 30", "Net 45", "Net 60"].map((t) => (
+                            <SelectItem key={t} value={t}>{t}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-[12px] text-[#6B7280] mt-1">
+                        e.g. <em>Net 30</em> = client has 30 days from invoice date to pay
+                      </p>
+                    </div>
+
+                    {/* Preferred payment method */}
+                    <div>
+                      <Label className="text-[13px] text-[#374151] mb-1.5 block" style={{ fontWeight: 500 }}>
+                        Preferred payment method
+                      </Label>
+                      <Select
+                        value={formData.preferredPaymentMethod || "__none__"}
+                        onValueChange={(v) => handleChange("preferredPaymentMethod", v === "__none__" ? "" : v)}
+                      >
+                        <SelectTrigger className="border-[#E5E7EB] bg-white h-10 text-[14px]">
+                          <SelectValue placeholder="Not specified" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__none__">Not specified</SelectItem>
+                          {["Cash", "Check", "Credit Card", "Debit Card", "Bank Transfer", "Other"].map((m) => (
+                            <SelectItem key={m} value={m}>{m}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {/* Taxable toggle */}
+                  <div className="flex items-start gap-3 rounded-lg border border-[#E5E7EB] px-4 py-3">
+                    <input
+                      id="isTaxable"
+                      type="checkbox"
+                      checked={formData.isTaxable}
+                      onChange={(e) => handleChange("isTaxable", e.target.checked)}
+                      className="mt-0.5 w-4 h-4 rounded border-[#E5E7EB] cursor-pointer accent-[#4A6FA5]"
+                    />
+                    <div>
+                      <label htmlFor="isTaxable" className="text-[14px] text-[#1A2332] cursor-pointer" style={{ fontWeight: 500 }}>
+                        Taxable customer
+                      </label>
+                      <p className="text-[12px] text-[#6B7280] mt-0.5">
+                        When checked, applicable taxes are added to this client's invoices by default.
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
