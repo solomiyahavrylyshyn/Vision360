@@ -53,12 +53,23 @@ const initialClients: Client[] = [
 ];
 
 
+// All columns that can appear in the table — a subset is shown based on
+// visibleColumns. "name" is always on (locked out of the picker).
 const CLIENTS_COLS = [
-  { key: "name",         label: "Name",          sortable: true  },
-  { key: "status",       label: "Status",        sortable: true  },
-  { key: "address",      label: "Address",       sortable: false },
-  { key: "totalBilled",  label: "Total billed",  sortable: true  },
-  { key: "lastActivity", label: "Last activity", sortable: true  },
+  { key: "name",            label: "Name",             sortable: true  },
+  { key: "status",          label: "Status",           sortable: true  },
+  { key: "address",         label: "Address",          sortable: false },
+  { key: "mobile",          label: "Mobile",           sortable: false },
+  { key: "email",           label: "Email",            sortable: false },
+  { key: "website",         label: "Website",          sortable: false },
+  { key: "dateCreated",     label: "Date created",     sortable: false },
+  { key: "lastServiceDate", label: "Last service date",sortable: false },
+  { key: "totalBilled",     label: "Total billed",     sortable: true  },
+  { key: "notes",           label: "Notes",            sortable: false },
+  { key: "lastActivity",    label: "Last activity",    sortable: true  },
+  { key: "paymentTerms",    label: "Payment terms",    sortable: false },
+  { key: "paymentMethod",   label: "Payment method",   sortable: false },
+  { key: "taxable",         label: "Taxable",          sortable: false },
 ];
 
 export function Clients() {
@@ -773,7 +784,7 @@ export function Clients() {
                 <th className="px-4 py-3 text-left w-10">
                   <input ref={headerCheckboxRef} type="checkbox" checked={allSelected} onChange={e => handleSelectAll(e.target.checked)} className="cursor-pointer w-4 h-4 rounded accent-[#4A6FA5]" />
                 </th>
-                {clientCols.map(col => (
+                {clientCols.filter(col => col.key === "name" || visibleColumns.has(col.key as ColKey)).map(col => (
                   <DraggableTh
                     key={col.key}
                     colKey={col.key}
@@ -818,7 +829,7 @@ export function Clients() {
                       onClick={e => e.stopPropagation()}
                       className="cursor-pointer w-4 h-4 rounded accent-[#4A6FA5]" />
                   </td>
-                  {clientCols.map(col => {
+                  {clientCols.filter(col => col.key === "name" || visibleColumns.has(col.key as ColKey)).map(col => {
                     switch (col.key) {
                       case "name":
                         return (
@@ -835,6 +846,18 @@ export function Clients() {
                         );
                       case "address":
                         return <td key="address" className="px-4 py-4 text-[14px] text-[#546478]">{client.address}</td>;
+                      case "mobile":
+                        return <td key="mobile" className="px-4 py-4 text-[14px] text-[#546478]">{client.mobilePhone || client.phone || "—"}</td>;
+                      case "email":
+                        return <td key="email" className="px-4 py-4 text-[14px] text-[#546478]">{client.email || "—"}</td>;
+                      case "website":
+                        return <td key="website" className="px-4 py-4 text-[14px] text-[#546478]">{client.website || "—"}</td>;
+                      case "dateCreated":
+                        return <td key="dateCreated" className="px-4 py-4 text-[14px] text-[#546478]">{client.customerSince || "—"}</td>;
+                      case "lastServiceDate":
+                        return <td key="lastServiceDate" className="px-4 py-4 text-[14px] text-[#546478]">{client.lastService || "—"}</td>;
+                      case "notes":
+                        return <td key="notes" className="px-4 py-4 text-[14px] text-[#546478] max-w-[200px] truncate">{client.notesArray?.[0]?.text || "—"}</td>;
                       case "totalBilled":
                         return (
                           <td key="totalBilled" className="px-4 py-4">
