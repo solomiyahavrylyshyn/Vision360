@@ -191,7 +191,15 @@ const mk = (s: ClientSeed): ClientRecord => {
     customFields: {},
     tags: [],
   };
-  return { ...base, ...s, customerId: s.customerId ?? s.id, phone: s.phone ?? s.mobilePhone };
+  return {
+    ...base,
+    ...s,
+    customerId: s.customerId ?? s.id,
+    phone: s.phone ?? s.mobilePhone,
+    // isTaxable defaults to true for new/legacy records that don't carry the field.
+    // Without this, clients created before this field existed render as "Exempt".
+    isTaxable: s.isTaxable ?? true,
+  };
 };
 
 let clients: ClientRecord[] = [
