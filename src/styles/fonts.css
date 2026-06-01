@@ -1,3 +1,16 @@
+/* ── Print: hide everything except the open statement panel ── */
+@media print {
+  body > *:not(:has(#client-statement-print)) { display: none !important; }
+  #client-statement-print {
+    display: flex !important;
+    position: static !important;
+    width: 100% !important;
+    height: auto !important;
+    box-shadow: none !important;
+  }
+  .no-print { display: none !important; }
+}
+
 /* Google Material Icons */
 @import url('https://fonts.googleapis.com/icon?family=Material+Icons');
 @import url('https://fonts.googleapis.com/icon?family=Material+Icons+Outlined');

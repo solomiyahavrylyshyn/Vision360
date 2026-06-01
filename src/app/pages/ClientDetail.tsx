@@ -435,6 +435,8 @@ export function ClientDetail() {
   const [pendingDelete, setPendingDelete] = useState<null | (() => void)>(null);
   // Guard modal shown when trying to delete the only remaining service address.
   const [lastAddressGuardOpen, setLastAddressGuardOpen] = useState(false);
+  // Statement activity slide-over
+  const [statementOpen, setStatementOpen] = useState(false);
   // Document rename modal
   const [renameDocId, setRenameDocId] = useState<string | null>(null);
   const [renameDocDraft, setRenameDocDraft] = useState("");
@@ -740,28 +742,9 @@ export function ClientDetail() {
   ────────────────────────────────────────── */
   const KebabMenu = () => (
     <KebabMenuShared triggerClassName="w-9 h-9 border border-[#E5E7EB] rounded-md bg-white" contentClassName="min-w-[220px]">
-      <KebabItem icon="print" onClick={() => toast.info("Print functionality coming soon")}>Print</KebabItem>
-      <DropdownMenuSub>
-        <DropdownMenuSubTrigger className="flex items-center gap-2.5 px-3 h-9 text-[13px] text-[#374151] cursor-pointer rounded-none" style={{ fontWeight: 500 }}>
-          <span className="material-icons flex-shrink-0 text-[#6B7280]" style={{ fontSize: "18px" }}>receipt_long</span>
-          <span className="flex-1 leading-none">Statement Actions</span>
-        </DropdownMenuSubTrigger>
-        <DropdownMenuSubContent className="min-w-[200px]">
-          <DropdownMenuItem className="flex items-center gap-2.5 px-3 h-9 text-[13px] text-[#374151] cursor-pointer rounded-none" style={{ fontWeight: 500 }} onClick={() => toast.info("Email Statement coming soon")}>
-            <span className="material-icons flex-shrink-0 text-[#6B7280]" style={{ fontSize: "18px" }}>email</span>
-            <span className="flex-1 leading-none">Email Statement</span>
-          </DropdownMenuItem>
-          <DropdownMenuItem className="flex items-center gap-2.5 px-3 h-9 text-[13px] text-[#374151] cursor-pointer rounded-none" style={{ fontWeight: 500 }} onClick={() => toast.info("Print Statement coming soon")}>
-            <span className="material-icons flex-shrink-0 text-[#6B7280]" style={{ fontSize: "18px" }}>print</span>
-            <span className="flex-1 leading-none">Print Statement</span>
-          </DropdownMenuItem>
-          <DropdownMenuItem className="flex items-center gap-2.5 px-3 h-9 text-[13px] text-[#374151] cursor-pointer rounded-none" style={{ fontWeight: 500 }} onClick={() => toast.info("View Statement coming soon")}>
-            <span className="material-icons flex-shrink-0 text-[#6B7280]" style={{ fontSize: "18px" }}>visibility</span>
-            <span className="flex-1 leading-none">View Statement</span>
-          </DropdownMenuItem>
-        </DropdownMenuSubContent>
-      </DropdownMenuSub>
-      <KebabItem icon="payments" onClick={() => navigate(createUrl("/payments/new", "payments", { amount: String(client.openBalance) }))}>Collect Payment</KebabItem>
+      <KebabItem icon="print" onClick={() => { setStatementOpen(true); setTimeout(() => window.print(), 300); }}>Print statement</KebabItem>
+      <KebabItem icon="receipt_long" onClick={() => setStatementOpen(true)}>Statement activity</KebabItem>
+      <KebabItem icon="payments" onClick={() => navigate(createUrl("/payments/new", "payments", { amount: String(client.openBalance) }))}>Collect payment</KebabItem>
     </KebabMenuShared>
   );
 
@@ -2815,6 +2798,125 @@ export function ClientDetail() {
           </div>
         </div>
       )}
+
+      {/* ── Statement activity slide-over ─────────────────────────────────────── */}
+      {statementOpen && (() => {
+        // Build a unified ledger: invoices (debits) + payments (credits) sorted by date desc.
+        const fmt = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const ledger: Array<{ date: string; desc: string; debit: number; credit: number; balance: number }> = [];
+        // Open invoices as charges
+        clientInvoiceRows.forEach(inv => {
+          const amt = Number(inv.total.replace(/[^0-9.-]/g, "")) || 0;
+          ledger.push({ date: inv.date, desc: `Invoice ${inv.invoiceNo} — ${inv.type}`, debit: amt, credit: 0, balance: 0 });
+        });
+        // Payments as credits
+        clientPaymentRows.forEach(pay => {
+          const amt = Number(pay.amount.replace(/[^0-9.-]/g, "")) || 0;
+          ledger.push({ date: pay.date, desc: `Payment — ${pay.method}${pay.note ? ` (${pay.note})` : ""}`, debit: 0, credit: amt, balance: 0 });
+        });
+        // Sort by date asc and compute running balance
+        ledger.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        let running = 0;
+        ledger.forEach(row => { running += row.debit - row.credit; row.balance = running; });
+
+        return (
+          <div className="fixed inset-0 z-50 flex" onClick={() => setStatementOpen(false)}>
+            <div className="flex-1 bg-black/30 backdrop-blur-[1px]" />
+            <div className="w-[580px] max-w-[96vw] bg-white shadow-2xl flex flex-col h-full" onClick={e => e.stopPropagation()} id="client-statement-print">
+              {/* Header */}
+              <div className="px-6 py-5 border-b border-[#E5E7EB] flex items-start justify-between shrink-0 no-print">
+                <div>
+                  <h2 className="text-[18px] text-[#1A2332]" style={{ fontWeight: 700 }}>Account statement</h2>
+                  <p className="text-[13px] text-[#6B7280] mt-0.5">{client.name} · {formatRegionalDate(new Date())}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => window.print()} className="h-9 px-3.5 border border-[#E5E7EB] rounded-lg text-[13px] text-[#546478] hover:bg-[#F5F7FA] inline-flex items-center gap-1.5" style={{ fontWeight: 500 }}>
+                    <span className="material-icons" style={{ fontSize: "16px" }}>print</span>Print
+                  </button>
+                  <button onClick={() => setStatementOpen(false)} className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-[#F5F7FA] text-[#9CA3AF]">
+                    <span className="material-icons" style={{ fontSize: "20px" }}>close</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Client + summary */}
+              <div className="px-6 py-4 bg-[#F8FAFC] border-b border-[#E5E7EB] shrink-0">
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <div className="text-[11px] text-[#6B7280] uppercase tracking-wider mb-1" style={{ fontWeight: 600 }}>Client</div>
+                    <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>{client.name}</div>
+                    {client.email && <div className="text-[12px] text-[#6B7280]">{client.email}</div>}
+                    {client.mobilePhone && <div className="text-[12px] text-[#6B7280]">{client.mobilePhone}</div>}
+                  </div>
+                  <div>
+                    <div className="text-[11px] text-[#6B7280] uppercase tracking-wider mb-1" style={{ fontWeight: 600 }}>Total billed</div>
+                    <div className="text-[18px] text-[#1A2332]" style={{ fontWeight: 700 }}>${fmt(client.totalBilled ?? 0)}</div>
+                  </div>
+                  <div>
+                    <div className="text-[11px] text-[#6B7280] uppercase tracking-wider mb-1" style={{ fontWeight: 600 }}>Balance due</div>
+                    <div className={`text-[18px]`} style={{ fontWeight: 700, color: (client.openBalance ?? 0) > 0 ? "#DC2626" : "#16A34A" }}>
+                      ${fmt(client.openBalance ?? 0)}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Ledger */}
+              <div className="flex-1 overflow-y-auto px-6 py-4">
+                {ledger.length === 0 ? (
+                  <div className="text-center py-12 text-[13px] text-[#9CA3AF]">No activity yet for this client.</div>
+                ) : (
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-[#E5E7EB]">
+                        {["Date", "Description", "Charges", "Payments", "Balance"].map((h, i) => (
+                          <th key={h} className={`pb-2.5 text-[11px] text-[#6B7280] uppercase tracking-wider ${i >= 2 ? "text-right" : "text-left"}`} style={{ fontWeight: 600 }}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {ledger.map((row, i) => (
+                        <tr key={i} className="border-b border-[#F3F4F6] last:border-0">
+                          <td className="py-3 pr-3 text-[12px] text-[#6B7280] whitespace-nowrap">{row.date}</td>
+                          <td className="py-3 pr-3 text-[13px] text-[#1A2332]">{row.desc}</td>
+                          <td className="py-3 pr-3 text-[13px] text-right text-[#DC2626]">{row.debit > 0 ? `$${fmt(row.debit)}` : "—"}</td>
+                          <td className="py-3 pr-3 text-[13px] text-right text-[#16A34A]">{row.credit > 0 ? `$${fmt(row.credit)}` : "—"}</td>
+                          <td className={`py-3 text-[13px] text-right`} style={{ fontWeight: 600, color: row.balance > 0 ? "#DC2626" : "#16A34A" }}>
+                            ${fmt(Math.abs(row.balance))}{row.balance < 0 ? " CR" : ""}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr className="border-t-2 border-[#E5E7EB]">
+                        <td colSpan={2} className="pt-3 text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>Balance due</td>
+                        <td />
+                        <td />
+                        <td className="pt-3 text-[14px] text-right" style={{ fontWeight: 700, color: (client.openBalance ?? 0) > 0 ? "#DC2626" : "#16A34A" }}>
+                          ${fmt(client.openBalance ?? 0)}
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                )}
+              </div>
+
+              {/* Footer CTA */}
+              <div className="px-6 py-4 border-t border-[#E5E7EB] shrink-0 no-print">
+                {(client.openBalance ?? 0) > 0 && (
+                  <button
+                    onClick={() => { setStatementOpen(false); navigate(createUrl("/payments/new", "payments", { amount: String(client.openBalance) })); }}
+                    className="w-full h-10 bg-[#4A6FA5] hover:bg-[#3d5a85] text-white rounded-lg text-[14px] transition-colors"
+                    style={{ fontWeight: 600 }}
+                  >
+                    Collect payment — ${fmt(client.openBalance ?? 0)}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
