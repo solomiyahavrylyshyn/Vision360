@@ -614,6 +614,8 @@ export function JobDetail() {
   const handleStatusChange = (newStatus: string) => {
     setCurrentStatus(newStatus);
     setStatusDropdownOpen(false);
+    // Persist to jobsStore so the status survives a refresh.
+    if (storeJob) jobsStore.update(storeJob.id, { status: newStatus });
   };
 
   /* ── File helpers ── */
@@ -959,7 +961,7 @@ export function JobDetail() {
       <div className="flex items-center gap-2 mb-5">
         <h3 className="text-[15px] text-[#1A2332]" style={{ fontWeight: 600 }}>Invoices</h3>
         <button type="button" aria-label="Create invoice" title="Create invoice"
-          onClick={() => navigate(`/invoices/new?client=${encodeURIComponent(job.client)}&returnTo=${encodeURIComponent(jobReturnUrl("invoices"))}`)}
+          onClick={() => navigate(`/invoices/new?fromJob=${storeJob?.id ?? ''}&client=${encodeURIComponent(job.client)}&returnTo=${encodeURIComponent(jobReturnUrl('invoices'))}`)}
           className="w-7 h-7 flex items-center justify-center rounded-md text-[#9CA3AF] hover:text-[#4A6FA5] hover:bg-[#F5F7FA] transition-colors">
           <PlusIcon className="h-4 w-4" />
         </button>
@@ -1547,7 +1549,7 @@ export function JobDetail() {
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   className="h-9 px-3 text-[13px] text-[#374151] flex items-center gap-2.5 cursor-pointer"
-                  onClick={() => navigate(`/invoices/new?client=${encodeURIComponent(job.client)}&returnTo=${encodeURIComponent(jobReturnUrl("invoices"))}`)}
+                  onClick={() => navigate(`/invoices/new?fromJob=${storeJob?.id ?? ''}&client=${encodeURIComponent(job.client)}&returnTo=${encodeURIComponent(jobReturnUrl('invoices'))}`)}
                 >
                   <span className="material-icons text-[#6B7280]" style={{ fontSize: "16px" }}>receipt</span>
                   Create Invoice
@@ -1768,7 +1770,31 @@ export function JobDetail() {
                 Cancel
               </button>
               <button
-                onClick={() => setEditingSection(null)}
+                onClick={() => {
+                  // Persist the edit to jobsStore so changes survive a refresh.
+                  if (storeJob) {
+                    const patch: Partial<import("../stores/jobsStore").JobRecord> = {};
+                    if (editingSection === "overview") {
+                      if (editJob.assignedTo !== undefined) patch.assignedTo = editJob.assignedTo;
+                      if (editJob.jobType !== undefined) patch.jobType = editJob.jobType;
+                      if (editJob.title !== undefined) patch.title = editJob.title;
+                    } else if (editingSection === "schedule") {
+                      if (editJob.startedOn !== undefined) patch.startDate = editJob.startedOn;
+                      if (editJob.endsOn !== undefined) patch.endDate = editJob.endsOn;
+                      if (editJob.startTime !== undefined) patch.startTime = editJob.startTime;
+                      if (editJob.endTime !== undefined) patch.endTime = editJob.endTime;
+                    } else if (editingSection === "address") {
+                      if (editJob.address !== undefined) patch.address = editJob.address;
+                      if (editJob.city !== undefined) patch.city = editJob.city;
+                      if (editJob.state !== undefined) patch.state = editJob.state;
+                      if (editJob.zip !== undefined) patch.zip = editJob.zip;
+                      if (editJob.gateCode !== undefined) patch.gateCode = editJob.gateCode;
+                    }
+                    if (Object.keys(patch).length) jobsStore.update(storeJob.id, patch);
+                  }
+                  setEditingSection(null);
+                  toast.success("Changes saved");
+                }}
                 className="h-9 px-4 bg-[#4A6FA5] hover:bg-[#3d5a85] rounded-md text-[13px] text-white transition-colors"
                 style={{ fontWeight: 500 }}
               >
