@@ -267,14 +267,14 @@ let clients: ClientRecord[] = [
   // ── Manage Duplicates test data ──────────────────────────────────────────
   // Group 1: same phone (likely same person, different spellings of name)
   mk({
-    id: "dup-01a", initials: "MJ", avatarColor: "#7C3AED", name: "Michael Johnson", firstName: "Michael", lastName: "Johnson",
+    id: "10261", initials: "MJ", avatarColor: "#7C3AED", name: "Michael Johnson", firstName: "Michael", lastName: "Johnson",
     email: "mjohnson@gmail.com", mobilePhone: "(813) 555-0191",
     address: "1402 Bayshore Blvd", city: "Tampa", state: "FL", zip: "33606",
     status: "Active", customerSince: "Jan 5, 2025", lastActivity: "Invoice Sent • 1 week ago",
     totalJobs: 2, openJobs: 0, totalRevenue: 3200, totalBilled: 3200,
   }),
   mk({
-    id: "dup-01b", initials: "MJ", avatarColor: "#6D28D9", name: "Mike Johnson", firstName: "Mike", lastName: "Johnson",
+    id: "10262", initials: "MJ", avatarColor: "#6D28D9", name: "Mike Johnson", firstName: "Mike", lastName: "Johnson",
     email: "", mobilePhone: "(813) 555-0191",  // same phone — definite duplicate
     address: "1402 Bayshore Blvd", city: "Tampa", state: "FL", zip: "33606",
     status: "Prospect", customerSince: "Mar 12, 2025", lastActivity: "Created • Mar 12",
@@ -283,14 +283,14 @@ let clients: ClientRecord[] = [
 
   // Group 2: same email (two accounts for the same person)
   mk({
-    id: "dup-02a", initials: "LC", avatarColor: "#0891B2", name: "Laura Chen", firstName: "Laura", lastName: "Chen",
+    id: "10263", initials: "LC", avatarColor: "#0891B2", name: "Laura Chen", firstName: "Laura", lastName: "Chen",
     company: "Chen Consulting", email: "laura.chen@outlook.com", mobilePhone: "(407) 612-3340",
     address: "55 Orange Ave", city: "Orlando", state: "FL", zip: "32801",
     status: "Active", customerSince: "Jun 2024", lastActivity: "Estimate Sent • 3 days ago",
     totalJobs: 1, openJobs: 1, totalRevenue: 1800, totalBilled: 1800,
   }),
   mk({
-    id: "dup-02b", initials: "LC", avatarColor: "#0E7490", name: "L. Chen", firstName: "L.", lastName: "Chen",
+    id: "10264", initials: "LC", avatarColor: "#0E7490", name: "L. Chen", firstName: "L.", lastName: "Chen",
     company: "", email: "laura.chen@outlook.com",  // same email — duplicate
     mobilePhone: "(407) 612-3341",
     address: "55 Orange Avenue", city: "Orlando", state: "FL", zip: "32801",
@@ -300,7 +300,7 @@ let clients: ClientRecord[] = [
 
   // Group 3: same company name (different contacts at the same company — could be intentional)
   mk({
-    id: "dup-03a", initials: "PB", avatarColor: "#16A34A", name: "Patricia Burns", firstName: "Patricia", lastName: "Burns",
+    id: "10265", initials: "PB", avatarColor: "#16A34A", name: "Patricia Burns", firstName: "Patricia", lastName: "Burns",
     company: "Sunrise Properties LLC", role: "Owner", type: "Commercial", customerType: "business",
     email: "p.burns@sunriseprops.com", mobilePhone: "(305) 900-1234",
     address: "800 Brickell Ave", city: "Miami", state: "FL", zip: "33131",
@@ -308,7 +308,7 @@ let clients: ClientRecord[] = [
     totalJobs: 4, openJobs: 1, totalRevenue: 9500, totalBilled: 9500,
   }),
   mk({
-    id: "dup-03b", initials: "DS", avatarColor: "#15803D", name: "David Stern", firstName: "David", lastName: "Stern",
+    id: "10266", initials: "DS", avatarColor: "#15803D", name: "David Stern", firstName: "David", lastName: "Stern",
     company: "Sunrise Properties LLC", role: "Property Manager", type: "Commercial", customerType: "business",
     email: "d.stern@sunriseprops.com", mobilePhone: "(305) 900-5678",
     address: "800 Brickell Ave", city: "Miami", state: "FL", zip: "33131",
@@ -316,7 +316,7 @@ let clients: ClientRecord[] = [
     totalJobs: 2, openJobs: 1, totalRevenue: 4200, totalBilled: 4200,
   }),
   mk({
-    id: "dup-03c", initials: "SR", avatarColor: "#166534", name: "Sunrise Properties", firstName: "Sunrise", lastName: "Properties",
+    id: "10267", initials: "SR", avatarColor: "#166534", name: "Sunrise Properties", firstName: "Sunrise", lastName: "Properties",
     company: "Sunrise Properties LLC", type: "Commercial", customerType: "business",
     email: "info@sunriseprops.com", mobilePhone: "(305) 900-0000",
     address: "800 Brickell Avenue", city: "Miami", state: "FL", zip: "33131",
@@ -326,14 +326,14 @@ let clients: ClientRecord[] = [
 
   // Group 4: similar name + phone (fuzzy match — probably the same person)
   mk({
-    id: "dup-04a", initials: "RG", avatarColor: "#B45309", name: "Robert Garcia", firstName: "Robert", lastName: "Garcia",
+    id: "10268", initials: "RG", avatarColor: "#B45309", name: "Robert Garcia", firstName: "Robert", lastName: "Garcia",
     email: "rgarcia@yahoo.com", mobilePhone: "(727) 488-2200",
     address: "341 Gulf Blvd", city: "St. Petersburg", state: "FL", zip: "33706",
     status: "Active", customerSince: "Oct 2023", lastActivity: "Invoice Overdue • 12 days",
     totalJobs: 3, openJobs: 0, totalRevenue: 6750, totalBilled: 6750, openBalance: 875, pastDueBalance: 875,
   }),
   mk({
-    id: "dup-04b", initials: "BG", avatarColor: "#92400E", name: "Bob Garcia", firstName: "Bob", lastName: "Garcia",
+    id: "10269", initials: "BG", avatarColor: "#92400E", name: "Bob Garcia", firstName: "Bob", lastName: "Garcia",
     email: "", mobilePhone: "(727) 488-2200",  // same phone, shortened first name
     address: "341 Gulf Boulevard", city: "St. Pete", state: "FL", zip: "33706",
     status: "Prospect", customerSince: "Mar 2024", lastActivity: "Created • Mar 2024",

@@ -2195,10 +2195,10 @@ export function ClientDetail() {
             {/* Stats — borderless, copy left / tinted icon right, 1px dividers (Figma) */}
             <div className="flex items-center gap-4 shrink-0">
               {[
-                { label: "Total revenue", value: `$${Math.round(client.totalRevenue).toLocaleString("en-US")}`, icon: "trending_up", iconColor: "#16A34A" },
-                { label: "Balance",       value: `$${client.openBalance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,    icon: "paid",     iconColor: "#4A6FA5" },
-                { label: "Past due",      value: `$${client.pastDueBalance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, icon: "schedule", iconColor: "#DC2626" },
-                { label: "Open jobs",     value: String(client.openJobs), icon: "work", iconColor: "#6B7280" },
+                { label: "Total revenue", value: `$${Math.round(client.totalRevenue).toLocaleString("en-US")}`, icon: "trending_up",    iconColor: "#16A34A" },
+                { label: "Balance",       value: `$${client.openBalance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,    icon: "account_balance_wallet", iconColor: "#4A6FA5" },
+                { label: "Past due",      value: `$${client.pastDueBalance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, icon: "warning_amber",          iconColor: "#DC2626" },
+                { label: "Open jobs",     value: String(client.openJobs), icon: "work_outline",   iconColor: "#6B7280" },
               ].map(({ label, value, icon, iconColor }, i) => (
                 <div key={label} className="flex items-center gap-4">
                   {i > 0 && <div className="w-px h-6 bg-[#E5E7EB] shrink-0" />}
