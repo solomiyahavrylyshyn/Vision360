@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useSyncExternalStore } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
 import {
@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { formatRegionalDate } from "../stores/regionalSettingsStore";
 import { jobsStore, type JobRecord } from "../stores/jobsStore";
 import { clientsStore } from "../stores/clientsStore";
+import { estimatesStore } from "../stores/estimatesStore";
 import acServicePhoto from "../../assets/documents/33897-cu.jpg";
 import waterHeaterPhoto from "../../assets/documents/34285-install-water-heater.jpg";
 import installAcPhoto from "../../assets/documents/34689-install-ac.jpg";
@@ -492,6 +493,17 @@ export function JobDetail() {
   };
   const [hiddenTabs, setHiddenTabs] = useState<Set<TabKey>>(new Set());
   const [showTabSettings, setShowTabSettings] = useState(false);
+
+  // Build a returnTo URL back to this job on a specific tab, so a create flow
+  // (Estimate / Invoice / Expense) lands the user exactly where they left.
+  const jobReturnUrl = (tab: TabKey) => `/jobs/${id}?tab=${tab}`;
+
+  // Live estimates linked to this job (by job number) or this client, so a
+  // freshly created estimate shows up on the Estimates tab on return.
+  const allEstimates = useSyncExternalStore(estimatesStore.subscribe, estimatesStore.getSnapshot);
+  const jobEstimates = allEstimates.filter(
+    (e) => (job.jobNumber && (e.job === job.jobNumber || e.source === job.jobNumber)) || e.clientName === job.client
+  );
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
   const [currentStatus, setCurrentStatus] = useState<string>(job.status);
   const [editingSection, setEditingSection] = useState<null | "address" | "schedule" | "overview">(null);
@@ -905,15 +917,35 @@ export function JobDetail() {
       <div className="flex items-center gap-2 mb-5">
         <h3 className="text-[15px] text-[#1A2332]" style={{ fontWeight: 600 }}>Estimates</h3>
         <button type="button" aria-label="Create estimate" title="Create estimate"
-          onClick={() => navigate(`/estimates/new?client=${encodeURIComponent(job.client)}`)}
+          onClick={() => navigate(`/estimates/new?client=${encodeURIComponent(job.client)}&job=${encodeURIComponent(job.jobNumber)}&returnTo=${encodeURIComponent(jobReturnUrl("estimates"))}`)}
           className="w-7 h-7 flex items-center justify-center rounded-md text-[#9CA3AF] hover:text-[#4A6FA5] hover:bg-[#F5F7FA] transition-colors">
           <PlusIcon className="h-4 w-4" />
         </button>
       </div>
-      <div className="text-center py-12">
-        <span className="material-icons text-[#D1D5DB] mb-2 block" style={{ fontSize: "40px" }}>request_quote</span>
-        <div className="text-[13px] text-[#9CA3AF]">No estimates linked to this job yet.</div>
-      </div>
+      {jobEstimates.length === 0 ? (
+        <div className="text-center py-12">
+          <span className="material-icons text-[#D1D5DB] mb-2 block" style={{ fontSize: "40px" }}>request_quote</span>
+          <div className="text-[13px] text-[#9CA3AF]">No estimates linked to this job yet.</div>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {jobEstimates.map((e) => (
+            <button
+              key={e.id}
+              onClick={() => navigate(`/estimates/${e.id}?returnTo=${encodeURIComponent(jobReturnUrl("estimates"))}`)}
+              className="w-full flex items-center justify-between border border-[#E5E7EB] rounded-lg px-4 py-3 hover:bg-[#F9FAFB] text-left transition-colors"
+            >
+              <div className="min-w-0">
+                <div className="text-[14px] text-[#4A6FA5]" style={{ fontWeight: 500 }}>{e.estimateNumber}</div>
+                <div className="text-[12px] text-[#6B7280] truncate">{e.estimateName || e.clientName} · {e.status}</div>
+              </div>
+              <div className="text-[14px] text-[#1A2332] shrink-0" style={{ fontWeight: 500 }}>
+                ${e.amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
     </>
   );
 
@@ -922,7 +954,7 @@ export function JobDetail() {
       <div className="flex items-center gap-2 mb-5">
         <h3 className="text-[15px] text-[#1A2332]" style={{ fontWeight: 600 }}>Invoices</h3>
         <button type="button" aria-label="Create invoice" title="Create invoice"
-          onClick={() => navigate(`/invoices/new?client=${encodeURIComponent(job.client)}`)}
+          onClick={() => navigate(`/invoices/new?client=${encodeURIComponent(job.client)}&returnTo=${encodeURIComponent(jobReturnUrl("invoices"))}`)}
           className="w-7 h-7 flex items-center justify-center rounded-md text-[#9CA3AF] hover:text-[#4A6FA5] hover:bg-[#F5F7FA] transition-colors">
           <PlusIcon className="h-4 w-4" />
         </button>
@@ -1001,7 +1033,7 @@ export function JobDetail() {
         <h3 className="text-[15px] text-[#1A2332]" style={{ fontWeight: 600 }}>Expenses</h3>
         <button
           type="button"
-          onClick={() => navigate(`/expenses/new?fromJob=${encodeURIComponent(job.jobNumber)}${job.linkedInvoice ? `&fromInvoice=${encodeURIComponent(job.linkedInvoice.id)}` : ""}&returnTo=${encodeURIComponent("/jobs/" + id + "?tab=" + activeTab)}`)}
+          onClick={() => navigate(`/expenses/new?fromJob=${encodeURIComponent(job.jobNumber)}${job.linkedInvoice ? `&fromInvoice=${encodeURIComponent(job.linkedInvoice.id)}` : ""}&returnTo=${encodeURIComponent(jobReturnUrl("expense"))}`)}
           aria-label="Add expense"
           title="Add expense"
           className="w-7 h-7 flex items-center justify-center rounded-md text-[#9CA3AF] hover:text-[#4A6FA5] hover:bg-[#F5F7FA] transition-colors"
@@ -1503,14 +1535,14 @@ export function JobDetail() {
               <DropdownMenuContent align="end" className="w-[180px] p-1">
                 <DropdownMenuItem
                   className="h-9 px-3 text-[13px] text-[#374151] flex items-center gap-2.5 cursor-pointer"
-                  onClick={() => navigate(`/estimates/new?client=${encodeURIComponent(job.client)}&returnTo=${encodeURIComponent("/jobs/" + id + "?tab=" + activeTab)}`)}
+                  onClick={() => navigate(`/estimates/new?client=${encodeURIComponent(job.client)}&job=${encodeURIComponent(job.jobNumber)}&returnTo=${encodeURIComponent(jobReturnUrl("estimates"))}`)}
                 >
                   <span className="material-icons text-[#6B7280]" style={{ fontSize: "16px" }}>request_quote</span>
                   Create Estimate
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   className="h-9 px-3 text-[13px] text-[#374151] flex items-center gap-2.5 cursor-pointer"
-                  onClick={() => navigate(`/invoices/new?client=${encodeURIComponent(job.client)}&returnTo=${encodeURIComponent("/jobs/" + id + "?tab=" + activeTab)}`)}
+                  onClick={() => navigate(`/invoices/new?client=${encodeURIComponent(job.client)}&returnTo=${encodeURIComponent(jobReturnUrl("invoices"))}`)}
                 >
                   <span className="material-icons text-[#6B7280]" style={{ fontSize: "16px" }}>receipt</span>
                   Create Invoice

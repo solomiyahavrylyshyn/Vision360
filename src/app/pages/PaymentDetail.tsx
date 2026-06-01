@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { useNavigate, useParams } from "react-router";
+import { useNavigate, useParams, useSearchParams } from "react-router";
 import { toast } from "sonner";
 import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
 import { DetailTabs, TabSettingsButton } from "../components/ui/detail-tabs";
@@ -53,7 +53,14 @@ const payoutColors: Record<string, { text: string; bg: string }> = {
 export function PaymentDetail() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const [activeTab, setActiveTab] = useState<TabKey>("details");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeTab, setActiveTabState] = useState<TabKey>((searchParams.get("tab") as TabKey) || "details");
+  const setActiveTab = (key: TabKey) => {
+    setActiveTabState(key);
+    const next = new URLSearchParams(searchParams);
+    if (key === "details") next.delete("tab"); else next.set("tab", key);
+    setSearchParams(next, { replace: true });
+  };
   // Section 6.3 — attachments (proof of payment, photo of check, etc.)
   const [attachments, setAttachments] = useState<PaymentAttachment[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);

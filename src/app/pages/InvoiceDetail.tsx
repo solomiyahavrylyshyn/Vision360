@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, useParams } from "react-router";
+import { useNavigate, useParams, useSearchParams } from "react-router";
 import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
 import { DetailTabs, TabSettingsButton } from "../components/ui/detail-tabs";
 import { PlusIcon } from "../components/ui/plus-icon";
@@ -270,9 +270,18 @@ const TABS: { key: TabKey; label: string }[] = [
 export function InvoiceDetail() {
   const navigate = useNavigate();
   const { id } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const data = mockInvoices[id || "1"] || mockInvoices["1"];
 
-  const [activeTab, setActiveTab] = useState<TabKey>("details");
+  // Honor ?tab= so a create round-trip (e.g. Invoice → Collect Payment → back)
+  // lands on the tab the user left.
+  const [activeTab, setActiveTabState] = useState<TabKey>((searchParams.get("tab") as TabKey) || "details");
+  const setActiveTab = (key: TabKey) => {
+    setActiveTabState(key);
+    const next = new URLSearchParams(searchParams);
+    if (key === "details") next.delete("tab"); else next.set("tab", key);
+    setSearchParams(next, { replace: true });
+  };
   const [status, setStatus] = useState<InvoiceStatus>(data.status);
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
   const [payments, setPayments] = useState<Payment[]>(data.payments);

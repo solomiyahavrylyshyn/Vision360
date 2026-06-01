@@ -909,7 +909,7 @@ export function EstimateDetail() {
         <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Activity</h3>
         {estimate.status === "Approved" && (
           <button
-            onClick={() => { navigate(`/invoices/new?fromEstimate=${estimate.id}`); }}
+            onClick={() => { navigate(`/invoices/new?fromEstimate=${estimate.id}&client=${encodeURIComponent(estimate.clientName)}&returnTo=${encodeURIComponent(`/estimates/${estimate.id}?tab=activity`)}`); }}
             className="h-8 px-3 bg-[#4A6FA5] hover:bg-[#3d5a85] text-white rounded-lg text-[13px] inline-flex items-center gap-1.5 transition-colors"
             style={{ fontWeight: 600 }}
           >
@@ -1115,7 +1115,7 @@ export function EstimateDetail() {
                     {isConverted(estimate.status) ? "Converted to Job" : "Create Job"}
                   </button>
                   <button
-                    onClick={() => { setCreateMenuOpen(false); navigate(`/invoices/new?fromEstimate=${estimate.id}&client=${encodeURIComponent(estimate.clientName)}`); }}
+                    onClick={() => { setCreateMenuOpen(false); navigate(`/invoices/new?fromEstimate=${estimate.id}&client=${encodeURIComponent(estimate.clientName)}&returnTo=${encodeURIComponent(`/estimates/${estimate.id}`)}`); }}
                     className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[13px] hover:bg-[#F5F7FA] transition-colors text-left"
                     style={{ fontWeight: 500, color: "#1A2332" }}
                   >

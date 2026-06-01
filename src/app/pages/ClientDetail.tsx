@@ -648,16 +648,16 @@ export function ClientDetail() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-[200px]">
-        {[
-          { label: "Estimate",          icon: "description", path: "/estimates/new" },
-          { label: "Job",               icon: "work",        path: "/jobs/new" },
-          { label: "Invoice",           icon: "receipt",     path: "/invoices/new" },
-          { label: "Payment",           icon: "credit_card", path: "/payments/new" },
-        ].map(({ label, icon, path }) => (
+        {([
+          { label: "Estimate", icon: "description", path: "/estimates/new", tab: "estimates" as TabKey },
+          { label: "Job",      icon: "work",        path: "/jobs/new",      tab: "jobs" as TabKey },
+          { label: "Invoice",  icon: "receipt",     path: "/invoices/new",  tab: "invoices" as TabKey },
+          { label: "Payment",  icon: "credit_card", path: "/payments/new",  tab: "payments" as TabKey },
+        ]).map(({ label, icon, path, tab }) => (
           <DropdownMenuItem
             key={label}
             className="flex items-center gap-3 py-2.5"
-            onClick={() => path ? navigate(path) : undefined}
+            onClick={() => navigate(createUrl(path, tab))}
           >
             <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>{icon}</span>
             <span className="text-[14px] text-[#1A2332]">{label}</span>
@@ -693,7 +693,7 @@ export function ClientDetail() {
           </DropdownMenuItem>
         </DropdownMenuSubContent>
       </DropdownMenuSub>
-      <KebabItem icon="payments" onClick={() => navigate(`/payments/new?client=${encodeURIComponent(client.name)}&clientId=${encodeURIComponent(client.customerId)}&amount=${client.openBalance}`)}>Collect Payment</KebabItem>
+      <KebabItem icon="payments" onClick={() => navigate(createUrl("/payments/new", "payments", { amount: String(client.openBalance) }))}>Collect Payment</KebabItem>
     </KebabMenuShared>
   );
 
