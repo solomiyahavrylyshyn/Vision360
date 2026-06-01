@@ -157,7 +157,7 @@ const mk = (s: ClientSeed): ClientRecord => {
     gateCode: "",
     isTaxable: true,
     paymentTerms: "Net 30",
-    paymentMethod: "Card",
+    paymentMethod: "Credit Card",
     creditLimit: 5000,
     totalJobs: 0,
     openJobs: 0,

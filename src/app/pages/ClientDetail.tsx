@@ -1366,8 +1366,8 @@ export function ClientDetail() {
                   <SelectItem value="Due on receipt">Due on receipt</SelectItem>
                   <SelectItem value="Net 15">Net 15</SelectItem>
                   <SelectItem value="Net 30">Net 30</SelectItem>
+                  <SelectItem value="Net 45">Net 45</SelectItem>
                   <SelectItem value="Net 60">Net 60</SelectItem>
-                  <SelectItem value="Net 90">Net 90</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -1380,8 +1380,9 @@ export function ClientDetail() {
                   <SelectItem value="Cash">Cash</SelectItem>
                   <SelectItem value="Check">Check</SelectItem>
                   <SelectItem value="Credit Card">Credit Card</SelectItem>
-                  <SelectItem value="ACH">ACH</SelectItem>
-                  <SelectItem value="Wire Transfer">Wire Transfer</SelectItem>
+                  <SelectItem value="Debit Card">Debit Card</SelectItem>
+                  <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -2408,8 +2409,8 @@ export function ClientDetail() {
                         <SelectItem value="Due on receipt">Due on receipt</SelectItem>
                         <SelectItem value="Net 15">Net 15</SelectItem>
                         <SelectItem value="Net 30">Net 30</SelectItem>
+                        <SelectItem value="Net 45">Net 45</SelectItem>
                         <SelectItem value="Net 60">Net 60</SelectItem>
-                        <SelectItem value="Net 90">Net 90</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -2422,8 +2423,9 @@ export function ClientDetail() {
                         <SelectItem value="Cash">Cash</SelectItem>
                         <SelectItem value="Check">Check</SelectItem>
                         <SelectItem value="Credit Card">Credit Card</SelectItem>
-                        <SelectItem value="ACH">ACH</SelectItem>
-                        <SelectItem value="Wire Transfer">Wire Transfer</SelectItem>
+                        <SelectItem value="Debit Card">Debit Card</SelectItem>
+                        <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
+                        <SelectItem value="Other">Other</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

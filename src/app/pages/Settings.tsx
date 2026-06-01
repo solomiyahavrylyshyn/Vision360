@@ -1537,7 +1537,7 @@ function InvoicesPreferences({ templateCards }: { templateCards: { title: string
   const [zeroPad, setZeroPad] = useState("4");
   const [requireDeposit, setRequireDeposit] = useState(false);
   const [depositPercent, setDepositPercent] = useState("25");
-  const [paymentTerms, setPaymentTerms] = useState(["Due on receipt", "Net 15", "Net 30", "Net 60"]);
+  const [paymentTerms, setPaymentTerms] = useState(["Due on receipt", "Net 15", "Net 30", "Net 45", "Net 60"]);
   const [newPaymentTerm, setNewPaymentTerm] = useState("");
   const [discountTypes, setDiscountTypes] = useState(["Senior", "Veteran", "Promo Code", "Loyalty"]);
   const [newDiscount, setNewDiscount] = useState("");
