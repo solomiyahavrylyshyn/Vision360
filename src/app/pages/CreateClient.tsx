@@ -736,12 +736,12 @@ export function CreateClient() {
                     />
                     <Select
                       value={formData.state || undefined}
-                      onValueChange={(value) =>
-                        handleChange(
-                          "state",
-                          value === "none" ? "" : value,
-                        )
-                      }
+                      onValueChange={(value) => {
+                        const next = value === "none" ? "" : value;
+                        handleChange("state", next);
+                        // Clear county so a FL-county doesn't carry over to TX etc.
+                        if (next !== formData.state) handleChange("county", "");
+                      }}
                     >
                       <SelectTrigger className="border-[#E5E7EB] bg-white h-10 text-[14px]">
                         <SelectValue placeholder="State" />
@@ -767,23 +767,34 @@ export function CreateClient() {
                       }
                       className="border-[#E5E7EB] bg-white h-10 text-[14px]"
                     />
-                    <Select
-                      value={formData.county}
-                      onValueChange={(value) =>
-                        handleChange("county", value)
-                      }
-                    >
-                      <SelectTrigger className="border-[#E5E7EB] bg-white h-10 text-[14px]">
-                        <SelectValue placeholder="Select county" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {counties.map((county) => (
-                          <SelectItem key={county} value={county}>
-                            {county}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    {/* Florida gets a dropdown of known counties; every other
+                        state gets a free-text input so the field is usable
+                        regardless of the selected state. */}
+                    {formData.state === "Florida" ? (
+                      <Select
+                        value={formData.county}
+                        onValueChange={(value) => handleChange("county", value)}
+                      >
+                        <SelectTrigger className="border-[#E5E7EB] bg-white h-10 text-[14px]">
+                          <SelectValue placeholder="Select county" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {counties.map((county) => (
+                            <SelectItem key={county} value={county}>
+                              {county}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Input
+                        type="text"
+                        placeholder="County / Parish"
+                        value={formData.county}
+                        onChange={(e) => handleChange("county", e.target.value)}
+                        className="border-[#E5E7EB] bg-white h-10 text-[14px]"
+                      />
+                    )}
                   </div>
                   <Select
                     value={formData.country}

@@ -2,8 +2,11 @@ import { useState, useSyncExternalStore } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { ItemPicker, catalogItemToLineItem, type CatalogItem, type SelectedLineItem } from "../components/ItemPicker";
 import { jobTypesStore } from "../stores/jobTypesStore";
+import { clientsStore } from "../stores/clientsStore";
 import { PageHeader } from "../components/ui/page-header";
 import { PlusIcon } from "../components/ui/plus-icon";
+
+// Note: mockClients is replaced by live clientsStore data — removed.
 
 // Mock catalog items (same as CreateEstimate)
 const mockCatalogItems: CatalogItem[] = [
@@ -15,15 +18,6 @@ const mockCatalogItems: CatalogItem[] = [
   { id: 1005, name: "General Labor - Technician", itemDescription: "Standard technician labor rate per hour", salesDescription: "Technician labor (hourly)", brand: "", modelNumber: "", rate: 95, cost: 45, taxable: false, category: "Labor", type: "Labor" },
   { id: 1006, name: "Drain Cleaning Service", itemDescription: "Standard drain cleaning and snaking", salesDescription: "Professional drain cleaning service", brand: "", modelNumber: "", rate: 175, cost: 40, taxable: false, category: "Plumbing", type: "Service" },
   { id: 1007, name: "Thermostat - Smart WiFi", itemDescription: "Smart thermostat with WiFi connectivity", salesDescription: "Smart WiFi Thermostat — professional installation included", brand: "Ecobee", modelNumber: "EB-STATE5-01", rate: 450, cost: 180, taxable: true, category: "HVAC", type: "Product" },
-];
-
-const mockClients = [
-  { id: "1", name: "John Smith", address: "123 Main St, Austin, TX 78701" },
-  { id: "2", name: "Sarah Johnson", address: "456 Oak Ave, Dallas, TX 75201" },
-  { id: "3", name: "Mike Davis", address: "789 Pine Rd, Houston, TX 77001" },
-  { id: "4", name: "Robert Lee", address: "321 Elm St, San Antonio, TX 78201" },
-  { id: "5", name: "Emily Parker", address: "654 Maple Dr, Fort Worth, TX 76101" },
-  { id: "6", name: "Tom Carter", address: "987 Cedar Ln, Plano, TX 75023" },
 ];
 
 export function CreateJob() {
@@ -40,6 +34,8 @@ export function CreateJob() {
   const [jobType, setJobType] = useState<"one-off" | "recurring">("one-off");
   const [jobCategory, setJobCategory] = useState("");
   const availableJobTypes = useSyncExternalStore(jobTypesStore.subscribe, jobTypesStore.getJobTypes);
+  // Live clients from the shared store — replaces the old hardcoded mockClients array.
+  const liveClients = useSyncExternalStore(clientsStore.subscribe, clientsStore.getSnapshot);
   // Keep in sync with Calendar TEAM and JobDetail FIELD_EMPLOYEES (QA BUG-09)
   const fieldEmployees = ["Peter Novak", "Travis Brown", "Maria Garcia"];
   const [serviceCountry, setServiceCountry] = useState("United States");
@@ -94,11 +90,23 @@ export function CreateJob() {
   const taxableAmount = lineItems.filter(li => li.taxable).reduce((sum, li) => sum + li.total, 0);
   const taxAmount = taxableAmount * (taxRate / 100);
   const total = subtotal + taxAmount;
-  const filteredClients = mockClients.filter((mockClient) => {
-    const query = clientSearch.trim().toLowerCase();
-    if (!query) return true;
-    return mockClient.name.toLowerCase().includes(query) || mockClient.address.toLowerCase().includes(query);
-  });
+  const filteredClients = liveClients
+    .filter((c) => {
+      const query = clientSearch.trim().toLowerCase();
+      if (!query) return true;
+      const addr = [c.address, c.city, c.state, c.zip].filter(Boolean).join(", ");
+      return (
+        c.name.toLowerCase().includes(query) ||
+        addr.toLowerCase().includes(query) ||
+        c.email.toLowerCase().includes(query) ||
+        (c.mobilePhone || c.phone || "").includes(query)
+      );
+    })
+    .map((c) => ({
+      id: c.id,
+      name: c.name,
+      address: [c.address, c.city, c.state, c.zip].filter(Boolean).join(", "),
+    }));
 
   const fmt = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 

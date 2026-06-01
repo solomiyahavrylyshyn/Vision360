@@ -27,7 +27,9 @@ export function PageHeader({
     ) : count !== undefined ? (
       <div className="pb-0.5 flex items-center justify-center">
         <span className="text-[16px] text-[#6B7280]" style={{ fontWeight: 400, lineHeight: "24px" }}>
-          ({typeof count === "number" ? (countSuffix ? `${count} ${countSuffix}` : count) : count})
+          {typeof count === "number" && countSuffix
+            ? `(${count} ${count === 1 ? countSuffix.replace(/s$/, "") : countSuffix})`
+            : `(${count})`}
         </span>
       </div>
     ) : null;
