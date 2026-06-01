@@ -106,7 +106,8 @@ export function Clients() {
   const availableCounties = useSyncExternalStore(countiesStore.subscribe, countiesStore.getCounties);
 
   type ColKey = "address" | "mobile" | "email" | "website" | "status"
-    | "dateCreated" | "lastServiceDate" | "totalBilled" | "notes" | "lastActivity";
+    | "dateCreated" | "lastServiceDate" | "totalBilled" | "notes" | "lastActivity"
+    | "paymentTerms" | "paymentMethod" | "taxable";
 
   const [visibleColumns, setVisibleColumns] = useState<Set<ColKey>>(new Set<ColKey>(["address", "totalBilled", "lastActivity"]));
   const [editColumnsOpen, setEditColumnsOpen] = useState(false);
@@ -121,6 +122,9 @@ export function Clients() {
     { key: "status", label: "Status" }, { key: "dateCreated", label: "Date created at" },
     { key: "lastServiceDate", label: "Last service date" }, { key: "totalBilled", label: "Total Billed" },
     { key: "notes", label: "Notes" }, { key: "lastActivity", label: "Last Activity" },
+    { key: "paymentTerms", label: "Payment terms" },
+    { key: "paymentMethod", label: "Payment method" },
+    { key: "taxable", label: "Taxable" },
   ];
   const half = Math.ceil(columnDefs.length / 2);
   const leftCols = columnDefs.slice(0, half);
@@ -841,6 +845,18 @@ export function Clients() {
                         );
                       case "lastActivity":
                         return <td key="lastActivity" className="px-4 py-4 text-[14px] text-[#546478]">{client.lastActivity}</td>;
+                      case "paymentTerms":
+                        return <td key="paymentTerms" className="px-4 py-4 text-[14px] text-[#546478]">{client.paymentTerms || "—"}</td>;
+                      case "paymentMethod":
+                        return <td key="paymentMethod" className="px-4 py-4 text-[14px] text-[#546478]">{client.paymentMethod || "—"}</td>;
+                      case "taxable":
+                        return (
+                          <td key="taxable" className="px-4 py-4">
+                            <span className={`px-2 py-0.5 rounded-md text-[12px] ${client.isTaxable ? "bg-[#DCFCE7] text-[#16A34A]" : "bg-[#F3F4F6] text-[#6B7280]"}`} style={{ fontWeight: 600 }}>
+                              {client.isTaxable ? "Taxable" : "Exempt"}
+                            </span>
+                          </td>
+                        );
                       default:
                         return null;
                     }
