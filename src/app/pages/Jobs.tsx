@@ -150,21 +150,31 @@ export function Jobs() {
   const storeJobs = useSyncExternalStore(jobsStore.subscribe, jobsStore.getSnapshot);
   const storeJobIds = new Set(storeJobs.map(j => j.id));
   const mergedJobs: Job[] = useMemo(() => {
-    const fromStore: Job[] = storeJobs.map(r => ({
-      id: r.id,
-      jobNumber: r.jobNumber,
-      title: r.title,
-      client: r.client,
-      clientId: r.clientId,
-      address: [r.address, r.city, r.state, r.zip].filter(Boolean).join(", "),
-      schedule: r.startDate,
-      scheduleDateSort: r.startDate,
-      status: r.status as Job["status"],
-      jobType: r.jobType || "One-off",
-      total: r.totalPrice,
-    }));
-    // Seed rows whose ID collides with a store row are dropped to avoid duplication.
-    const seedRows = mockJobs.filter(j => !storeJobIds.has(j.id));
+    // Dedupe store records by jobNumber (keep the first / most recent) so stale
+    // duplicate records from earlier sessions don't render multiple times.
+    const seenNumbers = new Set<string>();
+    const fromStore: Job[] = storeJobs
+      .filter(r => {
+        const key = r.jobNumber || String(r.id);
+        if (seenNumbers.has(key)) return false;
+        seenNumbers.add(key);
+        return true;
+      })
+      .map(r => ({
+        id: r.id,
+        jobNumber: r.jobNumber,
+        title: r.title,
+        client: r.client,
+        clientId: r.clientId,
+        address: [r.address, r.city, r.state, r.zip].filter(Boolean).join(", "),
+        schedule: r.startDate,
+        scheduleDateSort: r.startDate,
+        status: r.status as Job["status"],
+        jobType: r.jobType || "One-off",
+        total: r.totalPrice,
+      }));
+    // Seed rows whose ID or jobNumber collides with a store row are dropped.
+    const seedRows = mockJobs.filter(j => !storeJobIds.has(j.id) && !seenNumbers.has(j.jobNumber));
     return [...fromStore, ...seedRows];
   }, [storeJobs]);
   const [jobs, setJobs] = useState<Job[]>(mockJobs);

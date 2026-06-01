@@ -574,9 +574,20 @@ export function ClientDetail() {
   // Live jobs for this client from jobsStore — any job created via Convert or
   // Create Job (linked by client name or clientId) appears here immediately.
   const allStoreJobs = useSyncExternalStore(jobsStore.subscribe, jobsStore.getSnapshot);
-  const liveClientJobs = allStoreJobs.filter(
-    (j) => j.client === client.name || j.clientId === client.id
-  );
+  const liveClientJobs = (() => {
+    const matched = allStoreJobs.filter(
+      (j) => j.client === client.name || j.clientId === client.id
+    );
+    // Dedupe by jobNumber so a job that matched on both name AND id, or stale
+    // duplicate records from earlier sessions, only render once.
+    const seen = new Set<string>();
+    return matched.filter((j) => {
+      const key = j.jobNumber || String(j.id);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  })();
   // Merge: show live store jobs, then fall back to legacy demo rows for clients
   // that have `totalJobs > 0` but nothing in the store yet.
   const jobItems = liveClientJobs.length > 0
@@ -645,6 +656,7 @@ export function ClientDetail() {
         <Button className="bg-[#4A6FA5] hover:bg-[#3d5a85] h-9 px-4 text-white text-[13px]">
           <PlusIcon className="mr-1.5 shrink-0" />
           Create
+          <span className="material-icons ml-1 -mr-1 shrink-0" style={{ fontSize: "18px" }}>keyboard_arrow_down</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-[200px]">
