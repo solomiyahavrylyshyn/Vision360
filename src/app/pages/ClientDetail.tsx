@@ -891,8 +891,9 @@ export function ClientDetail() {
             })()}
           </div>
 
-          {/* Taxable Customer checkbox — lives in the Addresses card */}
-          <div className="pt-3 border-t border-[#E5E7EB]">
+          {/* Billing & payment — lives at the bottom of the Addresses card */}
+          <div className="pt-3 border-t border-[#E5E7EB] space-y-3">
+            {/* Taxable */}
             <label className="flex items-center gap-2.5 cursor-pointer">
               <input
                 type="checkbox"
@@ -902,6 +903,22 @@ export function ClientDetail() {
               />
               <span className="text-[13px] text-[#1A2332]">Taxable Customer</span>
             </label>
+
+            {/* Payment terms */}
+            <div className="flex items-center justify-between">
+              <span className="text-[14px] text-[#6B7280]">Payment terms</span>
+              <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>
+                {clientData.paymentTerms || "—"}
+              </span>
+            </div>
+
+            {/* Preferred payment method */}
+            <div className="flex items-center justify-between">
+              <span className="text-[14px] text-[#6B7280]">Preferred payment</span>
+              <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>
+                {clientData.paymentMethod || "—"}
+              </span>
+            </div>
           </div>
         </div>
       </div>
@@ -1162,9 +1179,10 @@ export function ClientDetail() {
         </div>
       </div>
 
-      {/* 4. Taxable */}
+      {/* 4. Billing & payment */}
       <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
-        <div className="px-6 py-5">
+        <div className="px-6 py-5 space-y-4">
+          {/* Taxable */}
           <label className="flex items-center gap-2.5 cursor-pointer">
             <input
               type="checkbox"
@@ -1172,8 +1190,37 @@ export function ClientDetail() {
               onChange={(e) => handleFieldChange("isTaxable", e.target.checked)}
               className="w-4 h-4 accent-[#4A6FA5]"
             />
-            <span className="text-[14px] text-[#374151]">Taxable</span>
+            <span className="text-[14px] text-[#374151]">Taxable customer</span>
           </label>
+
+          {/* Payment terms */}
+          <div>
+            <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>Payment terms</label>
+            <select
+              value={editedClient.paymentTerms || ""}
+              onChange={(e) => handleFieldChange("paymentTerms", e.target.value)}
+              className="w-full h-9 px-3 border border-[#E5E7EB] rounded-lg text-[14px] text-[#1A2332] bg-white focus:outline-none focus:border-[#4A6FA5]"
+            >
+              {["Due on receipt", "Net 15", "Net 30", "Net 45", "Net 60"].map((t) => (
+                <option key={t} value={t}>{t}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Preferred payment method */}
+          <div>
+            <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>Preferred payment method</label>
+            <select
+              value={editedClient.paymentMethod || ""}
+              onChange={(e) => handleFieldChange("paymentMethod", e.target.value)}
+              className="w-full h-9 px-3 border border-[#E5E7EB] rounded-lg text-[14px] text-[#1A2332] bg-white focus:outline-none focus:border-[#4A6FA5]"
+            >
+              <option value="">Not specified</option>
+              {["Cash", "Check", "Credit Card", "Debit Card", "Bank Transfer", "Other"].map((m) => (
+                <option key={m} value={m}>{m}</option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 
