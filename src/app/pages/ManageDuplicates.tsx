@@ -122,40 +122,43 @@ export function ManageDuplicates() {
 
       {/* Toolbar */}
       <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          {/* Match on dropdown */}
-          <div className="flex flex-col gap-0.5">
-            <span className="text-[11px] text-[#9AA3AF] uppercase tracking-wide" style={{ fontWeight: 600 }}>
-              Match customers on
-            </span>
-            <div className="relative">
-              <select
-                value={matchOn}
-                onChange={e => setMatchOn(e.target.value)}
-                className="h-9 pl-3 pr-8 border border-[#E5E7EB] rounded-md text-[13px] text-[#1A2332] bg-white focus:outline-none focus:border-[#4A6FA5] appearance-none cursor-pointer"
-                style={{ fontWeight: 500 }}
-              >
-                {matchOptions.map(o => (
-                  <option key={o} value={o}>{o}</option>
-                ))}
-              </select>
-              <span className="material-icons absolute right-2 top-1/2 -translate-y-1/2 text-[#9AA3AF] pointer-events-none" style={{ fontSize: "16px" }}>
-                expand_more
-              </span>
-            </div>
-          </div>
+        {/* Match-on pill — label + select combined */}
+        <div className="relative inline-flex items-center h-9 border border-[#E5E7EB] rounded-lg bg-white overflow-hidden">
+          <span className="pl-3 pr-2 text-[13px] text-[#6B7280] whitespace-nowrap" style={{ fontWeight: 500 }}>
+            Match customers on:
+          </span>
+          <select
+            value={matchOn}
+            onChange={e => setMatchOn(e.target.value)}
+            className="h-full pl-0 pr-7 text-[13px] text-[#1A2332] bg-transparent border-none focus:outline-none appearance-none cursor-pointer"
+            style={{ fontWeight: 600 }}
+          >
+            {matchOptions.map(o => <option key={o} value={o}>{o}</option>)}
+          </select>
+          <span className="material-icons absolute right-2 top-1/2 -translate-y-1/2 text-[#9AA3AF] pointer-events-none" style={{ fontSize: "16px" }}>
+            expand_more
+          </span>
         </div>
 
-        {/* Merge button — shows when items selected */}
-        {selectedClients.size >= 2 && (
-          <button
-            onClick={handleMerge}
-            className="h-9 px-5 border border-[#4A6FA5] rounded-full text-[13px] text-[#4A6FA5] hover:bg-[#EEF3FA] transition-colors"
-            style={{ fontWeight: 500 }}
-          >
-            Merge
-          </button>
-        )}
+        {/* Merge / Cancel — only shown when rows are selected (Figma: solid primary + outlined) */}
+        {selectedClients.size >= 2 ? (
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setSelectedClients(new Set())}
+              className="h-9 px-5 border border-[#E5E7EB] rounded-lg text-[13px] text-[#546478] bg-white hover:bg-[#F5F7FA] transition-colors"
+              style={{ fontWeight: 500 }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleMerge}
+              className="h-9 px-5 rounded-lg text-[13px] text-white bg-[#1A2332] hover:bg-[#0f1620] transition-colors"
+              style={{ fontWeight: 500 }}
+            >
+              Merge
+            </button>
+          </div>
+        ) : null}
       </div>
 
       {/* Table */}

@@ -296,22 +296,28 @@ function InvoiceTable({ rows }: { rows: InvoiceRow[] }) {
 
 /* ── PaymentTable ── */
 interface PaymentRow {
-  id: number; date: string; invoiceNo: string;
-  amount: string; method: string; note: string;
+  id: number; invoiceNo: string; date: string;
+  method: string; status: string; note: string; amount: string;
 }
 const PAYMENT_COLS = [
-  { key: "date",      label: "Date"      },
   { key: "invoiceNo", label: "Invoice #" },
-  { key: "amount",    label: "Amount"    },
+  { key: "date",      label: "Date"      },
   { key: "method",    label: "Method"    },
+  { key: "status",    label: "Status"    },
   { key: "note",      label: "Note"      },
+  { key: "amount",    label: "Amount"    },
 ] as const;
+const PAYMENT_STATUS_STYLES: Record<string, { bg: string; color: string }> = {
+  Completed: { bg: "#DCFCE7", color: "#166534" },
+  Pending:   { bg: "#FEF9C3", color: "#92400E" },
+  Refunded:  { bg: "#EDE9FE", color: "#4C1D95" },
+};
 const paymentRows: PaymentRow[] = [
-  { id: 1, date: "Mar 22, 2026", invoiceNo: "INV-2026-0035", amount: "$890.00",   method: "ACH",         note: "" },
-  { id: 2, date: "Dec 3, 2025",  invoiceNo: "INV-2025-0198", amount: "$430.00",   method: "Credit Card", note: "" },
-  { id: 3, date: "Oct 7, 2025",  invoiceNo: "INV-2025-0177", amount: "$2,000.00", method: "Check",       note: "Partial - check #4421" },
-  { id: 4, date: "Oct 20, 2025", invoiceNo: "INV-2025-0177", amount: "$1,750.00", method: "ACH",         note: "Final balance" },
-];
+  { id: 1, invoiceNo: "INV-2026-0035", date: "Mar 22, 2026", method: "ACH",         status: "Completed", note: "" },
+  { id: 2, invoiceNo: "INV-2025-0198", date: "Dec 3, 2025",  method: "Credit Card", status: "Completed", note: "" },
+  { id: 3, invoiceNo: "INV-2025-0177", date: "Oct 7, 2025",  method: "Check",       status: "Completed", note: "Partial - check #4421" },
+  { id: 4, invoiceNo: "INV-2025-0177", date: "Oct 20, 2025", method: "ACH",         status: "Completed", note: "Final balance" },
+].map((r, i) => ({ ...r, amount: ["$890.00","$430.00","$2,000.00","$1,750.00"][i] }));
 function PaymentTable({ rows }: { rows: PaymentRow[] }) {
   const [cols, moveCols] = useDraggableColumns([...PAYMENT_COLS]);
   return (
@@ -332,10 +338,14 @@ function PaymentTable({ rows }: { rows: PaymentRow[] }) {
             <tr key={row.id} className="border-b border-[#E5E7EB] last:border-0 hover:bg-[#F9FAFB] cursor-pointer">
               {cols.map(col => {
                 switch (col.key) {
+                  case "invoiceNo": return <td key="invoiceNo" className="py-3.5 pr-4"><span className="text-[13px] text-[#4A6FA5] hover:underline cursor-pointer font-medium">{row.invoiceNo}</span></td>;
                   case "date":      return <td key="date"      className="py-3.5 pr-4"><span className="text-[13px] text-[#6B7280]">{row.date}</span></td>;
-                  case "invoiceNo": return <td key="invoiceNo" className="py-3.5 pr-4"><span className="text-[13px] text-[#4A6FA5] hover:underline cursor-pointer">{row.invoiceNo}</span></td>;
-                  case "amount":    return <td key="amount"    className="py-3.5 pr-4 text-right"><span className="text-[13px] text-[#1A2332] font-medium">{row.amount}</span></td>;
                   case "method":    return <td key="method"    className="py-3.5 pr-4"><span className="text-[13px] text-[#374151]">{row.method}</span></td>;
+                  case "status": {
+                    const ss = PAYMENT_STATUS_STYLES[row.status] ?? PAYMENT_STATUS_STYLES["Completed"];
+                    return <td key="status" className="py-3.5 pr-4"><span className="px-2 py-0.5 rounded-md text-[12px]" style={{ fontWeight: 600, backgroundColor: ss.bg, color: ss.color }}>{row.status}</span></td>;
+                  }
+                  case "amount":    return <td key="amount"    className="py-3.5 pr-4 text-right"><span className="text-[13px] text-[#1A2332] font-medium">{row.amount}</span></td>;
                   case "note":      return <td key="note"      className="py-3.5"><span className="text-[13px] text-[#6B7280] italic">{row.note || "—"}</span></td>;
                   default: return null;
                 }
