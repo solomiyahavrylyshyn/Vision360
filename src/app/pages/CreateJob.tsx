@@ -86,6 +86,8 @@ export function CreateJob() {
     }));
     setLineItems(preloaded);
     if (!title) setTitle(est.estimateName || "");
+    // Carry the estimate's tax rate so Estimate→Job total continuity holds (V05.5).
+    if (est.taxRate != null) setTaxRate(est.taxRate);
   });
 
   const addLineItem = () => {

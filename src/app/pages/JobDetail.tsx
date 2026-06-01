@@ -501,9 +501,15 @@ export function JobDetail() {
   // Live estimates linked to this job (by job number) or this client, so a
   // freshly created estimate shows up on the Estimates tab on return.
   const allEstimates = useSyncExternalStore(estimatesStore.subscribe, estimatesStore.getSnapshot);
-  const jobEstimates = allEstimates.filter(
-    (e) => (job.jobNumber && (e.job === job.jobNumber || e.source === job.jobNumber)) || e.clientName === job.client
-  );
+  const jobEstimates = allEstimates.filter((e) => {
+    // Priority: match by job number (direct link from convert flow).
+    if (job.jobNumber && (e.job === job.jobNumber || e.source === job.jobNumber)) return true;
+    // Fallback: match by clientId (exact) when no job link — prevents bleeding
+    // when two clients share the same display name.
+    if (e.clientId && job.clientId) return e.clientId === job.clientId;
+    // Last resort: name match for legacy records with no clientId.
+    return e.clientName === job.client;
+  });
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
   const [currentStatus, setCurrentStatus] = useState<string>(job.status);
   const [editingSection, setEditingSection] = useState<null | "address" | "schedule" | "overview">(null);
@@ -524,11 +530,10 @@ export function JobDetail() {
   const [notesNewText,   setNotesNewText]   = useState("");
   const [notesExpanded,  setNotesExpanded]  = useState(false);
 
-  // Documents state
-  const [documents, setDocuments] = useState<DocFile[]>(INITIAL_DOCS);
-  // Unified attachment list (media photos + files) powering the reusable DocumentsGallery,
-  // mirroring the client Documents tab experience.
-  const [attachments, setAttachments] = useState<DocFile[]>(() => [
+  // Documents state — empty for user-created (store) jobs; demo docs for mock jobs only.
+  const [documents, setDocuments] = useState<DocFile[]>(jobFromStore ? [] : INITIAL_DOCS);
+  // Unified attachment list (media photos + files) powering the reusable DocumentsGallery.
+  const [attachments, setAttachments] = useState<DocFile[]>(() => jobFromStore ? [] : [
     ...MOCK_PHOTOS.map((p, i) => ({
       id: p.id,
       name: `Job photo ${i + 1}.jpg`,
