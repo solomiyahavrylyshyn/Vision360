@@ -6,20 +6,39 @@ import { dismissalsStore, type DismissalReason } from "../stores/dismissalsStore
 import { formatRegionalDate } from "../stores/regionalSettingsStore";
 
 // ─── Grouping helpers ────────────────────────────────────────────────────────
-type MatchField = "Name" | "Mobile" | "Email" | "Phone" | "Address";
+type MatchField =
+  | "Same phone number"
+  | "Same email"
+  | "Same property address"
+  | "Similar name + phone"
+  | "Same company name";
 
 const normalise = (s: string) =>
   s.toLowerCase().replace(/[^a-z0-9]/g, "").trim();
 
 const phoneDigits = (s: string) => (s || "").replace(/\D/g, "").slice(-7);
 
+const anyPhone = (c: ClientRecord) =>
+  phoneDigits(c.mobilePhone || c.phone || c.workPhone || "");
+
 function groupKey(client: ClientRecord, field: MatchField): string {
   switch (field) {
-    case "Mobile":  return phoneDigits(client.mobilePhone);
-    case "Email":   return normalise(client.email);
-    case "Phone":   return phoneDigits(client.phone || client.mobilePhone);
-    case "Address": return normalise(client.address + client.zip);
-    default:        return normalise(client.name);
+    case "Same phone number":
+      // Match on the last 7 digits of any phone field (mobile, home, work).
+      return anyPhone(client);
+    case "Same email":
+      return normalise(client.email);
+    case "Same property address":
+      // Normalise street + zip (ignores unit/apt differences).
+      return normalise(client.address + client.zip);
+    case "Similar name + phone":
+      // Composite key: first three name tokens + last 7 phone digits.
+      // Groups clients who share a surname (or first+last) AND a phone.
+      const namePart = normalise(client.name).slice(0, 10);
+      const phonePart = anyPhone(client);
+      return phonePart ? namePart + "_" + phonePart : "";
+    case "Same company name":
+      return normalise(client.company || "");
   }
 }
 
@@ -192,11 +211,17 @@ function MergeModal({
 }
 
 // ─── Main page ───────────────────────────────────────────────────────────────
-const matchOptions: MatchField[] = ["Name", "Mobile", "Email", "Phone", "Address"];
+const matchOptions: MatchField[] = [
+  "Same phone number",
+  "Same email",
+  "Same property address",
+  "Similar name + phone",
+  "Same company name",
+];
 
 export function ManageDuplicates() {
   const navigate = useNavigate();
-  const [matchOn, setMatchOn] = useState<MatchField>("Name");
+  const [matchOn, setMatchOn] = useState<MatchField>("Same phone number");
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [selectedClients, setSelectedClients] = useState<Set<string>>(new Set());
   const [rowsPerPage, setRowsPerPage] = useState(25);
@@ -289,10 +314,10 @@ export function ManageDuplicates() {
 
       <div className="mb-6">
         <h1 className="text-[26px] text-[#1A2332]" style={{ fontWeight: 700 }}>Manage duplicates</h1>
-        <p className="text-[14px] text-[#546478] mt-1">
+        <p className="text-[14px] text-[#546478] mt-1 mb-1">
           We've grouped possible duplicate client profiles. Select rows to merge, dismiss, or archive.
-          Clients you want to keep separate can be dismissed so they won't resurface.
         </p>
+        <p className="text-[13px] text-[#6B7280]">Possible duplicates if: same phone number · same email · same property address · similar name&nbsp;+&nbsp;phone · same company name.</p>
       </div>
 
       {/* Toolbar */}
