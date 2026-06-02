@@ -95,6 +95,29 @@ const adminPreset: PermissionsState = {
   reports: true,
 };
 
+// Enabling Payments also grants the permissions it depends on, exactly as the
+// section's description promises ("Turning this on will apply the required
+// permissions below"). Any higher access the user already has is preserved.
+const grantPaymentsPrereqs = (p: PermissionsState): PermissionsState => ({
+  ...p,
+  showPricing: true,
+  clients: {
+    ...p.clients,
+    enabled: true,
+    level: p.clients.level === "viewEditDeleteFull" ? "viewEditDeleteFull" : "viewEditFull",
+  },
+  estimates: {
+    ...p.estimates,
+    enabled: true,
+    level: p.estimates.level === "viewCreateEditDelete" ? "viewCreateEditDelete" : "viewCreateEdit",
+  },
+  invoices: {
+    ...p.invoices,
+    enabled: true,
+    level: p.invoices.level === "viewCreateEditDelete" ? "viewCreateEditDelete" : "viewCreateEdit",
+  },
+});
+
 // ─── Small UI helpers ────────────────────────────────────────────────────────
 const Radio = ({
   checked,
@@ -279,6 +302,14 @@ export function NewUser() {
     (perms.clients.level === "viewEditFull" || perms.clients.level === "viewEditDeleteFull");
   const docsHasEdit = docHasEdit(perms.estimates) || docHasEdit(perms.invoices);
   const paymentsReady = perms.showPricing && clientsHasEdit && docsHasEdit;
+
+  // Reverse dependency: if a required permission is later removed, Payments
+  // turns off automatically — the other half of the description's promise.
+  useEffect(() => {
+    if (perms.payments.enabled && !paymentsReady) {
+      setPerms(p => ({ ...p, payments: { ...p.payments, enabled: false } }));
+    }
+  }, [perms.payments.enabled, paymentsReady]);
 
   return (
     <div className="min-h-screen bg-[#F5F7FA]">
@@ -752,7 +783,9 @@ export function NewUser() {
                   title="Payments"
                   description="Allow payment collection on estimates and invoices. Turning this on will apply the required permissions below. If any of them are removed, payments will also be removed automatically."
                   enabled={perms.payments.enabled}
-                  onToggle={v => editPerms(p => ({ ...p, payments: { ...p.payments, enabled: v && paymentsReady } }))}
+                  onToggle={v => editPerms(p => v
+                    ? { ...grantPaymentsPrereqs(p), payments: { ...p.payments, enabled: true } }
+                    : { ...p, payments: { ...p.payments, enabled: false } })}
                 >
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-[#6B7280] mb-3">
                     <span style={{ fontWeight: 500 }}>Required permissions:</span>
