@@ -39,12 +39,14 @@ type ScheduleLevel = "viewOwn" | "viewCompleteOwn" | "editOwn" | "viewAll" | "ed
 type TimeLevel = "viewRecordOwn" | "viewRecordEditOwn" | "viewRecordEditAll";
 type NotesLevel = "viewJobsOnly" | "viewAll" | "viewAddAll" | "viewEditAll" | "viewEditDeleteAll";
 type ExpensesLevel = "viewRecordEditOwn" | "viewRecordEditAll" | "viewRecordEditDeleteAll";
-type ClientsLevel = "nameAddressOnly" | "viewFull" | "viewCreateEditFull" | "viewCreateEditDeleteFull";
-type DocLevel = "viewOnly" | "viewCreateEdit" | "viewCreateEditDelete";
-// Jobs use Cancel (preserves history) as the business action; Delete is a
-// separate technical/admin tier — per the MVP walkthrough.
-type JobsLevel = "viewOnly" | "viewCreateEdit" | "viewCreateEditCancel" | "viewCreateEditCancelDelete";
-type PaymentsScope = "estimatesOnly" | "invoicesOnly" | "both";
+// Per the MVP walkthrough, records are never hard-deleted — each module uses a
+// history-preserving terminal action instead (inactivate / archive / void / cancel),
+// and Payments is a leveled permission ending in refund.
+type ClientsLevel = "nameAddressOnly" | "viewFull" | "viewCreateEditFull" | "viewCreateEditInactivateFull";
+type EstimatesLevel = "viewOnly" | "viewCreateEdit" | "viewCreateEditArchive";
+type InvoicesLevel = "viewOnly" | "viewCreateEdit" | "viewCreateEditVoidArchive";
+type JobsLevel = "viewOnly" | "viewCreateEdit" | "viewCreateEditCancel";
+type PaymentsLevel = "viewOnly" | "viewCollect" | "viewCollectEdit" | "viewCollectEditRefund";
 
 interface PermissionsState {
   isAdmin: boolean;
@@ -54,11 +56,11 @@ interface PermissionsState {
   expenses: { enabled: boolean; level: ExpensesLevel };
   showPricing: boolean;
   jobCosting: boolean;
-  clients: { enabled: boolean; level: ClientsLevel; canViewPhone: boolean };
-  estimates: { enabled: boolean; level: DocLevel };
+  clients: { enabled: boolean; level: ClientsLevel };
+  estimates: { enabled: boolean; level: EstimatesLevel };
   jobs: { enabled: boolean; level: JobsLevel };
-  invoices: { enabled: boolean; level: DocLevel };
-  payments: { enabled: boolean; scope: PaymentsScope };
+  invoices: { enabled: boolean; level: InvoicesLevel };
+  payments: { enabled: boolean; level: PaymentsLevel };
   clientCommunications: boolean;
   reports: boolean;
 }
@@ -72,11 +74,11 @@ const employeePreset: PermissionsState = {
   expenses: { enabled: true, level: "viewRecordEditOwn" },
   showPricing: false,
   jobCosting: false,
-  clients: { enabled: true, level: "viewFull", canViewPhone: true },
+  clients: { enabled: true, level: "viewFull" },
   estimates: { enabled: false, level: "viewOnly" },
   jobs: { enabled: true, level: "viewOnly" },
   invoices: { enabled: false, level: "viewOnly" },
-  payments: { enabled: false, scope: "both" },
+  payments: { enabled: false, level: "viewOnly" },
   clientCommunications: false,
   reports: false,
 };
@@ -89,37 +91,14 @@ const adminPreset: PermissionsState = {
   expenses: { enabled: true, level: "viewRecordEditAll" },
   showPricing: true,
   jobCosting: true,
-  clients: { enabled: true, level: "viewCreateEditDeleteFull", canViewPhone: true },
-  estimates: { enabled: true, level: "viewCreateEditDelete" },
-  jobs: { enabled: true, level: "viewCreateEditCancelDelete" },
-  invoices: { enabled: true, level: "viewCreateEditDelete" },
-  payments: { enabled: true, scope: "both" },
+  clients: { enabled: true, level: "viewCreateEditInactivateFull" },
+  estimates: { enabled: true, level: "viewCreateEditArchive" },
+  jobs: { enabled: true, level: "viewCreateEditCancel" },
+  invoices: { enabled: true, level: "viewCreateEditVoidArchive" },
+  payments: { enabled: true, level: "viewCollectEditRefund" },
   clientCommunications: true,
   reports: true,
 };
-
-// Enabling Payments also grants the permissions it depends on, exactly as the
-// section's description promises ("Turning this on will apply the required
-// permissions below"). Any higher access the user already has is preserved.
-const grantPaymentsPrereqs = (p: PermissionsState): PermissionsState => ({
-  ...p,
-  showPricing: true,
-  clients: {
-    ...p.clients,
-    enabled: true,
-    level: p.clients.level === "viewCreateEditDeleteFull" ? "viewCreateEditDeleteFull" : "viewCreateEditFull",
-  },
-  estimates: {
-    ...p.estimates,
-    enabled: true,
-    level: p.estimates.level === "viewCreateEditDelete" ? "viewCreateEditDelete" : "viewCreateEdit",
-  },
-  invoices: {
-    ...p.invoices,
-    enabled: true,
-    level: p.invoices.level === "viewCreateEditDelete" ? "viewCreateEditDelete" : "viewCreateEdit",
-  },
-});
 
 // ─── Small UI helpers ────────────────────────────────────────────────────────
 const Radio = ({
@@ -296,23 +275,6 @@ export function NewUser() {
     toast.success(`Invitation sent to ${email}`);
     navigate("/settings?section=team");
   };
-
-  // ── Validation helpers for Payments dependencies ──
-  const docHasEdit = (d: { enabled: boolean; level: DocLevel }) =>
-    d.enabled && (d.level === "viewCreateEdit" || d.level === "viewCreateEditDelete");
-  const clientsHasEdit =
-    perms.clients.enabled &&
-    (perms.clients.level === "viewCreateEditFull" || perms.clients.level === "viewCreateEditDeleteFull");
-  const docsHasEdit = docHasEdit(perms.estimates) || docHasEdit(perms.invoices);
-  const paymentsReady = perms.showPricing && clientsHasEdit && docsHasEdit;
-
-  // Reverse dependency: if a required permission is later removed, Payments
-  // turns off automatically — the other half of the description's promise.
-  useEffect(() => {
-    if (perms.payments.enabled && !paymentsReady) {
-      setPerms(p => ({ ...p, payments: { ...p.payments, enabled: false } }));
-    }
-  }, [perms.payments.enabled, paymentsReady]);
 
   return (
     <div className="min-h-screen bg-[#F5F7FA]">
@@ -669,7 +631,7 @@ export function NewUser() {
                   enabled={perms.clients.enabled}
                   onToggle={v => editPerms(p => ({ ...p, clients: { ...p.clients, enabled: v } }))}
                 >
-                  {(["nameAddressOnly", "viewFull", "viewCreateEditFull", "viewCreateEditDeleteFull"] as ClientsLevel[]).map(level => (
+                  {(["nameAddressOnly", "viewFull", "viewCreateEditFull", "viewCreateEditInactivateFull"] as ClientsLevel[]).map(level => (
                     <Radio
                       key={level}
                       checked={perms.clients.level === level}
@@ -678,19 +640,16 @@ export function NewUser() {
                         nameAddressOnly: "View client name and address only",
                         viewFull: "View full client and property info",
                         viewCreateEditFull: "View, create, and edit full client and property info",
-                        viewCreateEditDeleteFull: "View, create, edit, and delete full client and property info",
+                        viewCreateEditInactivateFull: "View, create, edit, and inactivate full client and property info",
                       }[level]}
+                      description={level === "nameAddressOnly"
+                        ? "Hides the phone number — for sales roles, so jobs can't be booked off the books."
+                        : undefined}
                     />
                   ))}
-                  <label className="flex items-center gap-2 mt-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={perms.clients.canViewPhone}
-                      onChange={e => editPerms(p => ({ ...p, clients: { ...p.clients, canViewPhone: e.target.checked } }))}
-                      className="w-4 h-4 accent-[#4A6FA5]"
-                    />
-                    <span className="text-[13px] text-[#374151]">Can view client phone numbers</span>
-                  </label>
+                  <p className="text-[12px] text-[#6B7280] mt-1">
+                    Clients are <span style={{ fontWeight: 600 }}>inactivated</span>, never deleted — the record and its history are kept.
+                  </p>
                 </FeatureSection>
 
                 {/* Estimates */}
@@ -699,7 +658,7 @@ export function NewUser() {
                   enabled={perms.estimates.enabled}
                   onToggle={v => editPerms(p => ({ ...p, estimates: { ...p.estimates, enabled: v } }))}
                 >
-                  {(["viewOnly", "viewCreateEdit", "viewCreateEditDelete"] as DocLevel[]).map(level => (
+                  {(["viewOnly", "viewCreateEdit", "viewCreateEditArchive"] as EstimatesLevel[]).map(level => (
                     <Radio
                       key={level}
                       checked={perms.estimates.level === level}
@@ -707,7 +666,7 @@ export function NewUser() {
                       label={{
                         viewOnly: "View only",
                         viewCreateEdit: "View, create, and edit estimates; view and apply estimate templates",
-                        viewCreateEditDelete: "View, create, edit, and delete estimates; view and apply estimate templates",
+                        viewCreateEditArchive: "View, create, edit, and archive estimates; view and apply estimate templates",
                       }[level]}
                     />
                   ))}
@@ -719,7 +678,7 @@ export function NewUser() {
                   enabled={perms.jobs.enabled}
                   onToggle={v => editPerms(p => ({ ...p, jobs: { ...p.jobs, enabled: v } }))}
                 >
-                  {(["viewOnly", "viewCreateEdit", "viewCreateEditCancel", "viewCreateEditCancelDelete"] as JobsLevel[]).map(level => (
+                  {(["viewOnly", "viewCreateEdit", "viewCreateEditCancel"] as JobsLevel[]).map(level => (
                     <Radio
                       key={level}
                       checked={perms.jobs.level === level}
@@ -728,13 +687,12 @@ export function NewUser() {
                         viewOnly: "View only",
                         viewCreateEdit: "View, create, and edit",
                         viewCreateEditCancel: "View, create, edit, and cancel",
-                        viewCreateEditCancelDelete: "View, create, edit, cancel, and delete",
                       }[level]}
                       disabled={level !== "viewOnly" && perms.schedule.level !== "editOwn" && perms.schedule.level !== "editAll" && perms.schedule.level !== "editDeleteAll"}
                     />
                   ))}
                   <p className="text-[12px] text-[#6B7280] mt-1">
-                    <span style={{ fontWeight: 600 }}>Cancel</span> keeps the job and its history; <span style={{ fontWeight: 600 }}>delete</span> removes the record entirely — reserve it for admins.
+                    Jobs are <span style={{ fontWeight: 600 }}>cancelled</span>, never deleted — cancelling keeps the job and its history.
                   </p>
                   <p className="text-[12px] text-[#6B7280] mt-1">
                     Select <span style={{ fontWeight: 600 }}>edit their own schedule</span> or higher to create and edit jobs.
@@ -747,63 +705,46 @@ export function NewUser() {
                   enabled={perms.invoices.enabled}
                   onToggle={v => editPerms(p => ({ ...p, invoices: { ...p.invoices, enabled: v } }))}
                 >
-                  {(["viewOnly", "viewCreateEdit", "viewCreateEditDelete"] as DocLevel[]).map(level => (
+                  {(["viewOnly", "viewCreateEdit", "viewCreateEditVoidArchive"] as InvoicesLevel[]).map(level => (
                     <Radio
                       key={level}
                       checked={perms.invoices.level === level}
                       onClick={() => editPerms(p => ({ ...p, invoices: { ...p.invoices, level } }))}
                       label={{
                         viewOnly: "View only",
-                        viewCreateEdit: "View, create, and edit",
-                        viewCreateEditDelete: "View, create, edit, and delete",
+                        viewCreateEdit: "View, create, and edit (change prices)",
+                        viewCreateEditVoidArchive: "View, create, edit, void, and archive",
                       }[level]}
                     />
                   ))}
+                  <p className="text-[12px] text-[#6B7280] mt-1">
+                    Voiding/archiving is full accounting power; create-and-edit only allows price changes.
+                  </p>
                 </FeatureSection>
 
                 {/* Payments */}
                 <FeatureSection
                   title="Payments"
-                  description="Allow payment collection on estimates and invoices. Turning this on will apply the required permissions below. If any of them are removed, payments will also be removed automatically."
+                  description="How much this role can do with payments."
                   enabled={perms.payments.enabled}
-                  onToggle={v => editPerms(p => v
-                    ? { ...grantPaymentsPrereqs(p), payments: { ...p.payments, enabled: true } }
-                    : { ...p, payments: { ...p.payments, enabled: false } })}
+                  onToggle={v => editPerms(p => ({ ...p, payments: { ...p.payments, enabled: v } }))}
                 >
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-[#6B7280] mb-3">
-                    <span style={{ fontWeight: 500 }}>Required permissions:</span>
-                    <span className="inline-flex items-center gap-1">
-                      <span className="material-icons" style={{ fontSize: "14px", color: perms.showPricing ? "#16A34A" : "#DC2626" }}>
-                        {perms.showPricing ? "check" : "close"}
-                      </span>
-                      Show pricing
-                    </span>
-                    <span className="inline-flex items-center gap-1">
-                      <span className="material-icons" style={{ fontSize: "14px", color: clientsHasEdit ? "#16A34A" : "#DC2626" }}>
-                        {clientsHasEdit ? "check" : "close"}
-                      </span>
-                      Clients and Properties: Edit access
-                    </span>
-                    <span className="inline-flex items-center gap-1">
-                      <span className="material-icons" style={{ fontSize: "14px", color: docsHasEdit ? "#16A34A" : "#DC2626" }}>
-                        {docsHasEdit ? "check" : "close"}
-                      </span>
-                      Estimates and/or Invoices: Edit access
-                    </span>
-                  </div>
-                  {(["estimatesOnly", "invoicesOnly", "both"] as PaymentsScope[]).map(scope => (
+                  {(["viewOnly", "viewCollect", "viewCollectEdit", "viewCollectEditRefund"] as PaymentsLevel[]).map(level => (
                     <Radio
-                      key={scope}
-                      checked={perms.payments.scope === scope}
-                      onClick={() => editPerms(p => ({ ...p, payments: { ...p.payments, scope } }))}
+                      key={level}
+                      checked={perms.payments.level === level}
+                      onClick={() => editPerms(p => ({ ...p, payments: { ...p.payments, level } }))}
                       label={{
-                        estimatesOnly: "Collect on estimates only",
-                        invoicesOnly: "Collect on invoices only",
-                        both: "Collect on both",
-                      }[scope]}
-                      disabled={scope === "estimatesOnly" ? !docHasEdit(perms.estimates) : scope === "invoicesOnly" ? !docHasEdit(perms.invoices) : !docsHasEdit}
+                        viewOnly: "View only",
+                        viewCollect: "View and collect",
+                        viewCollectEdit: "View, collect, and edit",
+                        viewCollectEditRefund: "View, collect, edit, and refund",
+                      }[level]}
                     />
                   ))}
+                  <p className="text-[12px] text-[#6B7280] mt-1">
+                    Field technicians can collect but not refund — refunds are reserved for accounting.
+                  </p>
                 </FeatureSection>
 
                 {/* Client communications */}
