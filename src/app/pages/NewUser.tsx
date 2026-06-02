@@ -54,10 +54,10 @@ interface PermissionsState {
   expenses: { enabled: boolean; level: ExpensesLevel };
   showPricing: boolean;
   jobCosting: boolean;
-  clients: { enabled: boolean; level: ClientsLevel; showOnMenu: boolean; canViewPhone: boolean };
-  estimates: { enabled: boolean; level: DocLevel; showOnMenu: boolean };
-  jobs: { enabled: boolean; level: JobsLevel; showOnMenu: boolean };
-  invoices: { enabled: boolean; level: DocLevel; showOnMenu: boolean };
+  clients: { enabled: boolean; level: ClientsLevel; canViewPhone: boolean };
+  estimates: { enabled: boolean; level: DocLevel };
+  jobs: { enabled: boolean; level: JobsLevel };
+  invoices: { enabled: boolean; level: DocLevel };
   payments: { enabled: boolean; scope: PaymentsScope };
   clientCommunications: boolean;
   reports: boolean;
@@ -72,10 +72,10 @@ const employeePreset: PermissionsState = {
   expenses: { enabled: true, level: "viewRecordEditOwn" },
   showPricing: false,
   jobCosting: false,
-  clients: { enabled: true, level: "viewFull", showOnMenu: false, canViewPhone: true },
-  estimates: { enabled: false, level: "viewOnly", showOnMenu: false },
-  jobs: { enabled: true, level: "viewOnly", showOnMenu: false },
-  invoices: { enabled: false, level: "viewOnly", showOnMenu: false },
+  clients: { enabled: true, level: "viewFull", canViewPhone: true },
+  estimates: { enabled: false, level: "viewOnly" },
+  jobs: { enabled: true, level: "viewOnly" },
+  invoices: { enabled: false, level: "viewOnly" },
   payments: { enabled: false, scope: "both" },
   clientCommunications: false,
   reports: false,
@@ -89,10 +89,10 @@ const adminPreset: PermissionsState = {
   expenses: { enabled: true, level: "viewRecordEditAll" },
   showPricing: true,
   jobCosting: true,
-  clients: { enabled: true, level: "viewCreateEditDeleteFull", showOnMenu: true, canViewPhone: true },
-  estimates: { enabled: true, level: "viewCreateEditDelete", showOnMenu: true },
-  jobs: { enabled: true, level: "viewCreateEditCancelDelete", showOnMenu: true },
-  invoices: { enabled: true, level: "viewCreateEditDelete", showOnMenu: true },
+  clients: { enabled: true, level: "viewCreateEditDeleteFull", canViewPhone: true },
+  estimates: { enabled: true, level: "viewCreateEditDelete" },
+  jobs: { enabled: true, level: "viewCreateEditCancelDelete" },
+  invoices: { enabled: true, level: "viewCreateEditDelete" },
   payments: { enabled: true, scope: "both" },
   clientCommunications: true,
   reports: true,
@@ -691,15 +691,6 @@ export function NewUser() {
                     />
                     <span className="text-[13px] text-[#374151]">Can view client phone numbers</span>
                   </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={perms.clients.showOnMenu}
-                      onChange={e => editPerms(p => ({ ...p, clients: { ...p.clients, showOnMenu: e.target.checked } }))}
-                      className="w-4 h-4 accent-[#4A6FA5]"
-                    />
-                    <span className="text-[13px] text-[#374151]">Show clients on their Vision360 menu</span>
-                  </label>
                 </FeatureSection>
 
                 {/* Estimates */}
@@ -720,15 +711,6 @@ export function NewUser() {
                       }[level]}
                     />
                   ))}
-                  <label className="flex items-center gap-2 mt-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={perms.estimates.showOnMenu}
-                      onChange={e => editPerms(p => ({ ...p, estimates: { ...p.estimates, showOnMenu: e.target.checked } }))}
-                      className="w-4 h-4 accent-[#4A6FA5]"
-                    />
-                    <span className="text-[13px] text-[#374151]">Show estimates on their Vision360 menu</span>
-                  </label>
                 </FeatureSection>
 
                 {/* Jobs */}
@@ -777,15 +759,6 @@ export function NewUser() {
                       }[level]}
                     />
                   ))}
-                  <label className="flex items-center gap-2 mt-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={perms.invoices.showOnMenu}
-                      onChange={e => editPerms(p => ({ ...p, invoices: { ...p.invoices, showOnMenu: e.target.checked } }))}
-                      className="w-4 h-4 accent-[#4A6FA5]"
-                    />
-                    <span className="text-[13px] text-[#374151]">Show invoices on their Vision360 menu</span>
-                  </label>
                 </FeatureSection>
 
                 {/* Payments */}
