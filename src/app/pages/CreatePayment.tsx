@@ -110,12 +110,20 @@ export function CreatePayment() {
           <div className="p-6 grid grid-cols-2 gap-5">
             <div className="col-span-2">
               <label className="text-[13px] text-[#374151] mb-1.5 block" style={{ fontWeight: 500 }}>Customer</label>
-              <input
-                value={client}
-                onChange={(e) => setClient(e.target.value)}
-                placeholder="Select or type a customer"
-                className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[14px] text-[#1A2332] focus:outline-none focus:border-[#4A6FA5]"
-              />
+              {prefilledClient ? (
+                // Frozen — payment is being collected for a specific client.
+                <div className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[14px] text-[#1A2332] bg-[#F5F7FA] flex items-center justify-between cursor-not-allowed">
+                  <span style={{ fontWeight: 500 }}>{client}</span>
+                  <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "16px" }} title="Locked to this client">lock</span>
+                </div>
+              ) : (
+                <input
+                  value={client}
+                  onChange={(e) => setClient(e.target.value)}
+                  placeholder="Select or type a customer"
+                  className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[14px] text-[#1A2332] focus:outline-none focus:border-[#4A6FA5]"
+                />
+              )}
             </div>
 
             <div>
