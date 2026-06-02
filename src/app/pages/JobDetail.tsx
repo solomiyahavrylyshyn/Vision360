@@ -1560,7 +1560,7 @@ export function JobDetail() {
               <KebabItem icon="edit" onClick={() => navigate(`/jobs/${id}/edit`)}>Edit Job</KebabItem>
               <KebabItem icon="content_copy">Duplicate Job</KebabItem>
               <KebabSeparator />
-              <KebabItem icon="archive" destructive>Archive Job</KebabItem>
+              <KebabItem icon="cancel" destructive>Cancel Job</KebabItem>
             </KebabMenu>
             </>
           }

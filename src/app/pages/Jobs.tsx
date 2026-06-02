@@ -25,12 +25,12 @@ interface Job {
   address: string;
   schedule: string;
   scheduleDateSort: string;
-  status: "Scheduled" | "In Progress" | "Completed" | "Inactive";
+  status: "Scheduled" | "In Progress" | "Completed" | "Cancelled";
   jobType: "One-off" | "Recurring";
   total: number;
 }
 
-const JOB_STATUSES: Job["status"][] = ["Scheduled", "In Progress", "Completed", "Inactive"];
+const JOB_STATUSES: Job["status"][] = ["Scheduled", "In Progress", "Completed", "Cancelled"];
 
 const mockJobs: Job[] = [
   { id: 1,  jobNumber: "10234-J01", title: "AC Estimate",        client: "Travis Jones",   clientId: "10234", address: "854 Maple St, Fort Worth, TX 76107",        schedule: "March 30, 2026", scheduleDateSort: "2026-03-30", status: "Scheduled",  jobType: "One-off",   total: 375.01 },
@@ -51,7 +51,7 @@ const statusColors: Record<string, string> = {
   Scheduled: "#4A6FA5",
   "In Progress": "#D97706",
   Completed: "#16A34A",
-  Inactive: "#6B7280",
+  Cancelled: "#DC2626",
 };
 
 // Badge background = status colour at 15% opacity (matches Figma 358:28741).
@@ -59,7 +59,7 @@ const statusBg: Record<string, string> = {
   Scheduled: "rgba(74,111,165,0.15)",
   "In Progress": "rgba(217,119,6,0.15)",
   Completed: "rgba(22,163,74,0.15)",
-  Inactive: "rgba(107,114,128,0.15)",
+  Cancelled: "rgba(220,38,38,0.15)",
 };
 
 const statusIcons: Record<string, string> = {
@@ -405,11 +405,11 @@ export function Jobs() {
             onDeselect={() => setSelectedJobs(new Set())}
             actions={[
               {
-                label: "Inactivate",
-                icon: "block",
+                label: "Cancel",
+                icon: "cancel",
                 destructive: true,
                 onClick: () => {
-                  setJobs(prev => prev.map(j => (selectedJobs.has(j.id) ? { ...j, status: "Inactive" } : j)));
+                  setJobs(prev => prev.map(j => (selectedJobs.has(j.id) ? { ...j, status: "Cancelled" } : j)));
                   setSelectedJobs(new Set());
                 },
               },
@@ -552,7 +552,7 @@ export function Jobs() {
                   <KebabMenu>
                     <KebabItem icon="content_copy" onSelect={() => duplicateJob(job)}>Duplicate</KebabItem>
                     <KebabItem icon="swap_horiz" onSelect={() => openStatusModal([job.id])}>Change status</KebabItem>
-                    <KebabItem icon="block" onSelect={() => setJobs(prev => prev.map(j => j.id === job.id ? { ...j, status: "Inactive" } : j))}>Inactivate</KebabItem>
+                    <KebabItem icon="cancel" onSelect={() => setJobs(prev => prev.map(j => j.id === job.id ? { ...j, status: "Cancelled" } : j))}>Cancel job</KebabItem>
                     <KebabSeparator />
                     <KebabItem icon="open_in_new" onSelect={() => window.open(`/jobs/${job.id}`, "_blank")}>Open in New Tab</KebabItem>
                   </KebabMenu>

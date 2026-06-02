@@ -110,7 +110,7 @@ const JOB_STATUS_COLORS: Record<string, { bg: string; color: string }> = {
 /* ── ClientJobsPanel — full list-page treatment scoped to one client ───────
    Mirrors the Jobs list page inside the client's Jobs tab: search + quick
    filters + Create job toolbar, sortable columns with row selection, a kebab
-   (Duplicate / Change status / Inactivate / Open in New Tab) and pagination.
+   (Duplicate / Change status / Cancel job / Open in New Tab) and pagination.
    All rows are live jobsStore records, so every action persists. */
 const JOB_PANEL_COLS = [
   { key: "number",   label: "Number"    },
@@ -118,7 +118,7 @@ const JOB_PANEL_COLS = [
   { key: "status",   label: "Status"    },
   { key: "total",    label: "Total"     },
 ] as const;
-const JOB_STATUS_OPTIONS = ["Scheduled", "In Progress", "Completed", "Cancelled", "Inactive"] as const;
+const JOB_STATUS_OPTIONS = ["Scheduled", "In Progress", "Completed", "Cancelled"] as const;
 type JobSortField = "number" | "schedule" | "status" | "total";
 
 function ClientJobsPanel({ rows, onOpen, onCreate }: {
@@ -232,10 +232,10 @@ function ClientJobsPanel({ rows, onOpen, onCreate }: {
     });
     toast.success(`Duplicated as ${newNumber}`);
   };
-  const inactivate = (ids: number[]) => {
-    ids.forEach((id) => jobsStore.update(id, { status: "Inactive" }));
+  const cancelJobs = (ids: number[]) => {
+    ids.forEach((id) => jobsStore.update(id, { status: "Cancelled" }));
     setSelected(new Set());
-    toast.success(ids.length > 1 ? `${ids.length} jobs inactivated` : "Job inactivated");
+    toast.success(ids.length > 1 ? `${ids.length} jobs cancelled` : "Job cancelled");
   };
   const applyStatus = (status: string) => {
     (statusTarget || []).forEach((id) => jobsStore.update(id, { status }));
@@ -259,8 +259,8 @@ function ClientJobsPanel({ rows, onOpen, onCreate }: {
             <button onClick={() => setStatusTarget([...selected])} className="h-8 px-3 rounded-lg border border-[#E5E7EB] bg-white text-[13px] text-[#546478] hover:bg-[#F5F7FA] flex items-center gap-1.5">
               <span className="material-icons" style={{ fontSize: "16px" }}>swap_horiz</span>Change status
             </button>
-            <button onClick={() => inactivate([...selected])} className="h-8 px-3 rounded-lg border border-[#E5E7EB] bg-white text-[13px] text-[#DC2626] hover:bg-[#FEF2F2] flex items-center gap-1.5">
-              <span className="material-icons" style={{ fontSize: "16px" }}>block</span>Inactivate
+            <button onClick={() => cancelJobs([...selected])} className="h-8 px-3 rounded-lg border border-[#E5E7EB] bg-white text-[13px] text-[#DC2626] hover:bg-[#FEF2F2] flex items-center gap-1.5">
+              <span className="material-icons" style={{ fontSize: "16px" }}>cancel</span>Cancel
             </button>
             <button onClick={() => setSelected(new Set())} className="ml-auto text-[13px] text-[#6B7280] hover:text-[#1A2332]">Deselect</button>
           </div>
@@ -350,7 +350,7 @@ function ClientJobsPanel({ rows, onOpen, onCreate }: {
                     <KebabMenuShared>
                       <KebabItem icon="content_copy" onSelect={() => duplicateJob(row)}>Duplicate</KebabItem>
                       <KebabItem icon="swap_horiz" onSelect={() => setStatusTarget([row.id])}>Change status</KebabItem>
-                      <KebabItem icon="block" onSelect={() => inactivate([row.id])}>Inactivate</KebabItem>
+                      <KebabItem icon="cancel" onSelect={() => cancelJobs([row.id])}>Cancel job</KebabItem>
                       <KebabSeparator />
                       <KebabItem icon="open_in_new" onSelect={() => window.open(`/jobs/${row.id}`, "_blank")}>Open in New Tab</KebabItem>
                     </KebabMenuShared>
