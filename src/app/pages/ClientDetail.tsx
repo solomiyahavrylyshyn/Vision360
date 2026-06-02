@@ -745,7 +745,7 @@ export function ClientDetail() {
     <KebabMenuShared triggerClassName="w-9 h-9 border border-[#E5E7EB] rounded-md bg-white" contentClassName="min-w-[220px]">
       <KebabItem icon="print" onClick={() => { setStatementOpen(true); setTimeout(() => window.print(), 300); }}>Print statement</KebabItem>
       <KebabItem icon="receipt_long" onClick={() => setStatementOpen(true)}>Statement activity</KebabItem>
-      <KebabItem icon="payments" onClick={() => navigate(createUrl("/payments/new", "payments", { amount: String(client.openBalance) }))}>Collect payment</KebabItem>
+      <KebabItem icon="payments" onClick={() => navigate(createUrl("/payments/new", "payments", { amount: String(client.openBalance), method: client.paymentMethod || "" }))}>Collect payment</KebabItem>
     </KebabMenuShared>
   );
 
@@ -1510,7 +1510,7 @@ export function ClientDetail() {
       case "payments":
         return (
           <>
-            <TabHeader title="Payments" count={clientPaymentRows.length} onAdd={() => navigate(createUrl("/payments/new", "payments", { amount: String(client.openBalance) }))} addLabel="Collect payment" />
+            <TabHeader title="Payments" count={clientPaymentRows.length} onAdd={() => navigate(createUrl("/payments/new", "payments", { amount: String(client.openBalance), method: client.paymentMethod || "" }))} addLabel="Collect payment" />
             {clientPaymentRows.length === 0 ? (
               <EmptyState icon="payments" message="No payments yet for this client." />
             ) : (
@@ -2900,7 +2900,7 @@ export function ClientDetail() {
               <div className="px-6 py-4 border-t border-[#E5E7EB] shrink-0 no-print">
                 {(client.openBalance ?? 0) > 0 && (
                   <button
-                    onClick={() => { setStatementOpen(false); navigate(createUrl("/payments/new", "payments", { amount: String(client.openBalance) })); }}
+                    onClick={() => { setStatementOpen(false); navigate(createUrl("/payments/new", "payments", { amount: String(client.openBalance), method: client.paymentMethod || "" })); }}
                     className="w-full h-10 bg-[#4A6FA5] hover:bg-[#3d5a85] text-white rounded-lg text-[14px] transition-colors"
                     style={{ fontWeight: 600 }}
                   >
