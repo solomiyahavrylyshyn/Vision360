@@ -35,10 +35,10 @@ const saveCustomPresets = (presets: CustomPreset[]) => {
   }
 };
 
-type ScheduleLevel = "viewOwn" | "viewCompleteOwn" | "editOwn" | "editAll" | "editDeleteAll";
+type ScheduleLevel = "viewOwn" | "viewCompleteOwn" | "editOwn" | "viewAll" | "editAll" | "editDeleteAll";
 type TimeLevel = "viewRecordOwn" | "viewRecordEditOwn" | "viewRecordEditAll";
-type NotesLevel = "viewJobsOnly" | "viewAll" | "viewEditAll" | "viewEditDeleteAll";
-type ExpensesLevel = "viewRecordEditOwn" | "viewRecordEditAll";
+type NotesLevel = "viewJobsOnly" | "viewAll" | "viewAddAll" | "viewEditAll" | "viewEditDeleteAll";
+type ExpensesLevel = "viewRecordEditOwn" | "viewRecordEditAll" | "viewRecordEditDeleteAll";
 type ClientsLevel = "nameAddressOnly" | "viewFull" | "viewEditFull" | "viewEditDeleteFull";
 type DocLevel = "viewOnly" | "viewCreateEdit" | "viewCreateEditDelete";
 type PaymentsScope = "estimatesOnly" | "invoicesOnly" | "both";
@@ -86,7 +86,7 @@ const adminPreset: PermissionsState = {
   expenses: { enabled: true, level: "viewRecordEditAll" },
   showPricing: true,
   jobCosting: true,
-  clients: { enabled: true, level: "viewEditDeleteFull", showOnMenu: true },
+  clients: { enabled: true, level: "viewEditFull", showOnMenu: true },
   estimates: { enabled: true, level: "viewCreateEditDelete", showOnMenu: true },
   jobs: { enabled: true, level: "viewCreateEditDelete", showOnMenu: true },
   invoices: { enabled: true, level: "viewCreateEditDelete", showOnMenu: true },
@@ -104,7 +104,8 @@ const grantPaymentsPrereqs = (p: PermissionsState): PermissionsState => ({
   clients: {
     ...p.clients,
     enabled: true,
-    level: p.clients.level === "viewEditDeleteFull" ? "viewEditDeleteFull" : "viewEditFull",
+    // Clients/Properties has no delete level (per MVP walkthrough), so edit is the ceiling.
+    level: "viewEditFull",
   },
   estimates: {
     ...p.estimates,
@@ -559,7 +560,7 @@ export function NewUser() {
                   enabled={perms.schedule.enabled}
                   onToggle={v => editPerms(p => ({ ...p, schedule: { ...p.schedule, enabled: v } }))}
                 >
-                  {(["viewOwn", "viewCompleteOwn", "editOwn", "editAll", "editDeleteAll"] as ScheduleLevel[]).map(level => (
+                  {(["viewOwn", "viewCompleteOwn", "editOwn", "viewAll", "editAll", "editDeleteAll"] as ScheduleLevel[]).map(level => (
                     <Radio
                       key={level}
                       checked={perms.schedule.level === level}
@@ -568,6 +569,7 @@ export function NewUser() {
                         viewOwn: "View their own schedule",
                         viewCompleteOwn: "View and complete their own schedule",
                         editOwn: "Edit their own schedule",
+                        viewAll: "View everyone's schedule",
                         editAll: "Edit everyone's schedule",
                         editDeleteAll: "Edit and delete everyone's schedule",
                       }[level]}
@@ -602,14 +604,15 @@ export function NewUser() {
                   enabled={perms.notes.enabled}
                   onToggle={v => editPerms(p => ({ ...p, notes: { ...p.notes, enabled: v } }))}
                 >
-                  {(["viewJobsOnly", "viewAll", "viewEditAll", "viewEditDeleteAll"] as NotesLevel[]).map(level => (
+                  {(["viewJobsOnly", "viewAll", "viewAddAll", "viewEditAll", "viewEditDeleteAll"] as NotesLevel[]).map(level => (
                     <Radio
                       key={level}
                       checked={perms.notes.level === level}
                       onClick={() => editPerms(p => ({ ...p, notes: { ...p.notes, level } }))}
                       label={{
-                        viewJobsOnly: "View notes on jobs and visits only",
+                        viewJobsOnly: "View notes on jobs only",
                         viewAll: "View all notes",
+                        viewAddAll: "View all notes and add new ones",
                         viewEditAll: "View and edit all",
                         viewEditDeleteAll: "View, edit, and delete all",
                       }[level]}
@@ -623,7 +626,7 @@ export function NewUser() {
                   enabled={perms.expenses.enabled}
                   onToggle={v => editPerms(p => ({ ...p, expenses: { ...p.expenses, enabled: v } }))}
                 >
-                  {(["viewRecordEditOwn", "viewRecordEditAll"] as ExpensesLevel[]).map(level => (
+                  {(["viewRecordEditOwn", "viewRecordEditAll", "viewRecordEditDeleteAll"] as ExpensesLevel[]).map(level => (
                     <Radio
                       key={level}
                       checked={perms.expenses.level === level}
@@ -631,6 +634,7 @@ export function NewUser() {
                       label={{
                         viewRecordEditOwn: "View, record, and edit their own",
                         viewRecordEditAll: "View, record, and edit everyone's",
+                        viewRecordEditDeleteAll: "View, record, edit, and delete everyone's",
                       }[level]}
                     />
                   ))}
@@ -663,7 +667,8 @@ export function NewUser() {
                   enabled={perms.clients.enabled}
                   onToggle={v => editPerms(p => ({ ...p, clients: { ...p.clients, enabled: v } }))}
                 >
-                  {(["nameAddressOnly", "viewFull", "viewEditFull", "viewEditDeleteFull"] as ClientsLevel[]).map(level => (
+                  {/* No delete level for Clients/Properties — per MVP walkthrough, view + edit only. */}
+                  {(["nameAddressOnly", "viewFull", "viewEditFull"] as ClientsLevel[]).map(level => (
                     <Radio
                       key={level}
                       checked={perms.clients.level === level}
@@ -738,15 +743,6 @@ export function NewUser() {
                   <p className="text-[12px] text-[#6B7280] mt-1">
                     Select <span style={{ fontWeight: 600 }}>edit their own schedule</span> or higher to create and edit jobs.
                   </p>
-                  <label className="flex items-center gap-2 mt-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={perms.jobs.showOnMenu}
-                      onChange={e => editPerms(p => ({ ...p, jobs: { ...p.jobs, showOnMenu: e.target.checked } }))}
-                      className="w-4 h-4 accent-[#4A6FA5]"
-                    />
-                    <span className="text-[13px] text-[#374151]">Show jobs on their Vision360 menu</span>
-                  </label>
                 </FeatureSection>
 
                 {/* Invoices */}
