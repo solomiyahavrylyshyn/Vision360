@@ -32,6 +32,7 @@ import { formatRegionalDate } from "../stores/regionalSettingsStore";
 import { clientsStore } from "../stores/clientsStore";
 import { estimatesStore } from "../stores/estimatesStore";
 import { jobsStore } from "../stores/jobsStore";
+import { PAYMENT_METHODS } from "../constants/paymentMethods";
 import { tagsStore } from "../stores/tagsStore";
 import { customFieldsStore } from "../stores/customFieldsStore";
 import { relationshipsStore } from "../stores/relationshipsStore";
@@ -1290,7 +1291,7 @@ export function ClientDetail() {
               className="w-full h-9 px-3 border border-[#E5E7EB] rounded-lg text-[14px] text-[#1A2332] bg-white focus:outline-none focus:border-[#4A6FA5]"
             >
               <option value="">Not specified</option>
-              {["Cash", "Check", "Credit Card", "Debit Card", "Bank Transfer", "Other"].map((m) => (
+              {PAYMENT_METHODS.map((m) => (
                 <option key={m} value={m}>{m}</option>
               ))}
             </select>
@@ -1360,12 +1361,7 @@ export function ClientDetail() {
                 <SelectTrigger className="border-[#E5E7EB] bg-white h-10 text-[14px]"><SelectValue placeholder="Select method" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">— Select —</SelectItem>
-                  <SelectItem value="Cash">Cash</SelectItem>
-                  <SelectItem value="Check">Check</SelectItem>
-                  <SelectItem value="Credit Card">Credit Card</SelectItem>
-                  <SelectItem value="Debit Card">Debit Card</SelectItem>
-                  <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
-                  <SelectItem value="Other">Other</SelectItem>
+                  {PAYMENT_METHODS.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -2403,12 +2399,7 @@ export function ClientDetail() {
                       <SelectTrigger className="border-[#E5E7EB] bg-white h-10 text-[14px]"><SelectValue placeholder="Select method" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="none">— Select —</SelectItem>
-                        <SelectItem value="Cash">Cash</SelectItem>
-                        <SelectItem value="Check">Check</SelectItem>
-                        <SelectItem value="Credit Card">Credit Card</SelectItem>
-                        <SelectItem value="Debit Card">Debit Card</SelectItem>
-                        <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
-                        <SelectItem value="Other">Other</SelectItem>
+                        {PAYMENT_METHODS.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>

@@ -24,6 +24,7 @@ import { countiesStore } from "../stores/countiesStore";
 import { PlusIcon } from "../components/ui/plus-icon";
 import { CreateActionButton } from "../components/ui/create-action-button";
 import { StatCard } from "../components/ui/stat-card";
+import { PAYMENT_METHODS } from "../constants/paymentMethods";
 
 interface Client {
   id: string;
@@ -550,7 +551,7 @@ export function Clients() {
                   <select value={pendingFilters.paymentMethod} onChange={e => setPendingFilters(p => ({ ...p, paymentMethod: e.target.value }))}
                     className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] text-[#374151] bg-white focus:outline-none focus:border-[#4A6FA5]">
                     <option value="">All</option>
-                    {["Cash", "Check", "Credit Card", "Debit Card", "Bank Transfer", "Other"].map(m => <option key={m} value={m}>{m}</option>)}
+                    {PAYMENT_METHODS.map(m => <option key={m} value={m}>{m}</option>)}
                   </select>
                 </div>
 

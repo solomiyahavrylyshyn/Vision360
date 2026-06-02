@@ -48,7 +48,8 @@ const allStatuses: InvoiceStatus[] = [
   "Void",
 ];
 
-const paymentMethods = ["Cash", "Check", "Credit Card", "Debit Card", "Bank Transfer", "Other"];
+import { PAYMENT_METHODS } from "../constants/paymentMethods";
+const paymentMethods = PAYMENT_METHODS;
 
 const TODAY = "2026-04-27";
 function daysBetween(a: string, b: string) {

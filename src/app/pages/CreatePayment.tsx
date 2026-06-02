@@ -4,8 +4,9 @@ import { Button } from "../components/ui/button";
 import { toast } from "sonner";
 import { paymentsStore } from "../stores/paymentsStore";
 import type { PaymentMethod, PaymentStatus } from "./Payments";
+import { PAYMENT_METHODS } from "../constants/paymentMethods";
 
-const paymentMethods = ["Cash", "Check", "Credit Card", "Debit Card", "Bank Transfer", "Other"];
+const paymentMethods = PAYMENT_METHODS;
 
 export function CreatePayment() {
   const navigate = useNavigate();
@@ -18,7 +19,7 @@ export function CreatePayment() {
 
   const [client, setClient] = useState(prefilledClient);
   const [amount, setAmount] = useState(prefilledAmount);
-  const [method, setMethod] = useState("Credit Card");
+  const [method, setMethod] = useState("Credit card on file");
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().slice(0, 10));
   const [reference, setReference] = useState("");
   const [note, setNote] = useState("");

@@ -17,6 +17,7 @@ import { relationshipsStore } from "../stores/relationshipsStore";
 import { clientsStore } from "../stores/clientsStore";
 import { useSyncExternalStore } from "react";
 import { formatRegionalDate } from "../stores/regionalSettingsStore";
+import { PAYMENT_METHODS } from "../constants/paymentMethods";
 
 interface AdditionalContact {
   id: string;
@@ -1019,7 +1020,7 @@ export function CreateClient() {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="__none__">Not specified</SelectItem>
-                          {["Cash", "Check", "Credit Card", "Debit Card", "Bank Transfer", "Other"].map((m) => (
+                          {PAYMENT_METHODS.map((m) => (
                             <SelectItem key={m} value={m}>{m}</SelectItem>
                           ))}
                         </SelectContent>
