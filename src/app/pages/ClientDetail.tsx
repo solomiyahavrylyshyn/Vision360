@@ -25,13 +25,13 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuSubContent,
 } from "../components/ui/dropdown-menu";
-import { KebabMenu as KebabMenuShared, KebabItem } from "../components/ui/kebab-menu";
+import { KebabMenu as KebabMenuShared, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
 import { DetailTabs, TabSettingsButton } from "../components/ui/detail-tabs";
 import { toast } from "sonner";
 import { formatRegionalDate } from "../stores/regionalSettingsStore";
 import { clientsStore } from "../stores/clientsStore";
 import { estimatesStore } from "../stores/estimatesStore";
-import { jobsStore } from "../stores/jobsStore";
+import { jobsStore, type JobRecord } from "../stores/jobsStore";
 import { PAYMENT_METHODS } from "../constants/paymentMethods";
 import { tagsStore } from "../stores/tagsStore";
 import { customFieldsStore } from "../stores/customFieldsStore";
@@ -97,72 +97,312 @@ function safeExternalHref(url: string): string | null {
   return `https://${u}`; // scheme-less (e.g. "example.com") → assume https
 }
 
-/* ── ClientJobsTable ─────────────────────────────────────────────────────── */
+/* ── Client jobs: status colors + ClientJobsPanel ─────────────────────────── */
 const JOB_STATUS_COLORS: Record<string, { bg: string; color: string }> = {
   Scheduled:   { bg: "rgba(74,111,165,0.12)",  color: "#4A6FA5" },
   "In Progress":{ bg: "rgba(217,119,6,0.12)",  color: "#D97706" },
   Completed:   { bg: "rgba(22,163,74,0.12)",   color: "#16A34A" },
   Cancelled:   { bg: "rgba(220,38,38,0.12)",   color: "#DC2626" },
   Paused:      { bg: "rgba(168,86,247,0.12)",  color: "#A856F7" },
+  Inactive:    { bg: "#F3F4F6",                color: "#6B7280" },
 };
-const JOB_COLS = [
-  { key: "job",      label: "Job #"    },
-  { key: "title",    label: "Title"    },
-  { key: "schedule", label: "Date"     },
-  { key: "status",   label: "Status"   },
-  { key: "total",    label: "Total"    },
-] as const;
 
-function ClientJobsTable({ rows, onNavigate, onDelete }: {
-  rows: Array<{ id: number; jobNumber: string; title: string; startDate: string; status: string; totalPrice: number }>;
-  onNavigate: (id: number) => void;
-  onDelete?: (id: number) => void;
+/* ── ClientJobsPanel — full list-page treatment scoped to one client ───────
+   Mirrors the Jobs list page inside the client's Jobs tab: search + quick
+   filters + Create job toolbar, sortable columns with row selection, a kebab
+   (Duplicate / Change status / Inactivate / Open in New Tab) and pagination.
+   All rows are live jobsStore records, so every action persists. */
+const JOB_PANEL_COLS = [
+  { key: "number",   label: "Number"    },
+  { key: "schedule", label: "Scheduled" },
+  { key: "status",   label: "Status"    },
+  { key: "total",    label: "Total"     },
+] as const;
+const JOB_STATUS_OPTIONS = ["Scheduled", "In Progress", "Completed", "Cancelled", "Inactive"] as const;
+type JobSortField = "number" | "schedule" | "status" | "total";
+
+function ClientJobsPanel({ rows, onOpen, onCreate }: {
+  rows: JobRecord[];
+  onOpen: (id: number) => void;
+  onCreate: () => void;
 }) {
-  const [cols, moveCols] = useDraggableColumns([...JOB_COLS]);
+  const [search, setSearch] = useState("");
+  const [qfStatus, setQfStatus] = useState("All");
+  const [qfType, setQfType] = useState("All");
+  const [qfDate, setQfDate] = useState("all_time");
+  const [sortField, setSortField] = useState<JobSortField>("number");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(10);
+  const [statusTarget, setStatusTarget] = useState<number[] | null>(null);
+  const [cols, moveCols] = useDraggableColumns([...JOB_PANEL_COLS]);
+
+  // Type filter options derived from the data so we never offer a value that
+  // filters everything out.
+  const typeOptions = useMemo(() => {
+    const set = new Set<string>();
+    rows.forEach((r) => { if (r.jobType) set.add(r.jobType); });
+    return Array.from(set);
+  }, [rows]);
+
+  const inDateRange = (startDate: string) => {
+    if (qfDate === "all_time") return true;
+    if (!startDate) return false;
+    const d = new Date(startDate);
+    if (isNaN(d.getTime())) return true;
+    const now = new Date();
+    const startOfDay = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate());
+    const today = startOfDay(now);
+    const dDay = startOfDay(d);
+    if (qfDate === "today") return dDay.getTime() === today.getTime();
+    if (qfDate === "this_week") {
+      const weekStart = new Date(today); weekStart.setDate(today.getDate() - today.getDay());
+      const weekEnd = new Date(weekStart); weekEnd.setDate(weekStart.getDate() + 7);
+      return dDay >= weekStart && dDay < weekEnd;
+    }
+    if (qfDate === "this_month") return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    return true;
+  };
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return rows.filter((r) => {
+      if (q && !`${r.jobNumber} ${r.title} ${r.status}`.toLowerCase().includes(q)) return false;
+      if (qfStatus !== "All" && r.status !== qfStatus) return false;
+      if (qfType !== "All" && r.jobType !== qfType) return false;
+      if (!inDateRange(r.startDate)) return false;
+      return true;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rows, search, qfStatus, qfType, qfDate]);
+
+  const sorted = useMemo(() => {
+    const dir = sortDir === "asc" ? 1 : -1;
+    return [...filtered].sort((a, b) => {
+      switch (sortField) {
+        case "number":   return a.jobNumber.localeCompare(b.jobNumber, undefined, { numeric: true }) * dir;
+        case "schedule": return ((new Date(a.startDate).getTime() || 0) - (new Date(b.startDate).getTime() || 0)) * dir;
+        case "status":   return a.status.localeCompare(b.status) * dir;
+        case "total":    return (a.totalPrice - b.totalPrice) * dir;
+        default:         return 0;
+      }
+    });
+  }, [filtered, sortField, sortDir]);
+
+  const total = sorted.length;
+  const totalPages = Math.max(1, Math.ceil(total / perPage));
+  const safePage = Math.min(page, totalPages);
+  const startIdx = (safePage - 1) * perPage;
+  const endIdx = Math.min(startIdx + perPage, total);
+  const paginated = sorted.slice(startIdx, endIdx);
+
+  const allSelected = paginated.length > 0 && paginated.every((r) => selected.has(r.id));
+  const toggleAll = (checked: boolean) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      paginated.forEach((r) => (checked ? next.add(r.id) : next.delete(r.id)));
+      return next;
+    });
+  const toggleOne = (id: number, checked: boolean) =>
+    setSelected((prev) => { const n = new Set(prev); if (checked) n.add(id); else n.delete(id); return n; });
+
+  const toggleSort = (f: JobSortField) => {
+    if (sortField === f) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else { setSortField(f); setSortDir("asc"); }
+  };
+
+  const duplicateJob = (job: JobRecord) => {
+    const base = job.jobNumber.replace(/-J\d+$/, "");
+    const suffixes = rows
+      .filter((r) => r.jobNumber.startsWith(`${base}-J`))
+      .map((r) => parseInt(r.jobNumber.split("-J")[1] || "0", 10))
+      .filter((n) => !isNaN(n));
+    const nextSuffix = (suffixes.length ? Math.max(...suffixes) : 0) + 1;
+    const newNumber = `${base}-J${String(nextSuffix).padStart(2, "0")}`;
+    jobsStore.add({
+      jobNumber: newNumber, title: job.title, client: job.client, clientId: job.clientId,
+      address: job.address, city: job.city, state: job.state, zip: job.zip,
+      gateCode: job.gateCode, assignedTo: job.assignedTo, jobType: job.jobType,
+      jobCategory: job.jobCategory, startDate: job.startDate, endDate: job.endDate,
+      startTime: job.startTime, endTime: job.endTime, status: "Scheduled",
+      totalPrice: job.totalPrice, notes: job.notes, fieldNotes: job.fieldNotes,
+      privateNotes: job.privateNotes, taxRate: job.taxRate,
+      estimateId: job.estimateId, estimateNumber: job.estimateNumber,
+    });
+    toast.success(`Duplicated as ${newNumber}`);
+  };
+  const inactivate = (ids: number[]) => {
+    ids.forEach((id) => jobsStore.update(id, { status: "Inactive" }));
+    setSelected(new Set());
+    toast.success(ids.length > 1 ? `${ids.length} jobs inactivated` : "Job inactivated");
+  };
+  const applyStatus = (status: string) => {
+    (statusTarget || []).forEach((id) => jobsStore.update(id, { status }));
+    setStatusTarget(null);
+    setSelected(new Set());
+    toast.success("Status updated");
+  };
+
+  const qfClass = (active: boolean) =>
+    `h-8 px-2.5 rounded-lg border text-[13px] focus:outline-none cursor-pointer transition-colors ${
+      active ? "border-[#4A6FA5] text-[#4A6FA5] bg-[#EEF3FA]" : "border-[#E5E7EB] text-[#546478] bg-white hover:border-[#C5CEDD]"
+    }`;
+
   return (
     <DndProvider backend={HTML5Backend}>
-      <table className="w-full">
-        <thead>
-          <tr className="border-b border-[#E5E7EB]">
-            {cols.map(col => (
-              <DraggableTh key={col.key} colKey={col.key} onMove={moveCols}
-                className={`pb-3 text-[12px] text-[#6B7280] whitespace-nowrap ${col.key === "total" ? "text-right" : "text-left"}`}
-                style={{ fontWeight: 500 }}>{col.label}</DraggableTh>
-            ))}
-            <th className="w-10" />
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map(row => {
-            const ss = JOB_STATUS_COLORS[row.status] ?? JOB_STATUS_COLORS["Scheduled"];
-            return (
-              <tr key={row.id} onClick={() => onNavigate(row.id)} className="border-b border-[#E5E7EB] last:border-0 hover:bg-[#F9FAFB] cursor-pointer">
-                {cols.map(col => {
-                  switch (col.key) {
-                    case "job":    return <td key="job"    className="py-3.5 pr-4"><span className="text-[13px] text-[#4A6FA5] font-medium">{row.jobNumber}</span></td>;
-                    case "title":  return <td key="title"  className="py-3.5 pr-4"><span className="text-[13px] text-[#1A2332]">{row.title || "—"}</span></td>;
-                    case "schedule":return <td key="schedule" className="py-3.5 pr-4"><span className="text-[13px] text-[#6B7280]">{row.startDate || "—"}</span></td>;
-                    case "status": return <td key="status" className="py-3.5 pr-4">
-                      <span className="px-2 py-0.5 rounded-md text-[12px]" style={{ fontWeight: 600, backgroundColor: ss.bg, color: ss.color }}>{row.status}</span>
-                    </td>;
-                    case "total":  return <td key="total"  className="py-3.5 text-right"><span className="text-[13px] text-[#1A2332] font-medium">${row.totalPrice.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></td>;
-                    default: return null;
-                  }
-                })}
-                <td className="py-3.5 pl-2 text-right" onClick={e => e.stopPropagation()}>
-                  {onDelete && (
+      <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
+        {/* Toolbar / selection bar (mutually exclusive) */}
+        {selected.size > 0 ? (
+          <div className="flex items-center gap-3 px-4 py-3 bg-[#EEF3FA] border-b border-[#E5E7EB]">
+            <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>{selected.size} selected</span>
+            <button onClick={() => setStatusTarget([...selected])} className="h-8 px-3 rounded-lg border border-[#E5E7EB] bg-white text-[13px] text-[#546478] hover:bg-[#F5F7FA] flex items-center gap-1.5">
+              <span className="material-icons" style={{ fontSize: "16px" }}>swap_horiz</span>Change status
+            </button>
+            <button onClick={() => inactivate([...selected])} className="h-8 px-3 rounded-lg border border-[#E5E7EB] bg-white text-[13px] text-[#DC2626] hover:bg-[#FEF2F2] flex items-center gap-1.5">
+              <span className="material-icons" style={{ fontSize: "16px" }}>block</span>Inactivate
+            </button>
+            <button onClick={() => setSelected(new Set())} className="ml-auto text-[13px] text-[#6B7280] hover:text-[#1A2332]">Deselect</button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 px-4 py-3 border-b border-[#E5E7EB] flex-wrap">
+            <div className="relative">
+              <span className="material-icons absolute left-2.5 top-1/2 -translate-y-1/2 text-[#9AA3AF]" style={{ fontSize: "16px" }}>search</span>
+              <input type="text" placeholder="Search jobs..." value={search}
+                onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+                className="h-8 pl-8 pr-3 w-[200px] border border-[#E5E7EB] rounded-lg text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5]" />
+            </div>
+            <div className="w-px h-5 bg-[#E5E7EB] mx-1" />
+            <select value={qfStatus} onChange={(e) => { setQfStatus(e.target.value); setPage(1); }} className={qfClass(qfStatus !== "All")}>
+              <option value="All">Status: All</option>
+              {JOB_STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
+            </select>
+            {typeOptions.length > 0 && (
+              <select value={qfType} onChange={(e) => { setQfType(e.target.value); setPage(1); }} className={qfClass(qfType !== "All")}>
+                <option value="All">Type: All</option>
+                {typeOptions.map((t) => <option key={t} value={t}>{t}</option>)}
+              </select>
+            )}
+            <select value={qfDate} onChange={(e) => { setQfDate(e.target.value); setPage(1); }} className={qfClass(qfDate !== "all_time")}>
+              <option value="all_time">Date: All time</option>
+              <option value="today">Today</option>
+              <option value="this_week">This week</option>
+              <option value="this_month">This month</option>
+            </select>
+            <button onClick={onCreate} className="ml-auto h-8 px-3 rounded-lg bg-[#4A6FA5] hover:bg-[#3d5a85] text-white text-[13px] flex items-center gap-1.5" style={{ fontWeight: 500 }}>
+              <span className="material-icons" style={{ fontSize: "16px" }}>add</span>Create job
+            </button>
+          </div>
+        )}
+
+        <table className="w-full">
+          <thead className="bg-[#F5F7FA]">
+            <tr className="border-b border-[#E5E7EB]">
+              <th className="px-4 py-3 w-10">
+                <input type="checkbox" checked={allSelected} onChange={(e) => toggleAll(e.target.checked)} className="w-4 h-4 rounded border-[#E5E7EB] cursor-pointer accent-[#4A6FA5]" />
+              </th>
+              {cols.map((col) => (
+                <DraggableTh key={col.key} colKey={col.key} onMove={moveCols}
+                  className={`px-4 py-3 ${col.key === "total" ? "text-right" : "text-left"} text-[13px] text-[#1A2332] select-none cursor-pointer`}
+                  style={{ fontWeight: 500 }}
+                  onClick={() => toggleSort(col.key as JobSortField)}>
+                  <div className={`flex items-center ${col.key === "total" ? "justify-end" : ""}`}>
+                    {col.label}
+                    <span className="material-icons ml-0.5" style={{ fontSize: "16px", color: sortField === col.key ? "#4A6FA5" : "#C5CEDD" }}>
+                      {sortField !== col.key ? "unfold_more" : sortDir === "asc" ? "arrow_upward" : "arrow_downward"}
+                    </span>
+                  </div>
+                </DraggableTh>
+              ))}
+              <th className="px-4 py-3 w-10" />
+            </tr>
+          </thead>
+          <tbody>
+            {paginated.length === 0 ? (
+              <tr><td colSpan={cols.length + 2} className="px-4 py-12 text-center text-[14px] text-[#8899AA]">No jobs found</td></tr>
+            ) : paginated.map((row) => {
+              const ss = JOB_STATUS_COLORS[row.status] ?? JOB_STATUS_COLORS["Scheduled"];
+              return (
+                <tr key={row.id} onClick={() => onOpen(row.id)}
+                  className={`border-b border-[#E5E7EB] last:border-0 hover:bg-[#F9FAFB] cursor-pointer ${selected.has(row.id) ? "bg-[#EDF5FF]" : ""}`}>
+                  <td className="px-4 py-4" onClick={(e) => e.stopPropagation()}>
+                    <input type="checkbox" checked={selected.has(row.id)} onChange={(e) => toggleOne(row.id, e.target.checked)} className="w-4 h-4 rounded border-[#E5E7EB] cursor-pointer accent-[#4A6FA5]" />
+                  </td>
+                  {cols.map((col) => {
+                    switch (col.key) {
+                      case "number": return (
+                        <td key="number" className="px-4 py-4">
+                          <div className="text-[12px] text-[#6B7280] leading-4">{row.jobNumber}</div>
+                          <div className="text-[14px] text-[#1A2332] leading-5">{row.title || "Service"}</div>
+                        </td>
+                      );
+                      case "schedule": return <td key="schedule" className="px-4 py-4 text-[14px] text-[#6B7280]">{row.startDate ? formatRegionalDate(row.startDate) : "—"}</td>;
+                      case "status": return (
+                        <td key="status" className="px-4 py-4">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-[12px]" style={{ fontWeight: 600, backgroundColor: ss.bg, color: ss.color }}>{row.status}</span>
+                        </td>
+                      );
+                      case "total": return <td key="total" className="px-4 py-4 text-right text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>${row.totalPrice.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>;
+                      default: return null;
+                    }
+                  })}
+                  <td className="px-4 py-4" onClick={(e) => e.stopPropagation()}>
                     <KebabMenuShared>
-                      <KebabItem icon="open_in_new" onSelect={() => onNavigate(row.id)}>Open job</KebabItem>
+                      <KebabItem icon="content_copy" onSelect={() => duplicateJob(row)}>Duplicate</KebabItem>
+                      <KebabItem icon="swap_horiz" onSelect={() => setStatusTarget([row.id])}>Change status</KebabItem>
+                      <KebabItem icon="block" onSelect={() => inactivate([row.id])}>Inactivate</KebabItem>
                       <KebabSeparator />
-                      <KebabItem icon="delete_outline" destructive onSelect={() => onDelete(row.id)}>Remove</KebabItem>
+                      <KebabItem icon="open_in_new" onSelect={() => window.open(`/jobs/${row.id}`, "_blank")}>Open in New Tab</KebabItem>
                     </KebabMenuShared>
-                  )}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+
+        {/* Pagination */}
+        <div className="flex items-center justify-between bg-white px-4 py-3 border-t border-[#E5E7EB]">
+          <div className="flex items-center gap-3">
+            <span className="text-[13px] text-[#6B7280]">Rows per page:</span>
+            <Select value={String(perPage)} onValueChange={(v) => { setPerPage(Number(v)); setPage(1); }}>
+              <SelectTrigger className="h-9 w-[72px] border-[#E5E7EB] text-[14px] text-[#1A2332]"><SelectValue /></SelectTrigger>
+              <SelectContent>{[5, 10, 25, 50].map((n) => <SelectItem key={n} value={String(n)}>{n}</SelectItem>)}</SelectContent>
+            </Select>
+            <span className="text-[13px] text-[#6B7280]">{total === 0 ? "0-0" : `${startIdx + 1}-${endIdx}`} of {total}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button className="w-9 h-9 flex items-center justify-center text-[#1A2332] hover:bg-[#F3F4F6] rounded-lg disabled:opacity-50" disabled={safePage === 1} onClick={() => setPage(safePage - 1)} aria-label="Previous page">
+              <span className="material-icons" style={{ fontSize: "16px" }}>chevron_left</span>
+            </button>
+            <button className="w-9 h-9 flex items-center justify-center text-[#1A2332] hover:bg-[#F3F4F6] rounded-lg disabled:opacity-50" disabled={safePage >= totalPages} onClick={() => setPage(safePage + 1)} aria-label="Next page">
+              <span className="material-icons" style={{ fontSize: "16px" }}>chevron_right</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Change-status modal */}
+      {statusTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={() => setStatusTarget(null)}>
+          <div className="bg-white rounded-xl shadow-xl w-[320px] p-5" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-[15px] text-[#1A2332] mb-1" style={{ fontWeight: 600 }}>Change status</h3>
+            <p className="text-[13px] text-[#6B7280] mb-4">{statusTarget.length > 1 ? `${statusTarget.length} jobs selected` : "Select a new status for this job."}</p>
+            <div className="flex flex-col gap-1.5">
+              {JOB_STATUS_OPTIONS.map((s) => {
+                const c = JOB_STATUS_COLORS[s] ?? JOB_STATUS_COLORS["Scheduled"];
+                return (
+                  <button key={s} onClick={() => applyStatus(s)} className="flex items-center gap-2 px-3 py-2 rounded-lg border border-[#E5E7EB] hover:bg-[#F5F7FA] text-left">
+                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: c.color }} />
+                    <span className="text-[13px] text-[#1A2332]">{s}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <button onClick={() => setStatusTarget(null)} className="mt-4 w-full h-9 rounded-lg border border-[#E5E7EB] text-[13px] text-[#546478] hover:bg-[#F5F7FA]">Cancel</button>
+          </div>
+        </div>
+      )}
     </DndProvider>
   );
 }
@@ -1460,20 +1700,17 @@ export function ClientDetail() {
         );
 
       case "jobs":
-        return (
+        return liveClientJobs.length === 0 ? (
           <>
-            <TabHeader title="Jobs" count={liveClientJobs.length} onAdd={() => navigate(createUrl("/jobs/new", "jobs"))} addLabel="Create job" />
-            {liveClientJobs.length === 0 ? (
-              <EmptyState icon="work" message="No jobs yet for this client." />
-            ) : (
-              <div className="overflow-x-auto">
-                <ClientJobsTable
-                  rows={liveClientJobs}
-                  onNavigate={(id) => navigate(`/jobs/${id}?returnTo=${encodeURIComponent(`/clients/${client.id}?tab=jobs`)}`)}
-                />
-              </div>
-            )}
+            <TabHeader title="Jobs" count={0} onAdd={() => navigate(createUrl("/jobs/new", "jobs"))} addLabel="Create job" />
+            <EmptyState icon="work" message="No jobs yet for this client." />
           </>
+        ) : (
+          <ClientJobsPanel
+            rows={liveClientJobs}
+            onOpen={(id) => navigate(`/jobs/${id}?returnTo=${encodeURIComponent(`/clients/${client.id}?tab=jobs`)}`)}
+            onCreate={() => navigate(createUrl("/jobs/new", "jobs"))}
+          />
         );
 
       case "estimates":

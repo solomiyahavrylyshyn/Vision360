@@ -34,11 +34,30 @@ export interface JobRecord {
 
 const LS_KEY = "vision360.jobs.v1";
 
-// A handful of seed records so the Jobs list isn't empty on first load.
-// These are intentionally minimal — the real demo data lives in the
-// Calendar mock arrays and JobDetail mock. This store is the persistence
-// layer for newly created jobs.
-const SEED: JobRecord[] = [];
+// Seed jobs so client Jobs tabs are populated out-of-the-box (and back the
+// job counts advertised on the client KPI strip). These belong to John Smith
+// (client 10245), who has no jobs in the Jobs-list mock array, so there are no
+// id / jobNumber collisions there. localStorage still overrides this seed for
+// anyone who has already created jobs, so it's non-destructive.
+const mkSeed = (
+  id: number, suffix: string, title: string, status: string,
+  startDate: string, total: number, jobType = "One-off",
+): JobRecord => ({
+  id, jobNumber: `10245-J${suffix}`, title,
+  client: "John Smith", clientId: "10245",
+  address: "123 Main St", city: "Austin", state: "TX", zip: "78701",
+  gateCode: "1145", assignedTo: "Emily Parker", jobType, jobCategory: "Service",
+  startDate, endDate: startDate, startTime: "09:00", endTime: "11:00",
+  status, totalPrice: total, notes: "", fieldNotes: "", privateNotes: "",
+  taxRate: 8.25, createdAt: `${startDate} 09:00`,
+});
+const SEED: JobRecord[] = [
+  mkSeed(105, "05", "AC System Tune-Up",       "Scheduled",   "2026-06-08", 189.00),
+  mkSeed(104, "04", "Thermostat Replacement",  "In Progress", "2026-06-03", 245.50),
+  mkSeed(103, "03", "Spring Maintenance Visit","Completed",   "2026-04-22", 320.00, "Recurring"),
+  mkSeed(102, "02", "Ductwork Inspection",     "Completed",   "2026-03-14", 175.00),
+  mkSeed(101, "01", "AC Compressor Repair",    "Completed",   "2026-02-28", 540.75),
+];
 
 let jobs: JobRecord[] = SEED;
 try {
