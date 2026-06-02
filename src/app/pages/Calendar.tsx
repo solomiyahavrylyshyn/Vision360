@@ -13,7 +13,7 @@ import {
 } from "date-fns";
 import routeMapImg from "../../assets/route-map.png";
 
-type JobStatus = "Scheduled" | "In Progress" | "Completed" | "Cancelled" | "Paused";
+type JobStatus = "Scheduled" | "Dispatched" | "In Progress" | "Completed" | "Cancelled" | "Paused";
 
 interface CalendarEvent {
   id: number;
@@ -57,6 +57,7 @@ const COLORS = {
 
 const STATUS_STYLES: Record<JobStatus, { bg: string; color: string }> = {
   Scheduled: { bg: "rgba(74,111,165,0.15)", color: "#4A6FA5" },
+  Dispatched: { bg: "rgba(8,145,178,0.15)", color: "#0891B2" },
   "In Progress": { bg: "rgba(245,158,11,0.15)", color: "#F59E0B" },
   Completed: { bg: "rgba(22,163,74,0.15)", color: "#16A34A" },
   Cancelled: { bg: "rgba(220,38,38,0.12)", color: "#DC2626" },
@@ -65,7 +66,7 @@ const STATUS_STYLES: Record<JobStatus, { bg: string; color: string }> = {
 
 // All statuses surfaced in the Scheduling status dropdown. Mirrors what's
 // configured in Settings → Jobs → Custom statuses (BUG-S05).
-const ALL_JOB_STATUSES: JobStatus[] = ["Scheduled", "In Progress", "Completed", "Cancelled", "Paused"];
+const ALL_JOB_STATUSES: JobStatus[] = ["Scheduled", "Dispatched", "In Progress", "Completed", "Cancelled", "Paused"];
 
 // Pill-styled <select> used in job-detail popovers so dispatchers can flip
 // status to Cancelled / Paused without leaving the schedule (BUG-S05).
@@ -94,7 +95,8 @@ function StatusPillSelect({ value, onChange }: { value: JobStatus; onChange: (ne
 }
 
 const nextStatus = (status: JobStatus): JobStatus => {
-  if (status === "Scheduled") return "In Progress";
+  if (status === "Scheduled") return "Dispatched";
+  if (status === "Dispatched") return "In Progress";
   if (status === "In Progress") return "Completed";
   if (status === "Completed") return "Scheduled";
   if (status === "Paused") return "In Progress";
@@ -155,6 +157,9 @@ interface DayJob {
   amount: number;
   bg: string;
   border: string;
+  // Unscheduled = no fixed date/time yet (may or may not have a technician).
+  // Such jobs live in the Pending column until a date is set.
+  unscheduled?: boolean;
 }
 
 interface QuickJobDraft {
@@ -204,6 +209,10 @@ const DAY_JOBS: DayJob[] = [
   { id: 12, technicianId: "",       start: 9,    end: 11,   client: "Garcia Residence",  service: "AC Repair",          address: "320 Birch Ln",         status: "Scheduled",   amount: 380,  bg: "#FEF3C7", border: "#F59E0B" },
   { id: 13, technicianId: "",       start: 13,   end: 14,   client: "Nguyen Home",       service: "Estimate",           address: "12 Sunset Ave",        status: "Scheduled",   amount: 0,    bg: "#F3F4F6", border: "#6B7280" },
   { id: 14, technicianId: "",       start: 15,   end: 17,   client: "Patel Office",      service: "Maintenance",        address: "880 Commerce Blvd",    status: "Scheduled",   amount: 220,  bg: "#D1FAE5", border: "#16A34A" },
+  // Unscheduled jobs — no fixed date/time yet (waiting on the customer). They
+  // sit in the Pending column and are revealed by the "Unscheduled" filter.
+  { id: 15, technicianId: "",       start: 9,    end: 10,   client: "Clark Residence",   service: "AC Install",         address: "951 Hillside Dr",      status: "Scheduled",   amount: 4200, bg: "#EDE9FE", border: "#7C3AED", unscheduled: true },
+  { id: 16, technicianId: "",       start: 9,    end: 10,   client: "Reyes Home",        service: "Furnace Tune-Up",    address: "44 Vista Way",         status: "Scheduled",   amount: 160,  bg: "#FEF3C7", border: "#F59E0B", unscheduled: true },
 ];
 
 // Day view constants
@@ -259,9 +268,13 @@ export function Calendar() {
   // Right-side "Unassigned" panel: open by default so dispatchers see what
   // still needs an owner. Toggle from the schedule header chip.
   const [unassignedPanelOpen, setUnassignedPanelOpen] = useState(true);
-  // Derive unassigned jobs once per render — used by the header chip badge
-  // AND the right-side panel content.
-  const unassignedDayJobs = dayJobs.filter(j => !j.technicianId);
+  // "Pending jobs" bucket = everything still in the right column: no technician
+  // (unassigned) and/or no fixed date/time (unscheduled). The filter narrows it.
+  const [pendingFilter, setPendingFilter] = useState<"all" | "unassigned" | "unscheduled">("all");
+  const pendingBucket = dayJobs.filter(j => !j.technicianId);
+  const pendingDayJobs = pendingBucket.filter(j =>
+    pendingFilter === "unassigned" ? !j.unscheduled :
+    pendingFilter === "unscheduled" ? !!j.unscheduled : true);
   const [monthEvents, setMonthEvents] = useState<CalendarEvent[]>(mockEvents);
   const [dropPreview, setDropPreview] = useState<DropPreview | null>(null);
   const [quickJobDraft, setQuickJobDraft] = useState<QuickJobDraft | null>(null);
@@ -893,11 +906,11 @@ export function Calendar() {
             <button onClick={goForward} aria-label="Next" className="w-9 h-9 rounded-lg hover:bg-[#F0F2F5] flex items-center justify-center">
               <span className="material-icons text-[#546478]" style={{ fontSize: "20px" }}>chevron_right</span>
             </button>
-            {/* Unassigned toggle chip — only relevant on Day view */}
+            {/* Pending-jobs toggle chip — only relevant on Day view */}
             {viewMode === "day" && (
               <button
                 onClick={() => setUnassignedPanelOpen(o => !o)}
-                title={unassignedPanelOpen ? "Hide unassigned panel" : "Show unassigned panel"}
+                title={unassignedPanelOpen ? "Hide pending jobs panel" : "Show pending jobs panel"}
                 className={`ml-2 inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-[13px] transition-colors ${
                   unassignedPanelOpen
                     ? "bg-[#EEF3FA] border border-[#C5D5EC] text-[#4A6FA5]"
@@ -906,13 +919,13 @@ export function Calendar() {
                 style={{ fontWeight: 500 }}
               >
                 <span className="material-icons" style={{ fontSize: "16px" }}>inbox</span>
-                Unassigned
-                {unassignedDayJobs.length > 0 && (
+                Pending jobs
+                {pendingBucket.length > 0 && (
                   <span
                     className="ml-0.5 px-1.5 rounded-full text-[11px] text-white"
                     style={{ background: "#DC2626", fontWeight: 700, minWidth: 18, textAlign: "center" }}
                   >
-                    {unassignedDayJobs.length}
+                    {pendingBucket.length}
                   </span>
                 )}
               </button>
@@ -1580,25 +1593,37 @@ export function Calendar() {
                 <div className="flex items-center gap-2 px-4 border-b border-[#E5E7EB] bg-white" style={{ height: 40 }}>
                   <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "18px" }}>inbox</span>
                   <span className="flex-1 text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>
-                    Unassigned{unassignedDayJobs.length > 0 ? ` (${unassignedDayJobs.length})` : ""}
+                    Pending jobs{pendingDayJobs.length > 0 ? ` (${pendingDayJobs.length})` : ""}
                   </span>
                   <button
                     onClick={() => setUnassignedPanelOpen(false)}
                     className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-[#F0F2F5] text-[#6B7280]"
                     title="Hide panel"
-                    aria-label="Hide unassigned panel"
+                    aria-label="Hide pending jobs panel"
                   >
                     <span className="material-icons" style={{ fontSize: "18px" }}>close</span>
                   </button>
                 </div>
+                {/* Filter — unassigned = no technician; unscheduled = no fixed date */}
+                <div className="px-3 py-2 border-b border-[#E5E7EB] bg-white">
+                  <select
+                    value={pendingFilter}
+                    onChange={(e) => setPendingFilter(e.target.value as "all" | "unassigned" | "unscheduled")}
+                    className="w-full h-8 px-2 rounded-md border border-[#E5E7EB] text-[12px] text-[#374151] bg-white focus:outline-none focus:border-[#4A6FA5] cursor-pointer"
+                  >
+                    <option value="all">Show all</option>
+                    <option value="unassigned">Show unassigned</option>
+                    <option value="unscheduled">Show unscheduled</option>
+                  </select>
+                </div>
                 <div className="flex-1 overflow-y-auto p-3 space-y-2">
-                  {unassignedDayJobs.length === 0 ? (
+                  {pendingDayJobs.length === 0 ? (
                     <div className="py-10 text-center">
                       <span className="material-icons text-[#D1D5DB] mb-1 block" style={{ fontSize: "32px" }}>check_circle</span>
-                      <div className="text-[12px] text-[#9CA3AF]">All jobs assigned</div>
+                      <div className="text-[12px] text-[#9CA3AF]">{pendingFilter === "all" ? "Nothing pending" : `No ${pendingFilter} jobs`}</div>
                     </div>
                   ) : (
-                    unassignedDayJobs.map((job) => (
+                    pendingDayJobs.map((job) => (
                       <div
                         key={job.id}
                         data-job-card="true"
@@ -1610,7 +1635,7 @@ export function Calendar() {
                         title="Drag onto a technician's lane to assign"
                       >
                         <div className="flex items-center justify-between gap-2 text-[10px] text-[#9CA3AF] tabular-nums">
-                          <span>{formatRegionalTime(job.start, regionalSettings)} – {formatRegionalTime(job.end, regionalSettings)}</span>
+                          <span>{job.unscheduled ? "Unscheduled" : `${formatRegionalTime(job.start, regionalSettings)} – ${formatRegionalTime(job.end, regionalSettings)}`}</span>
                           <span
                             className="px-1.5 py-0.5 rounded-full text-[9px] max-w-[88px] truncate"
                             style={{ backgroundColor: STATUS_STYLES[job.status].bg, color: STATUS_STYLES[job.status].color, fontWeight: 700 }}
