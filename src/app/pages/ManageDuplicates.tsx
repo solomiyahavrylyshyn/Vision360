@@ -2,8 +2,7 @@ import { useState, useSyncExternalStore } from "react";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import { clientsStore, type ClientRecord } from "../stores/clientsStore";
-import { dismissalsStore, type DismissalReason } from "../stores/dismissalsStore";
-import { formatRegionalDate } from "../stores/regionalSettingsStore";
+import { dismissalsStore } from "../stores/dismissalsStore";
 
 // ─── Grouping helpers ────────────────────────────────────────────────────────
 type MatchField =
@@ -97,10 +96,12 @@ function MergeModal({
   onConfirm: (primaryId: string, choices: MergeChoices) => void;
   onCancel: () => void;
 }) {
-  const [primaryId, setPrimaryId] = useState(candidates[0]?.id ?? "");
+  // The surviving record is always the oldest (lowest customer ID) — its ID is
+  // retained per the walkthrough decision. The user still resolves field values.
+  const primary = candidates.reduce((oldest, c) =>
+    (Number(c.id) || Infinity) < (Number(oldest.id) || Infinity) ? c : oldest, candidates[0]);
+  const primaryId = primary.id;
   const [choices, setChoices] = useState<MergeChoices>({});
-
-  const primary = candidates.find(c => c.id === primaryId) ?? candidates[0];
   const others = candidates.filter(c => c.id !== primaryId);
 
   const getChoice = (field: keyof ClientRecord) => {
@@ -115,26 +116,22 @@ function MergeModal({
         <div className="px-6 py-5 border-b border-[#E5E7EB] flex items-center justify-between shrink-0">
           <div>
             <h2 className="text-[18px] text-[#1A2332]" style={{ fontWeight: 700 }}>Review &amp; Merge</h2>
-            <p className="text-[13px] text-[#6B7280] mt-0.5">Choose the primary record and resolve any conflicting fields.</p>
+            <p className="text-[13px] text-[#6B7280] mt-0.5">The oldest record is kept; resolve any conflicting field values below.</p>
           </div>
           <button onClick={onCancel} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#F5F7FA] text-[#9CA3AF]">
             <span className="material-icons" style={{ fontSize: "20px" }}>close</span>
           </button>
         </div>
 
-        {/* Primary selector */}
+        {/* Surviving record (oldest ID is retained — not user-selectable) */}
         <div className="px-6 py-4 bg-[#F8FAFC] border-b border-[#E5E7EB] shrink-0">
-          <p className="text-[12px] text-[#6B7280] uppercase tracking-wider mb-2" style={{ fontWeight: 600 }}>Surviving (primary) record</p>
-          <div className="flex gap-3 flex-wrap">
-            {candidates.map(c => (
-              <label key={c.id} className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl border cursor-pointer transition-colors ${c.id === primaryId ? "border-[#4A6FA5] bg-[#EBF0F8]" : "border-[#E5E7EB] bg-white hover:border-[#C5D5EC]"}`}>
-                <input type="radio" name="primary" value={c.id} checked={c.id === primaryId} onChange={() => { setPrimaryId(c.id); setChoices({}); }} className="accent-[#4A6FA5]" />
-                <div>
-                  <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>{c.name}</div>
-                  <div className="text-[11px] text-[#6B7280]">{c.email || c.mobilePhone || c.id}</div>
-                </div>
-              </label>
-            ))}
+          <p className="text-[12px] text-[#6B7280] uppercase tracking-wider mb-2" style={{ fontWeight: 600 }}>Surviving record (oldest customer ID kept)</p>
+          <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl border border-[#4A6FA5] bg-[#EBF0F8] w-fit">
+            <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "18px" }}>verified</span>
+            <div>
+              <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>{primary.name} <span className="text-[#6B7280]" style={{ fontWeight: 400 }}>· ID {primary.id}</span></div>
+              <div className="text-[11px] text-[#6B7280]">{primary.email || primary.mobilePhone || "—"}</div>
+            </div>
           </div>
         </div>
 
@@ -227,6 +224,7 @@ export function ManageDuplicates() {
   const [rowsPerPage, setRowsPerPage] = useState(25);
   const [mergeModalCandidates, setMergeModalCandidates] = useState<ClientRecord[] | null>(null);
   const [archiveConfirmId, setArchiveConfirmId] = useState<string | null>(null);
+  const [bulkConfirmOpen, setBulkConfirmOpen] = useState(false);
 
   const clients = useSyncExternalStore(clientsStore.subscribe, clientsStore.getSnapshot);
   const dismissed = useSyncExternalStore(dismissalsStore.subscribe, dismissalsStore.getSnapshot);
@@ -249,38 +247,72 @@ export function ManageDuplicates() {
     setSelectedClients(next);
   };
 
+  // Older customer ID survives a merge (lower numeric id = created earlier).
+  const oldestOf = (records: ClientRecord[]): ClientRecord =>
+    records.reduce((oldest, c) =>
+      (Number(c.id) || Infinity) < (Number(oldest.id) || Infinity) ? c : oldest, records[0]);
+
+  // How many distinct groups the current selection spans.
+  const selectedGroups = groups.filter(g => g.clients.some(c => selectedClients.has(c.id)) &&
+    g.clients.filter(c => selectedClients.has(c.id)).length >= 2);
+
   // ── Merge ────────────────────────────────────────────────────────────────
   const openMergeModal = () => {
     const selected = clients.filter(c => selectedClients.has(c.id));
     if (selected.length < 2) return;
+    // Spanning multiple groups → bulk auto-merge with a confirmation.
+    if (selectedGroups.length > 1) { setBulkConfirmOpen(true); return; }
     setMergeModalCandidates(selected);
   };
 
-  const confirmMerge = (primaryId: string, choices: MergeChoices) => {
-    const primary = clients.find(c => c.id === primaryId);
-    if (!primary) return;
-    const patch: Partial<ClientRecord> = { ...choices };
-    clientsStore.updateClient(primaryId, patch);
-    const now = formatRegionalDate(new Date());
-    clients
-      .filter(c => selectedClients.has(c.id) && c.id !== primaryId)
-      .forEach(loser => {
-        clientsStore.updateClient(loser.id, {
-          mergedIntoId: primaryId,
-          status: "Inactive" as any,
-        });
-      });
-    toast.success(`Merged into ${primary.name}. Losing records are now hidden.`);
+  // Merge a set of records into the oldest, filling the oldest's blank fields
+  // from the newer records (no data loss). Returns the surviving record's id.
+  const mergeIntoOldest = (records: ClientRecord[], overrides: MergeChoices = {}): string => {
+    const primary = oldestOf(records);
+    const fillable: (keyof ClientRecord)[] = ["company", "email", "mobilePhone", "workPhone", "website", "address", "city", "state", "zip", "county", "notes"];
+    const patch: Partial<ClientRecord> = { ...overrides };
+    fillable.forEach(f => {
+      if (!String(primary[f] ?? "").trim()) {
+        const donor = records.find(r => r.id !== primary.id && String(r[f] ?? "").trim());
+        if (donor) (patch as any)[f] = donor[f];
+      }
+    });
+    // Roll up financial totals onto the survivor.
+    patch.totalRevenue = records.reduce((s, r) => s + (r.totalRevenue || 0), 0);
+    patch.totalBilled = records.reduce((s, r) => s + (r.totalBilled || 0), 0);
+    patch.openBalance = records.reduce((s, r) => s + (r.openBalance || 0), 0);
+    patch.totalJobs = records.reduce((s, r) => s + (r.totalJobs || 0), 0);
+    clientsStore.updateClient(primary.id, patch);
+    records.filter(r => r.id !== primary.id).forEach(loser =>
+      clientsStore.updateClient(loser.id, { mergedIntoId: primary.id, status: "Inactive" as any }));
+    return primary.id;
+  };
+
+  const confirmMerge = (_primaryId: string, choices: MergeChoices) => {
+    const selected = clients.filter(c => selectedClients.has(c.id));
+    const survivor = clients.find(c => c.id === mergeIntoOldest(selected, choices));
+    toast.success(`Merged into ${survivor?.name ?? "record"} (kept ID ${survivor?.id}).`);
     setMergeModalCandidates(null);
     setSelectedClients(new Set());
   };
 
-  // ── Keep Both / Not Duplicate ────────────────────────────────────────────
-  const dismissPair = (reason: DismissalReason) => {
+  const confirmBulkMerge = () => {
+    let groupsMerged = 0;
+    selectedGroups.forEach(g => {
+      const sel = g.clients.filter(c => selectedClients.has(c.id));
+      if (sel.length >= 2) { mergeIntoOldest(sel); groupsMerged++; }
+    });
+    toast.success(`Merged ${groupsMerged} group${groupsMerged !== 1 ? "s" : ""} — oldest record kept in each.`);
+    setBulkConfirmOpen(false);
+    setSelectedClients(new Set());
+  };
+
+  // ── Not a Duplicate (Keep Both removed per walkthrough) ───────────────────
+  const dismissPair = () => {
     const ids = [...selectedClients];
     if (ids.length !== 2) return;
-    dismissalsStore.add(ids[0], ids[1], reason);
-    toast.success(reason === "keep_both" ? "Pair marked as intentionally separate." : "Pair marked as not a duplicate — won't resurface.");
+    dismissalsStore.add(ids[0], ids[1], "not_duplicate");
+    toast.success("Pair marked as not a duplicate — won't resurface.");
     setSelectedClients(new Set());
   };
 
@@ -300,8 +332,6 @@ export function ManageDuplicates() {
   // ── Selection state ──────────────────────────────────────────────────────
   const exactly2 = selectedClients.size === 2;
   const twoOrMore = selectedClients.size >= 2;
-  const selectedRecords = clients.filter(c => selectedClients.has(c.id));
-  const allSameGroup = twoOrMore && groups.some(g => selectedRecords.every(c => g.clients.some(gc => gc.id === c.id)));
 
   return (
     <div className="p-8">
@@ -336,21 +366,13 @@ export function ManageDuplicates() {
         {/* Action buttons — shown when rows are selected */}
         {twoOrMore && (
           <div className="flex items-center gap-2 flex-wrap">
-            {exactly2 && (
-              <>
-                <button onClick={() => dismissPair("keep_both")}
-                  className="h-9 px-4 border border-[#E5E7EB] rounded-lg text-[13px] text-[#546478] bg-white hover:bg-[#F5F7FA] transition-colors inline-flex items-center gap-1.5"
-                  style={{ fontWeight: 500 }}>
-                  <span className="material-icons" style={{ fontSize: "15px" }}>call_split</span>
-                  Keep both
-                </button>
-                <button onClick={() => dismissPair("not_duplicate")}
-                  className="h-9 px-4 border border-[#E5E7EB] rounded-lg text-[13px] text-[#546478] bg-white hover:bg-[#F5F7FA] transition-colors inline-flex items-center gap-1.5"
-                  style={{ fontWeight: 500 }}>
-                  <span className="material-icons" style={{ fontSize: "15px" }}>do_not_disturb</span>
-                  Not a duplicate
-                </button>
-              </>
+            {exactly2 && selectedGroups.length <= 1 && (
+              <button onClick={dismissPair}
+                className="h-9 px-4 border border-[#E5E7EB] rounded-lg text-[13px] text-[#546478] bg-white hover:bg-[#F5F7FA] transition-colors inline-flex items-center gap-1.5"
+                style={{ fontWeight: 500 }}>
+                <span className="material-icons" style={{ fontSize: "15px" }}>do_not_disturb</span>
+                Not a duplicate
+              </button>
             )}
             <button onClick={() => setSelectedClients(new Set())}
               className="h-9 px-4 border border-[#E5E7EB] rounded-lg text-[13px] text-[#546478] bg-white hover:bg-[#F5F7FA] transition-colors"
@@ -361,7 +383,9 @@ export function ManageDuplicates() {
               className="h-9 px-5 rounded-lg text-[13px] text-white bg-[#1A2332] hover:bg-[#0f1620] transition-colors inline-flex items-center gap-1.5"
               style={{ fontWeight: 500 }}>
               <span className="material-icons" style={{ fontSize: "15px" }}>merge</span>
-              Merge ({selectedClients.size})
+              {selectedGroups.length > 1
+                ? `Merge ${selectedGroups.length} groups`
+                : `Merge (${selectedClients.size})`}
             </button>
           </div>
         )}
@@ -388,15 +412,31 @@ export function ManageDuplicates() {
           </div>
         ) : groups.map(group => (
           <div key={group.key} className="border-b border-[#E5E7EB] last:border-0">
-            {/* Group header */}
-            <div className="grid grid-cols-[40px_1fr_1fr_1fr_1fr_1fr_120px] items-center hover:bg-[#F9FAFB] cursor-pointer"
-              onClick={() => toggleGroup(group.key)}>
-              <div className="px-4 py-3.5 flex items-center justify-center">
-                <span className={`material-icons text-[#546478] transition-transform ${expandedGroups.has(group.key) ? "rotate-180" : ""}`} style={{ fontSize: "18px" }}>expand_more</span>
-              </div>
-              <div className="px-4 py-3.5 text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>{group.clients[0].name}</div>
-              <div className="px-4 py-3.5 col-span-5 text-[12px] text-[#9AA3AF]">{group.clients.length} possible duplicate{group.clients.length !== 1 ? "s" : ""}</div>
-            </div>
+            {/* Group header — checkbox selects all rows in the group (bulk) */}
+            {(() => {
+              const allSelected = group.clients.every(c => selectedClients.has(c.id));
+              const toggleAll = () => setSelectedClients(prev => {
+                const n = new Set(prev);
+                if (allSelected) group.clients.forEach(c => n.delete(c.id));
+                else group.clients.forEach(c => n.add(c.id));
+                return n;
+              });
+              return (
+                <div className="grid grid-cols-[40px_1fr_1fr_1fr_1fr_1fr_120px] items-center hover:bg-[#F9FAFB] cursor-pointer"
+                  onClick={() => toggleGroup(group.key)}>
+                  <div className="px-4 py-3.5 flex items-center justify-center" onClick={e => e.stopPropagation()}>
+                    <input type="checkbox" checked={allSelected} onChange={toggleAll}
+                      title="Select all in this group"
+                      className="w-4 h-4 rounded border-[#E5E7EB] accent-[#4A6FA5] cursor-pointer" />
+                  </div>
+                  <div className="px-4 py-3.5 text-[14px] text-[#1A2332] flex items-center gap-2" style={{ fontWeight: 600 }}>
+                    {group.clients[0].name}
+                    <span className={`material-icons text-[#9AA3AF] transition-transform ${expandedGroups.has(group.key) ? "rotate-180" : ""}`} style={{ fontSize: "16px" }}>expand_more</span>
+                  </div>
+                  <div className="px-4 py-3.5 col-span-5 text-[12px] text-[#9AA3AF]">{group.clients.length} possible duplicate{group.clients.length !== 1 ? "s" : ""}</div>
+                </div>
+              );
+            })()}
 
             {/* Client rows */}
             {expandedGroups.has(group.key) && group.clients.map(client => (
@@ -532,6 +572,34 @@ export function ManageDuplicates() {
           onConfirm={confirmMerge}
           onCancel={() => setMergeModalCandidates(null)}
         />
+      )}
+
+      {/* Bulk merge confirmation */}
+      {bulkConfirmOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm" onClick={() => setBulkConfirmOpen(false)}>
+          <div className="bg-white rounded-xl shadow-2xl p-6 w-[460px]" onClick={e => e.stopPropagation()}>
+            <h2 className="text-[17px] text-[#1A2332] mb-2" style={{ fontWeight: 700 }}>Merge {selectedGroups.length} groups?</h2>
+            <p className="text-[13px] text-[#6B7280] mb-4">
+              In each group the <strong>oldest record</strong> (lowest customer ID) is kept and the others are merged into it. Empty fields on the surviving record are filled from the newer ones — no data is lost.
+            </p>
+            <div className="max-h-[180px] overflow-y-auto mb-5 border border-[#E5E7EB] rounded-lg divide-y divide-[#F3F4F6]">
+              {selectedGroups.map(g => {
+                const sel = g.clients.filter(c => selectedClients.has(c.id));
+                const keep = oldestOf(sel);
+                return (
+                  <div key={g.key} className="px-3 py-2 text-[12px] text-[#1A2332]">
+                    <span style={{ fontWeight: 600 }}>{keep.name}</span> <span className="text-[#9CA3AF]">(keeps ID {keep.id})</span>
+                    <span className="text-[#6B7280]"> ← merges {sel.length - 1} record{sel.length - 1 !== 1 ? "s" : ""}</span>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => setBulkConfirmOpen(false)} className="h-9 px-4 border border-[#E5E7EB] rounded-lg text-[13px] text-[#546478] hover:bg-[#F5F7FA]" style={{ fontWeight: 500 }}>Cancel</button>
+              <button onClick={confirmBulkMerge} className="h-9 px-5 rounded-lg text-[13px] text-white bg-[#1A2332] hover:bg-[#0f1620]" style={{ fontWeight: 500 }}>Merge groups</button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Archive confirmation */}

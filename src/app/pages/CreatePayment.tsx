@@ -40,6 +40,7 @@ export function CreatePayment() {
       invoiceId: Number(searchParams.get("invoiceId")) || 0,
       invoiceNumber: searchParams.get("invoice") || "—",
       jobId: searchParams.get("job") || "",
+      reference: reference.trim(),
       note: note.trim(),
       createdBy: "You",
     });

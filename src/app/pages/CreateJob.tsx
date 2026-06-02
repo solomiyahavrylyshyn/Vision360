@@ -7,6 +7,7 @@ import { jobsStore } from "../stores/jobsStore";
 import { estimatesStore } from "../stores/estimatesStore";
 import { toast } from "sonner";
 import { formatRegionalDate } from "../stores/regionalSettingsStore";
+import { scheduleSettingsStore } from "../stores/scheduleSettingsStore";
 import { PageHeader } from "../components/ui/page-header";
 import { PlusIcon } from "../components/ui/plus-icon";
 import { itemsStore } from "../stores/itemsStore";
@@ -145,11 +146,24 @@ export function CreateJob() {
 
   const handleSave = () => {
     if (!client.trim()) { toast.error("Select a client before saving the job."); return; }
+    // Start date is required; start/end time are optional (per walkthrough).
+    if (!startDate) { toast.error("Select a start date for the job."); return; }
 
     const computedSubtotal = lineItems.reduce((s, li) => s + li.total, 0);
     const computedTaxable = lineItems.filter((li) => li.taxable).reduce((s, li) => s + li.total, 0);
     const computedTotal = computedSubtotal + computedTaxable * (taxRate / 100);
     const today = formatRegionalDate(new Date());
+
+    // If a start time is given but no end time, default end = start + the
+    // configured default job length (Settings → Scheduling).
+    let resolvedEndTime = endTime;
+    if (startTime && !endTime) {
+      const [h, m] = startTime.split(":").map(Number);
+      const total = h * 60 + m + scheduleSettingsStore.getSnapshot().defaultJobMinutes;
+      const eh = Math.floor((total % (24 * 60)) / 60);
+      const em = total % 60;
+      resolvedEndTime = `${String(eh).padStart(2, "0")}:${String(em).padStart(2, "0")}`;
+    }
 
     const record = jobsStore.add({
       jobNumber,
@@ -167,7 +181,7 @@ export function CreateJob() {
       startDate,
       endDate,
       startTime,
-      endTime,
+      endTime: resolvedEndTime,
       status: "Scheduled",
       totalPrice: Math.round(computedTotal * 100) / 100,
       notes,

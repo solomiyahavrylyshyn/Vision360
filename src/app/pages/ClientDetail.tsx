@@ -2792,20 +2792,24 @@ export function ClientDetail() {
 
       {/* ── Statement activity slide-over ─────────────────────────────────────── */}
       {statementOpen && (() => {
-        // Build a unified ledger: invoices (debits) + payments (credits) sorted by date desc.
-        const fmt = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        const ledger: Array<{ date: string; desc: string; debit: number; credit: number; balance: number }> = [];
-        // Open invoices as charges
+        // Whole-dollar amounts (no decimals) per the walkthrough decision.
+        const fmt = (n: number) => Math.round(n).toLocaleString("en-US");
+        const ledger: Array<{ date: string; desc: string; debit: number; credit: number; balance: number; kind: "job" | "invoice" | "payment" }> = [];
+        // Jobs — included in the statement for a complete activity history (no $ effect on balance).
+        liveClientJobs.forEach(j => {
+          ledger.push({ date: j.startDate || "", desc: `Job ${j.jobNumber} — ${j.title || "Service"}`, debit: 0, credit: 0, balance: 0, kind: "job" });
+        });
+        // Invoices as charges
         clientInvoiceRows.forEach(inv => {
           const amt = Number(inv.total.replace(/[^0-9.-]/g, "")) || 0;
-          ledger.push({ date: inv.date, desc: `Invoice ${inv.invoiceNo} — ${inv.type}`, debit: amt, credit: 0, balance: 0 });
+          ledger.push({ date: inv.date, desc: `Invoice ${inv.invoiceNo} — ${inv.type}`, debit: amt, credit: 0, balance: 0, kind: "invoice" });
         });
         // Payments as credits
         clientPaymentRows.forEach(pay => {
           const amt = Number(pay.amount.replace(/[^0-9.-]/g, "")) || 0;
-          ledger.push({ date: pay.date, desc: `Payment — ${pay.method}${pay.note ? ` (${pay.note})` : ""}`, debit: 0, credit: amt, balance: 0 });
+          ledger.push({ date: pay.date, desc: `Payment — ${pay.method}${pay.note ? ` (${pay.note})` : ""}`, debit: 0, credit: amt, balance: 0, kind: "payment" });
         });
-        // Sort by date asc and compute running balance
+        // Sort by date asc; jobs carry the running balance forward unchanged.
         ledger.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
         let running = 0;
         ledger.forEach(row => { running += row.debit - row.credit; row.balance = running; });

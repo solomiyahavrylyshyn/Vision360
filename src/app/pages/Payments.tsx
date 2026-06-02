@@ -31,6 +31,9 @@ export interface Payment {
   invoiceId: number;
   invoiceNumber: string;
   jobId?: string;
+  // Reference number for external/non-integrated methods (check #, transfer ID,
+  // Venmo/Zelle/Cash App confirmation, financing reference).
+  reference?: string;
   note: string;
   createdBy: string;
   createdAt: string;

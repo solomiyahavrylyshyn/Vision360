@@ -3749,6 +3749,23 @@ export function Settings() {
                             <option value="60">1 hour</option>
                           </select>
                         </div>
+                        <div>
+                          <label className="block text-[13px] text-[#1A2332] mb-1.5" style={{ fontWeight: 600 }}>Default job length</label>
+                          <select
+                            value={String(scheduleSettings.defaultJobMinutes)}
+                            onChange={e => scheduleSettingsStore.setDefaultJobMinutes(Number(e.target.value))}
+                            className="h-9 w-full rounded-lg border border-[#D8DEE8] bg-white px-3 text-[14px] text-[#1A2332]"
+                          >
+                            <option value="30">30 minutes</option>
+                            <option value="60">1 hour</option>
+                            <option value="90">1.5 hours</option>
+                            <option value="120">2 hours</option>
+                            <option value="180">3 hours</option>
+                            <option value="240">4 hours</option>
+                            <option value="480">Full day (8 h)</option>
+                          </select>
+                          <p className="mt-1 text-[12px] text-[#6B7280]">Used to auto-set a job's end time when only a start time is entered.</p>
+                        </div>
                       </div>
                       <p className="mt-3 text-[12px] text-[#6B7280]">
                         Time zone follows Company Profile → Regional settings. Advanced scheduling (route optimization, dispatch board) ships with Pro.

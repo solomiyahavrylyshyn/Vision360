@@ -167,6 +167,11 @@ export function PaymentDetail() {
 
         {/* Row 2 */}
         <Field label="Created By" value={payment.createdBy} />
+        {/* Reference number — primary identifier for external/non-integrated methods. */}
+        <Field
+          label="Reference #"
+          value={payment.reference ? payment.reference : <span className="text-[#9CA3AF]">—</span>}
+        />
         <Field
           label="Credit Card"
           value={
