@@ -145,7 +145,7 @@ export function CreateInvoice() {
     <div className="min-h-full bg-white">
       <div className="h-1 bg-[#4A6FA5]" />
 
-      <div className="max-w-[800px] mx-auto py-8 px-6">
+      <div className="max-w-[800px] mx-auto py-6 px-4 sm:px-6">
         <button
           onClick={() => navigate(returnTo || "/invoices")}
           className="inline-flex items-center gap-1.5 text-[13px] text-[#4A6FA5] hover:text-[#3d5a85] transition-colors mb-6"
@@ -177,7 +177,7 @@ export function CreateInvoice() {
           </div>
 
           {/* Dates */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-[12px] uppercase tracking-wider text-[#546478] mb-1.5" style={{ fontWeight: 600 }}>Invoice Date</label>
               <input type="date" value={invoiceDate} onChange={(e) => setInvoiceDate(e.target.value)}
@@ -191,7 +191,7 @@ export function CreateInvoice() {
           </div>
 
           {/* Linked Job / Estimate */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-[12px] uppercase tracking-wider text-[#546478] mb-1.5" style={{ fontWeight: 600 }}>Linked Job</label>
               <select value={linkedJob} onChange={(e) => setLinkedJob(e.target.value)}
@@ -317,7 +317,7 @@ export function CreateInvoice() {
         {/* Notes & Terms */}
         <div className="mb-8">
           <h3 className="text-[16px] text-[#1A2332] mb-3" style={{ fontWeight: 700 }}>Notes & Terms</h3>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-[12px] uppercase tracking-wider text-[#546478] mb-1.5" style={{ fontWeight: 600 }}>Internal Notes</label>
               <textarea value={notes} onChange={(e) => setNotes(e.target.value)}

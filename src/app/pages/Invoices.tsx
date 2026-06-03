@@ -252,7 +252,7 @@ const INVOICES_COLS = [
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function qfClass(active: boolean) {
-  return `h-8 pl-3 pr-6 border rounded-lg text-[13px] bg-white cursor-pointer focus:outline-none transition-colors ${
+  return `h-7 pl-2.5 pr-6 border rounded-md text-[12px] bg-white cursor-pointer focus:outline-none transition-colors ${
     active ? "border-[#4A6FA5] text-[#4A6FA5] bg-[#EEF3FA]" : "border-[#E5E7EB] text-[#546478] hover:border-[#C5CEDD]"
   }`;
 }
@@ -449,7 +449,7 @@ export function Invoices() {
             <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: "18px" }}>search</span>
             <input type="text" placeholder="Search invoices..." value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-              className="w-full sm:w-[220px] h-9 pl-10 pr-3 border border-[#E5E7EB] rounded-lg text-[13px] focus:outline-none focus:border-[#4A6FA5] bg-white" />
+              className="w-full sm:w-[220px] h-8 pl-9 pr-3 border border-[#E5E7EB] rounded-md text-[12px] focus:outline-none focus:border-[#4A6FA5] bg-white" />
           </div>
           <div className="w-px h-5 bg-[#E5E7EB] mx-1" />
           <select value={qfStatus} onChange={e => { setQfStatus(e.target.value); setPage(1); }} className={qfClass(qfStatus !== "All")}>
@@ -468,7 +468,7 @@ export function Invoices() {
           <div className="w-px h-5 bg-[#E5E7EB] mx-1" />
           <button
             onClick={() => setFilterOpen(true)}
-            className={`h-8 px-3 border rounded-lg text-[13px] flex items-center gap-1.5 transition-colors ${
+            className={`h-7 px-2.5 border rounded-md text-[12px] flex items-center gap-1.5 transition-colors ${
               filterOpen || advancedActive ? "border-[#4A6FA5] text-[#4A6FA5] bg-[#EEF3FA]" : "border-[#E5E7EB] text-[#546478] hover:bg-[#F5F7FA] bg-white"
             }`}
             style={{ fontWeight: 500 }}
