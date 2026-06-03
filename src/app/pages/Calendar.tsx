@@ -13,7 +13,7 @@ import {
 } from "date-fns";
 import routeMapImg from "../../assets/route-map.png";
 
-type JobStatus = "Scheduled" | "Dispatched" | "In Progress" | "Completed" | "Cancelled" | "Paused";
+type JobStatus = "Unscheduled" | "Scheduled" | "Dispatched" | "In Progress" | "Completed" | "Cancelled" | "Paused";
 
 interface CalendarEvent {
   id: number;
@@ -56,6 +56,7 @@ const COLORS = {
 };
 
 const STATUS_STYLES: Record<JobStatus, { bg: string; color: string }> = {
+  Unscheduled: { bg: "rgba(100,116,139,0.15)", color: "#64748B" },
   Scheduled: { bg: "rgba(74,111,165,0.15)", color: "#4A6FA5" },
   Dispatched: { bg: "rgba(8,145,178,0.15)", color: "#0891B2" },
   "In Progress": { bg: "rgba(245,158,11,0.15)", color: "#F59E0B" },
@@ -66,7 +67,7 @@ const STATUS_STYLES: Record<JobStatus, { bg: string; color: string }> = {
 
 // All statuses surfaced in the Scheduling status dropdown. Mirrors what's
 // configured in Settings → Jobs → Custom statuses (BUG-S05).
-const ALL_JOB_STATUSES: JobStatus[] = ["Scheduled", "Dispatched", "In Progress", "Completed", "Cancelled", "Paused"];
+const ALL_JOB_STATUSES: JobStatus[] = ["Unscheduled", "Scheduled", "Dispatched", "In Progress", "Completed", "Cancelled", "Paused"];
 
 // Pill-styled <select> used in job-detail popovers so dispatchers can flip
 // status to Cancelled / Paused without leaving the schedule (BUG-S05).
@@ -95,6 +96,7 @@ function StatusPillSelect({ value, onChange }: { value: JobStatus; onChange: (ne
 }
 
 const nextStatus = (status: JobStatus): JobStatus => {
+  if (status === "Unscheduled") return "Scheduled";
   if (status === "Scheduled") return "Dispatched";
   if (status === "Dispatched") return "In Progress";
   if (status === "In Progress") return "Completed";
@@ -211,8 +213,8 @@ const DAY_JOBS: DayJob[] = [
   { id: 14, technicianId: "",       start: 15,   end: 17,   client: "Patel Office",      service: "Maintenance",        address: "880 Commerce Blvd",    status: "Scheduled",   amount: 220,  bg: "#D1FAE5", border: "#16A34A" },
   // Unscheduled jobs — no fixed date/time yet (waiting on the customer). They
   // sit in the Pending column and are revealed by the "Unscheduled" filter.
-  { id: 15, technicianId: "",       start: 9,    end: 10,   client: "Clark Residence",   service: "AC Install",         address: "951 Hillside Dr",      status: "Scheduled",   amount: 4200, bg: "#EDE9FE", border: "#7C3AED", unscheduled: true },
-  { id: 16, technicianId: "",       start: 9,    end: 10,   client: "Reyes Home",        service: "Furnace Tune-Up",    address: "44 Vista Way",         status: "Scheduled",   amount: 160,  bg: "#FEF3C7", border: "#F59E0B", unscheduled: true },
+  { id: 15, technicianId: "",       start: 9,    end: 10,   client: "Clark Residence",   service: "AC Install",         address: "951 Hillside Dr",      status: "Unscheduled", amount: 4200, bg: "#EDE9FE", border: "#7C3AED", unscheduled: true },
+  { id: 16, technicianId: "",       start: 9,    end: 10,   client: "Reyes Home",        service: "Furnace Tune-Up",    address: "44 Vista Way",         status: "Unscheduled", amount: 160,  bg: "#FEF3C7", border: "#F59E0B", unscheduled: true },
 ];
 
 // Day view constants
@@ -621,7 +623,16 @@ export function Calendar() {
       setConflictMessage(null);
       const nextJobs = jobs.map((job) => {
         if (job.id !== jobId) return job;
-        return { ...job, technicianId, start: dropStart, end: dropEnd };
+        // Placing a job on a lane gives it a technician + time, so an
+        // unscheduled job becomes scheduled.
+        return {
+          ...job,
+          technicianId,
+          start: dropStart,
+          end: dropEnd,
+          unscheduled: false,
+          status: job.status === "Unscheduled" ? "Scheduled" : job.status,
+        };
       });
       const movedJob = nextJobs.find((job) => job.id === jobId) ?? null;
       // Don't auto-open the detail modal — leave the job in place; user can click it to open.
@@ -1616,7 +1627,7 @@ export function Calendar() {
                     <option value="unscheduled">Show unscheduled</option>
                   </select>
                 </div>
-                <div className="flex-1 overflow-y-auto p-3 space-y-2">
+                <div className="overflow-y-auto p-3 space-y-2" style={{ maxHeight: "min(300px, calc(100vh - 280px))" }}>
                   {pendingDayJobs.length === 0 ? (
                     <div className="py-10 text-center">
                       <span className="material-icons text-[#D1D5DB] mb-1 block" style={{ fontSize: "32px" }}>check_circle</span>
@@ -1635,7 +1646,7 @@ export function Calendar() {
                         title="Drag onto a technician's lane to assign"
                       >
                         <div className="flex items-center justify-between gap-2 text-[10px] text-[#9CA3AF] tabular-nums">
-                          <span>{job.unscheduled ? "Unscheduled" : `${formatRegionalTime(job.start, regionalSettings)} – ${formatRegionalTime(job.end, regionalSettings)}`}</span>
+                          <span>{job.unscheduled ? "No date" : `${formatRegionalTime(job.start, regionalSettings)} – ${formatRegionalTime(job.end, regionalSettings)}`}</span>
                           <span
                             className="px-1.5 py-0.5 rounded-full text-[9px] max-w-[88px] truncate"
                             style={{ backgroundColor: STATUS_STYLES[job.status].bg, color: STATUS_STYLES[job.status].color, fontWeight: 700 }}
