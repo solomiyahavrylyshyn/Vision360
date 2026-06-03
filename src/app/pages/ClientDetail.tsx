@@ -3021,22 +3021,22 @@ export function ClientDetail() {
       {statementOpen && (() => {
         // Whole-dollar amounts (no decimals) per the walkthrough decision.
         const fmt = (n: number) => Math.round(n).toLocaleString("en-US");
-        const ledger: Array<{ date: string; desc: string; debit: number; credit: number; balance: number; kind: "job" | "invoice" | "payment" }> = [];
-        // Jobs — included in the statement for a complete activity history (no $ effect on balance).
-        liveClientJobs.forEach(j => {
-          ledger.push({ date: j.startDate || "", desc: `Job ${j.jobNumber} — ${j.title || "Service"}`, debit: 0, credit: 0, balance: 0, kind: "job" });
-        });
-        // Invoices as charges
+        const ledger: Array<{ date: string; desc: string; sub: string; debit: number; credit: number; balance: number }> = [];
+        // The statement is invoice-centric: each invoice is a charge, and the
+        // job + service it covers (the "what") is shown right under it — jobs
+        // aren't separate rows, they belong to their invoice.
         clientInvoiceRows.forEach(inv => {
           const amt = Number(inv.total.replace(/[^0-9.-]/g, "")) || 0;
-          ledger.push({ date: inv.date, desc: `Invoice ${inv.invoiceNo} — ${inv.type}`, debit: amt, credit: 0, balance: 0, kind: "invoice" });
+          const sub = [inv.jobNo ? `Job ${inv.jobNo}` : "", inv.type].filter(Boolean).join(" · ");
+          ledger.push({ date: inv.date, desc: `Invoice ${inv.invoiceNo}`, sub, debit: amt, credit: 0, balance: 0 });
         });
-        // Payments as credits
+        // Payments are the credits; show how it was paid + which invoice it applied to.
         clientPaymentRows.forEach(pay => {
           const amt = Number(pay.amount.replace(/[^0-9.-]/g, "")) || 0;
-          ledger.push({ date: pay.date, desc: `Payment — ${pay.method}${pay.note ? ` (${pay.note})` : ""}`, debit: 0, credit: amt, balance: 0, kind: "payment" });
+          const sub = [pay.method, pay.invoiceNo ? `applied to ${pay.invoiceNo}` : "", pay.note].filter(Boolean).join(" · ");
+          ledger.push({ date: pay.date, desc: "Payment received", sub, debit: 0, credit: amt, balance: 0 });
         });
-        // Sort by date asc; jobs carry the running balance forward unchanged.
+        // Sort by date asc and carry a running balance.
         ledger.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
         let running = 0;
         ledger.forEach(row => { running += row.debit - row.credit; row.balance = running; });
@@ -3099,8 +3099,11 @@ export function ClientDetail() {
                     <tbody>
                       {ledger.map((row, i) => (
                         <tr key={i} className="border-b border-[#F3F4F6] last:border-0">
-                          <td className="py-3 pr-3 text-[12px] text-[#6B7280] whitespace-nowrap">{row.date}</td>
-                          <td className="py-3 pr-3 text-[13px] text-[#1A2332]">{row.desc}</td>
+                          <td className="py-3 pr-3 text-[12px] text-[#6B7280] whitespace-nowrap align-top">{row.date}</td>
+                          <td className="py-3 pr-3 align-top">
+                            <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{row.desc}</div>
+                            {row.sub && <div className="text-[12px] text-[#6B7280] mt-0.5">{row.sub}</div>}
+                          </td>
                           <td className="py-3 pr-3 text-[13px] text-right text-[#DC2626]">{row.debit > 0 ? `$${fmt(row.debit)}` : "—"}</td>
                           <td className="py-3 pr-3 text-[13px] text-right text-[#16A34A]">{row.credit > 0 ? `$${fmt(row.credit)}` : "—"}</td>
                           <td className={`py-3 text-[13px] text-right`} style={{ fontWeight: 600, color: row.balance > 0 ? "#DC2626" : "#16A34A" }}>
