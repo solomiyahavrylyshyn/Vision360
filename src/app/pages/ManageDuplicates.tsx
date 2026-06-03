@@ -8,6 +8,7 @@ import { dismissalsStore } from "../stores/dismissalsStore";
 type MatchField =
   | "Same phone number"
   | "Same email"
+  | "Same name"
   | "Same property address"
   | "Similar name + phone"
   | "Same company name";
@@ -27,6 +28,9 @@ function groupKey(client: ClientRecord, field: MatchField): string {
       return anyPhone(client);
     case "Same email":
       return normalise(client.email);
+    case "Same name":
+      // Exact display-name match (normalised) — per the walkthrough.
+      return normalise(client.name);
     case "Same property address":
       // Normalise street + zip (ignores unit/apt differences).
       return normalise(client.address + client.zip);
@@ -211,6 +215,7 @@ function MergeModal({
 const matchOptions: MatchField[] = [
   "Same phone number",
   "Same email",
+  "Same name",
   "Same property address",
   "Similar name + phone",
   "Same company name",
