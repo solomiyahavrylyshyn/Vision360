@@ -131,7 +131,6 @@ const Radio = ({
     </span>
     <span className="flex flex-col">
       <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{label}</span>
-      {description && <span className="text-[12px] text-[#6B7280] leading-relaxed">{description}</span>}
     </span>
   </button>
 );
@@ -180,9 +179,6 @@ const FeatureSection = ({
     <div className="flex items-start justify-between gap-4 mb-3">
       <div className="flex-1">
         <h4 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>{title}</h4>
-        {description && (
-          <p className="text-[12px] text-[#6B7280] mt-1 leading-relaxed">{description}</p>
-        )}
       </div>
       {toggleable && onToggle && <Toggle on={enabled} onChange={onToggle} />}
     </div>
@@ -647,9 +643,6 @@ export function NewUser() {
                         : undefined}
                     />
                   ))}
-                  <p className="text-[12px] text-[#6B7280] mt-1">
-                    Clients are <span style={{ fontWeight: 600 }}>inactivated</span>, never deleted — the record and its history are kept.
-                  </p>
                 </FeatureSection>
 
                 {/* Estimates */}
@@ -691,12 +684,6 @@ export function NewUser() {
                       disabled={level !== "viewOnly" && perms.schedule.level !== "editOwn" && perms.schedule.level !== "editAll" && perms.schedule.level !== "editDeleteAll"}
                     />
                   ))}
-                  <p className="text-[12px] text-[#6B7280] mt-1">
-                    Jobs are <span style={{ fontWeight: 600 }}>cancelled</span>, never deleted — cancelling keeps the job and its history.
-                  </p>
-                  <p className="text-[12px] text-[#6B7280] mt-1">
-                    Select <span style={{ fontWeight: 600 }}>edit their own schedule</span> or higher to create and edit jobs.
-                  </p>
                 </FeatureSection>
 
                 {/* Invoices */}
@@ -717,9 +704,6 @@ export function NewUser() {
                       }[level]}
                     />
                   ))}
-                  <p className="text-[12px] text-[#6B7280] mt-1">
-                    Voiding/archiving is full accounting power; create-and-edit only allows price changes.
-                  </p>
                 </FeatureSection>
 
                 {/* Payments */}
@@ -742,9 +726,6 @@ export function NewUser() {
                       }[level]}
                     />
                   ))}
-                  <p className="text-[12px] text-[#6B7280] mt-1">
-                    Field technicians can collect but not refund — refunds are reserved for accounting.
-                  </p>
                 </FeatureSection>
 
                 {/* Client communications */}

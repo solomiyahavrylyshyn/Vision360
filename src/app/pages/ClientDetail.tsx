@@ -3021,23 +3021,32 @@ export function ClientDetail() {
       {statementOpen && (() => {
         // Whole-dollar amounts (no decimals) per the walkthrough decision.
         const fmt = (n: number) => Math.round(n).toLocaleString("en-US");
-        const ledger: Array<{ date: string; desc: string; sub: string; debit: number; credit: number; balance: number }> = [];
-        // The statement is invoice-centric: each invoice is a charge, and the
-        // job + service it covers (the "what") is shown right under it — jobs
-        // aren't separate rows, they belong to their invoice.
+        type LedgerKind = "job" | "invoice" | "payment";
+        const KIND_ORDER: Record<LedgerKind, number> = { job: 0, invoice: 1, payment: 2 };
+        const ledger: Array<{ date: string; kind: LedgerKind; desc: string; sub: string; debit: number; credit: number; balance: number }> = [];
+        // A customer activity statement (per the walkthrough): the full history
+        // of what we did for this client — the JOB performed, then the INVOICE
+        // raised for it, then the PAYMENT(s) that settle it — interleaved by
+        // date with a running balance. Jobs are their own rows (no $ effect);
+        // the invoice carries the charge.
         clientInvoiceRows.forEach(inv => {
           const amt = Number(inv.total.replace(/[^0-9.-]/g, "")) || 0;
-          const sub = [inv.jobNo ? `Job ${inv.jobNo}` : "", inv.type].filter(Boolean).join(" · ");
-          ledger.push({ date: inv.date, desc: `Invoice ${inv.invoiceNo}`, sub, debit: amt, credit: 0, balance: 0 });
+          if (inv.jobNo) {
+            ledger.push({ date: inv.date, kind: "job", desc: `Job ${inv.jobNo}`, sub: inv.type, debit: 0, credit: 0, balance: 0 });
+          }
+          ledger.push({ date: inv.date, kind: "invoice", desc: `Invoice ${inv.invoiceNo}`, sub: inv.type, debit: amt, credit: 0, balance: 0 });
         });
         // Payments are the credits; show how it was paid + which invoice it applied to.
         clientPaymentRows.forEach(pay => {
           const amt = Number(pay.amount.replace(/[^0-9.-]/g, "")) || 0;
           const sub = [pay.method, pay.invoiceNo ? `applied to ${pay.invoiceNo}` : "", pay.note].filter(Boolean).join(" · ");
-          ledger.push({ date: pay.date, desc: "Payment received", sub, debit: 0, credit: amt, balance: 0 });
+          ledger.push({ date: pay.date, kind: "payment", desc: "Payment received", sub, debit: 0, credit: amt, balance: 0 });
         });
-        // Sort by date asc and carry a running balance.
-        ledger.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        // Sort by date; same date keeps job → invoice → payment order.
+        ledger.sort((a, b) => {
+          const t = new Date(a.date).getTime() - new Date(b.date).getTime();
+          return t !== 0 ? t : KIND_ORDER[a.kind] - KIND_ORDER[b.kind];
+        });
         let running = 0;
         ledger.forEach(row => { running += row.debit - row.credit; row.balance = running; });
 
@@ -3101,8 +3110,11 @@ export function ClientDetail() {
                         <tr key={i} className="border-b border-[#F3F4F6] last:border-0">
                           <td className="py-3 pr-3 text-[12px] text-[#6B7280] whitespace-nowrap align-top">{row.date}</td>
                           <td className="py-3 pr-3 align-top">
-                            <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{row.desc}</div>
-                            {row.sub && <div className="text-[12px] text-[#6B7280] mt-0.5">{row.sub}</div>}
+                            <div className="flex items-center gap-2">
+                              <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: row.kind === "payment" ? "#16A34A" : row.kind === "invoice" ? "#4A6FA5" : "#94A3B8" }} />
+                              <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{row.desc}</span>
+                            </div>
+                            {row.sub && <div className="text-[12px] text-[#6B7280] mt-0.5 ml-3.5">{row.sub}</div>}
                           </td>
                           <td className="py-3 pr-3 text-[13px] text-right text-[#DC2626]">{row.debit > 0 ? `$${fmt(row.debit)}` : "—"}</td>
                           <td className="py-3 pr-3 text-[13px] text-right text-[#16A34A]">{row.credit > 0 ? `$${fmt(row.credit)}` : "—"}</td>
