@@ -3053,7 +3053,7 @@ export function ClientDetail() {
         return (
           <div className="fixed inset-0 z-50 flex" onClick={() => setStatementOpen(false)}>
             <div className="flex-1 bg-black/30 backdrop-blur-[1px]" />
-            <div className="w-[580px] max-w-[96vw] bg-white shadow-2xl flex flex-col h-full" onClick={e => e.stopPropagation()} id="client-statement-print">
+            <div className="w-[680px] max-w-[96vw] bg-white shadow-2xl flex flex-col h-full" onClick={e => e.stopPropagation()} id="client-statement-print">
               {/* Header */}
               <div className="px-6 py-5 border-b border-[#E5E7EB] flex items-start justify-between shrink-0 no-print">
                 <div>
@@ -3101,7 +3101,7 @@ export function ClientDetail() {
                     <thead>
                       <tr className="border-b border-[#E5E7EB]">
                         {["Date", "Description", "Charges", "Payments", "Balance"].map((h, i) => (
-                          <th key={h} className={`pb-2.5 text-[11px] text-[#6B7280] uppercase tracking-wider ${i >= 2 ? "text-right" : "text-left"}`} style={{ fontWeight: 600 }}>{h}</th>
+                          <th key={h} className={`pb-2.5 text-[11px] text-[#6B7280] uppercase tracking-wider ${i >= 2 ? "text-right pl-5 whitespace-nowrap" : "text-left"}`} style={{ fontWeight: 600 }}>{h}</th>
                         ))}
                       </tr>
                     </thead>
@@ -3116,9 +3116,9 @@ export function ClientDetail() {
                             </div>
                             {row.sub && <div className="text-[12px] text-[#6B7280] mt-0.5 ml-3.5">{row.sub}</div>}
                           </td>
-                          <td className="py-3 pr-3 text-[13px] text-right text-[#DC2626]">{row.debit > 0 ? `$${fmt(row.debit)}` : "—"}</td>
-                          <td className="py-3 pr-3 text-[13px] text-right text-[#16A34A]">{row.credit > 0 ? `$${fmt(row.credit)}` : "—"}</td>
-                          <td className={`py-3 text-[13px] text-right`} style={{ fontWeight: 600, color: row.balance > 0 ? "#DC2626" : "#16A34A" }}>
+                          <td className="py-3 pl-5 text-[13px] text-right text-[#DC2626] whitespace-nowrap">{row.debit > 0 ? `$${fmt(row.debit)}` : "—"}</td>
+                          <td className="py-3 pl-5 text-[13px] text-right text-[#16A34A] whitespace-nowrap">{row.credit > 0 ? `$${fmt(row.credit)}` : "—"}</td>
+                          <td className={`py-3 pl-5 text-[13px] text-right whitespace-nowrap`} style={{ fontWeight: 600, color: row.balance > 0 ? "#DC2626" : "#16A34A" }}>
                             ${fmt(Math.abs(row.balance))}{row.balance < 0 ? " CR" : ""}
                           </td>
                         </tr>
