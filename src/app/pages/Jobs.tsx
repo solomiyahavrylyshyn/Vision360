@@ -15,6 +15,7 @@ import { CreateActionButton } from "../components/ui/create-action-button";
 import { StatCard } from "../components/ui/stat-card";
 import { formatRegionalDate, regionalSettingsStore } from "../stores/regionalSettingsStore";
 import { jobsStore } from "../stores/jobsStore";
+import { type JobStatus, JOB_STATUSES, JOB_STATUS_COLOR as statusColors, JOB_STATUS_BG as statusBg } from "../constants/jobStatuses";
 
 interface Job {
   id: number;
@@ -25,12 +26,10 @@ interface Job {
   address: string;
   schedule: string;
   scheduleDateSort: string;
-  status: "Scheduled" | "In Progress" | "Completed" | "Cancelled";
+  status: JobStatus;
   jobType: "One-off" | "Recurring";
   total: number;
 }
-
-const JOB_STATUSES: Job["status"][] = ["Scheduled", "In Progress", "Completed", "Cancelled"];
 
 const mockJobs: Job[] = [
   { id: 1,  jobNumber: "10234-J01", title: "AC Estimate",        client: "Travis Jones",   clientId: "10234", address: "854 Maple St, Fort Worth, TX 76107",        schedule: "March 30, 2026", scheduleDateSort: "2026-03-30", status: "Scheduled",  jobType: "One-off",   total: 375.01 },
@@ -47,20 +46,6 @@ const mockJobs: Job[] = [
   { id: 12, jobNumber: "10247-J03", title: "Monthly Lawn Care",  client: "Mike Davis",     clientId: "10247", address: "890 Oak Drive, Miami, FL 33101",            schedule: "April 15, 2026", scheduleDateSort: "2026-04-15", status: "Scheduled",  jobType: "Recurring", total: 120.00 },
 ];
 
-const statusColors: Record<string, string> = {
-  Scheduled: "#4A6FA5",
-  "In Progress": "#D97706",
-  Completed: "#16A34A",
-  Cancelled: "#DC2626",
-};
-
-// Badge background = status colour at 15% opacity (matches Figma 358:28741).
-const statusBg: Record<string, string> = {
-  Scheduled: "rgba(74,111,165,0.15)",
-  "In Progress": "rgba(217,119,6,0.15)",
-  Completed: "rgba(22,163,74,0.15)",
-  Cancelled: "rgba(220,38,38,0.15)",
-};
 
 const statusIcons: Record<string, string> = {
   Scheduled: "event_note",
@@ -429,9 +414,7 @@ export function Jobs() {
             <div className="flex items-center gap-2">
               <select value={qfStatus} onChange={e => { setQfStatus(e.target.value); setCurrentPage(1); }} className={qfClass(qfStatus !== "All")}>
                 <option value="All">Status: All</option>
-                <option value="Scheduled">Scheduled</option>
-                <option value="In Progress">In Progress</option>
-                <option value="Completed">Completed</option>
+                {JOB_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
               <select value={qfType} onChange={e => { setQfType(e.target.value); setCurrentPage(1); }} className={qfClass(qfType !== "All")}>
                 <option value="All">Type: All</option>

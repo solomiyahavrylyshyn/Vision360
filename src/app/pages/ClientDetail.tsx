@@ -32,6 +32,7 @@ import { formatRegionalDate } from "../stores/regionalSettingsStore";
 import { clientsStore } from "../stores/clientsStore";
 import { estimatesStore } from "../stores/estimatesStore";
 import { jobsStore, type JobRecord } from "../stores/jobsStore";
+import { JOB_STATUS_STYLES as JOB_STATUS_COLORS, JOB_STATUSES as JOB_STATUS_OPTIONS } from "../constants/jobStatuses";
 import { PAYMENT_METHODS } from "../constants/paymentMethods";
 import { tagsStore } from "../stores/tagsStore";
 import { customFieldsStore } from "../stores/customFieldsStore";
@@ -97,16 +98,6 @@ function safeExternalHref(url: string): string | null {
   return `https://${u}`; // scheme-less (e.g. "example.com") → assume https
 }
 
-/* ── Client jobs: status colors + ClientJobsPanel ─────────────────────────── */
-const JOB_STATUS_COLORS: Record<string, { bg: string; color: string }> = {
-  Scheduled:   { bg: "rgba(74,111,165,0.12)",  color: "#4A6FA5" },
-  "In Progress":{ bg: "rgba(217,119,6,0.12)",  color: "#D97706" },
-  Completed:   { bg: "rgba(22,163,74,0.12)",   color: "#16A34A" },
-  Cancelled:   { bg: "rgba(220,38,38,0.12)",   color: "#DC2626" },
-  Paused:      { bg: "rgba(168,86,247,0.12)",  color: "#A856F7" },
-  Inactive:    { bg: "#F3F4F6",                color: "#6B7280" },
-};
-
 /* ── ClientJobsPanel — full list-page treatment scoped to one client ───────
    Mirrors the Jobs list page inside the client's Jobs tab: search + quick
    filters + Create job toolbar, sortable columns with row selection, a kebab
@@ -118,7 +109,6 @@ const JOB_PANEL_COLS = [
   { key: "status",   label: "Status"    },
   { key: "total",    label: "Total"     },
 ] as const;
-const JOB_STATUS_OPTIONS = ["Scheduled", "In Progress", "Completed", "Cancelled"] as const;
 type JobSortField = "number" | "schedule" | "status" | "total";
 
 function ClientJobsPanel({ rows, onOpen, onCreate }: {

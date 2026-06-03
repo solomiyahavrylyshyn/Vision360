@@ -12,8 +12,7 @@ import {
   addDays, subDays,
 } from "date-fns";
 import routeMapImg from "../../assets/route-map.png";
-
-type JobStatus = "Unscheduled" | "Scheduled" | "Dispatched" | "In Progress" | "Completed" | "Cancelled" | "Paused";
+import { type JobStatus, JOB_STATUS_STYLES as STATUS_STYLES, JOB_STATUSES as ALL_JOB_STATUSES } from "../constants/jobStatuses";
 
 interface CalendarEvent {
   id: number;
@@ -55,19 +54,6 @@ const COLORS = {
   purple: { bg: "#EDE9FE", border: "#7C3AED", text: "#4C1D95", accent: "#7C3AED" },
 };
 
-const STATUS_STYLES: Record<JobStatus, { bg: string; color: string }> = {
-  Unscheduled: { bg: "rgba(100,116,139,0.15)", color: "#64748B" },
-  Scheduled: { bg: "rgba(74,111,165,0.15)", color: "#4A6FA5" },
-  Dispatched: { bg: "rgba(8,145,178,0.15)", color: "#0891B2" },
-  "In Progress": { bg: "rgba(245,158,11,0.15)", color: "#F59E0B" },
-  Completed: { bg: "rgba(22,163,74,0.15)", color: "#16A34A" },
-  Cancelled: { bg: "rgba(220,38,38,0.12)", color: "#DC2626" },
-  Paused: { bg: "rgba(168,86,247,0.12)", color: "#A856F7" },
-};
-
-// All statuses surfaced in the Scheduling status dropdown. Mirrors what's
-// configured in Settings → Jobs → Custom statuses (BUG-S05).
-const ALL_JOB_STATUSES: JobStatus[] = ["Unscheduled", "Scheduled", "Dispatched", "In Progress", "Completed", "Cancelled", "Paused"];
 
 // Pill-styled <select> used in job-detail popovers so dispatchers can flip
 // status to Cancelled / Paused without leaving the schedule (BUG-S05).

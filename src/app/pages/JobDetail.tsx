@@ -1,6 +1,7 @@
 import { useState, useRef, useSyncExternalStore } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
+import { type JobStatus, JOB_STATUSES, JOB_STATUS_COLOR } from "../constants/jobStatuses";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,7 +34,7 @@ interface Visit {
   id: number;
   dateTime: string;
   title: string;
-  status: "Scheduled" | "In Progress" | "Completed";
+  status: JobStatus;
 }
 
 interface NoteEntry {
@@ -190,11 +191,7 @@ const mockJobData: Record<string, any> = {
   },
 };
 
-const statusColors: Record<string, string> = {
-  Scheduled: "#4A6FA5",
-  "In Progress": "#D97706",
-  Completed: "#16A34A",
-};
+const statusColors: Record<string, string> = JOB_STATUS_COLOR;
 
 const priorityColors: Record<string, { bg: string; text: string }> = {
   Low: { bg: "#F0FDF4", text: "#16A34A" },
@@ -1420,7 +1417,7 @@ export function JobDetail() {
                 </button>
                 {statusDropdownOpen && (
                   <div className="absolute left-0 top-full mt-1 bg-white border border-[#E5E7EB] rounded-md shadow-lg z-50 w-[160px] py-1">
-                    {["Scheduled", "In Progress", "Completed"].map((s) => (
+                    {JOB_STATUSES.map((s) => (
                       <button
                         key={s}
                         onClick={() => handleStatusChange(s)}

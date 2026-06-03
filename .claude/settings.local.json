@@ -112,7 +112,10 @@
       "Bash(py -c ' *)",
       "Bash(node -e ' *)",
       "Bash(grep -v \"^$\")",
-      "Bash(grep -v \"//\")"
+      "Bash(grep -v \"//\")",
+      "Bash(git update-ref *)",
+      "Bash(git reset *)",
+      "Bash(git rev-list *)"
     ]
   }
 }
