@@ -47,6 +47,15 @@ type EstimatesLevel = "viewOnly" | "viewCreateEdit" | "viewCreateEditArchive";
 type InvoicesLevel = "viewOnly" | "viewCreateEdit" | "viewCreateEditVoidArchive";
 type JobsLevel = "viewOnly" | "viewCreateEdit" | "viewCreateEditCancel";
 type PaymentsLevel = "viewOnly" | "viewCollect" | "viewCollectEdit" | "viewCollectEditRefund";
+// Items replaces the old "Show pricing" toggle with a role-based capability
+// ladder (per Marek's matrix). Tiers map to: CSR/Dispatch → Sales/Technician →
+// Manager → Accounting/Purchasing → Admin (Item Master Control).
+type ItemsLevel =
+  | "viewSellPrice"
+  | "discountOverride"
+  | "approveOverrides"
+  | "viewCostTaxesCreate"
+  | "fullControl";
 
 interface PermissionsState {
   isAdmin: boolean;
@@ -54,7 +63,7 @@ interface PermissionsState {
   timeTracking: { enabled: boolean; level: TimeLevel };
   notes: { enabled: boolean; level: NotesLevel };
   expenses: { enabled: boolean; level: ExpensesLevel };
-  showPricing: boolean;
+  items: { enabled: boolean; level: ItemsLevel };
   jobCosting: boolean;
   clients: { enabled: boolean; level: ClientsLevel };
   estimates: { enabled: boolean; level: EstimatesLevel };
@@ -72,7 +81,7 @@ const employeePreset: PermissionsState = {
   timeTracking: { enabled: true, level: "viewRecordOwn" },
   notes: { enabled: true, level: "viewAddAll" },
   expenses: { enabled: true, level: "viewRecordEditOwn" },
-  showPricing: false,
+  items: { enabled: false, level: "viewSellPrice" },
   jobCosting: false,
   clients: { enabled: true, level: "viewFull" },
   estimates: { enabled: false, level: "viewOnly" },
@@ -89,7 +98,7 @@ const adminPreset: PermissionsState = {
   timeTracking: { enabled: true, level: "viewRecordEditAll" },
   notes: { enabled: true, level: "viewEditDeleteAll" },
   expenses: { enabled: true, level: "viewRecordEditAll" },
-  showPricing: true,
+  items: { enabled: true, level: "fullControl" },
   jobCosting: true,
   clients: { enabled: true, level: "viewCreateEditInactivateFull" },
   estimates: { enabled: true, level: "viewCreateEditArchive" },
@@ -98,6 +107,14 @@ const adminPreset: PermissionsState = {
   payments: { enabled: true, level: "viewCollectEditRefund" },
   clientCommunications: true,
   reports: true,
+};
+
+// Upgrade any preset saved under the old `showPricing` boolean to the new
+// leveled `items` shape, so older localStorage data doesn't break the radios.
+const ensureItemsPerm = (p: PermissionsState): PermissionsState => {
+  if (p && p.items) return p;
+  const legacy = (p as unknown as { showPricing?: boolean })?.showPricing ?? false;
+  return { ...p, items: { enabled: legacy, level: legacy ? "fullControl" : "viewSellPrice" } };
 };
 
 // ─── Small UI helpers ────────────────────────────────────────────────────────
@@ -204,7 +221,9 @@ export function NewUser() {
   // Permissions
   const [preset, setPreset] = useState<PresetId>("employee");
   const [perms, setPerms] = useState<PermissionsState>(employeePreset);
-  const [customPresets, setCustomPresets] = useState<CustomPreset[]>(() => loadCustomPresets());
+  const [customPresets, setCustomPresets] = useState<CustomPreset[]>(() =>
+    loadCustomPresets().map(cp => ({ ...cp, permissions: ensureItemsPerm(cp.permissions) })),
+  );
   const [showSavePresetInput, setShowSavePresetInput] = useState(false);
   const [newPresetName, setNewPresetName] = useState("");
 
@@ -222,7 +241,7 @@ export function NewUser() {
     else if (next === "employee") setPerms(employeePreset);
     else if (next !== "custom") {
       const found = customPresets.find(cp => cp.id === next);
-      if (found) setPerms(found.permissions);
+      if (found) setPerms(ensureItemsPerm(found.permissions));
     }
     // "custom" keeps current state
   };
@@ -600,21 +619,36 @@ export function NewUser() {
                   ))}
                 </FeatureSection>
 
-                {/* Show pricing */}
+                {/* Items — replaces the old "Show pricing" toggle with a
+                    role-based capability ladder (Marek's matrix). */}
                 <FeatureSection
-                  title="Show pricing"
-                  description="Allows editing of estimates, invoices, and line items on jobs."
-                  enabled={perms.showPricing}
-                  onToggle={v => editPerms(p => ({ ...p, showPricing: v, jobCosting: v ? p.jobCosting : false }))}
-                />
+                  title="Items"
+                  enabled={perms.items.enabled}
+                  onToggle={v => editPerms(p => ({ ...p, items: { ...p.items, enabled: v }, jobCosting: v ? p.jobCosting : false }))}
+                >
+                  {(["viewSellPrice", "discountOverride", "approveOverrides", "viewCostTaxesCreate", "fullControl"] as ItemsLevel[]).map(level => (
+                    <Radio
+                      key={level}
+                      checked={perms.items.level === level}
+                      onClick={() => editPerms(p => ({ ...p, items: { ...p.items, level } }))}
+                      label={{
+                        viewSellPrice: "View sell price",
+                        discountOverride: "View sell price; discount within limit; raise price freely, lower price needs approval",
+                        approveOverrides: "View sell price; discount and override price either way; approve lower-price overrides",
+                        viewCostTaxesCreate: "View sell price, cost, and taxes; create items",
+                        fullControl: "Upload, create, view and edit; sell price, cost, taxes, pricebook; delete / deactivate items",
+                      }[level]}
+                    />
+                  ))}
+                </FeatureSection>
 
                 {/* Show job profit (a.k.a. job costing) */}
                 <FeatureSection
                   title="Show job profit"
                   description={
-                    perms.showPricing && perms.timeTracking.enabled && perms.expenses.enabled
+                    perms.items.enabled && perms.timeTracking.enabled && perms.expenses.enabled
                       ? "When on, this role sees revenue, expenses, compensation, and profit on jobs. When off, they see only the total price."
-                      : "When on, this role sees revenue, expenses, compensation, and profit on jobs (otherwise just the total price). Turn on Show pricing, Time tracking, and Expenses to enable it."
+                      : "When on, this role sees revenue, expenses, compensation, and profit on jobs (otherwise just the total price). Turn on Items, Time tracking, and Expenses to enable it."
                   }
                   enabled={perms.jobCosting}
                   onToggle={v => editPerms(p => ({ ...p, jobCosting: v }))}
