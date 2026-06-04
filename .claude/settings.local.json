@@ -111,7 +111,9 @@
       "Bash(rm -f C:/Users/mykha/Documents/Vision360/.git/worktrees/musing-boyd-546eca/index.lock)",
       "Bash(py -c ' *)",
       "Bash(node -e ' *)",
-      "Bash(grep -v \"^$\")"
+      "Bash(grep -v \"^$\")",
+      "PowerShell(git show 234e5cf7 -U0 --format=\"### COMMIT %h %s ###\" -- src/app/pages/Reports.tsx)",
+      "PowerShell(git show b23c7a5d -U0 --format=\"### COMMIT %h %s ###\" -- src/app/pages/Reports.tsx src/app/pages/Expenses.tsx)"
     ]
   }
 }

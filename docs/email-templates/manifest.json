@@ -1,0 +1,160 @@
+{
+  "generatedAt": "2026-06-04T11:35:43.235Z",
+  "count": 22,
+  "files": [
+    {
+      "id": "01",
+      "title": "Estimate sent",
+      "group": "Customer-facing",
+      "pdf": "pdfs/01-estimate-sent.pdf",
+      "html": "html/01-estimate-sent.html"
+    },
+    {
+      "id": "02",
+      "title": "Estimate updated",
+      "group": "Customer-facing",
+      "pdf": "pdfs/02-estimate-updated.pdf",
+      "html": "html/02-estimate-updated.html"
+    },
+    {
+      "id": "03",
+      "title": "Estimate expiration reminder",
+      "group": "Customer-facing",
+      "pdf": "pdfs/03-estimate-expiration-reminder.pdf",
+      "html": "html/03-estimate-expiration-reminder.html"
+    },
+    {
+      "id": "04",
+      "title": "Invoice sent",
+      "group": "Customer-facing",
+      "pdf": "pdfs/04-invoice-sent.pdf",
+      "html": "html/04-invoice-sent.html"
+    },
+    {
+      "id": "05",
+      "title": "Invoice payment reminder",
+      "group": "Customer-facing",
+      "pdf": "pdfs/05-invoice-payment-reminder.pdf",
+      "html": "html/05-invoice-payment-reminder.html"
+    },
+    {
+      "id": "06",
+      "title": "Payment receipt",
+      "group": "Customer-facing",
+      "pdf": "pdfs/06-payment-receipt.pdf",
+      "html": "html/06-payment-receipt.html"
+    },
+    {
+      "id": "07",
+      "title": "Job scheduled confirmation",
+      "group": "Customer-facing",
+      "pdf": "pdfs/07-job-scheduled-confirmation.pdf",
+      "html": "html/07-job-scheduled-confirmation.html"
+    },
+    {
+      "id": "08",
+      "title": "Email verification",
+      "group": "Auth / Account",
+      "pdf": "pdfs/08-email-verification.pdf",
+      "html": "html/08-email-verification.html"
+    },
+    {
+      "id": "09",
+      "title": "Password reset",
+      "group": "Auth / Account",
+      "pdf": "pdfs/09-password-reset.pdf",
+      "html": "html/09-password-reset.html"
+    },
+    {
+      "id": "10",
+      "title": "Welcome email",
+      "group": "Auth / Account",
+      "pdf": "pdfs/10-welcome-email.pdf",
+      "html": "html/10-welcome-email.html"
+    },
+    {
+      "id": "11",
+      "title": "Team member invitation",
+      "group": "Auth / Account",
+      "pdf": "pdfs/11-team-member-invitation.pdf",
+      "html": "html/11-team-member-invitation.html"
+    },
+    {
+      "id": "12",
+      "title": "Trial started",
+      "group": "Subscription / Billing",
+      "pdf": "pdfs/12-trial-started.pdf",
+      "html": "html/12-trial-started.html"
+    },
+    {
+      "id": "13",
+      "title": "Trial ending soon",
+      "group": "Subscription / Billing",
+      "pdf": "pdfs/13-trial-ending-soon.pdf",
+      "html": "html/13-trial-ending-soon.html"
+    },
+    {
+      "id": "14",
+      "title": "Subscription invoice",
+      "group": "Subscription / Billing",
+      "pdf": "pdfs/14-subscription-invoice.pdf",
+      "html": "html/14-subscription-invoice.html"
+    },
+    {
+      "id": "15",
+      "title": "Payment method failed",
+      "group": "Subscription / Billing",
+      "pdf": "pdfs/15-payment-method-failed.pdf",
+      "html": "html/15-payment-method-failed.html"
+    },
+    {
+      "id": "16",
+      "title": "Subscription cancelled",
+      "group": "Subscription / Billing",
+      "pdf": "pdfs/16-subscription-cancelled.pdf",
+      "html": "html/16-subscription-cancelled.html"
+    },
+    {
+      "id": "17",
+      "title": "Document signed",
+      "group": "System / Signing",
+      "pdf": "pdfs/17-document-signed.pdf",
+      "html": "html/17-document-signed.html"
+    },
+    {
+      "id": "D1",
+      "title": "Estimate viewed by customer",
+      "group": "Internal team notifications",
+      "pdf": "pdfs/D1-estimate-viewed-by-customer.pdf",
+      "html": "html/D1-estimate-viewed-by-customer.html"
+    },
+    {
+      "id": "D2",
+      "title": "Estimate approved",
+      "group": "Internal team notifications",
+      "pdf": "pdfs/D2-estimate-approved.pdf",
+      "html": "html/D2-estimate-approved.html"
+    },
+    {
+      "id": "D3",
+      "title": "Payment received",
+      "group": "Internal team notifications",
+      "pdf": "pdfs/D3-payment-received.pdf",
+      "html": "html/D3-payment-received.html"
+    },
+    {
+      "id": "D4",
+      "title": "Job assigned to you",
+      "group": "Internal team notifications",
+      "pdf": "pdfs/D4-job-assigned-to-you.pdf",
+      "html": "html/D4-job-assigned-to-you.html"
+    },
+    {
+      "id": "D5",
+      "title": "Job status changed",
+      "group": "Internal team notifications",
+      "pdf": "pdfs/D5-job-status-changed.pdf",
+      "html": "html/D5-job-status-changed.html"
+    }
+  ]
+}
