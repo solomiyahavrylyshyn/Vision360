@@ -27,6 +27,8 @@ interface CalendarEvent {
   status: JobStatus;
   property: string;
   amount: number;
+  // Drives month-cell card colour (Figma legend); see jobTypeColors.
+  jobType?: string;
 }
 
 interface DispatchJob {
@@ -98,16 +100,16 @@ const _schedBase = new Date(); _schedBase.setHours(0, 0, 0, 0);
 const schedDay = (offset: number) => { const d = new Date(_schedBase); d.setDate(d.getDate() + offset); return d; };
 
 const mockEvents: CalendarEvent[] = [
-  { id: 1,  title: "AC Installation",      client: "Travis Jones",  date: schedDay(0),  startHour: 9,  duration: 2,   color: "blue",   status: "Scheduled",   property: "4405 N Clark Ave", amount: 2850 },
-  { id: 2,  title: "Plumbing Repair",       client: "Sarah Johnson", date: schedDay(0),  startHour: 13, duration: 1.5, color: "amber",  status: "In Progress", property: "1220 Elm St",      amount: 425  },
-  { id: 3,  title: "HVAC Maintenance",      client: "Mike Davis",    date: schedDay(0),  startHour: 15, duration: 1,   color: "green",  status: "Completed",   property: "890 Oak Dr",       amount: 129  },
-  { id: 4,  title: "Electrical Inspection", client: "Lisa Brown",    date: schedDay(1),  startHour: 10, duration: 2,   color: "purple", status: "Scheduled",   property: "567 Pine Rd",      amount: 175  },
-  { id: 5,  title: "Tree Removal",          client: "James Wilson",  date: schedDay(2),  startHour: 8,  duration: 4,   color: "red",    status: "Scheduled",   property: "234 Maple Ln",     amount: 850  },
-  { id: 6,  title: "Gutter Cleaning",       client: "Anna Lee",      date: schedDay(3),  startHour: 11, duration: 1.5, color: "blue",   status: "Scheduled",   property: "56 Birch Ct",      amount: 180  },
-  { id: 7,  title: "Fence Repair",          client: "Tom Richards",  date: schedDay(-1), startHour: 9,  duration: 3,   color: "amber",  status: "Scheduled",   property: "12 Cedar Way",     amount: 625  },
-  { id: 8,  title: "Lawn Service",          client: "Emily Clark",   date: schedDay(-2), startHour: 8,  duration: 2,   color: "green",  status: "Scheduled",   property: "88 Willow Dr",     amount: 95   },
-  { id: 9,  title: "Roof Inspection",       client: "David Park",    date: schedDay(2),  startHour: 10, duration: 2.5, color: "blue",   status: "Scheduled",   property: "321 Aspen Blvd",  amount: 250  },
-  { id: 10, title: "Window Install",        client: "Karen White",   date: schedDay(5),  startHour: 9,  duration: 5,   color: "purple", status: "Scheduled",   property: "45 Spruce Rd",     amount: 1450 },
+  { id: 1,  title: "AC Installation",      client: "Travis Jones",  date: schedDay(0),  startHour: 9,  duration: 2,   color: "blue",   jobType: "Installation", status: "Scheduled",   property: "4405 N Clark Ave", amount: 2850 },
+  { id: 2,  title: "Plumbing Repair",       client: "Sarah Johnson", date: schedDay(0),  startHour: 13, duration: 1.5, color: "amber",  jobType: "Service",      status: "In Progress", property: "1220 Elm St",      amount: 425  },
+  { id: 3,  title: "HVAC Maintenance",      client: "Mike Davis",    date: schedDay(0),  startHour: 15, duration: 1,   color: "green",  jobType: "Maintenance",  status: "Completed",   property: "890 Oak Dr",       amount: 129  },
+  { id: 4,  title: "Electrical Inspection", client: "Lisa Brown",    date: schedDay(1),  startHour: 10, duration: 2,   color: "purple", jobType: "Estimate",     status: "Scheduled",   property: "567 Pine Rd",      amount: 175  },
+  { id: 5,  title: "Tree Removal",          client: "James Wilson",  date: schedDay(2),  startHour: 8,  duration: 4,   color: "red",    jobType: "Emergency",    status: "Scheduled",   property: "234 Maple Ln",     amount: 850  },
+  { id: 6,  title: "Gutter Cleaning",       client: "Anna Lee",      date: schedDay(3),  startHour: 11, duration: 1.5, color: "blue",   jobType: "Maintenance",  status: "Scheduled",   property: "56 Birch Ct",      amount: 180  },
+  { id: 7,  title: "Fence Repair",          client: "Tom Richards",  date: schedDay(-1), startHour: 9,  duration: 3,   color: "amber",  jobType: "Service",      status: "Scheduled",   property: "12 Cedar Way",     amount: 625  },
+  { id: 8,  title: "Lawn Service",          client: "Emily Clark",   date: schedDay(-2), startHour: 8,  duration: 2,   color: "green",  jobType: "Maintenance",  status: "Scheduled",   property: "88 Willow Dr",     amount: 95   },
+  { id: 9,  title: "Roof Inspection",       client: "David Park",    date: schedDay(2),  startHour: 10, duration: 2.5, color: "blue",   jobType: "Estimate",     status: "Scheduled",   property: "321 Aspen Blvd",  amount: 250  },
+  { id: 10, title: "Window Install",        client: "Karen White",   date: schedDay(5),  startHour: 9,  duration: 5,   color: "purple", jobType: "Installation", status: "Scheduled",   property: "45 Spruce Rd",     amount: 1450 },
 ];
 
 // Customers and their saved service locations — powers the create-job customer/address pickers.
@@ -1029,13 +1031,14 @@ export function Calendar() {
                       </div>
                       <div className="space-y-1">
                         {events.slice(0, 3).map((ev) => {
-                          const c = getC(ev.color);
+                          // Colour by job type (Figma legend), like the day/week cards.
+                          const typeColor = ev.jobType ? jobTypeColor(ev.jobType) : getC(ev.color).border;
                           return (
                             <div
                               key={ev.id}
                               onClick={(e) => { e.stopPropagation(); setSelectedEvent(ev); }}
                               className="rounded-lg px-3 py-2 text-[14px] leading-5 truncate cursor-pointer hover:shadow-sm transition-shadow"
-                              style={{ backgroundColor: `color-mix(in srgb, ${c.border} 6%, white)`, color: "#1A2332", borderLeft: `3px solid ${c.border}`, fontWeight: 600 }}
+                              style={{ backgroundColor: ev.jobType ? jobTypeTint(ev.jobType) : `color-mix(in srgb, ${typeColor} 6%, white)`, color: "#1A2332", borderLeft: `3px solid ${typeColor}`, fontWeight: 600 }}
                             >
                               {ev.title}
                             </div>

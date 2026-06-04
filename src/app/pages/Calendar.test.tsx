@@ -183,3 +183,26 @@ describe("Calendar — week view (integration)", () => {
     expect(screen.getAllByText("Maria Garcia")).toHaveLength(1);
   });
 });
+
+// Month view (Figma node 761:17962): a 7-column weekday grid of date cells with
+// colour-coded job cards + "+N more" overflow, the job-type legend, and a month
+// date nav. Smoke test that the month grid mounts with the weekday header.
+describe("Calendar — month view (integration)", () => {
+  beforeEach(() => {
+    localStorage.setItem("vision360.calendar.viewMode", "month");
+    businessHoursStore.setRows(DEFAULT_BUSINESS_HOURS.map((r) => ({ ...r, open: true })));
+  });
+
+  it("renders the 7 weekday column headers and the job-type legend", () => {
+    render(
+      <MemoryRouter initialEntries={["/calendar"]}>
+        <Calendar />
+      </MemoryRouter>,
+    );
+    ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].forEach((d) => {
+      expect(screen.getAllByText(d).length).toBeGreaterThan(0);
+    });
+    const legend = screen.getByTestId("job-type-legend");
+    expect(within(legend).getByText("Installation")).toBeInTheDocument();
+  });
+});
