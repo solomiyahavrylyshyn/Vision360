@@ -888,7 +888,8 @@ export function Calendar() {
   const pendingPanel = (
     <aside
       data-testid="pending-drawer"
-      className={`w-[340px] shrink-0 self-stretch flex flex-col rounded-xl border overflow-hidden transition-colors ${pendingDropActive ? "bg-[#4A6FA5]/5 border-[#4A6FA5]" : "bg-[#FAFBFC] border-[#E5E7EB]"}`}
+      className={`w-[340px] shrink-0 self-start sticky top-4 flex flex-col rounded-xl border overflow-hidden transition-colors ${pendingDropActive ? "bg-[#4A6FA5]/5 border-[#4A6FA5]" : "bg-[#FAFBFC] border-[#E5E7EB]"}`}
+      style={{ maxHeight: "calc(100vh - 96px)" }}
       onDragOver={(e) => { e.preventDefault(); setPendingDropActive(true); }}
       onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setPendingDropActive(false); }}
       onDrop={handleMoveToPending}
