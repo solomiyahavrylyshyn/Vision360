@@ -14,6 +14,7 @@ import {
 import routeMapImg from "../../assets/route-map.png";
 import { type JobStatus, JOB_STATUS_STYLES as STATUS_STYLES, JOB_STATUSES as ALL_JOB_STATUSES } from "../constants/jobStatuses";
 import { isPending, pendingJobs, type PendingFilter, hasTimeConflict, statusAfterAssignToSlot, statusAfterMoveToPending, durationForType, isDraggable, isShownOnBoard } from "../utils/scheduleLogic";
+import { jobTypeColor, jobTypeTint, JOB_TYPE_ORDER, JOB_TYPE_COLORS } from "../constants/jobTypeColors";
 
 interface CalendarEvent {
   id: number;
@@ -145,6 +146,9 @@ interface DayJob {
   amount: number;
   bg: string;
   border: string;
+  // Drives the card colour (border + tint) + legend, per the Figma design:
+  // Service / Maintenance / Installation / Estimate / Emergency.
+  jobType?: string;
   // Unscheduled = no fixed date/time yet (may or may not have a technician).
   // Such jobs live in the Pending column until a date is set.
   unscheduled?: boolean;
@@ -181,27 +185,27 @@ const TEAM: { id: string; name: string; initial: string; color: string }[] = [
 ];
 
 const DAY_JOBS: DayJob[] = [
-  { id: 1,  technicianId: "peter",  start: 8,    end: 10,   client: "Miller Residence",  service: "AC Repair",          address: "862 Pine St",          status: "Scheduled",   amount: 420,  bg: "#FEF3C7", border: "#F59E0B" },
-  { id: 2,  technicianId: "peter",  start: 10.5, end: 12,   client: "Taylor Home",       service: "Water Heater",       address: "852 Bay St",           status: "In Progress", amount: 1150, bg: "#EBF0F8", border: "#4A6FA5" },
-  { id: 3,  technicianId: "peter",  start: 13,   end: 15,   client: "Clark Residence",   service: "Receiver Upgrade",   address: "951 Hillside Dr",      status: "Scheduled",   amount: 2400, bg: "#EBF0F8", border: "#4A6FA5" },
-  { id: 4,  technicianId: "peter",  start: 15,   end: 17,   client: "Johnson Residence", service: "AC Not Cooling",     address: "1250 Oak Dr",          status: "Completed",   amount: 750,  bg: "#D1FAE5", border: "#16A34A" },
-  { id: 5,  technicianId: "travis", start: 8,    end: 10,   client: "Williams Home",     service: "Install New System", address: "5332 Pine Ridge Rd",   status: "Scheduled",   amount: 1800, bg: "#D1FAE5", border: "#16A34A" },
-  { id: 6,  technicianId: "travis", start: 11.5, end: 13.5, client: "Jackson Residence", service: "Leak Repair",        address: "951 Lake Dr",          status: "In Progress", amount: 2005, bg: "#FEE2E2", border: "#DC2626" },
-  { id: 7,  technicianId: "travis", start: 14,   end: 16,   client: "Cooper Office",     service: "Maintenance",        address: "600 Main St",          status: "Scheduled",   amount: 450,  bg: "#D1FAE5", border: "#16A34A" },
-  { id: 8,  technicianId: "maria",  start: 10,   end: 12,   client: "Brown Home",        service: "AC Repair",          address: "456 Elm St",           status: "Completed",   amount: 385,  bg: "#FEE2E2", border: "#DC2626" },
-  { id: 9,  technicianId: "maria",  start: 13,   end: 14.5, client: "Anderson Office",   service: "Duct Cleaning",      address: "777 Business Park Dr", status: "Scheduled",   amount: 600,  bg: "#FEE2E2", border: "#DC2626" },
-  { id: 10, technicianId: "maria",  start: 15.5, end: 17.5, client: "Hall Home",         service: "Water Heater",       address: "753 Summit St",        status: "Scheduled",   amount: 750,  bg: "#D1FAE5", border: "#16A34A" },
-  { id: 11, technicianId: "maria",  start: 8,    end: 9,    client: "Smith Residence",   service: "Estimate",           address: "123 Oak St",           status: "Scheduled",   amount: 0,    bg: "#F3F4F6", border: "#6B7280" },
+  { id: 1,  technicianId: "peter",  start: 8,    end: 10,   client: "Miller Residence",  service: "AC Repair",          jobType: "Service",      address: "862 Pine St",          status: "Scheduled",   amount: 420,  bg: "#FEF3C7", border: "#F59E0B" },
+  { id: 2,  technicianId: "peter",  start: 10.5, end: 12,   client: "Taylor Home",       service: "Water Heater",       jobType: "Installation", address: "852 Bay St",           status: "In Progress", amount: 1150, bg: "#EBF0F8", border: "#4A6FA5" },
+  { id: 3,  technicianId: "peter",  start: 13,   end: 15,   client: "Clark Residence",   service: "Receiver Upgrade",   jobType: "Installation", address: "951 Hillside Dr",      status: "Scheduled",   amount: 2400, bg: "#EBF0F8", border: "#4A6FA5" },
+  { id: 4,  technicianId: "peter",  start: 15,   end: 17,   client: "Johnson Residence", service: "AC Not Cooling",     jobType: "Service",      address: "1250 Oak Dr",          status: "Completed",   amount: 750,  bg: "#D1FAE5", border: "#16A34A" },
+  { id: 5,  technicianId: "travis", start: 8,    end: 10,   client: "Williams Home",     service: "Install New System", jobType: "Installation", address: "5332 Pine Ridge Rd",   status: "Scheduled",   amount: 1800, bg: "#D1FAE5", border: "#16A34A" },
+  { id: 6,  technicianId: "travis", start: 11.5, end: 13.5, client: "Jackson Residence", service: "Leak Repair",        jobType: "Emergency",    address: "951 Lake Dr",          status: "In Progress", amount: 2005, bg: "#FEE2E2", border: "#DC2626" },
+  { id: 7,  technicianId: "travis", start: 14,   end: 16,   client: "Cooper Office",     service: "Maintenance",        jobType: "Maintenance",  address: "600 Main St",          status: "Scheduled",   amount: 450,  bg: "#D1FAE5", border: "#16A34A" },
+  { id: 8,  technicianId: "maria",  start: 10,   end: 12,   client: "Brown Home",        service: "AC Repair",          jobType: "Service",      address: "456 Elm St",           status: "Completed",   amount: 385,  bg: "#FEE2E2", border: "#DC2626" },
+  { id: 9,  technicianId: "maria",  start: 13,   end: 14.5, client: "Anderson Office",   service: "Duct Cleaning",      jobType: "Maintenance",  address: "777 Business Park Dr", status: "Scheduled",   amount: 600,  bg: "#FEE2E2", border: "#DC2626" },
+  { id: 10, technicianId: "maria",  start: 15.5, end: 17.5, client: "Hall Home",         service: "Water Heater",       jobType: "Installation", address: "753 Summit St",        status: "Scheduled",   amount: 750,  bg: "#D1FAE5", border: "#16A34A" },
+  { id: 11, technicianId: "maria",  start: 8,    end: 9,    client: "Smith Residence",   service: "Estimate",           jobType: "Estimate",     address: "123 Oak St",           status: "Scheduled",   amount: 0,    bg: "#F3F4F6", border: "#6B7280" },
   // Unassigned jobs (no technicianId yet) — show up in the right-side
   // "Unassigned" panel so a dispatcher can drag them onto a tech's lane.
-  { id: 12, technicianId: "",       start: 9,    end: 11,   client: "Garcia Residence",  service: "AC Repair",          address: "320 Birch Ln",         status: "Scheduled",   amount: 380,  bg: "#FEF3C7", border: "#F59E0B" },
-  { id: 13, technicianId: "",       start: 13,   end: 14,   client: "Nguyen Home",       service: "Estimate",           address: "12 Sunset Ave",        status: "Scheduled",   amount: 0,    bg: "#F3F4F6", border: "#6B7280" },
-  { id: 14, technicianId: "",       start: 15,   end: 17,   client: "Patel Office",      service: "Maintenance",        address: "880 Commerce Blvd",    status: "Scheduled",   amount: 220,  bg: "#D1FAE5", border: "#16A34A" },
+  { id: 12, technicianId: "",       start: 9,    end: 11,   client: "Garcia Residence",  service: "AC Repair",          jobType: "Service",      address: "320 Birch Ln",         status: "Scheduled",   amount: 380,  bg: "#FEF3C7", border: "#F59E0B" },
+  { id: 13, technicianId: "",       start: 13,   end: 14,   client: "Nguyen Home",       service: "Estimate",           jobType: "Estimate",     address: "12 Sunset Ave",        status: "Scheduled",   amount: 0,    bg: "#F3F4F6", border: "#6B7280" },
+  { id: 14, technicianId: "",       start: 15,   end: 17,   client: "Patel Office",      service: "Maintenance",        jobType: "Maintenance",  address: "880 Commerce Blvd",    status: "Scheduled",   amount: 220,  bg: "#D1FAE5", border: "#16A34A" },
   // Unscheduled jobs — no fixed date/time yet (waiting on the customer). The
   // no-date state is derived from `unscheduled`, NOT a status: these keep a
   // workflow status (Scheduled) and show "No date" in the Pending column.
-  { id: 15, technicianId: "",       start: 9,    end: 10,   client: "Clark Residence",   service: "AC Install",         address: "951 Hillside Dr",      status: "Scheduled",   amount: 4200, bg: "#EDE9FE", border: "#7C3AED", unscheduled: true },
-  { id: 16, technicianId: "",       start: 9,    end: 10,   client: "Reyes Home",        service: "Furnace Tune-Up",    address: "44 Vista Way",         status: "Scheduled",   amount: 160,  bg: "#FEF3C7", border: "#F59E0B", unscheduled: true },
+  { id: 15, technicianId: "",       start: 9,    end: 10,   client: "Clark Residence",   service: "AC Install",         jobType: "Installation", address: "951 Hillside Dr",      status: "Scheduled",   amount: 4200, bg: "#EDE9FE", border: "#7C3AED", unscheduled: true },
+  { id: 16, technicianId: "",       start: 9,    end: 10,   client: "Reyes Home",        service: "Furnace Tune-Up",    jobType: "Maintenance",  address: "44 Vista Way",         status: "Scheduled",   amount: 160,  bg: "#FEF3C7", border: "#F59E0B", unscheduled: true },
 ];
 
 // Day view constants
@@ -955,18 +959,13 @@ export function Calendar() {
               </button>
             )}
           </div>
-          {/* Job-type legend */}
-          <div className="flex items-center gap-3 flex-wrap justify-end">
-            {[
-              { label: "Service",      color: "#F59E0B" },
-              { label: "Maintenance",  color: "#16A34A" },
-              { label: "Installation", color: "#4A6FA5" },
-              { label: "Estimate",     color: "#6B7280" },
-              { label: "Emergency",    color: "#DC2626" },
-            ].map((item) => (
-              <div key={item.label} className="flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-sm shrink-0" style={{ backgroundColor: item.color }} />
-                <span className="text-[13px] text-[#6B7280] whitespace-nowrap" style={{ fontWeight: 500 }}>{item.label}</span>
+          {/* Job-type legend — colours sourced from the shared constant so the
+              key and the cards can never drift (matches the Figma legend). */}
+          <div data-testid="job-type-legend" className="flex items-center gap-3 flex-wrap justify-end">
+            {JOB_TYPE_ORDER.map((label) => (
+              <div key={label} className="flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-sm shrink-0" style={{ backgroundColor: JOB_TYPE_COLORS[label] }} />
+                <span className="text-[13px] text-[#6B7280] whitespace-nowrap" style={{ fontWeight: 500 }}>{label}</span>
               </div>
             ))}
           </div>
@@ -1551,6 +1550,9 @@ export function Calendar() {
                           const width = (job.end - job.start) * HOUR_WIDTH - 6;
                           const routeNumber = idx + 1;
                           const statusStyle = STATUS_STYLES[job.status];
+                          // Card colour follows the JOB TYPE (per the Figma legend);
+                          // technician identity is the lane + the route-number badge.
+                          const typeColor = jobTypeColor(job.jobType);
                           // Backlog: completed jobs are locked (not draggable, faded).
                           const canDrag = isDraggable(job.status);
                           return (
@@ -1561,15 +1563,16 @@ export function Calendar() {
                               role="button"
                               tabIndex={0}
                               aria-label={`Job for ${job.client}, ${job.service}, ${formatRegionalTime(job.start, regionalSettings)}-${formatRegionalTime(job.end, regionalSettings)}, status ${job.status}${canDrag ? "" : " (locked)"}`}
+                              title={`${job.client} — ${job.service}${job.jobType ? ` (${job.jobType})` : ""}\n${job.address}\n${formatRegionalTime(job.start, regionalSettings)}–${formatRegionalTime(job.end, regionalSettings)} · ${job.status}`}
                               className={`absolute rounded-lg overflow-hidden hover:shadow-md transition-shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-[#4A6FA5] ${canDrag ? "cursor-grab active:cursor-grabbing" : "cursor-default"}`}
                               style={{
                                 left,
                                 width: Math.max(width, 60),
                                 top: 15,
                                 height: 92,
-                                backgroundColor: `color-mix(in srgb, ${job.border} 6%, white)`,
-                                borderLeft: `3px solid ${job.border}`,
-                                boxShadow: selectedDayJob?.id === job.id ? `0 0 0 2px ${job.border}` : "none",
+                                backgroundColor: jobTypeTint(job.jobType),
+                                borderLeft: `3px solid ${typeColor}`,
+                                boxShadow: selectedDayJob?.id === job.id ? `0 0 0 2px ${typeColor}` : "none",
                                 opacity: canDrag ? 1 : 0.6,
                               }}
                               onDragStart={(event) => {
@@ -1596,7 +1599,7 @@ export function Calendar() {
                                 <div className="text-[14px] leading-5 text-[#6B7280] truncate shrink-0" style={{ fontWeight: 500 }}>{job.service}</div>
                                 <div className="flex items-center justify-between gap-2 mt-auto shrink-0">
                                   {job.amount > 0 ? (
-                                    <span className="text-[14px] leading-5 tabular-nums shrink-0" style={{ fontWeight: 500, color: job.border }}>${job.amount.toLocaleString()}</span>
+                                    <span className="text-[14px] leading-5 tabular-nums shrink-0" style={{ fontWeight: 500, color: typeColor }}>${job.amount.toLocaleString()}</span>
                                   ) : (
                                     <span className="text-[14px] leading-5 text-[#9CA3AF] shrink-0" style={{ fontWeight: 500 }}>—</span>
                                   )}
@@ -1667,7 +1670,19 @@ export function Calendar() {
                       <div className="text-[12px] text-[#9CA3AF]">{pendingFilter === "all" ? "Nothing pending" : pendingFilter === "both" ? "No unassigned + unscheduled jobs" : `No ${pendingFilter} jobs`}</div>
                     </div>
                   ) : (
-                    pendingDayJobs.map((job) => (
+                    pendingDayJobs.map((job) => {
+                      const typeColor = jobTypeColor(job.jobType);
+                      // The Pending card's badge shows the DERIVED state (per the
+                      // Figma design): Paused > Unscheduled (no date) > Unassigned
+                      // (no technician). Priority order matters for combos.
+                      const stateBadge = job.status === "Paused"
+                        ? { label: "Paused", color: STATUS_STYLES.Paused.color, bg: STATUS_STYLES.Paused.bg }
+                        : job.unscheduled
+                        ? { label: "Unscheduled", color: "#6B7280", bg: "rgba(107,114,128,0.15)" }
+                        : !job.technicianId
+                        ? { label: "Unassigned", color: "#6B7280", bg: "rgba(107,114,128,0.15)" }
+                        : { label: job.status, color: STATUS_STYLES[job.status].color, bg: STATUS_STYLES[job.status].bg };
+                      return (
                       <div
                         key={job.id}
                         data-job-card="true"
@@ -1675,21 +1690,21 @@ export function Calendar() {
                         onDragStart={(event) => event.dataTransfer.setData("text/plain", `day:${job.id}`)}
                         onClick={() => setSelectedDayJob(job)}
                         className="bg-white border border-[#E5E7EB] rounded-lg p-2.5 cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow"
-                        style={{ borderLeft: `3px solid ${job.border}` }}
-                        title="Drag onto a technician's lane to assign"
+                        style={{ borderLeft: `3px solid ${typeColor}`, backgroundColor: jobTypeTint(job.jobType) }}
+                        title={`${job.client} — ${job.service}${job.jobType ? ` (${job.jobType})` : ""}\n${job.address}\n${job.unscheduled ? "No date" : `${formatRegionalTime(job.start, regionalSettings)}–${formatRegionalTime(job.end, regionalSettings)}`} · ${stateBadge.label}`}
                       >
                         <div className="flex items-center justify-between gap-2 text-[10px] text-[#9CA3AF] tabular-nums">
                           <span className="flex items-center gap-1 min-w-0">
                             {job.status === "Paused" && (
-                              <span className="material-icons text-[#B45309] shrink-0" style={{ fontSize: "13px" }} title="Paused — higher priority">pause_circle</span>
+                              <span className="material-icons text-[#A856F7] shrink-0" style={{ fontSize: "13px" }} title="Paused — higher priority">pause_circle</span>
                             )}
                             <span className="truncate">{job.unscheduled ? "No date" : `${formatRegionalTime(job.start, regionalSettings)} – ${formatRegionalTime(job.end, regionalSettings)}`}</span>
                           </span>
                           <span
                             className="px-1.5 py-0.5 rounded-full text-[9px] max-w-[88px] truncate"
-                            style={{ backgroundColor: STATUS_STYLES[job.status].bg, color: STATUS_STYLES[job.status].color, fontWeight: 700 }}
+                            style={{ backgroundColor: stateBadge.bg, color: stateBadge.color, fontWeight: 700 }}
                           >
-                            {job.status}
+                            {stateBadge.label}
                           </span>
                         </div>
                         <div className="text-[12px] text-[#1A2332] mt-1 truncate" style={{ fontWeight: 700 }}>{job.client}</div>
@@ -1697,7 +1712,7 @@ export function Calendar() {
                         <div className="text-[11px] text-[#9CA3AF] truncate mt-0.5">{job.address}</div>
                         <div className="mt-1 flex items-center justify-between gap-2">
                           {job.amount > 0 ? (
-                            <span className="text-[11px] tabular-nums" style={{ fontWeight: 700, color: job.border }}>${job.amount.toLocaleString()}</span>
+                            <span className="text-[11px] tabular-nums" style={{ fontWeight: 700, color: typeColor }}>${job.amount.toLocaleString()}</span>
                           ) : (
                             <span className="text-[11px] text-[#9CA3AF]">—</span>
                           )}
@@ -1707,7 +1722,8 @@ export function Calendar() {
                           </span>
                         </div>
                       </div>
-                    ))
+                      );
+                    })
                   )}
                 </div>
               </aside>

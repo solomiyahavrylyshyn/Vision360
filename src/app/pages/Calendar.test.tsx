@@ -106,6 +106,25 @@ describe("Calendar — daily Dispatch board (integration)", () => {
     expect(within(moved).getByText(/No date/)).toBeInTheDocument();
   });
 
+  it("shows the job-type legend with the five Figma types", () => {
+    renderDayBoard();
+    const legend = screen.getByTestId("job-type-legend");
+    ["Service", "Maintenance", "Installation", "Estimate", "Emergency"].forEach((label) => {
+      expect(within(legend).getByText(label)).toBeInTheDocument();
+    });
+  });
+
+  it("Pending cards show the derived state badge (Unscheduled / Unassigned)", () => {
+    renderDayBoard();
+    const aside = screen.getByRole("complementary") as HTMLElement;
+    // Reyes Home (seed 16) has no date → "Unscheduled".
+    const reyes = within(aside).getByText("Reyes Home").closest('[data-job-card="true"]') as HTMLElement;
+    expect(within(reyes).getByText("Unscheduled")).toBeInTheDocument();
+    // Garcia Residence (seed 12) has a date but no technician → "Unassigned".
+    const garcia = within(aside).getByText("Garcia Residence").closest('[data-job-card="true"]') as HTMLElement;
+    expect(within(garcia).getByText("Unassigned")).toBeInTheDocument();
+  });
+
   it("locks completed jobs on the board: not draggable; others stay draggable", () => {
     renderDayBoard();
     // Johnson Residence (seed job 4) is Completed in Peter's lane → locked.
