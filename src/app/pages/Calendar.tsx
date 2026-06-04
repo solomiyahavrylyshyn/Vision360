@@ -912,7 +912,8 @@ export function Calendar() {
       data-testid="pending-drawer"
       className={`w-[340px] shrink-0 self-start sticky top-4 flex flex-col rounded-xl border overflow-hidden transition-colors ${pendingDropActive ? "bg-[#4A6FA5]/5 border-[#4A6FA5]" : "bg-[#FAFBFC] border-[#E5E7EB]"}`}
       style={{ maxHeight: "calc(100vh - 96px)" }}
-      onDragOver={(e) => { e.preventDefault(); setPendingDropActive(true); }}
+      onDragEnter={(e) => { e.preventDefault(); setPendingDropActive(true); }}
+      onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setPendingDropActive(true); }}
       onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setPendingDropActive(false); }}
       onDrop={handleMoveToPending}
     >
@@ -1389,7 +1390,7 @@ export function Calendar() {
                                       borderLeft: `3px solid ${typeColor}`,
                                       boxShadow: isSelected ? `0 0 0 2px ${typeColor}` : "none",
                                     }}
-                                    onDragStart={(event) => event.dataTransfer.setData("text/plain", `week:${job.id}`)}
+                                    onDragStart={(event) => { event.dataTransfer.effectAllowed = "move"; event.dataTransfer.setData("text/plain", `week:${job.id}`); }}
                                     onClick={() => setSelectedDispatchJob(isSelected ? null : job)}
                                     onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setSelectedDispatchJob(isSelected ? null : job); } }}
                                     onDoubleClick={(event) => event.stopPropagation()}
@@ -1720,6 +1721,7 @@ export function Calendar() {
                               }}
                               onDragStart={(event) => {
                                 if (!canDrag) { event.preventDefault(); return; }
+                                event.dataTransfer.effectAllowed = "move";
                                 event.dataTransfer.setData("text/plain", `day:${job.id}`);
                               }}
                               onClick={() => {
