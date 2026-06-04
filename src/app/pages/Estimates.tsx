@@ -497,7 +497,7 @@ export function Estimates() {
             <AdvancedFilterField label="Amount max">
               <input type="number" min="0" placeholder="Any" value={amountMax} onChange={(e) => { setAmountMax(e.target.value); setPage(1); }} className={advancedInputClass} />
             </AdvancedFilterField>
-            <AdvancedFilterField label="Team member">
+            <AdvancedFilterField label="Technician">
               <select value={teamFilter} onChange={(e) => { setTeamFilter(e.target.value); setPage(1); }} className={advancedSelectClass}>
                 <option>All</option>
                 {teamMembers.map((member) => <option key={member}>{member}</option>)}
