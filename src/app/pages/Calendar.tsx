@@ -1277,11 +1277,11 @@ export function Calendar() {
                                           {routeNumber}
                                         </span>
                                       </div>
-                                      <div className="text-[11px] leading-tight truncate shrink-0" style={{ fontWeight: 700, color: "#1A2332" }}>{job.client}</div>
-                                      <div className="text-[9px] text-[#546478] truncate shrink-0">{job.service}</div>
+                                      <div className="text-[11px] leading-tight truncate shrink-0" style={{ fontWeight: 700, color: "#1A2332" }}>{job.service}</div>
+                                      <div className="text-[9px] text-[#546478] truncate shrink-0">{job.client}</div>
                                       <div className="flex items-center justify-between gap-1 mt-auto shrink-0">
                                         {job.amount > 0 ? (
-                                          <span className="text-[10px] tabular-nums" style={{ fontWeight: 700, color: typeColor }}>${job.amount.toLocaleString()}</span>
+                                          <span className="text-[10px] tabular-nums" style={{ fontWeight: 700, color: typeColor }}>${job.amount.toLocaleString("en-US")}</span>
                                         ) : (
                                           <span className="text-[10px] text-[#9CA3AF]">-</span>
                                         )}
@@ -1614,11 +1614,11 @@ export function Calendar() {
                                     {routeNumber}
                                   </span>
                                 </div>
-                                <div className="text-[14px] leading-5 text-[#1A2332] truncate shrink-0" style={{ fontWeight: 600 }}>{job.client}</div>
-                                <div className="text-[14px] leading-5 text-[#6B7280] truncate shrink-0" style={{ fontWeight: 500 }}>{job.service}</div>
+                                <div className="text-[14px] leading-5 text-[#1A2332] truncate shrink-0" style={{ fontWeight: 600 }}>{job.service}</div>
+                                <div className="text-[14px] leading-5 text-[#6B7280] truncate shrink-0" style={{ fontWeight: 500 }}>{job.client}</div>
                                 <div className="flex items-center justify-between gap-2 mt-auto shrink-0">
                                   {job.amount > 0 ? (
-                                    <span className="text-[14px] leading-5 tabular-nums shrink-0" style={{ fontWeight: 500, color: typeColor }}>${job.amount.toLocaleString()}</span>
+                                    <span className="text-[14px] leading-5 tabular-nums shrink-0" style={{ fontWeight: 500, color: typeColor }}>${job.amount.toLocaleString("en-US")}</span>
                                   ) : (
                                     <span className="text-[14px] leading-5 text-[#9CA3AF] shrink-0" style={{ fontWeight: 500 }}>—</span>
                                   )}
@@ -1726,7 +1726,7 @@ export function Calendar() {
                         <div className="text-[11px] text-[#546478] truncate">{job.client}</div>
                         <div className="mt-1.5 flex items-center justify-between gap-2">
                           {job.amount > 0 ? (
-                            <span className="text-[12px] tabular-nums" style={{ fontWeight: 700, color: typeColor }}>${job.amount.toLocaleString()}</span>
+                            <span className="text-[12px] tabular-nums" style={{ fontWeight: 700, color: typeColor }}>${job.amount.toLocaleString("en-US")}</span>
                           ) : (
                             <span className="text-[12px] text-[#9CA3AF]">—</span>
                           )}
