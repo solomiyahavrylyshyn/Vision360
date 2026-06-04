@@ -57,6 +57,7 @@ describe("Calendar — daily Dispatch board (integration)", () => {
     expect(screen.getByRole("option", { name: "Show all" })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: "Show unassigned" })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: "Show unscheduled" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Show scheduled" })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: "Show paused" })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: "Show unassigned + unscheduled" })).toBeInTheDocument();
   });

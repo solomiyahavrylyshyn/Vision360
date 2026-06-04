@@ -1659,6 +1659,7 @@ export function Calendar() {
                     <option value="all">Show all</option>
                     <option value="unassigned">Show unassigned</option>
                     <option value="unscheduled">Show unscheduled</option>
+                    <option value="scheduled">Show scheduled</option>
                     <option value="paused">Show paused</option>
                     <option value="both">Show unassigned + unscheduled</option>
                   </select>

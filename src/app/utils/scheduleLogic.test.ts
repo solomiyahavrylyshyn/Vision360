@@ -98,12 +98,15 @@ describe("pending membership & filter (AC: unassigned=no tech; unscheduled=no da
     expect(isPending(both)).toBe(true);
     expect(isPending(normal)).toBe(false);
   });
-  it("filter: all / unassigned / unscheduled / both", () => {
+  it("filter: all / unassigned / unscheduled / scheduled / both", () => {
     const all = [unassigned, unscheduledWithTech, both, normal];
     expect(pendingJobs(all, "all").map((j) => j.id).sort()).toEqual([1, 2, 3]);
     expect(pendingJobs(all, "unassigned").map((j) => j.id).sort()).toEqual([1, 3]);
     expect(pendingJobs(all, "unscheduled").map((j) => j.id).sort()).toEqual([2, 3]);
     expect(pendingJobs(all, "both").map((j) => j.id)).toEqual([3]);
+    // "scheduled" = pending jobs that DO have a date (not unscheduled).
+    // Only the unassigned-with-date job (id 1) qualifies.
+    expect(pendingJobs(all, "scheduled").map((j) => j.id)).toEqual([1]);
   });
   it("pendingFilterMatch is consistent with pendingJobs", () => {
     expect(pendingFilterMatch(unscheduledWithTech, "unassigned")).toBe(false);

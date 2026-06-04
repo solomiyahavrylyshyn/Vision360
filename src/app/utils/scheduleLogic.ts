@@ -73,7 +73,10 @@ export function statusAfterMoveToPending(prev: JobStatus): JobStatus {
 //  - Paused      = was started then pulled back; pause icon; HIGHER priority
 //    (customer mid-service, waiting) → sorted to the top of the column.
 //  - The Pending column holds anything unassigned OR unscheduled OR paused.
-export type PendingFilter = "all" | "unassigned" | "unscheduled" | "paused" | "both";
+//  - "scheduled" (walkthrough-13): within Pending, the jobs that DO have a date
+//    for the selected period but are still unassigned — Marek's "don't forget
+//    today's must-do jobs" view.
+export type PendingFilter = "all" | "unassigned" | "unscheduled" | "scheduled" | "paused" | "both";
 
 type PendingShape = Pick<SchedulableJob, "technicianId" | "unscheduled" | "status">;
 
@@ -94,6 +97,7 @@ export function pendingFilterMatch(job: PendingShape, filter: PendingFilter): bo
   switch (filter) {
     case "unassigned": return isUnassigned(job);
     case "unscheduled": return isUnscheduled(job);
+    case "scheduled": return !isUnscheduled(job); // pending but HAS a date
     case "paused": return isPaused(job);
     case "both": return isUnassigned(job) && isUnscheduled(job);
     case "all":
