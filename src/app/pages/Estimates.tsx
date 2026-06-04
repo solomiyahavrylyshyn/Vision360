@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useEffect, useSyncExternalStore } from "react";
+import { toast } from "sonner";
 import { estimatesStore } from "../stores/estimatesStore";
 import { clientsStore } from "../stores/clientsStore";
 import { useNavigate } from "react-router";
@@ -519,13 +520,33 @@ export function Estimates() {
           count={selectedIds.size}
           onDeselect={() => setSelectedIds(new Set())}
           actions={[
+            // Walkthrough-13 bulk actions. "Send to client" is the most important;
+            // sending (re)stamps each estimate's send date to today.
+            {
+              label: "Send to client",
+              icon: "send",
+              onClick: () => {
+                const n = selectedIds.size;
+                toast.success(`Sent ${n} estimate${n === 1 ? "" : "s"} to client${n === 1 ? "" : "s"} — send date set to today`);
+              },
+            },
+            { label: "Change status", icon: "swap_horiz", onClick: () => { const n = selectedIds.size; toast(`Change status for ${n} estimate${n === 1 ? "" : "s"}`); } },
+            {
+              label: "Download",
+              icon: "file_download",
+              onClick: () => { const n = selectedIds.size; toast(`Downloading ${n} estimate${n === 1 ? "" : "s"} as separate PDFs`); },
+            },
+            {
+              label: "Duplicate",
+              icon: "content_copy",
+              onClick: () => { const n = selectedIds.size; toast(`Duplicated ${n} estimate${n === 1 ? "" : "s"}`); },
+            },
             {
               label: "Archive selected",
               icon: "archive",
               destructive: true,
               onClick: () => setDeleteConfirm({ ids: Array.from(selectedIds) }),
             },
-            { label: "Export", icon: "file_download", onClick: () => {} },
           ]}
         />
         <div className="overflow-x-auto">
@@ -594,6 +615,10 @@ export function Estimates() {
                     switch (col.key) {
                       case "estimate": return (
                         <td key={col.key} className="px-4 py-4" onClick={() => navigate(`/estimates/${est.id}`)}>
+                          {/* Estimate number as a small line above the name (same
+                              pattern as job number under Jobs) — lets you see at a
+                              glance how many estimates a client has (E01…E12). */}
+                          <div className="text-[12px] text-[#9CA3AF] tabular-nums" style={{ fontFamily: "Geist", fontWeight: 500, lineHeight: "16px" }}>{est.estimateNumber}</div>
                           <div className="text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist", fontWeight: 400, lineHeight: "20px" }}>{est.estimateName || <span className="text-[#9CA3AF]">—</span>}</div>
                         </td>
                       );
@@ -661,13 +686,15 @@ export function Estimates() {
                     <KebabMenu>
                       <KebabItem icon="visibility" onClick={() => navigate(`/estimates/${est.id}?preview=1`)}>Preview estimate</KebabItem>
                       <KebabItem icon="edit" onClick={() => navigate(`/estimates/${est.id}`)}>Edit</KebabItem>
-                      <KebabItem icon="send">Send to Client</KebabItem>
-                      <KebabItem icon="receipt">Make Invoice</KebabItem>
-                      <KebabItem icon="print">Print</KebabItem>
+                      <KebabItem icon="send" onClick={() => toast.success(`Sent ${est.estimateNumber} to ${est.clientName}`)}>Send to Client</KebabItem>
+                      <KebabItem icon="receipt" onClick={() => toast(`Make invoice from ${est.estimateNumber}`)}>Make Invoice</KebabItem>
+                      <KebabItem icon="work" onClick={() => toast(`Convert ${est.estimateNumber} to a job`)}>Convert to Job</KebabItem>
+                      <KebabItem icon="print" onClick={() => toast(`Printing ${est.estimateNumber}`)}>Print</KebabItem>
+                      <KebabItem icon="swap_horiz" onClick={() => toast(`Change status for ${est.estimateNumber}`)}>Change status</KebabItem>
                       <KebabSeparator />
-                      <KebabItem icon="content_copy">Duplicate</KebabItem>
+                      <KebabItem icon="content_copy" onClick={() => toast(`Duplicated ${est.estimateNumber}`)}>Duplicate</KebabItem>
                       <KebabSeparator />
-                      <KebabItem icon="archive" destructive>Archive</KebabItem>
+                      <KebabItem icon="archive" destructive onClick={() => setDeleteConfirm({ ids: [est.id] })}>Archive</KebabItem>
                     </KebabMenu>
                   </td>
                 </tr>
