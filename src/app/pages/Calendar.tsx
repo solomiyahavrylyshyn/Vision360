@@ -13,6 +13,7 @@ import {
 } from "date-fns";
 import routeMapImg from "../../assets/route-map.png";
 import { type JobStatus, JOB_STATUS_STYLES as STATUS_STYLES, JOB_STATUSES as ALL_JOB_STATUSES } from "../constants/jobStatuses";
+import { isPending, pendingJobs, type PendingFilter, hasTimeConflict, statusAfterAssignToSlot, durationForType } from "../utils/scheduleLogic";
 
 interface CalendarEvent {
   id: number;
@@ -258,11 +259,9 @@ export function Calendar() {
   const [unassignedPanelOpen, setUnassignedPanelOpen] = useState(true);
   // "Pending jobs" bucket = everything still in the right column: no technician
   // (unassigned) and/or no fixed date/time (unscheduled). The filter narrows it.
-  const [pendingFilter, setPendingFilter] = useState<"all" | "unassigned" | "unscheduled">("all");
-  const pendingBucket = dayJobs.filter(j => !j.technicianId);
-  const pendingDayJobs = pendingBucket.filter(j =>
-    pendingFilter === "unassigned" ? !j.unscheduled :
-    pendingFilter === "unscheduled" ? !!j.unscheduled : true);
+  const [pendingFilter, setPendingFilter] = useState<PendingFilter>("all");
+  const pendingBucket = dayJobs.filter(isPending);
+  const pendingDayJobs = pendingJobs(dayJobs, pendingFilter);
   const [monthEvents, setMonthEvents] = useState<CalendarEvent[]>(mockEvents);
   const [dropPreview, setDropPreview] = useState<DropPreview | null>(null);
   const [quickJobDraft, setQuickJobDraft] = useState<QuickJobDraft | null>(null);
@@ -454,7 +453,7 @@ export function Calendar() {
   const hasOverlap = (start: number, end: number, otherStart: number, otherEnd: number) => start < otherEnd && end > otherStart;
 
   const dayHasConflict = (jobs: DayJob[], jobId: number | null, technicianId: string, start: number, end: number) =>
-    jobs.some((job) => job.id !== jobId && job.technicianId === technicianId && hasOverlap(start, end, job.start, job.end));
+    hasTimeConflict(jobs, jobId, technicianId, start, end);
 
   const weekHasConflict = (jobs: DispatchJob[], jobId: number | null, dayIdx: number, technicianId: string, start: number, end: number) =>
     jobs.some((job) => job.id !== jobId && job.dayIdx === dayIdx && job.technicianId === technicianId && hasOverlap(start, end, job.start, job.end));
@@ -600,7 +599,10 @@ export function Calendar() {
         setConflictMessage("This day is closed in business hours.");
         return jobs;
       }
-      const duration = targetJob.end - targetJob.start;
+      // Pending jobs (no tech and/or no date) get a default duration by job
+      // type; already-scheduled jobs keep their length when moved slot→slot.
+      const fromPending = isPending(targetJob);
+      const duration = fromPending ? durationForType(targetJob.jobType) : (targetJob.end - targetJob.start);
       const dropEnd = Math.min(GANTT_END_HOUR, dropStart + duration);
       if (dayHasConflict(jobs, jobId, technicianId, dropStart, dropEnd)) {
         setConflictMessage("That move conflicts with another job for the same person.");
@@ -609,15 +611,16 @@ export function Calendar() {
       setConflictMessage(null);
       const nextJobs = jobs.map((job) => {
         if (job.id !== jobId) return job;
-        // Placing a job on a lane gives it a technician + time, so an
-        // unscheduled job becomes scheduled.
+        // Placing a job on a lane gives it a technician + time. Status follows
+        // the backlog rule: pending→Scheduled, paused→In Progress (resume),
+        // slot→slot unchanged.
         return {
           ...job,
           technicianId,
           start: dropStart,
           end: dropEnd,
           unscheduled: false,
-          status: job.status === "Unscheduled" ? "Scheduled" : job.status,
+          status: statusAfterAssignToSlot(job.status, fromPending),
         };
       });
       const movedJob = nextJobs.find((job) => job.id === jobId) ?? null;
@@ -1605,12 +1608,13 @@ export function Calendar() {
                 <div className="px-3 py-2 border-b border-[#E5E7EB] bg-white">
                   <select
                     value={pendingFilter}
-                    onChange={(e) => setPendingFilter(e.target.value as "all" | "unassigned" | "unscheduled")}
+                    onChange={(e) => setPendingFilter(e.target.value as PendingFilter)}
                     className="w-full h-8 px-2 rounded-md border border-[#E5E7EB] text-[12px] text-[#374151] bg-white focus:outline-none focus:border-[#4A6FA5] cursor-pointer"
                   >
                     <option value="all">Show all</option>
                     <option value="unassigned">Show unassigned</option>
                     <option value="unscheduled">Show unscheduled</option>
+                    <option value="both">Show unassigned + unscheduled</option>
                   </select>
                 </div>
                 <div className="overflow-y-auto p-3 space-y-2" style={{ maxHeight: "min(300px, calc(100vh - 280px))" }}>
