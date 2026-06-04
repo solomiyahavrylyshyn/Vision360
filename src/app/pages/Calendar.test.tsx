@@ -62,11 +62,12 @@ describe("Calendar — daily Dispatch board (integration)", () => {
     expect(screen.getByRole("option", { name: "Show unassigned + unscheduled" })).toBeInTheDocument();
   });
 
-  it("renders job cards with a client name and an unscheduled job shows 'No date'", () => {
+  it("renders job cards with a client name and an unscheduled job shows a no-date placeholder", () => {
     renderDayBoard();
-    // Pending seed jobs include an unscheduled one (Reyes Home) shown as 'No date'
+    // Pending seed jobs include an unscheduled one (Reyes Home) whose time row
+    // shows a dashes placeholder (per the mockup) instead of a real time range.
     expect(screen.getAllByText("Reyes Home").length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/No date/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/--:--/).length).toBeGreaterThan(0);
   });
 
   it("renders status badges and never shows Cancelled on the board", () => {
@@ -88,9 +89,9 @@ describe("Calendar — daily Dispatch board (integration)", () => {
     fireEvent.dragStart(card, { dataTransfer: dt });
     fireEvent.drop(aside, { dataTransfer: dt });
 
-    // Now it sits in the Pending column, shown as "No date".
+    // Now it sits in the Pending column with a no-date placeholder.
     const moved = within(aside).getByText("Miller Residence").closest('[data-job-card="true"]') as HTMLElement;
-    expect(within(moved).getByText(/No date/)).toBeInTheDocument();
+    expect(within(moved).getByText(/--:--/)).toBeInTheDocument();
   });
 
   it("an in-progress job dragged to Pending becomes Paused", () => {
@@ -104,7 +105,7 @@ describe("Calendar — daily Dispatch board (integration)", () => {
 
     const moved = within(aside).getByText("Taylor Home").closest('[data-job-card="true"]') as HTMLElement;
     expect(within(moved).getByText("Paused")).toBeInTheDocument();
-    expect(within(moved).getByText(/No date/)).toBeInTheDocument();
+    expect(within(moved).getByText(/--:--/)).toBeInTheDocument();
   });
 
   it("shows the job-type legend with the five Figma types", () => {

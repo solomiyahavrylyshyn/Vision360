@@ -1713,32 +1713,28 @@ export function Calendar() {
                         style={{ borderLeft: `3px solid ${typeColor}`, backgroundColor: jobTypeTint(job.jobType) }}
                         title={`${job.client} — ${job.service}${job.jobType ? ` (${job.jobType})` : ""}\n${job.address}\n${job.unscheduled ? "No date" : `${formatRegionalTime(job.start, regionalSettings)}–${formatRegionalTime(job.end, regionalSettings)}`} · ${stateBadge.label}`}
                       >
-                        <div className="flex items-center justify-between gap-2 text-[10px] text-[#9CA3AF] tabular-nums">
-                          <span className="flex items-center gap-1 min-w-0">
-                            {job.status === "Paused" && (
-                              <span className="material-icons text-[#A856F7] shrink-0" style={{ fontSize: "13px" }} title="Paused — higher priority">pause_circle</span>
-                            )}
-                            <span className="truncate">{job.unscheduled ? "No date" : `${formatRegionalTime(job.start, regionalSettings)} – ${formatRegionalTime(job.end, regionalSettings)}`}</span>
-                          </span>
+                        {/* Pending card layout per the Figma mockup: time (dashes
+                            when unscheduled) → service title (bold) → client →
+                            amount + derived state badge. No address / drag hint. */}
+                        <div className="flex items-center gap-1 text-[10px] text-[#9CA3AF] tabular-nums">
+                          {job.status === "Paused" && (
+                            <span className="material-icons text-[#A856F7] shrink-0" style={{ fontSize: "13px" }} title="Paused — higher priority">pause_circle</span>
+                          )}
+                          <span className="truncate">{job.unscheduled ? "--:-- – --:--" : `${formatRegionalTime(job.start, regionalSettings)} – ${formatRegionalTime(job.end, regionalSettings)}`}</span>
+                        </div>
+                        <div className="text-[13px] text-[#1A2332] mt-1 truncate" style={{ fontWeight: 700 }}>{job.service}</div>
+                        <div className="text-[11px] text-[#546478] truncate">{job.client}</div>
+                        <div className="mt-1.5 flex items-center justify-between gap-2">
+                          {job.amount > 0 ? (
+                            <span className="text-[12px] tabular-nums" style={{ fontWeight: 700, color: typeColor }}>${job.amount.toLocaleString()}</span>
+                          ) : (
+                            <span className="text-[12px] text-[#9CA3AF]">—</span>
+                          )}
                           <span
-                            className="px-1.5 py-0.5 rounded-full text-[9px] max-w-[88px] truncate"
-                            style={{ backgroundColor: stateBadge.bg, color: stateBadge.color, fontWeight: 700 }}
+                            className="px-2 py-0.5 rounded-full text-[10px] max-w-[110px] truncate"
+                            style={{ backgroundColor: stateBadge.bg, color: stateBadge.color, fontWeight: 600 }}
                           >
                             {stateBadge.label}
-                          </span>
-                        </div>
-                        <div className="text-[12px] text-[#1A2332] mt-1 truncate" style={{ fontWeight: 700 }}>{job.client}</div>
-                        <div className="text-[11px] text-[#546478] truncate">{job.service}</div>
-                        <div className="text-[11px] text-[#9CA3AF] truncate mt-0.5">{job.address}</div>
-                        <div className="mt-1 flex items-center justify-between gap-2">
-                          {job.amount > 0 ? (
-                            <span className="text-[11px] tabular-nums" style={{ fontWeight: 700, color: typeColor }}>${job.amount.toLocaleString()}</span>
-                          ) : (
-                            <span className="text-[11px] text-[#9CA3AF]">—</span>
-                          )}
-                          <span className="text-[10px] text-[#9CA3AF] flex items-center gap-1">
-                            <span className="material-icons" style={{ fontSize: "12px" }}>drag_indicator</span>
-                            drag to assign
                           </span>
                         </div>
                       </div>
