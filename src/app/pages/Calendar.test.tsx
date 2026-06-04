@@ -1,8 +1,17 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, within, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
 import { Calendar } from "./Calendar";
 import { businessHoursStore, DEFAULT_BUSINESS_HOURS } from "../stores/businessHoursStore";
+
+// A minimal DataTransfer stand-in: jsdom doesn't implement drag-and-drop, so we
+// back setData/getData with a plain map and pass it through fireEvent.
+const makeDataTransfer = () => {
+  const store: Record<string, string> = {};
+  return { setData: (k: string, v: string) => { store[k] = v; }, getData: (k: string) => store[k] ?? "" };
+};
+const laneCardFor = (client: string): HTMLElement =>
+  screen.getAllByText(client).map((el) => el.closest('[data-job-card="true"]')).find(Boolean) as HTMLElement;
 
 // Integration / render test for the daily Dispatch board. Calendar uses native
 // HTML5 drag-and-drop (no DnD provider needed) and reads from in-memory stores,
@@ -65,6 +74,36 @@ describe("Calendar — daily Dispatch board (integration)", () => {
     expect(/Scheduled|In Progress|Completed/.test(body)).toBe(true);
     // No seed job is cancelled, and cancelled jobs must not appear on the board.
     expect(screen.queryByText("Cancelled")).not.toBeInTheDocument();
+  });
+
+  it("dragging a board job into Pending clears its date but keeps the technician", () => {
+    renderDayBoard();
+    const aside = screen.getByRole("complementary") as HTMLElement;
+    // Miller Residence (seed job 1, Scheduled) starts on Peter's lane — not pending.
+    expect(within(aside).queryByText("Miller Residence")).not.toBeInTheDocument();
+
+    const card = laneCardFor("Miller Residence");
+    const dt = makeDataTransfer();
+    fireEvent.dragStart(card, { dataTransfer: dt });
+    fireEvent.drop(aside, { dataTransfer: dt });
+
+    // Now it sits in the Pending column, shown as "No date".
+    const moved = within(aside).getByText("Miller Residence").closest('[data-job-card="true"]') as HTMLElement;
+    expect(within(moved).getByText(/No date/)).toBeInTheDocument();
+  });
+
+  it("an in-progress job dragged to Pending becomes Paused", () => {
+    renderDayBoard();
+    const aside = screen.getByRole("complementary") as HTMLElement;
+    // Taylor Home (seed job 2) is In Progress on Peter's lane.
+    const card = laneCardFor("Taylor Home");
+    const dt = makeDataTransfer();
+    fireEvent.dragStart(card, { dataTransfer: dt });
+    fireEvent.drop(aside, { dataTransfer: dt });
+
+    const moved = within(aside).getByText("Taylor Home").closest('[data-job-card="true"]') as HTMLElement;
+    expect(within(moved).getByText("Paused")).toBeInTheDocument();
+    expect(within(moved).getByText(/No date/)).toBeInTheDocument();
   });
 
   it("locks completed jobs on the board: not draggable; others stay draggable", () => {

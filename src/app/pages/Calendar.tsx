@@ -13,7 +13,7 @@ import {
 } from "date-fns";
 import routeMapImg from "../../assets/route-map.png";
 import { type JobStatus, JOB_STATUS_STYLES as STATUS_STYLES, JOB_STATUSES as ALL_JOB_STATUSES } from "../constants/jobStatuses";
-import { isPending, pendingJobs, type PendingFilter, hasTimeConflict, statusAfterAssignToSlot, durationForType, isDraggable, isShownOnBoard } from "../utils/scheduleLogic";
+import { isPending, pendingJobs, type PendingFilter, hasTimeConflict, statusAfterAssignToSlot, statusAfterMoveToPending, durationForType, isDraggable, isShownOnBoard } from "../utils/scheduleLogic";
 
 interface CalendarEvent {
   id: number;
@@ -83,7 +83,6 @@ function StatusPillSelect({ value, onChange }: { value: JobStatus; onChange: (ne
 }
 
 const nextStatus = (status: JobStatus): JobStatus => {
-  if (status === "Unscheduled") return "Scheduled";
   if (status === "Scheduled") return "Dispatched";
   if (status === "Dispatched") return "In Progress";
   if (status === "In Progress") return "Completed";
@@ -198,10 +197,11 @@ const DAY_JOBS: DayJob[] = [
   { id: 12, technicianId: "",       start: 9,    end: 11,   client: "Garcia Residence",  service: "AC Repair",          address: "320 Birch Ln",         status: "Scheduled",   amount: 380,  bg: "#FEF3C7", border: "#F59E0B" },
   { id: 13, technicianId: "",       start: 13,   end: 14,   client: "Nguyen Home",       service: "Estimate",           address: "12 Sunset Ave",        status: "Scheduled",   amount: 0,    bg: "#F3F4F6", border: "#6B7280" },
   { id: 14, technicianId: "",       start: 15,   end: 17,   client: "Patel Office",      service: "Maintenance",        address: "880 Commerce Blvd",    status: "Scheduled",   amount: 220,  bg: "#D1FAE5", border: "#16A34A" },
-  // Unscheduled jobs — no fixed date/time yet (waiting on the customer). They
-  // sit in the Pending column and are revealed by the "Unscheduled" filter.
-  { id: 15, technicianId: "",       start: 9,    end: 10,   client: "Clark Residence",   service: "AC Install",         address: "951 Hillside Dr",      status: "Unscheduled", amount: 4200, bg: "#EDE9FE", border: "#7C3AED", unscheduled: true },
-  { id: 16, technicianId: "",       start: 9,    end: 10,   client: "Reyes Home",        service: "Furnace Tune-Up",    address: "44 Vista Way",         status: "Unscheduled", amount: 160,  bg: "#FEF3C7", border: "#F59E0B", unscheduled: true },
+  // Unscheduled jobs — no fixed date/time yet (waiting on the customer). The
+  // no-date state is derived from `unscheduled`, NOT a status: these keep a
+  // workflow status (Scheduled) and show "No date" in the Pending column.
+  { id: 15, technicianId: "",       start: 9,    end: 10,   client: "Clark Residence",   service: "AC Install",         address: "951 Hillside Dr",      status: "Scheduled",   amount: 4200, bg: "#EDE9FE", border: "#7C3AED", unscheduled: true },
+  { id: 16, technicianId: "",       start: 9,    end: 10,   client: "Reyes Home",        service: "Furnace Tune-Up",    address: "44 Vista Way",         status: "Scheduled",   amount: 160,  bg: "#FEF3C7", border: "#F59E0B", unscheduled: true },
 ];
 
 // Day view constants
@@ -264,6 +264,7 @@ export function Calendar() {
   const pendingDayJobs = pendingJobs(dayJobs, pendingFilter);
   const [monthEvents, setMonthEvents] = useState<CalendarEvent[]>(mockEvents);
   const [dropPreview, setDropPreview] = useState<DropPreview | null>(null);
+  const [pendingDropActive, setPendingDropActive] = useState(false);
   const [quickJobDraft, setQuickJobDraft] = useState<QuickJobDraft | null>(null);
   const [conflictMessage, setConflictMessage] = useState<string | null>(null);
   const [selectedMapJobId, setSelectedMapJobId] = useState<number | null>(DAY_JOBS[0]?.id ?? null);
@@ -634,6 +635,29 @@ export function Calendar() {
     event.preventDefault();
     if (!isCurrentDateOpen) return;
     setDropPreview({ view: "day", technicianId, start: hourFromPointer(event) });
+  };
+
+  // Drag a board job back into the Pending column. Per the 2026-06 agreement it
+  // loses its DATE (becomes unscheduled) but KEEPS its technician for history;
+  // an in-progress job pauses. Completed/cancelled jobs can't be moved.
+  const handleMoveToPending = (event: DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    setPendingDropActive(false);
+    setDropPreview(null);
+    const [kind, rawId] = event.dataTransfer.getData("text/plain").split(":");
+    if (kind !== "day") return;
+    const jobId = Number(rawId);
+    setDayJobs((jobs) => {
+      const targetJob = jobs.find((job) => job.id === jobId);
+      if (!targetJob || isPending(targetJob) || !isDraggable(targetJob.status)) return jobs;
+      setConflictMessage(null);
+      setToast("Moved to Pending — date cleared, technician kept");
+      return jobs.map((job) =>
+        job.id === jobId
+          ? { ...job, unscheduled: true, status: statusAfterMoveToPending(job.status) }
+          : job,
+      );
+    });
   };
 
   const handleWeekSlotClick = (event: MouseEvent<HTMLDivElement>, date: Date, technicianId: string, dayIdx: number) => {
@@ -1465,6 +1489,9 @@ export function Calendar() {
                   {TEAM.map((member) => {
                     const memberJobs = filteredDayJobs
                       .filter((job) => job.technicianId === member.id)
+                      // Unscheduled (no date) jobs live in the Pending column, not on
+                      // the time grid — even though they keep their technician.
+                      .filter((job) => !job.unscheduled)
                       // Backlog: cancelled jobs are not shown on the board (working
                       // default per the open Marek question; they remain in lists).
                       .filter((job) => isShownOnBoard(job.status))
@@ -1598,7 +1625,13 @@ export function Calendar() {
             {/* Right: Unassigned jobs panel — shrinks the time grid to make room.
                 Each card is draggable onto a tech lane to assign + schedule. */}
             {unassignedPanelOpen && (
-              <aside className="shrink-0 flex flex-col bg-[#FAFBFC] border-l border-[#E5E7EB]" style={{ width: 280 }}>
+              <aside
+                className={`shrink-0 flex flex-col border-l transition-colors ${pendingDropActive ? "bg-[#4A6FA5]/5 border-[#4A6FA5]" : "bg-[#FAFBFC] border-[#E5E7EB]"}`}
+                style={{ width: 280 }}
+                onDragOver={(e) => { e.preventDefault(); setPendingDropActive(true); }}
+                onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setPendingDropActive(false); }}
+                onDrop={handleMoveToPending}
+              >
                 <div className="flex items-center gap-2 px-4 border-b border-[#E5E7EB] bg-white" style={{ height: 40 }}>
                   <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "18px" }}>inbox</span>
                   <span className="flex-1 text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>

@@ -3,8 +3,13 @@
 // tab. Jobs and appointments are unified in MVP, so every surface uses the
 // SAME full set — keep this list and the color map in lockstep here so the
 // statuses never drift between pages again.
+//
+// Per the 2026-06 Marek/Solomiia agreement, a job's DATE and ASSIGNEE are
+// independent of its workflow status: "unscheduled" (no date) and "unassigned"
+// (no technician) are DERIVED states, not statuses (a job can be Scheduled yet
+// have no date, or Scheduled + unassigned). So there are six workflow statuses
+// only — the no-date state is shown on the card as "No date".
 export type JobStatus =
-  | "Unscheduled"
   | "Scheduled"
   | "Dispatched"
   | "In Progress"
@@ -13,7 +18,6 @@ export type JobStatus =
   | "Paused";
 
 export const JOB_STATUSES: JobStatus[] = [
-  "Unscheduled",
   "Scheduled",
   "Dispatched",
   "In Progress",
@@ -24,7 +28,6 @@ export const JOB_STATUSES: JobStatus[] = [
 
 // `color` = text / dot color; `bg` = badge background (the color at low alpha).
 export const JOB_STATUS_STYLES: Record<JobStatus, { color: string; bg: string }> = {
-  Unscheduled:   { color: "#64748B", bg: "rgba(100,116,139,0.15)" },
   Scheduled:     { color: "#4A6FA5", bg: "rgba(74,111,165,0.15)" },
   Dispatched:    { color: "#0891B2", bg: "rgba(8,145,178,0.15)" },
   "In Progress": { color: "#F59E0B", bg: "rgba(245,158,11,0.15)" },

@@ -67,16 +67,16 @@ describe("statusAfterAssignToSlot (AC: pending→slot=scheduled, slot→slot unc
   });
 });
 
-describe("statusAfterMoveToPending (AC: in_progress→paused; move to pending keeps scheduled)", () => {
+describe("statusAfterMoveToPending (AC 2026-06: in_progress→paused; other statuses unchanged)", () => {
   it("in-progress dragged to the drawer pauses", () => {
     expect(statusAfterMoveToPending("In Progress")).toBe("Paused");
   });
   it("paused stays paused", () => {
     expect(statusAfterMoveToPending("Paused")).toBe("Paused");
   });
-  it("scheduled / dispatched moved to pending stay/return to Scheduled", () => {
+  it("scheduled / dispatched moved to pending keep their status (unchanged)", () => {
     expect(statusAfterMoveToPending("Scheduled")).toBe("Scheduled");
-    expect(statusAfterMoveToPending("Dispatched")).toBe("Scheduled");
+    expect(statusAfterMoveToPending("Dispatched")).toBe("Dispatched");
   });
 });
 

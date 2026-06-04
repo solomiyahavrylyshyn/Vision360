@@ -55,14 +55,13 @@ export function statusAfterAssignToSlot(prev: JobStatus, fromPending: boolean): 
   return prev;                                    // slot → slot keeps status
 }
 
-// Backlog:
-//  - Drag in_progress → Pending (drawer) → "Paused"
-//  - Moving a job to Pending keeps status "Scheduled"
-//  - Paused dragged to Pending stays "Paused"
+// Move to Pending (Marek/Solomiia 2026-06): the job loses its DATE (becomes
+// unscheduled) but KEEPS its technician for history. The workflow status is
+// unchanged EXCEPT an in-progress job pauses (it no longer has a slot).
+//  - In Progress → Paused
+//  - everything else (Scheduled, Dispatched, Paused) → unchanged
 export function statusAfterMoveToPending(prev: JobStatus): JobStatus {
-  if (prev === "In Progress") return "Paused";
-  if (prev === "Paused") return "Paused";
-  return "Scheduled";
+  return prev === "In Progress" ? "Paused" : prev;
 }
 
 // ── Pending column membership & filter ────────────────────────────────────
