@@ -39,10 +39,11 @@ describe("Calendar — daily Dispatch board (integration)", () => {
   it("renders the Pending jobs panel with its filter", () => {
     renderDayBoard();
     expect(screen.getAllByText(/Pending jobs/).length).toBeGreaterThan(0);
-    // Filter dropdown options (backlog: all / unassigned / unscheduled / both)
+    // Filter dropdown options (backlog/Marek 02.06: all / unassigned / unscheduled / paused / both)
     expect(screen.getByRole("option", { name: "Show all" })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: "Show unassigned" })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: "Show unscheduled" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Show paused" })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: "Show unassigned + unscheduled" })).toBeInTheDocument();
   });
 

@@ -1614,6 +1614,7 @@ export function Calendar() {
                     <option value="all">Show all</option>
                     <option value="unassigned">Show unassigned</option>
                     <option value="unscheduled">Show unscheduled</option>
+                    <option value="paused">Show paused</option>
                     <option value="both">Show unassigned + unscheduled</option>
                   </select>
                 </div>
@@ -1621,7 +1622,7 @@ export function Calendar() {
                   {pendingDayJobs.length === 0 ? (
                     <div className="py-10 text-center">
                       <span className="material-icons text-[#D1D5DB] mb-1 block" style={{ fontSize: "32px" }}>check_circle</span>
-                      <div className="text-[12px] text-[#9CA3AF]">{pendingFilter === "all" ? "Nothing pending" : `No ${pendingFilter} jobs`}</div>
+                      <div className="text-[12px] text-[#9CA3AF]">{pendingFilter === "all" ? "Nothing pending" : pendingFilter === "both" ? "No unassigned + unscheduled jobs" : `No ${pendingFilter} jobs`}</div>
                     </div>
                   ) : (
                     pendingDayJobs.map((job) => (
@@ -1636,7 +1637,12 @@ export function Calendar() {
                         title="Drag onto a technician's lane to assign"
                       >
                         <div className="flex items-center justify-between gap-2 text-[10px] text-[#9CA3AF] tabular-nums">
-                          <span>{job.unscheduled ? "No date" : `${formatRegionalTime(job.start, regionalSettings)} – ${formatRegionalTime(job.end, regionalSettings)}`}</span>
+                          <span className="flex items-center gap-1 min-w-0">
+                            {job.status === "Paused" && (
+                              <span className="material-icons text-[#B45309] shrink-0" style={{ fontSize: "13px" }} title="Paused — higher priority">pause_circle</span>
+                            )}
+                            <span className="truncate">{job.unscheduled ? "No date" : `${formatRegionalTime(job.start, regionalSettings)} – ${formatRegionalTime(job.end, regionalSettings)}`}</span>
+                          </span>
                           <span
                             className="px-1.5 py-0.5 rounded-full text-[9px] max-w-[88px] truncate"
                             style={{ backgroundColor: STATUS_STYLES[job.status].bg, color: STATUS_STYLES[job.status].color, fontWeight: 700 }}

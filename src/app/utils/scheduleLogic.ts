@@ -66,11 +66,17 @@ export function statusAfterMoveToPending(prev: JobStatus): JobStatus {
 }
 
 // ── Pending column membership & filter ────────────────────────────────────
-// Backlog (Pending jobs US):
-//  - Unassigned = has date, no technician
+// Backlog (Pending jobs US, per Marek 02.06):
+//  - ONE column "Pending jobs" with a dropdown:
+//      Show all / Unassigned / Unscheduled / PAUSED / Unassigned + Unscheduled
+//  - Unassigned  = has date, no technician (not started)
 //  - Unscheduled = no date (may or may not have a technician)
-//  - The Pending column holds anything unassigned OR unscheduled.
-export type PendingFilter = "all" | "unassigned" | "unscheduled" | "both";
+//  - Paused      = was started then pulled back; pause icon; HIGHER priority
+//    (customer mid-service, waiting) → sorted to the top of the column.
+//  - The Pending column holds anything unassigned OR unscheduled OR paused.
+export type PendingFilter = "all" | "unassigned" | "unscheduled" | "paused" | "both";
+
+type PendingShape = Pick<SchedulableJob, "technicianId" | "unscheduled" | "status">;
 
 export function isUnassigned(job: Pick<SchedulableJob, "technicianId">): boolean {
   return !job.technicianId;
@@ -78,28 +84,36 @@ export function isUnassigned(job: Pick<SchedulableJob, "technicianId">): boolean
 export function isUnscheduled(job: Pick<SchedulableJob, "unscheduled">): boolean {
   return !!job.unscheduled;
 }
-export function isPending(job: Pick<SchedulableJob, "technicianId" | "unscheduled">): boolean {
-  return isUnassigned(job) || isUnscheduled(job);
+export function isPaused(job: Pick<SchedulableJob, "status">): boolean {
+  return job.status === "Paused";
+}
+export function isPending(job: PendingShape): boolean {
+  return isUnassigned(job) || isUnscheduled(job) || isPaused(job);
 }
 
-export function pendingFilterMatch(
-  job: Pick<SchedulableJob, "technicianId" | "unscheduled">,
-  filter: PendingFilter,
-): boolean {
+export function pendingFilterMatch(job: PendingShape, filter: PendingFilter): boolean {
   switch (filter) {
     case "unassigned": return isUnassigned(job);
     case "unscheduled": return isUnscheduled(job);
+    case "paused": return isPaused(job);
     case "both": return isUnassigned(job) && isUnscheduled(job);
     case "all":
     default: return isPending(job);
   }
 }
 
-export function pendingJobs<T extends Pick<SchedulableJob, "technicianId" | "unscheduled">>(
-  jobs: T[],
-  filter: PendingFilter = "all",
-): T[] {
-  return jobs.filter((j) => isPending(j) && pendingFilterMatch(j, filter));
+// Paused jobs float to the top (HIGHER priority per the backlog). Otherwise the
+// input order is preserved (stable) so the list stays predictable.
+export function pendingJobs<T extends PendingShape>(jobs: T[], filter: PendingFilter = "all"): T[] {
+  return jobs
+    .filter((j) => isPending(j) && pendingFilterMatch(j, filter))
+    .map((j, i) => [j, i] as const)
+    .sort((a, b) => {
+      const pa = isPaused(a[0]) ? 0 : 1;
+      const pb = isPaused(b[0]) ? 0 : 1;
+      return pa !== pb ? pa - pb : a[1] - b[1]; // paused first, else stable
+    })
+    .map(([j]) => j);
 }
 
 // ── Time-conflict detection ───────────────────────────────────────────────

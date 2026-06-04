@@ -8,6 +8,7 @@ import {
   statusAfterMoveToPending,
   isUnassigned,
   isUnscheduled,
+  isPaused,
   isPending,
   pendingFilterMatch,
   pendingJobs,
@@ -107,6 +108,31 @@ describe("pending membership & filter (AC: unassigned=no tech; unscheduled=no da
   it("pendingFilterMatch is consistent with pendingJobs", () => {
     expect(pendingFilterMatch(unscheduledWithTech, "unassigned")).toBe(false);
     expect(pendingFilterMatch(unscheduledWithTech, "unscheduled")).toBe(true);
+  });
+});
+
+describe("paused in the Pending column (AC per Marek 02.06: PAUSED filter + higher priority)", () => {
+  // Paused = started then pulled back; released technician, may keep its date.
+  const paused = job({ id: 5, technicianId: "peter", unscheduled: false, status: "Paused" });
+  const unassigned = job({ id: 1, technicianId: "", unscheduled: false, status: "Scheduled" });
+  const normal = job({ id: 4, technicianId: "maria", unscheduled: false, status: "Scheduled" });
+
+  it("isPaused / a paused job counts as pending even if it still has a tech+date", () => {
+    expect(isPaused(paused)).toBe(true);
+    expect(isPaused(normal)).toBe(false);
+    expect(isPending(paused)).toBe(true);   // paused belongs in the column
+    expect(isPending(normal)).toBe(false);
+  });
+  it("the 'paused' filter returns only paused jobs", () => {
+    const all = [unassigned, paused, normal];
+    expect(pendingJobs(all, "paused").map((j) => j.id)).toEqual([5]);
+    expect(pendingFilterMatch(unassigned, "paused")).toBe(false);
+    expect(pendingFilterMatch(paused, "paused")).toBe(true);
+  });
+  it("paused jobs sort to the TOP of the column (higher priority), order otherwise stable", () => {
+    const all = [unassigned, normal, paused]; // paused last in input
+    // normal is not pending; result is [paused (priority), unassigned (stable)]
+    expect(pendingJobs(all, "all").map((j) => j.id)).toEqual([5, 1]);
   });
 });
 
