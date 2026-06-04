@@ -1312,9 +1312,10 @@ export function Calendar() {
 
             {/* Right: Job detail panel */}
 	            {selectedDispatchJob ? (
-	              <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setSelectedDispatchJob(null)}>
+	              <div className="fixed inset-0 z-50 flex justify-end" onClick={() => setSelectedDispatchJob(null)}>
                 <div className="absolute inset-0 bg-black/30 backdrop-blur-[1px]" />
-                <div className="relative w-[380px] max-w-[92vw] max-h-[85vh] shrink-0 flex flex-col overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white shadow-2xl" onClick={e => e.stopPropagation()}>
+                {/* Docked right-side job-info panel (matches Figma), not a modal. */}
+                <div className="relative w-[400px] max-w-[92vw] h-full shrink-0 flex flex-col overflow-hidden border-l border-[#E5E7EB] bg-white shadow-2xl" onClick={e => e.stopPropagation()}>
 	                <div className="flex items-center justify-between px-4 py-3.5 border-b border-[#E5E7EB] shrink-0">
 	                  <div className="flex items-center gap-2">
 	                    <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 700 }}>Job #{selectedDispatchJob.num}</span>
@@ -1749,9 +1750,11 @@ export function Calendar() {
             )}
 
             {selectedDayJob ? (
-              <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setSelectedDayJob(null)}>
+              <div className="fixed inset-0 z-50 flex justify-end" onClick={() => setSelectedDayJob(null)}>
                 <div className="absolute inset-0 bg-black/30 backdrop-blur-[1px]" />
-                <div className="relative w-[380px] max-w-[92vw] max-h-[85vh] shrink-0 flex flex-col overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white shadow-2xl" onClick={e => e.stopPropagation()}>
+                {/* Docked right-side "job-info" panel (matches Figma 876:72691 /
+                    761:19636) — not a centered modal. */}
+                <div className="relative w-[400px] max-w-[92vw] h-full shrink-0 flex flex-col overflow-hidden border-l border-[#E5E7EB] bg-white shadow-2xl" onClick={e => e.stopPropagation()}>
                 <div className="flex items-center justify-between px-4 py-3.5 border-b border-[#E5E7EB] shrink-0">
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="text-[14px] text-[#1A2332] truncate" style={{ fontWeight: 700 }}>Job #{selectedDayJob.id}</span>
