@@ -1047,8 +1047,8 @@ export function Calendar() {
             <button onClick={goForward} aria-label="Next" className="w-9 h-9 rounded-lg hover:bg-[#F0F2F5] flex items-center justify-center">
               <span className="material-icons text-[#546478]" style={{ fontSize: "20px" }}>chevron_right</span>
             </button>
-            {/* Pending-jobs toggle chip — only relevant on Day view */}
-            {viewMode === "day" && (
+            {/* Pending-jobs toggle chip — available on day, week and month views */}
+            {(
               <button
                 onClick={() => setUnassignedPanelOpen(o => !o)}
                 title={unassignedPanelOpen ? "Hide pending jobs panel" : "Show pending jobs panel"}
@@ -2043,7 +2043,7 @@ export function Calendar() {
         </div>
       )}
         </div>{/* /main board column */}
-        {viewMode === "day" && unassignedPanelOpen && pendingPanel}
+        {unassignedPanelOpen && pendingPanel}
       </div>{/* /board + drawer row */}
     </div>
   );
