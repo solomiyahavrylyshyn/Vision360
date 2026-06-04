@@ -9,6 +9,9 @@ import {
   isUnassigned,
   isUnscheduled,
   isPaused,
+  hasDate,
+  isAssigned,
+  belongsOnBoard,
   isPending,
   pendingFilterMatch,
   pendingJobs,
@@ -111,6 +114,33 @@ describe("pending membership & filter (AC: unassigned=no tech; unscheduled=no da
   it("pendingFilterMatch is consistent with pendingJobs", () => {
     expect(pendingFilterMatch(unscheduledWithTech, "unassigned")).toBe(false);
     expect(pendingFilterMatch(unscheduledWithTech, "unscheduled")).toBe(true);
+  });
+});
+
+describe("two-flag model (Marek): date + assignee are independent; filters overlap", () => {
+  const datedNoTech = job({ id: 1, technicianId: "", unscheduled: false });        // date, no tech
+  const techNoDate = job({ id: 2, technicianId: "peter", unscheduled: true });      // tech, no date
+  const both = job({ id: 3, technicianId: "peter", unscheduled: false });           // date + tech
+  const neither = job({ id: 4, technicianId: "", unscheduled: true });              // no date, no tech
+
+  it("hasDate / isAssigned are the two independent flags", () => {
+    expect(hasDate(datedNoTech)).toBe(true);
+    expect(isAssigned(datedNoTech)).toBe(false);
+    expect(hasDate(techNoDate)).toBe(false);
+    expect(isAssigned(techNoDate)).toBe(true);
+  });
+  it("a dated job with no technician is BOTH scheduled AND unassigned", () => {
+    expect(pendingFilterMatch(datedNoTech, "scheduled")).toBe(true);
+    expect(pendingFilterMatch(datedNoTech, "unassigned")).toBe(true);
+  });
+  it("a job is on the board ONLY with both a date and an assignee", () => {
+    expect(belongsOnBoard(both)).toBe(true);
+    expect(belongsOnBoard(datedNoTech)).toBe(false);   // missing assignee
+    expect(belongsOnBoard(techNoDate)).toBe(false);    // missing date
+    expect(belongsOnBoard(neither)).toBe(false);
+  });
+  it("cancelled never belongs on the board even with date + assignee", () => {
+    expect(belongsOnBoard(job({ technicianId: "peter", unscheduled: false, status: "Cancelled" }))).toBe(false);
   });
 });
 

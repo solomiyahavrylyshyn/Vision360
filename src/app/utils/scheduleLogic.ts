@@ -93,6 +93,27 @@ export function isPending(job: PendingShape): boolean {
   return isUnassigned(job) || isUnscheduled(job) || isPaused(job);
 }
 
+// ── The two-flag model (Marek) ────────────────────────────────────────────
+// A job is NOT a single status. It has two INDEPENDENT flags:
+//   1) a DATE        → hasDate(job)      (absence = "unscheduled")
+//   2) an ASSIGNEE   → isAssigned(job)   (absence = "unassigned")
+// The sidebar's "scheduled / unscheduled / unassigned" are PREDICATES over
+// these two flags, NOT an enum — and they OVERLAP: a dated job with no
+// technician is BOTH "scheduled" AND "unassigned" at the same time.
+// For developers: model this as `hasDate` + `assigneeId`, three sidebar
+// buttons = predicates, never a status column.
+export function hasDate(job: Pick<SchedulableJob, "unscheduled">): boolean {
+  return !isUnscheduled(job);
+}
+export function isAssigned(job: Pick<SchedulableJob, "technicianId">): boolean {
+  return !isUnassigned(job);
+}
+// A job appears on the calendar board ONLY when it has BOTH a date and an
+// assignee (and isn't cancelled). Everything else lives in the pending sidebar.
+export function belongsOnBoard(job: PendingShape): boolean {
+  return hasDate(job) && isAssigned(job) && isShownOnBoard(job.status);
+}
+
 export function pendingFilterMatch(job: PendingShape, filter: PendingFilter): boolean {
   switch (filter) {
     case "unassigned": return isUnassigned(job);
