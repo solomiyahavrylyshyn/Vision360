@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
 import { Calendar } from "./Calendar";
+import { businessHoursStore, DEFAULT_BUSINESS_HOURS } from "../stores/businessHoursStore";
 
 // Integration / render test for the daily Dispatch board. Calendar uses native
 // HTML5 drag-and-drop (no DnD provider needed) and reads from in-memory stores,
@@ -19,6 +20,10 @@ describe("Calendar — daily Dispatch board (integration)", () => {
   beforeEach(() => {
     // Force the Day view (default is Week) via its persistence key.
     localStorage.setItem("vision360.calendar.viewMode", "day");
+    // The board only renders technician lanes when the current date is an open
+    // business day. Tests run on the real wall-clock date, so force every day
+    // open to keep the lane assertions deterministic regardless of weekday.
+    businessHoursStore.setRows(DEFAULT_BUSINESS_HOURS.map((r) => ({ ...r, open: true })));
   });
 
   it("renders the Day/Week/Month view switcher", () => {
@@ -60,5 +65,22 @@ describe("Calendar — daily Dispatch board (integration)", () => {
     expect(/Scheduled|In Progress|Completed/.test(body)).toBe(true);
     // No seed job is cancelled, and cancelled jobs must not appear on the board.
     expect(screen.queryByText("Cancelled")).not.toBeInTheDocument();
+  });
+
+  it("locks completed jobs on the board: not draggable; others stay draggable", () => {
+    renderDayBoard();
+    // Johnson Residence (seed job 4) is Completed in Peter's lane → locked.
+    const completedCard = screen
+      .getAllByText("Johnson Residence")[0]
+      .closest('[data-job-card="true"]') as HTMLElement | null;
+    expect(completedCard).not.toBeNull();
+    expect(completedCard).toHaveAttribute("draggable", "false");
+
+    // Miller Residence (seed job 1) is Scheduled → still draggable.
+    const scheduledCard = screen
+      .getAllByText("Miller Residence")[0]
+      .closest('[data-job-card="true"]') as HTMLElement | null;
+    expect(scheduledCard).not.toBeNull();
+    expect(scheduledCard).toHaveAttribute("draggable", "true");
   });
 });

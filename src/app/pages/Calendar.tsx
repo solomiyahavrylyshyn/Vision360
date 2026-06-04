@@ -13,7 +13,7 @@ import {
 } from "date-fns";
 import routeMapImg from "../../assets/route-map.png";
 import { type JobStatus, JOB_STATUS_STYLES as STATUS_STYLES, JOB_STATUSES as ALL_JOB_STATUSES } from "../constants/jobStatuses";
-import { isPending, pendingJobs, type PendingFilter, hasTimeConflict, statusAfterAssignToSlot, durationForType } from "../utils/scheduleLogic";
+import { isPending, pendingJobs, type PendingFilter, hasTimeConflict, statusAfterAssignToSlot, durationForType, isDraggable, isShownOnBoard } from "../utils/scheduleLogic";
 
 interface CalendarEvent {
   id: number;
@@ -1465,6 +1465,9 @@ export function Calendar() {
                   {TEAM.map((member) => {
                     const memberJobs = filteredDayJobs
                       .filter((job) => job.technicianId === member.id)
+                      // Backlog: cancelled jobs are not shown on the board (working
+                      // default per the open Marek question; they remain in lists).
+                      .filter((job) => isShownOnBoard(job.status))
                       .sort((a, b) => a.start - b.start);
 
                     return (
@@ -1521,15 +1524,17 @@ export function Calendar() {
                           const width = (job.end - job.start) * HOUR_WIDTH - 6;
                           const routeNumber = idx + 1;
                           const statusStyle = STATUS_STYLES[job.status];
+                          // Backlog: completed jobs are locked (not draggable, faded).
+                          const canDrag = isDraggable(job.status);
                           return (
                             <div
                               key={job.id}
                               data-job-card="true"
-                              draggable
+                              draggable={canDrag}
                               role="button"
                               tabIndex={0}
-                              aria-label={`Job for ${job.client}, ${job.service}, ${formatRegionalTime(job.start, regionalSettings)}-${formatRegionalTime(job.end, regionalSettings)}, status ${job.status}`}
-                              className="absolute rounded-lg overflow-hidden cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-[#4A6FA5]"
+                              aria-label={`Job for ${job.client}, ${job.service}, ${formatRegionalTime(job.start, regionalSettings)}-${formatRegionalTime(job.end, regionalSettings)}, status ${job.status}${canDrag ? "" : " (locked)"}`}
+                              className={`absolute rounded-lg overflow-hidden hover:shadow-md transition-shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-[#4A6FA5] ${canDrag ? "cursor-grab active:cursor-grabbing" : "cursor-default"}`}
                               style={{
                                 left,
                                 width: Math.max(width, 60),
@@ -1538,8 +1543,12 @@ export function Calendar() {
                                 backgroundColor: `color-mix(in srgb, ${job.border} 6%, white)`,
                                 borderLeft: `3px solid ${job.border}`,
                                 boxShadow: selectedDayJob?.id === job.id ? `0 0 0 2px ${job.border}` : "none",
+                                opacity: canDrag ? 1 : 0.6,
                               }}
-                              onDragStart={(event) => event.dataTransfer.setData("text/plain", `day:${job.id}`)}
+                              onDragStart={(event) => {
+                                if (!canDrag) { event.preventDefault(); return; }
+                                event.dataTransfer.setData("text/plain", `day:${job.id}`);
+                              }}
                               onClick={() => {
                                 setSelectedDayJob(job);
                                 setSelectedMapJobId(job.id);
