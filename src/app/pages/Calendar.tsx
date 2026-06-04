@@ -48,6 +48,8 @@ interface DispatchJob {
   priority: string;
   jobType: string;
   source: string;
+  // no date yet (e.g. after a drag-back to Pending on the week view)
+  unscheduled?: boolean;
 }
 
 const COLORS = {
@@ -133,6 +135,10 @@ const dispatchJobs: DispatchJob[] = [
   { id: 8,  num: "2408", technicianId: "peter",  client: "Clark Resi...",  service: "Receiver Upgr.",  address: "951 Hillside Dr", status: "Scheduled",   dayIdx: 4, start: 8,    end: 10,   amount: 2400, bg: "#D1FAE5", border: "#16A34A", priority: "Normal", jobType: "Installation", source: "App"   },
   { id: 9,  num: "2409", technicianId: "maria",  client: "Hall Home",      service: "Receiver Upgr.",  address: "753 Summit St",   status: "Scheduled",   dayIdx: 4, start: 10.5, end: 12,   amount: 750,  bg: "#EDE9FE", border: "#7C3AED", priority: "Normal", jobType: "Installation", source: "Web"   },
   { id: 10, num: "2410", technicianId: "travis", client: "Lewis Resi...",  service: "Wiring Inspec.",  address: "952 Ridge Dr",    status: "Completed",   dayIdx: 5, start: 13,   end: 15,   amount: 180,  bg: "#FEF3C7", border: "#D97706", priority: "Normal", jobType: "Maintenance",  source: "Phone" },
+  // Pending week jobs so the sidebar shows pending on the week view too:
+  // unassigned = has a date but no technician; unscheduled = no date.
+  { id: 11, num: "2411", technicianId: "",       client: "Diaz Home",       service: "AC Repair",       address: "210 Park Ave",    status: "Scheduled",   dayIdx: 1, start: 9,    end: 11,   amount: 340,  bg: "#FEF3C7", border: "#F59E0B", priority: "Normal", jobType: "Service",      source: "Phone" },
+  { id: 12, num: "2412", technicianId: "",       client: "Reyes Office",    service: "Furnace Tune-Up", address: "44 Vista Way",    status: "Scheduled",   dayIdx: 3, start: 13,   end: 14,   amount: 160,  bg: "#D1FAE5", border: "#16A34A", priority: "Normal", jobType: "Maintenance",  source: "Web",   unscheduled: true },
 ];
 
 // ── Day View Data ──────────────────────────────────────────────────────────────
@@ -266,8 +272,13 @@ export function Calendar() {
   // "Pending jobs" bucket = everything still in the right column: no technician
   // (unassigned) and/or no fixed date/time (unscheduled). The filter narrows it.
   const [pendingFilter, setPendingFilter] = useState<PendingFilter>("all");
-  const pendingBucket = dayJobs.filter(isPending);
-  const pendingDayJobs = pendingJobs(dayJobs, pendingFilter);
+  // The pending sidebar reflects the active board: day view ↔ day jobs,
+  // week view ↔ week jobs. (Month uses the day bucket as a read-only reference
+  // since month cards aren't draggable.) This lets a scheduled card be dragged
+  // back to Pending on Week too, not just Day.
+  const pendingSource: (DayJob | DispatchJob)[] = viewMode === "week" ? weekJobs : dayJobs;
+  const pendingBucket = pendingSource.filter(isPending);
+  const pendingDayJobs = pendingJobs(pendingSource, pendingFilter);
   const [monthEvents, setMonthEvents] = useState<CalendarEvent[]>(mockEvents);
   const [dropPreview, setDropPreview] = useState<DropPreview | null>(null);
   const [pendingDropActive, setPendingDropActive] = useState(false);
@@ -436,7 +447,9 @@ export function Calendar() {
   const ganttTotalWidth = (GANTT_END_HOUR - GANTT_START_HOUR) * HOUR_WIDTH;
   const openWeekDayIndexes = new Set(weekDays.map((day, index) => isDateOpenForBusiness(day, businessHours) ? index : -1).filter(index => index >= 0));
   const filteredMonthEvents = monthEvents.filter(event => isDateOpenForBusiness(event.date, businessHours));
-  const filteredWeekJobs = weekJobs.filter(job => openWeekDayIndexes.has(job.dayIdx));
+  // Exclude unscheduled jobs (no date) from the week board — they live in the
+  // Pending sidebar, not on a day column (e.g. after a drag-back to Pending).
+  const filteredWeekJobs = weekJobs.filter(job => openWeekDayIndexes.has(job.dayIdx) && !job.unscheduled);
   const filteredDayJobs = isCurrentDateOpen ? dayJobs : [];
   const monthRevenue = filteredMonthEvents.reduce((sum, event) => sum + event.amount, 0);
   const weekRevenue = filteredWeekJobs.reduce((sum, job) => sum + job.amount, 0);
@@ -664,8 +677,21 @@ export function Calendar() {
     setPendingDropActive(false);
     setDropPreview(null);
     const [kind, rawId] = event.dataTransfer.getData("text/plain").split(":");
-    if (kind !== "day") return;
     const jobId = Number(rawId);
+    // Route to the board that owns the dragged card (day or week). Both apply
+    // the same rule: clear the date, keep the technician (Marek's leftover
+    // history); completed/cancelled and already-pending jobs are ignored.
+    if (kind === "week") {
+      setWeekJobs((jobs) => {
+        const targetJob = jobs.find((job) => job.id === jobId);
+        if (!targetJob || isPending(targetJob) || !isDraggable(targetJob.status)) return jobs;
+        setConflictMessage(null);
+        setToast("Moved to Pending — date cleared, technician kept");
+        return jobs.map((job) => (job.id === jobId ? applyMoveToPending(job) : job));
+      });
+      return;
+    }
+    if (kind !== "day") return;
     setDayJobs((jobs) => {
       const targetJob = jobs.find((job) => job.id === jobId);
       if (!targetJob || isPending(targetJob) || !isDraggable(targetJob.status)) return jobs;
@@ -939,8 +965,8 @@ export function Calendar() {
                 key={job.id}
                 data-job-card="true"
                 draggable
-                onDragStart={(event) => event.dataTransfer.setData("text/plain", `day:${job.id}`)}
-                onClick={() => setSelectedDayJob(job)}
+                onDragStart={(event) => event.dataTransfer.setData("text/plain", `${viewMode === "week" ? "week" : "day"}:${job.id}`)}
+                onClick={() => (viewMode === "week" ? setSelectedDispatchJob(job as DispatchJob) : setSelectedDayJob(job as DayJob))}
                 className="bg-white border border-[#E5E7EB] rounded-lg p-2.5 cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow"
                 style={{ borderLeft: `3px solid ${typeColor}`, backgroundColor: jobTypeTint(job.jobType) }}
                 title={`${job.client} — ${job.service}${job.jobType ? ` (${job.jobType})` : ""}\n${job.address}\n${job.unscheduled ? "No date" : `${formatRegionalTime(job.start, regionalSettings)}–${formatRegionalTime(job.end, regionalSettings)}`} · ${stateBadge.label}`}

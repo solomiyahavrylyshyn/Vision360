@@ -183,6 +183,36 @@ describe("Calendar — week view (integration)", () => {
     expect(screen.getAllByText("Travis Brown")).toHaveLength(1);
     expect(screen.getAllByText("Maria Garcia")).toHaveLength(1);
   });
+
+  it("shows the Pending drawer with week pending jobs", () => {
+    render(
+      <MemoryRouter initialEntries={["/calendar"]}>
+        <Calendar />
+      </MemoryRouter>,
+    );
+    const aside = screen.getByRole("complementary") as HTMLElement;
+    // Seeded week pending jobs (unassigned / unscheduled) show in the week drawer.
+    expect(within(aside).getByText("Diaz Home")).toBeInTheDocument();
+    expect(within(aside).getByText("Reyes Office")).toBeInTheDocument();
+  });
+
+  it("drag a scheduled WEEK job to Pending → unscheduled (off the board, in the drawer)", () => {
+    render(
+      <MemoryRouter initialEntries={["/calendar"]}>
+        <Calendar />
+      </MemoryRouter>,
+    );
+    const aside = screen.getByRole("complementary") as HTMLElement;
+    // Week job 1 (Smith Resi…) is scheduled+assigned → NOT in the pending drawer yet.
+    expect(within(aside).queryByText("Smith Resi...")).not.toBeInTheDocument();
+    // Simulate dropping a week board card onto the drawer (week: payload).
+    const dt = makeDataTransfer();
+    dt.setData("text/plain", "week:1");
+    fireEvent.drop(aside, { dataTransfer: dt });
+    // Now it's pending (unscheduled) and appears in the drawer.
+    const moved = within(aside).getByText("Smith Resi...").closest('[data-job-card="true"]') as HTMLElement;
+    expect(within(moved).getByText(/--:--/)).toBeInTheDocument();
+  });
 });
 
 // Month view (Figma node 761:17962): a 7-column weekday grid of date cells with
