@@ -7,6 +7,7 @@ import {
   statusAfterAssignToSlot,
   statusAfterMoveToPending,
   applyMoveToPending,
+  applyUnassign,
   isUnassigned,
   isUnscheduled,
   isPaused,
@@ -96,6 +97,20 @@ describe("applyMoveToPending (Marek transcript lines 312-348: remove date, KEEP 
     expect(r.unscheduled).toBe(true);
     expect(r.technicianId).toBe("peter");
     expect(r.status).toBe("Paused");
+  });
+});
+
+describe("applyUnassign (brief §6: keep the date, drop the technician)", () => {
+  it("removes the technician but KEEPS the date → scheduled + unassigned", () => {
+    const r = applyUnassign(job({ technicianId: "travis", unscheduled: false, status: "Scheduled" }));
+    expect(r.technicianId).toBe("");          // technician dropped
+    expect(r.unscheduled).toBeFalsy();        // date kept (still scheduled)
+    expect(isUnassigned(r)).toBe(true);
+    expect(hasDate(r)).toBe(true);
+    // It's the overlap: matches BOTH scheduled and unassigned, off the board.
+    expect(pendingFilterMatch(r, "scheduled")).toBe(true);
+    expect(pendingFilterMatch(r, "unassigned")).toBe(true);
+    expect(belongsOnBoard(r)).toBe(false);
   });
 });
 

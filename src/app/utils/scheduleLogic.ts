@@ -73,6 +73,14 @@ export function applyMoveToPending<T extends { status: JobStatus }>(job: T): T &
   return { ...job, unscheduled: true, status: statusAfterMoveToPending(job.status) };
 }
 
+// Unassign on board (brief §6 + Marek's overlap, line 288): KEEP the date,
+// drop the technician. The job becomes "scheduled + unassigned" — it leaves the
+// board (no technician) but still has a date, so it stays under the "scheduled"
+// filter and also appears under "unassigned". The opposite of move-to-pending.
+export function applyUnassign<T extends { technicianId: string }>(job: T): T {
+  return { ...job, technicianId: "" };
+}
+
 // ── Pending column membership & filter ────────────────────────────────────
 // Backlog (Pending jobs US, per Marek 02.06):
 //  - ONE column "Pending jobs" with a dropdown:

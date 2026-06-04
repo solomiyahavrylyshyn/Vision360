@@ -13,7 +13,7 @@ import {
 } from "date-fns";
 import routeMapImg from "../../assets/route-map.png";
 import { type JobStatus, JOB_STATUS_STYLES as STATUS_STYLES, JOB_STATUSES as ALL_JOB_STATUSES } from "../constants/jobStatuses";
-import { isPending, pendingJobs, type PendingFilter, hasTimeConflict, statusAfterAssignToSlot, applyMoveToPending, durationForType, isDraggable, isShownOnBoard } from "../utils/scheduleLogic";
+import { isPending, pendingJobs, type PendingFilter, hasTimeConflict, statusAfterAssignToSlot, applyMoveToPending, applyUnassign, durationForType, isDraggable, isShownOnBoard } from "../utils/scheduleLogic";
 import { jobTypeColor, jobTypeTint, JOB_TYPE_ORDER, JOB_TYPE_COLORS } from "../constants/jobTypeColors";
 
 interface CalendarEvent {
@@ -1567,6 +1567,21 @@ export function Calendar() {
                       Move to Pending
                     </button>
                   )}
+                  {selectedDispatchJob.technicianId && isDraggable(selectedDispatchJob.status) && (
+                    <button
+                      onClick={() => {
+                        const id = selectedDispatchJob.id;
+                        setWeekJobs((jobs) => jobs.map((j) => (j.id === id ? applyUnassign(j) : j)));
+                        setToast("Technician unassigned — date kept (scheduled + unassigned)");
+                        setSelectedDispatchJob(null);
+                      }}
+                      className="w-full mt-2 py-2 border border-[#E5E7EB] text-[#546478] rounded-lg text-[12px] hover:bg-[#F5F7FA] transition-colors flex items-center justify-center gap-1.5"
+                      style={{ fontWeight: 500 }}
+                    >
+                      <span className="material-icons" style={{ fontSize: "16px" }}>person_remove</span>
+                      Unassign technician
+                    </button>
+                  )}
                 </div>
                 </div>
               </div>
@@ -1922,6 +1937,21 @@ export function Calendar() {
                     >
                       <span className="material-icons" style={{ fontSize: "16px" }}>inbox</span>
                       Move to Pending
+                    </button>
+                  )}
+                  {selectedDayJob.technicianId && isDraggable(selectedDayJob.status) && (
+                    <button
+                      onClick={() => {
+                        const id = selectedDayJob.id;
+                        setDayJobs((jobs) => jobs.map((j) => (j.id === id ? applyUnassign(j) : j)));
+                        setToast("Technician unassigned — date kept (scheduled + unassigned)");
+                        setSelectedDayJob(null);
+                      }}
+                      className="w-full mt-2 py-2 border border-[#E5E7EB] text-[#546478] rounded-lg text-[12px] hover:bg-[#F5F7FA] transition-colors flex items-center justify-center gap-1.5"
+                      style={{ fontWeight: 500 }}
+                    >
+                      <span className="material-icons" style={{ fontSize: "16px" }}>person_remove</span>
+                      Unassign technician
                     </button>
                   )}
                 </div>
