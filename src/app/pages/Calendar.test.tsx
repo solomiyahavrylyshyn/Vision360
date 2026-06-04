@@ -143,3 +143,29 @@ describe("Calendar — daily Dispatch board (integration)", () => {
     expect(scheduledCard).toHaveAttribute("draggable", "true");
   });
 });
+
+// Week view (Figma node 759:5307): a vertical stack of expandable day sections,
+// each with the technician×time grid, plus the job-type legend. This is a smoke
+// test that the stacked-day week layout mounts and renders day headers.
+describe("Calendar — week view (integration)", () => {
+  beforeEach(() => {
+    localStorage.setItem("vision360.calendar.viewMode", "week");
+    businessHoursStore.setRows(DEFAULT_BUSINESS_HOURS.map((r) => ({ ...r, open: true })));
+  });
+
+  it("renders the stacked day-section headers and the job-type legend", () => {
+    render(
+      <MemoryRouter initialEntries={["/calendar"]}>
+        <Calendar />
+      </MemoryRouter>,
+    );
+    // One header row per day of the week → at least 5 weekday-prefixed labels.
+    const dayHeaders = screen.getAllByText(/^(Mon|Tue|Wed|Thu|Fri|Sat|Sun)\s/);
+    expect(dayHeaders.length).toBeGreaterThanOrEqual(5);
+    // Legend is shared across views and must be present in week mode too.
+    const legend = screen.getByTestId("job-type-legend");
+    ["Service", "Maintenance", "Installation", "Estimate", "Emergency"].forEach((label) => {
+      expect(within(legend).getByText(label)).toBeInTheDocument();
+    });
+  });
+});

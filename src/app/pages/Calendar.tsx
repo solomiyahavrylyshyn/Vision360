@@ -121,16 +121,16 @@ const CUSTOMERS: { name: string; locations: string[] }[] = [
 ];
 
 const dispatchJobs: DispatchJob[] = [
-  { id: 1,  num: "2401", technicianId: "peter",  client: "Smith Resi...",  service: "AC Repair",       address: "123 Main St",     status: "Scheduled",   dayIdx: 1, start: 8,    end: 10,   amount: 89,   bg: "#EBF0F8", border: "#4A6FA5", priority: "Normal", jobType: "Repair",       source: "Phone" },
-  { id: 2,  num: "2402", technicianId: "travis", client: "Miller Resi...", service: "AC Repair",       address: "862 Pine St",     status: "In Progress", dayIdx: 1, start: 8,    end: 10,   amount: 210,  bg: "#EBF0F8", border: "#4A6FA5", priority: "Normal", jobType: "Repair",       source: "Web"   },
-  { id: 3,  num: "2403", technicianId: "maria",  client: "Brown Ho...",    service: "AC Repair",       address: "456 Elm St",      status: "Completed",   dayIdx: 1, start: 10,   end: 12,   amount: 385,  bg: "#FEF3C7", border: "#D97706", priority: "High",   jobType: "Repair",       source: "Phone" },
+  { id: 1,  num: "2401", technicianId: "peter",  client: "Smith Resi...",  service: "AC Repair",       address: "123 Main St",     status: "Scheduled",   dayIdx: 1, start: 8,    end: 10,   amount: 89,   bg: "#EBF0F8", border: "#4A6FA5", priority: "Normal", jobType: "Service",      source: "Phone" },
+  { id: 2,  num: "2402", technicianId: "travis", client: "Miller Resi...", service: "AC Repair",       address: "862 Pine St",     status: "In Progress", dayIdx: 1, start: 8,    end: 10,   amount: 210,  bg: "#EBF0F8", border: "#4A6FA5", priority: "Normal", jobType: "Service",      source: "Web"   },
+  { id: 3,  num: "2403", technicianId: "maria",  client: "Brown Ho...",    service: "AC Repair",       address: "456 Elm St",      status: "Completed",   dayIdx: 1, start: 10,   end: 12,   amount: 385,  bg: "#FEF3C7", border: "#D97706", priority: "High",   jobType: "Service",      source: "Phone" },
   { id: 4,  num: "2404", technicianId: "peter",  client: "Wilson Ho...",   service: "AC Tune-Up",      address: "135 Cedar Dr",    status: "Scheduled",   dayIdx: 2, start: 8,    end: 10,   amount: 2005, bg: "#EBF0F8", border: "#4A6FA5", priority: "Normal", jobType: "Maintenance",  source: "App"   },
-  { id: 5,  num: "2405", technicianId: "travis", client: "Taylor Home",    service: "Water Heater",    address: "852 Bay St",      status: "Scheduled",   dayIdx: 2, start: 8,    end: 11,   amount: 2005, bg: "#EDE9FE", border: "#7C3AED", priority: "Normal", jobType: "Repair",       source: "Phone" },
-  { id: 6,  num: "2406", technicianId: "travis", client: "Jackson R...",   service: "Leak Repair",     address: "951 Lake Dr",     status: "In Progress", dayIdx: 2, start: 11.5, end: 13.5, amount: 320,  bg: "#FEE2E2", border: "#DC2626", priority: "High",   jobType: "Repair",       source: "Phone" },
-  { id: 7,  num: "2407", technicianId: "maria",  client: "Moore Resi...",  service: "AC Repair",       address: "753 Spruce St",   status: "Scheduled",   dayIdx: 2, start: 12.5, end: 14.5, amount: 129,  bg: "#EBF0F8", border: "#4A6FA5", priority: "Normal", jobType: "Repair",       source: "Web"   },
+  { id: 5,  num: "2405", technicianId: "travis", client: "Taylor Home",    service: "Water Heater",    address: "852 Bay St",      status: "Scheduled",   dayIdx: 2, start: 8,    end: 11,   amount: 2005, bg: "#EDE9FE", border: "#7C3AED", priority: "Normal", jobType: "Installation", source: "Phone" },
+  { id: 6,  num: "2406", technicianId: "travis", client: "Jackson R...",   service: "Leak Repair",     address: "951 Lake Dr",     status: "In Progress", dayIdx: 2, start: 11.5, end: 13.5, amount: 320,  bg: "#FEE2E2", border: "#DC2626", priority: "High",   jobType: "Emergency",    source: "Phone" },
+  { id: 7,  num: "2407", technicianId: "maria",  client: "Moore Resi...",  service: "AC Repair",       address: "753 Spruce St",   status: "Scheduled",   dayIdx: 2, start: 12.5, end: 14.5, amount: 129,  bg: "#EBF0F8", border: "#4A6FA5", priority: "Normal", jobType: "Service",      source: "Web"   },
   { id: 8,  num: "2408", technicianId: "peter",  client: "Clark Resi...",  service: "Receiver Upgr.",  address: "951 Hillside Dr", status: "Scheduled",   dayIdx: 4, start: 8,    end: 10,   amount: 2400, bg: "#D1FAE5", border: "#16A34A", priority: "Normal", jobType: "Installation", source: "App"   },
   { id: 9,  num: "2409", technicianId: "maria",  client: "Hall Home",      service: "Receiver Upgr.",  address: "753 Summit St",   status: "Scheduled",   dayIdx: 4, start: 10.5, end: 12,   amount: 750,  bg: "#EDE9FE", border: "#7C3AED", priority: "Normal", jobType: "Installation", source: "Web"   },
-  { id: 10, num: "2410", technicianId: "travis", client: "Lewis Resi...",  service: "Wiring Inspec.",  address: "952 Ridge Dr",    status: "Completed",   dayIdx: 5, start: 13,   end: 15,   amount: 180,  bg: "#FEF3C7", border: "#D97706", priority: "Normal", jobType: "Inspection",   source: "Phone" },
+  { id: 10, num: "2410", technicianId: "travis", client: "Lewis Resi...",  service: "Wiring Inspec.",  address: "952 Ridge Dr",    status: "Completed",   dayIdx: 5, start: 13,   end: 15,   amount: 180,  bg: "#FEF3C7", border: "#D97706", priority: "Normal", jobType: "Maintenance",  source: "Phone" },
 ];
 
 // ── Day View Data ──────────────────────────────────────────────────────────────
@@ -1229,6 +1229,8 @@ export function Calendar() {
                                 const isSelected = selectedDispatchJob?.id === job.id;
                                 const routeNumber = idx + 1;
                                 const statusStyle = STATUS_STYLES[job.status];
+                                // Card colour by job type (Figma legend) — matches the day board.
+                                const typeColor = jobTypeColor(job.jobType);
                                 return (
                                   <div
                                     key={job.id}
@@ -1243,9 +1245,9 @@ export function Calendar() {
                                       width: Math.max(width, 70),
                                       top: 8,
                                       height: 76,
-                                      backgroundColor: job.bg,
-                                      borderLeft: `3px solid ${job.border}`,
-                                      boxShadow: isSelected ? `0 0 0 2px ${job.border}` : "none",
+                                      backgroundColor: jobTypeTint(job.jobType),
+                                      borderLeft: `3px solid ${typeColor}`,
+                                      boxShadow: isSelected ? `0 0 0 2px ${typeColor}` : "none",
                                     }}
                                     onDragStart={(event) => event.dataTransfer.setData("text/plain", `week:${job.id}`)}
                                     onClick={() => setSelectedDispatchJob(isSelected ? null : job)}
@@ -1263,7 +1265,7 @@ export function Calendar() {
                                       <div className="text-[9px] text-[#546478] truncate shrink-0">{job.service}</div>
                                       <div className="flex items-center justify-between gap-1 mt-auto shrink-0">
                                         {job.amount > 0 ? (
-                                          <span className="text-[10px] tabular-nums" style={{ fontWeight: 700, color: job.border }}>${job.amount.toLocaleString()}</span>
+                                          <span className="text-[10px] tabular-nums" style={{ fontWeight: 700, color: typeColor }}>${job.amount.toLocaleString()}</span>
                                         ) : (
                                           <span className="text-[10px] text-[#9CA3AF]">-</span>
                                         )}
