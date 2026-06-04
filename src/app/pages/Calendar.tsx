@@ -911,7 +911,7 @@ export function Calendar() {
     <aside
       data-testid="pending-drawer"
       className={`w-[340px] shrink-0 self-start sticky top-4 flex flex-col rounded-xl border overflow-hidden transition-colors ${pendingDropActive ? "bg-[#4A6FA5]/5 border-[#4A6FA5]" : "bg-[#FAFBFC] border-[#E5E7EB]"}`}
-      style={{ maxHeight: "calc(100vh - 96px)" }}
+      style={{ height: "calc(100vh - 96px)" }}
       onDragEnter={(e) => { e.preventDefault(); setPendingDropActive(true); }}
       onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setPendingDropActive(true); }}
       onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setPendingDropActive(false); }}
@@ -1552,6 +1552,21 @@ export function Calendar() {
                     <button onClick={() => navigate(`/jobs/${selectedDispatchJob.id}`)} className="flex-1 py-2 border border-[#E5E7EB] text-[#546478] rounded-lg text-[12px] hover:bg-[#F5F7FA] transition-colors" style={{ fontWeight: 500 }}>Edit</button>
                     <button onClick={() => openQuickCreate("week", weekDays[selectedDispatchJob.dayIdx] ?? weekDays[0], selectedDispatchJob.start, selectedDispatchJob.technicianId, selectedDispatchJob.dayIdx)} className="flex-1 py-2 border border-[#E5E7EB] text-[#546478] rounded-lg text-[12px] hover:bg-[#F5F7FA] transition-colors" style={{ fontWeight: 500 }}>Reschedule</button>
                   </div>
+                  {!isPending(selectedDispatchJob) && isDraggable(selectedDispatchJob.status) && (
+                    <button
+                      onClick={() => {
+                        const id = selectedDispatchJob.id;
+                        setWeekJobs((jobs) => jobs.map((j) => (j.id === id ? applyMoveToPending(j) : j)));
+                        setToast("Moved to Pending — date cleared, technician kept");
+                        setSelectedDispatchJob(null);
+                      }}
+                      className="w-full mt-2 py-2 border border-[#E5E7EB] text-[#546478] rounded-lg text-[12px] hover:bg-[#F5F7FA] transition-colors flex items-center justify-center gap-1.5"
+                      style={{ fontWeight: 500 }}
+                    >
+                      <span className="material-icons" style={{ fontSize: "16px" }}>inbox</span>
+                      Move to Pending
+                    </button>
+                  )}
                 </div>
                 </div>
               </div>
@@ -1892,6 +1907,23 @@ export function Calendar() {
                     <button onClick={() => navigate(`/jobs/${selectedDayJob.id}`)} className="flex-1 py-2 border border-[#E5E7EB] text-[#546478] rounded-lg text-[12px] hover:bg-[#F5F7FA] transition-colors" style={{ fontWeight: 500 }}>Edit</button>
                     <button onClick={() => openQuickCreate("day", currentDate, selectedDayJob.start, selectedDayJob.technicianId)} className="flex-1 py-2 border border-[#E5E7EB] text-[#546478] rounded-lg text-[12px] hover:bg-[#F5F7FA] transition-colors" style={{ fontWeight: 500 }}>Reschedule</button>
                   </div>
+                  {/* Reliable (no-drag) way to send a scheduled job back to Pending:
+                      clears the date, keeps the technician — same rule as drag-back. */}
+                  {!isPending(selectedDayJob) && isDraggable(selectedDayJob.status) && (
+                    <button
+                      onClick={() => {
+                        const id = selectedDayJob.id;
+                        setDayJobs((jobs) => jobs.map((j) => (j.id === id ? applyMoveToPending(j) : j)));
+                        setToast("Moved to Pending — date cleared, technician kept");
+                        setSelectedDayJob(null);
+                      }}
+                      className="w-full mt-2 py-2 border border-[#E5E7EB] text-[#546478] rounded-lg text-[12px] hover:bg-[#F5F7FA] transition-colors flex items-center justify-center gap-1.5"
+                      style={{ fontWeight: 500 }}
+                    >
+                      <span className="material-icons" style={{ fontSize: "16px" }}>inbox</span>
+                      Move to Pending
+                    </button>
+                  )}
                 </div>
                 </div>
               </div>
