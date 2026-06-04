@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
@@ -9,6 +9,9 @@ import { Textarea } from "../components/ui/textarea";
 
 export function CreateEvent() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const returnTo = searchParams.get("returnTo");
+  const goBack = () => navigate(returnTo || "/appointments");
   const [date, setDate] = useState("2026-01-15");
   const [startTime, setStartTime] = useState("09:00");
   const [duration, setDuration] = useState("2 hours");
@@ -23,18 +26,18 @@ export function CreateEvent() {
   );
 
   const handleSave = () => {
-    navigate(-1);
+    goBack();
   };
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Top Bar */}
       <div className="bg-white border-b border-[#E5E7EB] px-6 py-4 flex items-center justify-between">
-        <Button variant="ghost" onClick={() => navigate(-1)}>
+        <Button variant="ghost" onClick={goBack}>
           ← Back to Job
         </Button>
         <div className="flex gap-2">
-          <Button variant="ghost" onClick={() => navigate(-1)}>
+          <Button variant="ghost" onClick={goBack}>
             Cancel
           </Button>
           <Button variant="outline">Save Draft</Button>

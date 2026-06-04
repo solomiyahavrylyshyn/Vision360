@@ -446,15 +446,7 @@ export function DocumentsGallery({
           {/* Right: preview pane (collapsible) */}
           {paneOpen && (
             <div className="flex-1 min-w-0 flex flex-col">
-              <div className="relative bg-[#FAFBFC] p-4 flex-1 flex items-center justify-center">
-                <button
-                  onClick={() => setPaneOpen(false)}
-                  className="absolute top-3 left-3 z-10 h-8 w-8 rounded-md bg-white/90 hover:bg-white border border-[#E5E7EB] flex items-center justify-center transition-colors"
-                  title="Close preview"
-                  aria-label="Close preview"
-                >
-                  <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>close</span>
-                </button>
+              <div className="bg-[#FAFBFC] p-4 flex-1 flex items-center justify-center">
                 <div className="relative w-full max-w-[680px] aspect-[4/3] rounded-lg overflow-hidden bg-white border border-[#E5E7EB] flex items-center justify-center">
                   {current?.isImage && current.previewUrl ? (
                     <img src={current.previewUrl} alt={current.name} className="w-full h-full object-cover" />
@@ -469,6 +461,16 @@ export function DocumentsGallery({
                       <div className="text-[12px] text-[#9CA3AF]">{current.size} · {current.date}</div>
                     </div>
                   ) : null}
+                  {/* Close + expand are anchored to the IMAGE corners (not the pane)
+                      so they stay pinned to the photo even when it shrinks. */}
+                  <button
+                    onClick={() => setPaneOpen(false)}
+                    className="absolute top-2 left-2 z-10 h-8 w-8 rounded-md bg-white/90 hover:bg-white border border-[#E5E7EB] flex items-center justify-center transition-colors"
+                    title="Close preview"
+                    aria-label="Close preview"
+                  >
+                    <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>close</span>
+                  </button>
                   {current && (
                     <button
                       onClick={() => setFullPreviewId(current.id)}

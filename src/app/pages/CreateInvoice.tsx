@@ -2,12 +2,15 @@ import { useState, useSyncExternalStore } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { toast } from "sonner";
 import { clientsStore } from "../stores/clientsStore";
+import { jobsStore } from "../stores/jobsStore";
+import { estimatesStore } from "../stores/estimatesStore";
+import { itemsStore } from "../stores/itemsStore";
 import { ItemPicker, catalogItemToLineItem, type CatalogItem, type SelectedLineItem } from "../components/ItemPicker";
 import { PageHeader } from "../components/ui/page-header";
 import { PlusIcon } from "../components/ui/plus-icon";
 
-// Mock catalog (same as CreateEstimate)
-const mockCatalogItems: CatalogItem[] = [
+// Legacy HVAC/plumbing options kept alongside the live Items catalog.
+const legacyCatalogItems: CatalogItem[] = [
   { id: 1000, name: "Heat Pump Repair or Service", itemDescription: "Standard heat pump repair service call", salesDescription: "Heat pump diagnostic, repair and service", brand: "Carrier", modelNumber: "HP-2500", rate: 285, cost: 120, taxable: false, category: "HVAC", type: "Service" },
   { id: 1001, name: "SEER Heat Pump Condenser Unit", itemDescription: "SEER 16 heat pump condenser outdoor unit", salesDescription: "SEER Heat Pump Condenser — high efficiency outdoor unit", brand: "Trane", modelNumber: "XR16-048", rate: 3200, cost: 1800, taxable: true, category: "HVAC", type: "Product" },
   { id: 1002, name: "SEER Heat Pump Condenser Premium", itemDescription: "SEER 20 premium heat pump condenser", salesDescription: "SEER Premium Heat Pump Condenser — ultra high efficiency", brand: "Lennox", modelNumber: "XP25-048", rate: 4800, cost: 2900, taxable: true, category: "HVAC", type: "Product" },
@@ -18,29 +21,84 @@ const mockCatalogItems: CatalogItem[] = [
   { id: 1007, name: "Thermostat - Smart WiFi", itemDescription: "Smart thermostat with WiFi connectivity", salesDescription: "Smart WiFi Thermostat — professional installation included", brand: "Ecobee", modelNumber: "EB-STATE5-01", rate: 450, cost: 180, taxable: true, category: "HVAC", type: "Product" },
 ];
 
-const mockJobs = ["10245-J01: Kitchen Renovation", "10246-J01: Bathroom Remodel", "10247-J01: Plumbing Fix", "10248-J01: Electrical Work", "10250-J01: HVAC Install"];
-const mockEstimates = ["10245-E01: HVAC System Quote", "10246-E01: Kitchen Quote", "10248-E01: Electrical Quote"];
-
 export function CreateInvoice() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const returnTo = searchParams.get("returnTo");
 
   const [client, setClient] = useState(searchParams.get("client") || "");
-  // Real client names from the shared store so the pre-selected client (passed
-  // from a client's profile) actually matches an option in the dropdown.
-  const clientNames = useSyncExternalStore(clientsStore.subscribe, clientsStore.getSnapshot).map((c) => c.name);
+  const liveClients = useSyncExternalStore(clientsStore.subscribe, clientsStore.getSnapshot);
+  const clientNames = liveClients.map((c) => c.name);
   const clientOptions = client && !clientNames.includes(client) ? [client, ...clientNames] : clientNames;
+
+  // Live jobs from jobsStore + legacy demo labels so the picker shows real jobs.
+  const liveJobs = useSyncExternalStore(jobsStore.subscribe, jobsStore.getSnapshot);
+  const jobOptions = [
+    ...liveJobs.map(j => `${j.jobNumber}: ${j.title || "Service"}`),
+    "10245-J01: Kitchen Renovation", "10246-J01: Bathroom Remodel",
+    "10247-J01: Plumbing Fix", "10248-J01: Electrical Work", "10250-J01: HVAC Install",
+  ].filter((v, i, a) => a.indexOf(v) === i); // dedupe
+
+  // Live estimates from estimatesStore + legacy demo labels.
+  const liveEstimates = useSyncExternalStore(estimatesStore.subscribe, estimatesStore.getSnapshot);
+  const estimateOptions = [
+    ...liveEstimates.map(e => `${e.estimateNumber}: ${e.estimateName || e.clientName}`),
+    "10245-E01: HVAC System Quote", "10246-E01: Kitchen Quote", "10248-E01: Electrical Quote",
+  ].filter((v, i, a) => a.indexOf(v) === i);
+
+  // Catalog = live Items + legacy (deduped by name).
+  const catalogStoreItems = useSyncExternalStore(itemsStore.subscribe, itemsStore.getSnapshot);
+  const catalogItems: CatalogItem[] = (() => {
+    const names = new Set(catalogStoreItems.map(i => i.name.toLowerCase()));
+    return [...catalogStoreItems, ...legacyCatalogItems.filter(i => !names.has(i.name.toLowerCase()))];
+  })();
+
+  const fromJobId = Number(searchParams.get("fromJob") || 0);
+  const fromEstimateId = Number(searchParams.get("fromEstimate") || 0);
+
   const [invoiceNumber] = useState("10245-I02");
   const [invoiceDate, setInvoiceDate] = useState(() => new Date().toISOString().split("T")[0]);
   const [dueDate, setDueDate] = useState(() => { const d = new Date(); d.setDate(d.getDate() + 30); return d.toISOString().split("T")[0]; });
-  const [linkedJob, setLinkedJob] = useState(searchParams.get("job") || "");
-  const [linkedEstimate, setLinkedEstimate] = useState(searchParams.get("estimate") || "");
-  const [lineItems, setLineItems] = useState<SelectedLineItem[]>([]);
+
+  // Pre-populate from source job or estimate.
+  const [linkedJob, setLinkedJob] = useState(() => {
+    if (fromJobId) {
+      const j = liveJobs.find(j => j.id === fromJobId);
+      return j ? `${j.jobNumber}: ${j.title || "Service"}` : searchParams.get("job") || "";
+    }
+    return searchParams.get("job") || "";
+  });
+  const [linkedEstimate, setLinkedEstimate] = useState(() => {
+    if (fromEstimateId) {
+      const e = liveEstimates.find(e => e.id === fromEstimateId);
+      return e ? `${e.estimateNumber}: ${e.estimateName || e.clientName}` : searchParams.get("estimate") || "";
+    }
+    return searchParams.get("estimate") || "";
+  });
+
+  // Pre-populate line items from the source job or estimate.
+  const [lineItems, setLineItems] = useState<SelectedLineItem[]>(() => {
+    const sourceJob = fromJobId ? liveJobs.find(j => j.id === fromJobId) : null;
+    const sourceEst = fromEstimateId ? liveEstimates.find(e => e.id === fromEstimateId) : null;
+    const items = sourceJob?.items ?? sourceEst?.items ?? [];
+    return items.map((it, idx) => ({
+      id: idx + 1, catalogItemId: 0,
+      name: it.name, description: it.description,
+      quantity: it.quantity, unitPrice: it.price,
+      unitCost: it.cost ?? 0, taxable: it.taxable,
+      total: it.amount,
+    }));
+  });
+
   const [notes, setNotes] = useState("");
   const [terms, setTerms] = useState("Payment is due within 30 days of invoice date.");
   const [itemPickerOpen, setItemPickerOpen] = useState(false);
-  const [taxRate] = useState(7.5);
+  // Carry tax rate from the source job/estimate.
+  const [taxRate, setTaxRate] = useState(() => {
+    const sourceJob = fromJobId ? liveJobs.find(j => j.id === fromJobId) : null;
+    const sourceEst = fromEstimateId ? liveEstimates.find(e => e.id === fromEstimateId) : null;
+    return sourceJob?.taxRate ?? sourceEst?.taxRate ?? 7.5;
+  });
 
   const updateLineItem = (id: number, field: keyof SelectedLineItem, value: any) => {
     setLineItems(lineItems.map((li) => {
@@ -87,7 +145,7 @@ export function CreateInvoice() {
     <div className="min-h-full bg-white">
       <div className="h-1 bg-[#4A6FA5]" />
 
-      <div className="max-w-[800px] mx-auto py-8 px-6">
+      <div className="max-w-[800px] mx-auto py-6 px-4 sm:px-6">
         <button
           onClick={() => navigate(returnTo || "/invoices")}
           className="inline-flex items-center gap-1.5 text-[13px] text-[#4A6FA5] hover:text-[#3d5a85] transition-colors mb-6"
@@ -119,7 +177,7 @@ export function CreateInvoice() {
           </div>
 
           {/* Dates */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-[12px] uppercase tracking-wider text-[#546478] mb-1.5" style={{ fontWeight: 600 }}>Invoice Date</label>
               <input type="date" value={invoiceDate} onChange={(e) => setInvoiceDate(e.target.value)}
@@ -133,13 +191,13 @@ export function CreateInvoice() {
           </div>
 
           {/* Linked Job / Estimate */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-[12px] uppercase tracking-wider text-[#546478] mb-1.5" style={{ fontWeight: 600 }}>Linked Job</label>
               <select value={linkedJob} onChange={(e) => setLinkedJob(e.target.value)}
                 className="w-full px-4 py-3 border border-[#E5E7EB] rounded-md text-sm focus:outline-none focus:border-[#4A6FA5] bg-white">
                 <option value="">None</option>
-                {mockJobs.map(j => <option key={j} value={j}>{j}</option>)}
+                {jobOptions.map(j => <option key={j} value={j}>{j}</option>)}
               </select>
             </div>
             <div>
@@ -147,7 +205,7 @@ export function CreateInvoice() {
               <select value={linkedEstimate} onChange={(e) => setLinkedEstimate(e.target.value)}
                 className="w-full px-4 py-3 border border-[#E5E7EB] rounded-md text-sm focus:outline-none focus:border-[#4A6FA5] bg-white">
                 <option value="">None</option>
-                {mockEstimates.map(e => <option key={e} value={e}>{e}</option>)}
+                {estimateOptions.map(e => <option key={e} value={e}>{e}</option>)}
               </select>
             </div>
           </div>
@@ -233,7 +291,16 @@ export function CreateInvoice() {
                       <span className="text-[#1A2332]" style={{ fontVariantNumeric: "tabular-nums" }}>${fmt(taxableAmount)}</span>
                     </div>
                     <div className="flex items-center justify-between text-[13px]">
-                      <span className="text-[#546478]">Tax ({taxRate}%):</span>
+                      <span className="text-[#546478] flex items-center gap-1.5">
+                        Tax
+                        <span className="relative inline-flex items-center">
+                          <input type="number" min="0" max="100" step="0.1" value={taxRate}
+                            onChange={(e) => setTaxRate(Math.max(0, Math.min(100, Number(e.target.value) || 0)))}
+                            className="w-16 pl-2 pr-4 py-0.5 border border-[#E5E7EB] rounded text-[13px] tabular-nums text-right focus:outline-none focus:border-[#4A6FA5]"
+                            aria-label="Tax rate percent" />
+                          <span className="absolute right-1.5 text-[#9CA3AF] pointer-events-none">%</span>
+                        </span>
+                      </span>
                       <span className="text-[#1A2332]" style={{ fontVariantNumeric: "tabular-nums" }}>${fmt(taxAmount)}</span>
                     </div>
                     <div className="flex items-center justify-between pt-2 border-t border-[#E5E7EB]">
@@ -250,7 +317,7 @@ export function CreateInvoice() {
         {/* Notes & Terms */}
         <div className="mb-8">
           <h3 className="text-[16px] text-[#1A2332] mb-3" style={{ fontWeight: 700 }}>Notes & Terms</h3>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-[12px] uppercase tracking-wider text-[#546478] mb-1.5" style={{ fontWeight: 600 }}>Internal Notes</label>
               <textarea value={notes} onChange={(e) => setNotes(e.target.value)}
@@ -289,7 +356,7 @@ export function CreateInvoice() {
       </div>
 
       {itemPickerOpen && (
-        <ItemPicker catalogItems={mockCatalogItems} onSelect={handleSelectItem} onClose={() => setItemPickerOpen(false)} />
+        <ItemPicker catalogItems={catalogItems} onSelect={handleSelectItem} onClose={() => setItemPickerOpen(false)} />
       )}
     </div>
   );

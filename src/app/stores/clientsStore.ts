@@ -104,6 +104,9 @@ export interface ClientRecord {
   serviceAddresses: ServiceAddress[];
   customFields: Record<string, string>;
   tags: string[];
+  // Deduplication lifecycle fields
+  mergedIntoId?: string;   // set on the losing record after a merge
+  archivedAt?: string;     // ISO timestamp when soft-archived
 }
 
 type ClientSeed = Partial<ClientRecord> &
@@ -154,7 +157,7 @@ const mk = (s: ClientSeed): ClientRecord => {
     gateCode: "",
     isTaxable: true,
     paymentTerms: "Net 30",
-    paymentMethod: "Card",
+    paymentMethod: "Credit card on file",
     creditLimit: 5000,
     totalJobs: 0,
     openJobs: 0,
@@ -191,7 +194,15 @@ const mk = (s: ClientSeed): ClientRecord => {
     customFields: {},
     tags: [],
   };
-  return { ...base, ...s, customerId: s.customerId ?? s.id, phone: s.phone ?? s.mobilePhone };
+  return {
+    ...base,
+    ...s,
+    customerId: s.customerId ?? s.id,
+    phone: s.phone ?? s.mobilePhone,
+    // isTaxable defaults to true for new/legacy records that don't carry the field.
+    // Without this, clients created before this field existed render as "Exempt".
+    isTaxable: s.isTaxable ?? true,
+  };
 };
 
 let clients: ClientRecord[] = [
@@ -250,6 +261,82 @@ let clients: ClientRecord[] = [
     email: "tom.c@email.com", mobilePhone: "(555) 678-9012",
     address: "987 Cedar Ln", city: "Plano", state: "TX", zip: "75023", county: "Collin",
     tags: ["Commercial", "Priority"], status: "Prospect", customerSince: "May 30, 2026", lastActivity: "Quote Requested • today",
+    totalJobs: 0, openJobs: 0, totalRevenue: 0,
+  }),
+
+  // ── Manage Duplicates test data ──────────────────────────────────────────
+  // Group 1: same phone (likely same person, different spellings of name)
+  mk({
+    id: "10261", initials: "MJ", avatarColor: "#7C3AED", name: "Michael Johnson", firstName: "Michael", lastName: "Johnson",
+    email: "mjohnson@gmail.com", mobilePhone: "(813) 555-0191",
+    address: "1402 Bayshore Blvd", city: "Tampa", state: "FL", zip: "33606",
+    status: "Active", customerSince: "Jan 5, 2025", lastActivity: "Invoice Sent • 1 week ago",
+    totalJobs: 2, openJobs: 0, totalRevenue: 3200, totalBilled: 3200,
+  }),
+  mk({
+    id: "10262", initials: "MJ", avatarColor: "#6D28D9", name: "Mike Johnson", firstName: "Mike", lastName: "Johnson",
+    email: "", mobilePhone: "(813) 555-0191",  // same phone — definite duplicate
+    address: "1402 Bayshore Blvd", city: "Tampa", state: "FL", zip: "33606",
+    status: "Prospect", customerSince: "Mar 12, 2025", lastActivity: "Created • Mar 12",
+    totalJobs: 0, openJobs: 0, totalRevenue: 0,
+  }),
+
+  // Group 2: same email (two accounts for the same person)
+  mk({
+    id: "10263", initials: "LC", avatarColor: "#0891B2", name: "Laura Chen", firstName: "Laura", lastName: "Chen",
+    company: "Chen Consulting", email: "laura.chen@outlook.com", mobilePhone: "(407) 612-3340",
+    address: "55 Orange Ave", city: "Orlando", state: "FL", zip: "32801",
+    status: "Active", customerSince: "Jun 2024", lastActivity: "Estimate Sent • 3 days ago",
+    totalJobs: 1, openJobs: 1, totalRevenue: 1800, totalBilled: 1800,
+  }),
+  mk({
+    id: "10264", initials: "LC", avatarColor: "#0E7490", name: "L. Chen", firstName: "L.", lastName: "Chen",
+    company: "", email: "laura.chen@outlook.com",  // same email — duplicate
+    mobilePhone: "(407) 612-3341",
+    address: "55 Orange Avenue", city: "Orlando", state: "FL", zip: "32801",
+    status: "Prospect", customerSince: "Sep 2024", lastActivity: "Created • Sep 3",
+    totalJobs: 0, openJobs: 0, totalRevenue: 0,
+  }),
+
+  // Group 3: same company name (different contacts at the same company — could be intentional)
+  mk({
+    id: "10265", initials: "PB", avatarColor: "#16A34A", name: "Patricia Burns", firstName: "Patricia", lastName: "Burns",
+    company: "Sunrise Properties LLC", role: "Owner", type: "Commercial", customerType: "business",
+    email: "p.burns@sunriseprops.com", mobilePhone: "(305) 900-1234",
+    address: "800 Brickell Ave", city: "Miami", state: "FL", zip: "33131",
+    status: "Active", customerSince: "Feb 2024", lastActivity: "Payment Received • 5 days ago",
+    totalJobs: 4, openJobs: 1, totalRevenue: 9500, totalBilled: 9500,
+  }),
+  mk({
+    id: "10266", initials: "DS", avatarColor: "#15803D", name: "David Stern", firstName: "David", lastName: "Stern",
+    company: "Sunrise Properties LLC", role: "Property Manager", type: "Commercial", customerType: "business",
+    email: "d.stern@sunriseprops.com", mobilePhone: "(305) 900-5678",
+    address: "800 Brickell Ave", city: "Miami", state: "FL", zip: "33131",
+    status: "Active", customerSince: "Feb 2024", lastActivity: "Job Scheduled • 2 days ago",
+    totalJobs: 2, openJobs: 1, totalRevenue: 4200, totalBilled: 4200,
+  }),
+  mk({
+    id: "10267", initials: "SR", avatarColor: "#166534", name: "Sunrise Properties", firstName: "Sunrise", lastName: "Properties",
+    company: "Sunrise Properties LLC", type: "Commercial", customerType: "business",
+    email: "info@sunriseprops.com", mobilePhone: "(305) 900-0000",
+    address: "800 Brickell Avenue", city: "Miami", state: "FL", zip: "33131",
+    status: "Prospect", customerSince: "Jan 2026", lastActivity: "Created • Jan 10",
+    totalJobs: 0, openJobs: 0, totalRevenue: 0,
+  }),
+
+  // Group 4: similar name + phone (fuzzy match — probably the same person)
+  mk({
+    id: "10268", initials: "RG", avatarColor: "#B45309", name: "Robert Garcia", firstName: "Robert", lastName: "Garcia",
+    email: "rgarcia@yahoo.com", mobilePhone: "(727) 488-2200",
+    address: "341 Gulf Blvd", city: "St. Petersburg", state: "FL", zip: "33706",
+    status: "Active", customerSince: "Oct 2023", lastActivity: "Invoice Overdue • 12 days",
+    totalJobs: 3, openJobs: 0, totalRevenue: 6750, totalBilled: 6750, openBalance: 875, pastDueBalance: 875,
+  }),
+  mk({
+    id: "10269", initials: "BG", avatarColor: "#92400E", name: "Bob Garcia", firstName: "Bob", lastName: "Garcia",
+    email: "", mobilePhone: "(727) 488-2200",  // same phone, shortened first name
+    address: "341 Gulf Boulevard", city: "St. Pete", state: "FL", zip: "33706",
+    status: "Prospect", customerSince: "Mar 2024", lastActivity: "Created • Mar 2024",
     totalJobs: 0, openJobs: 0, totalRevenue: 0,
   }),
 ];

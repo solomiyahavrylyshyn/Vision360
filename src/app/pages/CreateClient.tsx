@@ -17,6 +17,7 @@ import { relationshipsStore } from "../stores/relationshipsStore";
 import { clientsStore } from "../stores/clientsStore";
 import { useSyncExternalStore } from "react";
 import { formatRegionalDate } from "../stores/regionalSettingsStore";
+import { PAYMENT_METHODS } from "../constants/paymentMethods";
 
 interface AdditionalContact {
   id: string;
@@ -231,6 +232,8 @@ export function CreateClient() {
     if (!formData.address.trim()) return "Billing address is required";
     if (!formData.zip.trim()) return "ZIP code is required";
     if (!/^\d{5}(-\d{4})?$/.test(formData.zip.trim())) return "Enter a valid ZIP code (e.g. 78701)";
+    // Billing — payment terms are mandatory (defaults to "Due on receipt").
+    if (!formData.paymentTerms.trim()) return "Payment terms are required";
     return null;
   };
 
@@ -985,7 +988,7 @@ export function CreateClient() {
                     {/* Payment terms */}
                     <div>
                       <Label className="text-[13px] text-[#374151] mb-1.5 block" style={{ fontWeight: 500 }}>
-                        Payment terms
+                        Payment terms <span className="text-[#DC2626]">*</span>
                       </Label>
                       <Select
                         value={formData.paymentTerms}
@@ -1008,7 +1011,7 @@ export function CreateClient() {
                     {/* Preferred payment method */}
                     <div>
                       <Label className="text-[13px] text-[#374151] mb-1.5 block" style={{ fontWeight: 500 }}>
-                        Preferred payment method
+                        Preferred payment method <span className="text-[#9CA3AF]" style={{ fontWeight: 400 }}>(optional)</span>
                       </Label>
                       <Select
                         value={formData.preferredPaymentMethod || "__none__"}
@@ -1019,11 +1022,26 @@ export function CreateClient() {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="__none__">Not specified</SelectItem>
-                          {["Cash", "Check", "Credit Card", "Debit Card", "Bank Transfer", "Other"].map((m) => (
+                          {PAYMENT_METHODS.map((m) => (
                             <SelectItem key={m} value={m}>{m}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
+                      {/* Card-on-file capture — Stripe-style secure link sent to the client */}
+                      {formData.preferredPaymentMethod === "Credit card on file" && (
+                        <div className="mt-2 flex items-center gap-2 rounded-md border border-[#E5E7EB] bg-[#F8FAFC] px-3 py-2">
+                          <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "16px" }}>link</span>
+                          <span className="text-[12px] text-[#6B7280] flex-1">We'll send the client a secure link to add their card on file.</span>
+                          <button
+                            type="button"
+                            onClick={() => toast.success("Card-capture link will be sent once the client is saved")}
+                            className="text-[12px] text-[#4A6FA5] hover:underline whitespace-nowrap"
+                            style={{ fontWeight: 600 }}
+                          >
+                            Send link
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
 

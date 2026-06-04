@@ -1,4 +1,4 @@
-import { useState, useRef, useSyncExternalStore } from "react";
+import { useState, useRef, useSyncExternalStore, useMemo } from "react";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import { DndProvider } from "react-dnd";
@@ -14,6 +14,8 @@ import {
 import { CreateActionButton } from "../components/ui/create-action-button";
 import { StatCard } from "../components/ui/stat-card";
 import { formatRegionalDate, regionalSettingsStore } from "../stores/regionalSettingsStore";
+import { jobsStore } from "../stores/jobsStore";
+import { type JobStatus, JOB_STATUSES, JOB_STATUS_COLOR as statusColors, JOB_STATUS_BG as statusBg } from "../constants/jobStatuses";
 
 interface Job {
   id: number;
@@ -24,12 +26,10 @@ interface Job {
   address: string;
   schedule: string;
   scheduleDateSort: string;
-  status: "Scheduled" | "In Progress" | "Completed" | "Inactive";
+  status: JobStatus;
   jobType: "One-off" | "Recurring";
   total: number;
 }
-
-const JOB_STATUSES: Job["status"][] = ["Scheduled", "In Progress", "Completed", "Inactive"];
 
 const mockJobs: Job[] = [
   { id: 1,  jobNumber: "10234-J01", title: "AC Estimate",        client: "Travis Jones",   clientId: "10234", address: "854 Maple St, Fort Worth, TX 76107",        schedule: "March 30, 2026", scheduleDateSort: "2026-03-30", status: "Scheduled",  jobType: "One-off",   total: 375.01 },
@@ -46,20 +46,6 @@ const mockJobs: Job[] = [
   { id: 12, jobNumber: "10247-J03", title: "Monthly Lawn Care",  client: "Mike Davis",     clientId: "10247", address: "890 Oak Drive, Miami, FL 33101",            schedule: "April 15, 2026", scheduleDateSort: "2026-04-15", status: "Scheduled",  jobType: "Recurring", total: 120.00 },
 ];
 
-const statusColors: Record<string, string> = {
-  Scheduled: "#4A6FA5",
-  "In Progress": "#D97706",
-  Completed: "#16A34A",
-  Inactive: "#6B7280",
-};
-
-// Badge background = status colour at 15% opacity (matches Figma 358:28741).
-const statusBg: Record<string, string> = {
-  Scheduled: "rgba(74,111,165,0.15)",
-  "In Progress": "rgba(217,119,6,0.15)",
-  Completed: "rgba(22,163,74,0.15)",
-  Inactive: "rgba(107,114,128,0.15)",
-};
 
 const statusIcons: Record<string, string> = {
   Scheduled: "event_note",
@@ -144,7 +130,40 @@ const JOBS_COLS = [
 export function Jobs() {
   const navigate = useNavigate();
   const regionalSettings = useSyncExternalStore(regionalSettingsStore.subscribe, regionalSettingsStore.getSnapshot);
+  // Merge store-created jobs on top of the seed demo rows so newly created
+  // jobs appear in the list while the demo data is still visible.
+  const storeJobs = useSyncExternalStore(jobsStore.subscribe, jobsStore.getSnapshot);
+  const storeJobIds = new Set(storeJobs.map(j => j.id));
+  const mergedJobs: Job[] = useMemo(() => {
+    // Dedupe store records by jobNumber (keep the first / most recent) so stale
+    // duplicate records from earlier sessions don't render multiple times.
+    const seenNumbers = new Set<string>();
+    const fromStore: Job[] = storeJobs
+      .filter(r => {
+        const key = r.jobNumber || String(r.id);
+        if (seenNumbers.has(key)) return false;
+        seenNumbers.add(key);
+        return true;
+      })
+      .map(r => ({
+        id: r.id,
+        jobNumber: r.jobNumber,
+        title: r.title,
+        client: r.client,
+        clientId: r.clientId,
+        address: [r.address, r.city, r.state, r.zip].filter(Boolean).join(", "),
+        schedule: r.startDate,
+        scheduleDateSort: r.startDate,
+        status: r.status as Job["status"],
+        jobType: r.jobType || "One-off",
+        total: r.totalPrice,
+      }));
+    // Seed rows whose ID or jobNumber collides with a store row are dropped.
+    const seedRows = mockJobs.filter(j => !storeJobIds.has(j.id) && !seenNumbers.has(j.jobNumber));
+    return [...fromStore, ...seedRows];
+  }, [storeJobs]);
   const [jobs, setJobs] = useState<Job[]>(mockJobs);
+  const allJobs = mergedJobs;
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedJobs, setSelectedJobs] = useState<Set<number>>(new Set());
 
@@ -172,7 +191,7 @@ export function Jobs() {
 
   const openStatusModal = (ids: number[]) => {
     if (ids.length === 0) return;
-    const first = jobs.find(j => j.id === ids[0]);
+    const first = allJobs.find(j => j.id === ids[0]);
     setStatusChoice(first?.status ?? "Scheduled");
     setStatusModalIds(ids);
   };
@@ -184,7 +203,7 @@ export function Jobs() {
     setSelectedJobs(new Set());
   };
   const duplicateJob = (job: Job) => {
-    const nextId = Math.max(0, ...jobs.map(j => j.id)) + 1;
+    const nextId = Math.max(0, ...allJobs.map(j => j.id)) + 1;
     setJobs(prev => [{ ...job, id: nextId, jobNumber: `${job.jobNumber}-COPY` }, ...prev]);
     setCurrentPage(1);
     toast.success(`Duplicated ${job.jobNumber}`);
@@ -216,7 +235,7 @@ export function Jobs() {
     else { setSortField(field); setSortDir("asc"); }
   };
 
-  const filtered = jobs.filter(j => {
+  const filtered = allJobs.filter(j => {
     if (qfStatus !== "All" && j.status !== qfStatus) return false;
     if (qfType === "One-off" && j.jobType !== "One-off") return false;
     if (qfType === "Recurring" && j.jobType !== "Recurring") return false;
@@ -269,9 +288,9 @@ export function Jobs() {
   const handleSelect = (id: number, checked: boolean) => { const s = new Set(selectedJobs); checked ? s.add(id) : s.delete(id); setSelectedJobs(s); };
 
   const statusCounts = {
-    Scheduled: jobs.filter(j => j.status === "Scheduled").length,
-    "In Progress": jobs.filter(j => j.status === "In Progress").length,
-    Completed: jobs.filter(j => j.status === "Completed").length,
+    Scheduled: allJobs.filter(j => j.status === "Scheduled").length,
+    "In Progress": allJobs.filter(j => j.status === "In Progress").length,
+    Completed: allJobs.filter(j => j.status === "Completed").length,
   };
   const revenue = jobs.reduce((sum, j) => sum + (j.total ?? 0), 0);
 
@@ -371,16 +390,16 @@ export function Jobs() {
             onDeselect={() => setSelectedJobs(new Set())}
             actions={[
               {
-                label: "Inactivate",
-                icon: "block",
+                label: "Cancel",
+                icon: "cancel",
                 destructive: true,
                 onClick: () => {
-                  setJobs(prev => prev.map(j => (selectedJobs.has(j.id) ? { ...j, status: "Inactive" } : j)));
+                  setJobs(prev => prev.map(j => (selectedJobs.has(j.id) ? { ...j, status: "Cancelled" } : j)));
                   setSelectedJobs(new Set());
                 },
               },
               { label: "Change status", icon: "swap_horiz", onClick: () => openStatusModal([...selectedJobs]) },
-              { label: "Export selected", icon: "file_download", onClick: () => exportJobs(jobs.filter(j => selectedJobs.has(j.id))) },
+              { label: "Export selected", icon: "file_download", onClick: () => exportJobs(allJobs.filter(j => selectedJobs.has(j.id))) },
             ]}
           />
         ) : (
@@ -395,9 +414,7 @@ export function Jobs() {
             <div className="flex items-center gap-2">
               <select value={qfStatus} onChange={e => { setQfStatus(e.target.value); setCurrentPage(1); }} className={qfClass(qfStatus !== "All")}>
                 <option value="All">Status: All</option>
-                <option value="Scheduled">Scheduled</option>
-                <option value="In Progress">In Progress</option>
-                <option value="Completed">Completed</option>
+                {JOB_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
               <select value={qfType} onChange={e => { setQfType(e.target.value); setCurrentPage(1); }} className={qfClass(qfType !== "All")}>
                 <option value="All">Type: All</option>
@@ -518,7 +535,7 @@ export function Jobs() {
                   <KebabMenu>
                     <KebabItem icon="content_copy" onSelect={() => duplicateJob(job)}>Duplicate</KebabItem>
                     <KebabItem icon="swap_horiz" onSelect={() => openStatusModal([job.id])}>Change status</KebabItem>
-                    <KebabItem icon="block" onSelect={() => setJobs(prev => prev.map(j => j.id === job.id ? { ...j, status: "Inactive" } : j))}>Inactivate</KebabItem>
+                    <KebabItem icon="cancel" onSelect={() => setJobs(prev => prev.map(j => j.id === job.id ? { ...j, status: "Cancelled" } : j))}>Cancel job</KebabItem>
                     <KebabSeparator />
                     <KebabItem icon="open_in_new" onSelect={() => window.open(`/jobs/${job.id}`, "_blank")}>Open in New Tab</KebabItem>
                   </KebabMenu>
@@ -766,7 +783,7 @@ export function Jobs() {
                 <div key={group.key} className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
                   <div className="flex items-center justify-between px-5 py-3 border-b border-[#E5E7EB] bg-[#F9FAFB]">
                     <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>
-                      {group.jobs.length} jobs match on {dupMatchLabel} <span className="text-[#6B7280]" style={{ fontWeight: 400 }}>“{group.key}”</span>
+                      {group.allJobs.length} jobs match on {dupMatchLabel} <span className="text-[#6B7280]" style={{ fontWeight: 400 }}>“{group.key}”</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <button
@@ -782,7 +799,7 @@ export function Jobs() {
                         className="h-8 px-3 border border-[#FCA5A5] bg-white hover:bg-[#FEF2F2] text-[#DC2626] text-[13px] rounded-lg" style={{ fontWeight: 500 }}
                       >Archive duplicates</button>
                       <button
-                        onClick={() => { const removeIds = new Set(group.jobs.slice(1).map(j => j.id)); setJobs(prev => prev.filter(j => !removeIds.has(j.id))); setDismissedDupKeys(prev => new Set(prev).add(group.key)); toast.success(`Merged ${group.jobs.length} jobs into one`); }}
+                        onClick={() => { const removeIds = new Set(group.jobs.slice(1).map(j => j.id)); setJobs(prev => prev.filter(j => !removeIds.has(j.id))); setDismissedDupKeys(prev => new Set(prev).add(group.key)); toast.success(`Merged ${group.allJobs.length} jobs into one`); }}
                         className="h-8 px-3 bg-[#4A6FA5] hover:bg-[#3d5a85] text-white text-[13px] rounded-lg" style={{ fontWeight: 500 }}
                       >Merge</button>
                     </div>
@@ -798,7 +815,7 @@ export function Jobs() {
                       </tr>
                     </thead>
                     <tbody>
-                      {group.jobs.map(j => (
+                      {group.allJobs.map(j => (
                         <tr key={j.id} className="border-b border-[#F3F4F6] last:border-0 text-[13px]">
                           <td className="px-5 py-2.5 text-[#1A2332]">{j.jobNumber}</td>
                           <td className="px-5 py-2.5 text-[#1A2332]">{j.client}</td>

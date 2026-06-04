@@ -35,13 +35,27 @@ const saveCustomPresets = (presets: CustomPreset[]) => {
   }
 };
 
-type ScheduleLevel = "viewOwn" | "viewCompleteOwn" | "editOwn" | "editAll" | "editDeleteAll";
+type ScheduleLevel = "viewOwn" | "viewCompleteOwn" | "editOwn" | "viewAll" | "editAll" | "editDeleteAll";
 type TimeLevel = "viewRecordOwn" | "viewRecordEditOwn" | "viewRecordEditAll";
-type NotesLevel = "viewJobsOnly" | "viewAll" | "viewEditAll" | "viewEditDeleteAll";
-type ExpensesLevel = "viewRecordEditOwn" | "viewRecordEditAll";
-type ClientsLevel = "nameAddressOnly" | "viewFull" | "viewEditFull" | "viewEditDeleteFull";
-type DocLevel = "viewOnly" | "viewCreateEdit" | "viewCreateEditDelete";
-type PaymentsScope = "estimatesOnly" | "invoicesOnly" | "both";
+type NotesLevel = "viewJobsOnly" | "viewAll" | "viewAddAll" | "viewEditAll" | "viewEditDeleteAll";
+type ExpensesLevel = "viewRecordEditOwn" | "viewRecordEditAll" | "viewRecordEditDeleteAll";
+// Per the MVP walkthrough, records are never hard-deleted — each module uses a
+// history-preserving terminal action instead (inactivate / archive / void / cancel),
+// and Payments is a leveled permission ending in refund.
+type ClientsLevel = "nameAddressOnly" | "viewFull" | "viewCreateEditFull" | "viewCreateEditInactivateFull";
+type EstimatesLevel = "viewOnly" | "viewCreateEdit" | "viewCreateEditArchive";
+type InvoicesLevel = "viewOnly" | "viewCreateEdit" | "viewCreateEditVoidArchive";
+type JobsLevel = "viewOnly" | "viewCreateEdit" | "viewCreateEditCancel";
+type PaymentsLevel = "viewOnly" | "viewCollect" | "viewCollectEdit" | "viewCollectEditRefund";
+// Items replaces the old "Show pricing" toggle with a role-based capability
+// ladder (per Marek's matrix). Tiers map to: CSR/Dispatch → Sales/Technician →
+// Manager → Accounting/Purchasing → Admin (Item Master Control).
+type ItemsLevel =
+  | "viewSellPrice"
+  | "discountOverride"
+  | "approveOverrides"
+  | "viewCostTaxesCreate"
+  | "fullControl";
 
 interface PermissionsState {
   isAdmin: boolean;
@@ -49,13 +63,13 @@ interface PermissionsState {
   timeTracking: { enabled: boolean; level: TimeLevel };
   notes: { enabled: boolean; level: NotesLevel };
   expenses: { enabled: boolean; level: ExpensesLevel };
-  showPricing: boolean;
+  items: { enabled: boolean; level: ItemsLevel };
   jobCosting: boolean;
-  clients: { enabled: boolean; level: ClientsLevel; showOnMenu: boolean };
-  estimates: { enabled: boolean; level: DocLevel; showOnMenu: boolean };
-  jobs: { enabled: boolean; level: DocLevel; showOnMenu: boolean };
-  invoices: { enabled: boolean; level: DocLevel; showOnMenu: boolean };
-  payments: { enabled: boolean; scope: PaymentsScope };
+  clients: { enabled: boolean; level: ClientsLevel };
+  estimates: { enabled: boolean; level: EstimatesLevel };
+  jobs: { enabled: boolean; level: JobsLevel };
+  invoices: { enabled: boolean; level: InvoicesLevel };
+  payments: { enabled: boolean; level: PaymentsLevel };
   clientCommunications: boolean;
   reports: boolean;
 }
@@ -65,15 +79,15 @@ const employeePreset: PermissionsState = {
   isAdmin: false,
   schedule: { enabled: true, level: "viewCompleteOwn" },
   timeTracking: { enabled: true, level: "viewRecordOwn" },
-  notes: { enabled: true, level: "viewEditAll" },
+  notes: { enabled: true, level: "viewAddAll" },
   expenses: { enabled: true, level: "viewRecordEditOwn" },
-  showPricing: false,
+  items: { enabled: false, level: "viewSellPrice" },
   jobCosting: false,
-  clients: { enabled: true, level: "viewFull", showOnMenu: false },
-  estimates: { enabled: false, level: "viewOnly", showOnMenu: false },
-  jobs: { enabled: true, level: "viewOnly", showOnMenu: false },
-  invoices: { enabled: false, level: "viewOnly", showOnMenu: false },
-  payments: { enabled: false, scope: "both" },
+  clients: { enabled: true, level: "viewFull" },
+  estimates: { enabled: false, level: "viewOnly" },
+  jobs: { enabled: true, level: "viewOnly" },
+  invoices: { enabled: false, level: "viewOnly" },
+  payments: { enabled: false, level: "viewOnly" },
   clientCommunications: false,
   reports: false,
 };
@@ -84,15 +98,23 @@ const adminPreset: PermissionsState = {
   timeTracking: { enabled: true, level: "viewRecordEditAll" },
   notes: { enabled: true, level: "viewEditDeleteAll" },
   expenses: { enabled: true, level: "viewRecordEditAll" },
-  showPricing: true,
+  items: { enabled: true, level: "fullControl" },
   jobCosting: true,
-  clients: { enabled: true, level: "viewEditDeleteFull", showOnMenu: true },
-  estimates: { enabled: true, level: "viewCreateEditDelete", showOnMenu: true },
-  jobs: { enabled: true, level: "viewCreateEditDelete", showOnMenu: true },
-  invoices: { enabled: true, level: "viewCreateEditDelete", showOnMenu: true },
-  payments: { enabled: true, scope: "both" },
+  clients: { enabled: true, level: "viewCreateEditInactivateFull" },
+  estimates: { enabled: true, level: "viewCreateEditArchive" },
+  jobs: { enabled: true, level: "viewCreateEditCancel" },
+  invoices: { enabled: true, level: "viewCreateEditVoidArchive" },
+  payments: { enabled: true, level: "viewCollectEditRefund" },
   clientCommunications: true,
   reports: true,
+};
+
+// Upgrade any preset saved under the old `showPricing` boolean to the new
+// leveled `items` shape, so older localStorage data doesn't break the radios.
+const ensureItemsPerm = (p: PermissionsState): PermissionsState => {
+  if (p && p.items) return p;
+  const legacy = (p as unknown as { showPricing?: boolean })?.showPricing ?? false;
+  return { ...p, items: { enabled: legacy, level: legacy ? "fullControl" : "viewSellPrice" } };
 };
 
 // ─── Small UI helpers ────────────────────────────────────────────────────────
@@ -126,7 +148,6 @@ const Radio = ({
     </span>
     <span className="flex flex-col">
       <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{label}</span>
-      {description && <span className="text-[12px] text-[#6B7280] leading-relaxed">{description}</span>}
     </span>
   </button>
 );
@@ -175,9 +196,6 @@ const FeatureSection = ({
     <div className="flex items-start justify-between gap-4 mb-3">
       <div className="flex-1">
         <h4 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>{title}</h4>
-        {description && (
-          <p className="text-[12px] text-[#6B7280] mt-1 leading-relaxed">{description}</p>
-        )}
       </div>
       {toggleable && onToggle && <Toggle on={enabled} onChange={onToggle} />}
     </div>
@@ -203,7 +221,9 @@ export function NewUser() {
   // Permissions
   const [preset, setPreset] = useState<PresetId>("employee");
   const [perms, setPerms] = useState<PermissionsState>(employeePreset);
-  const [customPresets, setCustomPresets] = useState<CustomPreset[]>(() => loadCustomPresets());
+  const [customPresets, setCustomPresets] = useState<CustomPreset[]>(() =>
+    loadCustomPresets().map(cp => ({ ...cp, permissions: ensureItemsPerm(cp.permissions) })),
+  );
   const [showSavePresetInput, setShowSavePresetInput] = useState(false);
   const [newPresetName, setNewPresetName] = useState("");
 
@@ -221,7 +241,7 @@ export function NewUser() {
     else if (next === "employee") setPerms(employeePreset);
     else if (next !== "custom") {
       const found = customPresets.find(cp => cp.id === next);
-      if (found) setPerms(found.permissions);
+      if (found) setPerms(ensureItemsPerm(found.permissions));
     }
     // "custom" keeps current state
   };
@@ -270,15 +290,6 @@ export function NewUser() {
     toast.success(`Invitation sent to ${email}`);
     navigate("/settings?section=team");
   };
-
-  // ── Validation helpers for Payments dependencies ──
-  const docHasEdit = (d: { enabled: boolean; level: DocLevel }) =>
-    d.enabled && (d.level === "viewCreateEdit" || d.level === "viewCreateEditDelete");
-  const clientsHasEdit =
-    perms.clients.enabled &&
-    (perms.clients.level === "viewEditFull" || perms.clients.level === "viewEditDeleteFull");
-  const docsHasEdit = docHasEdit(perms.estimates) || docHasEdit(perms.invoices);
-  const paymentsReady = perms.showPricing && clientsHasEdit && docsHasEdit;
 
   return (
     <div className="min-h-screen bg-[#F5F7FA]">
@@ -528,7 +539,7 @@ export function NewUser() {
                   enabled={perms.schedule.enabled}
                   onToggle={v => editPerms(p => ({ ...p, schedule: { ...p.schedule, enabled: v } }))}
                 >
-                  {(["viewOwn", "viewCompleteOwn", "editOwn", "editAll", "editDeleteAll"] as ScheduleLevel[]).map(level => (
+                  {(["viewOwn", "viewCompleteOwn", "editOwn", "viewAll", "editAll", "editDeleteAll"] as ScheduleLevel[]).map(level => (
                     <Radio
                       key={level}
                       checked={perms.schedule.level === level}
@@ -537,6 +548,7 @@ export function NewUser() {
                         viewOwn: "View their own schedule",
                         viewCompleteOwn: "View and complete their own schedule",
                         editOwn: "Edit their own schedule",
+                        viewAll: "View everyone's schedule",
                         editAll: "Edit everyone's schedule",
                         editDeleteAll: "Edit and delete everyone's schedule",
                       }[level]}
@@ -571,14 +583,15 @@ export function NewUser() {
                   enabled={perms.notes.enabled}
                   onToggle={v => editPerms(p => ({ ...p, notes: { ...p.notes, enabled: v } }))}
                 >
-                  {(["viewJobsOnly", "viewAll", "viewEditAll", "viewEditDeleteAll"] as NotesLevel[]).map(level => (
+                  {(["viewJobsOnly", "viewAll", "viewAddAll", "viewEditAll", "viewEditDeleteAll"] as NotesLevel[]).map(level => (
                     <Radio
                       key={level}
                       checked={perms.notes.level === level}
                       onClick={() => editPerms(p => ({ ...p, notes: { ...p.notes, level } }))}
                       label={{
-                        viewJobsOnly: "View notes on jobs and visits only",
+                        viewJobsOnly: "View notes on jobs only",
                         viewAll: "View all notes",
+                        viewAddAll: "View all notes and add new ones",
                         viewEditAll: "View and edit all",
                         viewEditDeleteAll: "View, edit, and delete all",
                       }[level]}
@@ -592,7 +605,7 @@ export function NewUser() {
                   enabled={perms.expenses.enabled}
                   onToggle={v => editPerms(p => ({ ...p, expenses: { ...p.expenses, enabled: v } }))}
                 >
-                  {(["viewRecordEditOwn", "viewRecordEditAll"] as ExpensesLevel[]).map(level => (
+                  {(["viewRecordEditOwn", "viewRecordEditAll", "viewRecordEditDeleteAll"] as ExpensesLevel[]).map(level => (
                     <Radio
                       key={level}
                       checked={perms.expenses.level === level}
@@ -600,26 +613,42 @@ export function NewUser() {
                       label={{
                         viewRecordEditOwn: "View, record, and edit their own",
                         viewRecordEditAll: "View, record, and edit everyone's",
+                        viewRecordEditDeleteAll: "View, record, edit, and delete everyone's",
                       }[level]}
                     />
                   ))}
                 </FeatureSection>
 
-                {/* Show pricing */}
+                {/* Items — replaces the old "Show pricing" toggle with a
+                    role-based capability ladder (Marek's matrix). */}
                 <FeatureSection
-                  title="Show pricing"
-                  description="Allows editing of estimates, invoices, and line items on jobs."
-                  enabled={perms.showPricing}
-                  onToggle={v => editPerms(p => ({ ...p, showPricing: v, jobCosting: v ? p.jobCosting : false }))}
-                />
+                  title="Items"
+                  enabled={perms.items.enabled}
+                  onToggle={v => editPerms(p => ({ ...p, items: { ...p.items, enabled: v }, jobCosting: v ? p.jobCosting : false }))}
+                >
+                  {(["viewSellPrice", "discountOverride", "approveOverrides", "viewCostTaxesCreate", "fullControl"] as ItemsLevel[]).map(level => (
+                    <Radio
+                      key={level}
+                      checked={perms.items.level === level}
+                      onClick={() => editPerms(p => ({ ...p, items: { ...p.items, level } }))}
+                      label={{
+                        viewSellPrice: "View sell price",
+                        discountOverride: "View sell price; discount within limit; raise price freely, lower price needs approval",
+                        approveOverrides: "View sell price; discount and override price either way; approve lower-price overrides",
+                        viewCostTaxesCreate: "View sell price, cost, and taxes; create items",
+                        fullControl: "Upload, create, view and edit; sell price, cost, taxes, pricebook; delete / deactivate items",
+                      }[level]}
+                    />
+                  ))}
+                </FeatureSection>
 
-                {/* Job costing */}
+                {/* Show job profit (a.k.a. job costing) */}
                 <FeatureSection
-                  title="Job costing"
+                  title="Show job profit"
                   description={
-                    perms.showPricing && perms.timeTracking.enabled && perms.expenses.enabled
-                      ? "Show job profit by tracking revenue and costs from line items, labor, and expenses."
-                      : "Show job profit by tracking revenue and costs from line items, labor, and expenses. Turn on Show pricing, Time tracking, and Expenses to give access to job costing."
+                    perms.items.enabled && perms.timeTracking.enabled && perms.expenses.enabled
+                      ? "When on, this role sees revenue, expenses, compensation, and profit on jobs. When off, they see only the total price."
+                      : "When on, this role sees revenue, expenses, compensation, and profit on jobs (otherwise just the total price). Turn on Items, Time tracking, and Expenses to enable it."
                   }
                   enabled={perms.jobCosting}
                   onToggle={v => editPerms(p => ({ ...p, jobCosting: v }))}
@@ -632,7 +661,7 @@ export function NewUser() {
                   enabled={perms.clients.enabled}
                   onToggle={v => editPerms(p => ({ ...p, clients: { ...p.clients, enabled: v } }))}
                 >
-                  {(["nameAddressOnly", "viewFull", "viewEditFull", "viewEditDeleteFull"] as ClientsLevel[]).map(level => (
+                  {(["nameAddressOnly", "viewFull", "viewCreateEditFull", "viewCreateEditInactivateFull"] as ClientsLevel[]).map(level => (
                     <Radio
                       key={level}
                       checked={perms.clients.level === level}
@@ -640,20 +669,14 @@ export function NewUser() {
                       label={{
                         nameAddressOnly: "View client name and address only",
                         viewFull: "View full client and property info",
-                        viewEditFull: "View and edit full client and property info",
-                        viewEditDeleteFull: "View, edit, and delete full client and property info",
+                        viewCreateEditFull: "View, create, and edit full client and property info",
+                        viewCreateEditInactivateFull: "View, create, edit, and inactivate full client and property info",
                       }[level]}
+                      description={level === "nameAddressOnly"
+                        ? "Hides the phone number — for sales roles, so jobs can't be booked off the books."
+                        : undefined}
                     />
                   ))}
-                  <label className="flex items-center gap-2 mt-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={perms.clients.showOnMenu}
-                      onChange={e => editPerms(p => ({ ...p, clients: { ...p.clients, showOnMenu: e.target.checked } }))}
-                      className="w-4 h-4 accent-[#4A6FA5]"
-                    />
-                    <span className="text-[13px] text-[#374151]">Show clients on their Vision360 menu</span>
-                  </label>
                 </FeatureSection>
 
                 {/* Estimates */}
@@ -662,7 +685,7 @@ export function NewUser() {
                   enabled={perms.estimates.enabled}
                   onToggle={v => editPerms(p => ({ ...p, estimates: { ...p.estimates, enabled: v } }))}
                 >
-                  {(["viewOnly", "viewCreateEdit", "viewCreateEditDelete"] as DocLevel[]).map(level => (
+                  {(["viewOnly", "viewCreateEdit", "viewCreateEditArchive"] as EstimatesLevel[]).map(level => (
                     <Radio
                       key={level}
                       checked={perms.estimates.level === level}
@@ -670,19 +693,10 @@ export function NewUser() {
                       label={{
                         viewOnly: "View only",
                         viewCreateEdit: "View, create, and edit estimates; view and apply estimate templates",
-                        viewCreateEditDelete: "View, create, edit, and delete estimates; view and apply estimate templates",
+                        viewCreateEditArchive: "View, create, edit, and archive estimates; view and apply estimate templates",
                       }[level]}
                     />
                   ))}
-                  <label className="flex items-center gap-2 mt-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={perms.estimates.showOnMenu}
-                      onChange={e => editPerms(p => ({ ...p, estimates: { ...p.estimates, showOnMenu: e.target.checked } }))}
-                      className="w-4 h-4 accent-[#4A6FA5]"
-                    />
-                    <span className="text-[13px] text-[#374151]">Show estimates on their Vision360 menu</span>
-                  </label>
                 </FeatureSection>
 
                 {/* Jobs */}
@@ -691,7 +705,7 @@ export function NewUser() {
                   enabled={perms.jobs.enabled}
                   onToggle={v => editPerms(p => ({ ...p, jobs: { ...p.jobs, enabled: v } }))}
                 >
-                  {(["viewOnly", "viewCreateEdit", "viewCreateEditDelete"] as DocLevel[]).map(level => (
+                  {(["viewOnly", "viewCreateEdit", "viewCreateEditCancel"] as JobsLevel[]).map(level => (
                     <Radio
                       key={level}
                       checked={perms.jobs.level === level}
@@ -699,23 +713,11 @@ export function NewUser() {
                       label={{
                         viewOnly: "View only",
                         viewCreateEdit: "View, create, and edit",
-                        viewCreateEditDelete: "View, create, edit, and delete",
+                        viewCreateEditCancel: "View, create, edit, and cancel",
                       }[level]}
                       disabled={level !== "viewOnly" && perms.schedule.level !== "editOwn" && perms.schedule.level !== "editAll" && perms.schedule.level !== "editDeleteAll"}
                     />
                   ))}
-                  <p className="text-[12px] text-[#6B7280] mt-1">
-                    Select <span style={{ fontWeight: 600 }}>edit their own schedule</span> or higher to create and edit jobs.
-                  </p>
-                  <label className="flex items-center gap-2 mt-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={perms.jobs.showOnMenu}
-                      onChange={e => editPerms(p => ({ ...p, jobs: { ...p.jobs, showOnMenu: e.target.checked } }))}
-                      className="w-4 h-4 accent-[#4A6FA5]"
-                    />
-                    <span className="text-[13px] text-[#374151]">Show jobs on their Vision360 menu</span>
-                  </label>
                 </FeatureSection>
 
                 {/* Invoices */}
@@ -724,68 +726,38 @@ export function NewUser() {
                   enabled={perms.invoices.enabled}
                   onToggle={v => editPerms(p => ({ ...p, invoices: { ...p.invoices, enabled: v } }))}
                 >
-                  {(["viewOnly", "viewCreateEdit", "viewCreateEditDelete"] as DocLevel[]).map(level => (
+                  {(["viewOnly", "viewCreateEdit", "viewCreateEditVoidArchive"] as InvoicesLevel[]).map(level => (
                     <Radio
                       key={level}
                       checked={perms.invoices.level === level}
                       onClick={() => editPerms(p => ({ ...p, invoices: { ...p.invoices, level } }))}
                       label={{
                         viewOnly: "View only",
-                        viewCreateEdit: "View, create, and edit",
-                        viewCreateEditDelete: "View, create, edit, and delete",
+                        viewCreateEdit: "View, create, and edit (change prices)",
+                        viewCreateEditVoidArchive: "View, create, edit, void, and archive",
                       }[level]}
                     />
                   ))}
-                  <label className="flex items-center gap-2 mt-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={perms.invoices.showOnMenu}
-                      onChange={e => editPerms(p => ({ ...p, invoices: { ...p.invoices, showOnMenu: e.target.checked } }))}
-                      className="w-4 h-4 accent-[#4A6FA5]"
-                    />
-                    <span className="text-[13px] text-[#374151]">Show invoices on their Vision360 menu</span>
-                  </label>
                 </FeatureSection>
 
                 {/* Payments */}
                 <FeatureSection
                   title="Payments"
-                  description="Allow payment collection on estimates and invoices. Turning this on will apply the required permissions below. If any of them are removed, payments will also be removed automatically."
+                  description="How much this role can do with payments."
                   enabled={perms.payments.enabled}
-                  onToggle={v => editPerms(p => ({ ...p, payments: { ...p.payments, enabled: v && paymentsReady } }))}
+                  onToggle={v => editPerms(p => ({ ...p, payments: { ...p.payments, enabled: v } }))}
                 >
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-[#6B7280] mb-3">
-                    <span style={{ fontWeight: 500 }}>Required permissions:</span>
-                    <span className="inline-flex items-center gap-1">
-                      <span className="material-icons" style={{ fontSize: "14px", color: perms.showPricing ? "#16A34A" : "#DC2626" }}>
-                        {perms.showPricing ? "check" : "close"}
-                      </span>
-                      Show pricing
-                    </span>
-                    <span className="inline-flex items-center gap-1">
-                      <span className="material-icons" style={{ fontSize: "14px", color: clientsHasEdit ? "#16A34A" : "#DC2626" }}>
-                        {clientsHasEdit ? "check" : "close"}
-                      </span>
-                      Clients and Properties: Edit access
-                    </span>
-                    <span className="inline-flex items-center gap-1">
-                      <span className="material-icons" style={{ fontSize: "14px", color: docsHasEdit ? "#16A34A" : "#DC2626" }}>
-                        {docsHasEdit ? "check" : "close"}
-                      </span>
-                      Estimates and/or Invoices: Edit access
-                    </span>
-                  </div>
-                  {(["estimatesOnly", "invoicesOnly", "both"] as PaymentsScope[]).map(scope => (
+                  {(["viewOnly", "viewCollect", "viewCollectEdit", "viewCollectEditRefund"] as PaymentsLevel[]).map(level => (
                     <Radio
-                      key={scope}
-                      checked={perms.payments.scope === scope}
-                      onClick={() => editPerms(p => ({ ...p, payments: { ...p.payments, scope } }))}
+                      key={level}
+                      checked={perms.payments.level === level}
+                      onClick={() => editPerms(p => ({ ...p, payments: { ...p.payments, level } }))}
                       label={{
-                        estimatesOnly: "Collect on estimates only",
-                        invoicesOnly: "Collect on invoices only",
-                        both: "Collect on both",
-                      }[scope]}
-                      disabled={scope === "estimatesOnly" ? !docHasEdit(perms.estimates) : scope === "invoicesOnly" ? !docHasEdit(perms.invoices) : !docsHasEdit}
+                        viewOnly: "View only",
+                        viewCollect: "View and collect",
+                        viewCollectEdit: "View, collect, and edit",
+                        viewCollectEditRefund: "View, collect, edit, and refund",
+                      }[level]}
                     />
                   ))}
                 </FeatureSection>

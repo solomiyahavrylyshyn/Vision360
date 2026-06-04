@@ -12,9 +12,12 @@ import { StatCard } from "../components/ui/stat-card";
 import { AdvancedFilterField, AdvancedFilterPanel, advancedInputClass, advancedSelectClass } from "../components/ui/advanced-filters";
 import { formatRegionalDate } from "../stores/regionalSettingsStore";
 import { paymentsStore } from "../stores/paymentsStore";
+import { PAYMENT_METHODS, paymentMethodIcon } from "../constants/paymentMethods";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
-export type PaymentMethod = "Cash" | "Check" | "Credit Card" | "Debit Card" | "Bank Transfer" | "Other";
+// PaymentMethod is loose (string) so legacy seed values (e.g. "ACH") still
+// render; the canonical options come from PAYMENT_METHODS.
+export type PaymentMethod = string;
 export type PaymentStatus = "Completed" | "Pending" | "Refunded";
 
 export interface Payment {
@@ -28,6 +31,9 @@ export interface Payment {
   invoiceId: number;
   invoiceNumber: string;
   jobId?: string;
+  // Reference number for external/non-integrated methods (check #, transfer ID,
+  // Venmo/Zelle/Cash App confirmation, financing reference).
+  reference?: string;
   note: string;
   createdBy: string;
   createdAt: string;
@@ -40,14 +46,9 @@ export const paymentStatusColors: Record<PaymentStatus, { text: string; bg: stri
 };
 const statusColors = paymentStatusColors;
 
-export const paymentMethodIcons: Record<PaymentMethod, string> = {
-  Cash: "payments",
-  Check: "receipt",
-  "Credit Card": "credit_card",
-  "Debit Card": "credit_card",
-  "Bank Transfer": "account_balance",
-  Other: "more_horiz",
-};
+// Re-exported for any consumers that imported the old name; backed by the
+// shared canonical icon helper.
+export const paymentMethodIcons = new Proxy({}, { get: (_t, k) => paymentMethodIcon(String(k)) }) as Record<string, string>;
 const methodIcons = paymentMethodIcons;
 
 const timeFilters = [
@@ -273,7 +274,7 @@ export function Payments() {
             </select>
             <select value={qfMethod} onChange={e => { setQfMethod(e.target.value); setPage(1); }} className={qfClass(qfMethod !== "All")}>
               <option value="All">All methods</option>
-              {(["Cash", "Check", "Credit Card", "Debit Card", "Bank Transfer", "Other"] as PaymentMethod[]).map(m => (
+              {PAYMENT_METHODS.map(m => (
                 <option key={m} value={m}>{m}</option>
               ))}
             </select>

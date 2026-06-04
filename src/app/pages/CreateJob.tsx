@@ -7,13 +7,15 @@ import { jobsStore } from "../stores/jobsStore";
 import { estimatesStore } from "../stores/estimatesStore";
 import { toast } from "sonner";
 import { formatRegionalDate } from "../stores/regionalSettingsStore";
+import { scheduleSettingsStore } from "../stores/scheduleSettingsStore";
 import { PageHeader } from "../components/ui/page-header";
 import { PlusIcon } from "../components/ui/plus-icon";
+import { itemsStore } from "../stores/itemsStore";
 
 // Note: mockClients is replaced by live clientsStore data — removed.
 
-// Mock catalog items (same as CreateEstimate)
-const mockCatalogItems: CatalogItem[] = [
+// Legacy HVAC/plumbing options kept available alongside the live Items catalog.
+const legacyCatalogItems: CatalogItem[] = [
   { id: 1000, name: "Heat Pump Repair or Service", itemDescription: "Standard heat pump repair service call", salesDescription: "Heat pump diagnostic, repair and service", brand: "Carrier", modelNumber: "HP-2500", rate: 285, cost: 120, taxable: false, category: "HVAC", type: "Service" },
   { id: 1001, name: "SEER Heat Pump Condenser Unit", itemDescription: "SEER 16 heat pump condenser outdoor unit", salesDescription: "SEER Heat Pump Condenser — high efficiency outdoor unit", brand: "Trane", modelNumber: "XR16-048", rate: 3200, cost: 1800, taxable: true, category: "HVAC", type: "Product" },
   { id: 1002, name: "SEER Heat Pump Condenser Premium", itemDescription: "SEER 20 premium heat pump condenser", salesDescription: "SEER Premium Heat Pump Condenser — ultra high efficiency", brand: "Lennox", modelNumber: "XP25-048", rate: 4800, cost: 2900, taxable: true, category: "HVAC", type: "Product" },
@@ -40,6 +42,12 @@ export function CreateJob() {
   const availableJobTypes = useSyncExternalStore(jobTypesStore.subscribe, jobTypesStore.getJobTypes);
   // Live clients from the shared store — replaces the old hardcoded mockClients array.
   const liveClients = useSyncExternalStore(clientsStore.subscribe, clientsStore.getSnapshot);
+  // Catalog = live Items module items + legacy options not already present.
+  const catalogStoreItems = useSyncExternalStore(itemsStore.subscribe, itemsStore.getSnapshot);
+  const catalogItems: CatalogItem[] = (() => {
+    const names = new Set(catalogStoreItems.map((i) => i.name.toLowerCase()));
+    return [...catalogStoreItems, ...legacyCatalogItems.filter((i) => !names.has(i.name.toLowerCase()))];
+  })();
   // Keep in sync with Calendar TEAM and JobDetail FIELD_EMPLOYEES.
   const fieldEmployees = ["Peter Novak", "Travis Brown", "Maria Garcia", "Emily Parker"];
   const [serviceCountry, setServiceCountry] = useState("United States");
@@ -79,6 +87,8 @@ export function CreateJob() {
     }));
     setLineItems(preloaded);
     if (!title) setTitle(est.estimateName || "");
+    // Carry the estimate's tax rate so Estimate→Job total continuity holds (V05.5).
+    if (est.taxRate != null) setTaxRate(est.taxRate);
   });
 
   const addLineItem = () => {
@@ -136,11 +146,24 @@ export function CreateJob() {
 
   const handleSave = () => {
     if (!client.trim()) { toast.error("Select a client before saving the job."); return; }
+    // Start date is required; start/end time are optional (per walkthrough).
+    if (!startDate) { toast.error("Select a start date for the job."); return; }
 
     const computedSubtotal = lineItems.reduce((s, li) => s + li.total, 0);
     const computedTaxable = lineItems.filter((li) => li.taxable).reduce((s, li) => s + li.total, 0);
     const computedTotal = computedSubtotal + computedTaxable * (taxRate / 100);
     const today = formatRegionalDate(new Date());
+
+    // If a start time is given but no end time, default end = start + the
+    // configured default job length (Settings → Scheduling).
+    let resolvedEndTime = endTime;
+    if (startTime && !endTime) {
+      const [h, m] = startTime.split(":").map(Number);
+      const total = h * 60 + m + scheduleSettingsStore.getSnapshot().defaultJobMinutes;
+      const eh = Math.floor((total % (24 * 60)) / 60);
+      const em = total % 60;
+      resolvedEndTime = `${String(eh).padStart(2, "0")}:${String(em).padStart(2, "0")}`;
+    }
 
     const record = jobsStore.add({
       jobNumber,
@@ -158,7 +181,7 @@ export function CreateJob() {
       startDate,
       endDate,
       startTime,
-      endTime,
+      endTime: resolvedEndTime,
       status: "Scheduled",
       totalPrice: Math.round(computedTotal * 100) / 100,
       notes,
@@ -171,10 +194,11 @@ export function CreateJob() {
         : undefined,
     });
 
-    // Mark the source estimate as Converted.
+    // Mark the source estimate as Converted and lock it to prevent
+    // duplicate conversions (V05.6 / V05.7).
     if (fromEstimateId) {
       estimatesStore.update(fromEstimateId, {
-        status: "Approved",
+        status: "Converted",
         job: record.jobNumber,
         jobTitle: record.title,
       });
@@ -478,7 +502,7 @@ export function CreateJob() {
       {/* Item Picker Modal */}
       {itemPickerOpen && (
         <ItemPicker
-          catalogItems={mockCatalogItems}
+          catalogItems={catalogItems}
           onSelect={handleSelectItem}
           onClose={() => setItemPickerOpen(false)}
         />

@@ -7,7 +7,7 @@
 type Listener = () => void;
 
 export type EstimateStatus =
-  | "Draft" | "Sent" | "Viewed" | "Approved" | "Rejected" | "Expired" | "Archived";
+  | "Draft" | "Sent" | "Viewed" | "Approved" | "Rejected" | "Expired" | "Archived" | "Converted";
 
 // Line items are stored alongside the record so EstimateDetail can rebuild the
 // document without falling back to seed data when the user opens an estimate
@@ -28,6 +28,7 @@ export interface EstimateRecord {
   estimateNumber: string;
   estimateName: string;
   clientName: string;
+  clientId?: string;
   clientEmail: string;
   clientPhone?: string;
   clientAddress?: string;
@@ -116,6 +117,7 @@ export const estimatesStore = {
       estimateNumber: partial.estimateNumber || nextEstimateNumber(),
       estimateName: partial.estimateName ?? "",
       clientName: partial.clientName,
+      clientId: partial.clientId,
       clientEmail: partial.clientEmail ?? "",
       clientPhone: partial.clientPhone,
       clientAddress: partial.clientAddress,

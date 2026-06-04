@@ -25,12 +25,15 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuSubContent,
 } from "../components/ui/dropdown-menu";
-import { KebabMenu as KebabMenuShared, KebabItem } from "../components/ui/kebab-menu";
+import { KebabMenu as KebabMenuShared, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
 import { DetailTabs, TabSettingsButton } from "../components/ui/detail-tabs";
 import { toast } from "sonner";
 import { formatRegionalDate } from "../stores/regionalSettingsStore";
 import { clientsStore } from "../stores/clientsStore";
 import { estimatesStore } from "../stores/estimatesStore";
+import { jobsStore, type JobRecord } from "../stores/jobsStore";
+import { JOB_STATUS_STYLES as JOB_STATUS_COLORS, JOB_STATUSES as JOB_STATUS_OPTIONS } from "../constants/jobStatuses";
+import { PAYMENT_METHODS } from "../constants/paymentMethods";
 import { tagsStore } from "../stores/tagsStore";
 import { customFieldsStore } from "../stores/customFieldsStore";
 import { relationshipsStore } from "../stores/relationshipsStore";
@@ -95,83 +98,367 @@ function safeExternalHref(url: string): string | null {
   return `https://${u}`; // scheme-less (e.g. "example.com") → assume https
 }
 
-/* ── WorkTable: reusable draggable-column table for jobs/estimates/invoices ── */
-interface WorkItem {
-  id: number; type: string; title: string; subtitle: string;
-  date: string; amount: string;
+/* ── ClientJobsPanel — full list-page treatment scoped to one client ───────
+   Mirrors the Jobs list page inside the client's Jobs tab: search + quick
+   filters + Create job toolbar, sortable columns with row selection, a kebab
+   (Duplicate / Change status / Cancel job / Open in New Tab) and pagination.
+   All rows are live jobsStore records, so every action persists. */
+const JOB_PANEL_COLS = [
+  { key: "number",   label: "Number"    },
+  { key: "schedule", label: "Scheduled" },
+  { key: "status",   label: "Status"    },
+  { key: "total",    label: "Total"     },
+] as const;
+type JobSortField = "number" | "schedule" | "status" | "total";
+
+function ClientJobsPanel({ rows, onOpen, onCreate }: {
+  rows: JobRecord[];
+  onOpen: (id: number) => void;
+  onCreate: () => void;
+}) {
+  const [search, setSearch] = useState("");
+  const [qfStatus, setQfStatus] = useState("All");
+  const [qfType, setQfType] = useState("All");
+  const [qfDate, setQfDate] = useState("all_time");
+  const [sortField, setSortField] = useState<JobSortField>("number");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(10);
+  const [statusTarget, setStatusTarget] = useState<number[] | null>(null);
+  const [cols, moveCols] = useDraggableColumns([...JOB_PANEL_COLS]);
+
+  // Type filter options derived from the data so we never offer a value that
+  // filters everything out.
+  const typeOptions = useMemo(() => {
+    const set = new Set<string>();
+    rows.forEach((r) => { if (r.jobType) set.add(r.jobType); });
+    return Array.from(set);
+  }, [rows]);
+
+  const inDateRange = (startDate: string) => {
+    if (qfDate === "all_time") return true;
+    if (!startDate) return false;
+    const d = new Date(startDate);
+    if (isNaN(d.getTime())) return true;
+    const now = new Date();
+    const startOfDay = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate());
+    const today = startOfDay(now);
+    const dDay = startOfDay(d);
+    if (qfDate === "today") return dDay.getTime() === today.getTime();
+    if (qfDate === "this_week") {
+      const weekStart = new Date(today); weekStart.setDate(today.getDate() - today.getDay());
+      const weekEnd = new Date(weekStart); weekEnd.setDate(weekStart.getDate() + 7);
+      return dDay >= weekStart && dDay < weekEnd;
+    }
+    if (qfDate === "this_month") return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    return true;
+  };
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return rows.filter((r) => {
+      if (q && !`${r.jobNumber} ${r.title} ${r.status}`.toLowerCase().includes(q)) return false;
+      if (qfStatus !== "All" && r.status !== qfStatus) return false;
+      if (qfType !== "All" && r.jobType !== qfType) return false;
+      if (!inDateRange(r.startDate)) return false;
+      return true;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rows, search, qfStatus, qfType, qfDate]);
+
+  const sorted = useMemo(() => {
+    const dir = sortDir === "asc" ? 1 : -1;
+    return [...filtered].sort((a, b) => {
+      switch (sortField) {
+        case "number":   return a.jobNumber.localeCompare(b.jobNumber, undefined, { numeric: true }) * dir;
+        case "schedule": return ((new Date(a.startDate).getTime() || 0) - (new Date(b.startDate).getTime() || 0)) * dir;
+        case "status":   return a.status.localeCompare(b.status) * dir;
+        case "total":    return (a.totalPrice - b.totalPrice) * dir;
+        default:         return 0;
+      }
+    });
+  }, [filtered, sortField, sortDir]);
+
+  const total = sorted.length;
+  const totalPages = Math.max(1, Math.ceil(total / perPage));
+  const safePage = Math.min(page, totalPages);
+  const startIdx = (safePage - 1) * perPage;
+  const endIdx = Math.min(startIdx + perPage, total);
+  const paginated = sorted.slice(startIdx, endIdx);
+
+  const allSelected = paginated.length > 0 && paginated.every((r) => selected.has(r.id));
+  const toggleAll = (checked: boolean) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      paginated.forEach((r) => (checked ? next.add(r.id) : next.delete(r.id)));
+      return next;
+    });
+  const toggleOne = (id: number, checked: boolean) =>
+    setSelected((prev) => { const n = new Set(prev); if (checked) n.add(id); else n.delete(id); return n; });
+
+  const toggleSort = (f: JobSortField) => {
+    if (sortField === f) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else { setSortField(f); setSortDir("asc"); }
+  };
+
+  const duplicateJob = (job: JobRecord) => {
+    const base = job.jobNumber.replace(/-J\d+$/, "");
+    const suffixes = rows
+      .filter((r) => r.jobNumber.startsWith(`${base}-J`))
+      .map((r) => parseInt(r.jobNumber.split("-J")[1] || "0", 10))
+      .filter((n) => !isNaN(n));
+    const nextSuffix = (suffixes.length ? Math.max(...suffixes) : 0) + 1;
+    const newNumber = `${base}-J${String(nextSuffix).padStart(2, "0")}`;
+    jobsStore.add({
+      jobNumber: newNumber, title: job.title, client: job.client, clientId: job.clientId,
+      address: job.address, city: job.city, state: job.state, zip: job.zip,
+      gateCode: job.gateCode, assignedTo: job.assignedTo, jobType: job.jobType,
+      jobCategory: job.jobCategory, startDate: job.startDate, endDate: job.endDate,
+      startTime: job.startTime, endTime: job.endTime, status: "Scheduled",
+      totalPrice: job.totalPrice, notes: job.notes, fieldNotes: job.fieldNotes,
+      privateNotes: job.privateNotes, taxRate: job.taxRate,
+      estimateId: job.estimateId, estimateNumber: job.estimateNumber,
+    });
+    toast.success(`Duplicated as ${newNumber}`);
+  };
+  const cancelJobs = (ids: number[]) => {
+    ids.forEach((id) => jobsStore.update(id, { status: "Cancelled" }));
+    setSelected(new Set());
+    toast.success(ids.length > 1 ? `${ids.length} jobs cancelled` : "Job cancelled");
+  };
+  const applyStatus = (status: string) => {
+    (statusTarget || []).forEach((id) => jobsStore.update(id, { status }));
+    setStatusTarget(null);
+    setSelected(new Set());
+    toast.success("Status updated");
+  };
+
+  const qfClass = (active: boolean) =>
+    `h-8 px-2.5 rounded-lg border text-[13px] focus:outline-none cursor-pointer transition-colors ${
+      active ? "border-[#4A6FA5] text-[#4A6FA5] bg-[#EEF3FA]" : "border-[#E5E7EB] text-[#546478] bg-white hover:border-[#C5CEDD]"
+    }`;
+
+  return (
+    <DndProvider backend={HTML5Backend}>
+      <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
+        {/* Toolbar / selection bar (mutually exclusive) */}
+        {selected.size > 0 ? (
+          <div className="flex items-center gap-3 px-4 py-3 bg-[#EEF3FA] border-b border-[#E5E7EB]">
+            <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>{selected.size} selected</span>
+            <button onClick={() => setStatusTarget([...selected])} className="h-8 px-3 rounded-lg border border-[#E5E7EB] bg-white text-[13px] text-[#546478] hover:bg-[#F5F7FA] flex items-center gap-1.5">
+              <span className="material-icons" style={{ fontSize: "16px" }}>swap_horiz</span>Change status
+            </button>
+            <button onClick={() => cancelJobs([...selected])} className="h-8 px-3 rounded-lg border border-[#E5E7EB] bg-white text-[13px] text-[#DC2626] hover:bg-[#FEF2F2] flex items-center gap-1.5">
+              <span className="material-icons" style={{ fontSize: "16px" }}>cancel</span>Cancel
+            </button>
+            <button onClick={() => setSelected(new Set())} className="ml-auto text-[13px] text-[#6B7280] hover:text-[#1A2332]">Deselect</button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 px-4 py-3 border-b border-[#E5E7EB] flex-wrap">
+            <div className="relative">
+              <span className="material-icons absolute left-2.5 top-1/2 -translate-y-1/2 text-[#9AA3AF]" style={{ fontSize: "16px" }}>search</span>
+              <input type="text" placeholder="Search jobs..." value={search}
+                onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+                className="h-8 pl-8 pr-3 w-[200px] border border-[#E5E7EB] rounded-lg text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5]" />
+            </div>
+            <div className="w-px h-5 bg-[#E5E7EB] mx-1" />
+            <select value={qfStatus} onChange={(e) => { setQfStatus(e.target.value); setPage(1); }} className={qfClass(qfStatus !== "All")}>
+              <option value="All">Status: All</option>
+              {JOB_STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
+            </select>
+            {typeOptions.length > 0 && (
+              <select value={qfType} onChange={(e) => { setQfType(e.target.value); setPage(1); }} className={qfClass(qfType !== "All")}>
+                <option value="All">Type: All</option>
+                {typeOptions.map((t) => <option key={t} value={t}>{t}</option>)}
+              </select>
+            )}
+            <select value={qfDate} onChange={(e) => { setQfDate(e.target.value); setPage(1); }} className={qfClass(qfDate !== "all_time")}>
+              <option value="all_time">Date: All time</option>
+              <option value="today">Today</option>
+              <option value="this_week">This week</option>
+              <option value="this_month">This month</option>
+            </select>
+            <button onClick={onCreate} className="ml-auto h-8 px-3 rounded-lg bg-[#4A6FA5] hover:bg-[#3d5a85] text-white text-[13px] flex items-center gap-1.5" style={{ fontWeight: 500 }}>
+              <span className="material-icons" style={{ fontSize: "16px" }}>add</span>Create job
+            </button>
+          </div>
+        )}
+
+        <table className="w-full">
+          <thead className="bg-[#F5F7FA]">
+            <tr className="border-b border-[#E5E7EB]">
+              <th className="px-4 py-3 w-10">
+                <input type="checkbox" checked={allSelected} onChange={(e) => toggleAll(e.target.checked)} className="w-4 h-4 rounded border-[#E5E7EB] cursor-pointer accent-[#4A6FA5]" />
+              </th>
+              {cols.map((col) => (
+                <DraggableTh key={col.key} colKey={col.key} onMove={moveCols}
+                  className={`px-4 py-3 ${col.key === "total" ? "text-right" : "text-left"} text-[13px] text-[#1A2332] select-none cursor-pointer`}
+                  style={{ fontWeight: 500 }}
+                  onClick={() => toggleSort(col.key as JobSortField)}>
+                  <div className={`flex items-center ${col.key === "total" ? "justify-end" : ""}`}>
+                    {col.label}
+                    <span className="material-icons ml-0.5" style={{ fontSize: "16px", color: sortField === col.key ? "#4A6FA5" : "#C5CEDD" }}>
+                      {sortField !== col.key ? "unfold_more" : sortDir === "asc" ? "arrow_upward" : "arrow_downward"}
+                    </span>
+                  </div>
+                </DraggableTh>
+              ))}
+              <th className="px-4 py-3 w-10" />
+            </tr>
+          </thead>
+          <tbody>
+            {paginated.length === 0 ? (
+              <tr><td colSpan={cols.length + 2} className="px-4 py-12 text-center text-[14px] text-[#8899AA]">No jobs found</td></tr>
+            ) : paginated.map((row) => {
+              const ss = JOB_STATUS_COLORS[row.status] ?? JOB_STATUS_COLORS["Scheduled"];
+              return (
+                <tr key={row.id} onClick={() => onOpen(row.id)}
+                  className={`border-b border-[#E5E7EB] last:border-0 hover:bg-[#F9FAFB] cursor-pointer ${selected.has(row.id) ? "bg-[#EDF5FF]" : ""}`}>
+                  <td className="px-4 py-4" onClick={(e) => e.stopPropagation()}>
+                    <input type="checkbox" checked={selected.has(row.id)} onChange={(e) => toggleOne(row.id, e.target.checked)} className="w-4 h-4 rounded border-[#E5E7EB] cursor-pointer accent-[#4A6FA5]" />
+                  </td>
+                  {cols.map((col) => {
+                    switch (col.key) {
+                      case "number": return (
+                        <td key="number" className="px-4 py-4">
+                          <div className="text-[12px] text-[#6B7280] leading-4">{row.jobNumber}</div>
+                          <div className="text-[14px] text-[#1A2332] leading-5">{row.title || "Service"}</div>
+                        </td>
+                      );
+                      case "schedule": return <td key="schedule" className="px-4 py-4 text-[14px] text-[#6B7280]">{row.startDate ? formatRegionalDate(row.startDate) : "—"}</td>;
+                      case "status": return (
+                        <td key="status" className="px-4 py-4">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-[12px]" style={{ fontWeight: 600, backgroundColor: ss.bg, color: ss.color }}>{row.status}</span>
+                        </td>
+                      );
+                      case "total": return <td key="total" className="px-4 py-4 text-right text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>${row.totalPrice.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>;
+                      default: return null;
+                    }
+                  })}
+                  <td className="px-4 py-4" onClick={(e) => e.stopPropagation()}>
+                    <KebabMenuShared>
+                      <KebabItem icon="content_copy" onSelect={() => duplicateJob(row)}>Duplicate</KebabItem>
+                      <KebabItem icon="swap_horiz" onSelect={() => setStatusTarget([row.id])}>Change status</KebabItem>
+                      <KebabItem icon="cancel" onSelect={() => cancelJobs([row.id])}>Cancel job</KebabItem>
+                      <KebabSeparator />
+                      <KebabItem icon="open_in_new" onSelect={() => window.open(`/jobs/${row.id}`, "_blank")}>Open in New Tab</KebabItem>
+                    </KebabMenuShared>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+
+        {/* Pagination */}
+        <div className="flex items-center justify-between bg-white px-4 py-3 border-t border-[#E5E7EB]">
+          <div className="flex items-center gap-3">
+            <span className="text-[13px] text-[#6B7280]">Rows per page:</span>
+            <Select value={String(perPage)} onValueChange={(v) => { setPerPage(Number(v)); setPage(1); }}>
+              <SelectTrigger className="h-9 w-[72px] border-[#E5E7EB] text-[14px] text-[#1A2332]"><SelectValue /></SelectTrigger>
+              <SelectContent>{[5, 10, 25, 50].map((n) => <SelectItem key={n} value={String(n)}>{n}</SelectItem>)}</SelectContent>
+            </Select>
+            <span className="text-[13px] text-[#6B7280]">{total === 0 ? "0-0" : `${startIdx + 1}-${endIdx}`} of {total}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button className="w-9 h-9 flex items-center justify-center text-[#1A2332] hover:bg-[#F3F4F6] rounded-lg disabled:opacity-50" disabled={safePage === 1} onClick={() => setPage(safePage - 1)} aria-label="Previous page">
+              <span className="material-icons" style={{ fontSize: "16px" }}>chevron_left</span>
+            </button>
+            <button className="w-9 h-9 flex items-center justify-center text-[#1A2332] hover:bg-[#F3F4F6] rounded-lg disabled:opacity-50" disabled={safePage >= totalPages} onClick={() => setPage(safePage + 1)} aria-label="Next page">
+              <span className="material-icons" style={{ fontSize: "16px" }}>chevron_right</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Change-status modal */}
+      {statusTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={() => setStatusTarget(null)}>
+          <div className="bg-white rounded-xl shadow-xl w-[320px] p-5" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-[15px] text-[#1A2332] mb-1" style={{ fontWeight: 600 }}>Change status</h3>
+            <p className="text-[13px] text-[#6B7280] mb-4">{statusTarget.length > 1 ? `${statusTarget.length} jobs selected` : "Select a new status for this job."}</p>
+            <div className="flex flex-col gap-1.5">
+              {JOB_STATUS_OPTIONS.map((s) => {
+                const c = JOB_STATUS_COLORS[s] ?? JOB_STATUS_COLORS["Scheduled"];
+                return (
+                  <button key={s} onClick={() => applyStatus(s)} className="flex items-center gap-2 px-3 py-2 rounded-lg border border-[#E5E7EB] hover:bg-[#F5F7FA] text-left">
+                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: c.color }} />
+                    <span className="text-[13px] text-[#1A2332]">{s}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <button onClick={() => setStatusTarget(null)} className="mt-4 w-full h-9 rounded-lg border border-[#E5E7EB] text-[13px] text-[#546478] hover:bg-[#F5F7FA]">Cancel</button>
+          </div>
+        </div>
+      )}
+    </DndProvider>
+  );
 }
 
-const WORK_COLS = [
-  { key: "item",   label: "Item"   },
-  { key: "date",   label: "Date"   },
-  { key: "amount", label: "Amount" },
+/* ── ClientEstimatesTable ────────────────────────────────────────────────── */
+const EST_STATUS_COLORS: Record<string, { bg: string; color: string }> = {
+  Draft:     { bg: "#F3F4F6", color: "#6B7280"  },
+  Sent:      { bg: "#DBEAFE", color: "#1E40AF"  },
+  Viewed:    { bg: "#FEF3C7", color: "#92400E"  },
+  Approved:  { bg: "#DCFCE7", color: "#166534"  },
+  Rejected:  { bg: "#FEE2E2", color: "#DC2626"  },
+  Expired:   { bg: "#F3F4F6", color: "#6B7280"  },
+  Converted: { bg: "#EBF0F8", color: "#4A6FA5"  },
+  Archived:  { bg: "#E5E7EB", color: "#4B5563"  },
+};
+const EST_COLS = [
+  { key: "number",  label: "Estimate #" },
+  { key: "name",    label: "Title"      },
+  { key: "date",    label: "Date"       },
+  { key: "status",  label: "Status"     },
+  { key: "amount",  label: "Total"      },
 ] as const;
 
-function WorkTable({ items, emptyIcon, emptyLabel }: {
-  items: WorkItem[]; emptyIcon: string; emptyLabel: string;
+function ClientEstimatesTable({ rows, onNavigate }: {
+  rows: Array<{ id: number; estimateNumber: string; estimateName: string; createdDate: string; status: string; amount: number }>;
+  onNavigate: (id: number) => void;
 }) {
-  const [cols, moveCols] = useDraggableColumns([...WORK_COLS]);
-
-  if (items.length === 0) {
-    return (
-      <div className="py-12 text-center">
-        <span className="material-icons text-[#D1D5DB] mb-2 block" style={{ fontSize: "36px" }}>{emptyIcon}</span>
-        <p className="text-[13px] text-[#9CA3AF]">{emptyLabel}</p>
-      </div>
-    );
-  }
-
+  const [cols, moveCols] = useDraggableColumns([...EST_COLS]);
   return (
     <DndProvider backend={HTML5Backend}>
       <table className="w-full">
         <thead>
           <tr className="border-b border-[#E5E7EB]">
             {cols.map(col => (
-              <DraggableTh
-                key={col.key}
-                colKey={col.key}
-                onMove={moveCols}
-                className={`pb-3 text-[12px] text-[#6B7280] ${col.key === "amount" ? "text-right" : "text-left"}`}
-                style={{ fontWeight: 500 }}
-              >
-                {col.label}
-              </DraggableTh>
+              <DraggableTh key={col.key} colKey={col.key} onMove={moveCols}
+                className={`pb-3 text-[12px] text-[#6B7280] whitespace-nowrap ${col.key === "amount" ? "text-right" : "text-left"}`}
+                style={{ fontWeight: 500 }}>{col.label}</DraggableTh>
             ))}
+            <th className="w-10" />
           </tr>
         </thead>
         <tbody>
-          {items.map(item => (
-            <tr key={item.id} className="border-b border-[#E5E7EB] hover:bg-[#F9FAFB] cursor-pointer">
-              {cols.map(col => {
-                switch (col.key) {
-                  case "item": return (
-                    <td key="item" className="py-4">
-                      <div className="flex items-center gap-3">
-                        <span className="material-icons text-[#546478]" style={{ fontSize: "20px" }}>
-                          {item.type === "estimate" ? "request_quote" : item.type === "invoice" ? "receipt" : "work"}
-                        </span>
-                        <div>
-                          <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>{item.title}</div>
-                          <div className="text-[12px] text-[#6B7280]">{item.subtitle}</div>
-                        </div>
-                      </div>
-                    </td>
-                  );
-                  case "date": return (
-                    <td key="date" className="py-4">
-                      <div className="text-[13px] text-[#6B7280]">{item.date}</div>
-                    </td>
-                  );
-                  case "amount": return (
-                    <td key="amount" className="py-4 text-right">
-                      <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>{item.amount || "—"}</div>
-                    </td>
-                  );
-                  default: return null;
-                }
-              })}
-            </tr>
-          ))}
+          {rows.map(row => {
+            const ss = EST_STATUS_COLORS[row.status] ?? EST_STATUS_COLORS["Draft"];
+            return (
+              <tr key={row.id} onClick={() => onNavigate(row.id)} className="border-b border-[#E5E7EB] last:border-0 hover:bg-[#F9FAFB] cursor-pointer">
+                {cols.map(col => {
+                  switch (col.key) {
+                    case "number": return <td key="number" className="py-3.5 pr-4"><span className="text-[13px] text-[#4A6FA5] font-medium">{row.estimateNumber}</span></td>;
+                    case "name":   return <td key="name"   className="py-3.5 pr-4"><span className="text-[13px] text-[#1A2332]">{row.estimateName || "—"}</span></td>;
+                    case "date":   return <td key="date"   className="py-3.5 pr-4"><span className="text-[13px] text-[#6B7280]">{row.createdDate || "—"}</span></td>;
+                    case "status": return <td key="status" className="py-3.5 pr-4">
+                      <span className="px-2 py-0.5 rounded-md text-[12px]" style={{ fontWeight: 600, backgroundColor: ss.bg, color: ss.color }}>{row.status}</span>
+                    </td>;
+                    case "amount": return <td key="amount" className="py-3.5 text-right"><span className="text-[13px] text-[#1A2332] font-medium">${row.amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></td>;
+                    default: return null;
+                  }
+                })}
+                <td className="py-3.5 pl-2 text-right" onClick={e => e.stopPropagation()}>
+                  <KebabMenuShared>
+                    <KebabItem icon="open_in_new" onSelect={() => onNavigate(row.id)}>Open estimate</KebabItem>
+                  </KebabMenuShared>
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </DndProvider>
@@ -240,22 +527,28 @@ function InvoiceTable({ rows }: { rows: InvoiceRow[] }) {
 
 /* ── PaymentTable ── */
 interface PaymentRow {
-  id: number; date: string; invoiceNo: string;
-  amount: string; method: string; note: string;
+  id: number; invoiceNo: string; date: string;
+  method: string; status: string; note: string; amount: string;
 }
 const PAYMENT_COLS = [
-  { key: "date",      label: "Date"      },
   { key: "invoiceNo", label: "Invoice #" },
-  { key: "amount",    label: "Amount"    },
+  { key: "date",      label: "Date"      },
   { key: "method",    label: "Method"    },
+  { key: "status",    label: "Status"    },
   { key: "note",      label: "Note"      },
+  { key: "amount",    label: "Amount"    },
 ] as const;
+const PAYMENT_STATUS_STYLES: Record<string, { bg: string; color: string }> = {
+  Completed: { bg: "#DCFCE7", color: "#166534" },
+  Pending:   { bg: "#FEF9C3", color: "#92400E" },
+  Refunded:  { bg: "#EDE9FE", color: "#4C1D95" },
+};
 const paymentRows: PaymentRow[] = [
-  { id: 1, date: "Mar 22, 2026", invoiceNo: "INV-2026-0035", amount: "$890.00",   method: "ACH",         note: "" },
-  { id: 2, date: "Dec 3, 2025",  invoiceNo: "INV-2025-0198", amount: "$430.00",   method: "Credit Card", note: "" },
-  { id: 3, date: "Oct 7, 2025",  invoiceNo: "INV-2025-0177", amount: "$2,000.00", method: "Check",       note: "Partial - check #4421" },
-  { id: 4, date: "Oct 20, 2025", invoiceNo: "INV-2025-0177", amount: "$1,750.00", method: "ACH",         note: "Final balance" },
-];
+  { id: 1, invoiceNo: "INV-2026-0035", date: "Mar 22, 2026", method: "ACH",         status: "Completed", note: "" },
+  { id: 2, invoiceNo: "INV-2025-0198", date: "Dec 3, 2025",  method: "Credit Card", status: "Completed", note: "" },
+  { id: 3, invoiceNo: "INV-2025-0177", date: "Oct 7, 2025",  method: "Check",       status: "Completed", note: "Partial - check #4421" },
+  { id: 4, invoiceNo: "INV-2025-0177", date: "Oct 20, 2025", method: "ACH",         status: "Completed", note: "Final balance" },
+].map((r, i) => ({ ...r, amount: ["$890.00","$430.00","$2,000.00","$1,750.00"][i] }));
 function PaymentTable({ rows }: { rows: PaymentRow[] }) {
   const [cols, moveCols] = useDraggableColumns([...PAYMENT_COLS]);
   return (
@@ -276,10 +569,14 @@ function PaymentTable({ rows }: { rows: PaymentRow[] }) {
             <tr key={row.id} className="border-b border-[#E5E7EB] last:border-0 hover:bg-[#F9FAFB] cursor-pointer">
               {cols.map(col => {
                 switch (col.key) {
+                  case "invoiceNo": return <td key="invoiceNo" className="py-3.5 pr-4"><span className="text-[13px] text-[#4A6FA5] hover:underline cursor-pointer font-medium">{row.invoiceNo}</span></td>;
                   case "date":      return <td key="date"      className="py-3.5 pr-4"><span className="text-[13px] text-[#6B7280]">{row.date}</span></td>;
-                  case "invoiceNo": return <td key="invoiceNo" className="py-3.5 pr-4"><span className="text-[13px] text-[#4A6FA5] hover:underline cursor-pointer">{row.invoiceNo}</span></td>;
-                  case "amount":    return <td key="amount"    className="py-3.5 pr-4 text-right"><span className="text-[13px] text-[#1A2332] font-medium">{row.amount}</span></td>;
                   case "method":    return <td key="method"    className="py-3.5 pr-4"><span className="text-[13px] text-[#374151]">{row.method}</span></td>;
+                  case "status": {
+                    const ss = PAYMENT_STATUS_STYLES[row.status] ?? PAYMENT_STATUS_STYLES["Completed"];
+                    return <td key="status" className="py-3.5 pr-4"><span className="px-2 py-0.5 rounded-md text-[12px]" style={{ fontWeight: 600, backgroundColor: ss.bg, color: ss.color }}>{row.status}</span></td>;
+                  }
+                  case "amount":    return <td key="amount"    className="py-3.5 pr-4 text-right"><span className="text-[13px] text-[#1A2332] font-medium">{row.amount}</span></td>;
                   case "note":      return <td key="note"      className="py-3.5"><span className="text-[13px] text-[#6B7280] italic">{row.note || "—"}</span></td>;
                   default: return null;
                 }
@@ -369,6 +666,8 @@ export function ClientDetail() {
   const [pendingDelete, setPendingDelete] = useState<null | (() => void)>(null);
   // Guard modal shown when trying to delete the only remaining service address.
   const [lastAddressGuardOpen, setLastAddressGuardOpen] = useState(false);
+  // Statement activity slide-over
+  const [statementOpen, setStatementOpen] = useState(false);
   // Document rename modal
   const [renameDocId, setRenameDocId] = useState<string | null>(null);
   const [renameDocDraft, setRenameDocDraft] = useState("");
@@ -570,37 +869,54 @@ export function ClientDetail() {
   // instead of inheriting shared demo rows.
   const hasEstimates = (client.estimatesTotal ?? 0) > 0;
   const hasBilling = (client.totalBilled ?? 0) > 0;
-  // Jobs list sized to the client's real job counts so the Jobs tab badge
-  // (= totalJobs) and the header "Open jobs" KPI (= openJobs) are consistent
-  // and both trace to the client record — no more orphan "1".
-  const jobItems = Array.from({ length: client.totalJobs }, (_, i) => ({
-    id: i + 2,
-    type: "job",
-    title: `Job #${i + 1}`,
-    subtitle: "AC Estimate",
-    date: i < client.openJobs ? "Scheduled for Mar 30, 2026" : "Completed Mar 15, 2026",
-    amount: "$0.00",
-  }));
+  // Live jobs for this client from jobsStore — any job created via Convert or
+  // Create Job (linked by client name or clientId) appears here immediately.
+  const allStoreJobs = useSyncExternalStore(jobsStore.subscribe, jobsStore.getSnapshot);
+  const liveClientJobs = (() => {
+    // Match by clientId when the job carries one (exact link), otherwise fall
+    // back to name. This prevents two different clients that happen to share a
+    // display name from bleeding each other's jobs onto their pages.
+    const matched = allStoreJobs.filter((j) =>
+      j.clientId ? j.clientId === client.id : j.client === client.name
+    );
+    // Dedupe by jobNumber so a job that matched on both name AND id, or stale
+    // duplicate records from earlier sessions, only render once.
+    const seen = new Set<string>();
+    return matched.filter((j) => {
+      const key = j.jobNumber || String(j.id);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  })();
+  // Merge: show live store jobs, then fall back to legacy demo rows for clients
+  // that have `totalJobs > 0` but nothing in the store yet.
+  const jobItems = liveClientJobs.length > 0
+    ? liveClientJobs.map((j) => ({
+        id: j.id,
+        type: "job",
+        title: `Job ${j.jobNumber}`,
+        subtitle: j.title || "Service",
+        date: j.startDate ? `Scheduled for ${j.startDate}` : "",
+        amount: `$${j.totalPrice.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+        _jobId: j.id,
+      }))
+    : Array.from({ length: client.totalJobs }, (_, i) => ({
+        id: i + 2,
+        type: "job",
+        title: `Job #${i + 1}`,
+        subtitle: "AC Estimate",
+        date: i < client.openJobs ? "Scheduled for Mar 30, 2026" : "Completed Mar 15, 2026",
+        amount: "$0.00",
+      }));
   // Live estimates for this client from the persistent estimatesStore so newly
   // created estimates land here immediately. We fall back to a single demo row
   // for legacy clients that have a non-zero `estimatesTotal` but no store entry.
   const allEstimates = useSyncExternalStore(estimatesStore.subscribe, estimatesStore.getSnapshot);
   const liveClientEstimates = allEstimates
-    .filter((e) => e.clientName === client.name)
-    .map((e) => ({
-      id: e.id,
-      type: "estimate",
-      title: `Estimate ${e.estimateNumber}`,
-      subtitle: e.estimateName || e.jobTitle || "—",
-      date: e.createdDate ? `Created ${e.createdDate}` : "",
-      amount: `$${e.amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-      _estimateId: e.id,
-    }));
-  const estimateItems = liveClientEstimates.length > 0
-    ? liveClientEstimates
-    : hasEstimates
-      ? [{ id: 3, type: "estimate", title: "Estimate #1", subtitle: "AC Unit Replacement", date: "Created Mar 28, 2026", amount: "$2,450.00" }]
-      : [];
+    // Match by clientId when present (exact link); fall back to name only for
+    // legacy records with no clientId — prevents same-name data bleed.
+    .filter((e) => e.clientId ? e.clientId === client.id : e.clientName === client.name);
   const clientInvoiceRows = hasBilling ? invoiceRows : [];
   const clientPaymentRows = hasBilling ? paymentRows : [];
 
@@ -609,8 +925,8 @@ export function ClientDetail() {
     .filter((t) => !hiddenTabs.has(t.key))
     .map((t) => {
       if (t.key === "addresses") return { ...t, count: serviceAddresses.length };
-      if (t.key === "jobs") return { ...t, count: jobItems.length };
-      if (t.key === "estimates") return { ...t, count: estimateItems.length };
+      if (t.key === "jobs") return { ...t, count: liveClientJobs.length };
+      if (t.key === "estimates") return { ...t, count: liveClientEstimates.length };
       if (t.key === "invoices") return { ...t, count: clientInvoiceRows.length };
       if (t.key === "documents") return { ...t, count: documents.length };
       if (t.key === "payments") return { ...t, count: clientPaymentRows.length };
@@ -629,19 +945,20 @@ export function ClientDetail() {
         <Button className="bg-[#4A6FA5] hover:bg-[#3d5a85] h-9 px-4 text-white text-[13px]">
           <PlusIcon className="mr-1.5 shrink-0" />
           Create
+          <span className="material-icons ml-1 -mr-1 shrink-0" style={{ fontSize: "18px" }}>keyboard_arrow_down</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-[200px]">
-        {[
-          { label: "Estimate",          icon: "description", path: "/estimates/new" },
-          { label: "Job",               icon: "work",        path: "/jobs/new" },
-          { label: "Invoice",           icon: "receipt",     path: "/invoices/new" },
-          { label: "Payment",           icon: "credit_card", path: "/payments/new" },
-        ].map(({ label, icon, path }) => (
+        {([
+          { label: "Estimate", icon: "description", path: "/estimates/new", tab: "estimates" as TabKey },
+          { label: "Job",      icon: "work",        path: "/jobs/new",      tab: "jobs" as TabKey },
+          { label: "Invoice",  icon: "receipt",     path: "/invoices/new",  tab: "invoices" as TabKey },
+          { label: "Payment",  icon: "credit_card", path: "/payments/new",  tab: "payments" as TabKey },
+        ]).map(({ label, icon, path, tab }) => (
           <DropdownMenuItem
             key={label}
             className="flex items-center gap-3 py-2.5"
-            onClick={() => path ? navigate(path) : undefined}
+            onClick={() => navigate(createUrl(path, tab))}
           >
             <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>{icon}</span>
             <span className="text-[14px] text-[#1A2332]">{label}</span>
@@ -656,28 +973,9 @@ export function ClientDetail() {
   ────────────────────────────────────────── */
   const KebabMenu = () => (
     <KebabMenuShared triggerClassName="w-9 h-9 border border-[#E5E7EB] rounded-md bg-white" contentClassName="min-w-[220px]">
-      <KebabItem icon="print" onClick={() => toast.info("Print functionality coming soon")}>Print</KebabItem>
-      <DropdownMenuSub>
-        <DropdownMenuSubTrigger className="flex items-center gap-2.5 px-3 h-9 text-[13px] text-[#374151] cursor-pointer rounded-none" style={{ fontWeight: 500 }}>
-          <span className="material-icons flex-shrink-0 text-[#6B7280]" style={{ fontSize: "18px" }}>receipt_long</span>
-          <span className="flex-1 leading-none">Statement Actions</span>
-        </DropdownMenuSubTrigger>
-        <DropdownMenuSubContent className="min-w-[200px]">
-          <DropdownMenuItem className="flex items-center gap-2.5 px-3 h-9 text-[13px] text-[#374151] cursor-pointer rounded-none" style={{ fontWeight: 500 }} onClick={() => toast.info("Email Statement coming soon")}>
-            <span className="material-icons flex-shrink-0 text-[#6B7280]" style={{ fontSize: "18px" }}>email</span>
-            <span className="flex-1 leading-none">Email Statement</span>
-          </DropdownMenuItem>
-          <DropdownMenuItem className="flex items-center gap-2.5 px-3 h-9 text-[13px] text-[#374151] cursor-pointer rounded-none" style={{ fontWeight: 500 }} onClick={() => toast.info("Print Statement coming soon")}>
-            <span className="material-icons flex-shrink-0 text-[#6B7280]" style={{ fontSize: "18px" }}>print</span>
-            <span className="flex-1 leading-none">Print Statement</span>
-          </DropdownMenuItem>
-          <DropdownMenuItem className="flex items-center gap-2.5 px-3 h-9 text-[13px] text-[#374151] cursor-pointer rounded-none" style={{ fontWeight: 500 }} onClick={() => toast.info("View Statement coming soon")}>
-            <span className="material-icons flex-shrink-0 text-[#6B7280]" style={{ fontSize: "18px" }}>visibility</span>
-            <span className="flex-1 leading-none">View Statement</span>
-          </DropdownMenuItem>
-        </DropdownMenuSubContent>
-      </DropdownMenuSub>
-      <KebabItem icon="payments" onClick={() => navigate(`/payments/new?client=${encodeURIComponent(client.name)}&clientId=${encodeURIComponent(client.customerId)}&amount=${client.openBalance}`)}>Collect Payment</KebabItem>
+      <KebabItem icon="print" onClick={() => { setStatementOpen(true); setTimeout(() => window.print(), 300); }}>Print statement</KebabItem>
+      <KebabItem icon="receipt_long" onClick={() => setStatementOpen(true)}>Statement activity</KebabItem>
+      <KebabItem icon="payments" onClick={() => navigate(createUrl("/payments/new", "payments", { amount: String(client.openBalance), method: client.paymentMethod || "" }))}>Collect payment</KebabItem>
     </KebabMenuShared>
   );
 
@@ -1223,7 +1521,7 @@ export function ClientDetail() {
               className="w-full h-9 px-3 border border-[#E5E7EB] rounded-lg text-[14px] text-[#1A2332] bg-white focus:outline-none focus:border-[#4A6FA5]"
             >
               <option value="">Not specified</option>
-              {["Cash", "Check", "Credit Card", "Debit Card", "Bank Transfer", "Other"].map((m) => (
+              {PAYMENT_METHODS.map((m) => (
                 <option key={m} value={m}>{m}</option>
               ))}
             </select>
@@ -1282,8 +1580,8 @@ export function ClientDetail() {
                   <SelectItem value="Due on receipt">Due on receipt</SelectItem>
                   <SelectItem value="Net 15">Net 15</SelectItem>
                   <SelectItem value="Net 30">Net 30</SelectItem>
+                  <SelectItem value="Net 45">Net 45</SelectItem>
                   <SelectItem value="Net 60">Net 60</SelectItem>
-                  <SelectItem value="Net 90">Net 90</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -1293,11 +1591,7 @@ export function ClientDetail() {
                 <SelectTrigger className="border-[#E5E7EB] bg-white h-10 text-[14px]"><SelectValue placeholder="Select method" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">— Select —</SelectItem>
-                  <SelectItem value="Cash">Cash</SelectItem>
-                  <SelectItem value="Check">Check</SelectItem>
-                  <SelectItem value="Credit Card">Credit Card</SelectItem>
-                  <SelectItem value="ACH">ACH</SelectItem>
-                  <SelectItem value="Wire Transfer">Wire Transfer</SelectItem>
+                  {PAYMENT_METHODS.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -1396,18 +1690,33 @@ export function ClientDetail() {
         );
 
       case "jobs":
-        return (
+        return liveClientJobs.length === 0 ? (
           <>
-            <TabHeader title="Jobs" onAdd={() => navigate(createUrl("/jobs/new", "jobs"))} addLabel="Create job" />
-            <WorkTable items={jobItems} emptyIcon="work" emptyLabel="No jobs yet for this client." />
+            <TabHeader title="Jobs" count={0} onAdd={() => navigate(createUrl("/jobs/new", "jobs"))} addLabel="Create job" />
+            <EmptyState icon="work" message="No jobs yet for this client." />
           </>
+        ) : (
+          <ClientJobsPanel
+            rows={liveClientJobs}
+            onOpen={(id) => navigate(`/jobs/${id}?returnTo=${encodeURIComponent(`/clients/${client.id}?tab=jobs`)}`)}
+            onCreate={() => navigate(createUrl("/jobs/new", "jobs"))}
+          />
         );
 
       case "estimates":
         return (
           <>
-            <TabHeader title="Estimates" count={estimateItems.length} onAdd={() => navigate(createUrl("/estimates/new", "estimates"))} addLabel="Create estimate" />
-            <WorkTable items={estimateItems} emptyIcon="request_quote" emptyLabel="No estimates yet for this client." />
+            <TabHeader title="Estimates" count={liveClientEstimates.length} onAdd={() => navigate(createUrl("/estimates/new", "estimates"))} addLabel="Create estimate" />
+            {liveClientEstimates.length === 0 ? (
+              <EmptyState icon="request_quote" message="No estimates yet for this client." />
+            ) : (
+              <div className="overflow-x-auto">
+                <ClientEstimatesTable
+                  rows={liveClientEstimates}
+                  onNavigate={(id) => navigate(`/estimates/${id}?returnTo=${encodeURIComponent(`/clients/${client.id}?tab=estimates`)}`)}
+                />
+              </div>
+            )}
           </>
         );
 
@@ -1428,7 +1737,7 @@ export function ClientDetail() {
       case "payments":
         return (
           <>
-            <TabHeader title="Payments" count={clientPaymentRows.length} onAdd={() => navigate(createUrl("/payments/new", "payments", { amount: String(client.openBalance) }))} addLabel="Collect payment" />
+            <TabHeader title="Payments" count={clientPaymentRows.length} onAdd={() => navigate(createUrl("/payments/new", "payments", { amount: String(client.openBalance), method: client.paymentMethod || "" }))} addLabel="Collect payment" />
             {clientPaymentRows.length === 0 ? (
               <EmptyState icon="payments" message="No payments yet for this client." />
             ) : (
@@ -2109,10 +2418,10 @@ export function ClientDetail() {
             {/* Stats — borderless, copy left / tinted icon right, 1px dividers (Figma) */}
             <div className="flex items-center gap-4 shrink-0">
               {[
-                { label: "Total revenue", value: `$${Math.round(client.totalRevenue).toLocaleString("en-US")}`, icon: "trending_up", iconColor: "#16A34A" },
-                { label: "Balance",       value: `$${client.openBalance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,    icon: "paid",     iconColor: "#4A6FA5" },
-                { label: "Past due",      value: `$${client.pastDueBalance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, icon: "schedule", iconColor: "#DC2626" },
-                { label: "Open jobs",     value: String(client.openJobs), icon: "work", iconColor: "#6B7280" },
+                { label: "Total revenue", value: `$${Math.round(client.totalRevenue).toLocaleString("en-US")}`, icon: "trending_up",    iconColor: "#16A34A" },
+                { label: "Balance",       value: `$${client.openBalance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,    icon: "account_balance_wallet", iconColor: "#4A6FA5" },
+                { label: "Past due",      value: `$${client.pastDueBalance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, icon: "warning_amber",          iconColor: "#DC2626" },
+                { label: "Open jobs",     value: String(client.openJobs), icon: "work_outline",   iconColor: "#6B7280" },
               ].map(({ label, value, icon, iconColor }, i) => (
                 <div key={label} className="flex items-center gap-4">
                   {i > 0 && <div className="w-px h-6 bg-[#E5E7EB] shrink-0" />}
@@ -2306,8 +2615,8 @@ export function ClientDetail() {
                         <SelectItem value="Due on receipt">Due on receipt</SelectItem>
                         <SelectItem value="Net 15">Net 15</SelectItem>
                         <SelectItem value="Net 30">Net 30</SelectItem>
+                        <SelectItem value="Net 45">Net 45</SelectItem>
                         <SelectItem value="Net 60">Net 60</SelectItem>
-                        <SelectItem value="Net 90">Net 90</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -2317,11 +2626,7 @@ export function ClientDetail() {
                       <SelectTrigger className="border-[#E5E7EB] bg-white h-10 text-[14px]"><SelectValue placeholder="Select method" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="none">— Select —</SelectItem>
-                        <SelectItem value="Cash">Cash</SelectItem>
-                        <SelectItem value="Check">Check</SelectItem>
-                        <SelectItem value="Credit Card">Credit Card</SelectItem>
-                        <SelectItem value="ACH">ACH</SelectItem>
-                        <SelectItem value="Wire Transfer">Wire Transfer</SelectItem>
+                        {PAYMENT_METHODS.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
@@ -2711,6 +3016,144 @@ export function ClientDetail() {
           </div>
         </div>
       )}
+
+      {/* ── Statement activity slide-over ─────────────────────────────────────── */}
+      {statementOpen && (() => {
+        // Whole-dollar amounts (no decimals) per the walkthrough decision.
+        const fmt = (n: number) => Math.round(n).toLocaleString("en-US");
+        type LedgerKind = "job" | "invoice" | "payment";
+        const KIND_ORDER: Record<LedgerKind, number> = { job: 0, invoice: 1, payment: 2 };
+        const ledger: Array<{ date: string; kind: LedgerKind; desc: string; sub: string; debit: number; credit: number; balance: number }> = [];
+        // A customer activity statement (per the walkthrough): the full history
+        // of what we did for this client — the JOB performed, then the INVOICE
+        // raised for it, then the PAYMENT(s) that settle it — interleaved by
+        // date with a running balance. Jobs are their own rows (no $ effect);
+        // the invoice carries the charge.
+        clientInvoiceRows.forEach(inv => {
+          const amt = Number(inv.total.replace(/[^0-9.-]/g, "")) || 0;
+          if (inv.jobNo) {
+            ledger.push({ date: inv.date, kind: "job", desc: `Job ${inv.jobNo}`, sub: inv.type, debit: 0, credit: 0, balance: 0 });
+          }
+          ledger.push({ date: inv.date, kind: "invoice", desc: `Invoice ${inv.invoiceNo}`, sub: inv.type, debit: amt, credit: 0, balance: 0 });
+        });
+        // Payments are the credits; show how it was paid + which invoice it applied to.
+        clientPaymentRows.forEach(pay => {
+          const amt = Number(pay.amount.replace(/[^0-9.-]/g, "")) || 0;
+          const sub = [pay.method, pay.invoiceNo ? `applied to ${pay.invoiceNo}` : "", pay.note].filter(Boolean).join(" · ");
+          ledger.push({ date: pay.date, kind: "payment", desc: "Payment received", sub, debit: 0, credit: amt, balance: 0 });
+        });
+        // Sort by date; same date keeps job → invoice → payment order.
+        ledger.sort((a, b) => {
+          const t = new Date(a.date).getTime() - new Date(b.date).getTime();
+          return t !== 0 ? t : KIND_ORDER[a.kind] - KIND_ORDER[b.kind];
+        });
+        let running = 0;
+        ledger.forEach(row => { running += row.debit - row.credit; row.balance = running; });
+
+        return (
+          <div className="fixed inset-0 z-50 flex" onClick={() => setStatementOpen(false)}>
+            <div className="flex-1 bg-black/30 backdrop-blur-[1px]" />
+            <div className="w-[680px] max-w-[96vw] bg-white shadow-2xl flex flex-col h-full" onClick={e => e.stopPropagation()} id="client-statement-print">
+              {/* Header */}
+              <div className="px-6 py-5 border-b border-[#E5E7EB] flex items-start justify-between shrink-0 no-print">
+                <div>
+                  <h2 className="text-[18px] text-[#1A2332]" style={{ fontWeight: 700 }}>Account statement</h2>
+                  <p className="text-[13px] text-[#6B7280] mt-0.5">{client.name} · {formatRegionalDate(new Date())}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => window.print()} className="h-9 px-3.5 border border-[#E5E7EB] rounded-lg text-[13px] text-[#546478] hover:bg-[#F5F7FA] inline-flex items-center gap-1.5" style={{ fontWeight: 500 }}>
+                    <span className="material-icons" style={{ fontSize: "16px" }}>print</span>Print
+                  </button>
+                  <button onClick={() => setStatementOpen(false)} className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-[#F5F7FA] text-[#9CA3AF]">
+                    <span className="material-icons" style={{ fontSize: "20px" }}>close</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Client + summary */}
+              <div className="px-6 py-4 bg-[#F8FAFC] border-b border-[#E5E7EB] shrink-0">
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <div className="text-[11px] text-[#6B7280] uppercase tracking-wider mb-1" style={{ fontWeight: 600 }}>Client</div>
+                    <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>{client.name}</div>
+                    {client.email && <div className="text-[12px] text-[#6B7280]">{client.email}</div>}
+                    {client.mobilePhone && <div className="text-[12px] text-[#6B7280]">{client.mobilePhone}</div>}
+                  </div>
+                  <div>
+                    <div className="text-[11px] text-[#6B7280] uppercase tracking-wider mb-1" style={{ fontWeight: 600 }}>Total billed</div>
+                    <div className="text-[18px] text-[#1A2332]" style={{ fontWeight: 700 }}>${fmt(client.totalBilled ?? 0)}</div>
+                  </div>
+                  <div>
+                    <div className="text-[11px] text-[#6B7280] uppercase tracking-wider mb-1" style={{ fontWeight: 600 }}>Balance due</div>
+                    <div className={`text-[18px]`} style={{ fontWeight: 700, color: (client.openBalance ?? 0) > 0 ? "#DC2626" : "#16A34A" }}>
+                      ${fmt(client.openBalance ?? 0)}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Ledger */}
+              <div className="flex-1 overflow-y-auto px-6 py-4">
+                {ledger.length === 0 ? (
+                  <div className="text-center py-12 text-[13px] text-[#9CA3AF]">No activity yet for this client.</div>
+                ) : (
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-[#E5E7EB]">
+                        {["Date", "Description", "Charges", "Payments", "Balance"].map((h, i) => (
+                          <th key={h} className={`pb-2.5 text-[11px] text-[#6B7280] uppercase tracking-wider ${i >= 2 ? "text-right pl-5 whitespace-nowrap" : "text-left"}`} style={{ fontWeight: 600 }}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {ledger.map((row, i) => (
+                        <tr key={i} className="border-b border-[#F3F4F6] last:border-0">
+                          <td className="py-3 pr-3 text-[12px] text-[#6B7280] whitespace-nowrap align-top">{row.date}</td>
+                          <td className="py-3 pr-3 align-top">
+                            <div className="flex items-center gap-2">
+                              <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: row.kind === "payment" ? "#16A34A" : row.kind === "invoice" ? "#4A6FA5" : "#94A3B8" }} />
+                              <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{row.desc}</span>
+                            </div>
+                            {row.sub && <div className="text-[12px] text-[#6B7280] mt-0.5 ml-3.5">{row.sub}</div>}
+                          </td>
+                          <td className="py-3 pl-5 text-[13px] text-right text-[#DC2626] whitespace-nowrap">{row.debit > 0 ? `$${fmt(row.debit)}` : "—"}</td>
+                          <td className="py-3 pl-5 text-[13px] text-right text-[#16A34A] whitespace-nowrap">{row.credit > 0 ? `$${fmt(row.credit)}` : "—"}</td>
+                          <td className={`py-3 pl-5 text-[13px] text-right whitespace-nowrap`} style={{ fontWeight: 600, color: row.balance > 0 ? "#DC2626" : "#16A34A" }}>
+                            ${fmt(Math.abs(row.balance))}{row.balance < 0 ? " CR" : ""}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr className="border-t-2 border-[#E5E7EB]">
+                        <td colSpan={2} className="pt-3 text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>Balance due</td>
+                        <td />
+                        <td />
+                        <td className="pt-3 text-[14px] text-right" style={{ fontWeight: 700, color: (client.openBalance ?? 0) > 0 ? "#DC2626" : "#16A34A" }}>
+                          ${fmt(client.openBalance ?? 0)}
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                )}
+              </div>
+
+              {/* Footer CTA */}
+              <div className="px-6 py-4 border-t border-[#E5E7EB] shrink-0 no-print">
+                {(client.openBalance ?? 0) > 0 && (
+                  <button
+                    onClick={() => { setStatementOpen(false); navigate(createUrl("/payments/new", "payments", { amount: String(client.openBalance), method: client.paymentMethod || "" })); }}
+                    className="w-full h-10 bg-[#4A6FA5] hover:bg-[#3d5a85] text-white rounded-lg text-[14px] transition-colors"
+                    style={{ fontWeight: 600 }}
+                  >
+                    Collect payment — ${fmt(client.openBalance ?? 0)}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

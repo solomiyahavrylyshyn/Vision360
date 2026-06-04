@@ -252,7 +252,7 @@ const INVOICES_COLS = [
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function qfClass(active: boolean) {
-  return `h-8 pl-3 pr-6 border rounded-lg text-[13px] bg-white cursor-pointer focus:outline-none transition-colors ${
+  return `h-7 pl-2.5 pr-6 border rounded-md text-[12px] bg-white cursor-pointer focus:outline-none transition-colors ${
     active ? "border-[#4A6FA5] text-[#4A6FA5] bg-[#EEF3FA]" : "border-[#E5E7EB] text-[#546478] hover:border-[#C5CEDD]"
   }`;
 }
@@ -390,7 +390,7 @@ export function Invoices() {
 
   return (
     <DndProvider backend={HTML5Backend}>
-    <div className="p-8 bg-[#F5F7FA] min-h-full">
+    <div className="p-4 sm:p-6 lg:p-8 bg-[#F5F7FA] min-h-full">
       {/* Header */}
       <PageHeader
         title="Invoices"
@@ -398,7 +398,7 @@ export function Invoices() {
       />
 
       {/* ── Stats Cards (Clients-template style) ── */}
-      <div className="mb-4 grid grid-cols-4 gap-3">
+      <div className="mb-4 grid grid-flow-col auto-cols-[200px] gap-3 overflow-x-auto pb-1 lg:grid-flow-row lg:grid-cols-4 lg:auto-cols-auto lg:overflow-visible lg:pb-0">
         <StatCard
           value={`$${fmt(summary.unpaid.total)}`}
           label="Unpaid"
@@ -444,12 +444,12 @@ export function Invoices() {
       {/* Table */}
       <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
         {/* Filter bar */}
-        <div className="flex items-center gap-2 px-4 py-3 bg-white border-b border-[#E5E7EB]">
-          <div className="relative">
+        <div className="flex flex-wrap items-center gap-2 px-4 py-3 bg-white border-b border-[#E5E7EB]">
+          <div className="relative w-full sm:w-auto">
             <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: "18px" }}>search</span>
             <input type="text" placeholder="Search invoices..." value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-              className="w-[220px] h-9 pl-10 pr-3 border border-[#E5E7EB] rounded-lg text-[13px] focus:outline-none focus:border-[#4A6FA5] bg-white" />
+              className="w-full sm:w-[220px] h-8 pl-9 pr-3 border border-[#E5E7EB] rounded-md text-[12px] focus:outline-none focus:border-[#4A6FA5] bg-white" />
           </div>
           <div className="w-px h-5 bg-[#E5E7EB] mx-1" />
           <select value={qfStatus} onChange={e => { setQfStatus(e.target.value); setPage(1); }} className={qfClass(qfStatus !== "All")}>
@@ -468,7 +468,7 @@ export function Invoices() {
           <div className="w-px h-5 bg-[#E5E7EB] mx-1" />
           <button
             onClick={() => setFilterOpen(true)}
-            className={`h-8 px-3 border rounded-lg text-[13px] flex items-center gap-1.5 transition-colors ${
+            className={`h-7 px-2.5 border rounded-md text-[12px] flex items-center gap-1.5 transition-colors ${
               filterOpen || advancedActive ? "border-[#4A6FA5] text-[#4A6FA5] bg-[#EEF3FA]" : "border-[#E5E7EB] text-[#546478] hover:bg-[#F5F7FA] bg-white"
             }`}
             style={{ fontWeight: 500 }}
@@ -552,7 +552,7 @@ export function Invoices() {
             { label: "Export", icon: "file_download", onClick: () => {} },
           ]}
         />
-        <div className="overflow-x-auto">
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="bg-[#F5F7FA] border-b border-[#E5E7EB]">
@@ -668,6 +668,45 @@ export function Invoices() {
               })}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile card list — replaces the table below the md breakpoint */}
+        <div className="md:hidden divide-y divide-[#EDF0F5]">
+          {paginated.length === 0 ? (
+            <div className="px-4 py-16 text-center">
+              <span className="material-icons text-[#C8D5E8] mb-2" style={{ fontSize: "48px" }}>receipt</span>
+              <div className="text-[14px] text-[#546478]" style={{ fontWeight: 500 }}>No invoices found</div>
+              <div className="text-[12px] text-[#8899AA] mt-1">Try adjusting your filters or create a new invoice</div>
+            </div>
+          ) : paginated.map((inv) => {
+            const overdueDays = inv.status === "Overdue" ? daysBetween(inv.dueDate, TODAY) : 0;
+            return (
+              <div
+                key={inv.id}
+                onClick={() => navigate(`/invoices/${inv.id}`)}
+                className={`px-4 py-3.5 cursor-pointer active:bg-[#F0F4F9] ${selectedIds.has(inv.id) ? "bg-[#EBF0F8]" : "bg-white"}`}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <input type="checkbox" checked={selectedIds.has(inv.id)}
+                      onClick={(e) => e.stopPropagation()}
+                      onChange={(e) => { const s = new Set(selectedIds); e.target.checked ? s.add(inv.id) : s.delete(inv.id); setSelectedIds(s); }}
+                      className="w-4 h-4 rounded border-[#E5E7EB] cursor-pointer accent-[#4A6FA5] shrink-0" />
+                    <span className="text-[14px] text-[#4A6FA5] truncate" style={{ fontWeight: 600 }}>{inv.number}</span>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-md text-[11px] shrink-0" style={{ fontWeight: 600, color: statusColors[inv.status].text, backgroundColor: statusColors[inv.status].bg }}>{inv.status}</span>
+                </div>
+                <div className="mt-1 ml-[26px] text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{inv.clientName}</div>
+                <div className="mt-0.5 ml-[26px] text-[12px] text-[#8899AA]">
+                  {fmtDate(inv.date)} · Due {fmtDate(inv.dueDate)}{overdueDays > 0 ? ` · ${overdueDays}d past due` : ""}
+                </div>
+                <div className="mt-1.5 ml-[26px] flex items-center gap-4 text-[12px] text-[#6B7280]">
+                  <span>Total <span className="text-[#1A2332]" style={{ fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>${fmt(inv.total)}</span></span>
+                  <span>Balance <span className={inv.balance > 0 ? "text-[#EF4444]" : "text-[#22C55E]"} style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>${fmt(inv.balance)}</span></span>
+                </div>
+              </div>
+            );
+          })}
         </div>
 
         {/* Pagination */}

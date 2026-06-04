@@ -2,6 +2,9 @@ export interface ScheduleSettings {
   startHour: number;
   endHour: number;
   slotMinutes: number;
+  // Default job length (minutes) used to auto-fill the end time when a start
+  // time is entered without an end. Start time itself is optional.
+  defaultJobMinutes: number;
 }
 
 const STORAGE_KEY = "vision360.scheduleSettings";
@@ -9,6 +12,7 @@ const DEFAULT_SETTINGS: ScheduleSettings = {
   startHour: 7,
   endHour: 19,
   slotMinutes: 30,
+  defaultJobMinutes: 120,
 };
 
 const listeners = new Set<() => void>();
@@ -21,11 +25,15 @@ const normalizeSettings = (settings: Partial<ScheduleSettings>): ScheduleSetting
   const slotMinutes = [15, 30, 60].includes(Number(settings.slotMinutes))
     ? Number(settings.slotMinutes)
     : DEFAULT_SETTINGS.slotMinutes;
+  const defaultJobMinutes = [30, 60, 90, 120, 180, 240, 480].includes(Number(settings.defaultJobMinutes))
+    ? Number(settings.defaultJobMinutes)
+    : DEFAULT_SETTINGS.defaultJobMinutes;
 
   return {
     startHour,
     endHour: Math.max(endHour, startHour + 1),
     slotMinutes,
+    defaultJobMinutes,
   };
 };
 
@@ -94,5 +102,8 @@ export const scheduleSettingsStore = {
   },
   setSlotMinutes(slotMinutes: number) {
     updateSettings({ slotMinutes });
+  },
+  setDefaultJobMinutes(defaultJobMinutes: number) {
+    updateSettings({ defaultJobMinutes });
   },
 };

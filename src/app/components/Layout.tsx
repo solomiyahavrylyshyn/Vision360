@@ -31,7 +31,14 @@ const navItems = [
 
 export function Layout() {
   const navigate = useNavigate();
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [deskCollapsed, setDeskCollapsed] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(() =>
+    typeof window !== "undefined" ? window.matchMedia("(min-width: 1024px)").matches : true
+  );
+  // On desktop the sidebar can be collapsed to icons; on mobile it's a full
+  // drawer (never the collapsed mini-rail), so force expanded below lg.
+  const collapsed = isDesktop ? deskCollapsed : false;
   const [notifMenuOpen, setNotifMenuOpen] = useState(false);
   const [createMenuOpen, setCreateMenuOpen] = useState(false);
   const [globalSearchOpen, setGlobalSearchOpen] = useState(false);
@@ -63,6 +70,17 @@ export function Layout() {
 
     window.addEventListener(BRAND_LOGO_EVENT, handleLogoChange);
     return () => window.removeEventListener(BRAND_LOGO_EVENT, handleLogoChange);
+  }, []);
+
+  // Track desktop vs mobile: static rail at lg+, drawer-behind-hamburger below.
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1024px)");
+    const onChange = (e: MediaQueryListEvent) => {
+      setIsDesktop(e.matches);
+      if (e.matches) setMobileNavOpen(false);
+    };
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
   }, []);
   const notifMenuRef = useRef<HTMLDivElement>(null);
   const notifBtnRef = useRef<HTMLButtonElement>(null);
@@ -224,15 +242,22 @@ export function Layout() {
 
   return (
     <div className="flex h-screen bg-[#F5F7FA]">
-      {/* ── Full-height Sidebar ── */}
+      {/* ── Mobile drawer backdrop ── */}
+      {!isDesktop && mobileNavOpen && (
+        <div className="fixed inset-0 z-40 bg-black/40" onClick={() => setMobileNavOpen(false)} aria-hidden="true" />
+      )}
+
+      {/* ── Full-height Sidebar (static rail on lg+, drawer below) ── */}
       <aside
-        className={`bg-[#1C2B3A] flex flex-col flex-shrink-0 transition-all duration-[240ms] ease-[cubic-bezier(0.4,0,0.2,1)] ${
-          sidebarCollapsed ? "w-[96px] p-2 gap-4" : "w-[240px] p-4 gap-6"
+        className={`bg-[#1C2B3A] flex flex-col flex-shrink-0 z-50 ${
+          isDesktop
+            ? `relative transition-all duration-[240ms] ease-[cubic-bezier(0.4,0,0.2,1)] ${collapsed ? "w-[96px] p-2 gap-4" : "w-[240px] p-4 gap-6"}`
+            : `fixed inset-y-0 left-0 w-[240px] p-4 gap-6 shadow-2xl transition-transform duration-200 ease-out ${mobileNavOpen ? "translate-x-0" : "-translate-x-full"}`
         }`}
         style={{ overflowX: "hidden" }}
       >
         {/* Logo area */}
-        <div className={`flex flex-shrink-0 ${sidebarCollapsed ? "justify-center items-center" : "items-center"}`}>
+        <div className={`flex flex-shrink-0 ${collapsed ? "justify-center items-center" : "items-center"}`}>
           <button
             type="button"
             aria-label="Open branding settings"
@@ -244,10 +269,10 @@ export function Layout() {
               alt="Company Logo"
               className="pointer-events-none select-none mix-blend-hard-light"
               style={{
-                height: sidebarCollapsed ? "20px" : "24px",
-                width: sidebarCollapsed ? "44px" : "120px",
-                objectFit: companyLogoSrc === wordmarkLogo && !sidebarCollapsed ? "cover" : "contain",
-                objectPosition: sidebarCollapsed ? "center" : "left center",
+                height: collapsed ? "20px" : "24px",
+                width: collapsed ? "44px" : "120px",
+                objectFit: companyLogoSrc === wordmarkLogo && !collapsed ? "cover" : "contain",
+                objectPosition: collapsed ? "center" : "left center",
               }}
             />
           </button>
@@ -256,7 +281,7 @@ export function Layout() {
         {/* Navigation */}
         <nav
           className={`flex-1 flex flex-col overflow-y-auto ${
-            sidebarCollapsed ? "gap-0.5" : "gap-2"
+            collapsed ? "gap-0.5" : "gap-2"
           }`}
         >
           {navItems.map((item) => (
@@ -264,9 +289,10 @@ export function Layout() {
               key={item.to}
               to={item.to}
               end={item.to === "/"}
+              onClick={() => { if (!isDesktop) setMobileNavOpen(false); }}
               className={({ isActive }) =>
                 `rounded-[6px] flex relative transition-all duration-150 ${
-                  sidebarCollapsed
+                  collapsed
                     ? "flex-col items-center justify-center w-full py-1.5 gap-0.5"
                     : "h-8 flex-row items-center w-full px-3 py-1 gap-2 whitespace-nowrap"
                 } ${
@@ -278,10 +304,10 @@ export function Layout() {
             >
               <item.icon
                 className="flex-shrink-0"
-                width={sidebarCollapsed ? 22 : 16}
-                height={sidebarCollapsed ? 22 : 16}
+                width={collapsed ? 22 : 16}
+                height={collapsed ? 22 : 16}
               />
-              {sidebarCollapsed ? (
+              {collapsed ? (
                 <span
                   className="text-[11px] text-center"
                   style={{ fontWeight: 500, lineHeight: "14px" }}
@@ -297,24 +323,25 @@ export function Layout() {
           ))}
         </nav>
 
-        {/* Collapse button at bottom — separated by a subtle top border */}
+        {/* Collapse button — desktop only (mobile uses the drawer + backdrop) */}
+        {isDesktop && (
         <div className="flex-shrink-0 border-t border-[rgba(255,255,255,0.1)] pt-1">
           <button
-            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            onClick={() => setDeskCollapsed(!collapsed)}
+            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
             className={`rounded-[6px] flex transition-all duration-150 text-white hover:bg-[rgba(255,255,255,0.08)] ${
-              sidebarCollapsed
+              collapsed
                 ? "flex-col items-center justify-center w-full py-1.5 gap-0.5"
                 : "h-8 flex-row items-center w-full px-3 py-1 gap-2"
             }`}
           >
             <CollapseIcon
               className="flex-shrink-0 transition-transform duration-[240ms] ease-[cubic-bezier(0.4,0,0.2,1)]"
-              width={sidebarCollapsed ? 22 : 16}
-              height={sidebarCollapsed ? 22 : 16}
-              style={{ transform: sidebarCollapsed ? "rotate(180deg)" : "rotate(0deg)" }}
+              width={collapsed ? 22 : 16}
+              height={collapsed ? 22 : 16}
+              style={{ transform: collapsed ? "rotate(180deg)" : "rotate(0deg)" }}
             />
-            {sidebarCollapsed ? (
+            {collapsed ? (
               <span className="text-[11px] text-center" style={{ fontWeight: 500, lineHeight: "14px" }}>
                 Collapse
               </span>
@@ -325,12 +352,24 @@ export function Layout() {
             )}
           </button>
         </div>
+        )}
       </aside>
 
       {/* Main area: header + content */}
       <main className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
-        <header className="h-[68px] bg-white border-b border-[#E5E7EB] flex items-center gap-6 px-4 flex-shrink-0">
+        <header className="h-[68px] bg-white border-b border-[#E5E7EB] flex items-center gap-3 sm:gap-6 px-4 flex-shrink-0">
+
+        {/* Hamburger — opens the sidebar drawer below lg */}
+        {!isDesktop && (
+          <button
+            onClick={() => setMobileNavOpen(true)}
+            aria-label="Open menu"
+            className="w-9 h-9 flex items-center justify-center rounded-lg text-[#1A2332] hover:bg-[#F5F7FA] flex-shrink-0 -ml-1"
+          >
+            <span className="material-icons" style={{ fontSize: "26px" }}>menu</span>
+          </button>
+        )}
 
         {/* Global Search - Center (Flex-1 for expansion) */}
         <div className="flex-1 flex items-center justify-center">

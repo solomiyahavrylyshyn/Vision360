@@ -1,6 +1,7 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useSyncExternalStore } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
+import { type JobStatus, JOB_STATUSES, JOB_STATUS_COLOR } from "../constants/jobStatuses";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,6 +16,8 @@ import { DocumentPreview } from "../components/DocumentPreview";
 import { toast } from "sonner";
 import { formatRegionalDate } from "../stores/regionalSettingsStore";
 import { jobsStore, type JobRecord } from "../stores/jobsStore";
+import { clientsStore } from "../stores/clientsStore";
+import { estimatesStore } from "../stores/estimatesStore";
 import acServicePhoto from "../../assets/documents/33897-cu.jpg";
 import waterHeaterPhoto from "../../assets/documents/34285-install-water-heater.jpg";
 import installAcPhoto from "../../assets/documents/34689-install-ac.jpg";
@@ -31,7 +34,7 @@ interface Visit {
   id: number;
   dateTime: string;
   title: string;
-  status: "Scheduled" | "In Progress" | "Completed";
+  status: JobStatus;
 }
 
 interface NoteEntry {
@@ -188,11 +191,7 @@ const mockJobData: Record<string, any> = {
   },
 };
 
-const statusColors: Record<string, string> = {
-  Scheduled: "#4A6FA5",
-  "In Progress": "#D97706",
-  Completed: "#16A34A",
-};
+const statusColors: Record<string, string> = JOB_STATUS_COLOR;
 
 const priorityColors: Record<string, { bg: string; text: string }> = {
   Low: { bg: "#F0FDF4", text: "#16A34A" },
@@ -424,16 +423,25 @@ export function JobDetail() {
   // Promote a jobsStore record to the shape JobDetail expects.
   const jobFromStore = storeJob ? (() => {
     const r: JobRecord = storeJob;
+    // Look up the real client from clientsStore so contact data is correct.
+    // (Previously it inherited contact info from the mock-data fallback, which
+    // belonged to a completely different client — QA M01 linkage bug.)
+    const realClient = clientsStore.getClient(r.clientId)
+      ?? clientsStore.getSnapshot().find(c => c.name === r.client);
     return {
-      ...mockFallback, // inherit all rich demo fields as defaults
+      ...mockFallback, // inherit rich demo defaults for fields the form doesn't capture
       id: r.id,
       title: r.title,
       client: r.client,
       clientId: r.clientId,
-      address: r.address,
-      city: r.city,
-      state: r.state,
-      zip: r.zip,
+      // Real contact data from the client record (not the mock's demo client).
+      phone: realClient?.mobilePhone || realClient?.phone || mockFallback.phone,
+      email: realClient?.email || mockFallback.email,
+      customerSince: realClient?.customerSince || mockFallback.customerSince,
+      address: r.address || realClient?.address || mockFallback.address,
+      city: r.city || realClient?.city || mockFallback.city,
+      state: r.state || realClient?.state || mockFallback.state,
+      zip: r.zip || realClient?.zip || mockFallback.zip,
       gateCode: r.gateCode,
       assignedTo: r.assignedTo,
       jobNumber: r.jobNumber,
@@ -482,6 +490,23 @@ export function JobDetail() {
   };
   const [hiddenTabs, setHiddenTabs] = useState<Set<TabKey>>(new Set());
   const [showTabSettings, setShowTabSettings] = useState(false);
+
+  // Build a returnTo URL back to this job on a specific tab, so a create flow
+  // (Estimate / Invoice / Expense) lands the user exactly where they left.
+  const jobReturnUrl = (tab: TabKey) => `/jobs/${id}?tab=${tab}`;
+
+  // Live estimates linked to this job (by job number) or this client, so a
+  // freshly created estimate shows up on the Estimates tab on return.
+  const allEstimates = useSyncExternalStore(estimatesStore.subscribe, estimatesStore.getSnapshot);
+  const jobEstimates = allEstimates.filter((e) => {
+    // Priority: match by job number (direct link from convert flow).
+    if (job.jobNumber && (e.job === job.jobNumber || e.source === job.jobNumber)) return true;
+    // Fallback: match by clientId (exact) when no job link — prevents bleeding
+    // when two clients share the same display name.
+    if (e.clientId && job.clientId) return e.clientId === job.clientId;
+    // Last resort: name match for legacy records with no clientId.
+    return e.clientName === job.client;
+  });
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
   const [currentStatus, setCurrentStatus] = useState<string>(job.status);
   const [editingSection, setEditingSection] = useState<null | "address" | "schedule" | "overview">(null);
@@ -502,11 +527,10 @@ export function JobDetail() {
   const [notesNewText,   setNotesNewText]   = useState("");
   const [notesExpanded,  setNotesExpanded]  = useState(false);
 
-  // Documents state
-  const [documents, setDocuments] = useState<DocFile[]>(INITIAL_DOCS);
-  // Unified attachment list (media photos + files) powering the reusable DocumentsGallery,
-  // mirroring the client Documents tab experience.
-  const [attachments, setAttachments] = useState<DocFile[]>(() => [
+  // Documents state — empty for user-created (store) jobs; demo docs for mock jobs only.
+  const [documents, setDocuments] = useState<DocFile[]>(jobFromStore ? [] : INITIAL_DOCS);
+  // Unified attachment list (media photos + files) powering the reusable DocumentsGallery.
+  const [attachments, setAttachments] = useState<DocFile[]>(() => jobFromStore ? [] : [
     ...MOCK_PHOTOS.map((p, i) => ({
       id: p.id,
       name: `Job photo ${i + 1}.jpg`,
@@ -587,6 +611,8 @@ export function JobDetail() {
   const handleStatusChange = (newStatus: string) => {
     setCurrentStatus(newStatus);
     setStatusDropdownOpen(false);
+    // Persist to jobsStore so the status survives a refresh.
+    if (storeJob) jobsStore.update(storeJob.id, { status: newStatus });
   };
 
   /* ── File helpers ── */
@@ -895,15 +921,35 @@ export function JobDetail() {
       <div className="flex items-center gap-2 mb-5">
         <h3 className="text-[15px] text-[#1A2332]" style={{ fontWeight: 600 }}>Estimates</h3>
         <button type="button" aria-label="Create estimate" title="Create estimate"
-          onClick={() => navigate(`/estimates/new?client=${encodeURIComponent(job.client)}`)}
+          onClick={() => navigate(`/estimates/new?client=${encodeURIComponent(job.client)}&job=${encodeURIComponent(job.jobNumber)}&returnTo=${encodeURIComponent(jobReturnUrl("estimates"))}`)}
           className="w-7 h-7 flex items-center justify-center rounded-md text-[#9CA3AF] hover:text-[#4A6FA5] hover:bg-[#F5F7FA] transition-colors">
           <PlusIcon className="h-4 w-4" />
         </button>
       </div>
-      <div className="text-center py-12">
-        <span className="material-icons text-[#D1D5DB] mb-2 block" style={{ fontSize: "40px" }}>request_quote</span>
-        <div className="text-[13px] text-[#9CA3AF]">No estimates linked to this job yet.</div>
-      </div>
+      {jobEstimates.length === 0 ? (
+        <div className="text-center py-12">
+          <span className="material-icons text-[#D1D5DB] mb-2 block" style={{ fontSize: "40px" }}>request_quote</span>
+          <div className="text-[13px] text-[#9CA3AF]">No estimates linked to this job yet.</div>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {jobEstimates.map((e) => (
+            <button
+              key={e.id}
+              onClick={() => navigate(`/estimates/${e.id}?returnTo=${encodeURIComponent(jobReturnUrl("estimates"))}`)}
+              className="w-full flex items-center justify-between border border-[#E5E7EB] rounded-lg px-4 py-3 hover:bg-[#F9FAFB] text-left transition-colors"
+            >
+              <div className="min-w-0">
+                <div className="text-[14px] text-[#4A6FA5]" style={{ fontWeight: 500 }}>{e.estimateNumber}</div>
+                <div className="text-[12px] text-[#6B7280] truncate">{e.estimateName || e.clientName} · {e.status}</div>
+              </div>
+              <div className="text-[14px] text-[#1A2332] shrink-0" style={{ fontWeight: 500 }}>
+                ${e.amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
     </>
   );
 
@@ -912,7 +958,7 @@ export function JobDetail() {
       <div className="flex items-center gap-2 mb-5">
         <h3 className="text-[15px] text-[#1A2332]" style={{ fontWeight: 600 }}>Invoices</h3>
         <button type="button" aria-label="Create invoice" title="Create invoice"
-          onClick={() => navigate(`/invoices/new?client=${encodeURIComponent(job.client)}`)}
+          onClick={() => navigate(`/invoices/new?fromJob=${storeJob?.id ?? ''}&client=${encodeURIComponent(job.client)}&returnTo=${encodeURIComponent(jobReturnUrl('invoices'))}`)}
           className="w-7 h-7 flex items-center justify-center rounded-md text-[#9CA3AF] hover:text-[#4A6FA5] hover:bg-[#F5F7FA] transition-colors">
           <PlusIcon className="h-4 w-4" />
         </button>
@@ -991,7 +1037,7 @@ export function JobDetail() {
         <h3 className="text-[15px] text-[#1A2332]" style={{ fontWeight: 600 }}>Expenses</h3>
         <button
           type="button"
-          onClick={() => navigate(`/expenses/new?fromJob=${encodeURIComponent(job.jobNumber)}${job.linkedInvoice ? `&fromInvoice=${encodeURIComponent(job.linkedInvoice.id)}` : ""}&returnTo=${encodeURIComponent("/jobs/" + id + "?tab=" + activeTab)}`)}
+          onClick={() => navigate(`/expenses/new?fromJob=${encodeURIComponent(job.jobNumber)}${job.linkedInvoice ? `&fromInvoice=${encodeURIComponent(job.linkedInvoice.id)}` : ""}&returnTo=${encodeURIComponent(jobReturnUrl("expense"))}`)}
           aria-label="Add expense"
           title="Add expense"
           className="w-7 h-7 flex items-center justify-center rounded-md text-[#9CA3AF] hover:text-[#4A6FA5] hover:bg-[#F5F7FA] transition-colors"
@@ -1371,7 +1417,7 @@ export function JobDetail() {
                 </button>
                 {statusDropdownOpen && (
                   <div className="absolute left-0 top-full mt-1 bg-white border border-[#E5E7EB] rounded-md shadow-lg z-50 w-[160px] py-1">
-                    {["Scheduled", "In Progress", "Completed"].map((s) => (
+                    {JOB_STATUSES.map((s) => (
                       <button
                         key={s}
                         onClick={() => handleStatusChange(s)}
@@ -1493,14 +1539,14 @@ export function JobDetail() {
               <DropdownMenuContent align="end" className="w-[180px] p-1">
                 <DropdownMenuItem
                   className="h-9 px-3 text-[13px] text-[#374151] flex items-center gap-2.5 cursor-pointer"
-                  onClick={() => navigate(`/estimates/new?client=${encodeURIComponent(job.client)}&returnTo=${encodeURIComponent("/jobs/" + id + "?tab=" + activeTab)}`)}
+                  onClick={() => navigate(`/estimates/new?client=${encodeURIComponent(job.client)}&job=${encodeURIComponent(job.jobNumber)}&returnTo=${encodeURIComponent(jobReturnUrl("estimates"))}`)}
                 >
                   <span className="material-icons text-[#6B7280]" style={{ fontSize: "16px" }}>request_quote</span>
                   Create Estimate
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   className="h-9 px-3 text-[13px] text-[#374151] flex items-center gap-2.5 cursor-pointer"
-                  onClick={() => navigate(`/invoices/new?client=${encodeURIComponent(job.client)}&returnTo=${encodeURIComponent("/jobs/" + id + "?tab=" + activeTab)}`)}
+                  onClick={() => navigate(`/invoices/new?fromJob=${storeJob?.id ?? ''}&client=${encodeURIComponent(job.client)}&returnTo=${encodeURIComponent(jobReturnUrl('invoices'))}`)}
                 >
                   <span className="material-icons text-[#6B7280]" style={{ fontSize: "16px" }}>receipt</span>
                   Create Invoice
@@ -1511,7 +1557,7 @@ export function JobDetail() {
               <KebabItem icon="edit" onClick={() => navigate(`/jobs/${id}/edit`)}>Edit Job</KebabItem>
               <KebabItem icon="content_copy">Duplicate Job</KebabItem>
               <KebabSeparator />
-              <KebabItem icon="archive" destructive>Archive Job</KebabItem>
+              <KebabItem icon="cancel" destructive>Cancel Job</KebabItem>
             </KebabMenu>
             </>
           }
@@ -1721,7 +1767,31 @@ export function JobDetail() {
                 Cancel
               </button>
               <button
-                onClick={() => setEditingSection(null)}
+                onClick={() => {
+                  // Persist the edit to jobsStore so changes survive a refresh.
+                  if (storeJob) {
+                    const patch: Partial<import("../stores/jobsStore").JobRecord> = {};
+                    if (editingSection === "overview") {
+                      if (editJob.assignedTo !== undefined) patch.assignedTo = editJob.assignedTo;
+                      if (editJob.jobType !== undefined) patch.jobType = editJob.jobType;
+                      if (editJob.title !== undefined) patch.title = editJob.title;
+                    } else if (editingSection === "schedule") {
+                      if (editJob.startedOn !== undefined) patch.startDate = editJob.startedOn;
+                      if (editJob.endsOn !== undefined) patch.endDate = editJob.endsOn;
+                      if (editJob.startTime !== undefined) patch.startTime = editJob.startTime;
+                      if (editJob.endTime !== undefined) patch.endTime = editJob.endTime;
+                    } else if (editingSection === "address") {
+                      if (editJob.address !== undefined) patch.address = editJob.address;
+                      if (editJob.city !== undefined) patch.city = editJob.city;
+                      if (editJob.state !== undefined) patch.state = editJob.state;
+                      if (editJob.zip !== undefined) patch.zip = editJob.zip;
+                      if (editJob.gateCode !== undefined) patch.gateCode = editJob.gateCode;
+                    }
+                    if (Object.keys(patch).length) jobsStore.update(storeJob.id, patch);
+                  }
+                  setEditingSection(null);
+                  toast.success("Changes saved");
+                }}
                 className="h-9 px-4 bg-[#4A6FA5] hover:bg-[#3d5a85] rounded-md text-[13px] text-white transition-colors"
                 style={{ fontWeight: 500 }}
               >

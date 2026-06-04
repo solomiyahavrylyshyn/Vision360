@@ -112,8 +112,15 @@
       "Bash(py -c ' *)",
       "Bash(node -e ' *)",
       "Bash(grep -v \"^$\")",
+<<<<<<< HEAD
       "PowerShell(git show 234e5cf7 -U0 --format=\"### COMMIT %h %s ###\" -- src/app/pages/Reports.tsx)",
       "PowerShell(git show b23c7a5d -U0 --format=\"### COMMIT %h %s ###\" -- src/app/pages/Reports.tsx src/app/pages/Expenses.tsx)"
+=======
+      "Bash(grep -v \"//\")",
+      "Bash(git update-ref *)",
+      "Bash(git reset *)",
+      "Bash(git rev-list *)"
+>>>>>>> 5b0d9cc519fa6c7d1b1ed9f391da3d34337012fc
     ]
   }
 }

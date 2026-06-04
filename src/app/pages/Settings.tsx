@@ -1537,7 +1537,7 @@ function InvoicesPreferences({ templateCards }: { templateCards: { title: string
   const [zeroPad, setZeroPad] = useState("4");
   const [requireDeposit, setRequireDeposit] = useState(false);
   const [depositPercent, setDepositPercent] = useState("25");
-  const [paymentTerms, setPaymentTerms] = useState(["Due on receipt", "Net 15", "Net 30", "Net 60"]);
+  const [paymentTerms, setPaymentTerms] = useState(["Due on receipt", "Net 15", "Net 30", "Net 45", "Net 60"]);
   const [newPaymentTerm, setNewPaymentTerm] = useState("");
   const [discountTypes, setDiscountTypes] = useState(["Senior", "Veteran", "Promo Code", "Loyalty"]);
   const [newDiscount, setNewDiscount] = useState("");
@@ -1998,6 +1998,9 @@ export function Settings() {
   const [rbacRows, setRbacRows] = useState<RbacPermission[]>(defaultRbacPermissions);
   const emptyInvite = { name: "", email: "", role: "Employee" as AppRole, rate: "" };
   const [invite, setInvite] = useState(emptyInvite);
+  // When set, the invite modal is in "edit existing member" mode (keyed by the
+  // member's original email). Null = inviting a brand-new user.
+  const [editingKey, setEditingKey] = useState<string | null>(null);
   // ── Estimate templates ──
   const [selectedEstimateTemplate, setSelectedEstimateTemplate] = useState<string>("Classic");
   const [previewEstimateTemplate, setPreviewEstimateTemplate] = useState<string | null>(null);
@@ -2116,26 +2119,40 @@ export function Settings() {
     groups[row.area] = [...(groups[row.area] ?? []), { row, index }];
     return groups;
   }, {});
+  const closeInvite = () => { setInvite(emptyInvite); setEditingKey(null); setInviteOpen(false); };
+  const editMember = (member: { name: string; email: string; role: AppRole; rate: string }) => {
+    setEditingKey(member.email);
+    setInvite({ name: member.name, email: member.email, role: member.role, rate: member.rate });
+    setInviteOpen(true);
+  };
   const submitInvite = () => {
     if (!invite.name.trim() || !invite.email.trim()) {
       toast.error("Name and email are required");
       return;
     }
-    setTeam(prev => [
-      ...prev,
-      {
-        name: invite.name.trim(),
-        username: invite.email.trim().split("@")[0] || invite.name.trim().toLowerCase().replace(/\s+/g, "."),
-        phone: "",
-        email: invite.email.trim(),
-        role: invite.role,
-        rate: invite.rate.trim() ? (invite.rate.includes("/") ? invite.rate : `$${invite.rate}/hr`) : "$0/hr",
-        status: "Invited",
-      },
-    ]);
-    toast.success(`Invitation sent to ${invite.email}`);
-    setInvite(emptyInvite);
-    setInviteOpen(false);
+    const rate = invite.rate.trim() ? (invite.rate.includes("/") ? invite.rate : `$${invite.rate}/hr`) : "$0/hr";
+    if (editingKey) {
+      // Edit existing member — update by original email, preserving username/phone/status.
+      setTeam(prev => prev.map(m => m.email === editingKey
+        ? { ...m, name: invite.name.trim(), email: invite.email.trim(), role: invite.role, rate }
+        : m));
+      toast.success(`${invite.name.trim()} updated`);
+    } else {
+      setTeam(prev => [
+        ...prev,
+        {
+          name: invite.name.trim(),
+          username: invite.email.trim().split("@")[0] || invite.name.trim().toLowerCase().replace(/\s+/g, "."),
+          phone: "",
+          email: invite.email.trim(),
+          role: invite.role,
+          rate,
+          status: "Invited",
+        },
+      ]);
+      toast.success(`Invitation sent to ${invite.email}`);
+    }
+    closeInvite();
   };
   const [cfEntity, setCfEntity] = useState<CfEntity>("clients");
   const [companyInfoTab, setCompanyInfoTab] = useState<"profile" | "branding">("profile");
@@ -2770,7 +2787,7 @@ export function Settings() {
                               >
                                 <button
                                   type="button"
-                                  onClick={() => { setTeamRowMenu(null); toast.info(`Edit ${member.name}`); }}
+                                  onClick={() => { setTeamRowMenu(null); editMember(member); }}
                                   className="flex w-full items-center gap-2 px-3 py-2 text-[13px] text-[#374151] hover:bg-[#F5F7FA] transition-colors"
                                   style={{ fontWeight: 500 }}
                                 >
@@ -2779,12 +2796,12 @@ export function Settings() {
                                 </button>
                                 <button
                                   type="button"
-                                  onClick={() => { setTeamRowMenu(null); toast.error(`${member.name} removed`); }}
+                                  onClick={() => { setTeamRowMenu(null); setTeam(prev => prev.map(m => m.email === member.email ? { ...m, status: "Inactive" } : m)); toast.success(`${member.name} deactivated`); }}
                                   className="flex w-full items-center gap-2 px-3 py-2 text-[13px] text-[#DC2626] hover:bg-[#FEF2F2] transition-colors"
                                   style={{ fontWeight: 500 }}
                                 >
-                                  <span className="material-icons" style={{ fontSize: "16px" }}>delete_outline</span>
-                                  Delete
+                                  <span className="material-icons" style={{ fontSize: "16px" }}>block</span>
+                                  Deactivate
                                 </button>
                               </div>
                             )}
@@ -2842,16 +2859,16 @@ export function Settings() {
               {inviteOpen && (
                 <div
                   className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm"
-                  onClick={() => setInviteOpen(false)}
+                  onClick={closeInvite}
                 >
                   <div
                     className="w-[460px] bg-white rounded-xl border border-[#E5E7EB] shadow-2xl overflow-hidden"
                     onClick={e => e.stopPropagation()}
                   >
                     <div className="px-6 py-4 border-b border-[#E5E7EB] flex items-center justify-between">
-                      <h3 className="text-[16px] text-[#1A2332]" style={{ fontWeight: 600 }}>Invite user</h3>
+                      <h3 className="text-[16px] text-[#1A2332]" style={{ fontWeight: 600 }}>{editingKey ? "Edit user" : "Invite user"}</h3>
                       <button
-                        onClick={() => setInviteOpen(false)}
+                        onClick={closeInvite}
                         className="w-8 h-8 flex items-center justify-center rounded-md text-[#9CA3AF] hover:bg-[#F5F7FA] hover:text-[#374151] transition-colors"
                       >
                         <span className="material-icons" style={{ fontSize: "20px" }}>close</span>
@@ -2908,7 +2925,7 @@ export function Settings() {
                     <div className="px-6 py-4 border-t border-[#E5E7EB] flex items-center justify-end gap-2">
                       <button
                         type="button"
-                        onClick={() => { setInvite(emptyInvite); setInviteOpen(false); }}
+                        onClick={closeInvite}
                         className="h-9 px-4 rounded-lg border border-[#E5E7EB] bg-white hover:bg-[#F5F7FA] text-[14px] text-[#374151] transition-colors"
                         style={{ fontWeight: 500 }}
                       >
@@ -2920,7 +2937,7 @@ export function Settings() {
                         className="h-9 px-4 rounded-lg bg-[#4A6FA5] hover:bg-[#3d5a85] text-white text-[14px] transition-colors"
                         style={{ fontWeight: 500 }}
                       >
-                        Send invite
+                        {editingKey ? "Save changes" : "Send invite"}
                       </button>
                     </div>
                   </div>
@@ -3748,6 +3765,23 @@ export function Settings() {
                             <option value="30">30 minutes</option>
                             <option value="60">1 hour</option>
                           </select>
+                        </div>
+                        <div>
+                          <label className="block text-[13px] text-[#1A2332] mb-1.5" style={{ fontWeight: 600 }}>Default job length</label>
+                          <select
+                            value={String(scheduleSettings.defaultJobMinutes)}
+                            onChange={e => scheduleSettingsStore.setDefaultJobMinutes(Number(e.target.value))}
+                            className="h-9 w-full rounded-lg border border-[#D8DEE8] bg-white px-3 text-[14px] text-[#1A2332]"
+                          >
+                            <option value="30">30 minutes</option>
+                            <option value="60">1 hour</option>
+                            <option value="90">1.5 hours</option>
+                            <option value="120">2 hours</option>
+                            <option value="180">3 hours</option>
+                            <option value="240">4 hours</option>
+                            <option value="480">Full day (8 h)</option>
+                          </select>
+                          <p className="mt-1 text-[12px] text-[#6B7280]">Used to auto-set a job's end time when only a start time is entered.</p>
                         </div>
                       </div>
                       <p className="mt-3 text-[12px] text-[#6B7280]">

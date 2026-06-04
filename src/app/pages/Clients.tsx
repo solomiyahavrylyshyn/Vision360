@@ -24,6 +24,7 @@ import { countiesStore } from "../stores/countiesStore";
 import { PlusIcon } from "../components/ui/plus-icon";
 import { CreateActionButton } from "../components/ui/create-action-button";
 import { StatCard } from "../components/ui/stat-card";
+import { PAYMENT_METHODS } from "../constants/paymentMethods";
 
 interface Client {
   id: string;
@@ -53,12 +54,23 @@ const initialClients: Client[] = [
 ];
 
 
+// All columns that can appear in the table — a subset is shown based on
+// visibleColumns. "name" is always on (locked out of the picker).
 const CLIENTS_COLS = [
-  { key: "name",         label: "Name",          sortable: true  },
-  { key: "status",       label: "Status",        sortable: true  },
-  { key: "address",      label: "Address",       sortable: false },
-  { key: "totalBilled",  label: "Total billed",  sortable: true  },
-  { key: "lastActivity", label: "Last activity", sortable: true  },
+  { key: "name",            label: "Name",             sortable: true  },
+  { key: "status",          label: "Status",           sortable: true  },
+  { key: "address",         label: "Address",          sortable: false },
+  { key: "mobile",          label: "Mobile",           sortable: false },
+  { key: "email",           label: "Email",            sortable: false },
+  { key: "website",         label: "Website",          sortable: false },
+  { key: "dateCreated",     label: "Date created",     sortable: false },
+  { key: "lastServiceDate", label: "Last service date",sortable: false },
+  { key: "totalBilled",     label: "Total billed",     sortable: true  },
+  { key: "notes",           label: "Notes",            sortable: false },
+  { key: "lastActivity",    label: "Last activity",    sortable: true  },
+  { key: "paymentTerms",    label: "Payment terms",    sortable: false },
+  { key: "paymentMethod",   label: "Payment method",   sortable: false },
+  { key: "taxable",         label: "Taxable",          sortable: false },
 ];
 
 export function Clients() {
@@ -152,7 +164,7 @@ export function Clients() {
     city: "", county: "",
     tags: [] as string[],
     paymentTerms: "", paymentMethod: "",
-    taxable: "", hasCompany: "",
+    taxable: "",
   });
   const [pendingFilters, setPendingFilters] = useState({ ...filterState });
 
@@ -163,7 +175,7 @@ export function Clients() {
 
   const handleApplyFilters = () => { setFilterState({ ...pendingFilters }); setFilterPanelOpen(false); setCurrentPage(1); };
   const handleClearFilters = () => {
-    const empty = { dateAcquiredFrom: "", dateAcquiredTo: "", lastServiceFrom: "", lastServiceTo: "", lifetimeMin: "", lifetimeMax: "", leadSource: "", customerType: "", city: "", county: "", tags: [] as string[], paymentTerms: "", paymentMethod: "", taxable: "", hasCompany: "" };
+    const empty = { dateAcquiredFrom: "", dateAcquiredTo: "", lastServiceFrom: "", lastServiceTo: "", lifetimeMin: "", lifetimeMax: "", leadSource: "", customerType: "", city: "", county: "", tags: [] as string[], paymentTerms: "", paymentMethod: "", taxable: "" };
     setPendingFilters(empty); setFilterState(empty); setFilterPanelOpen(false); setCurrentPage(1);
   };
 
@@ -206,7 +218,6 @@ export function Clients() {
     const matchesCustomerType = !filterState.customerType || (filterState.customerType === "residential" ? client.tags.includes("Residential") : client.tags.includes("Commercial"));
     const matchesTags = filterState.tags.length === 0 || filterState.tags.some(t => client.tags.includes(t));
     const matchesLeadSource = !filterState.leadSource || client.tags.includes(filterState.leadSource);
-    const matchesHasCompany = !filterState.hasCompany || (filterState.hasCompany === "yes" ? !!client.company : !client.company);
     let matchesLifetime = true;
     if (filterState.lifetimeMin !== "") matchesLifetime = client.totalBilled >= Number(filterState.lifetimeMin);
     if (filterState.lifetimeMax !== "") matchesLifetime = matchesLifetime && client.totalBilled <= Number(filterState.lifetimeMax);
@@ -216,7 +227,7 @@ export function Clients() {
     const matchesTaxable = !filterState.taxable
       || (filterState.taxable === "yes" ? client.isTaxable === true : client.isTaxable === false);
 
-    return matchesSearch && matchesQfDate && matchesQfBalance && matchesStatus && matchesCustomerType && matchesTags && matchesLeadSource && matchesHasCompany && matchesLifetime && matchesCity && matchesPaymentTerms && matchesPaymentMethod && matchesTaxable;
+    return matchesSearch && matchesQfDate && matchesQfBalance && matchesStatus && matchesCustomerType && matchesTags && matchesLeadSource && matchesLifetime && matchesCity && matchesPaymentTerms && matchesPaymentMethod && matchesTaxable;
   });
 
   // Sort
@@ -523,49 +534,7 @@ export function Clients() {
                 </button>
               </div>
               <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
-                {/* Payment terms */}
                 <div>
-                  <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>Payment terms</label>
-                  <select value={pendingFilters.paymentTerms} onChange={e => setPendingFilters(p => ({ ...p, paymentTerms: e.target.value }))}
-                    className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] text-[#374151] bg-white focus:outline-none focus:border-[#4A6FA5]">
-                    <option value="">All</option>
-                    {["Due on receipt", "Net 15", "Net 30", "Net 45", "Net 60"].map(t => <option key={t} value={t}>{t}</option>)}
-                  </select>
-                </div>
-
-                {/* Payment method */}
-                <div>
-                  <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>Payment method</label>
-                  <select value={pendingFilters.paymentMethod} onChange={e => setPendingFilters(p => ({ ...p, paymentMethod: e.target.value }))}
-                    className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] text-[#374151] bg-white focus:outline-none focus:border-[#4A6FA5]">
-                    <option value="">All</option>
-                    {["Cash", "Check", "Credit Card", "Debit Card", "Bank Transfer", "Other"].map(m => <option key={m} value={m}>{m}</option>)}
-                  </select>
-                </div>
-
-                {/* Taxable */}
-                <div>
-                  <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>Taxable</label>
-                  <select value={pendingFilters.taxable} onChange={e => setPendingFilters(p => ({ ...p, taxable: e.target.value }))}
-                    className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] text-[#374151] bg-white focus:outline-none focus:border-[#4A6FA5]">
-                    <option value="">All</option>
-                    <option value="yes">Yes</option>
-                    <option value="no">No</option>
-                  </select>
-                </div>
-
-                {/* Has company */}
-                <div>
-                  <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>Has company</label>
-                  <select value={pendingFilters.hasCompany} onChange={e => setPendingFilters(p => ({ ...p, hasCompany: e.target.value }))}
-                    className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] text-[#374151] bg-white focus:outline-none focus:border-[#4A6FA5]">
-                    <option value="">All</option>
-                    <option value="yes">Yes</option>
-                    <option value="no">No</option>
-                  </select>
-                </div>
-
-                <div className="border-t border-[#E5E7EB] pt-5">
                   <h3 className="text-[13px] text-[#374151] mb-4" style={{ fontWeight: 600 }}>Date Filters</h3>
                 </div>
 
@@ -621,6 +590,42 @@ export function Clients() {
                     className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] text-[#374151] bg-white focus:outline-none focus:border-[#4A6FA5]">
                     <option value="">All counties</option>
                     {availableCounties.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+
+                {/* Billing filters — moved to the bottom per walkthrough */}
+                <div className="border-t border-[#E5E7EB] pt-5">
+                  <h3 className="text-[13px] text-[#374151] mb-4" style={{ fontWeight: 600 }}>Billing</h3>
+                </div>
+
+                {/* Payment terms */}
+                <div>
+                  <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>Payment terms</label>
+                  <select value={pendingFilters.paymentTerms} onChange={e => setPendingFilters(p => ({ ...p, paymentTerms: e.target.value }))}
+                    className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] text-[#374151] bg-white focus:outline-none focus:border-[#4A6FA5]">
+                    <option value="">All</option>
+                    {["Due on receipt", "Net 15", "Net 30", "Net 45", "Net 60"].map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                </div>
+
+                {/* Payment method */}
+                <div>
+                  <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>Payment method</label>
+                  <select value={pendingFilters.paymentMethod} onChange={e => setPendingFilters(p => ({ ...p, paymentMethod: e.target.value }))}
+                    className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] text-[#374151] bg-white focus:outline-none focus:border-[#4A6FA5]">
+                    <option value="">All</option>
+                    {PAYMENT_METHODS.map(m => <option key={m} value={m}>{m}</option>)}
+                  </select>
+                </div>
+
+                {/* Taxable */}
+                <div>
+                  <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>Taxable</label>
+                  <select value={pendingFilters.taxable} onChange={e => setPendingFilters(p => ({ ...p, taxable: e.target.value }))}
+                    className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] text-[#374151] bg-white focus:outline-none focus:border-[#4A6FA5]">
+                    <option value="">All</option>
+                    <option value="yes">Yes</option>
+                    <option value="no">No</option>
                   </select>
                 </div>
               </div>
@@ -773,7 +778,7 @@ export function Clients() {
                 <th className="px-4 py-3 text-left w-10">
                   <input ref={headerCheckboxRef} type="checkbox" checked={allSelected} onChange={e => handleSelectAll(e.target.checked)} className="cursor-pointer w-4 h-4 rounded accent-[#4A6FA5]" />
                 </th>
-                {clientCols.map(col => (
+                {clientCols.filter(col => col.key === "name" || visibleColumns.has(col.key as ColKey)).map(col => (
                   <DraggableTh
                     key={col.key}
                     colKey={col.key}
@@ -818,7 +823,7 @@ export function Clients() {
                       onClick={e => e.stopPropagation()}
                       className="cursor-pointer w-4 h-4 rounded accent-[#4A6FA5]" />
                   </td>
-                  {clientCols.map(col => {
+                  {clientCols.filter(col => col.key === "name" || visibleColumns.has(col.key as ColKey)).map(col => {
                     switch (col.key) {
                       case "name":
                         return (
@@ -835,6 +840,18 @@ export function Clients() {
                         );
                       case "address":
                         return <td key="address" className="px-4 py-4 text-[14px] text-[#546478]">{client.address}</td>;
+                      case "mobile":
+                        return <td key="mobile" className="px-4 py-4 text-[14px] text-[#546478]">{client.mobilePhone || client.phone || "—"}</td>;
+                      case "email":
+                        return <td key="email" className="px-4 py-4 text-[14px] text-[#546478]">{client.email || "—"}</td>;
+                      case "website":
+                        return <td key="website" className="px-4 py-4 text-[14px] text-[#546478]">{client.website || "—"}</td>;
+                      case "dateCreated":
+                        return <td key="dateCreated" className="px-4 py-4 text-[14px] text-[#546478]">{client.customerSince || "—"}</td>;
+                      case "lastServiceDate":
+                        return <td key="lastServiceDate" className="px-4 py-4 text-[14px] text-[#546478]">{client.lastService || "—"}</td>;
+                      case "notes":
+                        return <td key="notes" className="px-4 py-4 text-[14px] text-[#546478] max-w-[200px] truncate">{client.notesArray?.[0]?.text || "—"}</td>;
                       case "totalBilled":
                         return (
                           <td key="totalBilled" className="px-4 py-4">

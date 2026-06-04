@@ -14,7 +14,7 @@ import { useDraggableColumns, DraggableTh } from "../components/ui/draggable-col
 import { AdvancedFilterField, AdvancedFilterPanel, advancedInputClass, advancedSelectClass } from "../components/ui/advanced-filters";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
-type EstimateStatus = "Draft" | "Sent" | "Viewed" | "Approved" | "Rejected" | "Expired" | "Archived";
+type EstimateStatus = "Draft" | "Sent" | "Viewed" | "Approved" | "Rejected" | "Expired" | "Archived" | "Converted";
 
 interface Estimate {
   id: number;
@@ -56,6 +56,7 @@ const statusColors: Record<EstimateStatus, string> = {
   Rejected: "#DC2626",
   Expired: "#6B7280",
   Archived: "#4B5563",
+  Converted: "#4A6FA5",
 };
 
 const statusBg: Record<EstimateStatus, string> = {
@@ -66,6 +67,7 @@ const statusBg: Record<EstimateStatus, string> = {
   Rejected: "#FEE2E2",
   Expired: "#F3F4F6",
   Archived: "#E5E7EB",
+  Converted: "#EBF0F8",
 };
 
 const avatarColors = ["#4A6FA5", "#3B82F6", "#8B5CF6", "#D97706", "#10B981", "#DC2626"];
