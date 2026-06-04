@@ -881,6 +881,102 @@ export function Calendar() {
     );
   };
 
+  // Pending-jobs panel as a full-height, embedded right-side sidebar drawer
+  // (Figma 876:71887). Rendered at the page level so it docks beside the whole
+  // board (KPIs + grid + route map) and the content shrinks to make room —
+  // not a short column inside the board card, and not a floating overlay.
+  const pendingPanel = (
+    <aside
+      data-testid="pending-drawer"
+      className={`w-[340px] shrink-0 self-stretch flex flex-col rounded-xl border overflow-hidden transition-colors ${pendingDropActive ? "bg-[#4A6FA5]/5 border-[#4A6FA5]" : "bg-[#FAFBFC] border-[#E5E7EB]"}`}
+      onDragOver={(e) => { e.preventDefault(); setPendingDropActive(true); }}
+      onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setPendingDropActive(false); }}
+      onDrop={handleMoveToPending}
+    >
+      <div className="flex items-center gap-2 px-4 border-b border-[#E5E7EB] bg-white shrink-0" style={{ height: 48 }}>
+        <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "18px" }}>inbox</span>
+        <span className="flex-1 text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>
+          Pending jobs{pendingDayJobs.length > 0 ? ` (${pendingDayJobs.length})` : ""}
+        </span>
+        <button
+          onClick={() => setUnassignedPanelOpen(false)}
+          className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-[#F0F2F5] text-[#6B7280]"
+          title="Hide panel"
+          aria-label="Hide pending jobs panel"
+        >
+          <span className="material-icons" style={{ fontSize: "18px" }}>close</span>
+        </button>
+      </div>
+      <div className="px-3 py-2 border-b border-[#E5E7EB] bg-white shrink-0">
+        <select
+          value={pendingFilter}
+          onChange={(e) => setPendingFilter(e.target.value as PendingFilter)}
+          className="w-full h-9 px-2 rounded-md border border-[#E5E7EB] text-[13px] text-[#374151] bg-white focus:outline-none focus:border-[#4A6FA5] cursor-pointer"
+        >
+          <option value="all">Show all</option>
+          <option value="unassigned">Show unassigned</option>
+          <option value="unscheduled">Show unscheduled</option>
+          <option value="scheduled">Show scheduled</option>
+          <option value="paused">Show paused</option>
+          <option value="both">Show unassigned + unscheduled</option>
+        </select>
+      </div>
+      <div className="flex-1 overflow-y-auto p-3 space-y-2">
+        {pendingDayJobs.length === 0 ? (
+          <div className="py-10 text-center">
+            <span className="material-icons text-[#D1D5DB] mb-1 block" style={{ fontSize: "32px" }}>check_circle</span>
+            <div className="text-[12px] text-[#9CA3AF]">{pendingFilter === "all" ? "Nothing pending" : pendingFilter === "both" ? "No unassigned + unscheduled jobs" : `No ${pendingFilter} jobs`}</div>
+          </div>
+        ) : (
+          pendingDayJobs.map((job) => {
+            const typeColor = jobTypeColor(job.jobType);
+            const stateBadge = job.status === "Paused"
+              ? { label: "Paused", color: STATUS_STYLES.Paused.color, bg: STATUS_STYLES.Paused.bg }
+              : job.unscheduled
+              ? { label: "Unscheduled", color: "#6B7280", bg: "rgba(107,114,128,0.15)" }
+              : !job.technicianId
+              ? { label: "Unassigned", color: "#6B7280", bg: "rgba(107,114,128,0.15)" }
+              : { label: job.status, color: STATUS_STYLES[job.status].color, bg: STATUS_STYLES[job.status].bg };
+            return (
+              <div
+                key={job.id}
+                data-job-card="true"
+                draggable
+                onDragStart={(event) => event.dataTransfer.setData("text/plain", `day:${job.id}`)}
+                onClick={() => setSelectedDayJob(job)}
+                className="bg-white border border-[#E5E7EB] rounded-lg p-2.5 cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow"
+                style={{ borderLeft: `3px solid ${typeColor}`, backgroundColor: jobTypeTint(job.jobType) }}
+                title={`${job.client} — ${job.service}${job.jobType ? ` (${job.jobType})` : ""}\n${job.address}\n${job.unscheduled ? "No date" : `${formatRegionalTime(job.start, regionalSettings)}–${formatRegionalTime(job.end, regionalSettings)}`} · ${stateBadge.label}`}
+              >
+                <div className="flex items-center gap-1 text-[10px] text-[#9CA3AF] tabular-nums">
+                  {job.status === "Paused" && (
+                    <span className="material-icons text-[#A856F7] shrink-0" style={{ fontSize: "13px" }} title="Paused — higher priority">pause_circle</span>
+                  )}
+                  <span className="truncate">{job.unscheduled ? "--:-- – --:--" : `${formatRegionalTime(job.start, regionalSettings)} – ${formatRegionalTime(job.end, regionalSettings)}`}</span>
+                </div>
+                <div className="text-[13px] text-[#1A2332] mt-1 truncate" style={{ fontWeight: 700 }}>{job.service}</div>
+                <div className="text-[11px] text-[#546478] truncate">{job.client}</div>
+                <div className="mt-1.5 flex items-center justify-between gap-2">
+                  {job.amount > 0 ? (
+                    <span className="text-[12px] tabular-nums" style={{ fontWeight: 700, color: typeColor }}>${job.amount.toLocaleString("en-US")}</span>
+                  ) : (
+                    <span className="text-[12px] text-[#9CA3AF]">—</span>
+                  )}
+                  <span
+                    className="px-2 py-0.5 rounded-full text-[10px] max-w-[110px] truncate"
+                    style={{ backgroundColor: stateBadge.bg, color: stateBadge.color, fontWeight: 600 }}
+                  >
+                    {stateBadge.label}
+                  </span>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+    </aside>
+  );
+
   return (
     <div className="px-7 py-5 bg-[#F5F7FA] min-h-full flex flex-col">
       <PageHeader
@@ -904,6 +1000,11 @@ export function Calendar() {
         }
       />
 
+      {/* Board content (left) + the Pending-jobs sidebar drawer (right). The
+          drawer is embedded: it docks full-height beside the board and the
+          content column shrinks to make room (no overlay). */}
+      <div className="flex gap-4 min-w-0 items-stretch">
+        <div className="flex-1 min-w-0 flex flex-col">
       {/* Stat cards — same 80px height as every other list page */}
       <div className="grid grid-cols-4 gap-4 mb-4">
         {scheduleKpis.map(s => (
@@ -1644,106 +1745,8 @@ export function Calendar() {
               </div>
             </div>
 
-            {/* Right: Unassigned jobs panel — shrinks the time grid to make room.
-                Each card is draggable onto a tech lane to assign + schedule. */}
-            {unassignedPanelOpen && (
-              <aside
-                className={`shrink-0 flex flex-col border-l transition-colors ${pendingDropActive ? "bg-[#4A6FA5]/5 border-[#4A6FA5]" : "bg-[#FAFBFC] border-[#E5E7EB]"}`}
-                style={{ width: 280 }}
-                onDragOver={(e) => { e.preventDefault(); setPendingDropActive(true); }}
-                onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setPendingDropActive(false); }}
-                onDrop={handleMoveToPending}
-              >
-                <div className="flex items-center gap-2 px-4 border-b border-[#E5E7EB] bg-white" style={{ height: 40 }}>
-                  <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "18px" }}>inbox</span>
-                  <span className="flex-1 text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>
-                    Pending jobs{pendingDayJobs.length > 0 ? ` (${pendingDayJobs.length})` : ""}
-                  </span>
-                  <button
-                    onClick={() => setUnassignedPanelOpen(false)}
-                    className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-[#F0F2F5] text-[#6B7280]"
-                    title="Hide panel"
-                    aria-label="Hide pending jobs panel"
-                  >
-                    <span className="material-icons" style={{ fontSize: "18px" }}>close</span>
-                  </button>
-                </div>
-                {/* Filter — unassigned = no technician; unscheduled = no fixed date */}
-                <div className="px-3 py-2 border-b border-[#E5E7EB] bg-white">
-                  <select
-                    value={pendingFilter}
-                    onChange={(e) => setPendingFilter(e.target.value as PendingFilter)}
-                    className="w-full h-8 px-2 rounded-md border border-[#E5E7EB] text-[12px] text-[#374151] bg-white focus:outline-none focus:border-[#4A6FA5] cursor-pointer"
-                  >
-                    <option value="all">Show all</option>
-                    <option value="unassigned">Show unassigned</option>
-                    <option value="unscheduled">Show unscheduled</option>
-                    <option value="scheduled">Show scheduled</option>
-                    <option value="paused">Show paused</option>
-                    <option value="both">Show unassigned + unscheduled</option>
-                  </select>
-                </div>
-                <div className="overflow-y-auto p-3 space-y-2" style={{ maxHeight: "min(300px, calc(100vh - 280px))" }}>
-                  {pendingDayJobs.length === 0 ? (
-                    <div className="py-10 text-center">
-                      <span className="material-icons text-[#D1D5DB] mb-1 block" style={{ fontSize: "32px" }}>check_circle</span>
-                      <div className="text-[12px] text-[#9CA3AF]">{pendingFilter === "all" ? "Nothing pending" : pendingFilter === "both" ? "No unassigned + unscheduled jobs" : `No ${pendingFilter} jobs`}</div>
-                    </div>
-                  ) : (
-                    pendingDayJobs.map((job) => {
-                      const typeColor = jobTypeColor(job.jobType);
-                      // The Pending card's badge shows the DERIVED state (per the
-                      // Figma design): Paused > Unscheduled (no date) > Unassigned
-                      // (no technician). Priority order matters for combos.
-                      const stateBadge = job.status === "Paused"
-                        ? { label: "Paused", color: STATUS_STYLES.Paused.color, bg: STATUS_STYLES.Paused.bg }
-                        : job.unscheduled
-                        ? { label: "Unscheduled", color: "#6B7280", bg: "rgba(107,114,128,0.15)" }
-                        : !job.technicianId
-                        ? { label: "Unassigned", color: "#6B7280", bg: "rgba(107,114,128,0.15)" }
-                        : { label: job.status, color: STATUS_STYLES[job.status].color, bg: STATUS_STYLES[job.status].bg };
-                      return (
-                      <div
-                        key={job.id}
-                        data-job-card="true"
-                        draggable
-                        onDragStart={(event) => event.dataTransfer.setData("text/plain", `day:${job.id}`)}
-                        onClick={() => setSelectedDayJob(job)}
-                        className="bg-white border border-[#E5E7EB] rounded-lg p-2.5 cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow"
-                        style={{ borderLeft: `3px solid ${typeColor}`, backgroundColor: jobTypeTint(job.jobType) }}
-                        title={`${job.client} — ${job.service}${job.jobType ? ` (${job.jobType})` : ""}\n${job.address}\n${job.unscheduled ? "No date" : `${formatRegionalTime(job.start, regionalSettings)}–${formatRegionalTime(job.end, regionalSettings)}`} · ${stateBadge.label}`}
-                      >
-                        {/* Pending card layout per the Figma mockup: time (dashes
-                            when unscheduled) → service title (bold) → client →
-                            amount + derived state badge. No address / drag hint. */}
-                        <div className="flex items-center gap-1 text-[10px] text-[#9CA3AF] tabular-nums">
-                          {job.status === "Paused" && (
-                            <span className="material-icons text-[#A856F7] shrink-0" style={{ fontSize: "13px" }} title="Paused — higher priority">pause_circle</span>
-                          )}
-                          <span className="truncate">{job.unscheduled ? "--:-- – --:--" : `${formatRegionalTime(job.start, regionalSettings)} – ${formatRegionalTime(job.end, regionalSettings)}`}</span>
-                        </div>
-                        <div className="text-[13px] text-[#1A2332] mt-1 truncate" style={{ fontWeight: 700 }}>{job.service}</div>
-                        <div className="text-[11px] text-[#546478] truncate">{job.client}</div>
-                        <div className="mt-1.5 flex items-center justify-between gap-2">
-                          {job.amount > 0 ? (
-                            <span className="text-[12px] tabular-nums" style={{ fontWeight: 700, color: typeColor }}>${job.amount.toLocaleString("en-US")}</span>
-                          ) : (
-                            <span className="text-[12px] text-[#9CA3AF]">—</span>
-                          )}
-                          <span
-                            className="px-2 py-0.5 rounded-full text-[10px] max-w-[110px] truncate"
-                            style={{ backgroundColor: stateBadge.bg, color: stateBadge.color, fontWeight: 600 }}
-                          >
-                            {stateBadge.label}
-                          </span>
-                        </div>
-                      </div>
-                      );
-                    })
-                  )}
-                </div>
-              </aside>
-            )}
+            {/* Pending-jobs panel moved out to a page-level full-height sidebar
+                drawer (see `pendingPanel` above the return). */}
 
             {selectedDayJob ? (
               <div className="fixed inset-0 z-50 flex justify-end" onClick={() => setSelectedDayJob(null)}>
@@ -2042,6 +2045,9 @@ export function Calendar() {
           {toast}
         </div>
       )}
+        </div>{/* /main board column */}
+        {viewMode === "day" && unassignedPanelOpen && pendingPanel}
+      </div>{/* /board + drawer row */}
     </div>
   );
 }
