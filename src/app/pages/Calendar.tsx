@@ -404,6 +404,19 @@ export function Calendar() {
     return eachDayOfInterval({ start, end: addDays(start, 6) });
   }, [currentDate, regionalSettings]);
 
+  // Week view defaults to ALL days collapsed except today (per the design).
+  // Resets whenever the visible week changes; user toggles persist within a
+  // week. Closed days are collapsed regardless, so this only decides which open
+  // day starts expanded.
+  const weekStartKey = weekDays[0] ? format(weekDays[0], "yyyy-MM-dd") : "";
+  useEffect(() => {
+    const todayIdx = weekDays.findIndex((d) => isSameDay(d, WEEK_TODAY));
+    const collapsed = new Set<number>();
+    weekDays.forEach((_, i) => { if (i !== todayIdx) collapsed.add(i); });
+    setCollapsedWeekDays(collapsed);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [weekStartKey]);
+
   const isCurrentDateOpen = isDateOpenForBusiness(currentDate, businessHours);
   const getEventsForDay = (day: Date) => isDateOpenForBusiness(day, businessHours)
     ? monthEvents.filter(e => isSameDay(e.date, day))

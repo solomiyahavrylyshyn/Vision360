@@ -168,4 +168,18 @@ describe("Calendar — week view (integration)", () => {
       expect(within(legend).getByText(label)).toBeInTheDocument();
     });
   });
+
+  it("collapses every day except today by default (only today shows tech lanes)", () => {
+    render(
+      <MemoryRouter initialEntries={["/calendar"]}>
+        <Calendar />
+      </MemoryRouter>,
+    );
+    // Technician lane headers only render inside an EXPANDED day section. With
+    // all business days open and the collapse-all-but-today default, exactly
+    // one day (today) is expanded → each technician appears exactly once.
+    expect(screen.getAllByText("Peter Novak")).toHaveLength(1);
+    expect(screen.getAllByText("Travis Brown")).toHaveLength(1);
+    expect(screen.getAllByText("Maria Garcia")).toHaveLength(1);
+  });
 });
