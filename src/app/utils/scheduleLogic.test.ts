@@ -6,6 +6,7 @@ import {
   isDraggable,
   statusAfterAssignToSlot,
   statusAfterMoveToPending,
+  applyMoveToPending,
   isUnassigned,
   isUnscheduled,
   isPaused,
@@ -80,6 +81,21 @@ describe("statusAfterMoveToPending (AC 2026-06: in_progress→paused; other stat
   it("scheduled / dispatched moved to pending keep their status (unchanged)", () => {
     expect(statusAfterMoveToPending("Scheduled")).toBe("Scheduled");
     expect(statusAfterMoveToPending("Dispatched")).toBe("Dispatched");
+  });
+});
+
+describe("applyMoveToPending (Marek transcript lines 312-348: remove date, KEEP assignee)", () => {
+  it("clears the date (→ unscheduled) but KEEPS the technician", () => {
+    const r = applyMoveToPending(job({ technicianId: "travis", unscheduled: false, status: "Scheduled" }));
+    expect(r.unscheduled).toBe(true);        // date removed → unscheduled
+    expect(r.technicianId).toBe("travis");   // assignee kept (leftover history)
+    expect(r.status).toBe("Scheduled");      // workflow status unchanged
+  });
+  it("an in-progress job pauses on the way to pending, tech still kept", () => {
+    const r = applyMoveToPending(job({ technicianId: "peter", unscheduled: false, status: "In Progress" }));
+    expect(r.unscheduled).toBe(true);
+    expect(r.technicianId).toBe("peter");
+    expect(r.status).toBe("Paused");
   });
 });
 

@@ -64,6 +64,15 @@ export function statusAfterMoveToPending(prev: JobStatus): JobStatus {
   return prev === "In Progress" ? "Paused" : prev;
 }
 
+// The exact drag-back transform, straight from Marek (walkthrough-13, lines
+// 312-348): "we are removing the date … do not remove the assignee … job
+// becomes unscheduled … we are keeping assignee because it's a little bit
+// leftover history." So: clear the DATE (unscheduled = true), KEEP the
+// technician, and pause an in-progress job. Returns a patched copy.
+export function applyMoveToPending<T extends { status: JobStatus }>(job: T): T & { unscheduled: true } {
+  return { ...job, unscheduled: true, status: statusAfterMoveToPending(job.status) };
+}
+
 // ── Pending column membership & filter ────────────────────────────────────
 // Backlog (Pending jobs US, per Marek 02.06):
 //  - ONE column "Pending jobs" with a dropdown:

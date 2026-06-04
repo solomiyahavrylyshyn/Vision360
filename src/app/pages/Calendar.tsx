@@ -13,7 +13,7 @@ import {
 } from "date-fns";
 import routeMapImg from "../../assets/route-map.png";
 import { type JobStatus, JOB_STATUS_STYLES as STATUS_STYLES, JOB_STATUSES as ALL_JOB_STATUSES } from "../constants/jobStatuses";
-import { isPending, pendingJobs, type PendingFilter, hasTimeConflict, statusAfterAssignToSlot, statusAfterMoveToPending, durationForType, isDraggable, isShownOnBoard } from "../utils/scheduleLogic";
+import { isPending, pendingJobs, type PendingFilter, hasTimeConflict, statusAfterAssignToSlot, applyMoveToPending, durationForType, isDraggable, isShownOnBoard } from "../utils/scheduleLogic";
 import { jobTypeColor, jobTypeTint, JOB_TYPE_ORDER, JOB_TYPE_COLORS } from "../constants/jobTypeColors";
 
 interface CalendarEvent {
@@ -671,11 +671,7 @@ export function Calendar() {
       if (!targetJob || isPending(targetJob) || !isDraggable(targetJob.status)) return jobs;
       setConflictMessage(null);
       setToast("Moved to Pending — date cleared, technician kept");
-      return jobs.map((job) =>
-        job.id === jobId
-          ? { ...job, unscheduled: true, status: statusAfterMoveToPending(job.status) }
-          : job,
-      );
+      return jobs.map((job) => (job.id === jobId ? applyMoveToPending(job) : job));
     });
   };
 
