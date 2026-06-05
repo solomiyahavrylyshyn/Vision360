@@ -121,9 +121,9 @@ export function Clients() {
     | "dateCreated" | "lastServiceDate" | "totalBilled" | "notes" | "lastActivity"
     | "paymentTerms" | "paymentMethod" | "taxable";
 
-  const [visibleColumns, setVisibleColumns] = useState<Set<ColKey>>(new Set<ColKey>(["address", "totalBilled", "lastActivity"]));
+  const [visibleColumns, setVisibleColumns] = useState<Set<ColKey>>(new Set<ColKey>(["status", "address", "totalBilled", "lastActivity"]));
   const [editColumnsOpen, setEditColumnsOpen] = useState(false);
-  const [pendingColumns, setPendingColumns] = useState<Set<ColKey>>(new Set<ColKey>(["address", "totalBilled", "lastActivity"]));
+  const [pendingColumns, setPendingColumns] = useState<Set<ColKey>>(new Set<ColKey>(["status", "address", "totalBilled", "lastActivity"]));
 
   // Columns offered in the picker. Display name (which already shows the company
   // under it) is always on, so First/Last/Role/Company are dropped; Work phone and
