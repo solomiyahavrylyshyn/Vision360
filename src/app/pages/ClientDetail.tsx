@@ -340,7 +340,7 @@ function ClientJobsPanel({ rows, onOpen, onCreate }: {
                     <KebabMenuShared>
                       <KebabItem icon="content_copy" onSelect={() => duplicateJob(row)}>Duplicate</KebabItem>
                       <KebabItem icon="swap_horiz" onSelect={() => setStatusTarget([row.id])}>Change status</KebabItem>
-                      <KebabItem icon="cancel" onSelect={() => cancelJobs([row.id])}>Cancel job</KebabItem>
+                      <KebabItem icon="block" onSelect={() => cancelJobs([row.id])}>Inactivate</KebabItem>
                       <KebabSeparator />
                       <KebabItem icon="open_in_new" onSelect={() => window.open(`/jobs/${row.id}`, "_blank")}>Open in New Tab</KebabItem>
                     </KebabMenuShared>

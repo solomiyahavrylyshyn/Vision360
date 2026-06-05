@@ -452,7 +452,6 @@ export function Jobs() {
               </CreateActionButton>
               <KebabMenu triggerClassName="w-10 h-10 border border-[#D8DEE8] rounded-xl bg-white">
                 <KebabItem icon="view_column" onSelect={() => { setPendingCols(new Set(visibleCols)); setEditColsOpen(true); }}>Edit columns</KebabItem>
-                <KebabItem icon="content_copy" onSelect={() => setManageDupsOpen(true)}>Manage duplicates</KebabItem>
                 <KebabSeparator />
                 <KebabItem icon="file_upload" onSelect={() => importInputRef.current?.click()}>Import</KebabItem>
                 <KebabItem icon="file_download" onSelect={() => exportJobs(sorted)}>Export</KebabItem>
@@ -460,7 +459,11 @@ export function Jobs() {
             </div>
           </div>
         )}
-        <table className="w-full">
+        {/* Horizontal scroll so the right-hand columns (Total / Status / kebab)
+            stay reachable on narrow viewports instead of being clipped by the
+            card's overflow-hidden (QA: content ran off the right edge). */}
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[820px]">
           <thead className="bg-[#F5F7FA]">
             <tr className="border-b border-[#E5E7EB]">
               <th className="px-4 py-3 w-10">
@@ -535,7 +538,7 @@ export function Jobs() {
                   <KebabMenu>
                     <KebabItem icon="content_copy" onSelect={() => duplicateJob(job)}>Duplicate</KebabItem>
                     <KebabItem icon="swap_horiz" onSelect={() => openStatusModal([job.id])}>Change status</KebabItem>
-                    <KebabItem icon="cancel" onSelect={() => setJobs(prev => prev.map(j => j.id === job.id ? { ...j, status: "Cancelled" } : j))}>Cancel job</KebabItem>
+                    <KebabItem icon="block" onSelect={() => setJobs(prev => prev.map(j => j.id === job.id ? { ...j, status: "Cancelled" } : j))}>Inactivate</KebabItem>
                     <KebabSeparator />
                     <KebabItem icon="open_in_new" onSelect={() => window.open(`/jobs/${job.id}`, "_blank")}>Open in New Tab</KebabItem>
                   </KebabMenu>
@@ -544,6 +547,7 @@ export function Jobs() {
             ))}
           </tbody>
         </table>
+        </div>
 
         {/* ── Pagination (inside table card per template) ── */}
         <div className="flex items-center justify-between bg-white px-4 py-4 border-t border-[#E5E7EB]">
