@@ -606,7 +606,15 @@ export function JobDetail() {
   const visibleTabs = BASE_TABS
     .filter(t => !hiddenTabs.has(t.key))
     .map(t => ({ ...t, count: getTabCount(t.key) }));
-  const statusColor = statusColors[currentStatus] || "#6B7280";
+  // A job with no start date is UNSCHEDULED — it can't truthfully be "Scheduled"
+  // (or "Dispatched"), which both mean "planned for a date". Show the derived
+  // "Unscheduled" state instead; the real workflow status returns once the job
+  // gets a date (set via the Job date & time section). Mirrors the schedule board.
+  const isUnscheduled = !job.startedOn;
+  const displayStatus = isUnscheduled && (currentStatus === "Scheduled" || currentStatus === "Dispatched")
+    ? "Unscheduled"
+    : currentStatus;
+  const statusColor = displayStatus === "Unscheduled" ? "#6B7280" : (statusColors[currentStatus] || "#6B7280");
 
   const handleStatusChange = (newStatus: string) => {
     setCurrentStatus(newStatus);
@@ -1412,7 +1420,7 @@ export function JobDetail() {
                   style={{ fontWeight: 600, backgroundColor: `${statusColor}18`, color: statusColor }}
                 >
                   <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: statusColor }} />
-                  {currentStatus}
+                  {displayStatus}
                   <span className="material-icons" style={{ fontSize: "14px" }}>arrow_drop_down</span>
                 </button>
                 {statusDropdownOpen && (
