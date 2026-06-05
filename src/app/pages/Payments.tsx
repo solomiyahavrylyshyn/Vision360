@@ -550,12 +550,14 @@ export function Payments() {
                       <td className="px-4 py-4" onClick={e => e.stopPropagation()}>
                         <KebabMenu>
                           <KebabItem icon="description" onSelect={() => navigate(`/invoices/new?client=${encodeURIComponent(p.clientName)}&returnTo=${encodeURIComponent("/payments")}`)}>Make invoice</KebabItem>
+                          <KebabItem icon="send" onSelect={() => toast.success(`Receipt sent to ${p.clientName}`)}>Send receipt</KebabItem>
+                          <KebabItem icon="file_download" onSelect={() => toast.success(`Downloading receipt P-${1000 + p.id}…`)}>Download receipt</KebabItem>
+                          <KebabItem icon="visibility" onSelect={() => toast(`Payout for P-${1000 + p.id}`)}>View payout</KebabItem>
                           <KebabSeparator />
                           <KebabItem icon="undo" onSelect={() => {
                             paymentsStore.update(p.id, { status: "Refunded" });
                             toast.success(`Refunded P-${1000 + p.id}`);
                           }}>Refund</KebabItem>
-                          <KebabItem icon="open_in_new" onSelect={() => window.open(`/payments/${p.id}`, "_blank", "noopener,noreferrer")}>Open in new tab</KebabItem>
                         </KebabMenu>
                       </td>
                     </tr>
