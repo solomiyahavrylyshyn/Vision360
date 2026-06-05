@@ -143,6 +143,63 @@ describe("Calendar — daily Dispatch board (integration)", () => {
     expect(scheduledCard).not.toBeNull();
     expect(scheduledCard).toHaveAttribute("draggable", "true");
   });
+
+  it("'unassigned' filter excludes a dragged-back job that kept its technician", () => {
+    // QA bug: the filter looked like "unassigned OR unscheduled" because every
+    // unscheduled seed job was also tech-less. A real dragged-back job (Reyes,
+    // seed 16) keeps its tech, so it must NOT appear under "unassigned".
+    renderDayBoard();
+    const aside = screen.getByRole("complementary") as HTMLElement;
+    const select = within(aside).getByRole("combobox") as HTMLSelectElement;
+    fireEvent.change(select, { target: { value: "unassigned" } });
+    expect(within(aside).queryByText("Reyes Home")).not.toBeInTheDocument();      // unscheduled but assigned
+    expect(within(aside).getByText("Garcia Residence")).toBeInTheDocument();      // dated, no tech
+    expect(within(aside).getByText("Clark Residence")).toBeInTheDocument();       // no date, no tech
+  });
+
+  it("'unassigned + unscheduled' filter shows the UNION, not the intersection", () => {
+    // QA bug: it returned only jobs that were BOTH (the intersection). The "+"
+    // is a union — every pending job missing a date OR a technician shows.
+    renderDayBoard();
+    const aside = screen.getByRole("complementary") as HTMLElement;
+    const select = within(aside).getByRole("combobox") as HTMLSelectElement;
+    fireEvent.change(select, { target: { value: "both" } });
+    expect(within(aside).getByText("Garcia Residence")).toBeInTheDocument();      // unassigned only
+    expect(within(aside).getByText("Reyes Home")).toBeInTheDocument();            // unscheduled only
+    expect(within(aside).getByText("Clark Residence")).toBeInTheDocument();       // both
+  });
+
+  it("a job that is BOTH unscheduled and unassigned shows BOTH tags on its card", () => {
+    // QA root cause: a single priority badge hid the overlap, making the filter
+    // look broken. Clark (seed 15: no date, no tech) must show both tags.
+    renderDayBoard();
+    const aside = screen.getByRole("complementary") as HTMLElement;
+    const clark = within(aside).getByText("Clark Residence").closest('[data-job-card="true"]') as HTMLElement;
+    expect(within(clark).getByText("Unscheduled")).toBeInTheDocument();
+    expect(within(clark).getByText("Unassigned")).toBeInTheDocument();
+  });
+
+  it("panel agrees with the card: an unscheduled job's panel shows 'No date set', not a time", () => {
+    // QA bug: the detail panel hardcoded start–end and ignored the unscheduled
+    // flag, so it showed a real time + "Scheduled" while the card showed --:--.
+    renderDayBoard();
+    const aside = screen.getByRole("complementary") as HTMLElement;
+    fireEvent.click(within(aside).getByText("Clark Residence").closest('[data-job-card="true"]') as HTMLElement);
+    expect(screen.getByText("No date set")).toBeInTheDocument();
+  });
+
+  it("lifecycle lock: a completed job's Reschedule button is disabled (§7.3)", () => {
+    // QA bug: Reschedule fired on a Completed job and opened a Create dialog.
+    renderDayBoard();
+    fireEvent.click(screen.getAllByText("Johnson Residence")[0].closest('[data-job-card="true"]') as HTMLElement);
+    expect(screen.getByRole("button", { name: "Reschedule" })).toBeDisabled();
+  });
+
+  it("a scheduled job's Reschedule button stays enabled (not over-locked)", () => {
+    renderDayBoard();
+    fireEvent.click(screen.getAllByText("Miller Residence")[0].closest('[data-job-card="true"]') as HTMLElement);
+    expect(screen.getByRole("button", { name: "Reschedule" })).toBeEnabled();
+  });
 });
 
 // Week view (Figma node 759:5307): a vertical stack of expandable day sections,

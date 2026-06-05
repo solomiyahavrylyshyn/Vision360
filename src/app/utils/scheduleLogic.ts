@@ -137,10 +137,29 @@ export function pendingFilterMatch(job: PendingShape, filter: PendingFilter): bo
     case "unscheduled": return isUnscheduled(job);
     case "scheduled": return !isUnscheduled(job); // pending but HAS a date
     case "paused": return isPaused(job);
-    case "both": return isUnassigned(job) && isUnscheduled(job);
+    // "Show unassigned + unscheduled" is the UNION — every pending job missing a
+    // date OR a technician (the dispatcher's "needs scheduling attention" list).
+    // The "+" reads as OR; this equals all pending EXCEPT a paused job that still
+    // has both a date and a technician. (It is NOT the intersection.)
+    case "both": return isUnassigned(job) || isUnscheduled(job);
     case "all":
     default: return isPending(job);
   }
+}
+
+// The derived scheduling-state tags for a job. Because the two flag-predicates
+// OVERLAP (brief §4), a job can carry MORE THAN ONE — e.g. a job with no date
+// AND no technician is BOTH "Unscheduled" and "Unassigned". The sidebar card and
+// the job panel render every applicable tag so the overlap is always visible and
+// never hidden behind a single priority badge (hiding it is what made the
+// "unassigned" filter look broken — the unassigned-ness was invisible on cards
+// that were also unscheduled). Paused is a workflow status, not a scheduling
+// flag, so the UI handles it separately; this returns scheduling tags only.
+export function schedulingTags(job: Pick<SchedulableJob, "technicianId" | "unscheduled">): string[] {
+  const tags: string[] = [];
+  if (isUnscheduled(job)) tags.push("Unscheduled");
+  if (isUnassigned(job)) tags.push("Unassigned");
+  return tags;
 }
 
 // Paused jobs float to the top (HIGHER priority per the backlog). Otherwise the

@@ -13,7 +13,7 @@ import {
 } from "date-fns";
 import routeMapImg from "../../assets/route-map.png";
 import { type JobStatus, JOB_STATUS_STYLES as STATUS_STYLES, JOB_STATUSES as ALL_JOB_STATUSES } from "../constants/jobStatuses";
-import { isPending, pendingJobs, type PendingFilter, hasTimeConflict, statusAfterAssignToSlot, applyMoveToPending, applyUnassign, durationForType, isDraggable, isShownOnBoard } from "../utils/scheduleLogic";
+import { isPending, pendingJobs, type PendingFilter, hasTimeConflict, statusAfterAssignToSlot, applyMoveToPending, applyUnassign, schedulingTags, durationForType, isDraggable, isShownOnBoard } from "../utils/scheduleLogic";
 import { jobTypeColor, jobTypeTint, JOB_TYPE_ORDER, JOB_TYPE_COLORS } from "../constants/jobTypeColors";
 
 interface CalendarEvent {
@@ -173,6 +173,10 @@ interface QuickJobDraft {
   service: string;
   address: string;
   amount: string;
+  // When set, this dialog RESCHEDULES an existing job (updates it in place,
+  // preserving its identity) instead of creating a new one. null/undefined =
+  // create. This is what keeps "Reschedule" distinct from "Create" (brief §6).
+  editJobId?: number;
 }
 
 interface DropPreview {
@@ -209,11 +213,16 @@ const DAY_JOBS: DayJob[] = [
   { id: 12, technicianId: "",       start: 9,    end: 11,   client: "Garcia Residence",  service: "AC Repair",          jobType: "Service",      address: "320 Birch Ln",         status: "Scheduled",   amount: 380,  bg: "#FEF3C7", border: "#F59E0B" },
   { id: 13, technicianId: "",       start: 13,   end: 14,   client: "Nguyen Home",       service: "Estimate",           jobType: "Estimate",     address: "12 Sunset Ave",        status: "Scheduled",   amount: 0,    bg: "#F3F4F6", border: "#6B7280" },
   { id: 14, technicianId: "",       start: 15,   end: 17,   client: "Patel Office",      service: "Maintenance",        jobType: "Maintenance",  address: "880 Commerce Blvd",    status: "Scheduled",   amount: 220,  bg: "#D1FAE5", border: "#16A34A" },
-  // Unscheduled jobs — no fixed date/time yet (waiting on the customer). The
-  // no-date state is derived from `unscheduled`, NOT a status: these keep a
-  // workflow status (Scheduled) and show "No date" in the Pending column.
+  // Unscheduled jobs — no fixed date/time yet. The no-date state is derived from
+  // `unscheduled`, NOT a status. Two DISTINCT cases on purpose so the sidebar
+  // filters are visibly independent (not nested):
+  //  - id 15 Clark: brand-new job, no date AND no technician → shows BOTH the
+  //    "Unscheduled" and "Unassigned" tags (the §9 overlap case).
+  //  - id 16 Reyes: a job dragged back off the board — Marek's rule KEEPS the
+  //    technician, so it is unscheduled but still assigned → "Unscheduled" ONLY,
+  //    and it must NOT appear under the "unassigned" filter.
   { id: 15, technicianId: "",       start: 9,    end: 10,   client: "Clark Residence",   service: "AC Install",         jobType: "Installation", address: "951 Hillside Dr",      status: "Scheduled",   amount: 4200, bg: "#EDE9FE", border: "#7C3AED", unscheduled: true },
-  { id: 16, technicianId: "",       start: 9,    end: 10,   client: "Reyes Home",        service: "Furnace Tune-Up",    jobType: "Maintenance",  address: "44 Vista Way",         status: "Scheduled",   amount: 160,  bg: "#FEF3C7", border: "#F59E0B", unscheduled: true },
+  { id: 16, technicianId: "peter",  start: 9,    end: 10,   client: "Reyes Home",        service: "Furnace Tune-Up",    jobType: "Maintenance",  address: "44 Vista Way",         status: "Scheduled",   amount: 160,  bg: "#FEF3C7", border: "#F59E0B", unscheduled: true },
 ];
 
 // Day view constants
@@ -279,6 +288,22 @@ export function Calendar() {
   const pendingSource: (DayJob | DispatchJob)[] = viewMode === "week" ? weekJobs : dayJobs;
   const pendingBucket = pendingSource.filter(isPending);
   const pendingDayJobs = pendingJobs(pendingSource, pendingFilter);
+
+  // Derived state chips for a job — Paused (a workflow status) first, then the
+  // OVERLAPPING scheduling tags from schedulingTags(). Rendered identically on
+  // the sidebar card AND the job panel so the two views can never disagree (the
+  // panel used to hardcode the time + workflow status and contradict the card).
+  // Falls back to the workflow status for a fully scheduled+assigned board job.
+  const stateChips = (j: { status: JobStatus; technicianId: string; unscheduled?: boolean }) => {
+    const labels = [...(j.status === "Paused" ? ["Paused"] : []), ...schedulingTags(j)];
+    const final = labels.length ? labels : [j.status];
+    return final.map((label) => {
+      if (label === "Paused") return { label, color: STATUS_STYLES.Paused.color, bg: STATUS_STYLES.Paused.bg };
+      if (label === "Unscheduled" || label === "Unassigned") return { label, color: "#6B7280", bg: "rgba(107,114,128,0.15)" };
+      const s = STATUS_STYLES[label as JobStatus];
+      return { label, color: s?.color ?? "#6B7280", bg: s?.bg ?? "rgba(107,114,128,0.15)" };
+    });
+  };
   const [monthEvents, setMonthEvents] = useState<CalendarEvent[]>(mockEvents);
   const [dropPreview, setDropPreview] = useState<DropPreview | null>(null);
   const [pendingDropActive, setPendingDropActive] = useState(false);
@@ -527,6 +552,34 @@ export function Calendar() {
     });
   };
 
+  // Reschedule an EXISTING job (brief §6: reschedule ≠ create). Prefills the
+  // dialog from the job itself and flags it as an edit (editJobId) so submit
+  // UPDATES the job in place — preserving its identity, type colour and workflow
+  // status — instead of inserting a brand-new job (the old bug).
+  const openReschedule = (view: "day" | "week", job: DayJob | DispatchJob) => {
+    if (!isDraggable(job.status)) return; // completed/cancelled are locked (§7.3)
+    const dayIdx = view === "week" ? (job as DispatchJob).dayIdx : undefined;
+    const date = view === "week" ? (weekDays[dayIdx ?? 0] ?? weekDays[0]) : currentDate;
+    if (!isDateOpenForBusiness(date, businessHours)) {
+      setToast("This day is closed in business hours.");
+      return;
+    }
+    setConflictMessage(null);
+    setQuickJobDraft({
+      view,
+      date,
+      dayIdx,
+      technicianId: job.technicianId,
+      start: job.start,
+      end: job.end,
+      client: job.client,
+      service: job.service,
+      address: job.address,
+      amount: String(job.amount ?? 0),
+      editJobId: job.id,
+    });
+  };
+
   const submitQuickJob = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!quickJobDraft) return;
@@ -535,45 +588,61 @@ export function Calendar() {
       setConflictMessage("End time must be after the start time.");
       return;
     }
-    const base = {
+    // Fields shared by create and reschedule. For a reschedule we deliberately
+    // DON'T touch status / type colour — only the scheduling + editable fields,
+    // and we clear `unscheduled` because the job now has a date again.
+    const common = {
       technicianId: quickJobDraft.technicianId,
       start: quickJobDraft.start,
       end: quickJobDraft.end,
       client: quickJobDraft.client.trim() || "New Customer",
       service: quickJobDraft.service.trim() || "Service Call",
       address: quickJobDraft.address.trim() || "Address TBD",
-      status: "Scheduled" as JobStatus,
       amount,
-      bg: "#EBF0F8",
-      border: "#4A6FA5",
     };
+    const createExtras = { status: "Scheduled" as JobStatus, bg: "#EBF0F8", border: "#4A6FA5" };
+    const editId = quickJobDraft.editJobId;
 
     if (quickJobDraft.view === "day") {
-      if (dayHasConflict(dayJobs, null, base.technicianId, base.start, base.end)) {
+      if (dayHasConflict(dayJobs, editId ?? null, common.technicianId, common.start, common.end)) {
         setConflictMessage("This slot overlaps with another job for the same person.");
         return;
       }
-      const nextId = Math.max(0, ...dayJobs.map((job) => job.id)) + 1;
-      const newJob = { id: nextId, ...base };
-      setDayJobs((jobs) => [...jobs, newJob]);
-      setSelectedDayJob(newJob);
-      setSelectedMapJobId(nextId);
+      if (editId != null) {
+        setDayJobs((jobs) => jobs.map((j) => (j.id === editId ? { ...j, ...common, unscheduled: false } : j)));
+        setSelectedDayJob((j) => (j && j.id === editId ? { ...j, ...common, unscheduled: false } : j));
+        setSelectedMapJobId(editId);
+        setToast("Job rescheduled");
+      } else {
+        const nextId = Math.max(0, ...dayJobs.map((job) => job.id)) + 1;
+        const newJob = { id: nextId, ...common, ...createExtras };
+        setDayJobs((jobs) => [...jobs, newJob]);
+        setSelectedDayJob(newJob);
+        setSelectedMapJobId(nextId);
+      }
     } else {
       const dayIdx = quickJobDraft.dayIdx ?? 0;
-      if (weekHasConflict(weekJobs, null, dayIdx, base.technicianId, base.start, base.end)) {
+      if (weekHasConflict(weekJobs, editId ?? null, dayIdx, common.technicianId, common.start, common.end)) {
         setConflictMessage("This slot overlaps with another job for the same person.");
         return;
       }
-      const nextId = Math.max(0, ...weekJobs.map((job) => job.id)) + 1;
-      setWeekJobs((jobs) => [...jobs, {
-        id: nextId,
-        num: `24${String(nextId).padStart(2, "0")}`,
-        dayIdx,
-        priority: "Normal",
-        jobType: "Repair",
-        source: "Schedule",
-        ...base,
-      }]);
+      if (editId != null) {
+        setWeekJobs((jobs) => jobs.map((j) => (j.id === editId ? { ...j, ...common, dayIdx, unscheduled: false } : j)));
+        setSelectedDispatchJob((j) => (j && j.id === editId ? { ...j, ...common, dayIdx, unscheduled: false } : j));
+        setToast("Job rescheduled");
+      } else {
+        const nextId = Math.max(0, ...weekJobs.map((job) => job.id)) + 1;
+        setWeekJobs((jobs) => [...jobs, {
+          id: nextId,
+          num: `24${String(nextId).padStart(2, "0")}`,
+          dayIdx,
+          priority: "Normal",
+          jobType: "Repair",
+          source: "Schedule",
+          ...common,
+          ...createExtras,
+        }]);
+      }
     }
 
     setQuickJobDraft(null);
@@ -954,13 +1023,7 @@ export function Calendar() {
         ) : (
           pendingDayJobs.map((job) => {
             const typeColor = jobTypeColor(job.jobType);
-            const stateBadge = job.status === "Paused"
-              ? { label: "Paused", color: STATUS_STYLES.Paused.color, bg: STATUS_STYLES.Paused.bg }
-              : job.unscheduled
-              ? { label: "Unscheduled", color: "#6B7280", bg: "rgba(107,114,128,0.15)" }
-              : !job.technicianId
-              ? { label: "Unassigned", color: "#6B7280", bg: "rgba(107,114,128,0.15)" }
-              : { label: job.status, color: STATUS_STYLES[job.status].color, bg: STATUS_STYLES[job.status].bg };
+            const chips = stateChips(job);
             return (
               <div
                 key={job.id}
@@ -970,7 +1033,7 @@ export function Calendar() {
                 onClick={() => (viewMode === "week" ? setSelectedDispatchJob(job as DispatchJob) : setSelectedDayJob(job as DayJob))}
                 className="bg-white border border-[#E5E7EB] rounded-lg p-2.5 cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow"
                 style={{ borderLeft: `3px solid ${typeColor}`, backgroundColor: jobTypeTint(job.jobType) }}
-                title={`${job.client} — ${job.service}${job.jobType ? ` (${job.jobType})` : ""}\n${job.address}\n${job.unscheduled ? "No date" : `${formatRegionalTime(job.start, regionalSettings)}–${formatRegionalTime(job.end, regionalSettings)}`} · ${stateBadge.label}`}
+                title={`${job.client} — ${job.service}${job.jobType ? ` (${job.jobType})` : ""}\n${job.address}\n${job.unscheduled ? "No date" : `${formatRegionalTime(job.start, regionalSettings)}–${formatRegionalTime(job.end, regionalSettings)}`} · ${chips.map((c) => c.label).join(" · ")}`}
               >
                 <div className="flex items-center gap-1 text-[10px] text-[#9CA3AF] tabular-nums">
                   {job.status === "Paused" && (
@@ -986,12 +1049,17 @@ export function Calendar() {
                   ) : (
                     <span className="text-[12px] text-[#9CA3AF]">—</span>
                   )}
-                  <span
-                    className="px-2 py-0.5 rounded-full text-[10px] max-w-[110px] truncate"
-                    style={{ backgroundColor: stateBadge.bg, color: stateBadge.color, fontWeight: 600 }}
-                  >
-                    {stateBadge.label}
-                  </span>
+                  <div className="flex items-center gap-1 flex-wrap justify-end">
+                    {chips.map((c) => (
+                      <span
+                        key={c.label}
+                        className="px-2 py-0.5 rounded-full text-[10px] max-w-[110px] truncate"
+                        style={{ backgroundColor: c.bg, color: c.color, fontWeight: 600 }}
+                      >
+                        {c.label}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               </div>
             );
@@ -1442,12 +1510,15 @@ export function Calendar() {
                 {/* Docked right-side job-info panel (matches Figma), not a modal. */}
                 <div className="relative w-[400px] max-w-[92vw] h-full shrink-0 flex flex-col overflow-hidden border-l border-[#E5E7EB] bg-white shadow-2xl" onClick={e => e.stopPropagation()}>
 	                <div className="flex items-center justify-between px-4 py-3.5 border-b border-[#E5E7EB] shrink-0">
-	                  <div className="flex items-center gap-2">
+	                  <div className="flex items-center gap-2 flex-wrap min-w-0">
 	                    <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 700 }}>Job #{selectedDispatchJob.num}</span>
 	                    <StatusPillSelect
 	                      value={selectedDispatchJob.status}
 	                      onChange={(next) => updateWeekStatus(selectedDispatchJob.id, next)}
 	                    />
+	                    {schedulingTags(selectedDispatchJob).map((label) => (
+	                      <span key={label} className="px-2 py-0.5 rounded-full text-[10px]" style={{ backgroundColor: "rgba(107,114,128,0.15)", color: "#6B7280", fontWeight: 600 }}>{label}</span>
+	                    ))}
 	                  </div>
                   <button onClick={() => setSelectedDispatchJob(null)} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-[#F5F7FA]">
                     <span className="material-icons text-[#8899AA]" style={{ fontSize: "18px" }}>close</span>
@@ -1487,7 +1558,8 @@ export function Calendar() {
                       </div>
                       <div className="border-t border-[#E5E7EB] pt-3 mt-3">
                         {[
-                          { icon: "event",        label: "Time",   value: `${formatRegionalTime(selectedDispatchJob.start, regionalSettings)} - ${formatRegionalTime(selectedDispatchJob.end, regionalSettings)}` },
+                          { icon: "engineering", label: "Person", value: TEAM.find((m) => m.id === selectedDispatchJob.technicianId)?.name ?? "Unassigned" },
+                          { icon: "event",        label: "Time",   value: selectedDispatchJob.unscheduled ? "No date set" : `${formatRegionalTime(selectedDispatchJob.start, regionalSettings)} - ${formatRegionalTime(selectedDispatchJob.end, regionalSettings)}` },
                           { icon: "attach_money", label: "Amount", value: `$${selectedDispatchJob.amount.toFixed(2)}` },
                           { icon: "build",        label: "Type",   value: selectedDispatchJob.jobType },
                         ].map(f => (
@@ -1550,7 +1622,7 @@ export function Calendar() {
 	                  </button>
                   <div className="flex gap-2">
                     <button onClick={() => navigate(`/jobs/${selectedDispatchJob.id}`)} className="flex-1 py-2 border border-[#E5E7EB] text-[#546478] rounded-lg text-[12px] hover:bg-[#F5F7FA] transition-colors" style={{ fontWeight: 500 }}>Edit</button>
-                    <button onClick={() => openQuickCreate("week", weekDays[selectedDispatchJob.dayIdx] ?? weekDays[0], selectedDispatchJob.start, selectedDispatchJob.technicianId, selectedDispatchJob.dayIdx)} className="flex-1 py-2 border border-[#E5E7EB] text-[#546478] rounded-lg text-[12px] hover:bg-[#F5F7FA] transition-colors" style={{ fontWeight: 500 }}>Reschedule</button>
+                    <button onClick={() => openReschedule("week", selectedDispatchJob)} disabled={!isDraggable(selectedDispatchJob.status)} title={!isDraggable(selectedDispatchJob.status) ? "Completed/cancelled jobs can't be rescheduled" : undefined} className="flex-1 py-2 border border-[#E5E7EB] text-[#546478] rounded-lg text-[12px] hover:bg-[#F5F7FA] transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent" style={{ fontWeight: 500 }}>Reschedule</button>
                   </div>
                   {!isPending(selectedDispatchJob) && isDraggable(selectedDispatchJob.status) && (
                     <button
@@ -1810,12 +1882,15 @@ export function Calendar() {
                     761:19636) — not a centered modal. */}
                 <div className="relative w-[400px] max-w-[92vw] h-full shrink-0 flex flex-col overflow-hidden border-l border-[#E5E7EB] bg-white shadow-2xl" onClick={e => e.stopPropagation()}>
                 <div className="flex items-center justify-between px-4 py-3.5 border-b border-[#E5E7EB] shrink-0">
-                  <div className="flex items-center gap-2 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap min-w-0">
                     <span className="text-[14px] text-[#1A2332] truncate" style={{ fontWeight: 700 }}>Job #{selectedDayJob.id}</span>
                     <StatusPillSelect
                       value={selectedDayJob.status}
                       onChange={(next) => updateDayStatus(selectedDayJob.id, next)}
                     />
+                    {schedulingTags(selectedDayJob).map((label) => (
+                      <span key={label} className="px-2 py-0.5 rounded-full text-[10px]" style={{ backgroundColor: "rgba(107,114,128,0.15)", color: "#6B7280", fontWeight: 600 }}>{label}</span>
+                    ))}
                   </div>
                   <button onClick={() => setSelectedDayJob(null)} aria-label="Close job details" className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-[#F5F7FA]">
                     <span className="material-icons text-[#8899AA]" style={{ fontSize: "18px" }}>close</span>
@@ -1857,7 +1932,7 @@ export function Calendar() {
                         <div className="border-t border-[#E5E7EB] pt-3 mt-3">
                           {[
                             { icon: "engineering", label: "Person", value: TEAM.find((member) => member.id === selectedDayJob.technicianId)?.name ?? "Unassigned" },
-                            { icon: "event", label: "Time", value: `${formatRegionalTime(selectedDayJob.start, regionalSettings)} - ${formatRegionalTime(selectedDayJob.end, regionalSettings)}` },
+                            { icon: "event", label: "Time", value: selectedDayJob.unscheduled ? "No date set" : `${formatRegionalTime(selectedDayJob.start, regionalSettings)} - ${formatRegionalTime(selectedDayJob.end, regionalSettings)}` },
                             { icon: "attach_money", label: "Amount", value: `$${selectedDayJob.amount.toLocaleString("en-US")}` },
                           ].map((field) => (
                             <div key={field.label} className="flex items-center gap-2.5 py-2 border-b border-[#F5F7FA] last:border-0">
@@ -1920,7 +1995,7 @@ export function Calendar() {
                   </button>
                   <div className="flex gap-2">
                     <button onClick={() => navigate(`/jobs/${selectedDayJob.id}`)} className="flex-1 py-2 border border-[#E5E7EB] text-[#546478] rounded-lg text-[12px] hover:bg-[#F5F7FA] transition-colors" style={{ fontWeight: 500 }}>Edit</button>
-                    <button onClick={() => openQuickCreate("day", currentDate, selectedDayJob.start, selectedDayJob.technicianId)} className="flex-1 py-2 border border-[#E5E7EB] text-[#546478] rounded-lg text-[12px] hover:bg-[#F5F7FA] transition-colors" style={{ fontWeight: 500 }}>Reschedule</button>
+                    <button onClick={() => openReschedule("day", selectedDayJob)} disabled={!isDraggable(selectedDayJob.status)} title={!isDraggable(selectedDayJob.status) ? "Completed/cancelled jobs can't be rescheduled" : undefined} className="flex-1 py-2 border border-[#E5E7EB] text-[#546478] rounded-lg text-[12px] hover:bg-[#F5F7FA] transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent" style={{ fontWeight: 500 }}>Reschedule</button>
                   </div>
                   {/* Reliable (no-drag) way to send a scheduled job back to Pending:
                       clears the date, keeps the technician — same rule as drag-back. */}
@@ -2019,7 +2094,7 @@ export function Calendar() {
             onClick={(event) => event.stopPropagation()}
           >
             <div className="px-5 py-4 border-b border-[#E5E7EB] flex items-center justify-between sticky top-0 bg-white z-10">
-              <div className="text-[18px] text-[#1A2332]" style={{ fontWeight: 600 }}>Create job</div>
+              <div className="text-[18px] text-[#1A2332]" style={{ fontWeight: 600 }}>{quickJobDraft.editJobId != null ? `Reschedule job #${quickJobDraft.editJobId}` : "Create job"}</div>
               <button type="button" onClick={() => setQuickJobDraft(null)} aria-label="Close" className="w-8 h-8 rounded-lg hover:bg-[#F5F7FA] flex items-center justify-center">
                 <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>close</span>
               </button>
@@ -2028,6 +2103,10 @@ export function Calendar() {
             <div className="p-5 space-y-3">
               <label className="block">
                 <span className="block text-[11px] text-[#8899AA] mb-1" style={{ fontWeight: 700 }}>Customer</span>
+                {quickJobDraft.editJobId != null ? (
+                  // Reschedule keeps the job's identity — customer is read-only.
+                  <div className="w-full h-10 rounded-lg border border-[#E5E7EB] px-3 text-[13px] bg-[#F9FAFB] text-[#1A2332] flex items-center">{quickJobDraft.client}</div>
+                ) : (
                 <select
                   autoFocus
                   value={quickJobDraft.client}
@@ -2040,10 +2119,14 @@ export function Calendar() {
                 >
                   {CUSTOMERS.map((c) => (<option key={c.name} value={c.name}>{c.name}</option>))}
                 </select>
+                )}
               </label>
               <div className="grid grid-cols-2 gap-3">
                 <label className="block">
                   <span className="block text-[11px] text-[#8899AA] mb-1" style={{ fontWeight: 700 }}>Service</span>
+                  {quickJobDraft.editJobId != null ? (
+                  <div className="w-full h-10 rounded-lg border border-[#E5E7EB] px-3 text-[13px] bg-[#F9FAFB] text-[#1A2332] flex items-center truncate">{quickJobDraft.service}</div>
+                  ) : (
                   <select
                     value={quickJobDraft.service}
                     onChange={(event) => setQuickJobDraft({ ...quickJobDraft, service: event.target.value })}
@@ -2051,6 +2134,7 @@ export function Calendar() {
                   >
                     {jobTypes.map((t) => (<option key={t} value={t}>{t}</option>))}
                   </select>
+                  )}
                 </label>
                 <label className="block">
                   <span className="block text-[11px] text-[#8899AA] mb-1" style={{ fontWeight: 700 }}>Person</span>
@@ -2095,6 +2179,9 @@ export function Calendar() {
               </div>
               <label className="block">
                 <span className="block text-[11px] text-[#8899AA] mb-1" style={{ fontWeight: 700 }}>Address</span>
+                {quickJobDraft.editJobId != null ? (
+                  <div className="w-full h-10 rounded-lg border border-[#E5E7EB] px-3 text-[13px] bg-[#F9FAFB] text-[#1A2332] flex items-center truncate">{quickJobDraft.address}</div>
+                ) : (
                 <select
                   value={quickJobDraft.address}
                   onChange={(event) => setQuickJobDraft({ ...quickJobDraft, address: event.target.value })}
@@ -2104,6 +2191,7 @@ export function Calendar() {
                     <option key={loc} value={loc}>{loc}</option>
                   ))}
                 </select>
+                )}
               </label>
               {conflictMessage && (
                 <div className="rounded-lg bg-[#FEF2F2] border border-[#FCA5A5] px-3 py-2 text-[12px] text-[#B91C1C]" style={{ fontWeight: 600 }}>
@@ -2117,7 +2205,7 @@ export function Calendar() {
                 Cancel
               </button>
               <button type="submit" className="px-4 py-2 bg-[#4A6FA5] text-white rounded-lg text-[13px] hover:bg-[#3d5a85]" style={{ fontWeight: 600 }}>
-                Add job
+                {quickJobDraft.editJobId != null ? "Save changes" : "Add job"}
               </button>
             </div>
           </form>

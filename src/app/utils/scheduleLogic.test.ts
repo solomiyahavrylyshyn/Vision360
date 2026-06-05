@@ -17,6 +17,7 @@ import {
   isPending,
   pendingFilterMatch,
   pendingJobs,
+  schedulingTags,
   rangesOverlap,
   hasTimeConflict,
   dailyKpis,
@@ -137,7 +138,10 @@ describe("pending membership & filter (AC: unassigned=no tech; unscheduled=no da
     expect(pendingJobs(all, "all").map((j) => j.id).sort()).toEqual([1, 2, 3]);
     expect(pendingJobs(all, "unassigned").map((j) => j.id).sort()).toEqual([1, 3]);
     expect(pendingJobs(all, "unscheduled").map((j) => j.id).sort()).toEqual([2, 3]);
-    expect(pendingJobs(all, "both").map((j) => j.id)).toEqual([3]);
+    // "unassigned + unscheduled" is the UNION (no date OR no tech), NOT the
+    // intersection — so every pending job (1, 2, 3) matches; only the fully
+    // scheduled+assigned job (4) is excluded.
+    expect(pendingJobs(all, "both").map((j) => j.id).sort()).toEqual([1, 2, 3]);
     // "scheduled" = pending jobs that DO have a date (not unscheduled).
     // Only the unassigned-with-date job (id 1) qualifies.
     expect(pendingJobs(all, "scheduled").map((j) => j.id)).toEqual([1]);
@@ -172,6 +176,24 @@ describe("two-flag model (Marek): date + assignee are independent; filters overl
   });
   it("cancelled never belongs on the board even with date + assignee", () => {
     expect(belongsOnBoard(job({ technicianId: "peter", unscheduled: false, status: "Cancelled" }))).toBe(false);
+  });
+});
+
+describe("schedulingTags (the overlap must be VISIBLE on the card/panel)", () => {
+  it("a job with no date AND no technician carries BOTH tags", () => {
+    expect(schedulingTags(job({ technicianId: "", unscheduled: true }))).toEqual(["Unscheduled", "Unassigned"]);
+  });
+  it("a dated job with no technician is Unassigned only (NOT unscheduled)", () => {
+    expect(schedulingTags(job({ technicianId: "", unscheduled: false }))).toEqual(["Unassigned"]);
+  });
+  it("a dragged-back job (no date, keeps tech) is Unscheduled only (NOT unassigned)", () => {
+    // This is the case that made the filter look broken: when EVERY unscheduled
+    // seed job was also tech-less, "unscheduled" and "unassigned" looked nested.
+    // A real dragged-back job keeps its technician, so it is unscheduled ONLY.
+    expect(schedulingTags(job({ technicianId: "travis", unscheduled: true }))).toEqual(["Unscheduled"]);
+  });
+  it("a fully scheduled + assigned board job carries no scheduling tags", () => {
+    expect(schedulingTags(job({ technicianId: "peter", unscheduled: false }))).toEqual([]);
   });
 });
 
