@@ -61,6 +61,11 @@ export function CreateJob() {
   const [endDate, setEndDate] = useState(() => new Date().toISOString().split("T")[0]);
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
+  // Figma "Job period": a numeric duration + a "Schedule job" toggle. When the
+  // toggle is OFF the job is created UNSCHEDULED (no date) and the date/time
+  // fields are hidden (brief: toggle scheduled off → unscheduled).
+  const [scheduleJob, setScheduleJob] = useState(true);
+  const [jobDuration, setJobDuration] = useState("2");
   const [assignedTo, setAssignedTo] = useState("");
   const [lineItems, setLineItems] = useState<SelectedLineItem[]>([]);
   const [notes, setNotes] = useState("");
@@ -68,6 +73,9 @@ export function CreateJob() {
   const [privateNotes, setPrivateNotes] = useState("");
   const [itemPickerOpen, setItemPickerOpen] = useState(false);
   const [taxRate, setTaxRate] = useState(7.5);
+  // Figma "Estimate" link field in Job overview (e.g. 1024-E01). Prefilled when
+  // a job is created from an estimate (Convert flow); editable otherwise.
+  const [estimateNumber, setEstimateNumber] = useState("");
   const fromEstimateId = Number(sp.get("fromEstimate") || 0);
   // Pre-populate line items from the source estimate (Convert → Job flow).
   useState(() => {
@@ -86,6 +94,7 @@ export function CreateJob() {
       total: it.amount,
     }));
     setLineItems(preloaded);
+    if (est.estimateNumber) setEstimateNumber(est.estimateNumber);
     if (!title) setTitle(est.estimateName || "");
     // Carry the estimate's tax rate so Estimate→Job total continuity holds (V05.5).
     if (est.taxRate != null) setTaxRate(est.taxRate);
@@ -146,8 +155,9 @@ export function CreateJob() {
 
   const handleSave = () => {
     if (!client.trim()) { toast.error("Select a client before saving the job."); return; }
-    // Start date is required; start/end time are optional (per walkthrough).
-    if (!startDate) { toast.error("Select a start date for the job."); return; }
+    // Start date is required ONLY when the job is being scheduled. With the
+    // "Schedule job" toggle off, the job is created unscheduled (no date).
+    if (scheduleJob && !startDate) { toast.error("Select a start date, or turn off “Schedule job”."); return; }
 
     const computedSubtotal = lineItems.reduce((s, li) => s + li.total, 0);
     const computedTaxable = lineItems.filter((li) => li.taxable).reduce((s, li) => s + li.total, 0);
@@ -178,10 +188,10 @@ export function CreateJob() {
       assignedTo,
       jobType: jobCategory || "Service",
       jobCategory,
-      startDate,
-      endDate,
-      startTime,
-      endTime: resolvedEndTime,
+      startDate: scheduleJob ? startDate : "",
+      endDate: scheduleJob ? endDate : "",
+      startTime: scheduleJob ? startTime : "",
+      endTime: scheduleJob ? resolvedEndTime : "",
       status: "Scheduled",
       totalPrice: Math.round(computedTotal * 100) / 100,
       notes,
@@ -189,9 +199,8 @@ export function CreateJob() {
       privateNotes,
       taxRate,
       estimateId: fromEstimateId || undefined,
-      estimateNumber: fromEstimateId
-        ? estimatesStore.getById(fromEstimateId)?.estimateNumber
-        : undefined,
+      estimateNumber: estimateNumber.trim()
+        || (fromEstimateId ? estimatesStore.getById(fromEstimateId)?.estimateNumber : undefined),
     });
 
     // Mark the source estimate as Converted and lock it to prevent
@@ -230,9 +239,16 @@ export function CreateJob() {
             <section className="flex flex-col gap-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Job Overview</h3>
-                <div className="flex items-center gap-2">
-                  <button onClick={() => setJobType("one-off")} className={`h-8 px-3 rounded-md text-[12px] border ${jobType === "one-off" ? "border-[#1A2332] text-[#1A2332]" : "border-[#E5E7EB] text-[#546478]"}`} style={{ fontWeight: jobType === "one-off" ? 600 : 500 }}>One-off</button>
-                  <button onClick={() => setJobType("recurring")} className={`h-8 px-3 rounded-md text-[12px] border ${jobType === "recurring" ? "border-[#1A2332] text-[#1A2332]" : "border-[#E5E7EB] text-[#546478]"}`} style={{ fontWeight: jobType === "recurring" ? 600 : 500 }}>Recurring</button>
+                {/* Figma: One-off / Recurring are RADIO buttons, not toggles. */}
+                <div className="flex items-center gap-4">
+                  <label className="flex items-center gap-1.5 cursor-pointer text-[12px] text-[#1A2332]" style={{ fontWeight: 500 }}>
+                    <input type="radio" name="job-frequency" checked={jobType === "one-off"} onChange={() => setJobType("one-off")} className="w-4 h-4 accent-[#4A6FA5] cursor-pointer" />
+                    One-off
+                  </label>
+                  <label className="flex items-center gap-1.5 cursor-pointer text-[12px] text-[#1A2332]" style={{ fontWeight: 500 }}>
+                    <input type="radio" name="job-frequency" checked={jobType === "recurring"} onChange={() => setJobType("recurring")} className="w-4 h-4 accent-[#4A6FA5] cursor-pointer" />
+                    Recurring
+                  </label>
                 </div>
               </div>
 
@@ -325,6 +341,11 @@ export function CreateJob() {
                     {fieldEmployees.map((name) => <option key={name} value={name}>{name}</option>)}
                   </select>
                 </div>
+                <div>
+                  {/* Figma: Estimate link field in Job overview (e.g. 1024-E01). */}
+                  <label className="text-[11px] text-[#9CA3AF] mb-1 block">Estimate</label>
+                  <input type="text" placeholder="e.g. 1024-E01" value={estimateNumber} onChange={(e) => setEstimateNumber(e.target.value)} className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] focus:outline-none focus:border-[#4A6FA5]" />
+                </div>
               </div>
 
               <div>
@@ -350,25 +371,50 @@ export function CreateJob() {
             <div className="h-px bg-[#E5E7EB]" />
 
             <section className="flex flex-col gap-4">
-              <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Job Date & Time</h3>
+              {/* Figma "Job period": duration + a Schedule-job toggle that reveals
+                  the date/time fields. Toggle OFF → job is created unscheduled. */}
+              <div className="flex items-center justify-between">
+                <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Job period</h3>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <span className="text-[12px] text-[#546478]" style={{ fontWeight: 500 }}>Schedule job</span>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={scheduleJob}
+                    aria-label="Schedule job"
+                    onClick={() => setScheduleJob((s) => !s)}
+                    className={`relative w-9 h-5 rounded-full transition-colors ${scheduleJob ? "bg-[#4A6FA5]" : "bg-[#D1D5DB]"}`}
+                  >
+                    <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${scheduleJob ? "translate-x-4" : ""}`} />
+                  </button>
+                </label>
+              </div>
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label className="text-[11px] text-[#9CA3AF] mb-1 block">Start Date</label>
-                  <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] focus:outline-none focus:border-[#4A6FA5]" />
-                </div>
-                <div>
-                  <label className="text-[11px] text-[#9CA3AF] mb-1 block">End Date</label>
-                  <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] focus:outline-none focus:border-[#4A6FA5]" />
-                </div>
-                <div>
-                  <label className="text-[11px] text-[#9CA3AF] mb-1 block">Start Time</label>
-                  <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] focus:outline-none focus:border-[#4A6FA5]" />
-                </div>
-                <div>
-                  <label className="text-[11px] text-[#9CA3AF] mb-1 block">End Time</label>
-                  <input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] focus:outline-none focus:border-[#4A6FA5]" />
+                  <label className="text-[11px] text-[#9CA3AF] mb-1 block">Job duration (hours)</label>
+                  <input type="number" min={0} step={0.5} value={jobDuration} onChange={(e) => setJobDuration(e.target.value)} className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] focus:outline-none focus:border-[#4A6FA5]" />
                 </div>
               </div>
+              {scheduleJob && (
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <label className="text-[11px] text-[#9CA3AF] mb-1 block">Start Date</label>
+                    <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] focus:outline-none focus:border-[#4A6FA5]" />
+                  </div>
+                  <div>
+                    <label className="text-[11px] text-[#9CA3AF] mb-1 block">End Date</label>
+                    <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] focus:outline-none focus:border-[#4A6FA5]" />
+                  </div>
+                  <div>
+                    <label className="text-[11px] text-[#9CA3AF] mb-1 block">Start Time</label>
+                    <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] focus:outline-none focus:border-[#4A6FA5]" />
+                  </div>
+                  <div>
+                    <label className="text-[11px] text-[#9CA3AF] mb-1 block">End Time</label>
+                    <input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] focus:outline-none focus:border-[#4A6FA5]" />
+                  </div>
+                </div>
+              )}
             </section>
           </div>
 
