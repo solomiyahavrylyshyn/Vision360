@@ -241,38 +241,38 @@ export function CreatePayment() {
                 </div>
               )}
 
-              {/* Manual card entry spans full width below the method row */}
+              {/* Manual card entry — flat fields below the method row (Figma: 3-in-a-row) */}
               {isManualCard && (
-                <div className="col-span-2 grid grid-cols-2 gap-4 rounded-md border border-[#E5E7EB] bg-[#F8FAFC] p-4">
+                <div className="col-span-2 grid grid-cols-6 gap-4">
                   <div className="col-span-2">
                     <label className={labelCls} style={{ fontWeight: 500 }}>Card number {reqStar}</label>
                     <input value={cardNumber} inputMode="numeric" autoComplete="off"
                       onChange={(e) => setCardNumber(e.target.value.replace(/[^\d ]/g, "").slice(0, 19))}
-                      placeholder="1234 5678 9012 3456" className={`${inputCls} tabular-nums`} />
+                      placeholder="1234 1234 1234 1234" className={`${inputCls} tabular-nums`} />
                   </div>
-                  <div>
-                    <label className={labelCls} style={{ fontWeight: 500 }}>Expiry (MM / YY) {reqStar}</label>
+                  <div className="col-span-2">
+                    <label className={labelCls} style={{ fontWeight: 500 }}>Expiry {reqStar}</label>
                     <input value={cardExpiry} inputMode="numeric" autoComplete="off"
                       onChange={(e) => setCardExpiry(e.target.value.replace(/[^\d /]/g, "").slice(0, 7))}
-                      placeholder="08 / 27" className={`${inputCls} tabular-nums`} />
+                      placeholder="MM / YY" className={`${inputCls} tabular-nums`} />
                   </div>
-                  <div>
+                  <div className="col-span-2">
                     <label className={labelCls} style={{ fontWeight: 500 }}>CVC {reqStar}</label>
                     <input value={cardCvc} inputMode="numeric" autoComplete="off"
                       onChange={(e) => setCardCvc(e.target.value.replace(/\D/g, "").slice(0, 4))}
                       placeholder="123" className={`${inputCls} tabular-nums`} />
                   </div>
-                  <div>
+                  <div className="col-span-3">
                     <label className={labelCls} style={{ fontWeight: 500 }}>Cardholder name {reqStar}</label>
                     <input value={cardName} autoComplete="off" onChange={(e) => setCardName(e.target.value)} placeholder="Name on card" className={inputCls} />
                   </div>
-                  <div>
+                  <div className="col-span-3">
                     <label className={labelCls} style={{ fontWeight: 500 }}>Billing ZIP {reqStar}</label>
                     <input value={cardZip} inputMode="numeric" autoComplete="off"
                       onChange={(e) => setCardZip(e.target.value.replace(/[^\d-]/g, "").slice(0, 10))}
                       placeholder="33606" className={`${inputCls} tabular-nums`} />
                   </div>
-                  <p className="col-span-2 text-[12px] text-[#9CA3AF]">Card details process this charge only — they are not stored on the client record.</p>
+                  <p className="col-span-6 text-[12px] text-[#9CA3AF]">Card details process this charge only — they are not stored on the client record.</p>
                 </div>
               )}
             </div>
