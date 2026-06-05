@@ -604,7 +604,7 @@ export function Calendar() {
   const weekRevenue = filteredWeekJobs.reduce((sum, job) => sum + job.amount, 0);
   const dayRevenue = filteredDayJobs.reduce((sum, job) => sum + job.amount, 0);
   const topRevenue = viewMode === "month" ? monthRevenue : viewMode === "week" ? weekRevenue : dayRevenue;
-  const topRevenueLabel = viewMode === "month" ? "Revenue this month" : viewMode === "week" ? "Revenue this week" : "Revenue";
+  const topRevenueLabel = "Revenue"; // unscoped (Figma); period is shown by the date navigator
   const scheduleJobCount = viewMode === "month" ? filteredMonthEvents.length : viewMode === "week" ? filteredWeekJobs.length : filteredDayJobs.length;
   const completedJobCount = viewMode === "month"
     ? filteredMonthEvents.filter((event) => event.status === "Completed").length
@@ -617,7 +617,7 @@ export function Calendar() {
     ? filteredWeekJobs.filter((job) => job.status === "In Progress").length
     : filteredDayJobs.filter((job) => job.status === "In Progress").length;
   const completionRate = scheduleJobCount > 0 ? Math.round((completedJobCount / scheduleJobCount) * 1000) / 10 : 0;
-  const scopedJobLabel = viewMode === "month" ? "Jobs this month" : viewMode === "week" ? "Jobs this week" : "Jobs";
+  const scopedJobLabel = "Jobs"; // unscoped (Figma)
   const scheduleKpis = [
     { value: `$${topRevenue.toLocaleString("en-US")}`, label: topRevenueLabel, icon: "payments", color: "#16A34A", bg: "#D1FAE5" },
     { value: String(scheduleJobCount), label: scopedJobLabel, icon: "work", color: "#4A6FA5", bg: "#EBF0F8" },
