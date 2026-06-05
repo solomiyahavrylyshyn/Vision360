@@ -604,7 +604,7 @@ export function Calendar() {
   const weekRevenue = filteredWeekJobs.reduce((sum, job) => sum + job.amount, 0);
   const dayRevenue = filteredDayJobs.reduce((sum, job) => sum + job.amount, 0);
   const topRevenue = viewMode === "month" ? monthRevenue : viewMode === "week" ? weekRevenue : dayRevenue;
-  const topRevenueLabel = viewMode === "month" ? "Revenue this month" : viewMode === "week" ? "Revenue this week" : "Revenue today";
+  const topRevenueLabel = viewMode === "month" ? "Revenue this month" : viewMode === "week" ? "Revenue this week" : "Revenue";
   const scheduleJobCount = viewMode === "month" ? filteredMonthEvents.length : viewMode === "week" ? filteredWeekJobs.length : filteredDayJobs.length;
   const completedJobCount = viewMode === "month"
     ? filteredMonthEvents.filter((event) => event.status === "Completed").length
@@ -617,16 +617,13 @@ export function Calendar() {
     ? filteredWeekJobs.filter((job) => job.status === "In Progress").length
     : filteredDayJobs.filter((job) => job.status === "In Progress").length;
   const completionRate = scheduleJobCount > 0 ? Math.round((completedJobCount / scheduleJobCount) * 1000) / 10 : 0;
-  const scopedJobLabel = viewMode === "month" ? "Jobs this month" : viewMode === "week" ? "Jobs this week" : "Jobs today";
+  const scopedJobLabel = viewMode === "month" ? "Jobs this month" : viewMode === "week" ? "Jobs this week" : "Jobs";
   const scheduleKpis = [
     { value: `$${topRevenue.toLocaleString("en-US")}`, label: topRevenueLabel, icon: "payments", color: "#16A34A", bg: "#D1FAE5" },
     { value: String(scheduleJobCount), label: scopedJobLabel, icon: "work", color: "#4A6FA5", bg: "#EBF0F8" },
     { value: String(inProgressJobCount), label: "In progress", icon: "schedule", color: "#D97706", bg: "#FEF3C7" },
-    // Completion rate is a Month-view KPI in Figma (a period rollup), so it only
-    // shows on Month — Day/Week show the three operational cards.
-    ...(viewMode === "month"
-      ? [{ value: `${completionRate}%`, label: "Completion rate", icon: "check_circle", color: "#7C3AED", bg: "#EDE9FE" }]
-      : []),
+    // Completion rate shown on all views — Figma Day includes it as the 4th card.
+    { value: `${completionRate}%`, label: "Completion rate", icon: "check_circle", color: "#7C3AED", bg: "#EDE9FE" },
   ];
 
   const hourFromPointer = (event: SlotPointerEvent, snap = SLOT_HOURS) => {
