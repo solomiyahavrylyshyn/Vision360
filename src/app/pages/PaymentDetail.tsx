@@ -389,23 +389,6 @@ export function PaymentDetail() {
           </button>
         </div>
 
-        {addingNote && (
-          <div className="mt-3">
-            <textarea
-              value={draftNote}
-              onChange={e => setDraftNote(e.target.value)}
-              rows={2}
-              autoFocus
-              placeholder="Add a note…"
-              className="w-full border border-[#E5E7EB] rounded-lg p-2 text-[13px] text-[#1A2332] focus:outline-none focus:border-[#4A6FA5] resize-none"
-            />
-            <div className="flex justify-end gap-2 mt-2">
-              <button onClick={cancelNote} className="h-8 px-3 border border-[#E5E7EB] rounded-lg text-[13px] text-[#1A2332] hover:bg-[#F9FAFB]" style={{ fontWeight: 500 }}>Cancel</button>
-              <button onClick={saveNote} className="h-8 px-3 rounded-lg bg-[#4A6FA5] hover:bg-[#3d5a85] text-white text-[13px]" style={{ fontWeight: 500 }}>{editingNoteId ? "Save" : "Add"}</button>
-            </div>
-          </div>
-        )}
-
         <div className="mt-3 flex flex-col">
           {notes.length === 0 && !addingNote && (
             <div className="text-[13px] text-[#9CA3AF] py-2">No notes yet.</div>
@@ -661,6 +644,35 @@ export function PaymentDetail() {
           {activeTab === "details" ? renderDetails() : renderActivity()}
         </div>
       </div>
+
+      {/* Add / edit note — modal (matches the Change-status / Jobs dialog style) */}
+      {addingNote && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40" onClick={cancelNote} />
+          <div className="relative bg-white border border-[#E5E7EB] rounded-xl shadow-2xl w-[448px] max-w-full flex flex-col">
+            <div className="flex items-center justify-between px-4 py-4">
+              <h2 className="text-[20px] text-[#1A2332]" style={{ fontFamily: "Geist", fontWeight: 600 }}>{editingNoteId ? "Edit note" : "Add note"}</h2>
+              <button onClick={cancelNote} aria-label="Close" className="w-6 h-6 rounded flex items-center justify-center text-[#1A2332] hover:bg-[#F3F4F6]">
+                <span className="material-icons" style={{ fontSize: "16px" }}>close</span>
+              </button>
+            </div>
+            <div className="px-4 pb-1">
+              <textarea
+                value={draftNote}
+                onChange={e => setDraftNote(e.target.value)}
+                rows={4}
+                autoFocus
+                placeholder="Add a note…"
+                className="w-full border border-[#E5E7EB] rounded-lg p-3 text-[14px] text-[#1A2332] focus:outline-none focus:border-[#4A6FA5] resize-none"
+              />
+            </div>
+            <div className="px-4 py-4 flex items-center justify-end gap-2">
+              <button onClick={cancelNote} className="h-9 px-4 border border-[#E5E7EB] rounded-lg text-[14px] text-[#1A2332] hover:bg-[#F9FAFB] transition-colors" style={{ fontWeight: 500 }}>Cancel</button>
+              <button onClick={saveNote} className="h-9 px-4 rounded-lg bg-[#4A6FA5] hover:bg-[#3d5a85] text-white text-[14px] transition-colors" style={{ fontWeight: 500 }}>{editingNoteId ? "Save" : "Add"}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
