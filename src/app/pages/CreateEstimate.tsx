@@ -61,13 +61,45 @@ export function CreateEstimate() {
   const [expirationDate, setExpirationDate] = useState("");
   const [linkedJob, setLinkedJob] = useState(searchParams.get("job") || "");
   const [teamMember, setTeamMember] = useState("");
-  const [lineItems, setLineItems] = useState<SelectedLineItem[]>([]);
+  // ── Good/Better/Best option tiers ──────────────────────────────────────────
+  // One estimate holds several priced tiers, each with its OWN line items; the
+  // customer picks one. The line-items table + totals below all operate on the
+  // ACTIVE tier via `lineItems` = activeOption.lineItems.
+  interface EstimateOption { id: number; name: string; lineItems: SelectedLineItem[]; }
+  const [options, setOptions] = useState<EstimateOption[]>([
+    { id: 1, name: "Good", lineItems: [] },
+    { id: 2, name: "Better", lineItems: [] },
+    { id: 3, name: "Best", lineItems: [] },
+  ]);
+  const [activeOptionId, setActiveOptionId] = useState(1);
+  const activeOption = options.find((o) => o.id === activeOptionId) ?? options[0];
+  const lineItems = activeOption.lineItems;
+  const setActiveLineItems = (updater: (items: SelectedLineItem[]) => SelectedLineItem[]) =>
+    setOptions((opts) => opts.map((o) => (o.id === activeOptionId ? { ...o, lineItems: updater(o.lineItems) } : o)));
+  const addOption = () => {
+    const nextId = Math.max(0, ...options.map((o) => o.id)) + 1;
+    setOptions([...options, { id: nextId, name: `Option ${options.length + 1}`, lineItems: [] }]);
+    setActiveOptionId(nextId);
+  };
+  const updateOptionName = (id: number, name: string) =>
+    setOptions((opts) => opts.map((o) => (o.id === id ? { ...o, name } : o)));
+  const removeOption = (id: number) => {
+    if (options.length <= 1) return;
+    const remaining = options.filter((o) => o.id !== id);
+    setOptions(remaining);
+    if (activeOptionId === id) setActiveOptionId(remaining[0].id);
+  };
+  const optionTotal = (o: EstimateOption) => {
+    const sub = o.lineItems.reduce((s, li) => s + li.total, 0);
+    const tax = o.lineItems.filter((li) => li.taxable).reduce((s, li) => s + li.total, 0) * (taxRate / 100);
+    return sub + tax;
+  };
   const [internalNote, setInternalNote] = useState("");
   const [taxRate, setTaxRate] = useState(7.5);
   const [itemPickerOpen, setItemPickerOpen] = useState(false);
 
   const updateLineItem = (id: number, field: keyof SelectedLineItem, value: any) => {
-    setLineItems(lineItems.map((li) => {
+    setActiveLineItems((items) => items.map((li) => {
       if (li.id === id) {
         const updated = { ...li, [field]: value };
         if (field === "quantity" || field === "unitPrice") {
@@ -79,11 +111,16 @@ export function CreateEstimate() {
     }));
   };
 
-  const removeLineItem = (id: number) => setLineItems(lineItems.filter(li => li.id !== id));
+  const addLineItem = () =>
+    setActiveLineItems((items) => [...items, { id: Date.now(), name: "", description: "", quantity: 1, unitPrice: 0, unitCost: 0, total: 0, taxable: false }]);
+
+  const removeLineItem = (id: number) => setActiveLineItems((items) => items.filter((li) => li.id !== id));
 
   const handleSelectItem = (catalogItem: CatalogItem) => {
-    const newId = lineItems.length > 0 ? Math.max(...lineItems.map(li => li.id)) + 1 : 1;
-    setLineItems([...lineItems, catalogItemToLineItem(catalogItem, newId, 1)]);
+    setActiveLineItems((items) => {
+      const newId = items.length > 0 ? Math.max(...items.map((li) => li.id)) + 1 : 1;
+      return [...items, catalogItemToLineItem(catalogItem, newId, 1)];
+    });
     setItemPickerOpen(false);
   };
 
@@ -270,18 +307,55 @@ export function CreateEstimate() {
           </select>
         </div>
 
-        {/* Line Items */}
-        <div className="border border-[#E5E7EB] rounded-lg mb-6">
-          <div className="px-5 py-4 border-b border-[#E5E7EB] flex items-center justify-between">
-            <h3 className="text-[16px] text-[#1A2332]" style={{ fontWeight: 700 }}>Line Items</h3>
-            <button
-              onClick={() => setItemPickerOpen(true)}
-              className="px-4 py-2 bg-[#4A6FA5] text-white rounded-lg text-[13px] hover:bg-[#3d5a85] flex items-center gap-1.5"
-              style={{ fontWeight: 600 }}
-            >
-              <PlusIcon className="h-4 w-4" />
-              Add Item
+        {/* ── Options (Good / Better / Best price tiers) ── */}
+        <div className="mb-3">
+          <h3 className="text-[16px] text-[#1A2332] mb-3" style={{ fontWeight: 700 }}>Options</h3>
+          <div className="flex items-center gap-1 flex-wrap border-b border-[#E5E7EB]">
+            {options.map((o) => {
+              const active = o.id === activeOptionId;
+              return (
+                <button
+                  key={o.id}
+                  type="button"
+                  onClick={() => setActiveOptionId(o.id)}
+                  className={`flex items-center gap-1.5 px-3 py-2 text-[13px] border-b-2 -mb-px transition-colors ${active ? "border-[#4A6FA5] text-[#1A2332]" : "border-transparent text-[#6B7280] hover:text-[#1A2332]"}`}
+                  style={{ fontWeight: active ? 600 : 500 }}
+                >
+                  <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: active ? "#4A6FA5" : "#D1D5DB" }} />
+                  {o.name}
+                  {optionTotal(o) > 0 && <span className="text-[11px] text-[#9CA3AF] tabular-nums">${fmt(optionTotal(o))}</span>}
+                </button>
+              );
+            })}
+            <button type="button" onClick={addOption} className="flex items-center gap-1 px-3 py-2 text-[13px] text-[#4A6FA5]" style={{ fontWeight: 500 }}>
+              <PlusIcon className="h-3.5 w-3.5" /> Add option
             </button>
+          </div>
+          <button type="button" onClick={() => toast("Bundle templates coming soon")} className="mt-3 inline-flex items-center gap-1.5 px-3 py-2 border border-[#E5E7EB] rounded-lg text-[13px] text-[#546478] hover:bg-[#F5F7FA]" style={{ fontWeight: 500 }}>
+            <span className="material-icons" style={{ fontSize: "16px" }}>inventory_2</span>
+            Apply bundle template
+          </button>
+        </div>
+
+        {/* Active option card — its own line items + totals */}
+        <div className="border border-[#E5E7EB] rounded-lg mb-6">
+          <div className="px-5 py-4 border-b border-[#E5E7EB] flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: "#4A6FA5" }} />
+              <input
+                type="text"
+                value={activeOption.name}
+                onChange={(e) => updateOptionName(activeOption.id, e.target.value)}
+                aria-label="Option name"
+                className="text-[18px] text-[#1A2332] bg-transparent border-b border-transparent hover:border-[#E5E7EB] focus:border-[#4A6FA5] focus:outline-none min-w-0"
+                style={{ fontWeight: 700 }}
+              />
+            </div>
+            {options.length > 1 && (
+              <button type="button" onClick={() => removeOption(activeOption.id)} className="text-[12px] text-[#9CA3AF] hover:text-[#DC2626] shrink-0" style={{ fontWeight: 500 }}>
+                Remove option
+              </button>
+            )}
           </div>
 
           {lineItems.length === 0 ? (
@@ -289,8 +363,8 @@ export function CreateEstimate() {
               <div className="w-16 h-16 mx-auto mb-3 bg-[#F5F7FA] rounded-full flex items-center justify-center">
                 <span className="material-icons text-[#C8D5E8]" style={{ fontSize: "32px" }}>receipt_long</span>
               </div>
-              <div className="text-[14px] text-[#546478]" style={{ fontWeight: 500 }}>No items added yet</div>
-              <div className="text-[12px] text-[#8899AA] mt-1">Click "Add Item" to select from catalog</div>
+              <div className="text-[14px] text-[#546478]" style={{ fontWeight: 500 }}>No items in this option yet</div>
+              <div className="text-[12px] text-[#8899AA] mt-1">Add items manually or from the pricebook below</div>
             </div>
           ) : (
             <>
@@ -375,6 +449,16 @@ export function CreateEstimate() {
               </div>
             </>
           )}
+
+          {/* Per-option add buttons: manual row + catalog (pricebook) */}
+          <div className="px-5 py-4 border-t border-[#E5E7EB] flex items-center gap-2">
+            <button type="button" onClick={addLineItem} className="inline-flex items-center gap-1.5 px-4 py-2 border border-[#E5E7EB] rounded-lg text-[13px] text-[#1A2332] hover:bg-[#F5F7FA]" style={{ fontWeight: 500 }}>
+              <PlusIcon className="h-4 w-4" /> Add item
+            </button>
+            <button type="button" onClick={() => setItemPickerOpen(true)} className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#4A6FA5] text-white rounded-lg text-[13px] hover:bg-[#3d5a85]" style={{ fontWeight: 600 }}>
+              <span className="material-icons" style={{ fontSize: "16px" }}>menu_book</span> From pricebook
+            </button>
+          </div>
         </div>
 
         {/* Notes */}
