@@ -2040,7 +2040,6 @@ export function Settings() {
     { id: "inProgress", label: "In Progress", color: "#B45309", bg: "#FEF3C7", icon: "play_circle",  core: true },
     { id: "completed",  label: "Completed",   color: "#15803D", bg: "#DCFCE7", icon: "check_circle", core: true },
     { id: "cancelled",  label: "Cancelled",   color: "#DC2626", bg: "#FEE2E2", icon: "edit" },
-    { id: "paused",     label: "Paused",      color: "#A856F7", bg: "#F3E8FF", icon: "edit" },
   ]);
   // Palette for custom statuses
   const STATUS_PALETTE: { color: string; bg: string; icon: string }[] = [
@@ -3577,7 +3576,7 @@ export function Settings() {
                     </SectionCard>
 
                     {/* Job Statuses */}
-                    <SectionCard title="Job Statuses" description="MVP ships three core statuses. Rename them or add your own (Dispatched, On Route, Paused, Cancelled…).">
+                    <SectionCard title="Job Statuses" description="MVP ships three core statuses. Rename them or add your own (Dispatched, On Route, Cancelled…).">
                       {/* System statuses */}
                       <div className="mt-2">
                         <div className="text-[13px] text-[#1A2332] mb-0.5" style={{ fontWeight: 500 }}>System statuses</div>

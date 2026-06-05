@@ -7,15 +7,14 @@
 // Per the 2026-06 Marek/Solomiia agreement, a job's DATE and ASSIGNEE are
 // independent of its workflow status: "unscheduled" (no date) and "unassigned"
 // (no technician) are DERIVED states, not statuses (a job can be Scheduled yet
-// have no date, or Scheduled + unassigned). So there are six workflow statuses
+// have no date, or Scheduled + unassigned). So there are five workflow statuses
 // only — the no-date state is shown on the card as "No date".
 export type JobStatus =
   | "Scheduled"
   | "Dispatched"
   | "In Progress"
   | "Completed"
-  | "Cancelled"
-  | "Paused";
+  | "Cancelled";
 
 export const JOB_STATUSES: JobStatus[] = [
   "Scheduled",
@@ -23,7 +22,6 @@ export const JOB_STATUSES: JobStatus[] = [
   "In Progress",
   "Completed",
   "Cancelled",
-  "Paused",
 ];
 
 // `color` = text / dot color; `bg` = badge background (the color at low alpha).
@@ -33,7 +31,6 @@ export const JOB_STATUS_STYLES: Record<JobStatus, { color: string; bg: string }>
   "In Progress": { color: "#F59E0B", bg: "rgba(245,158,11,0.15)" },
   Completed:     { color: "#16A34A", bg: "rgba(22,163,74,0.15)" },
   Cancelled:     { color: "#DC2626", bg: "rgba(220,38,38,0.12)" },
-  Paused:        { color: "#A856F7", bg: "rgba(168,86,247,0.12)" },
 };
 
 // Convenience maps for call sites that want a flat color/bg lookup.

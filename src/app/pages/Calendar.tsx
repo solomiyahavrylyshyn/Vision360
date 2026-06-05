@@ -62,7 +62,7 @@ const COLORS = {
 
 
 // Pill-styled <select> used in job-detail popovers so dispatchers can flip
-// status to Cancelled / Paused without leaving the schedule (BUG-S05).
+// status (e.g. to Cancelled) without leaving the schedule (BUG-S05).
 function StatusPillSelect({ value, onChange }: { value: JobStatus; onChange: (next: JobStatus) => void }) {
   const styles = STATUS_STYLES[value];
   return (
@@ -92,7 +92,6 @@ const nextStatus = (status: JobStatus): JobStatus => {
   if (status === "Dispatched") return "In Progress";
   if (status === "In Progress") return "Completed";
   if (status === "Completed") return "Scheduled";
-  if (status === "Paused") return "In Progress";
   // Cancelled stays Cancelled when click-cycled; user must explicitly pick another via the dropdown.
   return status;
 };
@@ -371,16 +370,15 @@ export function Calendar() {
   // (unassigned) and/or no fixed date/time (unscheduled). The filter narrows it.
   const [pendingFilter, setPendingFilter] = useState<PendingFilter>("all");
 
-  // Derived state chips for a job — Paused (a workflow status) first, then the
-  // OVERLAPPING scheduling tags from schedulingTags(). Rendered identically on
-  // the sidebar card AND the job panel so the two views can never disagree (the
-  // panel used to hardcode the time + workflow status and contradict the card).
-  // Falls back to the workflow status for a fully scheduled+assigned board job.
+  // Derived state chips for a job — the OVERLAPPING scheduling tags from
+  // schedulingTags(). Rendered identically on the sidebar card AND the job panel
+  // so the two views can never disagree (the panel used to hardcode the time +
+  // workflow status and contradict the card). Falls back to the workflow status
+  // for a fully scheduled+assigned board job.
   const stateChips = (j: { status: JobStatus; technicianId: string; unscheduled?: boolean }) => {
-    const labels = [...(j.status === "Paused" ? ["Paused"] : []), ...schedulingTags(j)];
+    const labels = schedulingTags(j);
     const final = labels.length ? labels : [j.status];
     return final.map((label) => {
-      if (label === "Paused") return { label, color: STATUS_STYLES.Paused.color, bg: STATUS_STYLES.Paused.bg };
       if (label === "Unscheduled" || label === "Unassigned") return { label, color: "#6B7280", bg: "rgba(107,114,128,0.15)" };
       const s = STATUS_STYLES[label as JobStatus];
       return { label, color: s?.color ?? "#6B7280", bg: s?.bg ?? "rgba(107,114,128,0.15)" };
@@ -872,7 +870,7 @@ export function Calendar() {
       }
       setConflictMessage(null);
       // Placing a job on a day lane gives it TODAY's date + a technician + time.
-      // Status follows the backlog rule: pending→Scheduled, paused→In Progress.
+      // Status follows the backlog rule: pending→Scheduled, else unchanged.
       const nextJobs = js.map((job) =>
         job.id === jobId
           ? { ...job, date: currentDate, technicianId, start: dropStart, end: dropEnd, unscheduled: false, status: statusAfterAssignToSlot(job.status, fromPending) }
@@ -1153,7 +1151,6 @@ export function Calendar() {
           <option value="unassigned">Show unassigned</option>
           <option value="unscheduled">Show unscheduled</option>
           <option value="scheduled">Show {scheduledScopeLabel.toLowerCase()}</option>
-          <option value="paused">Show paused</option>
           <option value="both">Show unassigned + unscheduled</option>
         </select>
       </div>
@@ -1179,9 +1176,6 @@ export function Calendar() {
                 title={`${job.client} — ${job.service}${job.jobType ? ` (${job.jobType})` : ""}\n${job.address}\n${job.unscheduled ? "No date" : `${formatRegionalTime(job.start, regionalSettings)}–${formatRegionalTime(job.end, regionalSettings)}`} · ${chips.map((c) => c.label).join(" · ")}`}
               >
                 <div className="flex items-center gap-1 text-[10px] text-[#9CA3AF] tabular-nums">
-                  {job.status === "Paused" && (
-                    <span className="material-icons text-[#A856F7] shrink-0" style={{ fontSize: "13px" }} title="Paused — higher priority">pause_circle</span>
-                  )}
                   <span className="truncate">{job.unscheduled ? "--:-- – --:--" : `${formatRegionalTime(job.start, regionalSettings)} – ${formatRegionalTime(job.end, regionalSettings)}`}</span>
                 </div>
                 <div className="text-[13px] text-[#1A2332] mt-1 truncate" style={{ fontWeight: 700 }}>{job.service}</div>

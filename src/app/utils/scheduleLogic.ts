@@ -48,29 +48,18 @@ export function isDraggable(status: JobStatus): boolean {
 // Backlog (Status updates US):
 //  - Drag from Pending → slot → status becomes "Scheduled"
 //  - Drag slot → slot → status unchanged
-//  - Drag paused → slot → "In Progress" (resume)
 export function statusAfterAssignToSlot(prev: JobStatus, fromPending: boolean): JobStatus {
-  if (prev === "Paused") return "In Progress";   // resume takes priority
   if (fromPending) return "Scheduled";
   return prev;                                    // slot → slot keeps status
-}
-
-// Move to Pending (Marek/Solomiia 2026-06): the job loses its DATE (becomes
-// unscheduled) but KEEPS its technician for history. The workflow status is
-// unchanged EXCEPT an in-progress job pauses (it no longer has a slot).
-//  - In Progress → Paused
-//  - everything else (Scheduled, Dispatched, Paused) → unchanged
-export function statusAfterMoveToPending(prev: JobStatus): JobStatus {
-  return prev === "In Progress" ? "Paused" : prev;
 }
 
 // The exact drag-back transform, straight from Marek (walkthrough-13, lines
 // 312-348): "we are removing the date … do not remove the assignee … job
 // becomes unscheduled … we are keeping assignee because it's a little bit
-// leftover history." So: clear the DATE (unscheduled = true), KEEP the
-// technician, and pause an in-progress job. Returns a patched copy.
+// leftover history." So: clear the DATE (unscheduled = true) and KEEP both the
+// technician and the workflow status. Returns a patched copy.
 export function applyMoveToPending<T extends { status: JobStatus }>(job: T): T & { unscheduled: true } {
-  return { ...job, unscheduled: true, status: statusAfterMoveToPending(job.status) };
+  return { ...job, unscheduled: true };
 }
 
 // Unassign on board (brief §6 + Marek's overlap, line 288): KEEP the date,
@@ -84,16 +73,14 @@ export function applyUnassign<T extends { technicianId: string }>(job: T): T {
 // ── Pending column membership & filter ────────────────────────────────────
 // Backlog (Pending jobs US, per Marek 02.06):
 //  - ONE column "Pending jobs" with a dropdown:
-//      Show all / Unassigned / Unscheduled / PAUSED / Unassigned + Unscheduled
+//      Show all / Unassigned / Unscheduled / Unassigned + Unscheduled
 //  - Unassigned  = has date, no technician (not started)
 //  - Unscheduled = no date (may or may not have a technician)
-//  - Paused      = was started then pulled back; pause icon; HIGHER priority
-//    (customer mid-service, waiting) → sorted to the top of the column.
-//  - The Pending column holds anything unassigned OR unscheduled OR paused.
+//  - The Pending column holds anything unassigned OR unscheduled.
 //  - "scheduled" (walkthrough-13): within Pending, the jobs that DO have a date
 //    for the selected period but are still unassigned — Marek's "don't forget
 //    today's must-do jobs" view.
-export type PendingFilter = "all" | "unassigned" | "unscheduled" | "scheduled" | "paused" | "both";
+export type PendingFilter = "all" | "unassigned" | "unscheduled" | "scheduled" | "both";
 
 type PendingShape = Pick<SchedulableJob, "technicianId" | "unscheduled" | "status">;
 
@@ -103,11 +90,8 @@ export function isUnassigned(job: Pick<SchedulableJob, "technicianId">): boolean
 export function isUnscheduled(job: Pick<SchedulableJob, "unscheduled">): boolean {
   return !!job.unscheduled;
 }
-export function isPaused(job: Pick<SchedulableJob, "status">): boolean {
-  return job.status === "Paused";
-}
 export function isPending(job: PendingShape): boolean {
-  return isUnassigned(job) || isUnscheduled(job) || isPaused(job);
+  return isUnassigned(job) || isUnscheduled(job);
 }
 
 // ── The two-flag model (Marek) ────────────────────────────────────────────
@@ -136,11 +120,9 @@ export function pendingFilterMatch(job: PendingShape, filter: PendingFilter): bo
     case "unassigned": return isUnassigned(job);
     case "unscheduled": return isUnscheduled(job);
     case "scheduled": return !isUnscheduled(job); // pending but HAS a date
-    case "paused": return isPaused(job);
     // "Show unassigned + unscheduled" is the UNION — every pending job missing a
     // date OR a technician (the dispatcher's "needs scheduling attention" list).
-    // The "+" reads as OR; this equals all pending EXCEPT a paused job that still
-    // has both a date and a technician. (It is NOT the intersection.)
+    // The "+" reads as OR (NOT the intersection).
     case "both": return isUnassigned(job) || isUnscheduled(job);
     case "all":
     default: return isPending(job);
@@ -153,8 +135,8 @@ export function pendingFilterMatch(job: PendingShape, filter: PendingFilter): bo
 // the job panel render every applicable tag so the overlap is always visible and
 // never hidden behind a single priority badge (hiding it is what made the
 // "unassigned" filter look broken — the unassigned-ness was invisible on cards
-// that were also unscheduled). Paused is a workflow status, not a scheduling
-// flag, so the UI handles it separately; this returns scheduling tags only.
+// that were also unscheduled). Returns scheduling tags only — never a workflow
+// status.
 export function schedulingTags(job: Pick<SchedulableJob, "technicianId" | "unscheduled">): string[] {
   const tags: string[] = [];
   if (isUnscheduled(job)) tags.push("Unscheduled");
@@ -162,18 +144,9 @@ export function schedulingTags(job: Pick<SchedulableJob, "technicianId" | "unsch
   return tags;
 }
 
-// Paused jobs float to the top (HIGHER priority per the backlog). Otherwise the
-// input order is preserved (stable) so the list stays predictable.
+// Pending jobs in stable input order so the list stays predictable.
 export function pendingJobs<T extends PendingShape>(jobs: T[], filter: PendingFilter = "all"): T[] {
-  return jobs
-    .filter((j) => isPending(j) && pendingFilterMatch(j, filter))
-    .map((j, i) => [j, i] as const)
-    .sort((a, b) => {
-      const pa = isPaused(a[0]) ? 0 : 1;
-      const pb = isPaused(b[0]) ? 0 : 1;
-      return pa !== pb ? pa - pb : a[1] - b[1]; // paused first, else stable
-    })
-    .map(([j]) => j);
+  return jobs.filter((j) => isPending(j) && pendingFilterMatch(j, filter));
 }
 
 // ── Time-conflict detection ───────────────────────────────────────────────
@@ -213,7 +186,7 @@ export function dailyKpis(jobs: Array<Pick<SchedulableJob, "status"> & { amount?
   for (const j of jobs) {
     if (j.status === "Cancelled") continue;
     if (j.status === "Scheduled" || j.status === "Dispatched") k.scheduled += 1;
-    else if (j.status === "In Progress" || j.status === "Paused") k.inProgress += 1;
+    else if (j.status === "In Progress") k.inProgress += 1;
     else if (j.status === "Completed") {
       k.completed += 1;
       k.revenue += Math.round(j.amount ?? 0);

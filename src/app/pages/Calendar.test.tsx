@@ -53,12 +53,13 @@ describe("Calendar — daily Dispatch board (integration)", () => {
   it("renders the Pending jobs panel with its filter", () => {
     renderDayBoard();
     expect(screen.getAllByText(/Pending jobs/).length).toBeGreaterThan(0);
-    // Filter dropdown options (backlog/Marek 02.06: all / unassigned / unscheduled / paused / both)
+    // Filter dropdown options (Paused removed from the model): all / unassigned /
+    // unscheduled / scheduled / unassigned + unscheduled.
     expect(screen.getByRole("option", { name: "Show all" })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: "Show unassigned" })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: "Show unscheduled" })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: "Show scheduled today" })).toBeInTheDocument();   // scope-aware label (day view)
-    expect(screen.getByRole("option", { name: "Show paused" })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: "Show paused" })).not.toBeInTheDocument();
     expect(screen.getByRole("option", { name: "Show unassigned + unscheduled" })).toBeInTheDocument();
   });
 
@@ -94,7 +95,7 @@ describe("Calendar — daily Dispatch board (integration)", () => {
     expect(within(moved).getByText(/--:--/)).toBeInTheDocument();
   });
 
-  it("an in-progress job dragged to Pending becomes Paused", () => {
+  it("an in-progress job dragged to Pending becomes unscheduled (Paused removed from the model)", () => {
     renderDayBoard();
     const aside = screen.getByRole("complementary") as HTMLElement;
     // Taylor Home (seed job 2) is In Progress on Peter's lane.
@@ -103,8 +104,10 @@ describe("Calendar — daily Dispatch board (integration)", () => {
     fireEvent.dragStart(card, { dataTransfer: dt });
     fireEvent.drop(aside, { dataTransfer: dt });
 
+    // Date cleared (→ unscheduled), technician kept; no "Paused" status anymore.
     const moved = within(aside).getByText("Taylor Home").closest('[data-job-card="true"]') as HTMLElement;
-    expect(within(moved).getByText("Paused")).toBeInTheDocument();
+    expect(within(moved).getByText("Unscheduled")).toBeInTheDocument();
+    expect(within(moved).queryByText("Paused")).not.toBeInTheDocument();
     expect(within(moved).getByText(/--:--/)).toBeInTheDocument();
   });
 

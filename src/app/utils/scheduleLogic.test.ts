@@ -5,12 +5,10 @@ import {
   isShownOnBoard,
   isDraggable,
   statusAfterAssignToSlot,
-  statusAfterMoveToPending,
   applyMoveToPending,
   applyUnassign,
   isUnassigned,
   isUnscheduled,
-  isPaused,
   hasDate,
   isAssigned,
   belongsOnBoard,
@@ -50,14 +48,13 @@ describe("board visibility & draggability (AC: completed not draggable; cancelle
   it("blocks dragging completed and cancelled, allows the rest", () => {
     expect(isDraggable("Scheduled")).toBe(true);
     expect(isDraggable("In Progress")).toBe(true);
-    expect(isDraggable("Paused")).toBe(true);
     expect(isDraggable("Dispatched")).toBe(true);
     expect(isDraggable("Completed")).toBe(false);
     expect(isDraggable("Cancelled")).toBe(false);
   });
 });
 
-describe("statusAfterAssignToSlot (AC: pending→slot=scheduled, slot→slot unchanged, paused→slot resumes)", () => {
+describe("statusAfterAssignToSlot (AC: pending→slot=scheduled, slot→slot unchanged)", () => {
   it("pending job dropped on a slot becomes Scheduled", () => {
     expect(statusAfterAssignToSlot("Scheduled", true)).toBe("Scheduled");
     expect(statusAfterAssignToSlot("Dispatched", true)).toBe("Scheduled");
@@ -67,37 +64,20 @@ describe("statusAfterAssignToSlot (AC: pending→slot=scheduled, slot→slot unc
     expect(statusAfterAssignToSlot("Dispatched", false)).toBe("Dispatched");
     expect(statusAfterAssignToSlot("In Progress", false)).toBe("In Progress");
   });
-  it("a paused job dropped on a slot resumes to In Progress", () => {
-    expect(statusAfterAssignToSlot("Paused", false)).toBe("In Progress");
-    expect(statusAfterAssignToSlot("Paused", true)).toBe("In Progress");
-  });
 });
 
-describe("statusAfterMoveToPending (AC 2026-06: in_progress→paused; other statuses unchanged)", () => {
-  it("in-progress dragged to the drawer pauses", () => {
-    expect(statusAfterMoveToPending("In Progress")).toBe("Paused");
-  });
-  it("paused stays paused", () => {
-    expect(statusAfterMoveToPending("Paused")).toBe("Paused");
-  });
-  it("scheduled / dispatched moved to pending keep their status (unchanged)", () => {
-    expect(statusAfterMoveToPending("Scheduled")).toBe("Scheduled");
-    expect(statusAfterMoveToPending("Dispatched")).toBe("Dispatched");
-  });
-});
-
-describe("applyMoveToPending (Marek transcript lines 312-348: remove date, KEEP assignee)", () => {
+describe("applyMoveToPending (Marek transcript lines 312-348: remove date, KEEP assignee + status)", () => {
   it("clears the date (→ unscheduled) but KEEPS the technician", () => {
     const r = applyMoveToPending(job({ technicianId: "travis", unscheduled: false, status: "Scheduled" }));
     expect(r.unscheduled).toBe(true);        // date removed → unscheduled
     expect(r.technicianId).toBe("travis");   // assignee kept (leftover history)
     expect(r.status).toBe("Scheduled");      // workflow status unchanged
   });
-  it("an in-progress job pauses on the way to pending, tech still kept", () => {
+  it("an in-progress job keeps its status + tech (Paused removed from the model)", () => {
     const r = applyMoveToPending(job({ technicianId: "peter", unscheduled: false, status: "In Progress" }));
     expect(r.unscheduled).toBe(true);
     expect(r.technicianId).toBe("peter");
-    expect(r.status).toBe("Paused");
+    expect(r.status).toBe("In Progress");    // no longer auto-paused
   });
 });
 
@@ -197,31 +177,6 @@ describe("schedulingTags (the overlap must be VISIBLE on the card/panel)", () =>
   });
 });
 
-describe("paused in the Pending column (AC per Marek 02.06: PAUSED filter + higher priority)", () => {
-  // Paused = started then pulled back; released technician, may keep its date.
-  const paused = job({ id: 5, technicianId: "peter", unscheduled: false, status: "Paused" });
-  const unassigned = job({ id: 1, technicianId: "", unscheduled: false, status: "Scheduled" });
-  const normal = job({ id: 4, technicianId: "maria", unscheduled: false, status: "Scheduled" });
-
-  it("isPaused / a paused job counts as pending even if it still has a tech+date", () => {
-    expect(isPaused(paused)).toBe(true);
-    expect(isPaused(normal)).toBe(false);
-    expect(isPending(paused)).toBe(true);   // paused belongs in the column
-    expect(isPending(normal)).toBe(false);
-  });
-  it("the 'paused' filter returns only paused jobs", () => {
-    const all = [unassigned, paused, normal];
-    expect(pendingJobs(all, "paused").map((j) => j.id)).toEqual([5]);
-    expect(pendingFilterMatch(unassigned, "paused")).toBe(false);
-    expect(pendingFilterMatch(paused, "paused")).toBe(true);
-  });
-  it("paused jobs sort to the TOP of the column (higher priority), order otherwise stable", () => {
-    const all = [unassigned, normal, paused]; // paused last in input
-    // normal is not pending; result is [paused (priority), unassigned (stable)]
-    expect(pendingJobs(all, "all").map((j) => j.id)).toEqual([5, 1]);
-  });
-});
-
 describe("time-conflict detection", () => {
   it("rangesOverlap is half-open (touching edges don't clash)", () => {
     expect(rangesOverlap(9, 11, 10, 12)).toBe(true);
@@ -249,14 +204,13 @@ describe("dailyKpis aggregation (AC: counts + revenue, whole numbers, exclude ca
       { status: "Scheduled" as const },
       { status: "Dispatched" as const },
       { status: "In Progress" as const },
-      { status: "Paused" as const },
       { status: "Completed" as const, amount: 199.6 },
       { status: "Completed" as const, amount: 100.4 },
       { status: "Cancelled" as const, amount: 999 },
     ];
     const k = dailyKpis(jobs);
     expect(k.scheduled).toBe(2);  // scheduled + dispatched
-    expect(k.inProgress).toBe(2); // in progress + paused
+    expect(k.inProgress).toBe(1); // in progress
     expect(k.completed).toBe(2);
     expect(k.revenue).toBe(300);  // 200 + 100, cancelled excluded, whole dollars
     expect(Number.isInteger(k.revenue)).toBe(true);
