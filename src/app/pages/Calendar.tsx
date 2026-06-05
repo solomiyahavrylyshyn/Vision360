@@ -503,7 +503,11 @@ export function Calendar() {
     { value: `$${topRevenue.toLocaleString("en-US")}`, label: topRevenueLabel, icon: "payments", color: "#16A34A", bg: "#D1FAE5" },
     { value: String(scheduleJobCount), label: scopedJobLabel, icon: "work", color: "#4A6FA5", bg: "#EBF0F8" },
     { value: String(inProgressJobCount), label: "In progress", icon: "schedule", color: "#D97706", bg: "#FEF3C7" },
-    { value: `${completionRate}%`, label: "Completion rate", icon: "check_circle", color: "#7C3AED", bg: "#EDE9FE" },
+    // Completion rate is a Month-view KPI in Figma (a period rollup), so it only
+    // shows on Month — Day/Week show the three operational cards.
+    ...(viewMode === "month"
+      ? [{ value: `${completionRate}%`, label: "Completion rate", icon: "check_circle", color: "#7C3AED", bg: "#EDE9FE" }]
+      : []),
   ];
 
   const hourFromPointer = (event: SlotPointerEvent, snap = SLOT_HOURS) => {
