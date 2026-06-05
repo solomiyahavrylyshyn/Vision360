@@ -115,6 +115,10 @@ function matchesDatePreset(date: string, preset: string) {
   return true;
 }
 
+// DD-MM-YYYY (Figma filter inputs) ↔ ISO YYYY-MM-DD (how dates are stored).
+const dmyToISO = (s: string) => { const m = /^(\d{2})-(\d{2})-(\d{4})$/.exec((s || "").trim()); return m ? `${m[3]}-${m[2]}-${m[1]}` : ""; };
+const isoToDMY = (s: string) => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec((s || "").trim()); return m ? `${m[3]}-${m[2]}-${m[1]}` : ""; };
+
 // ═══════════════════════════════════════════════════════════════════════════════
 export function Payments() {
   const navigate = useNavigate();
@@ -132,8 +136,8 @@ export function Payments() {
   const [amountMin, setAmountMin] = useState("");
   const [amountMax, setAmountMax] = useState("");
   const [createdByFilter, setCreatedByFilter] = useState("All");
-  const [invoiceFilter, setInvoiceFilter] = useState("");
-  const [jobFilter, setJobFilter] = useState("");
+  const [invoiceFilter, setInvoiceFilter] = useState("All");
+  const [jobFilter, setJobFilter] = useState("All");
   const [balanceMin, setBalanceMin] = useState("");
   const [balanceMax, setBalanceMax] = useState("");
 
@@ -191,21 +195,17 @@ export function Payments() {
     if (qfStatus !== "All") result = result.filter(p => p.status === qfStatus);
     if (qfMethod !== "All") result = result.filter(p => p.method === qfMethod);
     result = result.filter(p => matchesDatePreset(p.date, qfDate));
-    if (dateFrom) result = result.filter(p => p.date >= dateFrom);
-    if (dateTo) result = result.filter(p => p.date <= dateTo);
+    const fromISO = dmyToISO(dateFrom);
+    const toISO = dmyToISO(dateTo);
+    if (fromISO) result = result.filter(p => p.date >= fromISO);
+    if (toISO) result = result.filter(p => p.date <= toISO);
     if (amountMin) result = result.filter(p => p.amount >= Number(amountMin));
     if (amountMax) result = result.filter(p => p.amount <= Number(amountMax));
     if (balanceMin) result = result.filter(p => p.balance != null && p.balance >= Number(balanceMin));
     if (balanceMax) result = result.filter(p => p.balance != null && p.balance <= Number(balanceMax));
     if (createdByFilter !== "All") result = result.filter(p => p.createdBy === createdByFilter);
-    if (invoiceFilter) {
-      const q = invoiceFilter.toLowerCase();
-      result = result.filter(p => p.invoiceNumber.toLowerCase().includes(q));
-    }
-    if (jobFilter) {
-      const q = jobFilter.toLowerCase();
-      result = result.filter(p => (p.jobId || "").toLowerCase().includes(q));
-    }
+    if (invoiceFilter !== "All") result = result.filter(p => p.invoiceNumber === invoiceFilter);
+    if (jobFilter !== "All") result = result.filter(p => (p.jobId || "") === jobFilter);
     if (search) {
       const q = search.toLowerCase();
       result = result.filter(p =>
@@ -231,7 +231,9 @@ export function Payments() {
   }, [payments, search, qfStatus, qfMethod, qfDate, dateFrom, dateTo, amountMin, amountMax, balanceMin, balanceMax, createdByFilter, invoiceFilter, jobFilter, sortField, sortDir]);
 
   const creators = useMemo(() => Array.from(new Set(payments.map(p => p.createdBy))), [payments]);
-  const activeFilterCount = [dateFrom, dateTo, amountMin, amountMax, balanceMin, balanceMax, createdByFilter !== "All", invoiceFilter, jobFilter].filter(Boolean).length;
+  const invoiceOptions = useMemo(() => Array.from(new Set(payments.map(p => p.invoiceNumber).filter(Boolean))).sort(), [payments]);
+  const jobOptions = useMemo(() => Array.from(new Set(payments.map(p => p.jobId).filter(Boolean) as string[])).sort(), [payments]);
+  const activeFilterCount = [dateFrom, dateTo, amountMin, amountMax, balanceMin, balanceMax, createdByFilter !== "All", invoiceFilter !== "All", jobFilter !== "All"].filter(Boolean).length;
   const advancedActive = activeFilterCount > 0;
   const resetAdvancedFilters = () => {
     setDateFrom("");
@@ -241,8 +243,8 @@ export function Payments() {
     setBalanceMin("");
     setBalanceMax("");
     setCreatedByFilter("All");
-    setInvoiceFilter("");
-    setJobFilter("");
+    setInvoiceFilter("All");
+    setJobFilter("All");
     setPage(1);
   };
 
@@ -385,8 +387,16 @@ export function Payments() {
             >
               <AdvancedFilterField label="Date from & to">
                 <div className="grid grid-cols-2 gap-3">
-                  <input type="date" value={dateFrom} onChange={(e) => { setDateFrom(e.target.value); setPage(1); }} className={advancedInputClass} />
-                  <input type="date" value={dateTo} onChange={(e) => { setDateTo(e.target.value); setPage(1); }} className={advancedInputClass} />
+                  <div className="relative">
+                    <input type="text" inputMode="numeric" maxLength={10} value={dateFrom} onChange={(e) => { setDateFrom(e.target.value); setPage(1); }} placeholder="DD-MM-YYYY" className={`${advancedInputClass} pr-9`} />
+                    <input type="date" aria-label="Date from" value={dmyToISO(dateFrom)} onChange={(e) => { setDateFrom(isoToDMY(e.target.value)); setPage(1); }} className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 cursor-pointer opacity-0" />
+                    <span className="material-icons pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[#6B7280]" style={{ fontSize: "18px" }}>calendar_today</span>
+                  </div>
+                  <div className="relative">
+                    <input type="text" inputMode="numeric" maxLength={10} value={dateTo} onChange={(e) => { setDateTo(e.target.value); setPage(1); }} placeholder="DD-MM-YYYY" className={`${advancedInputClass} pr-9`} />
+                    <input type="date" aria-label="Date to" value={dmyToISO(dateTo)} onChange={(e) => { setDateTo(isoToDMY(e.target.value)); setPage(1); }} className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 cursor-pointer opacity-0" />
+                    <span className="material-icons pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[#6B7280]" style={{ fontSize: "18px" }}>calendar_today</span>
+                  </div>
                 </div>
               </AdvancedFilterField>
               <AdvancedFilterField label="Amount">
@@ -408,10 +418,16 @@ export function Payments() {
                 </select>
               </AdvancedFilterField>
               <AdvancedFilterField label="Invoice">
-                <input value={invoiceFilter} onChange={(e) => { setInvoiceFilter(e.target.value); setPage(1); }} placeholder="10245-I01" className={advancedInputClass} />
+                <select value={invoiceFilter} onChange={(e) => { setInvoiceFilter(e.target.value); setPage(1); }} className={advancedSelectClass}>
+                  <option value="All">All</option>
+                  {invoiceOptions.map((inv) => <option key={inv} value={inv}>{inv}</option>)}
+                </select>
               </AdvancedFilterField>
               <AdvancedFilterField label="Job">
-                <input value={jobFilter} onChange={(e) => { setJobFilter(e.target.value); setPage(1); }} placeholder="10245-J01" className={advancedInputClass} />
+                <select value={jobFilter} onChange={(e) => { setJobFilter(e.target.value); setPage(1); }} className={advancedSelectClass}>
+                  <option value="All">All</option>
+                  {jobOptions.map((j) => <option key={j} value={j}>{j}</option>)}
+                </select>
               </AdvancedFilterField>
               <AdvancedFilterField label="Statuses">
                 <select value={qfStatus} onChange={(e) => { setQfStatus(e.target.value); setPage(1); }} className={advancedSelectClass}>
@@ -548,7 +564,7 @@ export function Payments() {
             <div className="flex items-center gap-3">
               <span className="text-[14px] text-[#6B7280]" style={{ fontWeight: 400 }}>Rows per page:</span>
               <Select value={String(perPage)} onValueChange={v => { setPerPage(Number(v)); setPage(1); }}>
-                <SelectTrigger className="h-9 w-[59px] border-[#E5E7EB] text-[14px] text-[#1A2332]" style={{ fontWeight: 400, boxShadow: "0px 1px 2px rgba(0,0,0,0.05)" }}>
+                <SelectTrigger className="h-9 w-[76px] border-[#E5E7EB] text-[14px] text-[#1A2332]" style={{ fontWeight: 400, boxShadow: "0px 1px 2px rgba(0,0,0,0.05)" }}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
