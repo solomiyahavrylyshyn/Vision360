@@ -36,6 +36,13 @@ const formatBytes = (b: number): string => {
 type TabKey = "details" | "activity";
 
 const fmtDate = (d: string) => formatRegionalDate(new Date(d + "T12:00:00"));
+// "2026-04-03 11:00" → "Apr 3, 2026 11:00" (Figma activity timestamp format).
+const fmtDateTime = (s: string) => {
+  const m = /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})/.exec((s || "").trim());
+  if (!m) return s || "—";
+  const mon = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])).toLocaleDateString("en-US", { month: "short" });
+  return `${mon} ${Number(m[3])}, ${m[1]} ${m[4]}:${m[5]}`;
+};
 
 /* Extra fields not in the Payment type — keyed by payment id */
 const MOCK_EXTRAS: Record<number, {
@@ -440,18 +447,18 @@ export function PaymentDetail() {
     <div className="bg-white border border-[#E5E7EB] rounded-xl p-6 space-y-4">
       <ActivityRow
         icon="add_circle" iconBg="#EBF0F8" iconColor="#4A6FA5"
-        title="Payment recorded" subtitle={`by ${payment.createdBy}`} time={payment.createdAt}
+        title="Payment recorded" subtitle={`by ${payment.createdBy}`} time={fmtDateTime(payment.createdAt)}
       />
       {payment.status === "Completed" && (
         <ActivityRow
           icon="check_circle" iconBg="#DCFCE7" iconColor="#22C55E"
-          title="Payment completed" subtitle="Invoice balance updated" time={payment.createdAt}
+          title="Payment completed" subtitle="Invoice balance updated" time={fmtDateTime(payment.createdAt)}
         />
       )}
       {payment.status === "Refunded" && (
         <ActivityRow
           icon="undo" iconBg="#EDE9FE" iconColor="#8B5CF6"
-          title="Payment refunded" subtitle="Invoice balance adjusted" time={payment.createdAt}
+          title="Payment refunded" subtitle="Invoice balance adjusted" time={fmtDateTime(payment.createdAt)}
         />
       )}
     </div>
@@ -623,9 +630,24 @@ export function PaymentDetail() {
                 >
                   Make invoice
                 </KebabItem>
-                <KebabItem icon="send" onSelect={() => toast.success(`Receipt sent to ${payment.clientEmail}`)}>Send receipt</KebabItem>
-                <KebabItem icon="file_download" onSelect={() => toast.success("Downloading receipt…")}>Download receipt</KebabItem>
-                <KebabItem icon="account_balance" onSelect={() => toast.info("Payout details coming soon")}>View payout</KebabItem>
+                <KebabItem icon="send" onSelect={() => {
+                  const num = `P-${1000 + payment.id}`;
+                  const subject = `Receipt ${num} — ${payment.invoiceNumber}`;
+                  const body = `Hi ${payment.clientName},\n\nHere is your payment receipt:\n\nReceipt: ${num}\nDate: ${fmtDate(payment.date)}\nMethod: ${payment.method}\nInvoice: ${payment.invoiceNumber}\nAmount: $${payment.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}\n\nThank you for your business.`;
+                  window.location.href = `mailto:${payment.clientEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+                  toast.success("Opening your email to send the receipt…");
+                }}>Send receipt</KebabItem>
+                <KebabItem icon="file_download" onSelect={() => {
+                  const num = `P-${1000 + payment.id}`;
+                  const text = [`RECEIPT ${num}`, ``, `Client:  ${payment.clientName}`, `Date:    ${fmtDate(payment.date)}`, `Method:  ${payment.method}`, `Invoice: ${payment.invoiceNumber}`, `Amount:  $${payment.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}`, `Status:  ${payment.status}`].join("\n");
+                  const url = URL.createObjectURL(new Blob([text], { type: "text/plain" }));
+                  const a = document.createElement("a");
+                  a.href = url; a.download = `receipt-${num}.txt`;
+                  document.body.appendChild(a); a.click(); a.remove();
+                  URL.revokeObjectURL(url);
+                  toast.success(`Receipt ${num} downloaded`);
+                }}>Download receipt</KebabItem>
+                <KebabItem icon="account_balance" onSelect={() => navigate(`/invoices/${payment.invoiceId}`)}>View payout</KebabItem>
                 <KebabSeparator />
                 <KebabItem icon="undo" onSelect={() => changeStatus("Refunded")}>Refund</KebabItem>
               </KebabMenu>
@@ -679,10 +701,12 @@ function ActivityRow({
       >
         <span className="material-icons" style={{ fontSize: "16px", color: iconColor }}>{icon}</span>
       </div>
-      <div>
-        <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{title}</div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-baseline justify-between gap-2">
+          <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{title}</div>
+          <div className="text-[11px] text-[#B0BEC5] shrink-0 whitespace-nowrap">{time}</div>
+        </div>
         <div className="text-[12px] text-[#8899AA]">{subtitle}</div>
-        <div className="text-[11px] text-[#B0BEC5] mt-0.5">{time}</div>
       </div>
     </div>
   );
