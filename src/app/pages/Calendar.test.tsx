@@ -212,6 +212,15 @@ describe("Calendar — daily Dispatch board (integration)", () => {
     expect(screen.getByRole("button", { name: "Save changes" })).toBeInTheDocument();
   });
 
+  it("unification (BUG-006): a week-origin unscheduled job shows in DAY pending (one shared collection)", () => {
+    // "Reyes Office" used to live ONLY in the week dataset. With a single
+    // date-windowed collection, an unscheduled job is date-agnostic and appears
+    // in the pending drawer on every view — proof the views share one source.
+    renderDayBoard();
+    const aside = screen.getByRole("complementary") as HTMLElement;
+    expect(within(aside).getByText("Reyes Office")).toBeInTheDocument();
+  });
+
   it("lifecycle lock: a completed job's Edit button is disabled (§7.3)", () => {
     renderDayBoard();
     fireEvent.click(screen.getAllByText("Johnson Residence")[0].closest('[data-job-card="true"]') as HTMLElement);
@@ -277,11 +286,11 @@ describe("Calendar — week view (integration)", () => {
       </MemoryRouter>,
     );
     const aside = screen.getByRole("complementary") as HTMLElement;
-    // Week job 1 (Smith Resi…) is scheduled+assigned → NOT in the pending drawer yet.
+    // Smith Resi… (unified id 17 = old week id 1 + 16) is scheduled+assigned → NOT pending yet.
     expect(within(aside).queryByText("Smith Resi...")).not.toBeInTheDocument();
     // Simulate dropping a week board card onto the drawer (week: payload).
     const dt = makeDataTransfer();
-    dt.setData("text/plain", "week:1");
+    dt.setData("text/plain", "week:17");
     fireEvent.drop(aside, { dataTransfer: dt });
     // Now it's pending (unscheduled) and appears in the drawer.
     const moved = within(aside).getByText("Smith Resi...").closest('[data-job-card="true"]') as HTMLElement;
