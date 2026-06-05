@@ -1,12 +1,35 @@
-import { useState } from "react";
+import { useState, useMemo, useSyncExternalStore } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { Button } from "../components/ui/button";
 import { toast } from "sonner";
 import { paymentsStore } from "../stores/paymentsStore";
+import { jobsStore } from "../stores/jobsStore";
 import type { PaymentMethod, PaymentStatus } from "./Payments";
 import { PAYMENT_METHODS } from "../constants/paymentMethods";
 
 const paymentMethods = PAYMENT_METHODS;
+
+// Long-form date for the Jobs picker (Figma: "March 30, 2026").
+function fmtJobDate(d: string) {
+  try {
+    return new Date(d + "T12:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+  } catch {
+    return d;
+  }
+}
+
+// Status badge colour (same semantic tokens as the Jobs board).
+function jobStatusStyle(status: string): { color: string; backgroundColor: string } {
+  const m: Record<string, [string, string]> = {
+    Completed: ["#16A34A", "rgba(22,163,74,0.15)"],
+    "In Progress": ["#4A6FA5", "rgba(74,111,165,0.15)"],
+    Dispatched: ["#4A6FA5", "rgba(74,111,165,0.15)"],
+    Scheduled: ["#F59E0B", "rgba(245,158,11,0.15)"],
+    Cancelled: ["#DC2626", "rgba(220,38,38,0.15)"],
+  };
+  const [color, backgroundColor] = m[status] || ["#6B7280", "rgba(107,114,128,0.15)"];
+  return { color, backgroundColor };
+}
 
 export function CreatePayment() {
   const navigate = useNavigate();
@@ -23,6 +46,25 @@ export function CreatePayment() {
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().slice(0, 10));
   const [reference, setReference] = useState("");
   const [note, setNote] = useState("");
+
+  // Jobs picker — select the job(s) this payment covers; the Total auto-fills
+  // from the selected jobs' prices (still manually overridable).
+  const [jobSearch, setJobSearch] = useState("");
+  const [selectedJobIds, setSelectedJobIds] = useState<Set<number>>(new Set());
+  const allJobs = useSyncExternalStore(jobsStore.subscribe, jobsStore.getSnapshot);
+  const candidateJobs = useMemo(() => {
+    const c = client.trim().toLowerCase();
+    const byClient = c ? allJobs.filter((j) => j.client.toLowerCase().includes(c)) : [];
+    const base = byClient.length > 0 ? byClient : allJobs;
+    const q = jobSearch.trim().toLowerCase();
+    return q ? base.filter((j) => j.jobNumber.toLowerCase().includes(q) || j.title.toLowerCase().includes(q)) : base;
+  }, [allJobs, client, jobSearch]);
+  const toggleJob = (id: number) => {
+    const next = new Set(selectedJobIds);
+    next.has(id) ? next.delete(id) : next.add(id);
+    setSelectedJobIds(next);
+    if (next.size > 0) setAmount(String(allJobs.filter((j) => next.has(j.id)).reduce((s, j) => s + j.totalPrice, 0)));
+  };
 
   // Manual card-entry fields (US): only used when method = "Type card manually".
   const [cardNumber, setCardNumber] = useState("");
@@ -121,15 +163,6 @@ export function CreatePayment() {
               )}
 
               <div>
-                <label className={labelCls} style={{ fontWeight: 500 }}>Amount {reqStar}</label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[14px] text-[#6B7280]">$</span>
-                  <input type="number" min="0" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00"
-                    className={`${inputCls} pl-7`} />
-                </div>
-              </div>
-
-              <div>
                 <label className={labelCls} style={{ fontWeight: 500 }}>Payment date {reqStar}</label>
                 <input type="date" value={paymentDate} onChange={(e) => setPaymentDate(e.target.value)} className={inputCls} />
               </div>
@@ -195,6 +228,66 @@ export function CreatePayment() {
             </div>
           </div>
 
+          {/* Jobs section — pick the job(s) this payment covers */}
+          <div className="px-6 py-6 grid grid-cols-[120px_1fr] gap-6 border-b border-[#E5E7EB]">
+            <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Jobs</div>
+            <div>
+              <div className="relative mb-3">
+                <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: "18px" }}>search</span>
+                <input value={jobSearch} onChange={(e) => setJobSearch(e.target.value)} placeholder="Search jobs…" className={`${inputCls} pl-10`} />
+              </div>
+              <div className="border border-[#E5E7EB] rounded-lg overflow-hidden">
+                <table className="w-full text-[14px]">
+                  <thead>
+                    <tr className="bg-[#F5F7FA] border-b border-[#E5E7EB] text-left text-[13px] text-[#6B7280]">
+                      <th className="w-10 px-3 py-2" />
+                      <th className="px-3 py-2" style={{ fontWeight: 500 }}>Number</th>
+                      <th className="px-3 py-2" style={{ fontWeight: 500 }}>Scheduled</th>
+                      <th className="px-3 py-2" style={{ fontWeight: 500 }}>Status</th>
+                      <th className="px-3 py-2 text-right" style={{ fontWeight: 500 }}>Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {candidateJobs.length === 0 ? (
+                      <tr><td colSpan={5} className="px-3 py-6 text-center text-[13px] text-[#9CA3AF]">No jobs found</td></tr>
+                    ) : candidateJobs.map((j) => (
+                      <tr key={j.id} onClick={() => toggleJob(j.id)}
+                        className="border-b border-[#EDF0F5] last:border-0 hover:bg-[#F9FBFD] cursor-pointer">
+                        <td className="px-3 py-2.5">
+                          <input type="checkbox" checked={selectedJobIds.has(j.id)} onChange={() => toggleJob(j.id)} onClick={(e) => e.stopPropagation()}
+                            className="w-4 h-4 rounded border-[#E5E7EB] accent-[#4A6FA5] cursor-pointer" />
+                        </td>
+                        <td className="px-3 py-2.5">
+                          <div className="text-[#4A6FA5]" style={{ fontWeight: 500 }}>{j.jobNumber}</div>
+                          <div className="text-[12px] text-[#6B7280]">{j.title}</div>
+                        </td>
+                        <td className="px-3 py-2.5 text-[#546478]">{fmtJobDate(j.startDate)}</td>
+                        <td className="px-3 py-2.5">
+                          <span className="px-2 py-0.5 rounded-md text-[12px]" style={{ fontWeight: 600, ...jobStatusStyle(j.status) }}>{j.status}</span>
+                        </td>
+                        <td className="px-3 py-2.5 text-right text-[#1A2332]" style={{ fontWeight: 600 }}>${j.totalPrice.toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="mt-2 text-[12px] text-[#6B7280]">
+                {selectedJobIds.size > 0 ? `${selectedJobIds.size} selected · ` : ""}{candidateJobs.length} job{candidateJobs.length === 1 ? "" : "s"}
+              </div>
+            </div>
+          </div>
+
+          {/* Total section */}
+          <div className="px-6 py-6 grid grid-cols-[120px_1fr] gap-6 border-b border-[#E5E7EB]">
+            <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Total {reqStar}</div>
+            <div className="max-w-[240px]">
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[14px] text-[#6B7280]">$</span>
+                <input type="number" min="0" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" className={`${inputCls} pl-7`} />
+              </div>
+            </div>
+          </div>
+
           {/* Notes section */}
           <div className="px-6 py-6 grid grid-cols-[120px_1fr] gap-6">
             <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Notes</div>
@@ -209,9 +302,7 @@ export function CreatePayment() {
             </Button>
             <Button type="button" onClick={handleSave} disabled={!canSubmit}
               className="bg-[#4A6FA5] hover:bg-[#3d5a85] text-white h-10 px-6 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#4A6FA5]">
-              {isCharge
-                ? (amount ? `Charge $${(parseFloat(amount) || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}` : "Charge card")
-                : "Record payment"}
+              {isCharge ? "Collect payment" : "Record payment"}
             </Button>
           </div>
         </div>

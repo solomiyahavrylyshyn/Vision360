@@ -25,6 +25,9 @@ export interface Payment {
   id: number;
   date: string;
   amount: number;
+  // Outstanding balance on the linked invoice after this payment. Filter-only
+  // (no column) — mirrors the Invoices "Balance" advanced filter for parity.
+  balance?: number;
   method: PaymentMethod;
   status: PaymentStatus;
   clientName: string;
@@ -61,13 +64,13 @@ const timeFilters = [
 
 // ─── Mock Data ───────────────────────────────────────────────────────────────
 export const mockPayments: Payment[] = [
-  { id: 1, date: "2026-03-10", amount: 5000.00, method: "Bank Transfer", status: "Completed", clientName: "Travis Jones", clientEmail: "travis.j@email.com", invoiceId: 1, invoiceNumber: "10245-I01", jobId: "10245-J01", note: "First installment", createdBy: "Marek Stroz", createdAt: "2026-03-10 14:22" },
-  { id: 2, date: "2026-03-25", amount: 5502.00, method: "Check", status: "Completed", clientName: "Travis Jones", clientEmail: "travis.j@email.com", invoiceId: 1, invoiceNumber: "10245-I01", jobId: "10245-J01", note: "Final payment", createdBy: "Marek Stroz", createdAt: "2026-03-25 11:45" },
-  { id: 3, date: "2026-03-15", amount: 1000.00, method: "Credit Card", status: "Completed", clientName: "Sarah Williams", clientEmail: "sarah.w@email.com", invoiceId: 4, invoiceNumber: "10248-I02", jobId: "10248-J01", note: "Partial payment", createdBy: "Marek Stroz", createdAt: "2026-03-15 13:30" },
-  { id: 4, date: "2026-04-01", amount: 913.75, method: "Check", status: "Pending", clientName: "Mike Rodriguez", clientEmail: "mike.r@email.com", invoiceId: 5, invoiceNumber: "10247-I01", jobId: "10247-J01", note: "", createdBy: "Marek Stroz", createdAt: "2026-04-01 09:15" },
-  { id: 5, date: "2026-02-21", amount: 326.25, method: "Cash", status: "Completed", clientName: "Sarah Williams", clientEmail: "sarah.w@email.com", invoiceId: 6, invoiceNumber: "10249-I01", jobId: "10249-J01", note: "Paid in full", createdBy: "Marek Stroz", createdAt: "2026-02-21 16:00" },
-  { id: 6, date: "2026-03-28", amount: 200.00, method: "Credit Card", status: "Refunded", clientName: "Travis Jones", clientEmail: "travis.j@email.com", invoiceId: 1, invoiceNumber: "10245-I01", jobId: "10245-J01", note: "Partial refund — overcharge adjustment", createdBy: "Marek Stroz", createdAt: "2026-03-28 10:20" },
-  { id: 7, date: "2026-04-03", amount: 2800.00, method: "Bank Transfer", status: "Completed", clientName: "John Doe", clientEmail: "john.d@email.com", invoiceId: 2, invoiceNumber: "10246-I01", jobId: "10246-J01", note: "Partial payment on overdue invoice", createdBy: "Marek Stroz", createdAt: "2026-04-03 11:00" },
+  { id: 1, date: "2026-03-10", amount: 5000.00, balance: 0, method: "Bank Transfer", status: "Completed", clientName: "Travis Jones", clientEmail: "travis.j@email.com", invoiceId: 1, invoiceNumber: "10245-I01", jobId: "10245-J01", note: "First installment", createdBy: "Marek Stroz", createdAt: "2026-03-10 14:22" },
+  { id: 2, date: "2026-03-25", amount: 5502.00, balance: 0, method: "Check", status: "Completed", clientName: "Travis Jones", clientEmail: "travis.j@email.com", invoiceId: 1, invoiceNumber: "10245-I01", jobId: "10245-J01", note: "Final payment", createdBy: "Marek Stroz", createdAt: "2026-03-25 11:45" },
+  { id: 3, date: "2026-03-15", amount: 1000.00, balance: 1365.00, method: "Credit Card", status: "Completed", clientName: "Sarah Williams", clientEmail: "sarah.w@email.com", invoiceId: 4, invoiceNumber: "10248-I02", jobId: "10248-J01", note: "Partial payment", createdBy: "Marek Stroz", createdAt: "2026-03-15 13:30" },
+  { id: 4, date: "2026-04-01", amount: 913.75, balance: 913.75, method: "Check", status: "Pending", clientName: "Mike Rodriguez", clientEmail: "mike.r@email.com", invoiceId: 5, invoiceNumber: "10247-I01", jobId: "10247-J01", note: "", createdBy: "Marek Stroz", createdAt: "2026-04-01 09:15" },
+  { id: 5, date: "2026-02-21", amount: 326.25, balance: 0, method: "Cash", status: "Completed", clientName: "Sarah Williams", clientEmail: "sarah.w@email.com", invoiceId: 6, invoiceNumber: "10249-I01", jobId: "10249-J01", note: "Paid in full", createdBy: "Marek Stroz", createdAt: "2026-02-21 16:00" },
+  { id: 6, date: "2026-03-28", amount: 200.00, balance: 0, method: "Credit Card", status: "Refunded", clientName: "Travis Jones", clientEmail: "travis.j@email.com", invoiceId: 1, invoiceNumber: "10245-I01", jobId: "10245-J01", note: "Partial refund — overcharge adjustment", createdBy: "Marek Stroz", createdAt: "2026-03-28 10:20" },
+  { id: 7, date: "2026-04-03", amount: 2800.00, balance: 2700.00, method: "Bank Transfer", status: "Completed", clientName: "John Doe", clientEmail: "john.d@email.com", invoiceId: 2, invoiceNumber: "10246-I01", jobId: "10246-J01", note: "Partial payment on overdue invoice", createdBy: "Marek Stroz", createdAt: "2026-04-03 11:00" },
 ];
 
 // Figma column order (payments - main page): Number · Client · Invoice · Method
@@ -124,6 +127,8 @@ export function Payments() {
   const [createdByFilter, setCreatedByFilter] = useState("All");
   const [invoiceFilter, setInvoiceFilter] = useState("");
   const [jobFilter, setJobFilter] = useState("");
+  const [balanceMin, setBalanceMin] = useState("");
+  const [balanceMax, setBalanceMax] = useState("");
 
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [page, setPage] = useState(1);
@@ -169,6 +174,8 @@ export function Payments() {
     if (dateTo) result = result.filter(p => p.date <= dateTo);
     if (amountMin) result = result.filter(p => p.amount >= Number(amountMin));
     if (amountMax) result = result.filter(p => p.amount <= Number(amountMax));
+    if (balanceMin) result = result.filter(p => p.balance != null && p.balance >= Number(balanceMin));
+    if (balanceMax) result = result.filter(p => p.balance != null && p.balance <= Number(balanceMax));
     if (createdByFilter !== "All") result = result.filter(p => p.createdBy === createdByFilter);
     if (invoiceFilter) {
       const q = invoiceFilter.toLowerCase();
@@ -189,16 +196,18 @@ export function Payments() {
     }
     result.sort((a, b) => b.date.localeCompare(a.date));
     return result;
-  }, [payments, search, qfStatus, qfMethod, qfDate, dateFrom, dateTo, amountMin, amountMax, createdByFilter, invoiceFilter, jobFilter]);
+  }, [payments, search, qfStatus, qfMethod, qfDate, dateFrom, dateTo, amountMin, amountMax, balanceMin, balanceMax, createdByFilter, invoiceFilter, jobFilter]);
 
   const creators = useMemo(() => Array.from(new Set(payments.map(p => p.createdBy))), [payments]);
-  const activeFilterCount = [dateFrom, dateTo, amountMin, amountMax, createdByFilter !== "All", invoiceFilter, jobFilter].filter(Boolean).length;
+  const activeFilterCount = [dateFrom, dateTo, amountMin, amountMax, balanceMin, balanceMax, createdByFilter !== "All", invoiceFilter, jobFilter].filter(Boolean).length;
   const advancedActive = activeFilterCount > 0;
   const resetAdvancedFilters = () => {
     setDateFrom("");
     setDateTo("");
     setAmountMin("");
     setAmountMax("");
+    setBalanceMin("");
+    setBalanceMax("");
     setCreatedByFilter("All");
     setInvoiceFilter("");
     setJobFilter("");
@@ -219,6 +228,7 @@ export function Payments() {
       <PageHeader
         title="Payments"
         count={selectedIds.size > 0 ? `${filtered.length} · ${selectedIds.size} selected` : filtered.length}
+        countSuffix="records"
       />
 
       {/* ── Stats Cards (Clients-template style) ── */}
@@ -321,8 +331,8 @@ export function Payments() {
               )}
             </button>
             <div className="ml-auto flex items-center gap-2">
-              <CreateActionButton>
-                Record Payment
+              <CreateActionButton onClick={() => navigate("/payments/new")}>
+                Record payment
               </CreateActionButton>
               <KebabMenu triggerClassName="w-10 h-10 border border-[#D8DEE8] rounded-xl bg-white">
                 <KebabItem icon="view_column" onSelect={() => { setPendingColumns(new Set(visibleColumns)); setEditColumnsOpen(true); }}>Edit columns</KebabItem>
@@ -351,6 +361,12 @@ export function Payments() {
                 <div className="grid grid-cols-2 gap-3">
                   <input type="number" min="0" placeholder="min" value={amountMin} onChange={(e) => { setAmountMin(e.target.value); setPage(1); }} className={advancedInputClass} />
                   <input type="number" min="0" placeholder="max" value={amountMax} onChange={(e) => { setAmountMax(e.target.value); setPage(1); }} className={advancedInputClass} />
+                </div>
+              </AdvancedFilterField>
+              <AdvancedFilterField label="Balance">
+                <div className="grid grid-cols-2 gap-3">
+                  <input type="number" min="0" placeholder="min" value={balanceMin} onChange={(e) => { setBalanceMin(e.target.value); setPage(1); }} className={advancedInputClass} />
+                  <input type="number" min="0" placeholder="max" value={balanceMax} onChange={(e) => { setBalanceMax(e.target.value); setPage(1); }} className={advancedInputClass} />
                 </div>
               </AdvancedFilterField>
               <AdvancedFilterField label="Created by">
