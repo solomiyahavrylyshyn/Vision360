@@ -39,10 +39,12 @@ export interface Payment {
   createdAt: string;
 }
 
+// Figma badges: semantic-token text colour + the same colour at 15% as bg.
+// Completed = success, Pending = warning, Refunded = purple.
 export const paymentStatusColors: Record<PaymentStatus, { text: string; bg: string }> = {
-  Completed: { text: "#22C55E", bg: "#DCFCE7" },
-  Pending: { text: "#F59E0B", bg: "#FEF3C7" },
-  Refunded: { text: "#8B5CF6", bg: "#EDE9FE" },
+  Completed: { text: "#16A34A", bg: "rgba(22,163,74,0.15)" },
+  Pending: { text: "#F59E0B", bg: "rgba(245,158,11,0.15)" },
+  Refunded: { text: "#A856F7", bg: "rgba(168,86,247,0.15)" },
 };
 const statusColors = paymentStatusColors;
 
@@ -67,13 +69,15 @@ export const mockPayments: Payment[] = [
   { id: 7, date: "2026-04-03", amount: 2800.00, method: "Bank Transfer", status: "Completed", clientName: "John Doe", clientEmail: "john.d@email.com", invoiceId: 2, invoiceNumber: "10246-I01", jobId: "10246-J01", note: "Partial payment on overdue invoice", createdBy: "Marek Stroz", createdAt: "2026-04-03 11:00" },
 ];
 
+// Figma column order (payments - main page): Number · Client · Invoice · Method
+// · Status · Total · Note. (Date stays filterable + on the detail page.)
 const PAYMENTS_COLS = [
-  { key: "date", label: "Date" },
+  { key: "number", label: "Number" },
   { key: "client", label: "Client" },
   { key: "invoice", label: "Invoice" },
-  { key: "amount", label: "Amount" },
   { key: "method", label: "Method" },
   { key: "status", label: "Status" },
+  { key: "total", label: "Total" },
   { key: "note", label: "Note" },
 ] as const;
 
@@ -192,12 +196,6 @@ export function Payments() {
   const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
   const allSelected = paginated.length > 0 && paginated.every(p => selectedIds.has(p.id));
 
-  const summaryCards = [
-    { label: "Collected", value: `$${fmt(summary.totalCollected)}`, sub: `${summary.completedCount} payments`, color: "#22C55E", filterVal: "Completed" },
-    { label: "Pending", value: `$${fmt(summary.pendingTotal)}`, sub: `${summary.pendingCount} payments`, color: "#F59E0B", filterVal: "Pending" },
-    { label: "Refunded", value: `$${fmt(summary.refundedTotal)}`, sub: `${summary.refundedCount} payments`, color: "#8B5CF6", filterVal: "Refunded" },
-    { label: "Total", value: `${summary.totalPayments}`, sub: "all payments", color: "#4A6FA5", filterVal: "All" },
-  ];
 
   return (
     <DndProvider backend={HTML5Backend}>
@@ -231,16 +229,6 @@ export function Payments() {
           sparklineColor="#F59E0B"
         />
         <StatCard
-          value={`$${fmt(summary.refundedTotal)}`}
-          label="Refunded"
-          sub={`${summary.refundedCount} payments`}
-          change="-3%"
-          changeUp={false}
-          period="vs prev. period"
-          data={[2, 1, 1, 1, 0, 1, 1]}
-          sparklineColor="#8B5CF6"
-        />
-        <StatCard
           value={String(summary.totalPayments)}
           label="Total"
           sub="all payments"
@@ -248,6 +236,17 @@ export function Payments() {
           changeUp
           period="vs prev. period"
           data={[4, 5, 5, 6, 7, 7, 8]}
+          sparklineColor="#4A6FA5"
+        />
+        <StatCard
+          value={`$${fmt(summary.refundedTotal)}`}
+          label="Refunded"
+          sub={`${summary.refundedCount} payments`}
+          change="-3%"
+          changeUp={false}
+          period="vs prev. period"
+          data={[2, 1, 1, 1, 0, 1, 1]}
+          sparklineColor="#A856F7"
         />
       </div>
 
@@ -264,16 +263,16 @@ export function Payments() {
             </div>
             <div className="w-px h-5 bg-[#E5E7EB] mx-1" />
             <select value={qfStatus} onChange={e => { setQfStatus(e.target.value); setPage(1); }} className={qfClass(qfStatus !== "All")}>
-              <option value="All">All statuses</option>
+              <option value="All">Status: All</option>
               {(["Completed", "Pending", "Refunded"] as PaymentStatus[]).map(s => (
                 <option key={s} value={s}>{s}</option>
               ))}
             </select>
             <select value={qfDate} onChange={e => { setQfDate(e.target.value); setPage(1); }} className={qfClass(qfDate !== "All time")}>
-              {timeFilters.map(t => <option key={t} value={t}>{t}</option>)}
+              {timeFilters.map(t => <option key={t} value={t}>{t === "All time" ? "Date: All time" : t}</option>)}
             </select>
             <select value={qfMethod} onChange={e => { setQfMethod(e.target.value); setPage(1); }} className={qfClass(qfMethod !== "All")}>
-              <option value="All">All methods</option>
+              <option value="All">Methods: All</option>
               {PAYMENT_METHODS.map(m => (
                 <option key={m} value={m}>{m}</option>
               ))}
@@ -407,7 +406,11 @@ export function Payments() {
                       </td>
                       {cols.map(col => {
                         switch (col.key) {
-                          case "date": return <td key={col.key} className="px-4 py-4 text-[13px] text-[#546478]">{fmtDate(p.date)}</td>;
+                          case "number": return (
+                            <td key={col.key} className="px-4 py-4">
+                              <span className="text-[14px] text-[#4A6FA5]" style={{ fontWeight: 500 }}>P-{1000 + p.id}</span>
+                            </td>
+                          );
                           case "client": return (
                             <td key={col.key} className="px-4 py-4" onClick={e => e.stopPropagation()}>
                               <button
@@ -430,9 +433,9 @@ export function Payments() {
                               </button>
                             </td>
                           );
-                          case "amount": return (
+                          case "total": return (
                             <td key={col.key} className="px-4 py-4 text-[13px]" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
-                              <span className={p.status === "Refunded" ? "text-[#8B5CF6]" : "text-[#1A2332]"}>
+                              <span className={p.status === "Refunded" ? "text-[#A856F7]" : "text-[#1A2332]"}>
                                 {p.status === "Refunded" ? "−" : ""}${fmt(p.amount)}
                               </span>
                             </td>
