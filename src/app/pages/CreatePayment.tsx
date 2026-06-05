@@ -14,6 +14,11 @@ const paymentMethods = PAYMENT_METHODS;
 const dmyToISO = (s: string) => { const m = /^(\d{2})\.(\d{2})\.(\d{4})$/.exec((s || "").trim()); return m ? `${m[3]}-${m[2]}-${m[1]}` : ""; };
 const isoToDMY = (s: string) => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec((s || "").trim()); return m ? `${m[3]}.${m[2]}.${m[1]}` : ""; };
 
+// Upload files (Figma): accepted formats + size cap. UI only — files are held
+// in local state for display; nothing is uploaded anywhere (no backend).
+const UPLOAD_ACCEPT = ["image/svg+xml", "image/png", "image/jpeg", "image/gif"];
+const UPLOAD_MAX = 3 * 1024 * 1024; // 3 MB
+
 // Long-form date for the Jobs picker (Figma: "March 30, 2026"); guards bad data.
 function fmtJobDate(d: string) {
   const dt = new Date((d || "") + "T12:00:00");
@@ -51,6 +56,8 @@ export function CreatePayment() {
   const [dateText, setDateText] = useState(() => isoToDMY(new Date().toISOString().slice(0, 10)));
   const [reference, setReference] = useState("");
   const [note, setNote] = useState("");
+  const [files, setFiles] = useState<File[]>([]);
+  const [dragOver, setDragOver] = useState(false);
 
   // Jobs picker — select the job(s) this payment covers; the Total auto-fills
   // from the selected jobs' prices (still manually overridable).
@@ -156,6 +163,18 @@ export function CreatePayment() {
     });
     toast.success(isCharge ? `Charged $${parsedAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}` : "Payment recorded");
     navigate(returnTo || `/payments/${record.id}`);
+  };
+
+  // Add picked/dropped files to local state (validates format + size). No upload.
+  const addFiles = (list: FileList | null) => {
+    if (!list) return;
+    const accepted: File[] = [];
+    Array.from(list).forEach((f) => {
+      if (!UPLOAD_ACCEPT.includes(f.type)) { toast.error(`${f.name}: unsupported format`); return; }
+      if (f.size > UPLOAD_MAX) { toast.error(`${f.name}: exceeds 3MB`); return; }
+      accepted.push(f);
+    });
+    if (accepted.length) setFiles((prev) => [...prev, ...accepted]);
   };
 
   const inputCls = "w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[14px] text-[#1A2332] bg-white focus:outline-none focus:border-[#4A6FA5]";
@@ -341,6 +360,41 @@ export function CreatePayment() {
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[14px] text-[#6B7280]">$</span>
                 <input type="number" min="0" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" className={`${inputCls} pl-7`} />
               </div>
+            </div>
+          </div>
+
+          {/* Upload files section */}
+          <div className="px-6 py-6 grid grid-cols-[120px_1fr] gap-6 border-b border-[#E5E7EB]">
+            <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Upload files</div>
+            <div>
+              <label
+                onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                onDragLeave={() => setDragOver(false)}
+                onDrop={(e) => { e.preventDefault(); setDragOver(false); addFiles(e.dataTransfer.files); }}
+                className={`flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed px-6 py-8 text-center cursor-pointer transition-colors ${dragOver ? "border-[#4A6FA5] bg-[#EEF3FA]" : "border-[#D8DEE8] hover:bg-[#F9FBFD]"}`}
+              >
+                <span className="w-10 h-10 flex items-center justify-center rounded-full border border-[#E5E7EB] bg-white">
+                  <span className="material-icons text-[#546478]" style={{ fontSize: "20px" }}>file_upload</span>
+                </span>
+                <div className="text-[14px] text-[#546478]">Drop your files here, or <span className="text-[#4A6FA5]" style={{ fontWeight: 500 }}>click to browse</span></div>
+                <div className="text-[12px] text-[#9CA3AF]">SVG, PNG, JPG or GIF (max. 3MB)</div>
+                <input type="file" accept="image/svg+xml,image/png,image/jpeg,image/gif" multiple className="hidden"
+                  onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }} />
+              </label>
+              {files.length > 0 && (
+                <ul className="mt-3 space-y-2">
+                  {files.map((f, i) => (
+                    <li key={i} className="flex items-center gap-2 rounded-md border border-[#E5E7EB] bg-[#F8FAFC] px-3 py-2">
+                      <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "18px" }}>insert_drive_file</span>
+                      <span className="text-[13px] text-[#1A2332] truncate flex-1">{f.name}</span>
+                      <span className="text-[12px] text-[#9CA3AF] flex-shrink-0">{(f.size / 1024).toFixed(0)} KB</span>
+                      <button type="button" aria-label={`Remove ${f.name}`} onClick={() => setFiles((prev) => prev.filter((_, j) => j !== i))} className="text-[#9CA3AF] hover:text-[#DC2626] flex-shrink-0">
+                        <span className="material-icons" style={{ fontSize: "18px" }}>close</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           </div>
 
