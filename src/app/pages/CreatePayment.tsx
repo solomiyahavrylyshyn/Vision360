@@ -1,6 +1,7 @@
 import { useState, useMemo, useSyncExternalStore } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { Button } from "../components/ui/button";
+import { KebabMenu, KebabItem } from "../components/ui/kebab-menu";
 import { toast } from "sonner";
 import { paymentsStore } from "../stores/paymentsStore";
 import { jobsStore } from "../stores/jobsStore";
@@ -9,13 +10,15 @@ import { PAYMENT_METHODS } from "../constants/paymentMethods";
 
 const paymentMethods = PAYMENT_METHODS;
 
-// Long-form date for the Jobs picker (Figma: "March 30, 2026").
+// Payment date is shown as DD.MM.YYYY (Figma) but stored/saved as ISO.
+const dmyToISO = (s: string) => { const m = /^(\d{2})\.(\d{2})\.(\d{4})$/.exec((s || "").trim()); return m ? `${m[3]}-${m[2]}-${m[1]}` : ""; };
+const isoToDMY = (s: string) => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec((s || "").trim()); return m ? `${m[3]}.${m[2]}.${m[1]}` : ""; };
+
+// Long-form date for the Jobs picker (Figma: "March 30, 2026"); guards bad data.
 function fmtJobDate(d: string) {
-  try {
-    return new Date(d + "T12:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
-  } catch {
-    return d;
-  }
+  const dt = new Date((d || "") + "T12:00:00");
+  if (!d || isNaN(dt.getTime())) return "—";
+  return dt.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
 }
 
 // Status badge colour (same semantic tokens as the Jobs board).
@@ -31,19 +34,21 @@ function jobStatusStyle(status: string): { color: string; backgroundColor: strin
   return { color, backgroundColor };
 }
 
+type JobSortField = "jobNumber" | "startDate" | "status" | "totalPrice";
+
 export function CreatePayment() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const prefilledClient = searchParams.get("client") || "";
-  const prefilledClientId = searchParams.get("clientId") || "";
   const prefilledAmount = searchParams.get("amount") || "";
   const returnTo = searchParams.get("returnTo");
   const goBack = () => navigate(returnTo || "/payments");
 
-  const [client, setClient] = useState(prefilledClient);
+  // Client comes from the launch context (or, standalone, from the chosen job).
+  const [client] = useState(prefilledClient);
   const [amount, setAmount] = useState(prefilledAmount);
   const [method, setMethod] = useState(searchParams.get("method") || "Credit card on file");
-  const [paymentDate, setPaymentDate] = useState(new Date().toISOString().slice(0, 10));
+  const [dateText, setDateText] = useState(() => isoToDMY(new Date().toISOString().slice(0, 10)));
   const [reference, setReference] = useState("");
   const [note, setNote] = useState("");
 
@@ -51,20 +56,47 @@ export function CreatePayment() {
   // from the selected jobs' prices (still manually overridable).
   const [jobSearch, setJobSearch] = useState("");
   const [selectedJobIds, setSelectedJobIds] = useState<Set<number>>(new Set());
+  const [jobSortField, setJobSortField] = useState<JobSortField>("startDate");
+  const [jobSortDir, setJobSortDir] = useState<"asc" | "desc">("desc");
+  const [jobPage, setJobPage] = useState(1);
+  const [jobPerPage, setJobPerPage] = useState(10);
   const allJobs = useSyncExternalStore(jobsStore.subscribe, jobsStore.getSnapshot);
+
   const candidateJobs = useMemo(() => {
     const c = client.trim().toLowerCase();
     const byClient = c ? allJobs.filter((j) => j.client.toLowerCase().includes(c)) : [];
     const base = byClient.length > 0 ? byClient : allJobs;
     const q = jobSearch.trim().toLowerCase();
-    return q ? base.filter((j) => j.jobNumber.toLowerCase().includes(q) || j.title.toLowerCase().includes(q)) : base;
-  }, [allJobs, client, jobSearch]);
+    const filtered = q ? base.filter((j) => j.jobNumber.toLowerCase().includes(q) || j.title.toLowerCase().includes(q)) : base;
+    const dir = jobSortDir === "asc" ? 1 : -1;
+    return [...filtered].sort((a, b) => {
+      switch (jobSortField) {
+        case "totalPrice": return (a.totalPrice - b.totalPrice) * dir;
+        case "status": return a.status.localeCompare(b.status) * dir;
+        case "jobNumber": return a.jobNumber.localeCompare(b.jobNumber) * dir;
+        default: return a.startDate.localeCompare(b.startDate) * dir;
+      }
+    });
+  }, [allJobs, client, jobSearch, jobSortField, jobSortDir]);
+
+  const jobTotalPages = Math.max(1, Math.ceil(candidateJobs.length / jobPerPage));
+  const jobsPage = candidateJobs.slice((jobPage - 1) * jobPerPage, jobPage * jobPerPage);
+
   const toggleJob = (id: number) => {
     const next = new Set(selectedJobIds);
     next.has(id) ? next.delete(id) : next.add(id);
     setSelectedJobIds(next);
     if (next.size > 0) setAmount(String(allJobs.filter((j) => next.has(j.id)).reduce((s, j) => s + j.totalPrice, 0)));
   };
+  const toggleJobSort = (f: JobSortField) => {
+    if (jobSortField === f) setJobSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else { setJobSortField(f); setJobSortDir("asc"); }
+  };
+  const JobSortIcon = ({ field }: { field: JobSortField }) => (
+    <span className="material-icons ml-0.5 align-middle text-[#9AA3AF]" style={{ fontSize: "14px" }}>
+      {jobSortField === field ? (jobSortDir === "asc" ? "arrow_upward" : "arrow_downward") : "unfold_more"}
+    </span>
+  );
 
   // Manual card-entry fields (US): only used when method = "Type card manually".
   const [cardNumber, setCardNumber] = useState("");
@@ -74,7 +106,7 @@ export function CreatePayment() {
   const [cardZip, setCardZip] = useState("");
 
   // Card-on-file mock (in a real build this comes from the saved payment profile).
-  const cardOnFile = "Visa ···· 4242";
+  const cardOnFile = "Visa •••• •••• •••• 4242";
 
   const isCardOnFile = method === "Credit card on file";
   const isManualCard = method === "Type card manually";
@@ -83,8 +115,8 @@ export function CreatePayment() {
   const cardDigits = cardNumber.replace(/\D/g, "");
 
   const handleSave = () => {
-    const trimmedClient = client.trim();
-    if (!trimmedClient) { toast.error("Select a customer"); return; }
+    const isoDate = dmyToISO(dateText);
+    if (!isoDate) { toast.error("Enter the payment date (DD.MM.YYYY)"); return; }
     const parsedAmount = parseFloat(amount);
     if (!amount || isNaN(parsedAmount) || parsedAmount <= 0) { toast.error("Enter a valid amount"); return; }
 
@@ -104,16 +136,20 @@ export function CreatePayment() {
         ? cardOnFile
         : reference.trim();
 
+    // Client / job context: from the launch params, else from the selected job(s).
+    const selJobs = allJobs.filter((j) => selectedJobIds.has(j.id));
+    const effectiveClient = client.trim() || selJobs[0]?.client || "—";
+
     const record = paymentsStore.add({
-      date: paymentDate,
+      date: isoDate,
       amount: parsedAmount,
       method: method as PaymentMethod,
       status: "Completed" as PaymentStatus,
-      clientName: trimmedClient,
+      clientName: effectiveClient,
       clientEmail: searchParams.get("clientEmail") || "",
       invoiceId: Number(searchParams.get("invoiceId")) || 0,
       invoiceNumber: searchParams.get("invoice") || "—",
-      jobId: searchParams.get("job") || "",
+      jobId: searchParams.get("job") || selJobs[0]?.jobNumber || "",
       reference: ref,
       note: note.trim(),
       createdBy: "You",
@@ -126,10 +162,10 @@ export function CreatePayment() {
   const reqStar = <span className="text-[#DC2626]">*</span>;
   const labelCls = "text-[13px] text-[#374151] mb-1.5 block";
 
-  // Disable the submit button until the form is minimally valid.
+  // Disable the submit button until the form is minimally valid (Figma: muted by default).
   const amountValid = !!amount && !isNaN(parseFloat(amount)) && parseFloat(amount) > 0;
   const referenceValid = isCharge || reference.trim().length > 0; // external methods require a reference
-  const canSubmit = !!client.trim() && amountValid && !!paymentDate && referenceValid;
+  const canSubmit = amountValid && !!dmyToISO(dateText) && referenceValid;
 
   return (
     <div className="min-h-screen bg-[#F5F7FA]">
@@ -154,17 +190,13 @@ export function CreatePayment() {
           <div className="px-6 py-6 grid grid-cols-[120px_1fr] gap-6 border-b border-[#E5E7EB]">
             <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Details</div>
             <div className="grid grid-cols-2 gap-4">
-              {/* Customer field only when standalone (no client passed in) */}
-              {!prefilledClient && (
-                <div className="col-span-2">
-                  <label className={labelCls} style={{ fontWeight: 500 }}>Customer {reqStar}</label>
-                  <input value={client} onChange={(e) => setClient(e.target.value)} placeholder="Select or type a customer" className={inputCls} />
-                </div>
-              )}
-
               <div>
                 <label className={labelCls} style={{ fontWeight: 500 }}>Payment date {reqStar}</label>
-                <input type="date" value={paymentDate} onChange={(e) => setPaymentDate(e.target.value)} className={inputCls} />
+                <div className="relative">
+                  <input type="text" inputMode="numeric" maxLength={10} value={dateText} onChange={(e) => setDateText(e.target.value)} placeholder="DD.MM.YYYY" className={`${inputCls} pr-9`} />
+                  <input type="date" aria-label="Payment date" value={dmyToISO(dateText)} onChange={(e) => setDateText(isoToDMY(e.target.value))} className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 cursor-pointer opacity-0" />
+                  <span className="material-icons pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[#6B7280]" style={{ fontSize: "18px" }}>calendar_today</span>
+                </div>
               </div>
 
               <div>
@@ -176,11 +208,10 @@ export function CreatePayment() {
 
               {/* Method-dependent block */}
               {isCardOnFile ? (
-                <div>
-                  <label className={labelCls} style={{ fontWeight: 500 }}>Card on file</label>
-                  <div className="flex items-center gap-2.5 h-10 rounded-md border border-[#E5E7EB] bg-[#F8FAFC] px-3">
+                <div className="col-span-2">
+                  <div className="flex items-center gap-2.5 h-10 rounded-md border border-[#E5E7EB] bg-[#F8FAFC] px-3 max-w-[280px]">
                     <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "18px" }}>credit_card</span>
-                    <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>{cardOnFile}</span>
+                    <span className="text-[14px] text-[#1A2332] tracking-wide" style={{ fontWeight: 600 }}>{cardOnFile}</span>
                     <span className="material-icons text-[#16A34A] ml-auto" style={{ fontSize: "16px" }}>verified</span>
                   </div>
                 </div>
@@ -234,23 +265,24 @@ export function CreatePayment() {
             <div>
               <div className="relative mb-3">
                 <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: "18px" }}>search</span>
-                <input value={jobSearch} onChange={(e) => setJobSearch(e.target.value)} placeholder="Search jobs…" className={`${inputCls} pl-10`} />
+                <input value={jobSearch} onChange={(e) => { setJobSearch(e.target.value); setJobPage(1); }} placeholder="Search jobs…" className={`${inputCls} pl-10`} />
               </div>
               <div className="border border-[#E5E7EB] rounded-lg overflow-hidden">
                 <table className="w-full text-[14px]">
                   <thead>
                     <tr className="bg-[#F5F7FA] border-b border-[#E5E7EB] text-left text-[13px] text-[#6B7280]">
                       <th className="w-10 px-3 py-2" />
-                      <th className="px-3 py-2" style={{ fontWeight: 500 }}>Number</th>
-                      <th className="px-3 py-2" style={{ fontWeight: 500 }}>Scheduled</th>
-                      <th className="px-3 py-2" style={{ fontWeight: 500 }}>Status</th>
-                      <th className="px-3 py-2 text-right" style={{ fontWeight: 500 }}>Total</th>
+                      <th className="px-3 py-2 cursor-pointer select-none" style={{ fontWeight: 500 }} onClick={() => toggleJobSort("jobNumber")}><span className="inline-flex items-center">Number<JobSortIcon field="jobNumber" /></span></th>
+                      <th className="px-3 py-2 cursor-pointer select-none" style={{ fontWeight: 500 }} onClick={() => toggleJobSort("startDate")}><span className="inline-flex items-center">Scheduled<JobSortIcon field="startDate" /></span></th>
+                      <th className="px-3 py-2 cursor-pointer select-none" style={{ fontWeight: 500 }} onClick={() => toggleJobSort("status")}><span className="inline-flex items-center">Status<JobSortIcon field="status" /></span></th>
+                      <th className="px-3 py-2 text-right cursor-pointer select-none" style={{ fontWeight: 500 }} onClick={() => toggleJobSort("totalPrice")}><span className="inline-flex items-center justify-end">Total<JobSortIcon field="totalPrice" /></span></th>
+                      <th className="w-10 px-3 py-2" />
                     </tr>
                   </thead>
                   <tbody>
-                    {candidateJobs.length === 0 ? (
-                      <tr><td colSpan={5} className="px-3 py-6 text-center text-[13px] text-[#9CA3AF]">No jobs found</td></tr>
-                    ) : candidateJobs.map((j) => (
+                    {jobsPage.length === 0 ? (
+                      <tr><td colSpan={6} className="px-3 py-6 text-center text-[13px] text-[#9CA3AF]">No jobs found</td></tr>
+                    ) : jobsPage.map((j) => (
                       <tr key={j.id} onClick={() => toggleJob(j.id)}
                         className="border-b border-[#EDF0F5] last:border-0 hover:bg-[#F9FBFD] cursor-pointer">
                         <td className="px-3 py-2.5">
@@ -266,13 +298,37 @@ export function CreatePayment() {
                           <span className="px-2 py-0.5 rounded-md text-[12px]" style={{ fontWeight: 600, ...jobStatusStyle(j.status) }}>{j.status}</span>
                         </td>
                         <td className="px-3 py-2.5 text-right text-[#1A2332]" style={{ fontWeight: 600 }}>${j.totalPrice.toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
+                        <td className="px-3 py-2.5 text-right" onClick={(e) => e.stopPropagation()}>
+                          <KebabMenu>
+                            <KebabItem icon="visibility" onSelect={() => navigate(`/jobs/${j.id}`)}>View job</KebabItem>
+                            <KebabItem icon="open_in_new" onSelect={() => window.open(`/jobs/${j.id}`, "_blank", "noopener,noreferrer")}>Open in new tab</KebabItem>
+                          </KebabMenu>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-              <div className="mt-2 text-[12px] text-[#6B7280]">
-                {selectedJobIds.size > 0 ? `${selectedJobIds.size} selected · ` : ""}{candidateJobs.length} job{candidateJobs.length === 1 ? "" : "s"}
+              {/* Pagination */}
+              <div className="mt-2 flex items-center justify-between text-[12px] text-[#6B7280]">
+                <div className="flex items-center gap-2">
+                  <span>Rows per page:</span>
+                  <select value={jobPerPage} onChange={(e) => { setJobPerPage(Number(e.target.value)); setJobPage(1); }} className="h-8 px-2 border border-[#E5E7EB] rounded-md text-[13px] text-[#1A2332] bg-white focus:outline-none focus:border-[#4A6FA5]">
+                    {[10, 25, 50].map((n) => <option key={n} value={n}>{n}</option>)}
+                  </select>
+                  <span>
+                    {candidateJobs.length === 0 ? "0-0" : `${(jobPage - 1) * jobPerPage + 1}-${Math.min(jobPage * jobPerPage, candidateJobs.length)}`} of {candidateJobs.length}
+                    {selectedJobIds.size > 0 ? ` · ${selectedJobIds.size} selected` : ""}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <button type="button" disabled={jobPage === 1} onClick={() => setJobPage((p) => Math.max(1, p - 1))} className="w-7 h-7 flex items-center justify-center rounded-md text-[#1A2332] hover:bg-[#F3F4F6] disabled:opacity-40 disabled:cursor-not-allowed">
+                    <span className="material-icons" style={{ fontSize: "18px" }}>chevron_left</span>
+                  </button>
+                  <button type="button" disabled={jobPage >= jobTotalPages} onClick={() => setJobPage((p) => Math.min(jobTotalPages, p + 1))} className="w-7 h-7 flex items-center justify-center rounded-md text-[#1A2332] hover:bg-[#F3F4F6] disabled:opacity-40 disabled:cursor-not-allowed">
+                    <span className="material-icons" style={{ fontSize: "18px" }}>chevron_right</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -291,7 +347,7 @@ export function CreatePayment() {
           {/* Notes section */}
           <div className="px-6 py-6 grid grid-cols-[120px_1fr] gap-6">
             <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Notes</div>
-            <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Add any relevant note…"
+            <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Add any relevant notes…"
               className="w-full min-h-[80px] px-3 py-2 border border-[#E5E7EB] rounded-md text-[14px] text-[#1A2332] focus:outline-none focus:border-[#4A6FA5] resize-y" />
           </div>
 
