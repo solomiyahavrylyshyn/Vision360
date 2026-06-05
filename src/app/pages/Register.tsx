@@ -131,11 +131,11 @@ export function Register() {
           <form onSubmit={handleRegister} className="space-y-5">
             <div className="space-y-1.5">
               <Label className="text-sm font-semibold text-[#1A2332]">
-                Email <span className="text-red-500">*</span>
+                Email address <span className="text-red-500">*</span>
               </Label>
               <Input
                 type="email"
-                placeholder="name@company.com"
+                placeholder="example@email.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="h-11 border-[#E5E7EB] focus-visible:ring-[#4A6FA5] bg-[#F5F7FA] focus:bg-white transition-colors"
@@ -250,7 +250,7 @@ export function Register() {
               className="w-full h-12 text-base font-semibold bg-[#4A6FA5] hover:bg-[#3d5a85] transition-colors mt-4"
               disabled={!acceptTerms || password.length === 0}
             >
-              Create Account
+              Continue
             </Button>
           </form>
 
