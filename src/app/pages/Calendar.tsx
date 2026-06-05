@@ -1655,10 +1655,12 @@ export function Calendar() {
 	                <div className="flex items-center justify-between px-4 py-3.5 border-b border-[#E5E7EB] shrink-0">
 	                  <div className="flex items-center gap-2 flex-wrap min-w-0">
 	                    <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 700 }}>Job #{selectedDispatchJob.num}</span>
-	                    <StatusPillSelect
-	                      value={selectedDispatchJob.status}
-	                      onChange={(next) => updateWeekStatus(selectedDispatchJob.id, next)}
-	                    />
+	                    {!selectedDispatchJob.unscheduled && (
+	                      <StatusPillSelect
+	                        value={selectedDispatchJob.status}
+	                        onChange={(next) => updateWeekStatus(selectedDispatchJob.id, next)}
+	                      />
+	                    )}
 	                    {schedulingTags(selectedDispatchJob).map((label) => (
 	                      <span key={label} className="px-2 py-0.5 rounded-full text-[10px]" style={{ backgroundColor: "rgba(107,114,128,0.15)", color: "#6B7280", fontWeight: 600 }}>{label}</span>
 	                    ))}
@@ -2027,10 +2029,17 @@ export function Calendar() {
                 <div className="flex items-center justify-between px-4 py-3.5 border-b border-[#E5E7EB] shrink-0">
                   <div className="flex items-center gap-2 flex-wrap min-w-0">
                     <span className="text-[14px] text-[#1A2332] truncate" style={{ fontWeight: 700 }}>Job #{selectedDayJob.id}</span>
-                    <StatusPillSelect
-                      value={selectedDayJob.status}
-                      onChange={(next) => updateDayStatus(selectedDayJob.id, next)}
-                    />
+                    {/* Hide the workflow-status pill when the job has no date —
+                        a "Scheduled" workflow status next to the "Unscheduled"
+                        chip reads as a contradiction. Unscheduled jobs show only
+                        their derived scheduling chips; the pill returns once the
+                        job has a date. */}
+                    {!selectedDayJob.unscheduled && (
+                      <StatusPillSelect
+                        value={selectedDayJob.status}
+                        onChange={(next) => updateDayStatus(selectedDayJob.id, next)}
+                      />
+                    )}
                     {schedulingTags(selectedDayJob).map((label) => (
                       <span key={label} className="px-2 py-0.5 rounded-full text-[10px]" style={{ backgroundColor: "rgba(107,114,128,0.15)", color: "#6B7280", fontWeight: 600 }}>{label}</span>
                     ))}
