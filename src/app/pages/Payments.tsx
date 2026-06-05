@@ -2,7 +2,7 @@ import { useState, useMemo, useSyncExternalStore } from "react";
 import { useNavigate } from "react-router";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
-import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
+import { KebabMenu, KebabItem } from "../components/ui/kebab-menu";
 import { useDraggableColumns, DraggableTh } from "../components/ui/draggable-columns";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { PageHeader } from "../components/ui/page-header";
@@ -13,6 +13,7 @@ import { AdvancedFilterField, AdvancedFilterPanel, advancedInputClass, advancedS
 import { formatRegionalDate } from "../stores/regionalSettingsStore";
 import { paymentsStore } from "../stores/paymentsStore";
 import { PAYMENT_METHODS, paymentMethodIcon } from "../constants/paymentMethods";
+import { toast } from "sonner";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 // PaymentMethod is loose (string) so legacy seed values (e.g. "ACH") still
@@ -298,12 +299,9 @@ export function Payments() {
                 Record Payment
               </CreateActionButton>
               <KebabMenu triggerClassName="w-10 h-10 border border-[#D8DEE8] rounded-xl bg-white">
-                <KebabItem icon="view_column">Edit Columns</KebabItem>
-                <KebabItem icon="swap_horiz">Change Status</KebabItem>
-                <KebabItem icon="content_copy">Manage Duplicates</KebabItem>
-                <KebabSeparator />
-                <KebabItem icon="file_upload">Import</KebabItem>
-                <KebabItem icon="file_download">Export</KebabItem>
+                <KebabItem icon="view_column">Edit columns</KebabItem>
+                <KebabItem icon="file_upload" onClick={() => toast.info("Import payments — choose a CSV to upload")}>Upload</KebabItem>
+                <KebabItem icon="file_download" onClick={() => toast.success(`Exporting ${filtered.length} payment${filtered.length === 1 ? "" : "s"}…`)}>Download</KebabItem>
               </KebabMenu>
             </div>
           </div>
@@ -344,15 +342,32 @@ export function Payments() {
             onDeselect={() => setSelectedIds(new Set())}
             actions={[
               {
-                label: "Refund selected",
-                icon: "undo",
-                destructive: true,
+                label: "Change status",
+                icon: "cached",
                 onClick: () => {
-                  selectedIds.forEach(id => paymentsStore.update(id, { status: "Refunded" }));
+                  const n = selectedIds.size;
+                  selectedIds.forEach(id => paymentsStore.update(id, { status: "Completed" }));
                   setSelectedIds(new Set());
+                  toast.success(`Marked ${n} payment${n === 1 ? "" : "s"} as Completed`);
                 },
               },
-              { label: "Export", icon: "file_download", onClick: () => {} },
+              {
+                label: "Download",
+                icon: "file_download",
+                onClick: () => {
+                  toast.success(`Exporting ${selectedIds.size} payment${selectedIds.size === 1 ? "" : "s"}…`);
+                },
+              },
+              {
+                label: "Refund",
+                icon: "undo",
+                onClick: () => {
+                  const n = selectedIds.size;
+                  selectedIds.forEach(id => paymentsStore.update(id, { status: "Refunded" }));
+                  setSelectedIds(new Set());
+                  toast.success(`Refunded ${n} payment${n === 1 ? "" : "s"}`);
+                },
+              },
             ]}
           />
           <div className="overflow-x-auto">
@@ -461,12 +476,12 @@ export function Payments() {
                       })}
                       <td className="px-4 py-4" onClick={e => e.stopPropagation()}>
                         <KebabMenu>
-                          <KebabItem icon="visibility" onSelect={() => navigate(`/payments/${p.id}`)}>View details</KebabItem>
-                          <KebabItem icon="receipt" onSelect={() => navigate(`/invoices/${p.invoiceId}`)}>Open invoice</KebabItem>
-                          <KebabSeparator />
-                          <KebabItem icon="undo" destructive onSelect={() => {
+                          <KebabItem icon="description" onSelect={() => navigate(`/invoices/new?client=${encodeURIComponent(p.clientName)}&returnTo=${encodeURIComponent("/payments")}`)}>Make invoice</KebabItem>
+                          <KebabItem icon="undo" onSelect={() => {
                             paymentsStore.update(p.id, { status: "Refunded" });
+                            toast.success(`Refunded P-${1000 + p.id}`);
                           }}>Refund</KebabItem>
+                          <KebabItem icon="open_in_new" onSelect={() => window.open(`/payments/${p.id}`, "_blank", "noopener,noreferrer")}>Open in new tab</KebabItem>
                         </KebabMenu>
                       </td>
                     </tr>
