@@ -57,7 +57,7 @@ describe("Calendar — daily Dispatch board (integration)", () => {
     expect(screen.getByRole("option", { name: "Show all" })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: "Show unassigned" })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: "Show unscheduled" })).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: "Show scheduled" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Show scheduled today" })).toBeInTheDocument();   // scope-aware label (day view)
     expect(screen.getByRole("option", { name: "Show paused" })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: "Show unassigned + unscheduled" })).toBeInTheDocument();
   });
@@ -265,6 +265,18 @@ describe("Calendar — week view (integration)", () => {
     expect(screen.getAllByText("Peter Novak")).toHaveLength(1);
     expect(screen.getAllByText("Travis Brown")).toHaveLength(1);
     expect(screen.getAllByText("Maria Garcia")).toHaveLength(1);
+  });
+
+  it("the 'scheduled' filter label is scope-aware (week → 'Show scheduled this week')", () => {
+    // Marek: the chip must read the current calendar window, not a bare
+    // "Scheduled". Day → today, week → this week, month → this month.
+    render(
+      <MemoryRouter initialEntries={["/calendar"]}>
+        <Calendar />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole("option", { name: "Show scheduled this week" })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: "Show scheduled today" })).not.toBeInTheDocument();
   });
 
   it("shows the Pending drawer with week pending jobs", () => {

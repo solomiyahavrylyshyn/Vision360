@@ -548,11 +548,25 @@ export function Calendar() {
     [jobs],
   );
 
+  // Month pending is windowed to the visible MONTH — so "Scheduled this month"
+  // surfaces everything dated this month that still needs an owner (Marek's
+  // production-manager rollup) — plus the date-agnostic unscheduled jobs.
+  const monthPendingView: DayJob[] = useMemo(
+    () => jobs
+      .filter((j) => j.unscheduled || (j.date != null && isSameMonth(j.date, currentDate)))
+      .map((j) => ({ id: j.id, technicianId: j.technicianId, start: j.start, end: j.end, client: j.client, service: j.service, address: j.address, status: j.status, amount: j.amount, bg: j.bg, border: j.border, jobType: j.jobType, unscheduled: j.unscheduled })),
+    [jobs, currentDate],
+  );
   // Pending sidebar = the ACTIVE view's window of the same collection — so the
-  // "scheduled" filter reflects the calendar's current scope (Acceptance Check 5).
-  const pendingSource: (DayJob | DispatchJob)[] = viewMode === "week" ? weekJobsView : dayJobsView;
+  // "scheduled" filter reflects the calendar's current scope (Acceptance Check 5):
+  // day → today, week → this week, month → this month.
+  const pendingSource: (DayJob | DispatchJob)[] = viewMode === "week" ? weekJobsView : viewMode === "month" ? monthPendingView : dayJobsView;
   const pendingBucket = pendingSource.filter(isPending);
   const pendingDayJobs = pendingJobs(pendingSource, pendingFilter);
+  // Scope-aware label for the "scheduled" filter (Marek: the chip must read
+  // "Scheduled today / this week / this month", not a bare "Scheduled", so it's
+  // clearly the current calendar window — not all scheduled jobs ever).
+  const scheduledScopeLabel = viewMode === "month" ? "Scheduled this month" : viewMode === "week" ? "Scheduled this week" : "Scheduled today";
 
   // Week view defaults to ALL days collapsed except today (per the design).
   // Resets whenever the visible week changes; user toggles persist within a
@@ -1138,7 +1152,7 @@ export function Calendar() {
           <option value="all">Show all</option>
           <option value="unassigned">Show unassigned</option>
           <option value="unscheduled">Show unscheduled</option>
-          <option value="scheduled">Show scheduled</option>
+          <option value="scheduled">Show {scheduledScopeLabel.toLowerCase()}</option>
           <option value="paused">Show paused</option>
           <option value="both">Show unassigned + unscheduled</option>
         </select>
@@ -1147,7 +1161,7 @@ export function Calendar() {
         {pendingDayJobs.length === 0 ? (
           <div className="py-10 text-center">
             <span className="material-icons text-[#D1D5DB] mb-1 block" style={{ fontSize: "32px" }}>check_circle</span>
-            <div className="text-[12px] text-[#9CA3AF]">{pendingFilter === "all" ? "Nothing pending" : pendingFilter === "both" ? "No unassigned + unscheduled jobs" : `No ${pendingFilter} jobs`}</div>
+            <div className="text-[12px] text-[#9CA3AF]">{pendingFilter === "all" ? "Nothing pending" : pendingFilter === "both" ? "No unassigned + unscheduled jobs" : pendingFilter === "scheduled" ? `No jobs ${scheduledScopeLabel.toLowerCase()}` : `No ${pendingFilter} jobs`}</div>
           </div>
         ) : (
           pendingDayJobs.map((job) => {
