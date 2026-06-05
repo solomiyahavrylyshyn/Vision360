@@ -648,7 +648,7 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div>
       <div
-        className="text-[11px] uppercase tracking-wider text-[#546478] mb-1"
+        className="text-[12px] text-[#546478] mb-1"
         style={{ fontWeight: 600 }}
       >
         {label}
