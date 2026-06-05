@@ -173,10 +173,15 @@ interface QuickJobDraft {
   service: string;
   address: string;
   amount: string;
-  // When set, this dialog RESCHEDULES an existing job (updates it in place,
-  // preserving its identity) instead of creating a new one. null/undefined =
-  // create. This is what keeps "Reschedule" distinct from "Create" (brief §6).
+  // When set, this dialog EDITS an existing job in place (updates it, preserving
+  // its identity) instead of creating a new one. null/undefined = create. This
+  // is what keeps "Reschedule"/"Edit" distinct from "Create" (brief §6).
   editJobId?: number;
+  // true = full Edit (customer/service/address are editable). false/undefined =
+  // Reschedule (identity locked; only date/time/assignee change). Both update in
+  // place — this is the demo-safe Edit that avoids navigating to /jobs/:id, whose
+  // records don't match the calendar's per-view jobs (the BUG-002 mismatch).
+  editIdentity?: boolean;
 }
 
 interface DropPreview {
@@ -577,6 +582,31 @@ export function Calendar() {
       address: job.address,
       amount: String(job.amount ?? 0),
       editJobId: job.id,
+    });
+  };
+
+  // Full Edit of an existing job, in place (BUG-002 demo-safe fix). Same as
+  // reschedule but the identity fields are editable. Crucially this does NOT
+  // navigate to /jobs/:id — the calendar's per-view jobs aren't in jobsStore, so
+  // that route falls back to an unrelated mock record. Edits the actual job.
+  const openEditJob = (view: "day" | "week", job: DayJob | DispatchJob) => {
+    if (!isDraggable(job.status)) return; // completed/cancelled are locked (§7.3)
+    const dayIdx = view === "week" ? (job as DispatchJob).dayIdx : undefined;
+    const date = view === "week" ? (weekDays[dayIdx ?? 0] ?? weekDays[0]) : currentDate;
+    setConflictMessage(null);
+    setQuickJobDraft({
+      view,
+      date,
+      dayIdx,
+      technicianId: job.technicianId,
+      start: job.start,
+      end: job.end,
+      client: job.client,
+      service: job.service,
+      address: job.address,
+      amount: String(job.amount ?? 0),
+      editJobId: job.id,
+      editIdentity: true,
     });
   };
 
@@ -1621,7 +1651,7 @@ export function Calendar() {
 	                    {selectedDispatchJob.status === "Scheduled" ? "Start Job" : selectedDispatchJob.status === "In Progress" ? "Complete Job" : "Reopen Job"}
 	                  </button>
                   <div className="flex gap-2">
-                    <button onClick={() => navigate(`/jobs/${selectedDispatchJob.id}`)} className="flex-1 py-2 border border-[#E5E7EB] text-[#546478] rounded-lg text-[12px] hover:bg-[#F5F7FA] transition-colors" style={{ fontWeight: 500 }}>Edit</button>
+                    <button onClick={() => openEditJob("week", selectedDispatchJob)} disabled={!isDraggable(selectedDispatchJob.status)} title={!isDraggable(selectedDispatchJob.status) ? "Completed/cancelled jobs can't be edited" : undefined} className="flex-1 py-2 border border-[#E5E7EB] text-[#546478] rounded-lg text-[12px] hover:bg-[#F5F7FA] transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent" style={{ fontWeight: 500 }}>Edit</button>
                     <button onClick={() => openReschedule("week", selectedDispatchJob)} disabled={!isDraggable(selectedDispatchJob.status)} title={!isDraggable(selectedDispatchJob.status) ? "Completed/cancelled jobs can't be rescheduled" : undefined} className="flex-1 py-2 border border-[#E5E7EB] text-[#546478] rounded-lg text-[12px] hover:bg-[#F5F7FA] transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent" style={{ fontWeight: 500 }}>Reschedule</button>
                   </div>
                   {!isPending(selectedDispatchJob) && isDraggable(selectedDispatchJob.status) && (
@@ -1994,7 +2024,7 @@ export function Calendar() {
                     {selectedDayJob.status === "Scheduled" ? "Start Job" : selectedDayJob.status === "In Progress" ? "Complete Job" : "Reopen Job"}
                   </button>
                   <div className="flex gap-2">
-                    <button onClick={() => navigate(`/jobs/${selectedDayJob.id}`)} className="flex-1 py-2 border border-[#E5E7EB] text-[#546478] rounded-lg text-[12px] hover:bg-[#F5F7FA] transition-colors" style={{ fontWeight: 500 }}>Edit</button>
+                    <button onClick={() => openEditJob("day", selectedDayJob)} disabled={!isDraggable(selectedDayJob.status)} title={!isDraggable(selectedDayJob.status) ? "Completed/cancelled jobs can't be edited" : undefined} className="flex-1 py-2 border border-[#E5E7EB] text-[#546478] rounded-lg text-[12px] hover:bg-[#F5F7FA] transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent" style={{ fontWeight: 500 }}>Edit</button>
                     <button onClick={() => openReschedule("day", selectedDayJob)} disabled={!isDraggable(selectedDayJob.status)} title={!isDraggable(selectedDayJob.status) ? "Completed/cancelled jobs can't be rescheduled" : undefined} className="flex-1 py-2 border border-[#E5E7EB] text-[#546478] rounded-lg text-[12px] hover:bg-[#F5F7FA] transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent" style={{ fontWeight: 500 }}>Reschedule</button>
                   </div>
                   {/* Reliable (no-drag) way to send a scheduled job back to Pending:
@@ -2094,7 +2124,7 @@ export function Calendar() {
             onClick={(event) => event.stopPropagation()}
           >
             <div className="px-5 py-4 border-b border-[#E5E7EB] flex items-center justify-between sticky top-0 bg-white z-10">
-              <div className="text-[18px] text-[#1A2332]" style={{ fontWeight: 600 }}>{quickJobDraft.editJobId != null ? `Reschedule job #${quickJobDraft.editJobId}` : "Create job"}</div>
+              <div className="text-[18px] text-[#1A2332]" style={{ fontWeight: 600 }}>{quickJobDraft.editJobId == null ? "Create job" : quickJobDraft.editIdentity ? `Edit job #${quickJobDraft.editJobId}` : `Reschedule job #${quickJobDraft.editJobId}`}</div>
               <button type="button" onClick={() => setQuickJobDraft(null)} aria-label="Close" className="w-8 h-8 rounded-lg hover:bg-[#F5F7FA] flex items-center justify-center">
                 <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>close</span>
               </button>
@@ -2103,7 +2133,7 @@ export function Calendar() {
             <div className="p-5 space-y-3">
               <label className="block">
                 <span className="block text-[11px] text-[#8899AA] mb-1" style={{ fontWeight: 700 }}>Customer</span>
-                {quickJobDraft.editJobId != null ? (
+                {quickJobDraft.editJobId != null && !quickJobDraft.editIdentity ? (
                   // Reschedule keeps the job's identity — customer is read-only.
                   <div className="w-full h-10 rounded-lg border border-[#E5E7EB] px-3 text-[13px] bg-[#F9FAFB] text-[#1A2332] flex items-center">{quickJobDraft.client}</div>
                 ) : (
@@ -2117,14 +2147,16 @@ export function Calendar() {
                   }}
                   className="w-full h-10 rounded-lg border border-[#D8DCE6] px-3 text-[13px] outline-none focus:border-[#4A6FA5] bg-white"
                 >
-                  {CUSTOMERS.map((c) => (<option key={c.name} value={c.name}>{c.name}</option>))}
+                  {/* Inject the job's current client so Edit displays it even when
+                      it isn't one of the canned CUSTOMERS (calendar seed names). */}
+                  {[...new Set([quickJobDraft.client, ...CUSTOMERS.map((c) => c.name)])].map((name) => (<option key={name} value={name}>{name}</option>))}
                 </select>
                 )}
               </label>
               <div className="grid grid-cols-2 gap-3">
                 <label className="block">
                   <span className="block text-[11px] text-[#8899AA] mb-1" style={{ fontWeight: 700 }}>Service</span>
-                  {quickJobDraft.editJobId != null ? (
+                  {quickJobDraft.editJobId != null && !quickJobDraft.editIdentity ? (
                   <div className="w-full h-10 rounded-lg border border-[#E5E7EB] px-3 text-[13px] bg-[#F9FAFB] text-[#1A2332] flex items-center truncate">{quickJobDraft.service}</div>
                   ) : (
                   <select
@@ -2132,7 +2164,7 @@ export function Calendar() {
                     onChange={(event) => setQuickJobDraft({ ...quickJobDraft, service: event.target.value })}
                     className="w-full h-10 rounded-lg border border-[#D8DCE6] px-3 text-[13px] outline-none focus:border-[#4A6FA5] bg-white"
                   >
-                    {jobTypes.map((t) => (<option key={t} value={t}>{t}</option>))}
+                    {[...new Set([quickJobDraft.service, ...jobTypes])].map((t) => (<option key={t} value={t}>{t}</option>))}
                   </select>
                   )}
                 </label>
@@ -2179,7 +2211,7 @@ export function Calendar() {
               </div>
               <label className="block">
                 <span className="block text-[11px] text-[#8899AA] mb-1" style={{ fontWeight: 700 }}>Address</span>
-                {quickJobDraft.editJobId != null ? (
+                {quickJobDraft.editJobId != null && !quickJobDraft.editIdentity ? (
                   <div className="w-full h-10 rounded-lg border border-[#E5E7EB] px-3 text-[13px] bg-[#F9FAFB] text-[#1A2332] flex items-center truncate">{quickJobDraft.address}</div>
                 ) : (
                 <select
@@ -2187,7 +2219,7 @@ export function Calendar() {
                   onChange={(event) => setQuickJobDraft({ ...quickJobDraft, address: event.target.value })}
                   className="w-full h-10 rounded-lg border border-[#D8DCE6] px-3 text-[13px] outline-none focus:border-[#4A6FA5] bg-white"
                 >
-                  {(CUSTOMERS.find((c) => c.name === quickJobDraft.client)?.locations ?? []).map((loc) => (
+                  {[...new Set([quickJobDraft.address, ...(CUSTOMERS.find((c) => c.name === quickJobDraft.client)?.locations ?? [])])].filter(Boolean).map((loc) => (
                     <option key={loc} value={loc}>{loc}</option>
                   ))}
                 </select>

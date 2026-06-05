@@ -200,6 +200,23 @@ describe("Calendar — daily Dispatch board (integration)", () => {
     fireEvent.click(screen.getAllByText("Miller Residence")[0].closest('[data-job-card="true"]') as HTMLElement);
     expect(screen.getByRole("button", { name: "Reschedule" })).toBeEnabled();
   });
+
+  it("Edit opens an in-place dialog for the SAME job (BUG-002: no nav to a mismatched record)", () => {
+    // QA BUG-002: Edit navigated to /jobs/:id, which (for a calendar job not in
+    // jobsStore) fell back to an unrelated mock record. Edit now edits in place.
+    renderDayBoard();
+    fireEvent.click(screen.getAllByText("Miller Residence")[0].closest('[data-job-card="true"]') as HTMLElement);
+    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+    expect(screen.getByText("Edit job #1")).toBeInTheDocument();                  // the clicked job, in place
+    expect(screen.getByDisplayValue("Miller Residence")).toBeInTheDocument();     // its real client, editable
+    expect(screen.getByRole("button", { name: "Save changes" })).toBeInTheDocument();
+  });
+
+  it("lifecycle lock: a completed job's Edit button is disabled (§7.3)", () => {
+    renderDayBoard();
+    fireEvent.click(screen.getAllByText("Johnson Residence")[0].closest('[data-job-card="true"]') as HTMLElement);
+    expect(screen.getByRole("button", { name: "Edit" })).toBeDisabled();
+  });
 });
 
 // Week view (Figma node 759:5307): a vertical stack of expandable day sections,
