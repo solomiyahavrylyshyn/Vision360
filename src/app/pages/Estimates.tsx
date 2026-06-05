@@ -49,11 +49,15 @@ interface Client {
 const primaryStatuses: EstimateStatus[] = ["Draft", "Sent", "Viewed", "Approved", "Rejected", "Expired"];
 const otherStatuses: EstimateStatus[] = ["Archived"];
 
+// Status badge colours aligned to the Figma estimates page (verified node
+// 523:31958): semantic-token text colour + the same colour at 15% as the badge
+// background. Draft = purple, Sent = accent blue, Viewed = warning, Approved =
+// success, Rejected = destructive, Expired = neutral.
 const statusColors: Record<EstimateStatus, string> = {
-  Draft: "#6B7280",
-  Sent: "#1E40AF",
-  Viewed: "#92400E",
-  Approved: "#166534",
+  Draft: "#9333EA",
+  Sent: "#4A6FA5",
+  Viewed: "#F59E0B",
+  Approved: "#16A34A",
   Rejected: "#DC2626",
   Expired: "#6B7280",
   Archived: "#4B5563",
@@ -61,14 +65,14 @@ const statusColors: Record<EstimateStatus, string> = {
 };
 
 const statusBg: Record<EstimateStatus, string> = {
-  Draft: "#F3F4F6",
-  Sent: "#DBEAFE",
-  Viewed: "#FEF3C7",
-  Approved: "#DCFCE7",
-  Rejected: "#FEE2E2",
-  Expired: "#F3F4F6",
-  Archived: "#E5E7EB",
-  Converted: "#EBF0F8",
+  Draft: "rgba(147,51,234,0.15)",
+  Sent: "rgba(74,111,165,0.15)",
+  Viewed: "rgba(245,158,11,0.15)",
+  Approved: "rgba(22,163,74,0.15)",
+  Rejected: "rgba(220,38,38,0.15)",
+  Expired: "rgba(107,114,128,0.15)",
+  Archived: "rgba(75,85,99,0.15)",
+  Converted: "rgba(74,111,165,0.15)",
 };
 
 const avatarColors = ["#4A6FA5", "#3B82F6", "#8B5CF6", "#D97706", "#10B981", "#DC2626"];
@@ -80,12 +84,14 @@ function getAvatarColor(name: string) {
 }
 
 const ESTIMATES_COLS = [
+  // Figma column order (node 523:31958): Estimate · Client · Job · Technician ·
+  // Status · Amount, then the optional date/deposit columns.
   { key: "estimate",       label: "Estimate",        sortable: true },
   { key: "client",         label: "Client",           sortable: true },
-  { key: "status",         label: "Status",           sortable: true },
-  { key: "amount",         label: "Amount",           sortable: true },
   { key: "job",            label: "Job" },
   { key: "technician",     label: "Technician" },
+  { key: "status",         label: "Status",           sortable: true },
+  { key: "amount",         label: "Amount",           sortable: true },
   { key: "created",        label: "Created",          sortable: true },
   { key: "sentDate",       label: "Sent Date" },
   { key: "expirationDate", label: "Expiration Date" },
@@ -437,7 +443,7 @@ export function Estimates() {
           </div>
           <div className="w-px h-5 bg-[#E5E7EB] mx-1" />
           <select value={qfStatus} onChange={e => { setQfStatus(e.target.value as any); setPage(1); }} className={qfClass(qfStatus !== "All")}>
-            <option value="All">All statuses</option>
+            <option value="All">Status: All</option>
             {primaryStatuses.map(s => <option key={s} value={s}>{s}</option>)}
             <option disabled>── other options ──</option>
             {otherStatuses.map(s => <option key={s} value={s}>{s}</option>)}

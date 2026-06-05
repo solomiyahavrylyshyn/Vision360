@@ -17,4 +17,18 @@ describe("Estimates — estimate number sub-line", () => {
     const numbers = screen.getAllByText(/^\d{4,6}-E\d{2}$/);
     expect(numbers.length).toBeGreaterThan(0);
   });
+
+  it("renders columns in Figma order: Estimate · Client · Job · Technician · Status · Amount", () => {
+    render(
+      <MemoryRouter initialEntries={["/estimates"]}>
+        <Estimates />
+      </MemoryRouter>,
+    );
+    const wanted = ["Estimate", "Client", "Job", "Technician", "Status", "Amount"];
+    const headers = screen.getAllByRole("columnheader").map((th) => th.textContent?.trim() || "");
+    const seq = headers
+      .map((t) => wanted.find((w) => t.startsWith(w)))
+      .filter((w): w is string => Boolean(w));
+    expect(seq).toEqual(wanted);
+  });
 });

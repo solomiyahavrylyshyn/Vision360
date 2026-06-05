@@ -401,7 +401,7 @@ export function CreateEstimate() {
             Terms &amp; Conditions apply to this estimate
           </div>
           <button className="text-[13px] text-[#4A6FA5] hover:underline" style={{ fontWeight: 500 }}>
-            See all terms and conditions →
+            View terms and conditions
           </button>
         </div>
 
