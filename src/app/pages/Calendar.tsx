@@ -2180,8 +2180,9 @@ export function Calendar() {
           </div>
         )}
 
-        {/* ── Route map nested inside the schedule card (day view), matches Figma ── */}
-        {viewMode === "day" && (
+        {/* ── Route map nested inside the schedule card (Day + Week, matches Figma;
+             shows the focused day's route — routing is a per-day concept). Month omits it. ── */}
+        {viewMode !== "month" && (
           <div className="border-t border-[#E5E7EB] bg-white shrink-0">
             <div className="px-4 pt-4 pb-3">
               <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 700 }}>Route map</div>
