@@ -2,7 +2,7 @@ import { useState, useMemo, useSyncExternalStore } from "react";
 import { useNavigate } from "react-router";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
-import { KebabMenu, KebabItem } from "../components/ui/kebab-menu";
+import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
 import { useDraggableColumns, DraggableTh } from "../components/ui/draggable-columns";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { PageHeader } from "../components/ui/page-header";
@@ -82,6 +82,9 @@ const PAYMENTS_COLS = [
   { key: "note", label: "Note" },
 ] as const;
 
+// Columns offered in the "Edit columns" picker. "number" is locked-on (always shown).
+const PAYMENT_TOGGLE_COLS = ["client", "invoice", "method", "status", "total", "note"] as const;
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function qfClass(active: boolean) {
   return `h-8 pl-3 pr-6 border rounded-lg text-[13px] bg-white cursor-pointer focus:outline-none transition-colors ${
@@ -125,6 +128,15 @@ export function Payments() {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
+
+  // Column visibility (Number is always shown) — Figma "Edit columns" dialog
+  const [visibleColumns, setVisibleColumns] = useState<Set<string>>(new Set(PAYMENT_TOGGLE_COLS));
+  const [pendingColumns, setPendingColumns] = useState<Set<string>>(new Set(PAYMENT_TOGGLE_COLS));
+  const [editColumnsOpen, setEditColumnsOpen] = useState(false);
+
+  // Bulk "Change status" dialog (opened from the selection bar)
+  const [changeStatusOpen, setChangeStatusOpen] = useState(false);
+  const [changeStatusValue, setChangeStatusValue] = useState<PaymentStatus>("Completed");
 
 
 
@@ -196,6 +208,8 @@ export function Payments() {
   const paginated = filtered.slice((page - 1) * perPage, page * perPage);
   const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
   const allSelected = paginated.length > 0 && paginated.every(p => selectedIds.has(p.id));
+  // Number is locked-on; the rest follow the Edit-columns selection.
+  const visibleCols = cols.filter(c => c.key === "number" || visibleColumns.has(c.key));
 
 
   return (
@@ -254,7 +268,19 @@ export function Payments() {
       <div className={`flex gap-6`}>
         {/* Table */}
         <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden w-full">
-          {/* Filter bar */}
+          {/* Toolbar — replaced by the bulk-action bar once one or more rows are selected
+              (filter first, then select; only ever one toolbar line). */}
+          {selectedIds.size > 0 ? (
+            <SelectionBar
+              count={selectedIds.size}
+              onDeselect={() => setSelectedIds(new Set())}
+              actions={[
+                { label: "Change status", icon: "cached", onClick: () => setChangeStatusOpen(true) },
+                { label: "Download", icon: "file_download", onClick: () => toast.success(`Exporting ${selectedIds.size} payment${selectedIds.size === 1 ? "" : "s"}…`) },
+                { label: "Refund", icon: "undo", onClick: () => { const n = selectedIds.size; selectedIds.forEach(id => paymentsStore.update(id, { status: "Refunded" })); setSelectedIds(new Set()); toast.success(`Refunded ${n} payment${n === 1 ? "" : "s"}`); } },
+              ]}
+            />
+          ) : (
           <div className="flex items-center gap-2 px-4 py-3 bg-white border-b border-[#E5E7EB]">
             <div className="relative">
               <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: "18px" }}>search</span>
@@ -299,29 +325,33 @@ export function Payments() {
                 Record Payment
               </CreateActionButton>
               <KebabMenu triggerClassName="w-10 h-10 border border-[#D8DEE8] rounded-xl bg-white">
-                <KebabItem icon="view_column">Edit columns</KebabItem>
+                <KebabItem icon="view_column" onSelect={() => { setPendingColumns(new Set(visibleColumns)); setEditColumnsOpen(true); }}>Edit columns</KebabItem>
+                <KebabSeparator />
                 <KebabItem icon="file_upload" onClick={() => toast.info("Import payments — choose a CSV to upload")}>Upload</KebabItem>
                 <KebabItem icon="file_download" onClick={() => toast.success(`Exporting ${filtered.length} payment${filtered.length === 1 ? "" : "s"}…`)}>Download</KebabItem>
               </KebabMenu>
             </div>
           </div>
+          )}
           {filterOpen && (
             <AdvancedFilterPanel
+              title="Filter"
+              className="w-[400px]"
               onClose={() => setFilterOpen(false)}
-              onClear={() => { resetAdvancedFilters(); setFilterOpen(false); }}
+              onClear={() => { resetAdvancedFilters(); setQfStatus("All"); setFilterOpen(false); }}
               onApply={() => setFilterOpen(false)}
             >
-              <AdvancedFilterField label="Date from">
-                <input type="date" value={dateFrom} onChange={(e) => { setDateFrom(e.target.value); setPage(1); }} className={advancedInputClass} />
+              <AdvancedFilterField label="Date from & to">
+                <div className="grid grid-cols-2 gap-3">
+                  <input type="date" value={dateFrom} onChange={(e) => { setDateFrom(e.target.value); setPage(1); }} className={advancedInputClass} />
+                  <input type="date" value={dateTo} onChange={(e) => { setDateTo(e.target.value); setPage(1); }} className={advancedInputClass} />
+                </div>
               </AdvancedFilterField>
-              <AdvancedFilterField label="Date to">
-                <input type="date" value={dateTo} onChange={(e) => { setDateTo(e.target.value); setPage(1); }} className={advancedInputClass} />
-              </AdvancedFilterField>
-              <AdvancedFilterField label="Amount min">
-                <input type="number" min="0" placeholder="$0" value={amountMin} onChange={(e) => { setAmountMin(e.target.value); setPage(1); }} className={advancedInputClass} />
-              </AdvancedFilterField>
-              <AdvancedFilterField label="Amount max">
-                <input type="number" min="0" placeholder="Any" value={amountMax} onChange={(e) => { setAmountMax(e.target.value); setPage(1); }} className={advancedInputClass} />
+              <AdvancedFilterField label="Amount">
+                <div className="grid grid-cols-2 gap-3">
+                  <input type="number" min="0" placeholder="min" value={amountMin} onChange={(e) => { setAmountMin(e.target.value); setPage(1); }} className={advancedInputClass} />
+                  <input type="number" min="0" placeholder="max" value={amountMax} onChange={(e) => { setAmountMax(e.target.value); setPage(1); }} className={advancedInputClass} />
+                </div>
               </AdvancedFilterField>
               <AdvancedFilterField label="Created by">
                 <select value={createdByFilter} onChange={(e) => { setCreatedByFilter(e.target.value); setPage(1); }} className={advancedSelectClass}>
@@ -329,47 +359,20 @@ export function Payments() {
                   {creators.map((creator) => <option key={creator}>{creator}</option>)}
                 </select>
               </AdvancedFilterField>
-              <AdvancedFilterField label="Invoice #">
+              <AdvancedFilterField label="Invoice">
                 <input value={invoiceFilter} onChange={(e) => { setInvoiceFilter(e.target.value); setPage(1); }} placeholder="10245-I01" className={advancedInputClass} />
               </AdvancedFilterField>
-              <AdvancedFilterField label="Job #">
+              <AdvancedFilterField label="Job">
                 <input value={jobFilter} onChange={(e) => { setJobFilter(e.target.value); setPage(1); }} placeholder="10245-J01" className={advancedInputClass} />
+              </AdvancedFilterField>
+              <AdvancedFilterField label="Statuses">
+                <select value={qfStatus} onChange={(e) => { setQfStatus(e.target.value); setPage(1); }} className={advancedSelectClass}>
+                  <option value="All">All</option>
+                  {(["Completed", "Pending", "Refunded"] as PaymentStatus[]).map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
               </AdvancedFilterField>
             </AdvancedFilterPanel>
           )}
-          <SelectionBar
-            count={selectedIds.size}
-            onDeselect={() => setSelectedIds(new Set())}
-            actions={[
-              {
-                label: "Change status",
-                icon: "cached",
-                onClick: () => {
-                  const n = selectedIds.size;
-                  selectedIds.forEach(id => paymentsStore.update(id, { status: "Completed" }));
-                  setSelectedIds(new Set());
-                  toast.success(`Marked ${n} payment${n === 1 ? "" : "s"} as Completed`);
-                },
-              },
-              {
-                label: "Download",
-                icon: "file_download",
-                onClick: () => {
-                  toast.success(`Exporting ${selectedIds.size} payment${selectedIds.size === 1 ? "" : "s"}…`);
-                },
-              },
-              {
-                label: "Refund",
-                icon: "undo",
-                onClick: () => {
-                  const n = selectedIds.size;
-                  selectedIds.forEach(id => paymentsStore.update(id, { status: "Refunded" }));
-                  setSelectedIds(new Set());
-                  toast.success(`Refunded ${n} payment${n === 1 ? "" : "s"}`);
-                },
-              },
-            ]}
-          />
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
@@ -382,7 +385,7 @@ export function Payments() {
                       }}
                       className="w-4 h-4 rounded border-[#E5E7EB] cursor-pointer accent-[#4A6FA5]" />
                   </th>
-                  {cols.map(col => (
+                  {visibleCols.map(col => (
                     <DraggableTh key={col.key} colKey={col.key} onMove={moveCol}
                       className="px-4 py-3 text-left text-[14px] text-[#1A2332]"
                       style={{ fontFamily: "Geist", fontWeight: 500 }}
@@ -396,7 +399,7 @@ export function Payments() {
               <tbody>
                 {paginated.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="px-4 py-16 text-center">
+                    <td colSpan={visibleCols.length + 2} className="px-4 py-16 text-center">
                       <span className="material-icons text-[#C8D5E8] mb-2" style={{ fontSize: "48px" }}>credit_card_off</span>
                       <div className="text-[14px] text-[#546478]" style={{ fontWeight: 500 }}>No payments found</div>
                       <div className="text-[12px] text-[#8899AA] mt-1">Try adjusting your filters</div>
@@ -419,7 +422,7 @@ export function Payments() {
                           }}
                           className="w-4 h-4 rounded border-[#E5E7EB] cursor-pointer accent-[#4A6FA5]" />
                       </td>
-                      {cols.map(col => {
+                      {visibleCols.map(col => {
                         switch (col.key) {
                           case "number": return (
                             <td key={col.key} className="px-4 py-4">
@@ -477,6 +480,7 @@ export function Payments() {
                       <td className="px-4 py-4" onClick={e => e.stopPropagation()}>
                         <KebabMenu>
                           <KebabItem icon="description" onSelect={() => navigate(`/invoices/new?client=${encodeURIComponent(p.clientName)}&returnTo=${encodeURIComponent("/payments")}`)}>Make invoice</KebabItem>
+                          <KebabSeparator />
                           <KebabItem icon="undo" onSelect={() => {
                             paymentsStore.update(p.id, { status: "Refunded" });
                             toast.success(`Refunded P-${1000 + p.id}`);
@@ -527,6 +531,97 @@ export function Payments() {
         </div>
 
       </div>
+
+      {/* ── Edit columns modal (Figma "edit-columns") ── */}
+      {editColumnsOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setEditColumnsOpen(false)} />
+          <div className="relative bg-white border border-[#E5E7EB] rounded-xl shadow-2xl w-[576px] max-w-full flex flex-col">
+            <div className="flex items-center justify-between px-4 py-4">
+              <h2 className="text-[20px] text-[#1A2332]" style={{ fontFamily: "Geist", fontWeight: 600 }}>Edit columns</h2>
+              <button onClick={() => setEditColumnsOpen(false)} aria-label="Close" className="w-6 h-6 rounded flex items-center justify-center text-[#1A2332] hover:bg-[#F3F4F6]">
+                <span className="material-icons" style={{ fontSize: "16px" }}>close</span>
+              </button>
+            </div>
+            <div className="px-4 pb-1 grid grid-rows-4 grid-flow-col gap-x-4 gap-y-2">
+              {PAYMENTS_COLS.map(col => {
+                const locked = col.key === "number";
+                const checked = locked || pendingColumns.has(col.key);
+                return (
+                  <label key={col.key} className={`flex items-center gap-3 p-3 border border-[#E5E7EB] rounded-[10px] ${locked ? "cursor-default" : "cursor-pointer hover:border-[#C5D5EC]"}`}>
+                    <span className="relative inline-flex items-center justify-center w-4 h-4" style={{ opacity: locked ? 0.5 : 1 }}>
+                      <input
+                        type="checkbox"
+                        className="peer sr-only"
+                        checked={checked}
+                        disabled={locked}
+                        onChange={(e) => setPendingColumns(prev => {
+                          const next = new Set(prev);
+                          if (e.target.checked) next.add(col.key); else next.delete(col.key);
+                          return next;
+                        })}
+                      />
+                      <span className={`w-4 h-4 rounded-[4px] border flex items-center justify-center ${checked ? "bg-[#4A6FA5] border-[#4A6FA5]" : "bg-white border-[#E5E7EB]"}`}>
+                        {checked && <span className="material-icons text-white" style={{ fontSize: "12px" }}>check</span>}
+                      </span>
+                    </span>
+                    <span className="text-[14px] text-[#1A2332]">{col.label}</span>
+                  </label>
+                );
+              })}
+            </div>
+            <div className="px-4 py-4 flex items-center justify-end gap-2">
+              <button onClick={() => setEditColumnsOpen(false)} className="h-9 px-4 border border-[#E5E7EB] rounded-lg text-[14px] text-[#1A2332] hover:bg-[#F9FAFB] transition-colors" style={{ fontWeight: 500 }}>Cancel</button>
+              <button onClick={() => { setVisibleColumns(new Set(pendingColumns)); setEditColumnsOpen(false); toast.success("Columns updated"); }} className="h-9 px-4 rounded-lg bg-[#4A6FA5] hover:bg-[#3d5a85] text-white text-[14px] transition-colors" style={{ fontWeight: 500 }}>Save</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Change status modal (Figma "change-status") ── */}
+      {changeStatusOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setChangeStatusOpen(false)} />
+          <div className="relative bg-white border border-[#E5E7EB] rounded-xl shadow-2xl w-[448px] max-w-full flex flex-col">
+            <div className="flex items-center justify-between px-4 py-4">
+              <h2 className="text-[20px] text-[#1A2332]" style={{ fontFamily: "Geist", fontWeight: 600 }}>Change status</h2>
+              <button onClick={() => setChangeStatusOpen(false)} aria-label="Close" className="w-6 h-6 rounded flex items-center justify-center text-[#1A2332] hover:bg-[#F3F4F6]">
+                <span className="material-icons" style={{ fontSize: "16px" }}>close</span>
+              </button>
+            </div>
+            <div className="px-4 pb-1 flex flex-col gap-2">
+              {(["Completed", "Pending", "Refunded"] as PaymentStatus[]).map(s => {
+                const sel = changeStatusValue === s;
+                return (
+                  <label key={s} className="flex items-center gap-3 p-3 border border-[#E5E7EB] rounded-[10px] cursor-pointer hover:border-[#C5D5EC]">
+                    <span className={`w-4 h-4 rounded-full border flex items-center justify-center ${sel ? "border-[#4A6FA5]" : "border-[#E5E7EB]"}`}>
+                      {sel && <span className="w-2 h-2 rounded-full bg-[#4A6FA5]" />}
+                    </span>
+                    <input type="radio" name="change-status" className="sr-only" checked={sel} onChange={() => setChangeStatusValue(s)} />
+                    <span className="text-[14px] text-[#1A2332]">{s}</span>
+                  </label>
+                );
+              })}
+            </div>
+            <div className="px-4 py-4 flex items-center justify-end gap-2">
+              <button onClick={() => setChangeStatusOpen(false)} className="h-9 px-4 border border-[#E5E7EB] rounded-lg text-[14px] text-[#1A2332] hover:bg-[#F9FAFB] transition-colors" style={{ fontWeight: 500 }}>Cancel</button>
+              <button
+                onClick={() => {
+                  const n = selectedIds.size;
+                  selectedIds.forEach(id => paymentsStore.update(id, { status: changeStatusValue }));
+                  setSelectedIds(new Set());
+                  setChangeStatusOpen(false);
+                  toast.success(`Marked ${n} payment${n === 1 ? "" : "s"} as ${changeStatusValue}`);
+                }}
+                className="h-9 px-4 rounded-lg bg-[#4A6FA5] hover:bg-[#3d5a85] text-white text-[14px] transition-colors"
+                style={{ fontWeight: 500 }}
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
     </DndProvider>
   );

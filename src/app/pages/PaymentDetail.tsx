@@ -1,9 +1,15 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useSyncExternalStore } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 import { toast } from "sonner";
 import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "../components/ui/dropdown-menu";
 import { DetailTabs, TabSettingsButton } from "../components/ui/detail-tabs";
-import { paymentStatusColors, paymentMethodIcons, type Payment } from "./Payments";
+import { paymentStatusColors, paymentMethodIcons, type Payment, type PaymentStatus } from "./Payments";
 import { paymentsStore } from "../stores/paymentsStore";
 import { formatRegionalDate } from "../stores/regionalSettingsStore";
 
@@ -15,6 +21,12 @@ interface PaymentAttachment {
   previewUrl?: string;
 }
 
+interface PaymentNote {
+  id: string;
+  text: string;
+  date: string;
+}
+
 const formatBytes = (b: number): string => {
   if (b < 1024) return `${b} B`;
   if (b < 1024 * 1024) return `${(b / 1024).toFixed(0)} KB`;
@@ -22,9 +34,6 @@ const formatBytes = (b: number): string => {
 };
 
 type TabKey = "details" | "activity";
-
-const fmt = (n: number) =>
-  n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const fmtDate = (d: string) => formatRegionalDate(new Date(d + "T12:00:00"));
 
@@ -37,18 +46,20 @@ const MOCK_EXTRAS: Record<number, {
 }> = {
   1: { phone: "(813) 612-5487", address: "4405 North Clark Ave, Tampa, FL 33614", creditCard: "", payoutStatus: "Paid" },
   2: { phone: "(813) 612-5487", address: "4405 North Clark Ave, Tampa, FL 33614", creditCard: "", payoutStatus: "Paid" },
-  3: { phone: "(407) 555-9988", address: "890 Sunrise Blvd, Orlando, FL 32801", creditCard: "Visa ···· 1234", payoutStatus: "Paid" },
+  3: { phone: "(407) 555-9988", address: "890 Sunrise Blvd, Orlando, FL 32801", creditCard: "•••• •••• •••• 1234", payoutStatus: "Paid" },
   4: { phone: "(305) 444-7722", address: "780 Coral Way, Miami, FL 33135", creditCard: "", payoutStatus: "Pending" },
   5: { phone: "(407) 555-9988", address: "890 Sunrise Blvd, Orlando, FL 32801", creditCard: "", payoutStatus: "Paid" },
-  6: { phone: "(813) 612-5487", address: "4405 North Clark Ave, Tampa, FL 33614", creditCard: "Visa ···· 4242", payoutStatus: "—" },
-  7: { phone: "(512) 555-0198", address: "123 Main St, Austin, TX 78701", creditCard: "Visa ···· 4242", payoutStatus: "Paid" },
+  6: { phone: "(813) 612-5487", address: "4405 North Clark Ave, Tampa, FL 33614", creditCard: "•••• •••• •••• 4242", payoutStatus: "—" },
+  7: { phone: "(512) 555-0198", address: "123 Main St, Austin, TX 78701", creditCard: "•••• •••• •••• 4545", payoutStatus: "Paid" },
 };
 
 const payoutColors: Record<string, { text: string; bg: string }> = {
-  Paid:    { text: "#16A34A", bg: "#DCFCE7" },
-  Pending: { text: "#D97706", bg: "#FEF9C3" },
-  "—":     { text: "#9CA3AF", bg: "#F3F4F6" },
+  Paid:    { text: "#16A34A", bg: "rgba(22,163,74,0.15)" },
+  Pending: { text: "#D97706", bg: "rgba(245,158,11,0.15)" },
+  "—":     { text: "#6B7280", bg: "#F3F4F6" },
 };
+
+const STATUS_OPTIONS: PaymentStatus[] = ["Completed", "Pending", "Refunded"];
 
 export function PaymentDetail() {
   const navigate = useNavigate();
@@ -61,15 +72,29 @@ export function PaymentDetail() {
     if (key === "details") next.delete("tab"); else next.set("tab", key);
     setSearchParams(next, { replace: true });
   };
+
+  // Subscribe to the store so status changes (dropdown / Refund) re-render live.
+  const allPayments = useSyncExternalStore(paymentsStore.subscribe, paymentsStore.getSnapshot);
+  const payment: Payment | undefined = allPayments.find(p => p.id === Number(id));
+
   // Section 6.3 — attachments (proof of payment, photo of check, etc.)
   const [attachments, setAttachments] = useState<PaymentAttachment[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
   const attachInputRef = useRef<HTMLInputElement>(null);
   const [previewIdx, setPreviewIdx] = useState(0);
 
+  // Notes card (Figma detail "Notes"). Seeded from the payment's note; add/edit/delete supported.
+  const [notes, setNotes] = useState<PaymentNote[]>(
+    payment?.note ? [{ id: "seed-0", text: payment.note, date: fmtDate(payment.date) }] : []
+  );
+  const [showAllNotes, setShowAllNotes] = useState(false);
+  const [addingNote, setAddingNote] = useState(false);
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [draftNote, setDraftNote] = useState("");
+
   const handleFilesAdded = (files: FileList | null) => {
     if (!files || files.length === 0) return;
-    const imageExts = ["jpg", "jpeg", "png", "gif", "webp", "heic"];
+    const imageExts = ["jpg", "jpeg", "png", "gif", "webp", "heic", "svg"];
     const additions: PaymentAttachment[] = [];
     Array.from(files).forEach(f => {
       const ext = (f.name.split(".").pop() ?? "").toLowerCase();
@@ -100,7 +125,25 @@ export function PaymentDetail() {
     });
   };
 
-  const payment: Payment | undefined = paymentsStore.getById(Number(id));
+  const openAddNote = () => { setEditingNoteId(null); setDraftNote(""); setAddingNote(true); };
+  const openEditNote = (n: PaymentNote) => { setEditingNoteId(n.id); setDraftNote(n.text); setAddingNote(true); };
+  const cancelNote = () => { setAddingNote(false); setEditingNoteId(null); setDraftNote(""); };
+  const saveNote = () => {
+    const text = draftNote.trim();
+    if (!text) { cancelNote(); return; }
+    if (editingNoteId) {
+      setNotes(prev => prev.map(n => n.id === editingNoteId ? { ...n, text } : n));
+      toast.success("Note updated");
+    } else {
+      setNotes(prev => [{ id: `${Date.now()}`, text, date: formatRegionalDate(new Date()) }, ...prev]);
+      toast.success("Note added");
+    }
+    cancelNote();
+  };
+  const deleteNote = (noteId: string) => {
+    setNotes(prev => prev.filter(n => n.id !== noteId));
+    toast.success("Note deleted");
+  };
 
   if (!payment) {
     return (
@@ -132,121 +175,102 @@ export function PaymentDetail() {
 
   const payoutC = payoutColors[extras.payoutStatus] ?? payoutColors["Pending"];
 
+  const changeStatus = (status: PaymentStatus) => {
+    if (status === payment.status) return;
+    paymentsStore.update(payment.id, { status });
+    toast.success(`Status changed to ${status}`);
+  };
+
+  const visibleNotes = showAllNotes ? notes : notes.slice(0, 4);
+
   /* ──────────────────────── Details tab ──────────────────────── */
   const renderDetails = () => (
-    <div className="flex gap-10">
+    <div className="grid grid-cols-3 gap-4 items-start">
 
-      {/* Left: 3-column field grid */}
-      <div className="flex-1 grid grid-cols-3 gap-x-10 gap-y-5 content-start">
-
-        {/* Row 1 */}
-        <Field label="Date" value={fmtDate(payment.date)} />
-        <Field
-          label="Method"
-          value={
-            <span className="inline-flex items-center gap-1.5">
-              <span className="material-icons text-[#546478]" style={{ fontSize: "16px" }}>
-                {paymentMethodIcons[payment.method]}
-              </span>
-              {payment.method}
-            </span>
-          }
-        />
-        <Field
-          label="Invoice"
-          value={
-            <button
-              onClick={() => navigate(`/invoices/${payment.invoiceId}`)}
-              className="text-[14px] text-[#4A6FA5] hover:underline"
-              style={{ fontWeight: 500 }}
-            >
-              {payment.invoiceNumber}
-            </button>
-          }
-        />
-
-        {/* Row 2 */}
-        <Field label="Created By" value={payment.createdBy} />
-        {/* Reference number — primary identifier for external/non-integrated methods. */}
-        <Field
-          label="Reference #"
-          value={payment.reference ? payment.reference : <span className="text-[#9CA3AF]">—</span>}
-        />
-        <Field
-          label="Credit Card"
-          value={
-            extras.creditCard ? (
-              <span className="inline-flex items-center gap-1.5">
-                <span className="material-icons text-[#546478]" style={{ fontSize: "15px" }}>credit_card</span>
-                {extras.creditCard}
-              </span>
-            ) : (
-              <span className="text-[#9CA3AF]">—</span>
-            )
-          }
-        />
-        {payment.jobId ? (
+      {/* Details card */}
+      <div className="border border-[#E5E7EB] rounded-xl p-4">
+        <h3 className="text-[16px] text-[#1A2332]" style={{ fontFamily: "Geist", fontWeight: 600 }}>Details</h3>
+        <div className="mt-4 flex flex-col gap-4">
+          <Field label="Date" value={fmtDate(payment.date)} />
           <Field
-            label="Job"
+            label="Method"
+            value={
+              <span className="inline-flex items-center gap-1.5">
+                <span className="material-icons text-[#546478]" style={{ fontSize: "16px" }}>
+                  {paymentMethodIcons[payment.method]}
+                </span>
+                {payment.method}
+              </span>
+            }
+          />
+          <Field
+            label="Invoice"
             value={
               <button
-                onClick={() => navigate(`/jobs/${payment.jobId?.replace(/^JOB-/, "")}`)}
+                onClick={() => navigate(`/invoices/${payment.invoiceId}`)}
                 className="text-[14px] text-[#4A6FA5] hover:underline"
                 style={{ fontWeight: 500 }}
               >
-                {payment.jobId}
+                {payment.invoiceNumber}
               </button>
             }
           />
-        ) : (
-          <Field label="Job" value={<span className="text-[#9CA3AF]">—</span>} />
-        )}
-
-        {/* Row 3: Payout Status in col 3 only */}
-        <div />
-        <div />
-        <Field
-          label="Payout Status"
-          value={
-            <span className="text-[14px]" style={{ fontWeight: 700, color: payoutC.text }}>
-              {extras.payoutStatus.toUpperCase()}
-            </span>
-          }
-        />
-
-        {/* Row 4: Note spans all 3 cols */}
-        {payment.note && (
-          <div className="col-span-3 pt-4 border-t border-[#F3F4F6]">
-            <div
-              className="text-[11px] uppercase tracking-wider text-[#546478] mb-1.5"
-              style={{ fontWeight: 600 }}
-            >
-              Note
-            </div>
-            <div className="text-[13px] text-[#374151]">{payment.note}</div>
-          </div>
-        )}
+          <Field label="Created by" value={payment.createdBy} />
+          <Field
+            label="Reference #"
+            value={payment.reference ? payment.reference : <span className="text-[#9CA3AF]">—</span>}
+          />
+          <Field
+            label="Credit card"
+            value={
+              extras.creditCard ? (
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="material-icons text-[#546478]" style={{ fontSize: "15px" }}>credit_card</span>
+                  {extras.creditCard}
+                </span>
+              ) : (
+                <span className="text-[#9CA3AF]">—</span>
+              )
+            }
+          />
+          <Field
+            label="Job"
+            value={
+              payment.jobId ? (
+                <button
+                  onClick={() => navigate(`/jobs/${payment.jobId?.replace(/^JOB-/, "")}`)}
+                  className="text-[14px] text-[#4A6FA5] hover:underline"
+                  style={{ fontWeight: 500 }}
+                >
+                  {payment.jobId}
+                </button>
+              ) : (
+                <span className="text-[#9CA3AF]">—</span>
+              )
+            }
+          />
+          <Field
+            label="Status"
+            value={
+              <span
+                className="inline-flex items-center px-2.5 py-1 rounded-lg text-[12px]"
+                style={{ fontWeight: 600, color: payoutC.text, backgroundColor: payoutC.bg }}
+              >
+                {extras.payoutStatus === "—" ? "Unpaid" : extras.payoutStatus}
+              </span>
+            }
+          />
+        </div>
       </div>
 
-      {/* Right: Attachments (Section 6.3 — proof of payment, photo of check) */}
-      <div className="w-[260px] shrink-0">
-        <div className="flex items-center justify-between mb-1.5">
-          <div
-            className="text-[11px] uppercase tracking-wider text-[#546478]"
-            style={{ fontWeight: 600 }}
-          >
-            Attachments {attachments.length > 0 && <span className="text-[#9CA3AF] normal-case tracking-normal" style={{ fontWeight: 500 }}>({attachments.length})</span>}
-          </div>
-          <button
-            onClick={() => attachInputRef.current?.click()}
-            className="inline-flex items-center gap-1 h-6 px-1.5 rounded hover:bg-[#F3F4F6] text-[#4A6FA5] transition-colors"
-            title="Upload proof of payment"
-            style={{ fontWeight: 500 }}
-          >
-            <span className="material-icons" style={{ fontSize: "14px" }}>upload</span>
-            <span className="text-[11px]">Upload</span>
-          </button>
-        </div>
+      {/* Attachments card (Section 6.3 — proof of payment, photo of check) */}
+      <div className="border border-[#E5E7EB] rounded-xl p-4">
+        <h3 className="text-[16px] text-[#1A2332]" style={{ fontFamily: "Geist", fontWeight: 600 }}>
+          Attachments
+          {attachments.length > 0 && (
+            <span className="text-[#9CA3AF] text-[14px] ml-1" style={{ fontWeight: 400 }}>({attachments.length})</span>
+          )}
+        </h3>
         <input
           ref={attachInputRef}
           type="file"
@@ -261,16 +285,20 @@ export function PaymentDetail() {
             onDragLeave={() => setIsDragOver(false)}
             onDrop={e => { e.preventDefault(); setIsDragOver(false); handleFilesAdded(e.dataTransfer.files); }}
             onClick={() => attachInputRef.current?.click()}
-            className={`border-2 border-dashed rounded-xl h-[170px] flex flex-col items-center justify-center gap-1.5 cursor-pointer transition-colors ${
-              isDragOver ? "border-[#4A6FA5] bg-[#EEF3FA]" : "border-[#E5E7EB] bg-[#F9FAFB] hover:border-[#C5D5EC] hover:bg-[#F5F7FA]"
+            className={`mt-4 border-2 border-dashed rounded-xl py-10 px-4 flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors ${
+              isDragOver ? "border-[#4A6FA5] bg-[#EEF3FA]" : "border-[#E5E7EB] hover:border-[#C5D5EC] hover:bg-[#F5F7FA]"
             }`}
           >
-            <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "28px" }}>cloud_upload</span>
-            <div className="text-[12px] text-[#546478] text-center px-3" style={{ fontWeight: 500 }}>Drop a photo of the check<br/>or receipt</div>
-            <div className="text-[11px] text-[#9CA3AF]">PNG, JPG, PDF · up to 10 MB</div>
+            <span className="w-10 h-10 rounded-full border border-[#E5E7EB] flex items-center justify-center">
+              <span className="material-icons text-[#6B7280]" style={{ fontSize: "18px" }}>upload</span>
+            </span>
+            <div className="text-[14px] text-[#1A2332] text-center">
+              Drop your files here, or <span className="text-[#4A6FA5] underline">click to browse</span>
+            </div>
+            <div className="text-[12px] text-[#9CA3AF]">SVG, PNG, JPG or GIF (max. 3MB)</div>
           </div>
         ) : (
-          <div className="border border-[#E5E7EB] rounded-xl bg-white overflow-hidden">
+          <div className="mt-4 border border-[#E5E7EB] rounded-xl bg-white overflow-hidden">
             {/* Large preview */}
             <div className="aspect-[4/3] bg-[#F9FAFB] relative flex items-center justify-center">
               {(() => {
@@ -309,7 +337,6 @@ export function PaymentDetail() {
                 </>
               )}
             </div>
-            {/* Filename + size + remove */}
             {(() => {
               const safeIdx = Math.min(previewIdx, attachments.length - 1);
               const a = attachments[safeIdx];
@@ -330,7 +357,6 @@ export function PaymentDetail() {
                 </div>
               );
             })()}
-            {/* + Add more */}
             <button
               onClick={() => attachInputRef.current?.click()}
               className="w-full px-3 py-2 text-[12px] text-[#4A6FA5] hover:bg-[#F5F7FA] border-t border-[#F3F4F6] transition-colors flex items-center justify-center gap-1"
@@ -340,6 +366,70 @@ export function PaymentDetail() {
               Add another
             </button>
           </div>
+        )}
+      </div>
+
+      {/* Notes card */}
+      <div className="border border-[#E5E7EB] rounded-xl p-4 flex flex-col">
+        <div className="flex items-center justify-between">
+          <h3 className="text-[16px] text-[#1A2332]" style={{ fontFamily: "Geist", fontWeight: 600 }}>Notes</h3>
+          <button
+            onClick={openAddNote}
+            aria-label="Add note"
+            className="w-8 h-8 rounded-lg border border-[#E5E7EB] flex items-center justify-center text-[#546478] hover:bg-[#F5F7FA] transition-colors"
+          >
+            <span className="material-icons" style={{ fontSize: "18px" }}>add</span>
+          </button>
+        </div>
+
+        {addingNote && (
+          <div className="mt-3">
+            <textarea
+              value={draftNote}
+              onChange={e => setDraftNote(e.target.value)}
+              rows={2}
+              autoFocus
+              placeholder="Add a note…"
+              className="w-full border border-[#E5E7EB] rounded-lg p-2 text-[13px] text-[#1A2332] focus:outline-none focus:border-[#4A6FA5] resize-none"
+            />
+            <div className="flex justify-end gap-2 mt-2">
+              <button onClick={cancelNote} className="h-8 px-3 border border-[#E5E7EB] rounded-lg text-[13px] text-[#1A2332] hover:bg-[#F9FAFB]" style={{ fontWeight: 500 }}>Cancel</button>
+              <button onClick={saveNote} className="h-8 px-3 rounded-lg bg-[#4A6FA5] hover:bg-[#3d5a85] text-white text-[13px]" style={{ fontWeight: 500 }}>{editingNoteId ? "Save" : "Add"}</button>
+            </div>
+          </div>
+        )}
+
+        <div className="mt-3 flex flex-col">
+          {notes.length === 0 && !addingNote && (
+            <div className="text-[13px] text-[#9CA3AF] py-2">No notes yet.</div>
+          )}
+          {visibleNotes.map(n => (
+            <div key={n.id} className="group py-3 border-b border-[#F3F4F6] last:border-0">
+              <div className="flex items-center justify-between">
+                <div className="text-[12px] text-[#9CA3AF]">Added {n.date}</div>
+                <div className="hidden group-hover:flex items-center gap-1">
+                  <button onClick={() => openEditNote(n)} aria-label="Edit note" className="w-6 h-6 rounded flex items-center justify-center text-[#9CA3AF] hover:text-[#4A6FA5] hover:bg-[#F5F7FA]">
+                    <span className="material-icons" style={{ fontSize: "15px" }}>edit</span>
+                  </button>
+                  <button onClick={() => deleteNote(n.id)} aria-label="Delete note" className="w-6 h-6 rounded flex items-center justify-center text-[#9CA3AF] hover:text-[#DC2626] hover:bg-[#FEF2F2]">
+                    <span className="material-icons" style={{ fontSize: "15px" }}>delete_outline</span>
+                  </button>
+                </div>
+              </div>
+              <div className="text-[14px] text-[#1A2332] mt-0.5" style={{ fontWeight: 500 }}>{n.text}</div>
+            </div>
+          ))}
+        </div>
+
+        {notes.length > 4 && (
+          <button
+            onClick={() => setShowAllNotes(v => !v)}
+            className="mt-2 inline-flex items-center justify-center gap-1 text-[13px] text-[#4A6FA5] hover:text-[#3d5a85]"
+            style={{ fontWeight: 500 }}
+          >
+            <span className="material-icons" style={{ fontSize: "16px" }}>{showAllNotes ? "expand_less" : "expand_more"}</span>
+            {showAllNotes ? "Show less" : `Show ${notes.length - 4} more`}
+          </button>
         )}
       </div>
     </div>
@@ -371,16 +461,18 @@ export function PaymentDetail() {
   return (
     <div className="min-h-screen bg-[#F5F7FA]">
 
-      {/* Back arrow */}
-      <div className="px-6 pt-6 pb-4 flex items-center gap-3">
+      {/* Page header — back chevron + "Payment details" */}
+      <div className="px-6 pt-6 pb-4 flex items-center gap-2">
         <button
           onClick={() => navigate("/payments")}
-          className="inline-flex items-center gap-1.5 text-[13px] text-[#4A6FA5] hover:text-[#3d5a85] transition-colors"
-          style={{ fontWeight: 500 }}
+          aria-label="Back to Payments"
+          className="w-9 h-9 rounded-lg flex items-center justify-center text-[#1A2332] hover:bg-[#EDF0F5] transition-colors"
         >
-          <span className="material-icons" style={{ fontSize: "18px" }}>arrow_back</span>
-          Back to Payments
+          <span className="material-icons" style={{ fontSize: "20px" }}>chevron_left</span>
         </button>
+        <h1 className="text-[24px] text-[#1A2332]" style={{ fontFamily: "Geist", fontWeight: 600, lineHeight: "32px" }}>
+          Payment details
+        </h1>
       </div>
 
       {/* ── WHITE CARD ── */}
@@ -392,36 +484,57 @@ export function PaymentDetail() {
           {/* Left: title + contact row */}
           <div className="flex-1 min-w-0 flex flex-col gap-1.5">
 
-            {/* Row 1: Payment number + status badge */}
+            {/* Row 1: Payment number + status dropdown */}
             <div className="flex items-center gap-2 flex-wrap">
-              <h2
-                className="text-[20px] text-[#1A2332] leading-[27px]"
-                style={{ fontFamily: "Geist", fontWeight: 600 }}
-              >
-                Payment #{paymentNumber}
+              <h2 className="text-[20px] text-[#1A2332] leading-[27px]" style={{ fontFamily: "Geist", fontWeight: 600 }}>
+                Payment <span className="text-[16px] text-[#6B7280]" style={{ fontWeight: 400 }}>({paymentNumber})</span>
               </h2>
-              <span
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[13px]"
-                style={{ fontWeight: 600, color: ss.text, backgroundColor: ss.bg }}
-              >
-                <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: ss.text }} />
-                {payment.status}
-              </span>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[13px] focus:outline-none"
+                    style={{ fontWeight: 600, color: ss.text, backgroundColor: ss.bg }}
+                    title="Change status"
+                  >
+                    {payment.status}
+                    <span className="material-icons" style={{ fontSize: "16px" }}>expand_more</span>
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align="start"
+                  className="min-w-[160px] p-1 bg-white border border-[#E5E7EB] rounded-lg"
+                  style={{ boxShadow: "0px 4px 6px -1px rgba(0,0,0,0.10), 0px 2px 4px -2px rgba(0,0,0,0.10)" }}
+                >
+                  {STATUS_OPTIONS.map(s => (
+                    <DropdownMenuItem
+                      key={s}
+                      onSelect={() => changeStatus(s)}
+                      className="flex items-center gap-2 rounded-md cursor-pointer text-[14px] text-[#1A2332] focus:bg-[#F5F7FA]"
+                      style={{ height: 32, paddingLeft: 8, paddingRight: 8 }}
+                    >
+                      <span
+                        className="w-2 h-2 rounded-full"
+                        style={{ backgroundColor: paymentStatusColors[s].text, opacity: payment.status === s ? 1 : 0.35 }}
+                      />
+                      {s}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
 
             {/* Row 2: Contact icon row */}
             <div className="flex items-center gap-0.5 flex-wrap">
+              <span className="text-[13px] text-[#6B7280] pr-1">Client:</span>
               <button
-                onClick={() => navigate(`/clients/${payment.clientId || 1}`)}
+                onClick={() => navigate(`/clients/${payment.invoiceNumber.split("-")[0]}`)}
                 className="flex items-center gap-1.5 pr-2 hover:text-[#4A6FA5] transition-colors"
               >
-                <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "15px" }}>person</span>
-                <span className="text-[13px] text-[#374151]" style={{ fontWeight: 500 }}>
+                <span className="text-[13px] text-[#4A6FA5]" style={{ fontWeight: 500 }}>
                   {payment.clientName}
                 </span>
               </button>
 
-              <div className="w-px h-4 bg-[#E5E7EB]" />
               <a
                 href={`tel:${extras.phone}`}
                 className="flex items-center justify-center w-7 h-7 rounded-lg hover:bg-[#F5F7FA] transition-colors"
@@ -429,8 +542,6 @@ export function PaymentDetail() {
               >
                 <span className="material-icons text-[#6B7280]" style={{ fontSize: "16px" }}>phone</span>
               </a>
-
-              <div className="w-px h-4 bg-[#E5E7EB]" />
               <a
                 href={`mailto:${payment.clientEmail}`}
                 className="flex items-center justify-center w-7 h-7 rounded-lg hover:bg-[#F5F7FA] transition-colors"
@@ -439,44 +550,45 @@ export function PaymentDetail() {
                 <span className="material-icons text-[#6B7280]" style={{ fontSize: "16px" }}>mail</span>
               </a>
 
-              <div className="w-px h-4 bg-[#E5E7EB]" />
+              <div className="w-px h-4 bg-[#E5E7EB] mx-1.5" />
               <div className="flex items-center gap-1 px-1.5">
                 <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "15px" }}>location_on</span>
-                <span className="text-[13px] text-[#546478]">{extras.address}</span>
+                <span className="text-[13px] text-[#1A2332]">{extras.address}</span>
               </div>
 
               {payment.jobId && (
                 <>
-                  <div className="w-px h-4 bg-[#E5E7EB]" />
-                  <div className="flex items-center gap-1 px-1.5">
+                  <div className="w-px h-4 bg-[#E5E7EB] mx-1.5" />
+                  <button
+                    onClick={() => navigate(`/jobs/${payment.jobId?.replace(/^JOB-/, "")}`)}
+                    className="flex items-center gap-1 px-1.5 hover:text-[#4A6FA5] transition-colors"
+                  >
                     <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "15px" }}>work</span>
-                    <span className="text-[13px] text-[#546478]">{payment.jobId}</span>
-                  </div>
+                    <span className="text-[13px] text-[#4A6FA5]" style={{ fontWeight: 500 }}>{payment.jobId}</span>
+                  </button>
                 </>
               )}
             </div>
           </div>
 
-          {/* Right: KPI strip — Client-style (borderless, dark value, tinted icon) */}
-          <div className="flex items-center gap-4 shrink-0">
-            <div className="flex items-center gap-3">
-              <div className="flex flex-col">
-                <div className="text-[18px] leading-none tabular-nums text-[#1A2332] whitespace-nowrap" style={{ fontWeight: 600 }}>
-                  {payment.status === "Refunded" ? "−" : ""}${Math.round(payment.amount).toLocaleString("en-US")}
-                </div>
-                <div className="text-[14px] leading-[20px] text-[#6B7280] mt-1 whitespace-nowrap">Total Price</div>
+          {/* Right: KPI — total price + tinted dollar icon */}
+          <div className="flex items-center gap-3 shrink-0">
+            <div className="flex flex-col items-end">
+              <div className="text-[18px] leading-none tabular-nums text-[#1A2332] whitespace-nowrap" style={{ fontWeight: 600 }}>
+                {payment.status === "Refunded" ? "−" : ""}${Math.round(payment.amount).toLocaleString("en-US")}
               </div>
-              <div
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
-                style={{ backgroundColor: `${payment.status === "Refunded" ? "#8B5CF6" : "#16A34A"}26` }}
+              <div className="text-[14px] leading-[20px] text-[#6B7280] mt-1 whitespace-nowrap">Total price</div>
+            </div>
+            <div
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
+              style={{ backgroundColor: payment.status === "Refunded" ? "rgba(139,92,246,0.15)" : "rgba(22,163,74,0.15)" }}
+            >
+              <span
+                className="material-icons"
+                style={{ fontSize: "20px", color: payment.status === "Refunded" ? "#8B5CF6" : "#16A34A" }}
               >
-                <span
-                  className="material-icons"
-                  style={{ fontSize: "20px", color: payment.status === "Refunded" ? "#8B5CF6" : "#16A34A" }}
-                >
-                  {payment.status === "Refunded" ? "trending_down" : "trending_up"}
-                </span>
-              </div>
+                monetization_on
+              </span>
             </div>
           </div>
         </div>
@@ -499,20 +611,23 @@ export function PaymentDetail() {
                 className="h-9 px-3.5 rounded-md bg-[#4A6FA5] hover:bg-[#3d5a85] text-white text-[13px] inline-flex items-center gap-1.5 transition-colors"
                 style={{ fontWeight: 600 }}
               >
-                <span className="material-icons" style={{ fontSize: "16px" }}>payments</span>
-                Collect Payment
+                <span className="material-icons" style={{ fontSize: "16px" }}>account_balance_wallet</span>
+                Collect payment
               </button>
               <KebabMenu
                 triggerClassName="h-9 w-9 border border-[#E5E7EB] rounded-md hover:bg-[#EDF0F5] flex items-center justify-center bg-white"
               >
-                <KebabItem icon="receipt" onSelect={() => navigate(`/invoices/${payment.invoiceId}`)}>
-                  Open Invoice
+                <KebabItem
+                  icon="description"
+                  onSelect={() => navigate(`/invoices/new?client=${encodeURIComponent(payment.clientName)}&returnTo=${encodeURIComponent(`/payments/${payment.id}`)}`)}
+                >
+                  Make invoice
                 </KebabItem>
-                <KebabItem icon="send">Send Receipt</KebabItem>
-                <KebabItem icon="file_download">Download Receipt</KebabItem>
-                <KebabItem icon="account_balance">View Payout</KebabItem>
+                <KebabItem icon="send" onSelect={() => toast.success(`Receipt sent to ${payment.clientEmail}`)}>Send receipt</KebabItem>
+                <KebabItem icon="file_download" onSelect={() => toast.success("Downloading receipt…")}>Download receipt</KebabItem>
+                <KebabItem icon="account_balance" onSelect={() => toast.info("Payout details coming soon")}>View payout</KebabItem>
                 <KebabSeparator />
-                <KebabItem icon="undo" destructive>Refund</KebabItem>
+                <KebabItem icon="undo" onSelect={() => changeStatus("Refunded")}>Refund</KebabItem>
               </KebabMenu>
             </>
           }
