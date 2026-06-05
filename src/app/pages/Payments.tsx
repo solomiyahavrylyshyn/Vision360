@@ -85,11 +85,12 @@ const PAYMENTS_COLS = [
   { key: "note", label: "Note" },
 ] as const;
 
-// Fixed column widths (used with table-fixed) so real dates/amounts/notes can't
-// reflow column widths between rows. Note has no width → fills the remainder and
-// truncates. Mirrors Figma's uniform columns.
-const COL_W: Record<string, string | undefined> = {
-  number: "110px", client: "180px", invoice: "150px", method: "130px", status: "120px", total: "120px",
+// Proportional column widths (%) applied via <colgroup> with table-fixed:
+// columns stay uniform across rows AND the table always fits its container
+// (responsive — no horizontal scroll at any width). Note gets the widest share
+// and truncates. Data columns sum to 90%; checkbox 4% + actions 6% = 100%.
+const COL_PCT: Record<string, string> = {
+  number: "10%", client: "16%", invoice: "13%", method: "12%", status: "11%", total: "10%", note: "18%",
 };
 
 // Columns offered in the "Edit columns" picker. "number" is locked-on (always shown).
@@ -439,6 +440,11 @@ export function Payments() {
           )}
           <div className="overflow-x-auto">
             <table className="w-full table-fixed">
+              <colgroup>
+                <col style={{ width: "4%" }} />
+                {visibleCols.map(col => <col key={col.key} style={{ width: COL_PCT[col.key] }} />)}
+                <col style={{ width: "6%" }} />
+              </colgroup>
               <thead>
                 <tr className="bg-[#F5F7FA] border-b border-[#E5E7EB]">
                   <th className="px-3 py-3 w-10">
@@ -455,7 +461,7 @@ export function Payments() {
                     return (
                       <DraggableTh key={col.key} colKey={col.key} onMove={moveCol}
                         className="px-4 py-3 text-left text-[14px] text-[#1A2332] whitespace-nowrap select-none"
-                        style={{ fontFamily: "Geist", fontWeight: 500, width: COL_W[col.key] }}
+                        style={{ fontFamily: "Geist", fontWeight: 500 }}
                         onClick={sf ? () => toggleSort(sf) : undefined}
                       >
                         <div className="flex items-center">{col.label}{sf && <SortIcon field={sf} />}</div>
