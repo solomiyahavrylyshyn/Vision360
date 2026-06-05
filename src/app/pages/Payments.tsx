@@ -55,7 +55,7 @@ const statusColors = paymentStatusColors;
 // Re-exported for any consumers that imported the old name; backed by the
 // shared canonical icon helper.
 export const paymentMethodIcons = new Proxy({}, { get: (_t, k) => paymentMethodIcon(String(k)) }) as Record<string, string>;
-const methodIcons = paymentMethodIcons;
+// (payment-method icons removed from the table per Figma — method shows as text)
 
 const timeFilters = [
   "All time", "Today", "Yesterday", "Last 7 days", "Last 30 days",
@@ -84,6 +84,13 @@ const PAYMENTS_COLS = [
   { key: "total", label: "Total" },
   { key: "note", label: "Note" },
 ] as const;
+
+// Fixed column widths (used with table-fixed) so real dates/amounts/notes can't
+// reflow column widths between rows. Note has no width → fills the remainder and
+// truncates. Mirrors Figma's uniform columns.
+const COL_W: Record<string, string | undefined> = {
+  number: "110px", client: "180px", invoice: "150px", method: "130px", status: "120px", total: "120px",
+};
 
 // Columns offered in the "Edit columns" picker. "number" is locked-on (always shown).
 const PAYMENT_TOGGLE_COLS = ["client", "invoice", "method", "status", "total", "note"] as const;
@@ -129,6 +136,20 @@ export function Payments() {
   const [jobFilter, setJobFilter] = useState("");
   const [balanceMin, setBalanceMin] = useState("");
   const [balanceMax, setBalanceMax] = useState("");
+
+  // Sortable headers (mirrors Estimates): click a column to sort, click again to flip.
+  type SortField = "number" | "clientName" | "invoiceNumber" | "method" | "status" | "amount" | "date";
+  const [sortField, setSortField] = useState<SortField>("date");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const toggleSort = (f: SortField) => {
+    if (sortField === f) setSortDir(d => d === "asc" ? "desc" : "asc");
+    else { setSortField(f); setSortDir("asc"); }
+  };
+  const SortIcon = ({ field }: { field: SortField }) => (
+    <span className="material-icons text-[#9AA3AF] ml-0.5" style={{ fontSize: "14px" }}>
+      {sortField === field ? (sortDir === "asc" ? "arrow_upward" : "arrow_downward") : "unfold_more"}
+    </span>
+  );
 
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [page, setPage] = useState(1);
@@ -194,9 +215,20 @@ export function Payments() {
         p.note.toLowerCase().includes(q)
       );
     }
-    result.sort((a, b) => b.date.localeCompare(a.date));
+    const dir = sortDir === "asc" ? 1 : -1;
+    result.sort((a, b) => {
+      switch (sortField) {
+        case "number": return (a.id - b.id) * dir;
+        case "amount": return (a.amount - b.amount) * dir;
+        case "clientName": return a.clientName.localeCompare(b.clientName) * dir;
+        case "invoiceNumber": return a.invoiceNumber.localeCompare(b.invoiceNumber) * dir;
+        case "method": return a.method.localeCompare(b.method) * dir;
+        case "status": return a.status.localeCompare(b.status) * dir;
+        default: return a.date.localeCompare(b.date) * dir;
+      }
+    });
     return result;
-  }, [payments, search, qfStatus, qfMethod, qfDate, dateFrom, dateTo, amountMin, amountMax, balanceMin, balanceMax, createdByFilter, invoiceFilter, jobFilter]);
+  }, [payments, search, qfStatus, qfMethod, qfDate, dateFrom, dateTo, amountMin, amountMax, balanceMin, balanceMax, createdByFilter, invoiceFilter, jobFilter, sortField, sortDir]);
 
   const creators = useMemo(() => Array.from(new Set(payments.map(p => p.createdBy))), [payments]);
   const activeFilterCount = [dateFrom, dateTo, amountMin, amountMax, balanceMin, balanceMax, createdByFilter !== "All", invoiceFilter, jobFilter].filter(Boolean).length;
@@ -390,7 +422,7 @@ export function Payments() {
             </AdvancedFilterPanel>
           )}
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full table-fixed">
               <thead>
                 <tr className="bg-[#F5F7FA] border-b border-[#E5E7EB]">
                   <th className="px-3 py-3 w-10">
@@ -401,14 +433,19 @@ export function Payments() {
                       }}
                       className="w-4 h-4 rounded border-[#E5E7EB] cursor-pointer accent-[#4A6FA5]" />
                   </th>
-                  {visibleCols.map(col => (
-                    <DraggableTh key={col.key} colKey={col.key} onMove={moveCol}
-                      className="px-4 py-3 text-left text-[14px] text-[#1A2332]"
-                      style={{ fontFamily: "Geist", fontWeight: 500 }}
-                    >
-                      {col.label}
-                    </DraggableTh>
-                  ))}
+                  {visibleCols.map(col => {
+                    const sortMap: Record<string, SortField> = { number: "number", client: "clientName", invoice: "invoiceNumber", method: "method", status: "status", total: "amount" };
+                    const sf = sortMap[col.key];
+                    return (
+                      <DraggableTh key={col.key} colKey={col.key} onMove={moveCol}
+                        className="px-4 py-3 text-left text-[14px] text-[#1A2332] whitespace-nowrap select-none"
+                        style={{ fontFamily: "Geist", fontWeight: 500, width: COL_W[col.key] }}
+                        onClick={sf ? () => toggleSort(sf) : undefined}
+                      >
+                        <div className="flex items-center">{col.label}{sf && <SortIcon field={sf} />}</div>
+                      </DraggableTh>
+                    );
+                  })}
                   <th className="px-3 py-3 w-10" />
                 </tr>
               </thead>
@@ -446,7 +483,7 @@ export function Payments() {
                             </td>
                           );
                           case "client": return (
-                            <td key={col.key} className="px-4 py-4" onClick={e => e.stopPropagation()}>
+                            <td key={col.key} className="px-4 py-4 truncate" onClick={e => e.stopPropagation()}>
                               <button
                                 onClick={() => navigate(`/clients/${p.invoiceNumber.split('-')[0]}`)}
                                 className="text-[14px] text-[#4A6FA5] hover:underline hover:text-[#3d5a85] transition-colors text-left"
@@ -475,12 +512,7 @@ export function Payments() {
                             </td>
                           );
                           case "method": return (
-                            <td key={col.key} className="px-4 py-4">
-                              <div className="flex items-center gap-1.5">
-                                <span className="material-icons text-[#546478]" style={{ fontSize: "15px" }}>{methodIcons[p.method]}</span>
-                                <span className="text-[13px] text-[#546478]">{p.method}</span>
-                              </div>
-                            </td>
+                            <td key={col.key} className="px-4 py-4 text-[13px] text-[#546478] truncate">{p.method}</td>
                           );
                           case "status": return (
                             <td key={col.key} className="px-4 py-4">
@@ -489,7 +521,7 @@ export function Payments() {
                               </span>
                             </td>
                           );
-                          case "note": return <td key={col.key} className="px-4 py-4 text-[13px] text-[#546478] max-w-[160px] truncate">{p.note || "—"}</td>;
+                          case "note": return <td key={col.key} className="px-4 py-4 text-[13px] text-[#546478] truncate">{p.note || "—"}</td>;
                           default: return null;
                         }
                       })}
