@@ -111,8 +111,18 @@ export function CreateEstimate() {
     }));
   };
 
-  const addLineItem = () =>
-    setActiveLineItems((items) => [...items, { id: Date.now(), name: "", description: "", quantity: 1, unitPrice: 0, unitCost: 0, total: 0, taxable: false }]);
+  // Seed the active tier from the option before it (the Good→Better→Best flow):
+  // copy the previous option's line items in, then add more on top.
+  const copyFromPrevious = () => {
+    const idx = options.findIndex((o) => o.id === activeOptionId);
+    if (idx <= 0) return;
+    const prev = options[idx - 1];
+    if (!prev.lineItems.length) { toast(`${prev.name} has no items to copy`); return; }
+    let nextId = Math.max(0, ...activeOption.lineItems.map((li) => li.id), ...prev.lineItems.map((li) => li.id));
+    const copies = prev.lineItems.map((li) => ({ ...li, id: ++nextId }));
+    setActiveLineItems((items) => [...items, ...copies]);
+    toast(`Copied ${copies.length} item${copies.length === 1 ? "" : "s"} from ${prev.name}`);
+  };
 
   const removeLineItem = (id: number) => setActiveLineItems((items) => items.filter((li) => li.id !== id));
 
@@ -331,10 +341,23 @@ export function CreateEstimate() {
               <PlusIcon className="h-3.5 w-3.5" /> Add option
             </button>
           </div>
-          <button type="button" onClick={() => toast("Bundle templates coming soon")} className="mt-3 inline-flex items-center gap-1.5 px-3 py-2 border border-[#E5E7EB] rounded-lg text-[13px] text-[#546478] hover:bg-[#F5F7FA]" style={{ fontWeight: 500 }}>
-            <span className="material-icons" style={{ fontSize: "16px" }}>inventory_2</span>
-            Apply bundle template
-          </button>
+          {(() => {
+            const idx = options.findIndex((o) => o.id === activeOptionId);
+            const hasPrev = idx > 0;
+            return (
+              <button
+                type="button"
+                onClick={copyFromPrevious}
+                disabled={!hasPrev}
+                title={hasPrev ? `Copy ${options[idx - 1].name}'s items into ${activeOption.name}` : "No previous option to copy from"}
+                className="mt-3 inline-flex items-center gap-1.5 px-3 py-2 border border-[#E5E7EB] rounded-lg text-[13px] text-[#546478] hover:bg-[#F5F7FA] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                style={{ fontWeight: 500 }}
+              >
+                <span className="material-icons" style={{ fontSize: "16px" }}>content_copy</span>
+                Copy from previous
+              </button>
+            );
+          })()}
         </div>
 
         {/* Active option card — its own line items + totals */}
@@ -364,7 +387,7 @@ export function CreateEstimate() {
                 <span className="material-icons text-[#C8D5E8]" style={{ fontSize: "32px" }}>receipt_long</span>
               </div>
               <div className="text-[14px] text-[#546478]" style={{ fontWeight: 500 }}>No items in this option yet</div>
-              <div className="text-[12px] text-[#8899AA] mt-1">Add items manually or from the pricebook below</div>
+              <div className="text-[12px] text-[#8899AA] mt-1">Click "Add item" to choose from your pricebook</div>
             </div>
           ) : (
             <>
@@ -450,13 +473,10 @@ export function CreateEstimate() {
             </>
           )}
 
-          {/* Per-option add buttons: manual row + catalog (pricebook) */}
+          {/* Add items to this option — always from the pricebook. */}
           <div className="px-5 py-4 border-t border-[#E5E7EB] flex items-center gap-2">
-            <button type="button" onClick={addLineItem} className="inline-flex items-center gap-1.5 px-4 py-2 border border-[#E5E7EB] rounded-lg text-[13px] text-[#1A2332] hover:bg-[#F5F7FA]" style={{ fontWeight: 500 }}>
-              <PlusIcon className="h-4 w-4" /> Add item
-            </button>
             <button type="button" onClick={() => setItemPickerOpen(true)} className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#4A6FA5] text-white rounded-lg text-[13px] hover:bg-[#3d5a85]" style={{ fontWeight: 600 }}>
-              <span className="material-icons" style={{ fontSize: "16px" }}>menu_book</span> From pricebook
+              <PlusIcon className="h-4 w-4" /> Add item
             </button>
           </div>
         </div>
