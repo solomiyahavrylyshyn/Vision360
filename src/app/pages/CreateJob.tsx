@@ -283,7 +283,7 @@ export function CreateJob() {
                   </select>
                 </div>
                 <div>
-                  <label className="text-[11px] text-[#9CA3AF] mb-1 block">Customer</label>
+                  <label className="text-[11px] text-[#9CA3AF] mb-1 block">Client</label>
                   <div className="relative">
                     <input
                       type="text"

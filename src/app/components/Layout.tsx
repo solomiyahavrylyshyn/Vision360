@@ -482,7 +482,7 @@ export function Layout() {
                       {["client", "job", "invoice", "estimate"].map((type) => {
                         const typeResults = filteredResults.filter(r => r.type === type);
                         if (typeResults.length === 0) return null;
-                        const typeLabels: Record<string, string> = { client: "Customers", job: "Jobs", invoice: "Invoices", estimate: "Estimates" };
+                        const typeLabels: Record<string, string> = { client: "Clients", job: "Jobs", invoice: "Invoices", estimate: "Estimates" };
                         const typeIcons: Record<string, { icon: string; color: string }> = {
                           client: { icon: "person", color: "#3B82F6" },
                           job: { icon: "work", color: "#F59E0B" },

@@ -1726,7 +1726,7 @@ export function JobDetail() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>Customer</label>
+                    <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>Client</label>
                     <input
                       value={editJob.client || ""}
                       readOnly

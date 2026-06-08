@@ -696,7 +696,7 @@ function GenerateReportForm({ onCancel }: { onCancel: () => void }) {
             {[
               { icon: "description", label: "Report Type", value: reportType },
               { icon: "calendar_today", label: "Date Range", value: "May 1 – May 31, 2025 (This Month)" },
-              { icon: "filter_alt", label: "Filters", value: "2 Customers, 2 Technicians,\n2 Job Statuses, All Services" },
+              { icon: "filter_alt", label: "Filters", value: "2 Clients, 2 Technicians,\n2 Job Statuses, All Services" },
               { icon: "group", label: "Group By", value: groupBy },
               { icon: "description", label: "Format", value: outputFormat, formatIcon: true },
               { icon: "tune", label: "Includes", value: `8 columns, Charts: ${includeCharts ? "Yes" : "No"}` },

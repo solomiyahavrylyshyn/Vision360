@@ -258,7 +258,7 @@ export function ClientForm({ open, onOpenChange, client, onSave }: ClientFormPro
                   </div>
                   <div>
                     <Label className="text-[13px] text-[#374151] mb-3 block" style={{ fontWeight: 500 }}>
-                      Customer type
+                      Client type
                     </Label>
                     <div className="flex items-center gap-6">
                       <label className="flex items-center gap-2.5 cursor-pointer">

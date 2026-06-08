@@ -401,7 +401,7 @@ export function ManageDuplicates() {
         {/* Column headers */}
         <div className="grid grid-cols-[40px_1fr_1fr_1fr_1fr_1fr_120px] bg-[#F5F7FA] border-b border-[#E5E7EB] text-[11px] uppercase tracking-wide text-[#546478]" style={{ fontWeight: 600 }}>
           <div className="px-4 py-3" />
-          <div className="px-4 py-3">Customer</div>
+          <div className="px-4 py-3">Client</div>
           <div className="px-4 py-3">Company</div>
           <div className="px-4 py-3">Address</div>
           <div className="px-4 py-3">Email</div>

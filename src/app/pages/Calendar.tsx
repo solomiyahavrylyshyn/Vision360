@@ -2277,7 +2277,7 @@ export function Calendar() {
 
             <div className="p-5 space-y-3">
               <label className="block">
-                <span className="block text-[11px] text-[#8899AA] mb-1" style={{ fontWeight: 700 }}>Customer</span>
+                <span className="block text-[11px] text-[#8899AA] mb-1" style={{ fontWeight: 700 }}>Client</span>
                 {quickJobDraft.editJobId != null && !quickJobDraft.editIdentity ? (
                   // Reschedule keeps the job's identity — customer is read-only.
                   <div className="w-full h-10 rounded-lg border border-[#E5E7EB] px-3 text-[13px] bg-[#F9FAFB] text-[#1A2332] flex items-center">{quickJobDraft.client}</div>
