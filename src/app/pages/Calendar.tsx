@@ -13,8 +13,9 @@ import {
 } from "date-fns";
 import routeMapImg from "../../assets/route-map.png";
 import { type JobStatus, JOB_STATUS_STYLES as STATUS_STYLES, JOB_STATUSES as ALL_JOB_STATUSES } from "../constants/jobStatuses";
-import { isPending, pendingJobs, type PendingFilter, hasTimeConflict, statusAfterAssignToSlot, applyMoveToPending, applyUnassign, schedulingTags, durationForType, isDraggable, isShownOnBoard, packOverlaps } from "../utils/scheduleLogic";
+import { isPending, pendingJobs, type PendingFilter, hasTimeConflict, statusAfterAssignToSlot, schedulingTags, durationForType, isDraggable, isShownOnBoard, packOverlaps } from "../utils/scheduleLogic";
 import { jobTypeColor, jobTypeTint, JOB_TYPE_ORDER, JOB_TYPE_COLORS } from "../constants/jobTypeColors";
+import { jobsStore, type JobRecord } from "../stores/jobsStore";
 
 interface CalendarEvent {
   id: number;
@@ -313,6 +314,74 @@ const INITIAL_JOBS: UnifiedJob[] = [
   })),
 ];
 
+// ── jobsStore ⇄ board adapter (unify create flow with the board) ────────────
+// The board's local seed (INITIAL_JOBS) and the shared jobsStore (what /jobs/new
+// writes to) were two disconnected arrays, so created jobs never appeared on the
+// schedule. We now MERGE jobsStore records into the board collection and route
+// any board mutation on a store-origin job back to jobsStore. Store ids are
+// offset so they never collide with the local board ids (1-38, board-created 39+).
+const JOBSTORE_ID_BASE = 100000;
+const isStoreJob = (id: number) => id >= JOBSTORE_ID_BASE;
+
+const ASSIGNEE_TO_TECH: Record<string, string> = Object.fromEntries(TEAM.map((t) => [t.name, t.id]));
+const assigneeToTechId = (name: string): string => ASSIGNEE_TO_TECH[name?.trim()] ?? ""; // unknown / "" ⇒ unassigned
+const techIdToAssignee = (id: string): string => TEAM.find((t) => t.id === id)?.name ?? "";
+
+const pad2 = (n: number) => String(n).padStart(2, "0");
+const hourToTimeStr = (h: number): string => `${pad2(Math.floor(h))}:${pad2(Math.round((h - Math.floor(h)) * 60))}`;
+const timeStrToHour = (s: string): number => {
+  const [h, m] = (s || "").split(":").map(Number);
+  return Number.isFinite(h) ? h + (Number.isFinite(m) ? m / 60 : 0) : 9;
+};
+const isoFromDate = (d: Date): string => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+const dateFromISO = (s: string): Date => { const [y, m, d] = s.split("-").map(Number); return new Date(y, (m ?? 1) - 1, d ?? 1); };
+
+// Map a persisted JobRecord onto the board's UnifiedJob shape.
+function unifiedFromRecord(rec: JobRecord): UnifiedJob {
+  const start = rec.startTime ? timeStrToHour(rec.startTime) : 9;
+  const end = rec.endTime ? timeStrToHour(rec.endTime) : start + 2;
+  const jobType = rec.jobCategory || rec.jobType || "Service";
+  return {
+    id: rec.id + JOBSTORE_ID_BASE,
+    num: rec.jobNumber || `J${rec.id}`,
+    date: rec.startDate ? dateFromISO(rec.startDate) : null,
+    technicianId: assigneeToTechId(rec.assignedTo),
+    start,
+    end,
+    unscheduled: !rec.startDate,
+    client: rec.client || "—",
+    service: rec.title || "Job",
+    address: rec.address || "",
+    status: (rec.status as JobStatus) || "Scheduled",
+    amount: Math.round(rec.totalPrice || 0),
+    jobType,
+    title: rec.title || "Job",
+    property: rec.address || "",
+    priority: "Normal",
+    source: "Jobs",
+    color: "blue",
+    bg: jobTypeTint(jobType),
+    border: jobTypeColor(jobType),
+  };
+}
+
+// Convert a board UnifiedJob patch back into a JobRecord patch for jobsStore.
+function recordPatchFromUnified(p: Partial<UnifiedJob>): Partial<JobRecord> {
+  const rp: Partial<JobRecord> = {};
+  if (p.technicianId !== undefined) rp.assignedTo = techIdToAssignee(p.technicianId);
+  if (p.start !== undefined) rp.startTime = hourToTimeStr(p.start);
+  if (p.end !== undefined) rp.endTime = hourToTimeStr(p.end);
+  if (p.status !== undefined) rp.status = p.status;
+  if (p.client !== undefined) rp.client = p.client;
+  if (p.service !== undefined) rp.title = p.service;
+  if (p.address !== undefined) rp.address = p.address;
+  if (p.amount !== undefined) rp.totalPrice = p.amount;
+  // The board's date==null / unscheduled invariant ⇒ clear the stored date.
+  if (p.unscheduled === true || p.date === null) { rp.startDate = ""; rp.endDate = ""; }
+  else if (p.date instanceof Date) { rp.startDate = isoFromDate(p.date); rp.endDate = isoFromDate(p.date); }
+  return rp;
+}
+
 // Day view constants
 const GANTT_START_HOUR = 7;   // 7 AM
 const GANTT_END_HOUR   = 18;  // 6 PM (exclusive label at 18)
@@ -374,6 +443,18 @@ export function Calendar() {
   // are now selectors that window this list over the calendar's current scope
   // (defined below, after `weekDays`). All mutations go through setJobs.
   const [jobs, setJobs] = useState<UnifiedJob[]>(INITIAL_JOBS);
+  // Merge the shared jobsStore (what /jobs/new writes to) into the board so
+  // created jobs appear on the schedule and in Pending. Local seed keeps the
+  // rich demo; store jobs are mapped + id-offset so the two never collide.
+  const storeRecords = useSyncExternalStore(jobsStore.subscribe, jobsStore.getSnapshot);
+  const storeJobs = useMemo(() => storeRecords.map(unifiedFromRecord), [storeRecords]);
+  const allJobs = useMemo(() => [...jobs, ...storeJobs], [jobs, storeJobs]);
+  // One mutation entry point: store-origin jobs (id ≥ base) persist through
+  // jobsStore; local board-seed jobs mutate the local array as before.
+  const patchJob = (id: number, patch: Partial<UnifiedJob>) => {
+    if (isStoreJob(id)) jobsStore.update(id - JOBSTORE_ID_BASE, recordPatchFromUnified(patch));
+    else setJobs((js) => js.map((j) => (j.id === id ? { ...j, ...patch } : j)));
+  };
   // Right-side "Unassigned" panel: open by default so dispatchers see what
   // still needs an owner. Toggle from the schedule header chip.
   const [unassignedPanelOpen, setUnassignedPanelOpen] = useState(true);
@@ -539,32 +620,32 @@ export function Calendar() {
   // windows further per day). The renderers consume the SAME DayJob/DispatchJob/
   // CalendarEvent shapes as before — these selectors just project the union.
   const dayJobsView: DayJob[] = useMemo(
-    () => jobs
+    () => allJobs
       .filter((j) => j.unscheduled || (j.date != null && isSameDay(j.date, currentDate)))
       .map((j) => ({ id: j.id, technicianId: j.technicianId, start: j.start, end: j.end, client: j.client, service: j.service, address: j.address, status: j.status, amount: j.amount, bg: j.bg, border: j.border, jobType: j.jobType, unscheduled: j.unscheduled })),
-    [jobs, currentDate],
+    [allJobs, currentDate],
   );
   const weekJobsView: DispatchJob[] = useMemo(
-    () => jobs
+    () => allJobs
       .map((j) => ({ id: j.id, num: j.num, technicianId: j.technicianId, client: j.client, service: j.service, address: j.address, status: j.status, dayIdx: j.date != null ? weekDays.findIndex((d) => isSameDay(d, j.date!)) : -1, start: j.start, end: j.end, amount: j.amount, bg: j.bg, border: j.border, priority: j.priority, jobType: j.jobType, source: j.source, unscheduled: j.unscheduled }))
       .filter((j) => j.unscheduled || j.dayIdx >= 0),
-    [jobs, weekDays],
+    [allJobs, weekDays],
   );
   const monthEventsView: CalendarEvent[] = useMemo(
-    () => jobs
+    () => allJobs
       .filter((j) => j.date != null)
       .map((j) => ({ id: j.id, title: j.title, client: j.client, date: j.date!, startHour: j.start, duration: j.end - j.start, color: j.color, jobType: j.jobType, status: j.status, property: j.property, amount: j.amount })),
-    [jobs],
+    [allJobs],
   );
 
   // Month pending is windowed to the visible MONTH — so "Scheduled this month"
   // surfaces everything dated this month that still needs an owner (Marek's
   // production-manager rollup) — plus the date-agnostic unscheduled jobs.
   const monthPendingView: DayJob[] = useMemo(
-    () => jobs
+    () => allJobs
       .filter((j) => j.unscheduled || (j.date != null && isSameMonth(j.date, currentDate)))
       .map((j) => ({ id: j.id, technicianId: j.technicianId, start: j.start, end: j.end, client: j.client, service: j.service, address: j.address, status: j.status, amount: j.amount, bg: j.bg, border: j.border, jobType: j.jobType, unscheduled: j.unscheduled })),
-    [jobs, currentDate],
+    [allJobs, currentDate],
   );
   // Pending sidebar = the ACTIVE view's window of the same collection — so the
   // "scheduled" filter reflects the calendar's current scope (Acceptance Check 5):
@@ -670,17 +751,17 @@ export function Calendar() {
   // All three operate on the ONE collection now; they keep their own projected
   // selection (selectedDayJob / selectedDispatchJob / selectedEvent) in sync.
   const updateDayStatus = (jobId: number, status: JobStatus) => {
-    setJobs((js) => js.map((job) => job.id === jobId ? { ...job, status } : job));
+    patchJob(jobId, { status });
     setSelectedDayJob((job) => job?.id === jobId ? { ...job, status } : job);
   };
 
   const updateWeekStatus = (jobId: number, status: JobStatus) => {
-    setJobs((js) => js.map((job) => job.id === jobId ? { ...job, status } : job));
+    patchJob(jobId, { status });
     setSelectedDispatchJob((job) => job?.id === jobId ? { ...job, status } : job);
   };
 
   const updateEventStatus = (eventId: number, status: JobStatus) => {
-    setJobs((js) => js.map((job) => job.id === eventId ? { ...job, status } : job));
+    patchJob(eventId, { status });
     setSelectedEvent((ev) => ev?.id === eventId ? { ...ev, status } : ev);
   };
 
@@ -787,7 +868,7 @@ export function Calendar() {
         return;
       }
       if (editId != null) {
-        setJobs((js) => js.map((j) => (j.id === editId ? { ...j, ...common, date: currentDate, unscheduled: false } : j)));
+        patchJob(editId, { ...common, date: currentDate, unscheduled: false });
         setSelectedDayJob((j) => (j && j.id === editId ? { ...j, ...common, unscheduled: false } : j));
         setSelectedMapJobId(editId);
         setToast("Job rescheduled");
@@ -810,7 +891,7 @@ export function Calendar() {
         return;
       }
       if (editId != null) {
-        setJobs((js) => js.map((j) => (j.id === editId ? { ...j, ...common, date: storedDate, unscheduled: false } : j)));
+        patchJob(editId, { ...common, date: storedDate, unscheduled: false });
         setSelectedDispatchJob((j) => (j && j.id === editId ? { ...j, ...common, dayIdx, unscheduled: false } : j));
         setToast("Job rescheduled");
       } else {
@@ -835,31 +916,24 @@ export function Calendar() {
     if (kind !== "week") return;
     const jobId = Number(rawId);
     const dropStart = hourFromPointer(event);
-    setJobs((js) => {
-      const targetJob = js.find((job) => job.id === jobId);
-      if (!targetJob) return js;
-      if (!openWeekDayIndexes.has(dayIdx)) {
-        setConflictMessage("This day is closed in business hours.");
-        return js;
-      }
-      const duration = targetJob.end - targetJob.start;
-      const dropEnd = Math.min(GANTT_END_HOUR, dropStart + duration);
-      if (weekHasConflict(weekJobsView, jobId, dayIdx, technicianId, dropStart, dropEnd)) {
-        setConflictMessage("That move conflicts with another job for the same person.");
-        return js;
-      }
-      setConflictMessage(null);
-      // Dropping onto a week (day × tech) cell gives the job that day's real DATE
-      // + technician + slot, and clears unscheduled.
-      const nextJobs = js.map((job) =>
-        job.id === jobId
-          ? { ...job, date: weekDays[dayIdx] ?? job.date, technicianId, start: dropStart, end: dropEnd, unscheduled: false }
-          : job,
-      );
-      const movedJob = nextJobs.find((job) => job.id === jobId) ?? null;
-      if (movedJob) setToast(`Moved to ${formatRegionalTime(movedJob.start, regionalSettings)}`);
-      return nextJobs;
-    });
+    const targetJob = allJobs.find((job) => job.id === jobId);
+    if (!targetJob) return;
+    if (!openWeekDayIndexes.has(dayIdx)) {
+      setConflictMessage("This day is closed in business hours.");
+      return;
+    }
+    const duration = targetJob.end - targetJob.start;
+    const dropEnd = Math.min(GANTT_END_HOUR, dropStart + duration);
+    if (weekHasConflict(weekJobsView, jobId, dayIdx, technicianId, dropStart, dropEnd)) {
+      setConflictMessage("That move conflicts with another job for the same person.");
+      return;
+    }
+    setConflictMessage(null);
+    // Dropping onto a week (day × tech) cell gives the job that day's real DATE
+    // + technician + slot, and clears unscheduled. patchJob routes store jobs
+    // back to jobsStore so created jobs are fully draggable.
+    patchJob(jobId, { date: weekDays[dayIdx] ?? targetJob.date, technicianId, start: dropStart, end: dropEnd, unscheduled: false });
+    setToast(`Moved to ${formatRegionalTime(dropStart, regionalSettings)}`);
   };
 
   const handleWeekDragOver = (event: DragEvent<HTMLDivElement>, dayIdx: number, technicianId: string) => {
@@ -875,34 +949,26 @@ export function Calendar() {
     if (kind !== "day") return;
     const jobId = Number(rawId);
     const dropStart = hourFromPointer(event);
-    setJobs((js) => {
-      const targetJob = js.find((job) => job.id === jobId);
-      if (!targetJob) return js;
-      if (!isCurrentDateOpen) {
-        setConflictMessage("This day is closed in business hours.");
-        return js;
-      }
-      // Pending jobs (no tech and/or no date) get a default duration by job
-      // type; already-scheduled jobs keep their length when moved slot→slot.
-      const fromPending = isPending(targetJob);
-      const duration = fromPending ? durationForType(targetJob.jobType) : (targetJob.end - targetJob.start);
-      const dropEnd = Math.min(GANTT_END_HOUR, dropStart + duration);
-      if (dayHasConflict(dayJobsView, jobId, technicianId, dropStart, dropEnd)) {
-        setConflictMessage("That move conflicts with another job for the same person.");
-        return js;
-      }
-      setConflictMessage(null);
-      // Placing a job on a day lane gives it TODAY's date + a technician + time.
-      // Status follows the backlog rule: pending→Scheduled, else unchanged.
-      const nextJobs = js.map((job) =>
-        job.id === jobId
-          ? { ...job, date: currentDate, technicianId, start: dropStart, end: dropEnd, unscheduled: false, status: statusAfterAssignToSlot(job.status, fromPending) }
-          : job,
-      );
-      const movedJob = nextJobs.find((job) => job.id === jobId) ?? null;
-      if (movedJob) setToast(`Moved to ${formatRegionalTime(movedJob.start, regionalSettings)}`);
-      return nextJobs;
-    });
+    const targetJob = allJobs.find((job) => job.id === jobId);
+    if (!targetJob) return;
+    if (!isCurrentDateOpen) {
+      setConflictMessage("This day is closed in business hours.");
+      return;
+    }
+    // Pending jobs (no tech and/or no date) get a default duration by job
+    // type; already-scheduled jobs keep their length when moved slot→slot.
+    const fromPending = isPending(targetJob);
+    const duration = fromPending ? durationForType(targetJob.jobType) : (targetJob.end - targetJob.start);
+    const dropEnd = Math.min(GANTT_END_HOUR, dropStart + duration);
+    if (dayHasConflict(dayJobsView, jobId, technicianId, dropStart, dropEnd)) {
+      setConflictMessage("That move conflicts with another job for the same person.");
+      return;
+    }
+    setConflictMessage(null);
+    // Placing a job on a day lane gives it TODAY's date + a technician + time.
+    // Status follows the backlog rule: pending→Scheduled, else unchanged.
+    patchJob(jobId, { date: currentDate, technicianId, start: dropStart, end: dropEnd, unscheduled: false, status: statusAfterAssignToSlot(targetJob.status, fromPending) });
+    setToast(`Moved to ${formatRegionalTime(dropStart, regionalSettings)}`);
   };
 
   const handleDayDragOver = (event: DragEvent<HTMLDivElement>, technicianId: string) => {
@@ -923,15 +989,12 @@ export function Calendar() {
     const jobId = Number(rawId);
     // One collection now — clear the DATE (→ unscheduled) but KEEP the technician
     // (Marek's leftover history). Completed/cancelled and already-pending jobs are
-    // ignored. applyMoveToPending sets unscheduled; we also null the date to hold
-    // the invariant date==null ⇔ unscheduled.
-    setJobs((js) => {
-      const targetJob = js.find((job) => job.id === jobId);
-      if (!targetJob || isPending(targetJob) || !isDraggable(targetJob.status)) return js;
-      setConflictMessage(null);
-      setToast("Moved to Pending — date cleared, technician kept");
-      return js.map((job) => (job.id === jobId ? { ...applyMoveToPending(job), date: null } : job));
-    });
+    // ignored. patchJob routes store jobs back to jobsStore.
+    const targetJob = allJobs.find((job) => job.id === jobId);
+    if (!targetJob || isPending(targetJob) || !isDraggable(targetJob.status)) return;
+    setConflictMessage(null);
+    patchJob(jobId, { unscheduled: true, date: null });
+    setToast("Moved to Pending — date cleared, technician kept");
   };
 
   const handleWeekSlotClick = (event: MouseEvent<HTMLDivElement>, date: Date, technicianId: string, dayIdx: number) => {
@@ -1792,7 +1855,7 @@ export function Calendar() {
                     <button
                       onClick={() => {
                         const id = selectedDispatchJob.id;
-                        setJobs((js) => js.map((j) => (j.id === id ? { ...applyMoveToPending(j), date: null } : j)));
+                        patchJob(id, { unscheduled: true, date: null });
                         setToast("Moved to Pending — date cleared, technician kept");
                         setSelectedDispatchJob(null);
                       }}
@@ -1807,7 +1870,7 @@ export function Calendar() {
                     <button
                       onClick={() => {
                         const id = selectedDispatchJob.id;
-                        setJobs((js) => js.map((j) => (j.id === id ? applyUnassign(j) : j)));
+                        patchJob(id, { technicianId: "" });
                         setToast("Technician unassigned — date kept (scheduled + unassigned)");
                         setSelectedDispatchJob(null);
                       }}
@@ -2177,7 +2240,7 @@ export function Calendar() {
                     <button
                       onClick={() => {
                         const id = selectedDayJob.id;
-                        setJobs((js) => js.map((j) => (j.id === id ? { ...applyMoveToPending(j), date: null } : j)));
+                        patchJob(id, { unscheduled: true, date: null });
                         setToast("Moved to Pending — date cleared, technician kept");
                         setSelectedDayJob(null);
                       }}
@@ -2192,7 +2255,7 @@ export function Calendar() {
                     <button
                       onClick={() => {
                         const id = selectedDayJob.id;
-                        setJobs((js) => js.map((j) => (j.id === id ? applyUnassign(j) : j)));
+                        patchJob(id, { technicianId: "" });
                         setToast("Technician unassigned — date kept (scheduled + unassigned)");
                         setSelectedDayJob(null);
                       }}
