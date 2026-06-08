@@ -561,10 +561,12 @@ export function Calendar() {
   const pendingSource: (DayJob | DispatchJob)[] = viewMode === "week" ? weekJobsView : viewMode === "month" ? monthPendingView : dayJobsView;
   const pendingBucket = pendingSource.filter(isPending);
   const pendingDayJobs = pendingJobs(pendingSource, pendingFilter);
-  // Scope-aware label for the "scheduled" filter (Marek: the chip must read
-  // "Scheduled today / this week / this month", not a bare "Scheduled", so it's
-  // clearly the current calendar window — not all scheduled jobs ever).
-  const scheduledScopeLabel = viewMode === "month" ? "Scheduled this month" : viewMode === "week" ? "Scheduled this week" : "Scheduled today";
+  // "Scheduled" filter label — bare, no time scope (Figma): the dropdown reads
+  // "Show scheduled" on every view, and the empty state "No jobs scheduled".
+  // The filter still windows to the ACTIVE calendar scope (day/week/month) via
+  // pendingSource; only the LABEL drops the "today / this week / this month"
+  // suffix.
+  const scheduledScopeLabel = "Scheduled";
 
   // Week view defaults to ALL days collapsed except today (per the design).
   // Resets whenever the visible week changes; user toggles persist within a

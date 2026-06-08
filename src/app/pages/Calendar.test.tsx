@@ -58,7 +58,7 @@ describe("Calendar — daily Dispatch board (integration)", () => {
     expect(screen.getByRole("option", { name: "Show all" })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: "Show unassigned" })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: "Show unscheduled" })).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: "Show scheduled today" })).toBeInTheDocument();   // scope-aware label (day view)
+    expect(screen.getByRole("option", { name: "Show scheduled" })).toBeInTheDocument();   // bare label, no time scope (Figma)
     expect(screen.queryByRole("option", { name: "Show paused" })).not.toBeInTheDocument();
     expect(screen.getByRole("option", { name: "Show unassigned + unscheduled" })).toBeInTheDocument();
   });
@@ -270,16 +270,19 @@ describe("Calendar — week view (integration)", () => {
     expect(screen.getAllByText("Maria Garcia")).toHaveLength(1);
   });
 
-  it("the 'scheduled' filter label is scope-aware (week → 'Show scheduled this week')", () => {
-    // Marek: the chip must read the current calendar window, not a bare
-    // "Scheduled". Day → today, week → this week, month → this month.
+  it("the 'scheduled' filter label is bare — 'Show scheduled', no time-scope suffix (Figma)", () => {
+    // Figma: the dropdown reads "Show scheduled" with no "today / this week /
+    // this month" suffix on any view. The filter still windows to the active
+    // calendar scope via pendingSource; only the LABEL drops the suffix.
     render(
       <MemoryRouter initialEntries={["/calendar"]}>
         <Calendar />
       </MemoryRouter>,
     );
-    expect(screen.getByRole("option", { name: "Show scheduled this week" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Show scheduled" })).toBeInTheDocument();
     expect(screen.queryByRole("option", { name: "Show scheduled today" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: "Show scheduled this week" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: "Show scheduled this month" })).not.toBeInTheDocument();
   });
 
   it("shows the Pending drawer with week pending jobs", () => {
