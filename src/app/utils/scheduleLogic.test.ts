@@ -19,6 +19,7 @@ import {
   rangesOverlap,
   hasTimeConflict,
   dailyKpis,
+  packOverlaps,
   type SchedulableJob,
 } from "./scheduleLogic";
 
@@ -214,5 +215,46 @@ describe("dailyKpis aggregation (AC: counts + revenue, whole numbers, exclude ca
     expect(k.completed).toBe(2);
     expect(k.revenue).toBe(300);  // 200 + 100, cancelled excluded, whole dollars
     expect(Number.isInteger(k.revenue)).toBe(true);
+  });
+});
+
+describe("packOverlaps — sub-row layout so lane cards never cover each other", () => {
+  const ev = (id: number, start: number, end: number) => ({ id, start, end });
+
+  it("keeps non-overlapping jobs on a single row", () => {
+    const { rowByJobId, rowCount } = packOverlaps([ev(1, 8, 10), ev(2, 10, 12), ev(3, 13, 14)]);
+    expect(rowCount).toBe(1);
+    expect(rowByJobId).toEqual({ 1: 0, 2: 0, 3: 0 });
+  });
+
+  it("treats back-to-back jobs (end === next start) as non-overlapping", () => {
+    const { rowCount } = packOverlaps([ev(1, 9, 10), ev(2, 10, 11)]);
+    expect(rowCount).toBe(1);
+  });
+
+  it("pushes a time-overlapping job to a second row", () => {
+    const { rowByJobId, rowCount } = packOverlaps([ev(1, 8, 10), ev(2, 9, 11)]);
+    expect(rowCount).toBe(2);
+    expect(rowByJobId[1]).toBe(0);
+    expect(rowByJobId[2]).toBe(1);
+  });
+
+  it("reuses a freed row — the screenshot case (8-10, 9-11, 10:30-12) packs into 2 rows", () => {
+    // AC Repair 8-10, AC Installation 9-11, Water Heater 10:30-12.
+    const { rowByJobId, rowCount } = packOverlaps([ev(1, 8, 10), ev(2, 9, 11), ev(3, 10.5, 12)]);
+    expect(rowCount).toBe(2);
+    expect(rowByJobId[1]).toBe(0);          // row 0
+    expect(rowByJobId[2]).toBe(1);          // overlaps #1 → row 1
+    expect(rowByJobId[3]).toBe(0);          // 10:30 ≥ 10, row 0 is free again
+  });
+
+  it("always reports at least one row, even when empty", () => {
+    expect(packOverlaps([]).rowCount).toBe(1);
+  });
+
+  it("is order-independent (sorts internally)", () => {
+    const a = packOverlaps([ev(3, 10.5, 12), ev(1, 8, 10), ev(2, 9, 11)]);
+    const b = packOverlaps([ev(1, 8, 10), ev(2, 9, 11), ev(3, 10.5, 12)]);
+    expect(a).toEqual(b);
   });
 });

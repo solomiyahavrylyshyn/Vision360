@@ -13,7 +13,7 @@ import {
 } from "date-fns";
 import routeMapImg from "../../assets/route-map.png";
 import { type JobStatus, JOB_STATUS_STYLES as STATUS_STYLES, JOB_STATUSES as ALL_JOB_STATUSES } from "../constants/jobStatuses";
-import { isPending, pendingJobs, type PendingFilter, hasTimeConflict, statusAfterAssignToSlot, applyMoveToPending, applyUnassign, schedulingTags, durationForType, isDraggable, isShownOnBoard } from "../utils/scheduleLogic";
+import { isPending, pendingJobs, type PendingFilter, hasTimeConflict, statusAfterAssignToSlot, applyMoveToPending, applyUnassign, schedulingTags, durationForType, isDraggable, isShownOnBoard, packOverlaps } from "../utils/scheduleLogic";
 import { jobTypeColor, jobTypeTint, JOB_TYPE_ORDER, JOB_TYPE_COLORS } from "../constants/jobTypeColors";
 
 interface CalendarEvent {
@@ -319,6 +319,15 @@ const CURRENT_TIME     = 10.5; // 10:30 AM
 const WEEK_LABEL_WIDTH = 180; // matches the day-view technician column
 const WEEK_TODAY = _schedBase; // today, highlighted in the week view
 
+// Lane layout — when a technician's jobs overlap in time they stack into
+// sub-rows (see packOverlaps) and the lane grows to fit. With a single row the
+// math below reproduces the original fixed heights exactly (day 121, week 92),
+// so non-overlapping lanes look unchanged.
+const DAY_TOP_PAD = 15, DAY_CARD_H = 92, DAY_ROW_GAP = 6, DAY_BOT_PAD = 14; // 15+92+14 = 121
+const WK_TOP_PAD  = 8,  WK_CARD_H  = 76, WK_ROW_GAP  = 4, WK_BOT_PAD  = 8;  // 8+76+8 = 92
+const laneHeight = (rowCount: number, top: number, card: number, gap: number, bot: number) =>
+  top + rowCount * card + (rowCount - 1) * gap + bot;
+
 // Route-map pin layout — matches the Figma day view (node 746:71297). left/top are
 // percentages of the map container; n is each technician's stop order on the route.
 const ROUTE_MAP_PINS: { technicianId: string; n: number; left: number; top: number }[] = [
@@ -602,6 +611,19 @@ export function Calendar() {
   // Pending sidebar, not on a day column (e.g. after a drag-back to Pending).
   const filteredWeekJobs = weekJobsView.filter(job => openWeekDayIndexes.has(job.dayIdx) && !job.unscheduled);
   const filteredDayJobs = isCurrentDateOpen ? dayJobsView : [];
+  // Per-technician packed lane height for the DAY board: time-overlapping jobs
+  // stack into sub-rows (packOverlaps) and the lane grows to fit. Computed once
+  // so the sticky left label column and the time-grid lane stay row-aligned.
+  const dayPackByMember: Record<string, { rowByJobId: Record<number, number>; laneH: number }> =
+    Object.fromEntries(
+      TEAM.map((m) => {
+        const memberJobs = filteredDayJobs
+          .filter((job) => job.technicianId === m.id && !job.unscheduled && isShownOnBoard(job.status))
+          .sort((a, b) => a.start - b.start);
+        const { rowByJobId, rowCount } = packOverlaps(memberJobs);
+        return [m.id, { rowByJobId, laneH: laneHeight(rowCount, DAY_TOP_PAD, DAY_CARD_H, DAY_ROW_GAP, DAY_BOT_PAD) }];
+      }),
+    );
   const monthRevenue = filteredMonthEvents.reduce((sum, event) => sum + event.amount, 0);
   const weekRevenue = filteredWeekJobs.reduce((sum, job) => sum + job.amount, 0);
   const dayRevenue = filteredDayJobs.reduce((sum, job) => sum + job.amount, 0);
@@ -1434,7 +1456,6 @@ export function Calendar() {
                   const dayOpen = openWeekDayIndexes.has(dayI);
                   const dayCollapsed = collapsedWeekDays.has(dayI);
                   const showLanes = dayOpen && !dayCollapsed;
-                  const ROW_H = 92;
 
                   return (
                     <div key={dayI} ref={isToday ? weekTodayRef : undefined}>
@@ -1484,15 +1505,18 @@ export function Calendar() {
                           .sort((a, b) => a.start - b.start);
                         const memberTotal = memberJobs.reduce((sum, job) => sum + job.amount, 0);
                         const isLastMember = memberIdx === TEAM.length - 1;
+                        // Stack time-overlapping jobs into sub-rows (same as the day board).
+                        const { rowByJobId, rowCount } = packOverlaps(memberJobs);
+                        const laneH = laneHeight(rowCount, WK_TOP_PAD, WK_CARD_H, WK_ROW_GAP, WK_BOT_PAD);
 
                         return (
-                          <div key={`${dayI}-${member.id}`} className="flex" style={{ height: ROW_H }}>
+                          <div key={`${dayI}-${member.id}`} className="flex" style={{ height: laneH }}>
                             <div
                               className="shrink-0 sticky left-0 z-10 flex items-center gap-2.5 px-3 bg-white"
                               style={{
                                 width: WEEK_LABEL_WIDTH,
                                 minWidth: WEEK_LABEL_WIDTH,
-                                height: ROW_H,
+                                height: laneH,
                                 borderRight: "1px solid #E5E7EB",
                                 borderBottom: isLastMember ? "0" : "1px solid #F0F2F5",
                               }}
@@ -1515,7 +1539,7 @@ export function Calendar() {
                               className="relative"
                               style={{
                                 minWidth: ganttTotalWidth,
-                                height: ROW_H,
+                                height: laneH,
                                 backgroundColor: isToday ? "#F7FAFE" : "#FFFFFF",
                                 borderBottom: isLastMember ? "0" : "1px solid #F0F2F5",
                               }}
@@ -1588,8 +1612,8 @@ export function Calendar() {
                                     style={{
                                       left,
                                       width: Math.max(width, 70),
-                                      top: 8,
-                                      height: 76,
+                                      top: WK_TOP_PAD + (rowByJobId[job.id] ?? 0) * (WK_CARD_H + WK_ROW_GAP),
+                                      height: WK_CARD_H,
                                       backgroundColor: jobTypeTint(job.jobType),
                                       borderLeft: `3px solid ${typeColor}`,
                                       boxShadow: isSelected ? `0 0 0 2px ${typeColor}` : "none",
@@ -1814,7 +1838,7 @@ export function Calendar() {
                 <div
                   key={member.id}
                   className="flex items-center gap-2.5 px-3 border-b border-[#E5E7EB]"
-                  style={{ height: 121 }}
+                  style={{ height: dayPackByMember[member.id].laneH }}
                 >
                   <div
                     className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[12px] shrink-0"
@@ -1879,12 +1903,15 @@ export function Calendar() {
                       // default per the open Marek question; they remain in lists).
                       .filter((job) => isShownOnBoard(job.status))
                       .sort((a, b) => a.start - b.start);
+                    // Sub-row layout (overlapping jobs never cover each other);
+                    // shared with the left label column so both stay aligned.
+                    const { rowByJobId, laneH } = dayPackByMember[member.id];
 
                     return (
                       <div
                         key={member.id}
                         className="relative border-b border-[#E5E7EB]"
-                        style={{ height: 121 }}
+                        style={{ height: laneH }}
                         onDragOver={(event) => handleDayDragOver(event, member.id)}
                         onDragLeave={() => setDropPreview(null)}
                         onDrop={(event) => handleDayDrop(event, member.id)}
@@ -1952,8 +1979,8 @@ export function Calendar() {
                               style={{
                                 left,
                                 width: Math.max(width, 60),
-                                top: 15,
-                                height: 92,
+                                top: DAY_TOP_PAD + (rowByJobId[job.id] ?? 0) * (DAY_CARD_H + DAY_ROW_GAP),
+                                height: DAY_CARD_H,
                                 backgroundColor: jobTypeTint(job.jobType),
                                 borderLeft: `3px solid ${typeColor}`,
                                 boxShadow: selectedDayJob?.id === job.id ? `0 0 0 2px ${typeColor}` : "none",

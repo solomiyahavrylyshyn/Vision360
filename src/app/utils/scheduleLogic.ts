@@ -172,6 +172,28 @@ export function hasTimeConflict(
   );
 }
 
+// ── Overlap packing (board lane layout) ───────────────────────────────────
+// When a technician lane holds jobs whose [start,end) intervals overlap, they
+// must NOT be painted on top of each other. Greedy interval-partitioning packs
+// each job into the first sub-row whose previous job has already ended, so two
+// overlapping jobs never share a sub-row. Returns the row index per job id plus
+// the total row count (always >= 1) so the lane can grow to fit. Back-to-back
+// jobs (one ends exactly when the next starts) are NOT an overlap → same row.
+export function packOverlaps<T extends { id: number; start: number; end: number }>(
+  jobs: T[],
+): { rowByJobId: Record<number, number>; rowCount: number } {
+  const sorted = [...jobs].sort((a, b) => a.start - b.start || a.end - b.end);
+  const rowEnds: number[] = []; // rowEnds[r] = end time of the last job in row r
+  const rowByJobId: Record<number, number> = {};
+  for (const job of sorted) {
+    let placed = rowEnds.findIndex((end) => end <= job.start);
+    if (placed === -1) { placed = rowEnds.length; rowEnds.push(job.end); }
+    else { rowEnds[placed] = job.end; }
+    rowByJobId[job.id] = placed;
+  }
+  return { rowByJobId, rowCount: Math.max(1, rowEnds.length) };
+}
+
 // ── Daily KPI aggregation ─────────────────────────────────────────────────
 // Backlog: compact counts (scheduled / in_progress / completed) + revenue,
 // whole numbers. Cancelled jobs are excluded from the board KPIs.
