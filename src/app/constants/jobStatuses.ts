@@ -4,31 +4,45 @@
 // SAME full set — keep this list and the color map in lockstep here so the
 // statuses never drift between pages again.
 //
-// Per the 2026-06 Marek/Solomiia agreement, a job's DATE and ASSIGNEE are
-// independent of its workflow status: "unscheduled" (no date) and "unassigned"
-// (no technician) are DERIVED states, not statuses (a job can be Scheduled yet
-// have no date, or Scheduled + unassigned). So there are five workflow statuses
-// only — the no-date state is shown on the card as "No date".
+// Per the consolidated 2026-06 client spec (Schedule + Jobs walkthrough, Part 2
+// "final list — 7"), there are SEVEN workflow statuses. This supersedes the
+// earlier five-status note: "Unscheduled" is a real status (recurring future
+// jobs are created with no date/assignee — Part 6) and "Paused" is a time-clock
+// state (technician on a break / interruption — Part 5; it keeps its date and
+// assignee so it stays ON the board, never in Pending).
+//
+// Status stays SEPARATE from the derived chips: a job's DATE and ASSIGNEE are
+// still independent of its status, so "unscheduled" (no date) and "unassigned"
+// (no technician) remain DERIVED predicates (see scheduleLogic) shown as chips —
+// a job can be Scheduled yet have no date, or Scheduled + unassigned. The
+// "Unscheduled" STATUS and the derived "unscheduled" CHIP happily coexist (a
+// no-date recurring job carries both).
 export type JobStatus =
+  | "Unscheduled"
   | "Scheduled"
   | "Dispatched"
   | "In Progress"
+  | "Paused"
   | "Completed"
   | "Cancelled";
 
 export const JOB_STATUSES: JobStatus[] = [
+  "Unscheduled",
   "Scheduled",
   "Dispatched",
   "In Progress",
+  "Paused",
   "Completed",
   "Cancelled",
 ];
 
 // `color` = text / dot color; `bg` = badge background (the color at low alpha).
 export const JOB_STATUS_STYLES: Record<JobStatus, { color: string; bg: string }> = {
+  Unscheduled:   { color: "#6B7280", bg: "rgba(107,114,128,0.15)" }, // neutral — matches the derived chip
   Scheduled:     { color: "#4A6FA5", bg: "rgba(74,111,165,0.15)" },
   Dispatched:    { color: "#0891B2", bg: "rgba(8,145,178,0.15)" },
   "In Progress": { color: "#F59E0B", bg: "rgba(245,158,11,0.15)" },
+  Paused:        { color: "#64748B", bg: "rgba(100,116,139,0.15)" }, // slate — distinct "on hold" treatment
   Completed:     { color: "#16A34A", bg: "rgba(22,163,74,0.15)" },
   Cancelled:     { color: "#DC2626", bg: "rgba(220,38,38,0.12)" },
 };

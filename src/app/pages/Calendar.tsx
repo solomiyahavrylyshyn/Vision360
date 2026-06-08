@@ -88,9 +88,11 @@ function StatusPillSelect({ value, onChange }: { value: JobStatus; onChange: (ne
 }
 
 const nextStatus = (status: JobStatus): JobStatus => {
+  if (status === "Unscheduled") return "Scheduled"; // once it gets a date
   if (status === "Scheduled") return "Dispatched";
   if (status === "Dispatched") return "In Progress";
   if (status === "In Progress") return "Completed";
+  if (status === "Paused") return "In Progress";     // resuming returns to in progress (Part 5)
   if (status === "Completed") return "Scheduled";
   // Cancelled stays Cancelled when click-cycled; user must explicitly pick another via the dropdown.
   return status;

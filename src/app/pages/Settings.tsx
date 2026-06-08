@@ -2036,10 +2036,13 @@ export function Settings() {
   // Job statuses — MVP starts with three core; additional ones can be added
   type JobStatus = { id: string; label: string; color: string; bg: string; icon: string; core?: boolean };
   const [jobStatuses, setJobStatuses] = useState<JobStatus[]>([
+    { id: "unscheduled", label: "Unscheduled", color: "#6B7280", bg: "#F3F4F6", icon: "event_busy",     core: true },
     { id: "scheduled",  label: "Scheduled",   color: "#4A6FA5", bg: "#EBF0F8", icon: "event_note",   core: true },
+    { id: "dispatched", label: "Dispatched",  color: "#0891B2", bg: "#CFFAFE", icon: "local_shipping", core: true },
     { id: "inProgress", label: "In Progress", color: "#B45309", bg: "#FEF3C7", icon: "play_circle",  core: true },
+    { id: "paused",     label: "Paused",      color: "#475569", bg: "#F1F5F9", icon: "pause_circle", core: true },
     { id: "completed",  label: "Completed",   color: "#15803D", bg: "#DCFCE7", icon: "check_circle", core: true },
-    { id: "cancelled",  label: "Cancelled",   color: "#DC2626", bg: "#FEE2E2", icon: "edit" },
+    { id: "cancelled",  label: "Cancelled",   color: "#DC2626", bg: "#FEE2E2", icon: "cancel" },
   ]);
   // Palette for custom statuses
   const STATUS_PALETTE: { color: string; bg: string; icon: string }[] = [
