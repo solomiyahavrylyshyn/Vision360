@@ -194,6 +194,32 @@ export function packOverlaps<T extends { id: number; start: number; end: number 
   return { rowByJobId, rowCount: Math.max(1, rowEnds.length) };
 }
 
+// ── Seed deconfliction (no technician double-booked) ───────────────────────
+// A technician can't be in two places at once, so the board must never show one
+// person two time-overlapping jobs on the same day. Demo seeds assembled from
+// multiple sources can violate this once placed on real dates. deconflict() keeps
+// a non-overlapping set per (technician, day) greedily by start time — the FIRST
+// item wins a tie (caller orders by priority). Jobs with no technician ("") or no
+// date (unscheduled) never conflict and are always kept. Pure + deterministic
+// given the input order; never run user-created jobs through it (don't hide data).
+export function deconflict<
+  T extends Pick<SchedulableJob, "technicianId" | "start" | "end" | "unscheduled"> & { date: Date | null },
+>(list: T[]): T[] {
+  const dayKey = (d: Date) => `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+  const placed = new Map<string, { start: number; end: number }[]>();
+  const kept: T[] = [];
+  for (const j of [...list].sort((a, b) => a.start - b.start || a.end - b.end)) {
+    if (!j.technicianId || j.unscheduled || j.date == null) { kept.push(j); continue; }
+    const key = `${j.technicianId}|${dayKey(j.date)}`;
+    const slots = placed.get(key) ?? [];
+    if (slots.some((s) => j.start < s.end && s.start < j.end)) continue; // overlaps a kept job → drop
+    slots.push({ start: j.start, end: j.end });
+    placed.set(key, slots);
+    kept.push(j);
+  }
+  return kept;
+}
+
 // ── Daily KPI aggregation ─────────────────────────────────────────────────
 // Backlog: compact counts (scheduled / in_progress / completed) + revenue,
 // whole numbers. Cancelled jobs are excluded from the board KPIs.

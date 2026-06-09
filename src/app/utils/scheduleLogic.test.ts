@@ -20,6 +20,7 @@ import {
   hasTimeConflict,
   dailyKpis,
   packOverlaps,
+  deconflict,
   type SchedulableJob,
 } from "./scheduleLogic";
 
@@ -256,5 +257,58 @@ describe("packOverlaps — sub-row layout so lane cards never cover each other",
     const a = packOverlaps([ev(3, 10.5, 12), ev(1, 8, 10), ev(2, 9, 11)]);
     const b = packOverlaps([ev(1, 8, 10), ev(2, 9, 11), ev(3, 10.5, 12)]);
     expect(a).toEqual(b);
+  });
+});
+
+describe("deconflict — a technician is never double-booked on the same day", () => {
+  const d1 = new Date(2026, 5, 8);   // Mon Jun 8 2026
+  const d2 = new Date(2026, 5, 9);   // Tue Jun 9 2026
+  const j = (id: number, technicianId: string, start: number, end: number, date: Date | null, unscheduled = false) =>
+    ({ id, technicianId, start, end, date, unscheduled });
+
+  it("drops a same-tech, same-day time overlap (keeps the FIRST listed)", () => {
+    const out = deconflict([
+      j(1, "peter", 8, 10, d1),     // kept (listed first)
+      j(2, "peter", 8, 10, d1),     // exact overlap → dropped
+      j(3, "peter", 9, 11, d1),     // overlaps #1 (9<10) → dropped
+    ]);
+    expect(out.map((x) => x.id)).toEqual([1]);
+  });
+
+  it("keeps back-to-back (end === next start) and non-overlapping jobs", () => {
+    const out = deconflict([j(1, "peter", 8, 10, d1), j(2, "peter", 10, 12, d1), j(3, "peter", 13, 15, d1)]);
+    expect(out.map((x) => x.id)).toEqual([1, 2, 3]);
+  });
+
+  it("does NOT cross-conflict different technicians or different days", () => {
+    const out = deconflict([
+      j(1, "peter", 8, 10, d1),
+      j(2, "travis", 8, 10, d1),    // different tech → kept
+      j(3, "peter", 8, 10, d2),     // different day → kept
+    ]);
+    expect(out.map((x) => x.id).sort()).toEqual([1, 2, 3]);
+  });
+
+  it("never drops unassigned ('' tech) or unscheduled (no date) jobs — they can't conflict", () => {
+    const out = deconflict([
+      j(1, "", 8, 10, d1),                  // unassigned, same slot
+      j(2, "", 8, 10, d1),                  // unassigned, same slot
+      j(3, "peter", 8, 10, null, true),     // unscheduled
+      j(4, "peter", 8, 10, null, true),     // unscheduled
+    ]);
+    expect(out.map((x) => x.id).sort()).toEqual([1, 2, 3, 4]);
+  });
+
+  it("the result has zero same-tech same-day overlaps (the invariant)", () => {
+    const out = deconflict([
+      j(1, "peter", 8, 10, d1), j(2, "peter", 8, 10, d1), j(3, "peter", 9, 11, d1),
+      j(4, "travis", 8, 10, d1), j(5, "travis", 8, 11, d1),
+      j(6, "maria", 10, 12, d2), j(7, "maria", 11, 13, d2),
+    ]);
+    const overlaps = out.some((a) => out.some((b) =>
+      a !== b && a.technicianId && a.technicianId === b.technicianId &&
+      a.date && b.date && a.date.getTime() === b.date.getTime() &&
+      a.start < b.end && b.start < a.end));
+    expect(overlaps).toBe(false);
   });
 });

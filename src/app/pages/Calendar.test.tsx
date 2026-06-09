@@ -304,14 +304,17 @@ describe("Calendar — week view (integration)", () => {
       </MemoryRouter>,
     );
     const aside = screen.getByRole("complementary") as HTMLElement;
-    // Smith Resi… (unified id 17 = old week id 1 + 16) is scheduled+assigned → NOT pending yet.
-    expect(within(aside).queryByText("Smith Resi...")).not.toBeInTheDocument();
+    // Miller Residence (id 1) is scheduled + assigned (Peter, today) → on the board,
+    // not pending. We drag a DAY-ORIGIN job on purpose: the seed deconflicter drops
+    // same-tech time-overlaps, so a week-origin duplicate can be absent on some
+    // weekdays — a day-origin job is always present, keeping this test deterministic.
+    expect(within(aside).queryByText("Miller Residence")).not.toBeInTheDocument();
     // Simulate dropping a week board card onto the drawer (week: payload).
     const dt = makeDataTransfer();
-    dt.setData("text/plain", "week:17");
+    dt.setData("text/plain", "week:1");
     fireEvent.drop(aside, { dataTransfer: dt });
     // Now it's pending (unscheduled) and appears in the drawer.
-    const moved = within(aside).getByText("Smith Resi...").closest('[data-job-card="true"]') as HTMLElement;
+    const moved = within(aside).getByText("Miller Residence").closest('[data-job-card="true"]') as HTMLElement;
     expect(within(moved).getByText(/--:--/)).toBeInTheDocument();
   });
 });

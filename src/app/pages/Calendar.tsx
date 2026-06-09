@@ -13,7 +13,7 @@ import {
 } from "date-fns";
 import routeMapImg from "../../assets/route-map.png";
 import { type JobStatus, JOB_STATUS_STYLES as STATUS_STYLES, JOB_STATUSES as ALL_JOB_STATUSES } from "../constants/jobStatuses";
-import { isPending, pendingJobs, type PendingFilter, hasTimeConflict, statusAfterAssignToSlot, schedulingTags, durationForType, isDraggable, isShownOnBoard, packOverlaps } from "../utils/scheduleLogic";
+import { isPending, pendingJobs, type PendingFilter, hasTimeConflict, statusAfterAssignToSlot, schedulingTags, durationForType, isDraggable, isShownOnBoard, packOverlaps, deconflict } from "../utils/scheduleLogic";
 import { jobTypeColor, jobTypeTint, JOB_TYPE_ORDER, JOB_TYPE_COLORS } from "../constants/jobTypeColors";
 import { jobsStore, type JobRecord } from "../stores/jobsStore";
 
@@ -269,7 +269,7 @@ interface UnifiedJob {
 //   • month-origin→ ids 29-38, their own dates, with a technician assigned
 const _wkStart = startOfWeek(_schedBase);            // Sunday-start; mid-week days are in-range for any locale
 const _wk = (i: number) => addDays(_wkStart, i);
-const INITIAL_JOBS: UnifiedJob[] = [
+const INITIAL_JOBS_RAW: UnifiedJob[] = [
   ...DAY_JOBS.map((j) => ({
     ...j,
     num: `D${String(j.id).padStart(2, "0")}`,
@@ -313,6 +313,13 @@ const INITIAL_JOBS: UnifiedJob[] = [
     border: "#4A6FA5",
   })),
 ];
+
+// Deconflict the merged demo seed so NO technician is ever double-booked: the
+// three legacy per-view seeds (day / week / month), once unified onto real dates,
+// could put the same tech in two places at once (e.g. two 8-10 AM jobs for Peter).
+// The day seed is listed first, so it wins ties → "today" resolves to the clean
+// day schedule. (Logic lives in scheduleLogic + is unit-tested there.)
+const INITIAL_JOBS: UnifiedJob[] = deconflict(INITIAL_JOBS_RAW);
 
 // ── jobsStore ⇄ board adapter (unify create flow with the board) ────────────
 // The board's local seed (INITIAL_JOBS) and the shared jobsStore (what /jobs/new
