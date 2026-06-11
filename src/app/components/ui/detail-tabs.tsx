@@ -19,9 +19,10 @@ interface DetailTabsProps<K extends string = string> {
 }
 
 /**
- * Unified detail-page tab bar — blue pill for the active tab, plain text
- * for inactive tabs. Used by every detail page (Client / Job / Estimate /
- * Invoice / Item / Payment / Expense) so they render identically.
+ * Unified detail-page tab bar — Figma segmented control: a light-grey pill
+ * container, with the active tab as a blue pill (white label + shadow) and
+ * inactive tabs as plain grey text. Used by every detail page (Client / Job /
+ * Estimate / Invoice / Item / Payment / Expense) so they render identically.
  */
 export function DetailTabs<K extends string = string>({
   tabs,
@@ -33,37 +34,37 @@ export function DetailTabs<K extends string = string>({
 }: DetailTabsProps<K>) {
   return (
     <div className={`flex items-center ${className ?? ""}`}>
-      <div className="flex-1 min-w-0 flex items-center gap-1.5 overflow-x-auto scrollbar-hide">
-        {tabs.map(({ key, label, count }) => {
-          const isActive = activeTab === key;
-          return (
-            <button
-              key={key}
-              onClick={() => onChange(key)}
-              className="shrink-0 whitespace-nowrap transition-colors rounded-lg"
-              style={{
-                padding: "8px 16px",
-                fontSize: 13,
-                fontWeight: isActive ? 600 : 500,
-                background: isActive ? "#4A6FA5" : "transparent",
-                color: isActive ? "#FFFFFF" : "#374151",
-              }}
-            >
-              {label}
-              {count !== undefined && count > 0 && (
-                <span
-                  className="ml-1"
-                  style={{
-                    fontWeight: 400,
-                    color: isActive ? "rgba(255,255,255,0.85)" : "#9CA3AF",
-                  }}
-                >
-                  ({count})
-                </span>
-              )}
-            </button>
-          );
-        })}
+      <div className="flex-1 min-w-0 flex items-center gap-3 overflow-x-auto scrollbar-hide">
+        <div className="flex items-center p-[3px] bg-[#F5F7FA] rounded-[10px] shrink-0">
+          {tabs.map(({ key, label, count }) => {
+            const isActive = activeTab === key;
+            return (
+              <button
+                key={key}
+                onClick={() => onChange(key)}
+                className="shrink-0 whitespace-nowrap transition-colors rounded-lg"
+                style={{
+                  padding: "4px 8px",
+                  fontSize: 14,
+                  lineHeight: "20px",
+                  fontWeight: 500,
+                  background: isActive ? "#4A6FA5" : "transparent",
+                  color: isActive ? "#FFFFFF" : "#6B7280",
+                  boxShadow: isActive
+                    ? "0px 1px 3px rgba(0,0,0,0.1), 0px 1px 2px -1px rgba(0,0,0,0.1)"
+                    : "none",
+                }}
+              >
+                {label}
+                {count !== undefined && count > 0 && (
+                  <span className="ml-1" style={{ fontWeight: 500 }}>
+                    ({count})
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
         {tabSuffix}
       </div>
       {trailing && (

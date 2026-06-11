@@ -10,7 +10,6 @@ import {
 } from "../components/ui/dropdown-menu";
 import { DetailTabs, TabSettingsButton } from "../components/ui/detail-tabs";
 import { PlusIcon } from "../components/ui/plus-icon";
-import { DocumentsGallery } from "../components/DocumentsGallery";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "../components/ui/resizable";
 import { DocumentPreview } from "../components/DocumentPreview";
 import { toast } from "sonner";
@@ -74,6 +73,7 @@ const mockJobData: Record<string, any> = {
     gateCode: "2486",
     phone: "813-286-7572", email: "mjdelgado84@yahoo.com",
     jobNumber: "10245", jobType: "Estimate", jobFrequency: "Recurring",
+    frequencyDetail: "Every 1 week on Mon",
     assignedTo: "Peter Novak",
     startedOn: "Mar 30, 2026", endsOn: "Mar 30, 2026",
     startTime: "9:00 AM", endTime: "11:00 AM",
@@ -81,7 +81,7 @@ const mockJobData: Record<string, any> = {
     priority: "Low" as const,
     customerSince: "Jul 2021",
     membership: "Silver - Exp. Dec 2027",
-    lastService: "Jun 2025",
+    lastService: "Jun 25",
     tags: ["Recurring", "Estimate"],
     notes: [
       { id: 1, text: "Prefers morning appointments.", date: "Mar 10, 2026" },
@@ -89,6 +89,8 @@ const mockJobData: Record<string, any> = {
       { id: 3, text: "Requested annual maintenance plan.", date: "Mar 10, 2026" },
       { id: 4, text: "Requested annual maintenance plan.", date: "Mar 10, 2026" },
       { id: 5, text: "Requested annual maintenance plan.", date: "Mar 10, 2026" },
+      { id: 6, text: "Gate code changes seasonally — confirm before visit.", date: "Mar 08, 2026" },
+      { id: 7, text: "Dog in the backyard; call ahead before arriving.", date: "Mar 05, 2026" },
     ] as NoteEntry[],
     fieldNotes: [
       { id: 1, text: "Verify outdoor condenser clearance before quoting.", date: "Mar 10, 2026" },
@@ -199,7 +201,7 @@ const priorityColors: Record<string, { bg: string; text: string }> = {
   High: { bg: "#FEF2F2", text: "#DC2626" },
 };
 
-type TabKey = "details" | "appointments" | "checklist" | "documents" | "items" | "labor" | "expense" | "finance";
+type TabKey = "details" | "estimates" | "invoices" | "appointments" | "checklist" | "documents" | "items" | "labor" | "expense" | "finance";
 
 const BASE_TABS: { key: TabKey; label: string }[] = [
   { key: "details",       label: "Details" },
@@ -447,6 +449,8 @@ export function JobDetail() {
       jobNumber: r.jobNumber,
       jobType: r.jobType || "Service",
       jobFrequency: "One-time",
+      // Don't inherit the mock's recurring schedule line on store-created jobs.
+      frequencyDetail: "",
       startedOn: r.startDate,
       endsOn: r.endDate,
       startTime: r.startTime || "",
@@ -544,8 +548,8 @@ export function JobDetail() {
     })),
     ...INITIAL_DOCS.filter((d) => !d.isImage),
   ]);
-  // Documents card no longer collapses — header icon triggers upload directly.
-  const docsUploadRef = useRef<(() => void) | null>(null);
+  // Upload input for the Documents column (details tab).
+  const attachInputRef = useRef<HTMLInputElement>(null);
   const [docSearch, setDocSearch] = useState("");
   const [docDate, setDocDate] = useState("all");
   const [docCategory, setDocCategory] = useState("all");
@@ -577,12 +581,10 @@ export function JobDetail() {
   };
   const setEditField = (field: string, value: any) => setEditJob((p: any) => ({ ...p, [field]: value }));
 
-  /* ── Tab counts ── */
+  /* ── Tab counts — Figma shows counts on Estimates and Expenses only ── */
   const getTabCount = (key: TabKey): number | undefined => {
     const counts: Partial<Record<TabKey, number>> = {
-      appointments: job.visits.length,
-      documents: documents.length,
-      items: job.lineItems.length,
+      estimates: jobEstimates.length,
       expense: job.expenses.length,
     };
     return counts[key];
@@ -668,6 +670,39 @@ export function JobDetail() {
     toast.success(`${files.length} file${files.length > 1 ? "s" : ""} uploaded`);
   };
 
+  // Uploads/removals for the details-tab Documents column (attachments list).
+  const handleAttachmentsAdded = (files: FileList | null) => {
+    if (!files) return;
+    const today = formatRegionalDate(new Date());
+    const imageExts = ["jpg", "jpeg", "png", "gif", "webp"];
+    Array.from(files).forEach((f) => {
+      const attId = String(Date.now() + Math.random());
+      const ext = f.name.split(".").pop()?.toLowerCase() ?? "";
+      const isImage = imageExts.includes(ext) || f.type.startsWith("image/");
+      const doc: DocFile = {
+        id: attId,
+        name: f.name,
+        size: formatSize(f.size),
+        date: today,
+        ...getFileIcon(f.name),
+        isImage,
+        uploadedBy: "You",
+        category: isImage ? "Photos" : /agreement/i.test(f.name) ? "Agreements" : "Documents",
+      };
+      if (isImage) {
+        const reader = new FileReader();
+        reader.onload = () => setAttachments(prev => prev.map(d => d.id === attId ? { ...d, previewUrl: String(reader.result) } : d));
+        reader.readAsDataURL(f);
+      }
+      setAttachments(prev => [doc, ...prev]);
+    });
+    toast.success(`${files.length} file${files.length > 1 ? "s" : ""} uploaded`);
+  };
+  const removeAttachment = (attId: string) => {
+    setAttachments(prev => prev.filter(a => a.id !== attId));
+    setDocPreviewIdx(0);
+  };
+
   const uploaderOptions = Array.from(new Set(documents.map(d => d.uploadedBy).filter(Boolean) as string[]));
   const filteredDocuments = documents.filter(d => {
     if (docSearch && !d.name.toLowerCase().includes(docSearch.toLowerCase())) return false;
@@ -716,8 +751,28 @@ export function JobDetail() {
       { key: "internal" as const, label: "Internal", notes: job.internalNotes },
     ];
     const activeNotes = noteTabs.find(t => t.key === noteTab)?.notes ?? [];
-    const SHOW_N = 4;
+    const SHOW_N = 5;
     const shownNotes = notesExpanded ? activeNotes : activeNotes.slice(0, SHOW_N);
+
+    // "Duration" under Job period — derived from start/end time ("9:00 AM" →
+    // "11:00 AM" = "2 hours"), so it stays correct when the schedule is edited.
+    const jobDuration = (() => {
+      const parse = (t: string) => {
+        const m = /(\d{1,2}):(\d{2})\s*(AM|PM)?/i.exec(t || "");
+        if (!m) return null;
+        let h = Number(m[1]) % 12;
+        if ((m[3] || "").toUpperCase() === "PM") h += 12;
+        return h * 60 + Number(m[2]);
+      };
+      const s = parse(job.startTime);
+      const e = parse(job.endTime);
+      if (s == null || e == null || e <= s) return "—";
+      const mins = e - s;
+      const h = Math.floor(mins / 60);
+      const mm = mins % 60;
+      if (h === 0) return `${mm} min`;
+      return mm ? `${h}h ${mm}m` : `${h} hour${h === 1 ? "" : "s"}`;
+    })();
 
     const handleSaveNote = () => {
       const trimmed = notesNewText.trim();
@@ -736,78 +791,80 @@ export function JobDetail() {
     return (
       <ResizablePanelGroup direction="horizontal" className="min-h-[440px] items-stretch">
 
-        {/* ── Col 1: Job Overview + Job Date & Time (stacked cards) ── */}
-        <ResizablePanel defaultSize={22} minSize={16} maxSize={32} className="min-w-0">
-          <div className="h-full flex flex-col gap-4">
-            {/* Job overview card — mirrors the Contact Information card on ClientDetail */}
-            <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
-              <div className="flex items-center gap-2 px-5 py-3.5 border-b border-[#E5E7EB]">
-                <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>work_outline</span>
-                <span className="flex-1 text-[13px] font-semibold text-[#1A2332]">Job overview</span>
-                <button
-                  onClick={() => openEdit("overview")}
-                  className="w-7 h-7 flex items-center justify-center hover:bg-[#F5F7FA] rounded-md transition-colors"
-                  aria-label="Edit job overview"
-                >
-                  <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "16px" }}>edit</span>
-                </button>
-              </div>
-              <div className="p-5 space-y-4">
-                <div>
-                  <div className="text-[14px] text-[#6B7280] leading-[20px]">Job frequency</div>
-                  <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>{job.jobFrequency || "One-time"}</div>
-                </div>
-                <div>
-                  <div className="text-[14px] text-[#6B7280] leading-[20px]">Job title</div>
-                  <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>{job.title}</div>
-                </div>
-                <div>
-                  <div className="text-[14px] text-[#6B7280] leading-[20px]">Job Type</div>
-                  <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>{job.jobType}</div>
-                </div>
-                <div>
-                  <div className="text-[14px] text-[#6B7280] leading-[20px]">Assigned to</div>
-                  <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>{assignedTo || "Unassigned"}{assignedTo ? " - Technician" : ""}</div>
-                </div>
-                <div>
-                  <div className="text-[14px] text-[#6B7280] leading-[20px]">Service Address</div>
-                  <div className="text-[14px] text-[#1A2332] leading-[20px]" style={{ fontWeight: 500 }}>
-                    {job.address}<br />{job.city}, {job.state} {job.zip}
-                    {job.gateCode && <><br /><span className="text-[#6B7280]" style={{ fontWeight: 400 }}>Gate code: {job.gateCode}</span></>}
-                  </div>
-                </div>
-              </div>
+        {/* ── Col 1: Job overview — ONE card per Figma, schedule lives inside it
+            under the "Job period" sub-header. ── */}
+        <ResizablePanel defaultSize={21} minSize={16} maxSize={32} className="min-w-0">
+          <div className="h-full bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
+            <div className="flex items-center justify-between gap-2 px-4 pt-4">
+              <span className="text-[16px] text-[#1A2332]" style={{ fontWeight: 600 }}>Job overview</span>
+              <button
+                onClick={() => openEdit("overview")}
+                className="w-8 h-8 flex items-center justify-center bg-white border border-[#E5E7EB] rounded-lg hover:bg-[#F5F7FA] transition-colors"
+                aria-label="Edit job overview"
+              >
+                <span className="material-icons text-[#1A2332]" style={{ fontSize: "16px" }}>edit</span>
+              </button>
             </div>
+            <div className="p-4 space-y-4">
+              <div>
+                <div className="text-[14px] text-[#6B7280] leading-[20px]">Job frequency</div>
+                <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>{job.jobFrequency || "One-time"}</div>
+                {job.frequencyDetail && (
+                  <div className="text-[14px] text-[#6B7280] leading-[20px]">{job.frequencyDetail}</div>
+                )}
+              </div>
+              <div>
+                <div className="text-[14px] text-[#6B7280] leading-[20px]">Job title</div>
+                <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>{job.title}</div>
+              </div>
+              <div>
+                <div className="text-[14px] text-[#6B7280] leading-[20px]">Job Type</div>
+                <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>{job.jobType}</div>
+              </div>
+              <div>
+                <div className="text-[14px] text-[#6B7280] leading-[20px]">Assigned to</div>
+                <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>{assignedTo || "Unassigned"}{assignedTo ? " • Technician" : ""}</div>
+              </div>
+              <div>
+                <div className="text-[14px] text-[#6B7280] leading-[20px]">Service Address</div>
+                <div className="text-[14px] text-[#1A2332] leading-[20px]" style={{ fontWeight: 500 }}>
+                  {job.address}<br />{job.city}, {job.state} {job.zip}
+                </div>
+                {job.gateCode && <div className="text-[14px] text-[#6B7280] leading-[20px]">Gate code: {job.gateCode}</div>}
+              </div>
 
-            {/* Job date & time card */}
-            <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
-              <div className="flex items-center gap-2 px-5 py-3.5 border-b border-[#E5E7EB]">
-                <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>event</span>
-                <span className="flex-1 text-[13px] font-semibold text-[#1A2332]">Job date & time</span>
+              {/* Job period — schedule block inside the same card (Figma) */}
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Job period</span>
                 <button
                   onClick={() => openEdit("schedule")}
-                  className="w-7 h-7 flex items-center justify-center hover:bg-[#F5F7FA] rounded-md transition-colors"
+                  className="w-6 h-6 flex items-center justify-center rounded hover:bg-[#F5F7FA] transition-colors"
                   aria-label="Edit job schedule"
+                  title="Edit job period"
                 >
-                  <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "16px" }}>edit</span>
+                  <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "14px" }}>edit</span>
                 </button>
               </div>
-              <div className="p-5 grid grid-cols-2 gap-x-6 gap-y-4">
+              <div>
+                <div className="text-[14px] text-[#6B7280] leading-[20px]">Duration</div>
+                <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>{jobDuration}</div>
+              </div>
+              <div className="grid grid-cols-2 gap-x-2 gap-y-4">
                 <div>
                   <div className="text-[14px] text-[#6B7280] leading-[20px]">Start Date</div>
-                  <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>{job.startedOn}</div>
+                  <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>{job.startedOn || "—"}</div>
                 </div>
                 <div>
                   <div className="text-[14px] text-[#6B7280] leading-[20px]">End Date</div>
-                  <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>{job.endsOn}</div>
+                  <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>{job.endsOn || "—"}</div>
                 </div>
                 <div>
                   <div className="text-[14px] text-[#6B7280] leading-[20px]">Start Time</div>
-                  <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>{job.startTime}</div>
+                  <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>{job.startTime || "—"}</div>
                 </div>
                 <div>
                   <div className="text-[14px] text-[#6B7280] leading-[20px]">End Time</div>
-                  <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>{job.endTime}</div>
+                  <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>{job.endTime || "—"}</div>
                 </div>
               </div>
             </div>
@@ -816,36 +873,50 @@ export function JobDetail() {
 
         {panelHandle}
 
-        {/* ── Col 2: Notes panel with sub-tabs ── */}
-        <ResizablePanel defaultSize={31} minSize={22} maxSize={48} className="min-w-0">
-        <div className="h-full bg-white border border-[#E5E7EB] rounded-lg overflow-hidden flex flex-col">
-          {/* Header: "Notes" label + sub-tabs + "+" */}
-          <div className="flex items-center border-b border-[#E5E7EB] px-4 gap-1 shrink-0">
+        {/* ── Col 2: Notes panel — segmented sub-tabs per Figma ── */}
+        <ResizablePanel defaultSize={26} minSize={22} maxSize={48} className="min-w-0">
+        <div className="h-full bg-white border border-[#E5E7EB] rounded-xl overflow-hidden flex flex-col p-4 pb-0">
+          {/* Header: segmented Job / Field / Internal tabs + bordered "+".
+              The tab strip scrolls inside its own track when the panel gets
+              narrow, so the "+" stays pinned INSIDE the card instead of being
+              pushed out over the edge. */}
+          <div className="flex items-center gap-2 shrink-0 min-w-0">
             <span className="sr-only">Notes</span>
-            {noteTabs.map(tab => (
-              <button
-                key={tab.key}
-                onClick={() => { setNoteTab(tab.key); setNotesExpanded(false); }}
-                className={`relative py-3 px-2 text-[13px] transition-colors ${
-                  noteTab === tab.key ? "text-[#4A6FA5]" : "text-[#6B7280] hover:text-[#1A2332]"
-                }`}
-                style={{ fontWeight: noteTab === tab.key ? 500 : 400 }}
-              >
-                {tab.label} <span className="opacity-70">({tab.notes.length})</span>
-                {noteTab === tab.key && <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#4A6FA5] rounded-full" />}
-              </button>
-            ))}
+            <div className="flex-1 min-w-0 overflow-x-auto scrollbar-hide">
+              <div className="inline-flex items-center p-[3px] bg-[#F5F7FA] rounded-[10px] whitespace-nowrap">
+                {noteTabs.map(tab => {
+                  const active = noteTab === tab.key;
+                  return (
+                    <button
+                      key={tab.key}
+                      onClick={() => { setNoteTab(tab.key); setNotesExpanded(false); }}
+                      className="px-2 py-1 rounded-lg text-[14px] leading-[20px] transition-colors whitespace-nowrap"
+                      style={{
+                        fontWeight: 500,
+                        background: active ? "#4A6FA5" : "transparent",
+                        color: active ? "#FFFFFF" : "#6B7280",
+                        boxShadow: active ? "0px 1px 3px rgba(0,0,0,0.1), 0px 1px 2px -1px rgba(0,0,0,0.1)" : "none",
+                      }}
+                    >
+                      {tab.label} ({tab.notes.length})
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
             <button
               onClick={() => { setNotesAdding(true); setNotesNewText(""); }}
-              className="ml-auto w-7 h-7 flex items-center justify-center rounded hover:bg-[#F5F7FA]"
+              aria-label="Add note"
+              title="Add note"
+              className="w-8 h-8 shrink-0 flex items-center justify-center bg-white border border-[#E5E7EB] rounded-lg hover:bg-[#F5F7FA] transition-colors"
             >
-              <PlusIcon className="h-3.5 w-3.5 text-[#9CA3AF]" />
+              <PlusIcon className="h-4 w-4 text-[#1A2332]" />
             </button>
           </div>
 
           {/* Add note form */}
           {notesAdding && (
-            <div className="px-4 py-3 border-b border-[#E5E7EB] bg-[#F9FAFB]">
+            <div className="py-3 border-b border-[#E5E7EB]">
               <textarea
                 autoFocus value={notesNewText} onChange={e => setNotesNewText(e.target.value)}
                 placeholder="Write a note…" rows={3}
@@ -860,15 +931,15 @@ export function JobDetail() {
             </div>
           )}
 
-          {/* Notes list */}
+          {/* Notes list — "Added <date>" + note text rows divided by borders */}
           {activeNotes.length === 0 && !notesAdding ? (
             <div className="py-8 text-center text-[12px] text-[#9CA3AF]">No {noteTabs.find(t=>t.key===noteTab)?.label.toLowerCase()} notes yet</div>
           ) : (
-            <div className="divide-y divide-[#F3F4F6] flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto pt-1">
               {shownNotes.map((note: NoteEntry) => (
-                <div key={note.id} className="px-4 py-3 group">
-                  <div className="text-[12px] text-[#8899AA] mb-1">Added {note.date}</div>
-                  <p className="text-[13px] text-[#1A2332] leading-[20px]" style={{ fontWeight: 600 }}>{note.text}</p>
+                <div key={note.id} className="py-4 border-b border-[#E5E7EB] group">
+                  <div className="text-[14px] text-[#6B7280] leading-[20px]">Added {note.date}</div>
+                  <p className="text-[14px] text-[#1A2332] leading-[20px]" style={{ fontWeight: 500 }}>{note.text}</p>
                 </div>
               ))}
             </div>
@@ -878,10 +949,10 @@ export function JobDetail() {
           {activeNotes.length > SHOW_N && (
             <button
               onClick={() => setNotesExpanded(v => !v)}
-              className="w-full py-2.5 text-[12px] text-[#4A6FA5] hover:bg-[#F5F7FA] flex items-center justify-center gap-1 border-t border-[#E5E7EB] transition-colors"
+              className="w-full py-3 text-[14px] text-[#4A6FA5] hover:bg-[#F5F7FA] flex items-center justify-center gap-2 transition-colors"
               style={{ fontWeight: 500 }}
             >
-              <span className="material-icons" style={{ fontSize: "14px" }}>{notesExpanded ? "expand_less" : "expand_more"}</span>
+              <span className="material-icons" style={{ fontSize: "16px" }}>{notesExpanded ? "expand_less" : "expand_more"}</span>
               {notesExpanded ? "Show less" : `Show ${activeNotes.length - SHOW_N} more`}
             </button>
           )}
@@ -890,35 +961,162 @@ export function JobDetail() {
 
         {panelHandle}
 
-        {/* ── Col 3: Attachments (Media / Files) ── */}
-        <ResizablePanel defaultSize={47} minSize={30} className="min-w-0">
-        <div className="h-full bg-white border border-[#E5E7EB] rounded-lg overflow-hidden flex flex-col">
-          {/* Header */}
-          <div className="flex items-center justify-between border-b border-[#E5E7EB] px-4 py-2.5 shrink-0">
-            <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>
-              Documents <span className="text-[#9CA3AF]" style={{ fontWeight: 400 }}>({attachments.length})</span>
-            </span>
-            <button
-              type="button"
-              onClick={() => docsUploadRef.current?.()}
-              aria-label="Upload documents"
-              title="Upload documents"
-              className="w-7 h-7 flex items-center justify-center rounded-md text-[#4A6FA5] hover:bg-[#EDF0F5] transition-colors"
-            >
-              <span className="material-icons" style={{ fontSize: "20px" }}>upload</span>
-            </button>
-          </div>
+        {/* ── Col 3: Documents — Figma: search + filter selects, thumbnail list
+            on the left, large preview with pager on the right. ── */}
+        <ResizablePanel defaultSize={53} minSize={34} className="min-w-0">
+        {(() => {
+          const attCategories = Array.from(new Set(attachments.map(a => a.category).filter(Boolean))) as string[];
+          const attUploaders = Array.from(new Set(attachments.map(a => a.uploadedBy).filter(Boolean))) as string[];
+          const filteredAttachments = attachments.filter(a => {
+            if (docSearch && !a.name.toLowerCase().includes(docSearch.toLowerCase())) return false;
+            if (docCategory !== "all" && a.category !== docCategory) return false;
+            if (docUploader !== "all" && a.uploadedBy !== docUploader) return false;
+            if (docDate !== "all") {
+              const ts = new Date(a.date).getTime();
+              const days = docDate === "7" ? 7 : docDate === "30" ? 30 : 90;
+              if (Number.isFinite(ts) && Date.now() - ts > days * 24 * 60 * 60 * 1000) return false;
+            }
+            return true;
+          });
+          const safeIdx = Math.min(docPreviewIdx, Math.max(0, filteredAttachments.length - 1));
+          const previewDoc = filteredAttachments[safeIdx];
+          const filterSelectCls = "h-9 pl-3 pr-7 border border-[#E5E7EB] rounded-lg text-[14px] text-[#1A2332] bg-white shadow-[0px_1px_2px_rgba(0,0,0,0.05)] cursor-pointer focus:outline-none focus:border-[#4A6FA5]";
+          return (
+            <div className="h-full bg-white border border-[#E5E7EB] rounded-xl flex flex-col p-4 gap-3">
+              {/* Search + upload — the input shrinks, the "+" never leaves the card. */}
+              <div className="flex items-center justify-between gap-2 shrink-0 min-w-0">
+                <div className="relative flex-1 min-w-0 max-w-[294px]">
+                  <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-[#6B7280]" style={{ fontSize: "16px" }}>search</span>
+                  <input
+                    value={docSearch}
+                    onChange={e => { setDocSearch(e.target.value); setDocPreviewIdx(0); }}
+                    placeholder="Search documents"
+                    className="w-full h-9 pl-9 pr-3 border border-[#E5E7EB] rounded-lg text-[14px] bg-white shadow-[0px_1px_2px_rgba(0,0,0,0.05)] focus:outline-none focus:border-[#4A6FA5]"
+                  />
+                </div>
+                <button
+                  onClick={() => attachInputRef.current?.click()}
+                  aria-label="Upload document"
+                  title="Upload document"
+                  className="w-8 h-8 shrink-0 flex items-center justify-center bg-white border border-[#E5E7EB] rounded-lg hover:bg-[#F5F7FA] transition-colors"
+                >
+                  <PlusIcon className="h-4 w-4 text-[#1A2332]" />
+                </button>
+                <input
+                  ref={attachInputRef}
+                  type="file"
+                  multiple
+                  className="hidden"
+                  onChange={e => { handleAttachmentsAdded(e.target.files); e.currentTarget.value = ""; }}
+                />
+              </div>
 
-          {/* Documents gallery — reuses the client Documents tab experience */}
-          <div className="flex-1 overflow-y-auto min-h-[420px]">
-            <DocumentsGallery
-              documents={attachments}
-              onChange={setAttachments}
-              hideToolbarUpload
-              uploadTriggerRef={docsUploadRef}
-            />
-          </div>
-        </div>
+              {/* Filter row — wraps on narrow widths instead of overflowing. */}
+              <div className="flex items-center gap-2 shrink-0 flex-wrap min-w-0">
+                <select value={docDate} onChange={e => { setDocDate(e.target.value); setDocPreviewIdx(0); }} className={filterSelectCls}>
+                  <option value="all">Date: All time</option>
+                  <option value="7">Date: Last 7 days</option>
+                  <option value="30">Date: Last 30 days</option>
+                  <option value="90">Date: Last 90 days</option>
+                </select>
+                <select value={docCategory} onChange={e => { setDocCategory(e.target.value); setDocPreviewIdx(0); }} className={filterSelectCls}>
+                  <option value="all">Categories: All</option>
+                  {attCategories.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+                <select value={docUploader} onChange={e => { setDocUploader(e.target.value); setDocPreviewIdx(0); }} className={filterSelectCls}>
+                  <option value="all">Uploaders: All</option>
+                  {attUploaders.map(u => <option key={u} value={u}>{u}</option>)}
+                </select>
+                <button
+                  className="ml-auto w-9 h-9 shrink-0 flex items-center justify-center bg-white border border-[#E5E7EB] rounded-lg hover:bg-[#F5F7FA] transition-colors"
+                  aria-label="More filters"
+                  title="More filters"
+                >
+                  <span className="material-icons text-[#1A2332]" style={{ fontSize: "16px" }}>filter_list</span>
+                </button>
+              </div>
+
+              {/* Thumbnail list + preview */}
+              <div className="flex-1 min-h-0 flex border border-[#E5E7EB] rounded-lg overflow-hidden">
+                <div className="w-[182px] shrink-0 p-4 overflow-y-auto">
+                  {filteredAttachments.length === 0 ? (
+                    <div className="py-8 text-center text-[12px] text-[#9CA3AF]">No documents match</div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-2">
+                      {filteredAttachments.map((a, idx) => (
+                        <button
+                          key={a.id}
+                          onClick={() => setDocPreviewIdx(idx)}
+                          title={a.name}
+                          className={`relative group h-[60px] rounded-md overflow-hidden border-2 transition-colors ${idx === safeIdx ? "border-[#4A6FA5]" : "border-transparent hover:border-[#C8D5E8]"}`}
+                        >
+                          {a.previewUrl ? (
+                            <img src={a.previewUrl} alt={a.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <span className="w-full h-full bg-[#F5F7FA] flex items-center justify-center">
+                              <span className="material-icons" style={{ fontSize: "22px", color: a.iconColor }}>{a.icon}</span>
+                            </span>
+                          )}
+                          {/* Hover delete — small square button like the Figma overlay */}
+                          <span
+                            role="button"
+                            aria-label={`Delete ${a.name}`}
+                            onClick={(e) => { e.stopPropagation(); removeAttachment(a.id); }}
+                            className="absolute top-1.5 right-1.5 w-6 h-6 hidden group-hover:flex items-center justify-center bg-[#F5F7FA] rounded shadow-sm hover:bg-[#FEE2E2] cursor-pointer"
+                          >
+                            <span className="material-icons text-[#1A2332]" style={{ fontSize: "14px" }}>delete_outline</span>
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1 relative border-l border-[#E5E7EB] p-4 flex items-start justify-center" style={{ background: "rgba(245,247,250,0.4)" }}>
+                  {previewDoc ? (
+                    <>
+                      {previewDoc.previewUrl ? (
+                        <img src={previewDoc.previewUrl} alt={previewDoc.name} className="w-full max-h-[320px] object-cover rounded-xl" />
+                      ) : (
+                        <div className="flex flex-col items-center gap-2 py-16">
+                          <span className="material-icons" style={{ fontSize: "56px", color: previewDoc.iconColor }}>{previewDoc.icon}</span>
+                          <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{previewDoc.name}</div>
+                          <div className="text-[12px] text-[#9CA3AF]">{previewDoc.size} · {previewDoc.date}</div>
+                        </div>
+                      )}
+                      <button
+                        onClick={() => previewDoc.previewUrl ? window.open(previewDoc.previewUrl, "_blank") : toast(`Preview for ${previewDoc.name} opens in the viewer`)}
+                        aria-label="Open in new tab"
+                        title="Open in new tab"
+                        className="absolute top-6 right-6 w-9 h-9 flex items-center justify-center bg-white border border-[#E5E7EB] rounded-lg hover:bg-[#F5F7FA] transition-colors"
+                      >
+                        <span className="material-icons text-[#1A2332]" style={{ fontSize: "16px" }}>open_in_new</span>
+                      </button>
+                      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-3">
+                        <button
+                          onClick={() => setDocPreviewIdx(i => (i - 1 + filteredAttachments.length) % filteredAttachments.length)}
+                          aria-label="Previous document"
+                          className="w-9 h-9 flex items-center justify-center bg-white border border-[#E5E7EB] rounded-lg hover:bg-[#F5F7FA] transition-colors"
+                        >
+                          <span className="material-icons text-[#1A2332]" style={{ fontSize: "16px" }}>chevron_left</span>
+                        </button>
+                        <span className="text-[14px] text-[#1A2332] tabular-nums" style={{ fontWeight: 500 }}>{safeIdx + 1}/{filteredAttachments.length}</span>
+                        <button
+                          onClick={() => setDocPreviewIdx(i => (i + 1) % filteredAttachments.length)}
+                          aria-label="Next document"
+                          className="w-9 h-9 flex items-center justify-center bg-white border border-[#E5E7EB] rounded-lg hover:bg-[#F5F7FA] transition-colors"
+                        >
+                          <span className="material-icons text-[#1A2332]" style={{ fontSize: "16px" }}>chevron_right</span>
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="py-16 text-center text-[12px] text-[#9CA3AF]">Nothing to preview</div>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })()}
         </ResizablePanel>
       </ResizablePanelGroup>
     );
@@ -1412,16 +1610,15 @@ export function JobDetail() {
               <h2 className="text-[20px] text-[#1A2332] leading-[27px]" style={{ fontFamily: "Geist", fontWeight: 600 }}>
                 {job.client} <span className="text-[#6B7280]" style={{ fontWeight: 500 }}>({job.jobNumber})</span>
               </h2>
-              {/* Status dropdown */}
+              {/* Status dropdown — Figma badge: 15% tint, 12px label, chevron, no dot */}
               <div className="relative">
                 <button
                   onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[13px] transition-colors"
-                  style={{ fontWeight: 600, backgroundColor: `${statusColor}18`, color: statusColor }}
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[12px] transition-colors"
+                  style={{ fontWeight: 500, backgroundColor: `${statusColor}26`, color: statusColor }}
                 >
-                  <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: statusColor }} />
                   {displayStatus}
-                  <span className="material-icons" style={{ fontSize: "14px" }}>arrow_drop_down</span>
+                  <span className="material-icons" style={{ fontSize: "14px" }}>keyboard_arrow_down</span>
                 </button>
                 {statusDropdownOpen && (
                   <div className="absolute left-0 top-full mt-1 bg-white border border-[#E5E7EB] rounded-md shadow-lg z-50 w-[160px] py-1">
@@ -1440,79 +1637,75 @@ export function JobDetail() {
               </div>
             </div>
 
-            {/* Row 2: Contact icon row — client name | phone icon | email icon | address | job title */}
-            <div className="flex items-center gap-0.5 flex-wrap">
-              <div className="flex items-center gap-1 px-1.5">
-                <span className="material-icons text-[#6B7280]" style={{ fontSize: "16px" }}>location_on</span>
-                <span className="text-[13px] text-[#374151]">{job.address}, {job.city}, {job.state} {job.zip}</span>
+            {/* Row 2: Details row — address · phone · email · customer since · last service */}
+            <div className="flex items-center gap-1 flex-wrap text-[14px]">
+              <div className="flex items-center gap-2 pr-2">
+                <span className="material-icons text-[#1A2332]" style={{ fontSize: "16px" }}>location_on</span>
+                <span className="text-[#1A2332]">{job.address}, {job.city}, {job.state} {job.zip}</span>
               </div>
-              <div className="w-px h-4 bg-[#E5E7EB]" />
-              <a href={`tel:${job.phone}`} className="flex items-center gap-1 px-2 rounded-lg hover:bg-[#F5F7FA] transition-colors" title={job.phone}>
-                <span className="material-icons text-[#6B7280]" style={{ fontSize: "16px" }}>phone</span>
-                <span className="text-[13px] text-[#4A6FA5]" style={{ fontWeight: 600 }}>{job.phone}</span>
+              <div className="w-px h-5 bg-[#E5E7EB]" />
+              <a href={`tel:${job.phone}`} className="flex items-center gap-2 px-2 rounded-lg hover:bg-[#F5F7FA] transition-colors" title={job.phone}>
+                <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "16px" }}>phone</span>
+                <span className="text-[#4A6FA5]" style={{ fontWeight: 500 }}>{job.phone}</span>
               </a>
-              <div className="w-px h-4 bg-[#E5E7EB]" />
-              <a href={`mailto:${job.email}`} className="flex items-center gap-1 px-2 rounded-lg hover:bg-[#F5F7FA] transition-colors" title={job.email}>
-                <span className="material-icons text-[#6B7280]" style={{ fontSize: "16px" }}>mail</span>
-                <span className="text-[13px] text-[#4A6FA5]" style={{ fontWeight: 600 }}>{job.email}</span>
+              <div className="w-px h-5 bg-[#E5E7EB]" />
+              <a href={`mailto:${job.email}`} className="flex items-center gap-2 px-2 rounded-lg hover:bg-[#F5F7FA] transition-colors" title={job.email}>
+                <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "16px" }}>mail</span>
+                <span className="text-[#4A6FA5]" style={{ fontWeight: 500 }}>{job.email}</span>
               </a>
+              {job.customerSince && (
+                <>
+                  <div className="w-px h-5 bg-[#E5E7EB]" />
+                  <div className="flex items-center gap-2 px-2">
+                    <span className="material-icons text-[#1A2332]" style={{ fontSize: "16px" }}>person_outline</span>
+                    <span className="text-[#6B7280]">Customer since: <span className="text-[#1A2332]">{job.customerSince}</span></span>
+                  </div>
+                </>
+              )}
+              {job.lastService && (
+                <>
+                  <div className="w-px h-5 bg-[#E5E7EB]" />
+                  <div className="flex items-center gap-2 px-2">
+                    <span className="material-icons text-[#1A2332]" style={{ fontSize: "16px" }}>schedule</span>
+                    <span className="text-[#6B7280]">Last service: <span className="text-[#1A2332]">{job.lastService}</span></span>
+                  </div>
+                </>
+              )}
             </div>
 
-            {/* Row 3: Secondary metadata strip (grayed) — client since · last visit · notes preview */}
-            {(job.customerSince || job.lastService || (job.notes && job.notes.length > 0)) && (
-              <div className="flex items-center gap-0.5 flex-wrap pt-1.5 text-[12px] text-[#6B7280]">
-                {job.customerSince && (
-                  <div className="flex items-center gap-1.5 pr-3">
-                    <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "14px" }}>calendar_today</span>
-                    Client since {job.customerSince}
-                  </div>
-                )}
-                {job.lastService && (
-                  <>
-                    {job.customerSince && <div className="w-px h-3.5 bg-[#E5E7EB]" />}
-                    <div className="flex items-center gap-1.5 px-3">
-                      <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "14px" }}>schedule</span>
-                      Last visit: {job.lastService}
-                    </div>
-                  </>
-                )}
-                {job.notes && job.notes.length > 0 && (
-                  <>
-                    {(job.customerSince || job.lastService) && <div className="w-px h-3.5 bg-[#E5E7EB]" />}
-                    <div className="flex items-center gap-1.5 px-3 min-w-0">
-                      <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "14px" }}>sticky_note_2</span>
-                      <span className="truncate">
-                        Notes ({job.notes.length}): {job.notes[0].text}
-                      </span>
-                    </div>
-                  </>
-                )}
+            {/* Row 3: Notes preview + "View more" jumping to the notes panel */}
+            {job.notes && job.notes.length > 0 && (
+              <div className="flex items-center gap-2 flex-wrap pt-0.5 text-[14px] min-w-0">
+                <span className="material-icons text-[#1A2332]" style={{ fontSize: "16px" }}>edit_note</span>
+                <span className="text-[#6B7280] truncate">
+                  Notes: <span className="text-[#1A2332]">{job.notes[0].text}</span>
+                </span>
+                <button
+                  onClick={() => { setActiveTab("details"); setNotesExpanded(true); }}
+                  className="text-[#4A6FA5] hover:underline shrink-0"
+                  style={{ fontWeight: 500 }}
+                >
+                  View more
+                </button>
               </div>
             )}
           </div>
 
-          {/* Right: Financial KPI strip — borderless, mirror of ClientDetail header KPIs */}
+          {/* Right: Financial KPI strip — Figma: rounded whole values, sentence-
+              case labels, green/red/amber/purple tinted icons. */}
           <div className="flex items-center gap-4 shrink-0">
             {[
-              { label: "Total Price",   value: `$${job.profitability.totalPrice.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,                                          icon: "trending_up", iconColor: "#16A34A" },
-              { label: "Compensation",  value: `$${Math.round(job.profitability.labor).toLocaleString("en-US")}`,                                                                                          icon: "payments",    iconColor: "#DC2626" },
-              { label: "All Expenses",  value: `$${(job.profitability.lineItemCost + job.profitability.expenses).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,         icon: "receipt_long", iconColor: "#4A6FA5" },
-              { label: "Profit Margin", value: `${job.profitability.margin.toFixed(2)}%`,                                                                                                                   icon: "query_stats", iconColor: job.profitability.margin < 0 ? "#DC2626" : "#16A34A", hint: "(Total Price − Costs) / Total Price" },
-            ].map(({ label, value, icon, iconColor, hint }, i) => (
+              { label: "Total price",   value: `$${Math.round(job.profitability.totalPrice).toLocaleString("en-US")}`,                                          icon: "paid",                   iconColor: "#16A34A" },
+              { label: "Compensation",  value: `$${Math.round(job.profitability.labor).toLocaleString("en-US")}`,                                               icon: "payments",               iconColor: "#DC2626" },
+              { label: "All expenses",  value: `$${Math.round(job.profitability.lineItemCost + job.profitability.expenses).toLocaleString("en-US")}`,           icon: "account_balance_wallet", iconColor: "#F59E0B" },
+              { label: "Profit margin", value: `${Math.round(job.profitability.margin)}%`,                                                                      icon: "pie_chart",              iconColor: "#A856F7" },
+            ].map(({ label, value, icon, iconColor }, i) => (
               <div key={label} className="flex items-center gap-4">
                 {i > 0 && <div className="w-px h-6 bg-[#E5E7EB] shrink-0" />}
                 <div className="flex items-center gap-3">
                   <div className="flex flex-col">
                     <div className="text-[18px] leading-none tabular-nums text-[#1A2332] whitespace-nowrap" style={{ fontWeight: 600 }}>{value}</div>
-                    <div className="text-[14px] leading-[20px] text-[#6B7280] mt-1 whitespace-nowrap flex items-center gap-1">
-                      {label}
-                      {hint && (
-                        <span className="relative group inline-flex">
-                          <span className="material-icons cursor-help" style={{ fontSize: "13px", color: "#9CA3AF" }}>info</span>
-                          <span className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden group-hover:block bg-white border border-[#E5E7EB] rounded-md shadow-lg px-3 py-2 z-50 whitespace-nowrap text-[12px] text-[#1A2332]">{hint}</span>
-                        </span>
-                      )}
-                    </div>
+                    <div className="text-[14px] leading-[20px] text-[#6B7280] mt-1 whitespace-nowrap">{label}</div>
                   </div>
                   <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: `${iconColor}26` }}>
                     <span className="material-icons" style={{ fontSize: "20px", color: iconColor }}>{icon}</span>
