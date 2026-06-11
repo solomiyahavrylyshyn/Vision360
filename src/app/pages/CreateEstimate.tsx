@@ -20,9 +20,6 @@ const legacyCatalogItems: CatalogItem[] = [
   { id: 1006, name: "Drain Cleaning Service", itemDescription: "Standard drain cleaning and snaking", salesDescription: "Professional drain cleaning service", brand: "", modelNumber: "", rate: 175, cost: 40, taxable: false, category: "Plumbing", type: "Service" },
   { id: 1007, name: "Thermostat - Smart WiFi", itemDescription: "Smart thermostat with WiFi connectivity", salesDescription: "Smart WiFi Thermostat — professional installation included", brand: "Ecobee", modelNumber: "EB-STATE5-01", rate: 450, cost: 180, taxable: true, category: "HVAC", type: "Product" },
 ];
-const mockJobs = ["Job-3: HVAC Replacement", "Job-4: Bathroom Remodel", "Job-5: Plumbing Fix", "Job-6: Electrical Work", "Job-8: HVAC Install"];
-const mockTeamMembers = ["Marek Stroz", "John Smith", "Sarah Johnson", "Alex Turner"];
-
 const mockClientProperties: Record<string, string[]> = {
   "John Doe": ["1250 NW 24th St, Miami, FL 33142"],
   "Travis Jones": ["8377 Standish Bend Dr Unit 1, Tampa, FL 33615", "4200 Bay Shore Blvd, Tampa, FL 33611"],
@@ -55,12 +52,16 @@ export function CreateEstimate() {
   const selectedClientId = searchParams.get("clientId") || selectedClient?.id || "";
   const [serviceAddress, setServiceAddress] = useState("");
   const [estimateName, setEstimateName] = useState("");
-  const [estimateNumber] = useState("10245-E03");
+  // The estimate number does not exist until the record is saved — the store
+  // assigns it on create, so the form intentionally shows none.
   const [dateCreated] = useState(() => new Date().toISOString().split("T")[0]);
   const [createdBy] = useState("Marek Stroz");
-  const [expirationDate, setExpirationDate] = useState("");
-  const [linkedJob, setLinkedJob] = useState(searchParams.get("job") || "");
-  const [teamMember, setTeamMember] = useState("");
+  // Expiration defaults to the creation date; the user moves it out if needed.
+  const [expirationDate, setExpirationDate] = useState(dateCreated);
+  // A job is never picked for an estimate manually. Either the estimate is
+  // created from a job visit (the job appointment number arrives via the URL
+  // and is locked), or there was no visit and the estimate has no job at all.
+  const linkedJob = searchParams.get("job") || "";
   // ── Good/Better/Best option tiers ──────────────────────────────────────────
   // One estimate holds several priced tiers, each with its OWN line items; the
   // customer picks one. The line-items table + totals below all operate on the
@@ -144,8 +145,11 @@ export function CreateEstimate() {
     const computedSubtotal = lineItems.reduce((sum, li) => sum + li.total, 0);
     const computedTaxable = lineItems.filter((li) => li.taxable).reduce((sum, li) => sum + li.total, 0);
     const computedTotal = computedSubtotal + computedTaxable * (taxRate / 100);
+    // Number is assigned at save time, based on the job appointment's base
+    // when the estimate was created from a visit.
+    const numberBase = linkedJob.includes("-") ? linkedJob.split("-")[0] : undefined;
     estimatesStore.add({
-      estimateNumber,
+      estimateNumber: estimatesStore.nextEstimateNumber(numberBase),
       estimateName,
       clientName: client.trim(),
       clientId: selectedClientId,
@@ -156,10 +160,11 @@ export function CreateEstimate() {
       amount: Math.round(computedTotal * 100) / 100,
       status,
       job: linkedJob,
-      jobTitle: linkedJob,
+      jobTitle: "",
       sentDate: status === "Sent" ? todayLabel : "",
       expirationDate: expirationDate ? formatRegionalDate(new Date(expirationDate + "T12:00:00")) : "",
-      teamMember: teamMember || createdBy,
+      // The creator is the technician — no separate assignment field.
+      teamMember: createdBy,
       source: linkedJob || "Manual",
       depositDue: 0,
       // Snapshot line items + tax so the EstimateDetail page can rebuild the
@@ -213,16 +218,12 @@ export function CreateEstimate() {
           <span className="material-icons" style={{ fontSize: "18px" }}>arrow_back</span>
           <span>Back to Estimates</span>
         </button>
+        {/* No estimate number here on purpose — it doesn't exist until the
+            record is saved, so the form shows none. */}
         <PageHeader
           title="Create Estimate"
           icon="description"
           className="mb-6"
-          actions={
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#F9FAFB] border border-[#E5E7EB] rounded-md text-[13px] text-[#6B7280]" title="Auto-assigned — not editable">
-              <span className="material-icons" style={{ fontSize: "14px" }}>lock</span>
-              {estimateNumber}
-            </div>
-          }
         />
 
         {/* Client */}
@@ -265,11 +266,12 @@ export function CreateEstimate() {
           />
         </div>
 
-        {/* Dates + Created By */}
+        {/* Dates + Created By. Creation date is a system fact (never editable);
+            expiration defaults to it and stays editable. */}
         <div className="grid grid-cols-3 gap-4 mb-5">
           <div>
             <label className={labelClass}>
-              Created
+              Creation Date
               <span className="ml-1.5 text-[#9CA3AF]" style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>(auto)</span>
             </label>
             <input
@@ -294,27 +296,9 @@ export function CreateEstimate() {
             />
           </div>
           <div>
-            <label className={labelClass}>Expiration Date <span className="text-[#9CA3AF]" style={{ fontWeight: 400 }}>(optional)</span></label>
+            <label className={labelClass}>Expiration Date</label>
             <input type="date" value={expirationDate} onChange={(e) => setExpirationDate(e.target.value)} className={fieldClass} />
           </div>
-        </div>
-
-        {/* Linked Job */}
-        <div className="mb-5">
-          <label className={labelClass}>Job</label>
-          <select value={linkedJob} onChange={(e) => setLinkedJob(e.target.value)} className={fieldClass}>
-            <option value="">None</option>
-            {mockJobs.map(j => <option key={j} value={j}>{j}</option>)}
-          </select>
-        </div>
-
-        {/* Assigned Technician */}
-        <div className="mb-6">
-          <label className={labelClass}>Assigned Technician</label>
-          <select value={teamMember} onChange={(e) => setTeamMember(e.target.value)} className={fieldClass}>
-            <option value="">Assign technician</option>
-            {mockTeamMembers.map(m => <option key={m} value={m}>{m}</option>)}
-          </select>
         </div>
 
         {/* ── Options (Good / Better / Best price tiers) ── */}
@@ -480,6 +464,26 @@ export function CreateEstimate() {
             </button>
           </div>
         </div>
+
+        {/* Job appointment — shown only when the estimate is created from a job
+            visit. The link is automatic and locked: a job is never picked for an
+            estimate by hand, and estimates created from the Estimates page (no
+            visit) simply have no job. Sits below line items — it's a reference,
+            not part of the document. */}
+        {linkedJob && (
+          <div className="mb-6 px-4 py-3 bg-[#F9FAFB] border border-[#E5E7EB] rounded-md flex items-center gap-2 text-[13px] text-[#546478]">
+            <span className="material-icons" style={{ fontSize: "16px" }}>work</span>
+            <span>Job appointment:</span>
+            <span className="text-[#1A2332]" style={{ fontWeight: 600 }}>{linkedJob}</span>
+            <span
+              className="ml-auto inline-flex items-center gap-1 text-[12px] text-[#9CA3AF]"
+              title="Linked automatically — this estimate was created on this job visit"
+            >
+              <span className="material-icons" style={{ fontSize: "14px" }}>lock</span>
+              Linked automatically
+            </span>
+          </div>
+        )}
 
         {/* Notes */}
         <div className="mb-6">

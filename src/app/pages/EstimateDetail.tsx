@@ -472,8 +472,42 @@ export function EstimateDetail() {
             </div>
           </div>
           {estimate.notes && <div className="text-[12px]"><div style={{ fontWeight: 700 }}>Notes:</div><div>{estimate.notes}</div></div>}
-          <div className="mt-4 text-[11px] text-[#9CA3AF]">Terms &amp; Conditions apply.</div>
+          {/* Page-1 disclaimer is a US legal requirement ("form of delivery"):
+              without an explicit pointer to the T&C pages the client can claim
+              they never saw them. Final wording to be reviewed by the attorney. */}
+          <div className="mt-4 text-[11px] text-[#6B7280]" style={{ fontWeight: 600 }}>See terms and conditions on the next page.</div>
           <div className="mt-12 text-center text-[23px] text-[#111827]" style={{ fontWeight: 800 }}>Thank you for your business</div>
+        </div>
+        {/* Page 2 — Terms & Conditions travel with the estimate as the following
+            page(s) of the PDF. Placeholder copy; the attorney finalizes the text. */}
+        <div className="bg-white text-[#5F6670] shadow-2xl border border-[#D7DCE3] mt-6" style={{ width: 760, minHeight: 980, padding: "32px 28px 44px", fontFamily: "Arial, sans-serif", pageBreakBefore: "always" }}>
+          <div className="text-[18px] text-[#4F5660] mb-6" style={{ fontWeight: 800 }}>Terms &amp; Conditions</div>
+          <div className="text-[12px] leading-[19px] space-y-4">
+            <div>
+              <div style={{ fontWeight: 700 }}>1. Acceptance of estimate</div>
+              <div>This estimate is an offer to perform the work described on page 1 for the stated price. Approving or signing this estimate constitutes acceptance of these terms and conditions in full.</div>
+            </div>
+            <div>
+              <div style={{ fontWeight: 700 }}>2. Pricing and validity</div>
+              <div>Pricing is valid until the expiration date shown on page 1. Work or materials not listed in the line items are not included and will be estimated separately.</div>
+            </div>
+            <div>
+              <div style={{ fontWeight: 700 }}>3. Deposits and payment</div>
+              <div>Where a deposit is required, work is scheduled after the deposit is received. The remaining balance is due upon completion unless otherwise agreed in writing.</div>
+            </div>
+            <div>
+              <div style={{ fontWeight: 700 }}>4. Changes and cancellations</div>
+              <div>Changes to the scope of work must be agreed in writing and may affect the price and schedule. Cancellations after materials have been ordered may incur restocking charges.</div>
+            </div>
+            <div>
+              <div style={{ fontWeight: 700 }}>5. Warranty</div>
+              <div>Labor is warranted for the period stated in the service agreement. Manufacturer warranties apply to supplied equipment and materials.</div>
+            </div>
+            <div>
+              <div style={{ fontWeight: 700 }}>6. Liability</div>
+              <div>The company is not responsible for pre-existing conditions, concealed defects, or damage not caused by its work.</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

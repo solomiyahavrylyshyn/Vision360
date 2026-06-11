@@ -1,9 +1,21 @@
 import { useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
+import { toast } from "sonner";
 import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
 import { DetailTabs, TabSettingsButton } from "../components/ui/detail-tabs";
 import { PlusIcon } from "../components/ui/plus-icon";
 import { formatRegionalDate } from "../stores/regionalSettingsStore";
+import { jobsStore } from "../stores/jobsStore";
+
+// A job linked to the invoice, rendered as one accordion section in the
+// Job Details card.
+interface LinkedJobInfo {
+  jobNumber: string;
+  jobName: string;
+  serviceAddress: { line: string; city: string; state: string; zip: string };
+  linkedEstimate: string;
+  estimateStatus?: string;
+}
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type InvoiceStatus =
@@ -81,6 +93,11 @@ const mockInvoices: Record<string, any> = {
 
     jobNumber: "10245-J01",
     jobName: "Kitchen Renovation",
+    // An invoice can settle several jobs; each entry renders as an accordion
+    // section in the Job Details card.
+    jobs: [
+      { jobNumber: "10245-J01", jobName: "Kitchen Renovation", serviceAddress: { line: "123 Main St", city: "Austin", state: "TX", zip: "78701" }, linkedEstimate: "10245-E01", estimateStatus: "Approved" },
+    ],
     linkedEstimate: "10245-E01",
     estimateStatus: "Approved",
     poNumber: "PO-77821",
@@ -139,6 +156,9 @@ const mockInvoices: Record<string, any> = {
 
     jobNumber: "10246-J01",
     jobName: "Bathroom Remodel",
+    jobs: [
+      { jobNumber: "10246-J01", jobName: "Bathroom Remodel", serviceAddress: { line: "789 Oak Ave", city: "Dallas", state: "TX", zip: "75201" }, linkedEstimate: "", estimateStatus: "" },
+    ],
     linkedEstimate: "",
     estimateStatus: "Approved",
     poNumber: "",
@@ -169,6 +189,57 @@ const mockInvoices: Record<string, any> = {
       { id: 3, date: "2026-03-18 00:00", action: "Status changed", detail: "Automatically marked Overdue", icon: "warning" },
     ],
   },
+  "3": {
+    // Fully "empty" invoice — no estimate, no job. Valid case: selling used
+    // equipment off the shelf, the buyer just asks for an invoice.
+    number: "10250-I01",
+    type: "Standard" as InvoiceType,
+    status: "Unpaid" as InvoiceStatus,
+    date: "2026-03-25",
+    dueDate: "2026-04-24",
+    dateSent: "",
+    dateCreated: "2026-03-25",
+    createdBy: "Marek Stroz",
+    stage: "Draft",
+    department: "Field Service",
+    toBePrinted: true,
+
+    client: { name: "Bob Garcia", email: "bob.garcia@email.com", phone: "(214) 555-0199" },
+    from: { company: "Vision360 Services", name: "Marek Stroz", address: "456 Business Blvd", city: "Austin, TX 78702" },
+
+    billingAddress: { line: "789 Oak Ave", city: "Dallas", county: "Dallas", state: "TX", zip: "75201" },
+    serviceAddress: { line: "789 Oak Ave", city: "Dallas", county: "Dallas", state: "TX", zip: "75201" },
+
+    jobNumber: "",
+    jobName: "",
+    jobs: [],
+    linkedEstimate: "",
+    estimateStatus: "",
+    poNumber: "",
+    memo: "Used equipment sale",
+
+    leadSource: "Repeat Customer",
+    salesRep: "Marek Stroz",
+
+    paymentTerms: "Net 30",
+    paymentMethod: "",
+    checkNumber: "",
+
+    customField1: "",
+    customField2: "",
+    noteToCustomer: "",
+
+    items: [
+      { name: "Used equipment", description: "Pre-owned condenser unit — sold as-is", qty: 1, unitPrice: 500, taxable: false },
+    ],
+    taxRate: 7.5,
+    notes: "",
+    terms: "Payment is due within 30 days of invoice date.",
+    payments: [],
+    activity: [
+      { id: 1, date: "2026-03-25 12:10", action: "Invoice created", detail: "Created by Marek Stroz", icon: "add_circle" },
+    ],
+  },
   "4": {
     number: "10248-I02",
     type: "Progress" as InvoiceType,
@@ -190,6 +261,12 @@ const mockInvoices: Record<string, any> = {
 
     jobNumber: "10248-J01",
     jobName: "Electrical Work",
+    // Multi-job example: three jobs closed with a single invoice.
+    jobs: [
+      { jobNumber: "10248-J01", jobName: "Electrical Work", serviceAddress: { line: "321 Elm St", city: "Houston", state: "TX", zip: "77001" }, linkedEstimate: "10248-E01", estimateStatus: "Approved" },
+      { jobNumber: "10248-J02", jobName: "Panel Upgrade — Garage", serviceAddress: { line: "321 Elm St", city: "Houston", state: "TX", zip: "77001" }, linkedEstimate: "", estimateStatus: "" },
+      { jobNumber: "10248-J03", jobName: "EV Charger Install", serviceAddress: { line: "321 Elm St", city: "Houston", state: "TX", zip: "77001" }, linkedEstimate: "", estimateStatus: "" },
+    ],
     linkedEstimate: "10248-E01",
     estimateStatus: "Approved",
     poNumber: "PO-66104",
@@ -288,16 +365,35 @@ export function InvoiceDetail() {
   const [payments, setPayments] = useState<Payment[]>(data.payments);
   const [activity, setActivity] = useState<ActivityEntry[]>(data.activity);
 
-  // Record payment modal
+  // Linked jobs — local state so "+ create job" can extend it on this
+  // mock-backed page. An invoice can settle several jobs; zero is also valid.
+  const [linkedJobs, setLinkedJobs] = useState<LinkedJobInfo[]>(() =>
+    data.jobs ?? (data.jobNumber
+      ? [{ jobNumber: data.jobNumber, jobName: data.jobName, serviceAddress: data.serviceAddress, linkedEstimate: data.linkedEstimate, estimateStatus: data.estimateStatus }]
+      : [])
+  );
+  // Accordion sections start EXPANDED — the page just gets longer, and the
+  // information stays in the place the user expects (no tab, no vanishing box).
+  const [collapsedJobs, setCollapsedJobs] = useState<Set<string>>(new Set());
+  const toggleJobSection = (num: string) => setCollapsedJobs(prev => {
+    const next = new Set(prev);
+    if (next.has(num)) next.delete(num); else next.add(num);
+    return next;
+  });
+
   const [notesTab, setNotesTab] = useState<NotesTabKey>("customer");
 
-  // Record payment modal
+  // Collect payment modal
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [payAmount, setPayAmount] = useState("");
   const [payDate, setPayDate] = useState(TODAY);
-  const [payMethod, setPayMethod] = useState("Cash");
-  const [payCheckNumber, setPayCheckNumber] = useState("");
+  const [payMethod, setPayMethod] = useState("Credit card on file");
+  const [payTransactionNumber, setPayTransactionNumber] = useState("");
   const [payNote, setPayNote] = useState("");
+  // Card methods charge + record in ONE flow; for external methods (check,
+  // Venmo, financing…) the money was already received outside the system, so
+  // the user enters the transaction number + amount and it's simply recorded.
+  const isCardCharge = payMethod === "Credit card on file" || payMethod === "Type card manually" || payMethod === "Card reader";
 
   // Void confirm
   const [voidConfirm, setVoidConfirm] = useState(false);
@@ -344,7 +440,7 @@ export function InvoiceDetail() {
     }, ...prev]);
   };
 
-  const handleRecordPayment = () => {
+  const handleCollectPayment = () => {
     const amount = parseFloat(payAmount);
     if (!amount || amount <= 0) return;
 
@@ -353,7 +449,11 @@ export function InvoiceDetail() {
       date: payDate,
       amount,
       method: payMethod,
-      checkNumber: payMethod === "Check" ? payCheckNumber : undefined,
+      // Card charges carry the card reference; external methods carry the
+      // transaction number the user typed in.
+      checkNumber: isCardCharge
+        ? (payMethod === "Credit card on file" ? "Visa ···· 4242" : undefined)
+        : (payTransactionNumber || undefined),
       note: payNote,
     };
     const newPayments = [...payments, newPayment];
@@ -364,8 +464,8 @@ export function InvoiceDetail() {
     const newStatus: InvoiceStatus = newBalance <= 0 ? "Paid" : "Partially Paid";
     setStatus(newStatus);
 
-    const detail = payMethod === "Check" && payCheckNumber
-      ? `$${fmt(amount)} via Check #${payCheckNumber}`
+    const detail = !isCardCharge && payTransactionNumber
+      ? `$${fmt(amount)} via ${payMethod} · #${payTransactionNumber}`
       : `$${fmt(amount)} via ${payMethod}`;
     const time = new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
 
@@ -380,7 +480,7 @@ export function InvoiceDetail() {
       {
         id: prev.length + 1,
         date: `${payDate} ${time}`,
-        action: "Payment recorded",
+        action: isCardCharge ? "Payment collected" : "Payment recorded",
         detail,
         icon: "payments",
       },
@@ -389,8 +489,35 @@ export function InvoiceDetail() {
 
     setPaymentModalOpen(false);
     setPayAmount("");
-    setPayCheckNumber("");
+    setPayTransactionNumber("");
     setPayNote("");
+  };
+
+  // "+" on the blank Job Details box — creates a real job from the invoice and
+  // links everything up (the job carries the invoice's estimate reference).
+  const createJobFromInvoice = () => {
+    const base = (data.number || "").split("-")[0] || "10000";
+    const prefix = `${base}-J`;
+    const usedNumbers = [
+      ...jobsStore.getSnapshot().filter(j => j.jobNumber.startsWith(prefix)).map(j => Number(j.jobNumber.slice(prefix.length))),
+      ...linkedJobs.filter(j => j.jobNumber.startsWith(prefix)).map(j => Number(j.jobNumber.slice(prefix.length))),
+    ].filter(Number.isFinite);
+    const jobNumber = `${prefix}${String(Math.max(0, ...usedNumbers) + 1).padStart(2, "0")}`;
+    jobsStore.add({
+      jobNumber, title: "New Job", client: data.client.name, clientId: "",
+      address: data.serviceAddress.line, city: data.serviceAddress.city, state: data.serviceAddress.state, zip: data.serviceAddress.zip,
+      gateCode: "", assignedTo: "", jobType: "One-off", jobCategory: "Service",
+      startDate: "", endDate: "", startTime: "", endTime: "",
+      status: "Scheduled", totalPrice: total, notes: "", fieldNotes: "", privateNotes: "",
+      taxRate: data.taxRate, estimateNumber: data.linkedEstimate || undefined,
+    });
+    setLinkedJobs(prev => [...prev, {
+      jobNumber, jobName: "New Job",
+      serviceAddress: data.serviceAddress,
+      linkedEstimate: data.linkedEstimate || "",
+      estimateStatus: data.estimateStatus || "",
+    }]);
+    toast.success(`Job ${jobNumber} created and linked to this invoice`);
   };
 
   const renderPaymentsTab = () => (
@@ -405,8 +532,8 @@ export function InvoiceDetail() {
                 className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-[12px] bg-[#4A6FA5] text-white hover:bg-[#3d5a85]"
                 style={{ fontWeight: 500 }}
               >
-                <PlusIcon className="h-3.5 w-3.5" />
-                Record
+                <span className="material-icons" style={{ fontSize: "14px" }}>payments</span>
+                Collect payment
               </button>
             ) : null
           }
@@ -415,7 +542,7 @@ export function InvoiceDetail() {
           <div className="grid grid-cols-4 gap-x-6 gap-y-3 pb-4 mb-4 border-b border-[#F3F4F6]">
             <Field label="Payment Terms" value={data.paymentTerms} />
             <Field label="Payment Method" value={data.paymentMethod} />
-            <Field label="Check #" value={data.checkNumber} />
+            <Field label="Transaction #" value={data.checkNumber} />
             <div className="flex items-end">
               <label className="inline-flex items-center gap-2 text-[13px] text-[#374151] cursor-pointer">
                 <input type="checkbox" defaultChecked className="h-4 w-4 rounded border-[#D1D5DB] text-[#4A6FA5] focus:ring-[#4A6FA5]" />
@@ -433,7 +560,7 @@ export function InvoiceDetail() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-[#E5E7EB]">
-                  {["Date", "Method", "Check #", "Note", "Amount"].map(h => (
+                  {["Date", "Method", "Transaction #", "Note", "Amount"].map(h => (
                     <th key={h} className={`pb-2.5 text-[11px] uppercase tracking-wider text-[#9CA3AF] ${h === "Amount" ? "text-right" : "text-left"}`} style={{ fontWeight: 600 }}>{h}</th>
                   ))}
                 </tr>
@@ -477,13 +604,14 @@ export function InvoiceDetail() {
       <div className="flex-1 min-w-0 w-full bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
         <div className="px-5 py-3.5 border-b border-[#E5E7EB] flex items-center justify-between">
           <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Items list</h3>
+          {/* Same quiet icon-plus as the estimate detail line-items header. */}
           <button
             onClick={() => {}}
-            className="h-8 px-3 gap-1.5 text-[13px] bg-[#4A6FA5] hover:bg-[#3d5a85] text-white rounded-md inline-flex items-center justify-center transition-colors"
-            style={{ fontWeight: 600 }}
+            aria-label="Add item"
+            title="Add item"
+            className="w-7 h-7 flex items-center justify-center rounded hover:bg-[#F5F7FA] transition-colors"
           >
-            <PlusIcon className="h-4 w-4" />
-            Add Item
+            <PlusIcon className="h-3.5 w-3.5 text-[#9CA3AF]" />
           </button>
         </div>
 
@@ -560,55 +688,96 @@ export function InvoiceDetail() {
       </div>
 
       {/* ── Right side: Job Details + Notes (side by side) ── */}
-      {/* Job Details */}
+      {/* Job Details — one accordion section per linked job, all expanded by
+          default (the page gets longer, that's fine). The box stays in the same
+          place whatever the job count, so nothing "disappears" on the user. */}
       <div className="w-full lg:w-[300px] shrink-0">
         <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
           <div className="px-4 py-3 border-b border-[#E5E7EB] flex items-center justify-between">
-            <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Job Details</h3>
+            <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>
+              Job Details{linkedJobs.length > 1 ? ` (${linkedJobs.length})` : ""}
+            </h3>
             <button onClick={() => navigate(`/invoices/${id}/edit`)} className="w-7 h-7 rounded text-[#9CA3AF] hover:text-[#4A6FA5] hover:bg-[#F5F7FA] flex items-center justify-center transition-colors" title="Edit job details">
               <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
             </button>
           </div>
-          <div className="p-4 grid grid-cols-2 gap-x-4 gap-y-3">
-            <div className="flex flex-col gap-0.5">
-              <div className="text-[11px] text-[#9CA3AF]">Job Number</div>
-              {data.jobNumber ? (
-                <button onClick={() => navigate(`/jobs/${data.jobNumber}`)} className="text-[13px] text-[#4A6FA5] hover:underline text-left" style={{ fontWeight: 500 }}>
-                  {data.jobNumber}
-                </button>
-              ) : (
-                <span className="text-[13px] text-[#9CA3AF]">—</span>
-              )}
+
+          {linkedJobs.length === 0 ? (
+            /* Blank state — the box stays visible with a "+" to create a job
+               right from the invoice. */
+            <div className="px-4 py-8 flex flex-col items-center text-center gap-2">
+              <span className="material-icons text-[#D1D5DB]" style={{ fontSize: "30px" }}>work_outline</span>
+              <div className="text-[13px] text-[#9CA3AF]">No job linked to this invoice</div>
+              <button
+                onClick={createJobFromInvoice}
+                aria-label="Create job from this invoice"
+                title="Create a job from this invoice"
+                className="mt-1 w-9 h-9 rounded-full bg-[#EEF3FA] text-[#4A6FA5] hover:bg-[#DCE6F5] flex items-center justify-center transition-colors"
+              >
+                <PlusIcon className="h-4 w-4" />
+              </button>
             </div>
-            <div className="flex flex-col gap-0.5">
-              <div className="text-[11px] text-[#9CA3AF]">Job Name</div>
-              <span className="text-[13px] text-[#374151]">{data.jobName || <span className="text-[#9CA3AF]">—</span>}</span>
+          ) : (
+            <div>
+              {linkedJobs.map(job => {
+                const collapsed = collapsedJobs.has(job.jobNumber);
+                return (
+                  <div key={job.jobNumber} className="border-b border-[#F3F4F6] last:border-b-0">
+                    <div
+                      className="px-4 py-3 flex items-center justify-between gap-2 cursor-pointer hover:bg-[#FAFBFC] transition-colors"
+                      onClick={() => toggleJobSection(job.jobNumber)}
+                    >
+                      <div className="min-w-0">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); navigate(`/jobs/${job.jobNumber}`); }}
+                          className="text-[13px] text-[#4A6FA5] hover:underline text-left"
+                          style={{ fontWeight: 600 }}
+                        >
+                          {job.jobNumber}
+                        </button>
+                        <div className="text-[12px] text-[#374151] truncate">{job.jobName}</div>
+                      </div>
+                      <span className="material-icons text-[#9CA3AF] shrink-0" style={{ fontSize: "20px" }}>
+                        {collapsed ? "expand_more" : "expand_less"}
+                      </span>
+                    </div>
+                    {!collapsed && (
+                      <div className="px-4 pb-3 flex flex-col gap-3">
+                        <div className="flex flex-col gap-0.5">
+                          <div className="text-[11px] text-[#9CA3AF]">Service Address</div>
+                          <span className="text-[13px] text-[#374151] leading-[19px]">
+                            {job.serviceAddress.line}<br />
+                            {job.serviceAddress.city}, {job.serviceAddress.state} {job.serviceAddress.zip}
+                          </span>
+                        </div>
+                        <div className="flex flex-col gap-0.5">
+                          <div className="text-[11px] text-[#9CA3AF]">Linked Estimate #</div>
+                          {job.linkedEstimate ? (
+                            <button onClick={() => navigate(`/estimates/${job.linkedEstimate}`)} className="text-[13px] text-[#4A6FA5] hover:underline text-left" style={{ fontWeight: 500 }}>
+                              {job.linkedEstimate}
+                            </button>
+                          ) : (
+                            <span className="text-[13px] text-[#9CA3AF]">—</span>
+                          )}
+                        </div>
+                        {job.estimateStatus && (
+                          <div className="flex flex-col gap-0.5">
+                            <div className="text-[11px] text-[#9CA3AF]">Estimate Status</div>
+                            <span className="text-[13px] text-[#374151]">{job.estimateStatus}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
-            <div className="flex flex-col gap-0.5 col-span-2">
-              <div className="text-[11px] text-[#9CA3AF]">Service Address</div>
-              <span className="text-[13px] text-[#374151] leading-[19px]">
-                {data.serviceAddress.line}<br />
-                {data.serviceAddress.city}, {data.serviceAddress.state} {data.serviceAddress.zip}
-              </span>
-            </div>
-            <div className="flex flex-col gap-0.5">
-              <div className="text-[11px] text-[#9CA3AF]">Linked Estimate #</div>
-              {data.linkedEstimate ? (
-                <button onClick={() => navigate(`/estimates/${data.linkedEstimate}`)} className="text-[13px] text-[#4A6FA5] hover:underline text-left" style={{ fontWeight: 500 }}>
-                  {data.linkedEstimate}
-                </button>
-              ) : (
-                <span className="text-[13px] text-[#9CA3AF]">—</span>
-              )}
-            </div>
-            <div className="flex flex-col gap-0.5">
-              <div className="text-[11px] text-[#9CA3AF]">Estimate Status</div>
-              <span className="text-[13px] text-[#374151]">{data.estimateStatus || <span className="text-[#9CA3AF]">—</span>}</span>
-            </div>
-            <div className="flex flex-col gap-0.5 col-span-2">
-              <div className="text-[11px] text-[#9CA3AF]">Memo</div>
-              <span className="text-[13px] text-[#374151] leading-[19px]">{data.memo || <span className="text-[#9CA3AF]">—</span>}</span>
-            </div>
+          )}
+
+          {/* Invoice-level memo lives outside the per-job sections. */}
+          <div className="px-4 py-3 border-t border-[#F3F4F6] flex flex-col gap-0.5">
+            <div className="text-[11px] text-[#9CA3AF]">Memo</div>
+            <span className="text-[13px] text-[#374151] leading-[19px]">{data.memo || <span className="text-[#9CA3AF]">—</span>}</span>
           </div>
         </div>
       </div>
@@ -768,12 +937,17 @@ export function InvoiceDetail() {
                   <span className="material-icons text-[#6B7280]" style={{ fontSize: "16px" }}>location_on</span>
                   {data.billingAddress.line}, {data.billingAddress.city}, {data.billingAddress.state} {data.billingAddress.zip}
                 </span>
-                {data.jobNumber && (
+                {linkedJobs.length > 0 && (
                   <>
                     <div className="w-px h-5 bg-[#E5E7EB] mx-1" />
-                    <button onClick={() => navigate(`/jobs/${data.jobNumber}`)} className="flex items-center gap-1.5 text-[14px] text-[#4A6FA5] hover:underline transition-colors" style={{ fontWeight: 500 }}>
+                    <button
+                      onClick={() => navigate(`/jobs/${linkedJobs[0].jobNumber}`)}
+                      className="flex items-center gap-1.5 text-[14px] text-[#4A6FA5] hover:underline transition-colors"
+                      style={{ fontWeight: 500 }}
+                      title={linkedJobs.map(j => j.jobNumber).join(", ")}
+                    >
                       <span className="material-icons" style={{ fontSize: "16px" }}>work</span>
-                      {data.jobName}
+                      {linkedJobs.length === 1 ? linkedJobs[0].jobName : `${linkedJobs.length} jobs`}
                     </button>
                   </>
                 )}
@@ -868,13 +1042,15 @@ export function InvoiceDetail() {
         </div>
       </div>
 
-      {/* Record Payment Modal */}
+      {/* Collect Payment Modal — card methods charge + record in one flow;
+          external methods (check / Venmo / financing) record money already
+          received outside the system. */}
       {paymentModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={() => setPaymentModalOpen(false)}>
           <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" />
           <div className="relative bg-white rounded-2xl shadow-2xl w-[480px] overflow-hidden" onClick={e => e.stopPropagation()}>
             <div className="px-6 py-5 border-b border-[#E5E7EB] flex items-center justify-between">
-              <h2 className="text-[18px] text-[#1A2332]" style={{ fontWeight: 700 }}>Record Payment</h2>
+              <h2 className="text-[18px] text-[#1A2332]" style={{ fontWeight: 700 }}>{isCardCharge ? "Collect payment" : "Record payment"}</h2>
               <button onClick={() => setPaymentModalOpen(false)} className="w-8 h-8 rounded-lg hover:bg-[#F3F4F6] flex items-center justify-center">
                 <span className="material-icons text-[#6B7280]" style={{ fontSize: "22px" }}>close</span>
               </button>
@@ -963,14 +1139,24 @@ export function InvoiceDetail() {
                 </div>
               </div>
 
-              {payMethod === "Check" && (
+              {payMethod === "Credit card on file" ? (
+                /* Charge moment — the card on file is charged and the payment
+                   is recorded automatically in one flow. No file uploads here. */
+                <div className="flex items-center gap-2.5 px-3 py-2.5 bg-[#F9FAFB] border border-[#E5E7EB] rounded-lg">
+                  <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "18px" }}>credit_card</span>
+                  <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>Visa ···· 4242</span>
+                  <span className="material-icons text-[#16A34A] ml-auto" title="Verified card on file" style={{ fontSize: "16px" }}>verified</span>
+                </div>
+              ) : !isCardCharge ? (
+                /* Money already received outside the system — enter the
+                   transaction number and the payment is recorded. */
                 <div>
-                  <label className="block text-[12px] uppercase tracking-wider text-[#6B7280] mb-1.5" style={{ fontWeight: 600 }}>Check #</label>
-                  <input type="text" value={payCheckNumber} onChange={(e) => setPayCheckNumber(e.target.value)}
-                    placeholder="e.g. 4582"
+                  <label className="block text-[12px] uppercase tracking-wider text-[#6B7280] mb-1.5" style={{ fontWeight: 600 }}>Transaction number</label>
+                  <input type="text" value={payTransactionNumber} onChange={(e) => setPayTransactionNumber(e.target.value)}
+                    placeholder="e.g. check #, Venmo confirmation, financing ref…"
                     className="w-full h-11 px-3 border border-[#E5E7EB] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]" />
                 </div>
-              )}
+              ) : null}
 
               <div>
                 <label className="block text-[12px] uppercase tracking-wider text-[#6B7280] mb-1.5" style={{ fontWeight: 600 }}>Note (optional)</label>
@@ -985,12 +1171,12 @@ export function InvoiceDetail() {
                 Cancel
               </button>
               <button
-                onClick={handleRecordPayment}
+                onClick={handleCollectPayment}
                 disabled={!payAmount || parseFloat(payAmount) <= 0}
                 className="px-5 py-2.5 bg-[#4A6FA5] text-white rounded-lg text-[13px] hover:bg-[#3d5a85] disabled:opacity-40"
                 style={{ fontWeight: 600 }}
               >
-                Record Payment
+                {isCardCharge ? "Collect payment" : "Record payment"}
               </button>
             </div>
           </div>

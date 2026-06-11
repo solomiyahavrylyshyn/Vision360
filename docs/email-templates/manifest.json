@@ -1,6 +1,6 @@
 {
   "generatedAt": "2026-06-04T11:35:43.235Z",
-  "count": 22,
+  "count": 21,
   "files": [
     {
       "id": "01",
@@ -148,13 +148,6 @@
       "group": "Internal team notifications",
       "pdf": "pdfs/D4-job-assigned-to-you.pdf",
       "html": "html/D4-job-assigned-to-you.html"
-    },
-    {
-      "id": "D5",
-      "title": "Job status changed",
-      "group": "Internal team notifications",
-      "pdf": "pdfs/D5-job-status-changed.pdf",
-      "html": "html/D5-job-status-changed.html"
     }
   ]
 }

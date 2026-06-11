@@ -61,6 +61,8 @@ export function PaymentDetail() {
     if (key === "details") next.delete("tab"); else next.set("tab", key);
     setSearchParams(next, { replace: true });
   };
+  // "View payout" modal — payout figures come from the Stripe integration.
+  const [payoutOpen, setPayoutOpen] = useState(false);
   // Section 6.3 — attachments (proof of payment, photo of check, etc.)
   const [attachments, setAttachments] = useState<PaymentAttachment[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -167,9 +169,9 @@ export function PaymentDetail() {
 
         {/* Row 2 */}
         <Field label="Created By" value={payment.createdBy} />
-        {/* Reference number — primary identifier for external/non-integrated methods. */}
+        {/* Transaction number — primary identifier for external/non-integrated methods. */}
         <Field
-          label="Reference #"
+          label="Transaction number"
           value={payment.reference ? payment.reference : <span className="text-[#9CA3AF]">—</span>}
         />
         <Field
@@ -508,11 +510,14 @@ export function PaymentDetail() {
                 <KebabItem icon="receipt" onSelect={() => navigate(`/invoices/${payment.invoiceId}`)}>
                   Open Invoice
                 </KebabItem>
-                <KebabItem icon="send">Send Receipt</KebabItem>
-                <KebabItem icon="file_download">Download Receipt</KebabItem>
-                <KebabItem icon="account_balance">View Payout</KebabItem>
+                <KebabItem icon="send" onSelect={() => toast.success(`Receipt sent to ${payment.clientEmail || payment.clientName}`)}>Send Receipt</KebabItem>
+                <KebabItem icon="file_download" onSelect={() => toast.success(`Downloading receipt for ${paymentNumber}`)}>Download Receipt</KebabItem>
+                <KebabItem icon="account_balance" onSelect={() => setPayoutOpen(true)}>View Payout</KebabItem>
                 <KebabSeparator />
-                <KebabItem icon="undo" destructive>Refund</KebabItem>
+                <KebabItem icon="undo" destructive onSelect={() => {
+                  paymentsStore.update(payment.id, { status: "Refunded" });
+                  toast.success(`Payment ${paymentNumber} refunded`);
+                }}>Refund</KebabItem>
               </KebabMenu>
             </>
           }
@@ -524,6 +529,53 @@ export function PaymentDetail() {
           {activeTab === "details" ? renderDetails() : renderActivity()}
         </div>
       </div>
+
+      {/* View payout — net amount after the processor fee + payout date,
+          provided by the Stripe integration (mocked at 3% here). */}
+      {payoutOpen && (() => {
+        const fee = payment.amount * 0.03;
+        const net = payment.amount - fee;
+        const payoutDate = (() => {
+          const d = new Date(payment.date + "T12:00:00");
+          d.setDate(d.getDate() + 2);
+          return formatRegionalDate(d);
+        })();
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={() => setPayoutOpen(false)}>
+            <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" />
+            <div className="relative bg-white rounded-2xl shadow-2xl w-[400px] overflow-hidden" onClick={e => e.stopPropagation()}>
+              <div className="px-6 py-5 border-b border-[#E5E7EB] flex items-center justify-between">
+                <h3 className="text-[18px] text-[#1A2332]" style={{ fontWeight: 700 }}>Payout · {paymentNumber}</h3>
+                <button onClick={() => setPayoutOpen(false)} className="w-8 h-8 rounded-lg hover:bg-[#F3F4F6] flex items-center justify-center">
+                  <span className="material-icons text-[#6B7280]" style={{ fontSize: "22px" }}>close</span>
+                </button>
+              </div>
+              <div className="px-6 py-5 space-y-3">
+                <div className="flex items-center justify-between text-[13px]">
+                  <span className="text-[#6B7280]">Payment amount</span>
+                  <span className="text-[#1A2332]" style={{ fontVariantNumeric: "tabular-nums" }}>${fmt(payment.amount)}</span>
+                </div>
+                <div className="flex items-center justify-between text-[13px]">
+                  <span className="text-[#6B7280]">Processing fee (3%)</span>
+                  <span className="text-[#DC2626]" style={{ fontVariantNumeric: "tabular-nums" }}>−${fmt(fee)}</span>
+                </div>
+                <div className="flex items-center justify-between pt-3 border-t border-[#E5E7EB]">
+                  <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Payout</span>
+                  <span className="text-[18px] text-[#16A34A]" style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>${fmt(net)}</span>
+                </div>
+                <div className="flex items-center justify-between text-[13px]">
+                  <span className="text-[#6B7280]">Payout date</span>
+                  <span className="text-[#1A2332]">{payoutDate}</span>
+                </div>
+                <div className="flex items-center gap-1.5 pt-2 text-[11px] text-[#9CA3AF]">
+                  <span className="material-icons" style={{ fontSize: "13px" }}>info</span>
+                  Payout data is provided by the Stripe integration.
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

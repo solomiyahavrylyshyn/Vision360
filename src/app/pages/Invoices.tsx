@@ -11,6 +11,7 @@ import { CreateActionButton } from "../components/ui/create-action-button";
 import { StatCard } from "../components/ui/stat-card";
 import { formatRegionalDate, regionalSettingsStore } from "../stores/regionalSettingsStore";
 import { AdvancedFilterField, AdvancedFilterPanel, advancedInputClass, advancedSelectClass } from "../components/ui/advanced-filters";
+import { clientsStore } from "../stores/clientsStore";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type InvoiceStatus =
@@ -22,7 +23,7 @@ type InvoiceStatus =
 
 type InvoiceType = "Standard" | "Recurring" | "Progress" | "Final" | "Credit Memo";
 
-interface Invoice {
+export interface Invoice {
   id: number;
   // Identity
   number: string;          // 10245-I02
@@ -117,7 +118,8 @@ function daysBetween(a: string, b: string) {
 const TODAY = "2026-04-27";
 
 // ─── Mock Data ───────────────────────────────────────────────────────────────
-const initialInvoices: Invoice[] = [
+// Exported so CreatePayment can offer the invoice-only selector.
+export const initialInvoices: Invoice[] = [
   {
     id: 1, number: "10245-I01", type: "Standard", date: "2026-03-02",
     status: "Paid",
@@ -153,16 +155,18 @@ const initialInvoices: Invoice[] = [
     noteToCustomer: "Please remit payment promptly.", dateSent: "2026-03-02",
   },
   {
+    // A fully "empty" invoice (no estimate, no job) is a valid case — e.g.
+    // selling used equipment off the shelf; the buyer just needs an invoice.
     id: 3, number: "10250-I01", type: "Standard", date: "2026-03-25",
     status: "Unpaid",
-    clientName: "John Doe", customerEmail: "john.d@email.com", phone: "(214) 555-0188",
-    jobNumber: "10250", jobName: "HVAC Install",
-    total: 1250.00, balance: 1250.00,
-    linkedEstimate: "EST-007", poNumber: "", memo: "",
+    clientName: "Bob Garcia", customerEmail: "bob.garcia@email.com", phone: "(214) 555-0199",
+    jobNumber: "", jobName: "",
+    total: 500.00, balance: 500.00,
+    linkedEstimate: "", poNumber: "", memo: "Used equipment sale",
     billingAddress: "789 Oak Ave", billingCity: "Dallas", billingCounty: "Dallas", billingState: "TX", billingZip: "75201",
     serviceAddress: "789 Oak Ave", serviceCity: "Dallas", serviceCounty: "Dallas", serviceState: "TX", serviceZip: "75201",
     leadSource: "Repeat Customer", salesRep: "Marek Stroz",
-    estimateStatus: "Approved", paymentTerms: "Net 30",
+    estimateStatus: "", paymentTerms: "Net 30",
     checkNumber: "", paymentMethod: "",
     dueDate: "2026-04-24", department: "Field Service", toBePrinted: true,
     dateCreated: "2026-03-25", createdBy: "Marek Stroz", stage: "Draft",
@@ -293,6 +297,7 @@ export function Invoices() {
   const [balanceMax, setBalanceMax] = useState("");
   const [createdByFilter, setCreatedByFilter] = useState("All");
   const [termsFilter, setTermsFilter] = useState("All");
+  const [clientFilter, setClientFilter] = useState("");
 
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [page, setPage] = useState(1);
@@ -321,6 +326,10 @@ export function Invoices() {
     };
   }, [invoices]);
 
+  // Live clients back the advanced "Client name" filter, which matches first
+  // name, last name and company name on the client record.
+  const liveClients = useSyncExternalStore(clientsStore.subscribe, clientsStore.getSnapshot);
+
   // Filter
   const filtered = useMemo(() => {
     let result = [...invoices];
@@ -339,6 +348,22 @@ export function Invoices() {
     if (balanceMax) result = result.filter(i => i.balance <= Number(balanceMax));
     if (createdByFilter !== "All") result = result.filter(i => i.createdBy === createdByFilter);
     if (termsFilter !== "All") result = result.filter(i => i.paymentTerms === termsFilter);
+    if (clientFilter) {
+      // One text query matched against first name, last name AND company name.
+      const q = clientFilter.toLowerCase();
+      result = result.filter(i => {
+        const rec = liveClients.find(c => c.name === i.clientName);
+        if (rec) {
+          return (
+            (rec.firstName || "").toLowerCase().includes(q) ||
+            (rec.lastName || "").toLowerCase().includes(q) ||
+            (rec.company || "").toLowerCase().includes(q) ||
+            rec.name.toLowerCase().includes(q)
+          );
+        }
+        return i.clientName.toLowerCase().includes(q);
+      });
+    }
     if (search) {
       const q = search.toLowerCase();
       result = result.filter(i =>
@@ -350,13 +375,14 @@ export function Invoices() {
       );
     }
     return result;
-  }, [invoices, qfStatus, qfDate, qfBalance, createdFrom, createdTo, dueFrom, dueTo, totalMin, totalMax, balanceMin, balanceMax, createdByFilter, termsFilter, search]);
+  }, [invoices, qfStatus, qfDate, qfBalance, createdFrom, createdTo, dueFrom, dueTo, totalMin, totalMax, balanceMin, balanceMax, createdByFilter, termsFilter, clientFilter, liveClients, search]);
 
   const creators = useMemo(() => Array.from(new Set(invoices.map(i => i.createdBy))), [invoices]);
   const terms = useMemo(() => Array.from(new Set(invoices.map(i => i.paymentTerms).filter(Boolean))), [invoices]);
-  const activeFilterCount = [createdFrom, createdTo, dueFrom, dueTo, totalMin, totalMax, balanceMin, balanceMax, createdByFilter !== "All", termsFilter !== "All"].filter(Boolean).length;
+  const activeFilterCount = [clientFilter, createdFrom, createdTo, dueFrom, dueTo, totalMin, totalMax, balanceMin, balanceMax, createdByFilter !== "All", termsFilter !== "All"].filter(Boolean).length;
   const advancedActive = activeFilterCount > 0;
   const resetAdvancedFilters = () => {
+    setClientFilter("");
     setCreatedFrom("");
     setCreatedTo("");
     setDueFrom("");
@@ -501,6 +527,9 @@ export function Invoices() {
             onClear={() => { resetAdvancedFilters(); setFilterOpen(false); }}
             onApply={() => setFilterOpen(false)}
           >
+            <AdvancedFilterField label="Client name">
+              <input value={clientFilter} onChange={(e) => { setClientFilter(e.target.value); setPage(1); }} placeholder="First, last or company name" className={advancedInputClass} />
+            </AdvancedFilterField>
             <AdvancedFilterField label="Created from">
               <input type="date" value={createdFrom} onChange={(e) => { setCreatedFrom(e.target.value); setPage(1); }} className={advancedInputClass} />
             </AdvancedFilterField>

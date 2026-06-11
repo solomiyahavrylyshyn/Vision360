@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { paymentsStore } from "../stores/paymentsStore";
 import type { PaymentMethod, PaymentStatus } from "./Payments";
 import { PAYMENT_METHODS } from "../constants/paymentMethods";
+import { initialInvoices } from "./Invoices";
 
 const paymentMethods = PAYMENT_METHODS;
 
@@ -23,6 +24,25 @@ export function CreatePayment() {
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().slice(0, 10));
   const [reference, setReference] = useState("");
   const [note, setNote] = useState("");
+
+  // The form's selector offers INVOICES ONLY — payments are never collected
+  // against a job or an estimate directly. The ?invoice param may carry either
+  // an invoice number or a numeric id; normalize to the number.
+  const [invoiceNumberSel, setInvoiceNumberSel] = useState(() => {
+    const param = searchParams.get("invoice") || "";
+    if (!param) return "";
+    const match = initialInvoices.find(i => i.number === param || String(i.id) === param);
+    return match ? match.number : param;
+  });
+  const selectedInvoice = initialInvoices.find(i => i.number === invoiceNumberSel);
+  const applyInvoiceSelection = (num: string) => {
+    setInvoiceNumberSel(num);
+    const inv = initialInvoices.find(i => i.number === num);
+    if (inv) {
+      if (!client.trim()) setClient(inv.clientName);
+      if (!amount) setAmount(String(inv.balance));
+    }
+  };
 
   // Manual card-entry fields (US): only used when method = "Type card manually".
   const [cardNumber, setCardNumber] = useState("");
@@ -62,16 +82,22 @@ export function CreatePayment() {
         ? cardOnFile
         : reference.trim();
 
+    const jobFromParam = searchParams.get("job") || "";
     const record = paymentsStore.add({
       date: paymentDate,
       amount: parsedAmount,
       method: method as PaymentMethod,
       status: "Completed" as PaymentStatus,
       clientName: trimmedClient,
-      clientEmail: searchParams.get("clientEmail") || "",
-      invoiceId: Number(searchParams.get("invoiceId")) || 0,
-      invoiceNumber: searchParams.get("invoice") || "—",
-      jobId: searchParams.get("job") || "",
+      clientEmail: searchParams.get("clientEmail") || selectedInvoice?.customerEmail || "",
+      invoiceId: selectedInvoice?.id ?? (Number(searchParams.get("invoiceId")) || 0),
+      invoiceNumber: invoiceNumberSel || "—",
+      jobId: jobFromParam || selectedInvoice?.jobNumber || "",
+      // Estimates/jobs trace back through the selected invoice (list columns).
+      estimateNumbers: selectedInvoice?.linkedEstimate ? [selectedInvoice.linkedEstimate] : undefined,
+      jobIds: selectedInvoice?.jobNumber
+        ? [selectedInvoice.jobNumber]
+        : jobFromParam ? [jobFromParam] : undefined,
       reference: ref,
       note: note.trim(),
       createdBy: "You",
@@ -112,6 +138,18 @@ export function CreatePayment() {
           <div className="px-6 py-6 grid grid-cols-[120px_1fr] gap-6 border-b border-[#E5E7EB]">
             <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Details</div>
             <div className="grid grid-cols-2 gap-4">
+              {/* Invoice selector — invoices ONLY (never jobs or estimates). */}
+              <div className="col-span-2">
+                <label className={labelCls} style={{ fontWeight: 500 }}>Invoice</label>
+                <select value={invoiceNumberSel} onChange={(e) => applyInvoiceSelection(e.target.value)} className={inputCls}>
+                  <option value="">Select an invoice</option>
+                  {initialInvoices.map(i => (
+                    <option key={i.id} value={i.number}>{i.number} — {i.clientName}</option>
+                  ))}
+                </select>
+                <p className="mt-1.5 text-[12px] text-[#9CA3AF]">Payments are collected against invoices only.</p>
+              </div>
+
               {/* Customer field only when standalone (no client passed in) */}
               {!prefilledClient && (
                 <div className="col-span-2">
@@ -152,9 +190,11 @@ export function CreatePayment() {
                   </div>
                 </div>
               ) : isManualCard ? null : (
+                /* Money already received outside the system — the transaction
+                   number + amount effectively record it. */
                 <div>
-                  <label className={labelCls} style={{ fontWeight: 500 }}>Reference {reqStar}</label>
-                  <input value={reference} onChange={(e) => setReference(e.target.value)} placeholder="e.g. check #, transaction ID…" className={inputCls} />
+                  <label className={labelCls} style={{ fontWeight: 500 }}>Transaction number {reqStar}</label>
+                  <input value={reference} onChange={(e) => setReference(e.target.value)} placeholder="e.g. check #, Venmo confirmation…" className={inputCls} />
                 </div>
               )}
 

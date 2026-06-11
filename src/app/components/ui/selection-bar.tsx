@@ -13,6 +13,9 @@ type SelectionBarProps = {
   actions?: SelectionBarAction[];
   /** Label for the dismiss button (default "Cancel"). */
   cancelLabel?: string;
+  /** Render the dismiss control as an X icon — clears the selection in ONE
+   * click (the header minus-checkbox takes two: select all, then deselect). */
+  dismissAsIcon?: boolean;
 };
 
 /**
@@ -29,6 +32,7 @@ export function SelectionBar({
   onDeselect,
   actions = [],
   cancelLabel = "Cancel",
+  dismissAsIcon = false,
 }: SelectionBarProps) {
   if (count === 0) return null;
 
@@ -65,14 +69,26 @@ export function SelectionBar({
 
       <div className="w-px h-6 bg-[#E5E7EB]" />
 
-      <button
-        type="button"
-        onClick={onDeselect}
-        className="inline-flex items-center justify-center min-h-9 px-4 py-2 rounded-lg text-[14px] leading-[20px] text-[#1A2332] hover:bg-[#F9FAFB] transition-colors"
-        style={{ fontFamily: "Geist", fontWeight: 500 }}
-      >
-        {cancelLabel}
-      </button>
+      {dismissAsIcon ? (
+        <button
+          type="button"
+          onClick={onDeselect}
+          aria-label="Clear selection"
+          title="Clear selection"
+          className="inline-flex items-center justify-center w-9 h-9 rounded-lg text-[#1A2332] hover:bg-[#F9FAFB] transition-colors"
+        >
+          <span className="material-icons" style={{ fontSize: "18px" }}>close</span>
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={onDeselect}
+          className="inline-flex items-center justify-center min-h-9 px-4 py-2 rounded-lg text-[14px] leading-[20px] text-[#1A2332] hover:bg-[#F9FAFB] transition-colors"
+          style={{ fontFamily: "Geist", fontWeight: 500 }}
+        >
+          {cancelLabel}
+        </button>
+      )}
     </div>
   );
 }

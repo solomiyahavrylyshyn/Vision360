@@ -233,7 +233,7 @@ export function Estimates() {
   const [amountMax, setAmountMax] = useState("");
   const [teamFilter, setTeamFilter] = useState("All");
   const [depositFilter, setDepositFilter] = useState("All");
-  const [jobFilter, setJobFilter] = useState("");
+  const [clientFilter, setClientFilter] = useState("");
 
   const [search, setSearch] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
@@ -279,6 +279,11 @@ export function Estimates() {
     }));
   }, [estimates]);
 
+  // Live clients are needed both for the client picker further down and for
+  // the advanced "Client name" filter, which matches first name, last name,
+  // and company name on the client record.
+  const liveClients = useSyncExternalStore(clientsStore.subscribe, clientsStore.getSnapshot);
+
   // Filtered
   const filtered = useMemo(() => {
     let result = [...estimates];
@@ -293,9 +298,22 @@ export function Estimates() {
     if (teamFilter !== "All") result = result.filter(e => e.teamMember === teamFilter);
     if (depositFilter === "Deposit due") result = result.filter(e => e.depositDue > 0);
     if (depositFilter === "No deposit") result = result.filter(e => e.depositDue <= 0);
-    if (jobFilter) {
-      const q = jobFilter.toLowerCase();
-      result = result.filter(e => e.job.toLowerCase().includes(q) || e.jobTitle.toLowerCase().includes(q));
+    if (clientFilter) {
+      // One text query matched against first name, last name AND company name,
+      // so "Delgado" or a company name both narrow the list.
+      const q = clientFilter.toLowerCase();
+      result = result.filter(e => {
+        const rec = liveClients.find(c => c.name === e.clientName);
+        if (rec) {
+          return (
+            (rec.firstName || "").toLowerCase().includes(q) ||
+            (rec.lastName || "").toLowerCase().includes(q) ||
+            (rec.company || "").toLowerCase().includes(q) ||
+            rec.name.toLowerCase().includes(q)
+          );
+        }
+        return e.clientName.toLowerCase().includes(q);
+      });
     }
     if (search) {
       const q = search.toLowerCase();
@@ -307,10 +325,10 @@ export function Estimates() {
       );
     }
     return result;
-  }, [estimates, qfStatus, qfDate, createdFrom, createdTo, expiresFrom, expiresTo, amountMin, amountMax, teamFilter, depositFilter, jobFilter, search]);
+  }, [estimates, qfStatus, qfDate, createdFrom, createdTo, expiresFrom, expiresTo, amountMin, amountMax, teamFilter, depositFilter, clientFilter, liveClients, search]);
 
   const teamMembers = useMemo(() => Array.from(new Set(estimates.map(e => e.teamMember).filter(Boolean))), [estimates]);
-  const activeFilterCount = [createdFrom, createdTo, expiresFrom, expiresTo, amountMin, amountMax, teamFilter !== "All", depositFilter !== "All", jobFilter].filter(Boolean).length;
+  const activeFilterCount = [createdFrom, createdTo, expiresFrom, expiresTo, amountMin, amountMax, teamFilter !== "All", depositFilter !== "All", clientFilter].filter(Boolean).length;
   const advancedActive = activeFilterCount > 0;
   const resetAdvancedFilters = () => {
     setCreatedFrom("");
@@ -321,7 +339,7 @@ export function Estimates() {
     setAmountMax("");
     setTeamFilter("All");
     setDepositFilter("All");
-    setJobFilter("");
+    setClientFilter("");
     setPage(1);
   };
 
@@ -354,7 +372,6 @@ export function Estimates() {
   // Source the client picker from the live clientsStore so freshly created
   // clients show up immediately (DEF-M01-02). mockClients is kept only as a
   // type-shape reference for the table below.
-  const liveClients = useSyncExternalStore(clientsStore.subscribe, clientsStore.getSnapshot);
   const pickerClients: Client[] = liveClients.map((c, idx) => ({
     id: Number(c.id) || idx + 1,
     name: c.name,
@@ -486,6 +503,9 @@ export function Estimates() {
             onClear={() => { resetAdvancedFilters(); setFilterOpen(false); }}
             onApply={() => setFilterOpen(false)}
           >
+            <AdvancedFilterField label="Client name">
+              <input value={clientFilter} onChange={(e) => { setClientFilter(e.target.value); setPage(1); }} placeholder="First, last or company name" className={advancedInputClass} />
+            </AdvancedFilterField>
             <AdvancedFilterField label="Created from">
               <input type="date" value={createdFrom} onChange={(e) => { setCreatedFrom(e.target.value); setPage(1); }} className={advancedInputClass} />
             </AdvancedFilterField>
@@ -516,9 +536,6 @@ export function Estimates() {
                 <option>Deposit due</option>
                 <option>No deposit</option>
               </select>
-            </AdvancedFilterField>
-            <AdvancedFilterField label="Job">
-              <input value={jobFilter} onChange={(e) => { setJobFilter(e.target.value); setPage(1); }} placeholder="10246-J01" className={advancedInputClass} />
             </AdvancedFilterField>
           </AdvancedFilterPanel>
         )}

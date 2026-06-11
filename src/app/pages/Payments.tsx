@@ -1,5 +1,6 @@
 import { useState, useMemo, useSyncExternalStore } from "react";
 import { useNavigate } from "react-router";
+import { toast } from "sonner";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
@@ -31,8 +32,12 @@ export interface Payment {
   invoiceId: number;
   invoiceNumber: string;
   jobId?: string;
-  // Reference number for external/non-integrated methods (check #, transfer ID,
-  // Venmo/Zelle/Cash App confirmation, financing reference).
+  // Estimates / jobs the payment traces back to via its invoice — shown as
+  // reference columns on the list (an invoice can settle several jobs).
+  estimateNumbers?: string[];
+  jobIds?: string[];
+  // Transaction number for external/non-integrated methods (check #, transfer
+  // ID, Venmo/Zelle/Cash App confirmation, financing reference).
   reference?: string;
   note: string;
   createdBy: string;
@@ -58,27 +63,20 @@ const timeFilters = [
   "This month", "Last month", "This year", "Last year",
 ];
 
-// ─── Mock Data ───────────────────────────────────────────────────────────────
-export const mockPayments: Payment[] = [
-  { id: 1, date: "2026-03-10", amount: 5000.00, method: "Bank Transfer", status: "Completed", clientName: "Travis Jones", clientEmail: "travis.j@email.com", invoiceId: 1, invoiceNumber: "10245-I01", jobId: "10245-J01", note: "First installment", createdBy: "Marek Stroz", createdAt: "2026-03-10 14:22" },
-  { id: 2, date: "2026-03-25", amount: 5502.00, method: "Check", status: "Completed", clientName: "Travis Jones", clientEmail: "travis.j@email.com", invoiceId: 1, invoiceNumber: "10245-I01", jobId: "10245-J01", note: "Final payment", createdBy: "Marek Stroz", createdAt: "2026-03-25 11:45" },
-  { id: 3, date: "2026-03-15", amount: 1000.00, method: "Credit Card", status: "Completed", clientName: "Sarah Williams", clientEmail: "sarah.w@email.com", invoiceId: 4, invoiceNumber: "10248-I02", jobId: "10248-J01", note: "Partial payment", createdBy: "Marek Stroz", createdAt: "2026-03-15 13:30" },
-  { id: 4, date: "2026-04-01", amount: 913.75, method: "Check", status: "Pending", clientName: "Mike Rodriguez", clientEmail: "mike.r@email.com", invoiceId: 5, invoiceNumber: "10247-I01", jobId: "10247-J01", note: "", createdBy: "Marek Stroz", createdAt: "2026-04-01 09:15" },
-  { id: 5, date: "2026-02-21", amount: 326.25, method: "Cash", status: "Completed", clientName: "Sarah Williams", clientEmail: "sarah.w@email.com", invoiceId: 6, invoiceNumber: "10249-I01", jobId: "10249-J01", note: "Paid in full", createdBy: "Marek Stroz", createdAt: "2026-02-21 16:00" },
-  { id: 6, date: "2026-03-28", amount: 200.00, method: "Credit Card", status: "Refunded", clientName: "Travis Jones", clientEmail: "travis.j@email.com", invoiceId: 1, invoiceNumber: "10245-I01", jobId: "10245-J01", note: "Partial refund — overcharge adjustment", createdBy: "Marek Stroz", createdAt: "2026-03-28 10:20" },
-  { id: 7, date: "2026-04-03", amount: 2800.00, method: "Bank Transfer", status: "Completed", clientName: "John Doe", clientEmail: "john.d@email.com", invoiceId: 2, invoiceNumber: "10246-I01", jobId: "10246-J01", note: "Partial payment on overdue invoice", createdBy: "Marek Stroz", createdAt: "2026-04-03 11:00" },
-];
-
-// Figma column order (payments - main page): Number · Client · Invoice · Method
-// · Status · Total · Note. (Date stays filterable + on the detail page.)
+// Column order: Number · Client · Invoice(s) · Method · Status · Total · Note ·
+// Estimates · Jobs · Payment date. No Time column, and no Due/Expiry dates —
+// a payment simply doesn't have them.
 const PAYMENTS_COLS = [
   { key: "number", label: "Number" },
   { key: "client", label: "Client" },
-  { key: "invoice", label: "Invoice" },
+  { key: "invoice", label: "Invoice(s)" },
   { key: "method", label: "Method" },
   { key: "status", label: "Status" },
   { key: "total", label: "Total" },
   { key: "note", label: "Note" },
+  { key: "estimates", label: "Estimates" },
+  { key: "jobs", label: "Jobs" },
+  { key: "paymentDate", label: "Payment date" },
 ] as const;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -112,18 +110,26 @@ export function Payments() {
   const [qfStatus, setQfStatus] = useState("All");
   const [qfDate, setQfDate] = useState("All time");
   const [qfMethod, setQfMethod] = useState("All");
+  // Advanced filters — exactly: Total (from–to), Client (one or many),
+  // Invoice (by number, many), Methods (many), Statuses (one or many).
+  // No job filter and no date range here (the quick Date filter covers time).
   const [filterOpen, setFilterOpen] = useState(false);
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
-  const [amountMin, setAmountMin] = useState("");
-  const [amountMax, setAmountMax] = useState("");
-  const [createdByFilter, setCreatedByFilter] = useState("All");
-  const [invoiceFilter, setInvoiceFilter] = useState("");
-  const [jobFilter, setJobFilter] = useState("");
+  const [totalMin, setTotalMin] = useState("");
+  const [totalMax, setTotalMax] = useState("");
+  const [clientsFilter, setClientsFilter] = useState<string[]>([]);
+  const [invoicesFilter, setInvoicesFilter] = useState<string[]>([]);
+  const [methodsFilter, setMethodsFilter] = useState<string[]>([]);
+  const [statusesFilter, setStatusesFilter] = useState<string[]>([]);
 
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
+  // Bulk "Change status" modal (bulk Refund is deliberately NOT offered —
+  // refunds are single-payment only and a separate permission).
+  const [bulkStatusOpen, setBulkStatusOpen] = useState(false);
+  const [bulkStatus, setBulkStatus] = useState<PaymentStatus>("Completed");
+  // "View payout" modal — payout figures come from the Stripe integration.
+  const [payoutFor, setPayoutFor] = useState<Payment | null>(null);
 
 
 
@@ -152,19 +158,12 @@ export function Payments() {
     if (qfStatus !== "All") result = result.filter(p => p.status === qfStatus);
     if (qfMethod !== "All") result = result.filter(p => p.method === qfMethod);
     result = result.filter(p => matchesDatePreset(p.date, qfDate));
-    if (dateFrom) result = result.filter(p => p.date >= dateFrom);
-    if (dateTo) result = result.filter(p => p.date <= dateTo);
-    if (amountMin) result = result.filter(p => p.amount >= Number(amountMin));
-    if (amountMax) result = result.filter(p => p.amount <= Number(amountMax));
-    if (createdByFilter !== "All") result = result.filter(p => p.createdBy === createdByFilter);
-    if (invoiceFilter) {
-      const q = invoiceFilter.toLowerCase();
-      result = result.filter(p => p.invoiceNumber.toLowerCase().includes(q));
-    }
-    if (jobFilter) {
-      const q = jobFilter.toLowerCase();
-      result = result.filter(p => (p.jobId || "").toLowerCase().includes(q));
-    }
+    if (totalMin) result = result.filter(p => p.amount >= Number(totalMin));
+    if (totalMax) result = result.filter(p => p.amount <= Number(totalMax));
+    if (clientsFilter.length) result = result.filter(p => clientsFilter.includes(p.clientName));
+    if (invoicesFilter.length) result = result.filter(p => invoicesFilter.includes(p.invoiceNumber));
+    if (methodsFilter.length) result = result.filter(p => methodsFilter.includes(p.method));
+    if (statusesFilter.length) result = result.filter(p => statusesFilter.includes(p.status));
     if (search) {
       const q = search.toLowerCase();
       result = result.filter(p =>
@@ -176,19 +175,19 @@ export function Payments() {
     }
     result.sort((a, b) => b.date.localeCompare(a.date));
     return result;
-  }, [payments, search, qfStatus, qfMethod, qfDate, dateFrom, dateTo, amountMin, amountMax, createdByFilter, invoiceFilter, jobFilter]);
+  }, [payments, search, qfStatus, qfMethod, qfDate, totalMin, totalMax, clientsFilter, invoicesFilter, methodsFilter, statusesFilter]);
 
-  const creators = useMemo(() => Array.from(new Set(payments.map(p => p.createdBy))), [payments]);
-  const activeFilterCount = [dateFrom, dateTo, amountMin, amountMax, createdByFilter !== "All", invoiceFilter, jobFilter].filter(Boolean).length;
+  const clientOptions = useMemo(() => Array.from(new Set(payments.map(p => p.clientName))).sort(), [payments]);
+  const invoiceOptions = useMemo(() => Array.from(new Set(payments.map(p => p.invoiceNumber))).sort(), [payments]);
+  const activeFilterCount = [totalMin, totalMax, clientsFilter.length, invoicesFilter.length, methodsFilter.length, statusesFilter.length].filter(Boolean).length;
   const advancedActive = activeFilterCount > 0;
   const resetAdvancedFilters = () => {
-    setDateFrom("");
-    setDateTo("");
-    setAmountMin("");
-    setAmountMax("");
-    setCreatedByFilter("All");
-    setInvoiceFilter("");
-    setJobFilter("");
+    setTotalMin("");
+    setTotalMax("");
+    setClientsFilter([]);
+    setInvoicesFilter([]);
+    setMethodsFilter([]);
+    setStatusesFilter([]);
     setPage(1);
   };
 
@@ -294,8 +293,9 @@ export function Payments() {
               )}
             </button>
             <div className="ml-auto flex items-center gap-2">
-              <CreateActionButton>
-                Record Payment
+              {/* "New payment" — a payment is initiated, not "created". */}
+              <CreateActionButton onClick={() => navigate("/payments/new")}>
+                New payment
               </CreateActionButton>
               <KebabMenu triggerClassName="w-10 h-10 border border-[#D8DEE8] rounded-xl bg-white">
                 <KebabItem icon="view_column">Edit Columns</KebabItem>
@@ -313,46 +313,41 @@ export function Payments() {
               onClear={() => { resetAdvancedFilters(); setFilterOpen(false); }}
               onApply={() => setFilterOpen(false)}
             >
-              <AdvancedFilterField label="Date from">
-                <input type="date" value={dateFrom} onChange={(e) => { setDateFrom(e.target.value); setPage(1); }} className={advancedInputClass} />
+              <AdvancedFilterField label="Total from">
+                <input type="number" min="0" placeholder="$0" value={totalMin} onChange={(e) => { setTotalMin(e.target.value); setPage(1); }} className={advancedInputClass} />
               </AdvancedFilterField>
-              <AdvancedFilterField label="Date to">
-                <input type="date" value={dateTo} onChange={(e) => { setDateTo(e.target.value); setPage(1); }} className={advancedInputClass} />
+              <AdvancedFilterField label="Total to">
+                <input type="number" min="0" placeholder="Any" value={totalMax} onChange={(e) => { setTotalMax(e.target.value); setPage(1); }} className={advancedInputClass} />
               </AdvancedFilterField>
-              <AdvancedFilterField label="Amount min">
-                <input type="number" min="0" placeholder="$0" value={amountMin} onChange={(e) => { setAmountMin(e.target.value); setPage(1); }} className={advancedInputClass} />
+              <AdvancedFilterField label="Client">
+                <FilterMultiSelect value={clientsFilter} options={clientOptions} onChange={(v) => { setClientsFilter(v); setPage(1); }} placeholder="All clients" />
               </AdvancedFilterField>
-              <AdvancedFilterField label="Amount max">
-                <input type="number" min="0" placeholder="Any" value={amountMax} onChange={(e) => { setAmountMax(e.target.value); setPage(1); }} className={advancedInputClass} />
+              <AdvancedFilterField label="Invoice">
+                <FilterMultiSelect value={invoicesFilter} options={invoiceOptions} onChange={(v) => { setInvoicesFilter(v); setPage(1); }} placeholder="All invoices" />
               </AdvancedFilterField>
-              <AdvancedFilterField label="Created by">
-                <select value={createdByFilter} onChange={(e) => { setCreatedByFilter(e.target.value); setPage(1); }} className={advancedSelectClass}>
-                  <option>All</option>
-                  {creators.map((creator) => <option key={creator}>{creator}</option>)}
-                </select>
+              <AdvancedFilterField label="Methods">
+                <FilterMultiSelect value={methodsFilter} options={[...PAYMENT_METHODS]} onChange={(v) => { setMethodsFilter(v); setPage(1); }} placeholder="All methods" />
               </AdvancedFilterField>
-              <AdvancedFilterField label="Invoice #">
-                <input value={invoiceFilter} onChange={(e) => { setInvoiceFilter(e.target.value); setPage(1); }} placeholder="10245-I01" className={advancedInputClass} />
-              </AdvancedFilterField>
-              <AdvancedFilterField label="Job #">
-                <input value={jobFilter} onChange={(e) => { setJobFilter(e.target.value); setPage(1); }} placeholder="10245-J01" className={advancedInputClass} />
+              <AdvancedFilterField label="Statuses">
+                <FilterMultiSelect value={statusesFilter} options={["Completed", "Pending", "Refunded"]} onChange={(v) => { setStatusesFilter(v); setPage(1); }} placeholder="All statuses" />
               </AdvancedFilterField>
             </AdvancedFilterPanel>
           )}
+          {/* Bulk actions: ONLY Change status + Download. No bulk Refund (mass
+              refunds are a direct financial risk — refund is single-payment and
+              its own permission) and no bulk Archive. The X clears the whole
+              selection in one click. */}
           <SelectionBar
             count={selectedIds.size}
             onDeselect={() => setSelectedIds(new Set())}
+            dismissAsIcon
             actions={[
+              { label: "Change status", icon: "swap_horiz", onClick: () => setBulkStatusOpen(true) },
               {
-                label: "Refund selected",
-                icon: "undo",
-                destructive: true,
-                onClick: () => {
-                  selectedIds.forEach(id => paymentsStore.update(id, { status: "Refunded" }));
-                  setSelectedIds(new Set());
-                },
+                label: "Download",
+                icon: "file_download",
+                onClick: () => toast.success(`Downloading ${selectedIds.size} payment${selectedIds.size === 1 ? "" : "s"}…`),
               },
-              { label: "Export", icon: "file_download", onClick: () => {} },
             ]}
           />
           <div className="overflow-x-auto">
@@ -381,7 +376,7 @@ export function Payments() {
               <tbody>
                 {paginated.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="px-4 py-16 text-center">
+                    <td colSpan={cols.length + 2} className="px-4 py-16 text-center">
                       <span className="material-icons text-[#C8D5E8] mb-2" style={{ fontSize: "48px" }}>credit_card_off</span>
                       <div className="text-[14px] text-[#546478]" style={{ fontWeight: 500 }}>No payments found</div>
                       <div className="text-[12px] text-[#8899AA] mt-1">Try adjusting your filters</div>
@@ -456,17 +451,37 @@ export function Payments() {
                             </td>
                           );
                           case "note": return <td key={col.key} className="px-4 py-4 text-[13px] text-[#546478] max-w-[160px] truncate">{p.note || "—"}</td>;
+                          case "estimates": return (
+                            <td key={col.key} className="px-4 py-4 text-[13px] text-[#546478]">
+                              {p.estimateNumbers?.length ? p.estimateNumbers.join(", ") : "—"}
+                            </td>
+                          );
+                          case "jobs": return (
+                            <td key={col.key} className="px-4 py-4 text-[13px] text-[#546478]">
+                              {(p.jobIds ?? (p.jobId ? [p.jobId] : [])).join(", ") || "—"}
+                            </td>
+                          );
+                          case "paymentDate": return (
+                            <td key={col.key} className="px-4 py-4 text-[13px] text-[#546478] whitespace-nowrap">{fmtDate(p.date)}</td>
+                          );
                           default: return null;
                         }
                       })}
                       <td className="px-4 py-4" onClick={e => e.stopPropagation()}>
+                        {/* Single-row kebab. Refund disappears as soon as several
+                            rows are selected — refunds are strictly one-by-one. */}
                         <KebabMenu>
-                          <KebabItem icon="visibility" onSelect={() => navigate(`/payments/${p.id}`)}>View details</KebabItem>
-                          <KebabItem icon="receipt" onSelect={() => navigate(`/invoices/${p.invoiceId}`)}>Open invoice</KebabItem>
+                          {selectedIds.size <= 1 && (
+                            <KebabItem icon="undo" destructive onSelect={() => {
+                              paymentsStore.update(p.id, { status: "Refunded" });
+                              toast.success(`Payment P-${1000 + p.id} refunded`);
+                            }}>Refund</KebabItem>
+                          )}
+                          <KebabItem icon="send" onSelect={() => toast.success(`Receipt sent to ${p.clientEmail}`)}>Send receipt</KebabItem>
+                          <KebabItem icon="file_download" onSelect={() => toast.success(`Downloading receipt for P-${1000 + p.id}`)}>Download receipt</KebabItem>
+                          <KebabItem icon="account_balance" onSelect={() => setPayoutFor(p)}>View payout</KebabItem>
                           <KebabSeparator />
-                          <KebabItem icon="undo" destructive onSelect={() => {
-                            paymentsStore.update(p.id, { status: "Refunded" });
-                          }}>Refund</KebabItem>
+                          <KebabItem icon="open_in_new" onSelect={() => window.open(`/payments/${p.id}`, "_blank")}>Open in new tab</KebabItem>
                         </KebabMenu>
                       </td>
                     </tr>
@@ -512,7 +527,132 @@ export function Payments() {
         </div>
 
       </div>
+
+      {/* Bulk "Change status" — Refunded is deliberately not offered here:
+          that would be bulk refund through the back door. */}
+      {bulkStatusOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={() => setBulkStatusOpen(false)}>
+          <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-[400px] p-6" onClick={e => e.stopPropagation()}>
+            <h3 className="text-[18px] text-[#1A2332] mb-1" style={{ fontWeight: 700 }}>Change status</h3>
+            <p className="text-[13px] text-[#6B7280] mb-4">
+              {selectedIds.size} payment{selectedIds.size === 1 ? "" : "s"} selected. Refunds are issued one payment at a time.
+            </p>
+            <select
+              value={bulkStatus}
+              onChange={(e) => setBulkStatus(e.target.value as PaymentStatus)}
+              className="w-full h-11 px-3 border border-[#E5E7EB] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5] bg-white mb-6"
+            >
+              {(["Completed", "Pending"] as PaymentStatus[]).map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+            <div className="flex items-center justify-end gap-3">
+              <button onClick={() => setBulkStatusOpen(false)} className="px-4 py-2.5 border border-[#E5E7EB] text-[#6B7280] rounded-lg text-[13px] hover:bg-[#F3F4F6]" style={{ fontWeight: 500 }}>Cancel</button>
+              <button
+                onClick={() => {
+                  selectedIds.forEach(pid => paymentsStore.update(pid, { status: bulkStatus }));
+                  toast.success(`Status changed to ${bulkStatus} for ${selectedIds.size} payment${selectedIds.size === 1 ? "" : "s"}`);
+                  setSelectedIds(new Set());
+                  setBulkStatusOpen(false);
+                }}
+                className="px-4 py-2.5 bg-[#4A6FA5] text-white rounded-lg text-[13px] hover:bg-[#3d5a85]"
+                style={{ fontWeight: 600 }}
+              >
+                Apply
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* View payout — net amount after the processor fee + payout date.
+          Figures come from the Stripe integration (mocked at 3% here). */}
+      {payoutFor && (() => {
+        const fee = payoutFor.amount * 0.03;
+        const net = payoutFor.amount - fee;
+        const payoutDate = (() => {
+          const d = new Date(payoutFor.date + "T12:00:00");
+          d.setDate(d.getDate() + 2);
+          return formatRegionalDate(d);
+        })();
+        const fmt2 = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={() => setPayoutFor(null)}>
+            <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" />
+            <div className="relative bg-white rounded-2xl shadow-2xl w-[400px] overflow-hidden" onClick={e => e.stopPropagation()}>
+              <div className="px-6 py-5 border-b border-[#E5E7EB] flex items-center justify-between">
+                <h3 className="text-[18px] text-[#1A2332]" style={{ fontWeight: 700 }}>Payout · P-{1000 + payoutFor.id}</h3>
+                <button onClick={() => setPayoutFor(null)} className="w-8 h-8 rounded-lg hover:bg-[#F3F4F6] flex items-center justify-center">
+                  <span className="material-icons text-[#6B7280]" style={{ fontSize: "22px" }}>close</span>
+                </button>
+              </div>
+              <div className="px-6 py-5 space-y-3">
+                <div className="flex items-center justify-between text-[13px]">
+                  <span className="text-[#6B7280]">Payment amount</span>
+                  <span className="text-[#1A2332]" style={{ fontVariantNumeric: "tabular-nums" }}>${fmt2(payoutFor.amount)}</span>
+                </div>
+                <div className="flex items-center justify-between text-[13px]">
+                  <span className="text-[#6B7280]">Processing fee (3%)</span>
+                  <span className="text-[#DC2626]" style={{ fontVariantNumeric: "tabular-nums" }}>−${fmt2(fee)}</span>
+                </div>
+                <div className="flex items-center justify-between pt-3 border-t border-[#E5E7EB]">
+                  <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Payout</span>
+                  <span className="text-[18px] text-[#16A34A]" style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>${fmt2(net)}</span>
+                </div>
+                <div className="flex items-center justify-between text-[13px]">
+                  <span className="text-[#6B7280]">Payout date</span>
+                  <span className="text-[#1A2332]">{payoutDate}</span>
+                </div>
+                <div className="flex items-center gap-1.5 pt-2 text-[11px] text-[#9CA3AF]">
+                  <span className="material-icons" style={{ fontSize: "13px" }}>info</span>
+                  Payout data is provided by the Stripe integration.
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
     </DndProvider>
+  );
+}
+
+// Compact multi-select used by the advanced filter panel (checkbox dropdown —
+// "one or many" semantics for Client / Invoice / Methods / Statuses).
+function FilterMultiSelect({ value, options, onChange, placeholder }: {
+  value: string[];
+  options: string[];
+  onChange: (next: string[]) => void;
+  placeholder: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const toggle = (opt: string) =>
+    onChange(value.includes(opt) ? value.filter(v => v !== opt) : [...value, opt]);
+  const summary = value.length === 0
+    ? placeholder
+    : value.length <= 2 ? value.join(", ") : `${value.length} selected`;
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className={`${advancedSelectClass} text-left flex items-center justify-between gap-2`}
+      >
+        <span className={`truncate ${value.length ? "text-[#1A2332]" : "text-[#9CA3AF]"}`}>{summary}</span>
+        <span className="material-icons text-[#9CA3AF] shrink-0" style={{ fontSize: "18px" }}>arrow_drop_down</span>
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <div className="absolute z-20 mt-1 w-full bg-white border border-[#E5E7EB] rounded-md shadow-lg max-h-[220px] overflow-y-auto">
+            {options.map(opt => (
+              <label key={opt} className="flex items-center gap-2 px-3 py-2 text-[13px] text-[#1A2332] hover:bg-[#F5F7FA] cursor-pointer">
+                <input type="checkbox" checked={value.includes(opt)} onChange={() => toggle(opt)} className="accent-[#4A6FA5]" />
+                <span className="truncate">{opt}</span>
+              </label>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
   );
 }

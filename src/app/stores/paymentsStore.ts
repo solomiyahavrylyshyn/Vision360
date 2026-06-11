@@ -5,16 +5,18 @@ import type { Payment } from "../pages/Payments";
 
 type Listener = () => void;
 
-const LS_KEY = "vision360.payments.v1";
+// v2: seed now carries estimateNumbers/jobIds for the Estimates + Jobs list
+// columns (key bumped so stale v1 caches don't hide the new fields).
+const LS_KEY = "vision360.payments.v2";
 
 const SEED: Payment[] = [
-  { id: 1, date: "2026-03-10", amount: 5000.00, method: "Bank Transfer", status: "Completed", clientName: "Travis Jones", clientEmail: "travis.j@email.com", invoiceId: 1, invoiceNumber: "10245-I01", jobId: "10245-J01", note: "First installment", createdBy: "Marek Stroz", createdAt: "2026-03-10 14:22" },
-  { id: 2, date: "2026-03-25", amount: 5502.00, method: "Check", status: "Completed", clientName: "Travis Jones", clientEmail: "travis.j@email.com", invoiceId: 1, invoiceNumber: "10245-I01", jobId: "10245-J01", note: "Final payment", createdBy: "Marek Stroz", createdAt: "2026-03-25 11:45" },
-  { id: 3, date: "2026-03-15", amount: 1000.00, method: "Credit Card", status: "Completed", clientName: "Sarah Williams", clientEmail: "sarah.w@email.com", invoiceId: 4, invoiceNumber: "10248-I02", jobId: "10248-J01", note: "Partial payment", createdBy: "Marek Stroz", createdAt: "2026-03-15 13:30" },
-  { id: 4, date: "2026-04-01", amount: 913.75, method: "Check", status: "Pending", clientName: "Mike Rodriguez", clientEmail: "mike.r@email.com", invoiceId: 5, invoiceNumber: "10247-I01", jobId: "10247-J01", note: "", createdBy: "Marek Stroz", createdAt: "2026-04-01 09:15" },
-  { id: 5, date: "2026-02-21", amount: 326.25, method: "Cash", status: "Completed", clientName: "Sarah Williams", clientEmail: "sarah.w@email.com", invoiceId: 6, invoiceNumber: "10249-I01", jobId: "10249-J01", note: "Paid in full", createdBy: "Marek Stroz", createdAt: "2026-02-21 16:00" },
-  { id: 6, date: "2026-03-28", amount: 200.00, method: "Credit Card", status: "Refunded", clientName: "Travis Jones", clientEmail: "travis.j@email.com", invoiceId: 1, invoiceNumber: "10245-I01", jobId: "10245-J01", note: "Partial refund — overcharge adjustment", createdBy: "Marek Stroz", createdAt: "2026-03-28 10:20" },
-  { id: 7, date: "2026-04-03", amount: 2800.00, method: "Bank Transfer", status: "Completed", clientName: "John Doe", clientEmail: "john.d@email.com", invoiceId: 2, invoiceNumber: "10246-I01", jobId: "10246-J01", note: "Partial payment on overdue invoice", createdBy: "Marek Stroz", createdAt: "2026-04-03 11:00" },
+  { id: 1, date: "2026-03-10", amount: 5000.00, method: "Bank Transfer", status: "Completed", clientName: "Travis Jones", clientEmail: "travis.j@email.com", invoiceId: 1, invoiceNumber: "10245-I01", jobId: "10245-J01", estimateNumbers: ["10245-E01"], jobIds: ["10245-J01"], note: "First installment", createdBy: "Marek Stroz", createdAt: "2026-03-10 14:22" },
+  { id: 2, date: "2026-03-25", amount: 5502.00, method: "Check", status: "Completed", clientName: "Travis Jones", clientEmail: "travis.j@email.com", invoiceId: 1, invoiceNumber: "10245-I01", jobId: "10245-J01", estimateNumbers: ["10245-E01"], jobIds: ["10245-J01"], reference: "4582", note: "Final payment", createdBy: "Marek Stroz", createdAt: "2026-03-25 11:45" },
+  { id: 3, date: "2026-03-15", amount: 1000.00, method: "Credit Card", status: "Completed", clientName: "Sarah Williams", clientEmail: "sarah.w@email.com", invoiceId: 4, invoiceNumber: "10248-I02", jobId: "10248-J01", estimateNumbers: ["10248-E01"], jobIds: ["10248-J01", "10248-J02", "10248-J03"], note: "Partial payment", createdBy: "Marek Stroz", createdAt: "2026-03-15 13:30" },
+  { id: 4, date: "2026-04-01", amount: 913.75, method: "Check", status: "Pending", clientName: "Mike Rodriguez", clientEmail: "mike.r@email.com", invoiceId: 5, invoiceNumber: "10247-I01", jobId: "10247-J01", estimateNumbers: ["10247-E01"], jobIds: ["10247-J01"], reference: "9921", note: "", createdBy: "Marek Stroz", createdAt: "2026-04-01 09:15" },
+  { id: 5, date: "2026-02-21", amount: 326.25, method: "Cash", status: "Completed", clientName: "Sarah Williams", clientEmail: "sarah.w@email.com", invoiceId: 6, invoiceNumber: "10249-I01", jobId: "10249-J01", jobIds: ["10249-J01"], note: "Paid in full", createdBy: "Marek Stroz", createdAt: "2026-02-21 16:00" },
+  { id: 6, date: "2026-03-28", amount: 200.00, method: "Credit Card", status: "Refunded", clientName: "Travis Jones", clientEmail: "travis.j@email.com", invoiceId: 1, invoiceNumber: "10245-I01", jobId: "10245-J01", estimateNumbers: ["10245-E01"], jobIds: ["10245-J01"], note: "Partial refund — overcharge adjustment", createdBy: "Marek Stroz", createdAt: "2026-03-28 10:20" },
+  { id: 7, date: "2026-04-03", amount: 2800.00, method: "Bank Transfer", status: "Completed", clientName: "John Doe", clientEmail: "john.d@email.com", invoiceId: 2, invoiceNumber: "10246-I01", jobId: "10246-J01", jobIds: ["10246-J01"], note: "Partial payment on overdue invoice", createdBy: "Marek Stroz", createdAt: "2026-04-03 11:00" },
 ];
 
 let payments: Payment[] = SEED;

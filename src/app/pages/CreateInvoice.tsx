@@ -60,14 +60,18 @@ export function CreateInvoice() {
   const [invoiceDate, setInvoiceDate] = useState(() => new Date().toISOString().split("T")[0]);
   const [dueDate, setDueDate] = useState(() => { const d = new Date(); d.setDate(d.getDate() + 30); return d.toISOString().split("T")[0]; });
 
-  // Pre-populate from source job or estimate.
-  const [linkedJob, setLinkedJob] = useState(() => {
+  // Pre-populate from source job or estimate. Jobs are a MULTI-select: one
+  // invoice can settle several jobs at once (windows + doors + fence sold as
+  // three jobs, closed with a single invoice). "None" (empty) is a valid value.
+  const [linkedJobs, setLinkedJobs] = useState<string[]>(() => {
     if (fromJobId) {
       const j = liveJobs.find(j => j.id === fromJobId);
-      return j ? `${j.jobNumber}: ${j.title || "Service"}` : searchParams.get("job") || "";
+      if (j) return [`${j.jobNumber}: ${j.title || "Service"}`];
     }
-    return searchParams.get("job") || "";
+    const param = searchParams.get("job");
+    return param ? [param] : [];
   });
+  const [jobsDropdownOpen, setJobsDropdownOpen] = useState(false);
   const [linkedEstimate, setLinkedEstimate] = useState(() => {
     if (fromEstimateId) {
       const e = liveEstimates.find(e => e.id === fromEstimateId);
@@ -121,9 +125,64 @@ export function CreateInvoice() {
     setItemPickerOpen(false);
   };
 
+  // Selecting an estimate copies its line items into the invoice (they stay
+  // fully editable afterwards). One invoice links to at most ONE estimate.
+  const applyEstimateSelection = (value: string) => {
+    setLinkedEstimate(value);
+    if (!value) return;
+    const num = value.split(":")[0].trim();
+    const est = liveEstimates.find(e => e.estimateNumber === num);
+    if (est?.items?.length) {
+      setLineItems(est.items.map((it, idx) => ({
+        id: idx + 1, catalogItemId: 0,
+        name: it.name, description: it.description,
+        quantity: it.quantity, unitPrice: it.price,
+        unitCost: it.cost ?? 0, taxable: it.taxable,
+        total: it.amount,
+      })));
+      if (est.taxRate != null) setTaxRate(est.taxRate);
+      toast.success(`Copied ${est.items.length} line item${est.items.length === 1 ? "" : "s"} from ${num}`);
+    }
+  };
+
+  const toggleLinkedJob = (label: string) =>
+    setLinkedJobs(js => js.includes(label) ? js.filter(j => j !== label) : [...js, label]);
+
+  // "Create new job" lives as the last row of the jobs dropdown so the user can
+  // spin up a fresh job without leaving the form (the existing jobs may all be
+  // stale, e.g. 60 days old and irrelevant).
+  const createNewJobInline = () => {
+    if (!client.trim()) { toast.error("Select a client before creating a job."); return; }
+    const rec = liveClients.find(c => c.name === client);
+    const base = rec?.id || "10245";
+    const prefix = `${base}-J`;
+    const used = liveJobs
+      .filter(j => j.jobNumber.startsWith(prefix))
+      .map(j => Number(j.jobNumber.slice(prefix.length)))
+      .filter(Number.isFinite);
+    const next = used.length ? Math.max(...used) + 1 : 1;
+    const record = jobsStore.add({
+      jobNumber: `${prefix}${String(next).padStart(2, "0")}`,
+      title: "New Job", client, clientId: rec?.id || "",
+      address: rec?.address || "", city: rec?.city || "", state: rec?.state || "", zip: rec?.zip || "",
+      gateCode: "", assignedTo: "", jobType: "One-off", jobCategory: "Service",
+      startDate: "", endDate: "", startTime: "", endTime: "",
+      status: "Scheduled", totalPrice: 0, notes: "", fieldNotes: "", privateNotes: "",
+      taxRate: 7.5,
+    });
+    setLinkedJobs(js => [...js, `${record.jobNumber}: ${record.title}`]);
+    setJobsDropdownOpen(false);
+    toast.success(`Job ${record.jobNumber} created and linked`);
+  };
+
   // Save handlers with validation + feedback (was a silent redirect with no checks).
+  // Required: Client, Invoice date, Due date. Linked jobs/estimate are optional —
+  // "None" is a valid value (an invoice with no estimate and no job is a real
+  // case, e.g. selling used equipment off the shelf).
   const handleSaveInvoice = () => {
     if (!client.trim()) { toast.error("Select a client before saving the invoice."); return; }
+    if (!invoiceDate) { toast.error("Invoice date is required."); return; }
+    if (!dueDate) { toast.error("Due date is required."); return; }
     if (lineItems.length === 0) { toast.error("Add at least one line item before saving."); return; }
     toast.success("Invoice created");
     navigate(returnTo || "/invoices");
@@ -165,7 +224,7 @@ export function CreateInvoice() {
         {/* Client */}
         <div className="space-y-4 mb-6">
           <div>
-            <label className="block text-[12px] uppercase tracking-wider text-[#546478] mb-1.5" style={{ fontWeight: 600 }}>Client</label>
+            <label className="block text-[12px] uppercase tracking-wider text-[#546478] mb-1.5" style={{ fontWeight: 600 }}>Client <span className="text-[#DC2626]">*</span></label>
             <select
               value={client}
               onChange={(e) => setClient(e.target.value)}
@@ -179,34 +238,81 @@ export function CreateInvoice() {
           {/* Dates */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-[12px] uppercase tracking-wider text-[#546478] mb-1.5" style={{ fontWeight: 600 }}>Invoice Date</label>
+              <label className="block text-[12px] uppercase tracking-wider text-[#546478] mb-1.5" style={{ fontWeight: 600 }}>Invoice Date <span className="text-[#DC2626]">*</span></label>
               <input type="date" value={invoiceDate} onChange={(e) => setInvoiceDate(e.target.value)}
                 className="w-full px-4 py-3 border border-[#E5E7EB] rounded-md text-sm focus:outline-none focus:border-[#4A6FA5]" />
             </div>
             <div>
-              <label className="block text-[12px] uppercase tracking-wider text-[#546478] mb-1.5" style={{ fontWeight: 600 }}>Due Date</label>
+              <label className="block text-[12px] uppercase tracking-wider text-[#546478] mb-1.5" style={{ fontWeight: 600 }}>Due Date <span className="text-[#DC2626]">*</span></label>
               <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)}
                 className="w-full px-4 py-3 border border-[#E5E7EB] rounded-md text-sm focus:outline-none focus:border-[#4A6FA5]" />
             </div>
           </div>
 
-          {/* Linked Job / Estimate */}
+          {/* Linked Jobs / Estimate */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-[12px] uppercase tracking-wider text-[#546478] mb-1.5" style={{ fontWeight: 600 }}>Linked Job</label>
-              <select value={linkedJob} onChange={(e) => setLinkedJob(e.target.value)}
-                className="w-full px-4 py-3 border border-[#E5E7EB] rounded-md text-sm focus:outline-none focus:border-[#4A6FA5] bg-white">
-                <option value="">None</option>
-                {jobOptions.map(j => <option key={j} value={j}>{j}</option>)}
-              </select>
+              <label className="block text-[12px] uppercase tracking-wider text-[#546478] mb-1.5" style={{ fontWeight: 600 }}>Linked Jobs</label>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setJobsDropdownOpen(o => !o)}
+                  className="w-full px-4 py-3 border border-[#E5E7EB] rounded-md text-sm focus:outline-none focus:border-[#4A6FA5] bg-white text-left flex items-center justify-between gap-2"
+                >
+                  <span className="text-[#1A2332]">
+                    {linkedJobs.length === 0 ? "None" : `${linkedJobs.length} job${linkedJobs.length === 1 ? "" : "s"} linked`}
+                  </span>
+                  <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "20px" }}>arrow_drop_down</span>
+                </button>
+                {jobsDropdownOpen && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setJobsDropdownOpen(false)} />
+                    <div className="absolute z-20 mt-1 w-full bg-white border border-[#E5E7EB] rounded-md shadow-lg max-h-[260px] overflow-y-auto">
+                      {jobOptions.map(j => (
+                        <label key={j} className="flex items-center gap-2.5 px-3 py-2.5 text-[13px] text-[#1A2332] hover:bg-[#F5F7FA] cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={linkedJobs.includes(j)}
+                            onChange={() => toggleLinkedJob(j)}
+                            className="accent-[#4A6FA5]"
+                          />
+                          <span className="truncate">{j}</span>
+                        </label>
+                      ))}
+                      {/* Shortcut: create a job without leaving the form — always the last row. */}
+                      <button
+                        type="button"
+                        onClick={createNewJobInline}
+                        className="w-full flex items-center gap-2 px-3 py-2.5 text-[13px] text-[#4A6FA5] hover:bg-[#EEF3FA] border-t border-[#E5E7EB]"
+                        style={{ fontWeight: 600 }}
+                      >
+                        <PlusIcon className="h-3.5 w-3.5" /> Create new job
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+              {linkedJobs.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {linkedJobs.map(j => (
+                    <span key={j} className="inline-flex items-center gap-1 pl-2.5 pr-1.5 py-1 bg-[#EEF3FA] text-[#4A6FA5] rounded-md text-[12px]" style={{ fontWeight: 500 }}>
+                      {j.split(":")[0]}
+                      <button type="button" onClick={() => toggleLinkedJob(j)} aria-label={`Unlink ${j}`} className="w-4 h-4 flex items-center justify-center rounded hover:bg-[#DCE6F5]">
+                        <span className="material-icons" style={{ fontSize: "13px" }}>close</span>
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
             <div>
               <label className="block text-[12px] uppercase tracking-wider text-[#546478] mb-1.5" style={{ fontWeight: 600 }}>Linked Estimate</label>
-              <select value={linkedEstimate} onChange={(e) => setLinkedEstimate(e.target.value)}
+              <select value={linkedEstimate} onChange={(e) => applyEstimateSelection(e.target.value)}
                 className="w-full px-4 py-3 border border-[#E5E7EB] rounded-md text-sm focus:outline-none focus:border-[#4A6FA5] bg-white">
                 <option value="">None</option>
                 {estimateOptions.map(e => <option key={e} value={e}>{e}</option>)}
               </select>
+              <div className="mt-1.5 text-[12px] text-[#9CA3AF]">Selecting an estimate copies its line items into the invoice.</div>
             </div>
           </div>
         </div>
@@ -215,13 +321,13 @@ export function CreateInvoice() {
         <div className="border border-[#E5E7EB] rounded-lg mb-6">
           <div className="px-5 py-4 border-b border-[#E5E7EB] flex items-center justify-between">
             <h3 className="text-[16px] text-[#1A2332]" style={{ fontWeight: 700 }}>Line Items</h3>
+            {/* Same style as the estimate form's "Add item". */}
             <button
               onClick={() => setItemPickerOpen(true)}
-              className="px-4 py-2 bg-[#4A6FA5] text-white rounded-lg text-[13px] hover:bg-[#3d5a85] flex items-center gap-1.5"
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#4A6FA5] text-white rounded-lg text-[13px] hover:bg-[#3d5a85]"
               style={{ fontWeight: 600 }}
             >
-              <PlusIcon className="h-4 w-4" />
-              Add Item
+              <PlusIcon className="h-4 w-4" /> Add item
             </button>
           </div>
 
@@ -231,7 +337,7 @@ export function CreateInvoice() {
                 <span className="material-icons text-[#C8D5E8]" style={{ fontSize: "32px" }}>receipt_long</span>
               </div>
               <div className="text-[14px] text-[#546478]" style={{ fontWeight: 500 }}>No items added yet</div>
-              <div className="text-[12px] text-[#8899AA] mt-1">Click "Add Item" to select from catalog</div>
+              <div className="text-[12px] text-[#8899AA] mt-1">Click "Add item" to choose from your pricebook</div>
             </div>
           ) : (
             <>
