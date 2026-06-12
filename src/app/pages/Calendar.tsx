@@ -13,8 +13,9 @@ import {
 } from "date-fns";
 import routeMapImg from "../../assets/route-map.png";
 import { type JobStatus, JOB_STATUS_STYLES as STATUS_STYLES, JOB_STATUSES as ALL_JOB_STATUSES } from "../constants/jobStatuses";
-import { isPending, pendingJobs, type PendingFilter, hasTimeConflict, statusAfterAssignToSlot, applyMoveToPending, applyUnassign, schedulingTags, durationForType, isDraggable, isShownOnBoard } from "../utils/scheduleLogic";
+import { isPending, pendingJobs, type PendingFilter, hasTimeConflict, statusAfterAssignToSlot, schedulingTags, durationForType, isDraggable, isShownOnBoard, packOverlaps, deconflict } from "../utils/scheduleLogic";
 import { jobTypeColor, jobTypeTint, JOB_TYPE_ORDER, JOB_TYPE_COLORS } from "../constants/jobTypeColors";
+import { jobsStore, type JobRecord } from "../stores/jobsStore";
 
 interface CalendarEvent {
   id: number;
@@ -88,9 +89,11 @@ function StatusPillSelect({ value, onChange }: { value: JobStatus; onChange: (ne
 }
 
 const nextStatus = (status: JobStatus): JobStatus => {
+  if (status === "Unscheduled") return "Scheduled"; // once it gets a date
   if (status === "Scheduled") return "Dispatched";
   if (status === "Dispatched") return "In Progress";
   if (status === "In Progress") return "Completed";
+  if (status === "Paused") return "In Progress";     // resuming returns to in progress (Part 5)
   if (status === "Completed") return "Scheduled";
   // Cancelled stays Cancelled when click-cycled; user must explicitly pick another via the dropdown.
   return status;
@@ -266,7 +269,7 @@ interface UnifiedJob {
 //   • month-origin→ ids 29-38, their own dates, with a technician assigned
 const _wkStart = startOfWeek(_schedBase);            // Sunday-start; mid-week days are in-range for any locale
 const _wk = (i: number) => addDays(_wkStart, i);
-const INITIAL_JOBS: UnifiedJob[] = [
+const INITIAL_JOBS_RAW: UnifiedJob[] = [
   ...DAY_JOBS.map((j) => ({
     ...j,
     num: `D${String(j.id).padStart(2, "0")}`,
@@ -311,6 +314,81 @@ const INITIAL_JOBS: UnifiedJob[] = [
   })),
 ];
 
+// Deconflict the merged demo seed so NO technician is ever double-booked: the
+// three legacy per-view seeds (day / week / month), once unified onto real dates,
+// could put the same tech in two places at once (e.g. two 8-10 AM jobs for Peter).
+// The day seed is listed first, so it wins ties → "today" resolves to the clean
+// day schedule. (Logic lives in scheduleLogic + is unit-tested there.)
+const INITIAL_JOBS: UnifiedJob[] = deconflict(INITIAL_JOBS_RAW);
+
+// ── jobsStore ⇄ board adapter (unify create flow with the board) ────────────
+// The board's local seed (INITIAL_JOBS) and the shared jobsStore (what /jobs/new
+// writes to) were two disconnected arrays, so created jobs never appeared on the
+// schedule. We now MERGE jobsStore records into the board collection and route
+// any board mutation on a store-origin job back to jobsStore. Store ids are
+// offset so they never collide with the local board ids (1-38, board-created 39+).
+const JOBSTORE_ID_BASE = 100000;
+const isStoreJob = (id: number) => id >= JOBSTORE_ID_BASE;
+
+const ASSIGNEE_TO_TECH: Record<string, string> = Object.fromEntries(TEAM.map((t) => [t.name, t.id]));
+const assigneeToTechId = (name: string): string => ASSIGNEE_TO_TECH[name?.trim()] ?? ""; // unknown / "" ⇒ unassigned
+const techIdToAssignee = (id: string): string => TEAM.find((t) => t.id === id)?.name ?? "";
+
+const pad2 = (n: number) => String(n).padStart(2, "0");
+const hourToTimeStr = (h: number): string => `${pad2(Math.floor(h))}:${pad2(Math.round((h - Math.floor(h)) * 60))}`;
+const timeStrToHour = (s: string): number => {
+  const [h, m] = (s || "").split(":").map(Number);
+  return Number.isFinite(h) ? h + (Number.isFinite(m) ? m / 60 : 0) : 9;
+};
+const isoFromDate = (d: Date): string => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+const dateFromISO = (s: string): Date => { const [y, m, d] = s.split("-").map(Number); return new Date(y, (m ?? 1) - 1, d ?? 1); };
+
+// Map a persisted JobRecord onto the board's UnifiedJob shape.
+function unifiedFromRecord(rec: JobRecord): UnifiedJob {
+  const start = rec.startTime ? timeStrToHour(rec.startTime) : 9;
+  const end = rec.endTime ? timeStrToHour(rec.endTime) : start + 2;
+  const jobType = rec.jobCategory || rec.jobType || "Service";
+  return {
+    id: rec.id + JOBSTORE_ID_BASE,
+    num: rec.jobNumber || `J${rec.id}`,
+    date: rec.startDate ? dateFromISO(rec.startDate) : null,
+    technicianId: assigneeToTechId(rec.assignedTo),
+    start,
+    end,
+    unscheduled: !rec.startDate,
+    client: rec.client || "—",
+    service: rec.title || "Job",
+    address: rec.address || "",
+    status: (rec.status as JobStatus) || "Scheduled",
+    amount: Math.round(rec.totalPrice || 0),
+    jobType,
+    title: rec.title || "Job",
+    property: rec.address || "",
+    priority: "Normal",
+    source: "Jobs",
+    color: "blue",
+    bg: jobTypeTint(jobType),
+    border: jobTypeColor(jobType),
+  };
+}
+
+// Convert a board UnifiedJob patch back into a JobRecord patch for jobsStore.
+function recordPatchFromUnified(p: Partial<UnifiedJob>): Partial<JobRecord> {
+  const rp: Partial<JobRecord> = {};
+  if (p.technicianId !== undefined) rp.assignedTo = techIdToAssignee(p.technicianId);
+  if (p.start !== undefined) rp.startTime = hourToTimeStr(p.start);
+  if (p.end !== undefined) rp.endTime = hourToTimeStr(p.end);
+  if (p.status !== undefined) rp.status = p.status;
+  if (p.client !== undefined) rp.client = p.client;
+  if (p.service !== undefined) rp.title = p.service;
+  if (p.address !== undefined) rp.address = p.address;
+  if (p.amount !== undefined) rp.totalPrice = p.amount;
+  // The board's date==null / unscheduled invariant ⇒ clear the stored date.
+  if (p.unscheduled === true || p.date === null) { rp.startDate = ""; rp.endDate = ""; }
+  else if (p.date instanceof Date) { rp.startDate = isoFromDate(p.date); rp.endDate = isoFromDate(p.date); }
+  return rp;
+}
+
 // Day view constants
 const GANTT_START_HOUR = 7;   // 7 AM
 const GANTT_END_HOUR   = 18;  // 6 PM (exclusive label at 18)
@@ -318,6 +396,15 @@ const HOUR_WIDTH       = 120; // px per hour (matches Figma schedule columns)
 const CURRENT_TIME     = 10.5; // 10:30 AM
 const WEEK_LABEL_WIDTH = 180; // matches the day-view technician column
 const WEEK_TODAY = _schedBase; // today, highlighted in the week view
+
+// Lane layout — when a technician's jobs overlap in time they stack into
+// sub-rows (see packOverlaps) and the lane grows to fit. With a single row the
+// math below reproduces the original fixed heights exactly (day 121, week 92),
+// so non-overlapping lanes look unchanged.
+const DAY_TOP_PAD = 15, DAY_CARD_H = 92, DAY_ROW_GAP = 6, DAY_BOT_PAD = 14; // 15+92+14 = 121
+const WK_TOP_PAD  = 8,  WK_CARD_H  = 76, WK_ROW_GAP  = 4, WK_BOT_PAD  = 8;  // 8+76+8 = 92
+const laneHeight = (rowCount: number, top: number, card: number, gap: number, bot: number) =>
+  top + rowCount * card + (rowCount - 1) * gap + bot;
 
 // Route-map pin layout — matches the Figma day view (node 746:71297). left/top are
 // percentages of the map container; n is each technician's stop order on the route.
@@ -363,6 +450,18 @@ export function Calendar() {
   // are now selectors that window this list over the calendar's current scope
   // (defined below, after `weekDays`). All mutations go through setJobs.
   const [jobs, setJobs] = useState<UnifiedJob[]>(INITIAL_JOBS);
+  // Merge the shared jobsStore (what /jobs/new writes to) into the board so
+  // created jobs appear on the schedule and in Pending. Local seed keeps the
+  // rich demo; store jobs are mapped + id-offset so the two never collide.
+  const storeRecords = useSyncExternalStore(jobsStore.subscribe, jobsStore.getSnapshot);
+  const storeJobs = useMemo(() => storeRecords.map(unifiedFromRecord), [storeRecords]);
+  const allJobs = useMemo(() => [...jobs, ...storeJobs], [jobs, storeJobs]);
+  // One mutation entry point: store-origin jobs (id ≥ base) persist through
+  // jobsStore; local board-seed jobs mutate the local array as before.
+  const patchJob = (id: number, patch: Partial<UnifiedJob>) => {
+    if (isStoreJob(id)) jobsStore.update(id - JOBSTORE_ID_BASE, recordPatchFromUnified(patch));
+    else setJobs((js) => js.map((j) => (j.id === id ? { ...j, ...patch } : j)));
+  };
   // Right-side "Unassigned" panel: open by default so dispatchers see what
   // still needs an owner. Toggle from the schedule header chip.
   const [unassignedPanelOpen, setUnassignedPanelOpen] = useState(true);
@@ -528,32 +627,32 @@ export function Calendar() {
   // windows further per day). The renderers consume the SAME DayJob/DispatchJob/
   // CalendarEvent shapes as before — these selectors just project the union.
   const dayJobsView: DayJob[] = useMemo(
-    () => jobs
+    () => allJobs
       .filter((j) => j.unscheduled || (j.date != null && isSameDay(j.date, currentDate)))
       .map((j) => ({ id: j.id, technicianId: j.technicianId, start: j.start, end: j.end, client: j.client, service: j.service, address: j.address, status: j.status, amount: j.amount, bg: j.bg, border: j.border, jobType: j.jobType, unscheduled: j.unscheduled })),
-    [jobs, currentDate],
+    [allJobs, currentDate],
   );
   const weekJobsView: DispatchJob[] = useMemo(
-    () => jobs
+    () => allJobs
       .map((j) => ({ id: j.id, num: j.num, technicianId: j.technicianId, client: j.client, service: j.service, address: j.address, status: j.status, dayIdx: j.date != null ? weekDays.findIndex((d) => isSameDay(d, j.date!)) : -1, start: j.start, end: j.end, amount: j.amount, bg: j.bg, border: j.border, priority: j.priority, jobType: j.jobType, source: j.source, unscheduled: j.unscheduled }))
       .filter((j) => j.unscheduled || j.dayIdx >= 0),
-    [jobs, weekDays],
+    [allJobs, weekDays],
   );
   const monthEventsView: CalendarEvent[] = useMemo(
-    () => jobs
+    () => allJobs
       .filter((j) => j.date != null)
       .map((j) => ({ id: j.id, title: j.title, client: j.client, date: j.date!, startHour: j.start, duration: j.end - j.start, color: j.color, jobType: j.jobType, status: j.status, property: j.property, amount: j.amount })),
-    [jobs],
+    [allJobs],
   );
 
   // Month pending is windowed to the visible MONTH — so "Scheduled this month"
   // surfaces everything dated this month that still needs an owner (Marek's
   // production-manager rollup) — plus the date-agnostic unscheduled jobs.
   const monthPendingView: DayJob[] = useMemo(
-    () => jobs
+    () => allJobs
       .filter((j) => j.unscheduled || (j.date != null && isSameMonth(j.date, currentDate)))
       .map((j) => ({ id: j.id, technicianId: j.technicianId, start: j.start, end: j.end, client: j.client, service: j.service, address: j.address, status: j.status, amount: j.amount, bg: j.bg, border: j.border, jobType: j.jobType, unscheduled: j.unscheduled })),
-    [jobs, currentDate],
+    [allJobs, currentDate],
   );
   // Pending sidebar = the ACTIVE view's window of the same collection — so the
   // "scheduled" filter reflects the calendar's current scope (Acceptance Check 5):
@@ -561,10 +660,12 @@ export function Calendar() {
   const pendingSource: (DayJob | DispatchJob)[] = viewMode === "week" ? weekJobsView : viewMode === "month" ? monthPendingView : dayJobsView;
   const pendingBucket = pendingSource.filter(isPending);
   const pendingDayJobs = pendingJobs(pendingSource, pendingFilter);
-  // Scope-aware label for the "scheduled" filter (Marek: the chip must read
-  // "Scheduled today / this week / this month", not a bare "Scheduled", so it's
-  // clearly the current calendar window — not all scheduled jobs ever).
-  const scheduledScopeLabel = viewMode === "month" ? "Scheduled this month" : viewMode === "week" ? "Scheduled this week" : "Scheduled today";
+  // "Scheduled" filter label — bare, no time scope (Figma): the dropdown reads
+  // "Show scheduled" on every view, and the empty state "No jobs scheduled".
+  // The filter still windows to the ACTIVE calendar scope (day/week/month) via
+  // pendingSource; only the LABEL drops the "today / this week / this month"
+  // suffix.
+  const scheduledScopeLabel = "Scheduled";
 
   // Week view defaults to ALL days collapsed except today (per the design).
   // Resets whenever the visible week changes; user toggles persist within a
@@ -600,11 +701,24 @@ export function Calendar() {
   // Pending sidebar, not on a day column (e.g. after a drag-back to Pending).
   const filteredWeekJobs = weekJobsView.filter(job => openWeekDayIndexes.has(job.dayIdx) && !job.unscheduled);
   const filteredDayJobs = isCurrentDateOpen ? dayJobsView : [];
+  // Per-technician packed lane height for the DAY board: time-overlapping jobs
+  // stack into sub-rows (packOverlaps) and the lane grows to fit. Computed once
+  // so the sticky left label column and the time-grid lane stay row-aligned.
+  const dayPackByMember: Record<string, { rowByJobId: Record<number, number>; laneH: number }> =
+    Object.fromEntries(
+      TEAM.map((m) => {
+        const memberJobs = filteredDayJobs
+          .filter((job) => job.technicianId === m.id && !job.unscheduled && isShownOnBoard(job.status))
+          .sort((a, b) => a.start - b.start);
+        const { rowByJobId, rowCount } = packOverlaps(memberJobs);
+        return [m.id, { rowByJobId, laneH: laneHeight(rowCount, DAY_TOP_PAD, DAY_CARD_H, DAY_ROW_GAP, DAY_BOT_PAD) }];
+      }),
+    );
   const monthRevenue = filteredMonthEvents.reduce((sum, event) => sum + event.amount, 0);
   const weekRevenue = filteredWeekJobs.reduce((sum, job) => sum + job.amount, 0);
   const dayRevenue = filteredDayJobs.reduce((sum, job) => sum + job.amount, 0);
   const topRevenue = viewMode === "month" ? monthRevenue : viewMode === "week" ? weekRevenue : dayRevenue;
-  const topRevenueLabel = viewMode === "month" ? "Revenue this month" : viewMode === "week" ? "Revenue this week" : "Revenue today";
+  const topRevenueLabel = "Revenue"; // unscoped (Figma); period is shown by the date navigator
   const scheduleJobCount = viewMode === "month" ? filteredMonthEvents.length : viewMode === "week" ? filteredWeekJobs.length : filteredDayJobs.length;
   const completedJobCount = viewMode === "month"
     ? filteredMonthEvents.filter((event) => event.status === "Completed").length
@@ -617,16 +731,13 @@ export function Calendar() {
     ? filteredWeekJobs.filter((job) => job.status === "In Progress").length
     : filteredDayJobs.filter((job) => job.status === "In Progress").length;
   const completionRate = scheduleJobCount > 0 ? Math.round((completedJobCount / scheduleJobCount) * 1000) / 10 : 0;
-  const scopedJobLabel = viewMode === "month" ? "Jobs this month" : viewMode === "week" ? "Jobs this week" : "Jobs today";
+  const scopedJobLabel = "Jobs"; // unscoped (Figma)
   const scheduleKpis = [
     { value: `$${topRevenue.toLocaleString("en-US")}`, label: topRevenueLabel, icon: "payments", color: "#16A34A", bg: "#D1FAE5" },
     { value: String(scheduleJobCount), label: scopedJobLabel, icon: "work", color: "#4A6FA5", bg: "#EBF0F8" },
     { value: String(inProgressJobCount), label: "In progress", icon: "schedule", color: "#D97706", bg: "#FEF3C7" },
-    // Completion rate is a Month-view KPI in Figma (a period rollup), so it only
-    // shows on Month — Day/Week show the three operational cards.
-    ...(viewMode === "month"
-      ? [{ value: `${completionRate}%`, label: "Completion rate", icon: "check_circle", color: "#7C3AED", bg: "#EDE9FE" }]
-      : []),
+    // Completion rate shown on all views — Figma Day includes it as the 4th card.
+    { value: `${completionRate}%`, label: "Completion rate", icon: "check_circle", color: "#7C3AED", bg: "#EDE9FE" },
   ];
 
   const hourFromPointer = (event: SlotPointerEvent, snap = SLOT_HOURS) => {
@@ -647,17 +758,17 @@ export function Calendar() {
   // All three operate on the ONE collection now; they keep their own projected
   // selection (selectedDayJob / selectedDispatchJob / selectedEvent) in sync.
   const updateDayStatus = (jobId: number, status: JobStatus) => {
-    setJobs((js) => js.map((job) => job.id === jobId ? { ...job, status } : job));
+    patchJob(jobId, { status });
     setSelectedDayJob((job) => job?.id === jobId ? { ...job, status } : job);
   };
 
   const updateWeekStatus = (jobId: number, status: JobStatus) => {
-    setJobs((js) => js.map((job) => job.id === jobId ? { ...job, status } : job));
+    patchJob(jobId, { status });
     setSelectedDispatchJob((job) => job?.id === jobId ? { ...job, status } : job);
   };
 
   const updateEventStatus = (eventId: number, status: JobStatus) => {
-    setJobs((js) => js.map((job) => job.id === eventId ? { ...job, status } : job));
+    patchJob(eventId, { status });
     setSelectedEvent((ev) => ev?.id === eventId ? { ...ev, status } : ev);
   };
 
@@ -764,7 +875,7 @@ export function Calendar() {
         return;
       }
       if (editId != null) {
-        setJobs((js) => js.map((j) => (j.id === editId ? { ...j, ...common, date: currentDate, unscheduled: false } : j)));
+        patchJob(editId, { ...common, date: currentDate, unscheduled: false });
         setSelectedDayJob((j) => (j && j.id === editId ? { ...j, ...common, unscheduled: false } : j));
         setSelectedMapJobId(editId);
         setToast("Job rescheduled");
@@ -787,7 +898,7 @@ export function Calendar() {
         return;
       }
       if (editId != null) {
-        setJobs((js) => js.map((j) => (j.id === editId ? { ...j, ...common, date: storedDate, unscheduled: false } : j)));
+        patchJob(editId, { ...common, date: storedDate, unscheduled: false });
         setSelectedDispatchJob((j) => (j && j.id === editId ? { ...j, ...common, dayIdx, unscheduled: false } : j));
         setToast("Job rescheduled");
       } else {
@@ -812,31 +923,24 @@ export function Calendar() {
     if (kind !== "week") return;
     const jobId = Number(rawId);
     const dropStart = hourFromPointer(event);
-    setJobs((js) => {
-      const targetJob = js.find((job) => job.id === jobId);
-      if (!targetJob) return js;
-      if (!openWeekDayIndexes.has(dayIdx)) {
-        setConflictMessage("This day is closed in business hours.");
-        return js;
-      }
-      const duration = targetJob.end - targetJob.start;
-      const dropEnd = Math.min(GANTT_END_HOUR, dropStart + duration);
-      if (weekHasConflict(weekJobsView, jobId, dayIdx, technicianId, dropStart, dropEnd)) {
-        setConflictMessage("That move conflicts with another job for the same person.");
-        return js;
-      }
-      setConflictMessage(null);
-      // Dropping onto a week (day × tech) cell gives the job that day's real DATE
-      // + technician + slot, and clears unscheduled.
-      const nextJobs = js.map((job) =>
-        job.id === jobId
-          ? { ...job, date: weekDays[dayIdx] ?? job.date, technicianId, start: dropStart, end: dropEnd, unscheduled: false }
-          : job,
-      );
-      const movedJob = nextJobs.find((job) => job.id === jobId) ?? null;
-      if (movedJob) setToast(`Moved to ${formatRegionalTime(movedJob.start, regionalSettings)}`);
-      return nextJobs;
-    });
+    const targetJob = allJobs.find((job) => job.id === jobId);
+    if (!targetJob) return;
+    if (!openWeekDayIndexes.has(dayIdx)) {
+      setConflictMessage("This day is closed in business hours.");
+      return;
+    }
+    const duration = targetJob.end - targetJob.start;
+    const dropEnd = Math.min(GANTT_END_HOUR, dropStart + duration);
+    if (weekHasConflict(weekJobsView, jobId, dayIdx, technicianId, dropStart, dropEnd)) {
+      setConflictMessage("That move conflicts with another job for the same person.");
+      return;
+    }
+    setConflictMessage(null);
+    // Dropping onto a week (day × tech) cell gives the job that day's real DATE
+    // + technician + slot, and clears unscheduled. patchJob routes store jobs
+    // back to jobsStore so created jobs are fully draggable.
+    patchJob(jobId, { date: weekDays[dayIdx] ?? targetJob.date, technicianId, start: dropStart, end: dropEnd, unscheduled: false });
+    setToast(`Moved to ${formatRegionalTime(dropStart, regionalSettings)}`);
   };
 
   const handleWeekDragOver = (event: DragEvent<HTMLDivElement>, dayIdx: number, technicianId: string) => {
@@ -852,34 +956,26 @@ export function Calendar() {
     if (kind !== "day") return;
     const jobId = Number(rawId);
     const dropStart = hourFromPointer(event);
-    setJobs((js) => {
-      const targetJob = js.find((job) => job.id === jobId);
-      if (!targetJob) return js;
-      if (!isCurrentDateOpen) {
-        setConflictMessage("This day is closed in business hours.");
-        return js;
-      }
-      // Pending jobs (no tech and/or no date) get a default duration by job
-      // type; already-scheduled jobs keep their length when moved slot→slot.
-      const fromPending = isPending(targetJob);
-      const duration = fromPending ? durationForType(targetJob.jobType) : (targetJob.end - targetJob.start);
-      const dropEnd = Math.min(GANTT_END_HOUR, dropStart + duration);
-      if (dayHasConflict(dayJobsView, jobId, technicianId, dropStart, dropEnd)) {
-        setConflictMessage("That move conflicts with another job for the same person.");
-        return js;
-      }
-      setConflictMessage(null);
-      // Placing a job on a day lane gives it TODAY's date + a technician + time.
-      // Status follows the backlog rule: pending→Scheduled, else unchanged.
-      const nextJobs = js.map((job) =>
-        job.id === jobId
-          ? { ...job, date: currentDate, technicianId, start: dropStart, end: dropEnd, unscheduled: false, status: statusAfterAssignToSlot(job.status, fromPending) }
-          : job,
-      );
-      const movedJob = nextJobs.find((job) => job.id === jobId) ?? null;
-      if (movedJob) setToast(`Moved to ${formatRegionalTime(movedJob.start, regionalSettings)}`);
-      return nextJobs;
-    });
+    const targetJob = allJobs.find((job) => job.id === jobId);
+    if (!targetJob) return;
+    if (!isCurrentDateOpen) {
+      setConflictMessage("This day is closed in business hours.");
+      return;
+    }
+    // Pending jobs (no tech and/or no date) get a default duration by job
+    // type; already-scheduled jobs keep their length when moved slot→slot.
+    const fromPending = isPending(targetJob);
+    const duration = fromPending ? durationForType(targetJob.jobType) : (targetJob.end - targetJob.start);
+    const dropEnd = Math.min(GANTT_END_HOUR, dropStart + duration);
+    if (dayHasConflict(dayJobsView, jobId, technicianId, dropStart, dropEnd)) {
+      setConflictMessage("That move conflicts with another job for the same person.");
+      return;
+    }
+    setConflictMessage(null);
+    // Placing a job on a day lane gives it TODAY's date + a technician + time.
+    // Status follows the backlog rule: pending→Scheduled, else unchanged.
+    patchJob(jobId, { date: currentDate, technicianId, start: dropStart, end: dropEnd, unscheduled: false, status: statusAfterAssignToSlot(targetJob.status, fromPending) });
+    setToast(`Moved to ${formatRegionalTime(dropStart, regionalSettings)}`);
   };
 
   const handleDayDragOver = (event: DragEvent<HTMLDivElement>, technicianId: string) => {
@@ -900,15 +996,12 @@ export function Calendar() {
     const jobId = Number(rawId);
     // One collection now — clear the DATE (→ unscheduled) but KEEP the technician
     // (Marek's leftover history). Completed/cancelled and already-pending jobs are
-    // ignored. applyMoveToPending sets unscheduled; we also null the date to hold
-    // the invariant date==null ⇔ unscheduled.
-    setJobs((js) => {
-      const targetJob = js.find((job) => job.id === jobId);
-      if (!targetJob || isPending(targetJob) || !isDraggable(targetJob.status)) return js;
-      setConflictMessage(null);
-      setToast("Moved to Pending — date cleared, technician kept");
-      return js.map((job) => (job.id === jobId ? { ...applyMoveToPending(job), date: null } : job));
-    });
+    // ignored. patchJob routes store jobs back to jobsStore.
+    const targetJob = allJobs.find((job) => job.id === jobId);
+    if (!targetJob || isPending(targetJob) || !isDraggable(targetJob.status)) return;
+    setConflictMessage(null);
+    patchJob(jobId, { unscheduled: true, date: null });
+    setToast("Moved to Pending — date cleared, technician kept");
   };
 
   const handleWeekSlotClick = (event: MouseEvent<HTMLDivElement>, date: Date, technicianId: string, dayIdx: number) => {
@@ -1435,7 +1528,6 @@ export function Calendar() {
                   const dayOpen = openWeekDayIndexes.has(dayI);
                   const dayCollapsed = collapsedWeekDays.has(dayI);
                   const showLanes = dayOpen && !dayCollapsed;
-                  const ROW_H = 92;
 
                   return (
                     <div key={dayI} ref={isToday ? weekTodayRef : undefined}>
@@ -1485,15 +1577,18 @@ export function Calendar() {
                           .sort((a, b) => a.start - b.start);
                         const memberTotal = memberJobs.reduce((sum, job) => sum + job.amount, 0);
                         const isLastMember = memberIdx === TEAM.length - 1;
+                        // Stack time-overlapping jobs into sub-rows (same as the day board).
+                        const { rowByJobId, rowCount } = packOverlaps(memberJobs);
+                        const laneH = laneHeight(rowCount, WK_TOP_PAD, WK_CARD_H, WK_ROW_GAP, WK_BOT_PAD);
 
                         return (
-                          <div key={`${dayI}-${member.id}`} className="flex" style={{ height: ROW_H }}>
+                          <div key={`${dayI}-${member.id}`} className="flex" style={{ height: laneH }}>
                             <div
                               className="shrink-0 sticky left-0 z-10 flex items-center gap-2.5 px-3 bg-white"
                               style={{
                                 width: WEEK_LABEL_WIDTH,
                                 minWidth: WEEK_LABEL_WIDTH,
-                                height: ROW_H,
+                                height: laneH,
                                 borderRight: "1px solid #E5E7EB",
                                 borderBottom: isLastMember ? "0" : "1px solid #F0F2F5",
                               }}
@@ -1516,7 +1611,7 @@ export function Calendar() {
                               className="relative"
                               style={{
                                 minWidth: ganttTotalWidth,
-                                height: ROW_H,
+                                height: laneH,
                                 backgroundColor: isToday ? "#F7FAFE" : "#FFFFFF",
                                 borderBottom: isLastMember ? "0" : "1px solid #F0F2F5",
                               }}
@@ -1589,8 +1684,8 @@ export function Calendar() {
                                     style={{
                                       left,
                                       width: Math.max(width, 70),
-                                      top: 8,
-                                      height: 76,
+                                      top: WK_TOP_PAD + (rowByJobId[job.id] ?? 0) * (WK_CARD_H + WK_ROW_GAP),
+                                      height: WK_CARD_H,
                                       backgroundColor: jobTypeTint(job.jobType),
                                       borderLeft: `3px solid ${typeColor}`,
                                       boxShadow: isSelected ? `0 0 0 2px ${typeColor}` : "none",
@@ -1767,7 +1862,7 @@ export function Calendar() {
                     <button
                       onClick={() => {
                         const id = selectedDispatchJob.id;
-                        setJobs((js) => js.map((j) => (j.id === id ? { ...applyMoveToPending(j), date: null } : j)));
+                        patchJob(id, { unscheduled: true, date: null });
                         setToast("Moved to Pending — date cleared, technician kept");
                         setSelectedDispatchJob(null);
                       }}
@@ -1782,7 +1877,7 @@ export function Calendar() {
                     <button
                       onClick={() => {
                         const id = selectedDispatchJob.id;
-                        setJobs((js) => js.map((j) => (j.id === id ? applyUnassign(j) : j)));
+                        patchJob(id, { technicianId: "" });
                         setToast("Technician unassigned — date kept (scheduled + unassigned)");
                         setSelectedDispatchJob(null);
                       }}
@@ -1815,7 +1910,7 @@ export function Calendar() {
                 <div
                   key={member.id}
                   className="flex items-center gap-2.5 px-3 border-b border-[#E5E7EB]"
-                  style={{ height: 121 }}
+                  style={{ height: dayPackByMember[member.id].laneH }}
                 >
                   <div
                     className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[12px] shrink-0"
@@ -1880,12 +1975,15 @@ export function Calendar() {
                       // default per the open Marek question; they remain in lists).
                       .filter((job) => isShownOnBoard(job.status))
                       .sort((a, b) => a.start - b.start);
+                    // Sub-row layout (overlapping jobs never cover each other);
+                    // shared with the left label column so both stay aligned.
+                    const { rowByJobId, laneH } = dayPackByMember[member.id];
 
                     return (
                       <div
                         key={member.id}
                         className="relative border-b border-[#E5E7EB]"
-                        style={{ height: 121 }}
+                        style={{ height: laneH }}
                         onDragOver={(event) => handleDayDragOver(event, member.id)}
                         onDragLeave={() => setDropPreview(null)}
                         onDrop={(event) => handleDayDrop(event, member.id)}
@@ -1953,8 +2051,8 @@ export function Calendar() {
                               style={{
                                 left,
                                 width: Math.max(width, 60),
-                                top: 15,
-                                height: 92,
+                                top: DAY_TOP_PAD + (rowByJobId[job.id] ?? 0) * (DAY_CARD_H + DAY_ROW_GAP),
+                                height: DAY_CARD_H,
                                 backgroundColor: jobTypeTint(job.jobType),
                                 borderLeft: `3px solid ${typeColor}`,
                                 boxShadow: selectedDayJob?.id === job.id ? `0 0 0 2px ${typeColor}` : "none",
@@ -2149,7 +2247,7 @@ export function Calendar() {
                     <button
                       onClick={() => {
                         const id = selectedDayJob.id;
-                        setJobs((js) => js.map((j) => (j.id === id ? { ...applyMoveToPending(j), date: null } : j)));
+                        patchJob(id, { unscheduled: true, date: null });
                         setToast("Moved to Pending — date cleared, technician kept");
                         setSelectedDayJob(null);
                       }}
@@ -2164,7 +2262,7 @@ export function Calendar() {
                     <button
                       onClick={() => {
                         const id = selectedDayJob.id;
-                        setJobs((js) => js.map((j) => (j.id === id ? applyUnassign(j) : j)));
+                        patchJob(id, { technicianId: "" });
                         setToast("Technician unassigned — date kept (scheduled + unassigned)");
                         setSelectedDayJob(null);
                       }}
@@ -2183,8 +2281,9 @@ export function Calendar() {
           </div>
         )}
 
-        {/* ── Route map nested inside the schedule card (day view), matches Figma ── */}
-        {viewMode === "day" && (
+        {/* ── Route map nested inside the schedule card (Day + Week, matches Figma;
+             shows the focused day's route — routing is a per-day concept). Month omits it. ── */}
+        {viewMode !== "month" && (
           <div className="border-t border-[#E5E7EB] bg-white shrink-0">
             <div className="px-4 pt-4 pb-3">
               <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 700 }}>Route map</div>
@@ -2248,7 +2347,7 @@ export function Calendar() {
 
             <div className="p-5 space-y-3">
               <label className="block">
-                <span className="block text-[11px] text-[#8899AA] mb-1" style={{ fontWeight: 700 }}>Customer</span>
+                <span className="block text-[11px] text-[#8899AA] mb-1" style={{ fontWeight: 700 }}>Client</span>
                 {quickJobDraft.editJobId != null && !quickJobDraft.editIdentity ? (
                   // Reschedule keeps the job's identity — customer is read-only.
                   <div className="w-full h-10 rounded-lg border border-[#E5E7EB] px-3 text-[13px] bg-[#F9FAFB] text-[#1A2332] flex items-center">{quickJobDraft.client}</div>

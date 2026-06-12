@@ -43,7 +43,7 @@ export function AdvancedFilterPanel({
               className="flex-1 h-10 border border-[#E5E7EB] rounded-lg text-[13px] text-[#546478] hover:bg-[#EDF0F5] transition-colors"
               style={{ fontWeight: 500 }}
             >
-              Clear all
+              Clear All
             </button>
             <button
               type="button"

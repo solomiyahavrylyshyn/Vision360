@@ -203,7 +203,8 @@ export function CreateEstimate() {
   const fmt = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   const fieldClass = "w-full px-4 py-3 border border-[#E5E7EB] rounded-md text-[14px] text-[#1A2332] focus:outline-none focus:border-[#4A6FA5] bg-white";
-  const labelClass = "block text-[12px] uppercase tracking-wider text-[#546478] mb-1.5";
+  const labelClass = "block text-[13px] font-medium text-[#374151] mb-1.5";
+  const reqStar = <span className="text-[#DC2626]">*</span>;
 
   return (
     <div className="min-h-full bg-white">
@@ -221,14 +222,14 @@ export function CreateEstimate() {
         {/* No estimate number here on purpose — it doesn't exist until the
             record is saved, so the form shows none. */}
         <PageHeader
-          title="Create Estimate"
+          title="Create estimate"
           icon="description"
           className="mb-6"
         />
 
         {/* Client */}
         <div className="mb-5">
-          <label className={labelClass}>Client</label>
+          <label className={labelClass}>Client {reqStar}</label>
           <select value={client} onChange={(e) => { setClient(e.target.value); setServiceAddress(""); }} className={fieldClass}>
             {/* options below come from the real client store */}
             <option value="">Select a client</option>
@@ -239,7 +240,7 @@ export function CreateEstimate() {
         {/* Service Address — shown after client selected */}
         {client && (
           <div className="mb-5">
-            <label className={labelClass}>Service Address</label>
+            <label className={labelClass}>Service address {reqStar}</label>
             <select value={serviceAddress} onChange={(e) => setServiceAddress(e.target.value)} className={fieldClass}>
               <option value="">Select address</option>
               {(mockClientProperties[client] || []).map(addr => (
@@ -256,7 +257,7 @@ export function CreateEstimate() {
 
         {/* Estimate Name */}
         <div className="mb-5">
-          <label className={labelClass}>Estimate Name</label>
+          <label className={labelClass}>Estimate name {reqStar}</label>
           <input
             type="text"
             value={estimateName}
@@ -284,7 +285,7 @@ export function CreateEstimate() {
           </div>
           <div>
             <label className={labelClass}>
-              Created By
+              Created by
               <span className="ml-1.5 text-[#9CA3AF]" style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>(auto)</span>
             </label>
             <input
@@ -296,11 +297,14 @@ export function CreateEstimate() {
             />
           </div>
           <div>
-            <label className={labelClass}>Expiration Date</label>
+            <label className={labelClass}>Expiration date {reqStar}</label>
             <input type="date" value={expirationDate} onChange={(e) => setExpirationDate(e.target.value)} className={fieldClass} />
           </div>
         </div>
 
+        {/* Job select + Assigned technician intentionally absent (Jun 11 call):
+            the creator IS the technician, and a job is never picked by hand —
+            the auto-linked Job appointment chip below covers the from-job case. */}
         {/* ── Options (Good / Better / Best price tiers) ── */}
         <div className="mb-3">
           <h3 className="text-[16px] text-[#1A2332] mb-3" style={{ fontWeight: 700 }}>Options</h3>

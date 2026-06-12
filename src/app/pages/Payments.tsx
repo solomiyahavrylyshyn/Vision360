@@ -1,6 +1,5 @@
 import { useState, useMemo, useSyncExternalStore } from "react";
 import { useNavigate } from "react-router";
-import { toast } from "sonner";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
@@ -14,6 +13,7 @@ import { AdvancedFilterField, AdvancedFilterPanel, advancedInputClass, advancedS
 import { formatRegionalDate } from "../stores/regionalSettingsStore";
 import { paymentsStore } from "../stores/paymentsStore";
 import { PAYMENT_METHODS, paymentMethodIcon } from "../constants/paymentMethods";
+import { toast } from "sonner";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 // PaymentMethod is loose (string) so legacy seed values (e.g. "ACH") still
@@ -25,6 +25,9 @@ export interface Payment {
   id: number;
   date: string;
   amount: number;
+  // Outstanding balance on the linked invoice after this payment. Filter-only
+  // (no column) — mirrors the Invoices "Balance" advanced filter for parity.
+  balance?: number;
   method: PaymentMethod;
   status: PaymentStatus;
   clientName: string;
@@ -32,12 +35,8 @@ export interface Payment {
   invoiceId: number;
   invoiceNumber: string;
   jobId?: string;
-  // Estimates / jobs the payment traces back to via its invoice — shown as
-  // reference columns on the list (an invoice can settle several jobs).
-  estimateNumbers?: string[];
-  jobIds?: string[];
-  // Transaction number for external/non-integrated methods (check #, transfer
-  // ID, Venmo/Zelle/Cash App confirmation, financing reference).
+  // Reference number for external/non-integrated methods (check #, transfer ID,
+  // Venmo/Zelle/Cash App confirmation, financing reference).
   reference?: string;
   note: string;
   createdBy: string;
@@ -56,28 +55,52 @@ const statusColors = paymentStatusColors;
 // Re-exported for any consumers that imported the old name; backed by the
 // shared canonical icon helper.
 export const paymentMethodIcons = new Proxy({}, { get: (_t, k) => paymentMethodIcon(String(k)) }) as Record<string, string>;
-const methodIcons = paymentMethodIcons;
+// (payment-method icons removed from the table per Figma — method shows as text)
 
 const timeFilters = [
   "All time", "Today", "Yesterday", "Last 7 days", "Last 30 days",
   "This month", "Last month", "This year", "Last year",
 ];
 
-// Column order: Number · Client · Invoice(s) · Method · Status · Total · Note ·
-// Estimates · Jobs · Payment date. No Time column, and no Due/Expiry dates —
+// ─── Mock Data ───────────────────────────────────────────────────────────────
+export const mockPayments: Payment[] = [
+  { id: 1, date: "2026-03-10", amount: 5000.00, balance: 0, method: "Bank transfer", status: "Completed", clientName: "Travis Jones", clientEmail: "travis.j@email.com", invoiceId: 1, invoiceNumber: "10245-I01", jobId: "10245-J01", note: "First installment", createdBy: "Marek Stroz", createdAt: "2026-03-10 14:22" },
+  { id: 2, date: "2026-03-25", amount: 5502.00, balance: 0, method: "Check", status: "Completed", clientName: "Travis Jones", clientEmail: "travis.j@email.com", invoiceId: 1, invoiceNumber: "10245-I01", jobId: "10245-J01", note: "Final payment", createdBy: "Marek Stroz", createdAt: "2026-03-25 11:45" },
+  { id: 3, date: "2026-03-15", amount: 1000.00, balance: 1365.00, method: "Credit Card", status: "Completed", clientName: "Sarah Williams", clientEmail: "sarah.w@email.com", invoiceId: 4, invoiceNumber: "10248-I02", jobId: "10248-J01", note: "Partial payment", createdBy: "Marek Stroz", createdAt: "2026-03-15 13:30" },
+  { id: 4, date: "2026-04-01", amount: 913.75, balance: 913.75, method: "Check", status: "Pending", clientName: "Mike Rodriguez", clientEmail: "mike.r@email.com", invoiceId: 5, invoiceNumber: "10247-I01", jobId: "10247-J01", note: "", createdBy: "Marek Stroz", createdAt: "2026-04-01 09:15" },
+  { id: 5, date: "2026-02-21", amount: 326.25, balance: 0, method: "Cash", status: "Completed", clientName: "Sarah Williams", clientEmail: "sarah.w@email.com", invoiceId: 6, invoiceNumber: "10249-I01", jobId: "10249-J01", note: "Paid in full", createdBy: "Marek Stroz", createdAt: "2026-02-21 16:00" },
+  { id: 6, date: "2026-03-28", amount: 200.00, balance: 0, method: "Credit Card", status: "Refunded", clientName: "Travis Jones", clientEmail: "travis.j@email.com", invoiceId: 1, invoiceNumber: "10245-I01", jobId: "10245-J01", note: "Partial refund — overcharge adjustment", createdBy: "Marek Stroz", createdAt: "2026-03-28 10:20" },
+  { id: 7, date: "2026-04-03", amount: 2800.00, balance: 2700.00, method: "Bank transfer", status: "Completed", clientName: "John Doe", clientEmail: "john.d@email.com", invoiceId: 2, invoiceNumber: "10246-I01", jobId: "10246-J01", note: "Partial payment on overdue invoice", createdBy: "Marek Stroz", createdAt: "2026-04-03 11:00" },
+];
+
+// Column order: Number · Client · Invoice · Method · Status · Total · Note ·
+// Estimate · Job · Payment date (the last three per Marek's Jun 11 call; the
+// Figma edit-columns dialog already offers them). No Time / Due / Expiry —
 // a payment simply doesn't have them.
 const PAYMENTS_COLS = [
   { key: "number", label: "Number" },
   { key: "client", label: "Client" },
-  { key: "invoice", label: "Invoice(s)" },
+  { key: "invoice", label: "Invoice" },
   { key: "method", label: "Method" },
   { key: "status", label: "Status" },
   { key: "total", label: "Total" },
   { key: "note", label: "Note" },
-  { key: "estimates", label: "Estimates" },
-  { key: "jobs", label: "Jobs" },
+  { key: "estimates", label: "Estimate" },
+  { key: "jobs", label: "Job" },
   { key: "paymentDate", label: "Payment date" },
 ] as const;
+
+// Proportional column widths (%) applied via <colgroup> with table-fixed:
+// columns stay uniform across rows AND the table always fits its container
+// (responsive — no horizontal scroll at any width). Note gets the widest share
+// and truncates. Data columns sum to 90%; checkbox 4% + actions 6% = 100%.
+const COL_PCT: Record<string, string> = {
+  number: "8%", client: "11%", invoice: "9%", method: "9%", status: "8%", total: "7%", note: "10%",
+  estimates: "10%", jobs: "9%", paymentDate: "9%",
+};
+
+// Columns offered in the "Edit columns" picker. "number" is locked-on (always shown).
+const PAYMENT_TOGGLE_COLS = ["client", "invoice", "method", "status", "total", "note", "estimates", "jobs", "paymentDate"] as const;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function qfClass(active: boolean) {
@@ -110,9 +133,9 @@ export function Payments() {
   const [qfStatus, setQfStatus] = useState("All");
   const [qfDate, setQfDate] = useState("All time");
   const [qfMethod, setQfMethod] = useState("All");
-  // Advanced filters — exactly: Total (from–to), Client (one or many),
-  // Invoice (by number, many), Methods (many), Statuses (one or many).
-  // No job filter and no date range here (the quick Date filter covers time).
+  // Advanced filters — exactly the Jun 11 set: Total (from–to), Client (one or
+  // many), Invoice (by number, many), Methods (many), Statuses (one or many).
+  // No date range (the quick Date filter covers time), no job/created-by/balance.
   const [filterOpen, setFilterOpen] = useState(false);
   const [totalMin, setTotalMin] = useState("");
   const [totalMax, setTotalMax] = useState("");
@@ -121,13 +144,33 @@ export function Payments() {
   const [methodsFilter, setMethodsFilter] = useState<string[]>([]);
   const [statusesFilter, setStatusesFilter] = useState<string[]>([]);
 
+  // Sortable headers (mirrors Estimates): click a column to sort, click again to flip.
+  type SortField = "number" | "clientName" | "invoiceNumber" | "method" | "status" | "amount" | "date";
+  const [sortField, setSortField] = useState<SortField>("date");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const toggleSort = (f: SortField) => {
+    if (sortField === f) setSortDir(d => d === "asc" ? "desc" : "asc");
+    else { setSortField(f); setSortDir("asc"); }
+  };
+  const SortIcon = ({ field }: { field: SortField }) => (
+    <span className="material-icons text-[#9AA3AF] ml-0.5" style={{ fontSize: "14px" }}>
+      {sortField === field ? (sortDir === "asc" ? "arrow_upward" : "arrow_downward") : "unfold_more"}
+    </span>
+  );
+
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
-  // Bulk "Change status" modal (bulk Refund is deliberately NOT offered —
-  // refunds are single-payment only and a separate permission).
-  const [bulkStatusOpen, setBulkStatusOpen] = useState(false);
-  const [bulkStatus, setBulkStatus] = useState<PaymentStatus>("Completed");
+
+  // Column visibility (Number is always shown) — Figma "Edit columns" dialog
+  const [visibleColumns, setVisibleColumns] = useState<Set<string>>(new Set(PAYMENT_TOGGLE_COLS));
+  const [pendingColumns, setPendingColumns] = useState<Set<string>>(new Set(PAYMENT_TOGGLE_COLS));
+  const [editColumnsOpen, setEditColumnsOpen] = useState(false);
+
+  // Bulk "Change status" dialog (opened from the selection bar)
+  const [changeStatusOpen, setChangeStatusOpen] = useState(false);
+  const [changeStatusValue, setChangeStatusValue] = useState<PaymentStatus>("Completed");
+
   // "View payout" modal — payout figures come from the Stripe integration.
   const [payoutFor, setPayoutFor] = useState<Payment | null>(null);
 
@@ -173,12 +216,23 @@ export function Payments() {
         p.note.toLowerCase().includes(q)
       );
     }
-    result.sort((a, b) => b.date.localeCompare(a.date));
+    const dir = sortDir === "asc" ? 1 : -1;
+    result.sort((a, b) => {
+      switch (sortField) {
+        case "number": return (a.id - b.id) * dir;
+        case "amount": return (a.amount - b.amount) * dir;
+        case "clientName": return a.clientName.localeCompare(b.clientName) * dir;
+        case "invoiceNumber": return a.invoiceNumber.localeCompare(b.invoiceNumber) * dir;
+        case "method": return a.method.localeCompare(b.method) * dir;
+        case "status": return a.status.localeCompare(b.status) * dir;
+        default: return a.date.localeCompare(b.date) * dir;
+      }
+    });
     return result;
-  }, [payments, search, qfStatus, qfMethod, qfDate, totalMin, totalMax, clientsFilter, invoicesFilter, methodsFilter, statusesFilter]);
+  }, [payments, search, qfStatus, qfMethod, qfDate, totalMin, totalMax, clientsFilter, invoicesFilter, methodsFilter, statusesFilter, sortField, sortDir]);
 
   const clientOptions = useMemo(() => Array.from(new Set(payments.map(p => p.clientName))).sort(), [payments]);
-  const invoiceOptions = useMemo(() => Array.from(new Set(payments.map(p => p.invoiceNumber))).sort(), [payments]);
+  const invoiceOptions = useMemo(() => Array.from(new Set(payments.map(p => p.invoiceNumber).filter(Boolean))).sort(), [payments]);
   const activeFilterCount = [totalMin, totalMax, clientsFilter.length, invoicesFilter.length, methodsFilter.length, statusesFilter.length].filter(Boolean).length;
   const advancedActive = activeFilterCount > 0;
   const resetAdvancedFilters = () => {
@@ -194,6 +248,8 @@ export function Payments() {
   const paginated = filtered.slice((page - 1) * perPage, page * perPage);
   const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
   const allSelected = paginated.length > 0 && paginated.every(p => selectedIds.has(p.id));
+  // Number is locked-on; the rest follow the Edit-columns selection.
+  const visibleCols = cols.filter(c => c.key === "number" || visibleColumns.has(c.key));
 
 
   return (
@@ -203,6 +259,7 @@ export function Payments() {
       <PageHeader
         title="Payments"
         count={selectedIds.size > 0 ? `${filtered.length} · ${selectedIds.size} selected` : filtered.length}
+        countSuffix="records"
       />
 
       {/* ── Stats Cards (Clients-template style) ── */}
@@ -252,7 +309,22 @@ export function Payments() {
       <div className={`flex gap-6`}>
         {/* Table */}
         <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden w-full">
-          {/* Filter bar */}
+          {/* Toolbar — replaced by the bulk-action bar once one or more rows are
+              selected (filter first, then select; only ever one toolbar line).
+              Bulk actions: ONLY Change status + Download — no bulk Refund (mass
+              refunds are a financial risk; refunds are single-payment and a
+              separate permission per Marek). X clears the selection in one click. */}
+          {selectedIds.size > 0 ? (
+            <SelectionBar
+              count={selectedIds.size}
+              onDeselect={() => setSelectedIds(new Set())}
+              dismissAsIcon
+              actions={[
+                { label: "Change status", icon: "cached", onClick: () => setChangeStatusOpen(true) },
+                { label: "Download", icon: "file_download", onClick: () => toast.success(`Exporting ${selectedIds.size} payment${selectedIds.size === 1 ? "" : "s"}…`) },
+              ]}
+            />
+          ) : (
           <div className="flex items-center gap-2 px-4 py-3 bg-white border-b border-[#E5E7EB]">
             <div className="relative">
               <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: "18px" }}>search</span>
@@ -293,65 +365,56 @@ export function Payments() {
               )}
             </button>
             <div className="ml-auto flex items-center gap-2">
-              {/* "New payment" — a payment is initiated, not "created". */}
+              {/* "New payment" — a payment is initiated, not "created"/"recorded" (Jun 11 call). */}
               <CreateActionButton onClick={() => navigate("/payments/new")}>
                 New payment
               </CreateActionButton>
               <KebabMenu triggerClassName="w-10 h-10 border border-[#D8DEE8] rounded-xl bg-white">
-                <KebabItem icon="view_column">Edit Columns</KebabItem>
-                <KebabItem icon="swap_horiz">Change Status</KebabItem>
-                <KebabItem icon="content_copy">Manage Duplicates</KebabItem>
+                <KebabItem icon="view_column" onSelect={() => { setPendingColumns(new Set(visibleColumns)); setEditColumnsOpen(true); }}>Edit columns</KebabItem>
                 <KebabSeparator />
-                <KebabItem icon="file_upload">Import</KebabItem>
-                <KebabItem icon="file_download">Export</KebabItem>
+                <KebabItem icon="file_upload" onClick={() => toast.info("Import payments — choose a CSV to upload")}>Upload</KebabItem>
+                <KebabItem icon="file_download" onClick={() => toast.success(`Exporting ${filtered.length} payment${filtered.length === 1 ? "" : "s"}…`)}>Download</KebabItem>
               </KebabMenu>
             </div>
           </div>
+          )}
           {filterOpen && (
             <AdvancedFilterPanel
+              title="Filter"
+              className="w-[400px]"
               onClose={() => setFilterOpen(false)}
-              onClear={() => { resetAdvancedFilters(); setFilterOpen(false); }}
+              onClear={() => { resetAdvancedFilters(); setQfStatus("All"); setFilterOpen(false); }}
               onApply={() => setFilterOpen(false)}
             >
-              <AdvancedFilterField label="Total from">
-                <input type="number" min="0" placeholder="$0" value={totalMin} onChange={(e) => { setTotalMin(e.target.value); setPage(1); }} className={advancedInputClass} />
-              </AdvancedFilterField>
-              <AdvancedFilterField label="Total to">
-                <input type="number" min="0" placeholder="Any" value={totalMax} onChange={(e) => { setTotalMax(e.target.value); setPage(1); }} className={advancedInputClass} />
+              {/* Jun 11 set (matches Figma payments filter frame): Total range,
+                  then Client / Invoice / Methods / Statuses — each "one or many". */}
+              <AdvancedFilterField label="Total">
+                <div className="grid grid-cols-2 gap-3">
+                  <input type="number" min="0" placeholder="min" value={totalMin} onChange={(e) => { setTotalMin(e.target.value); setPage(1); }} className={advancedInputClass} />
+                  <input type="number" min="0" placeholder="max" value={totalMax} onChange={(e) => { setTotalMax(e.target.value); setPage(1); }} className={advancedInputClass} />
+                </div>
               </AdvancedFilterField>
               <AdvancedFilterField label="Client">
-                <FilterMultiSelect value={clientsFilter} options={clientOptions} onChange={(v) => { setClientsFilter(v); setPage(1); }} placeholder="All clients" />
+                <FilterMultiSelect value={clientsFilter} options={clientOptions} onChange={(v) => { setClientsFilter(v); setPage(1); }} placeholder="All" />
               </AdvancedFilterField>
               <AdvancedFilterField label="Invoice">
-                <FilterMultiSelect value={invoicesFilter} options={invoiceOptions} onChange={(v) => { setInvoicesFilter(v); setPage(1); }} placeholder="All invoices" />
+                <FilterMultiSelect value={invoicesFilter} options={invoiceOptions} onChange={(v) => { setInvoicesFilter(v); setPage(1); }} placeholder="All" />
               </AdvancedFilterField>
               <AdvancedFilterField label="Methods">
-                <FilterMultiSelect value={methodsFilter} options={[...PAYMENT_METHODS]} onChange={(v) => { setMethodsFilter(v); setPage(1); }} placeholder="All methods" />
+                <FilterMultiSelect value={methodsFilter} options={[...PAYMENT_METHODS]} onChange={(v) => { setMethodsFilter(v); setPage(1); }} placeholder="All" />
               </AdvancedFilterField>
               <AdvancedFilterField label="Statuses">
-                <FilterMultiSelect value={statusesFilter} options={["Completed", "Pending", "Refunded"]} onChange={(v) => { setStatusesFilter(v); setPage(1); }} placeholder="All statuses" />
+                <FilterMultiSelect value={statusesFilter} options={["Completed", "Pending", "Refunded"]} onChange={(v) => { setStatusesFilter(v); setPage(1); }} placeholder="All" />
               </AdvancedFilterField>
             </AdvancedFilterPanel>
           )}
-          {/* Bulk actions: ONLY Change status + Download. No bulk Refund (mass
-              refunds are a direct financial risk — refund is single-payment and
-              its own permission) and no bulk Archive. The X clears the whole
-              selection in one click. */}
-          <SelectionBar
-            count={selectedIds.size}
-            onDeselect={() => setSelectedIds(new Set())}
-            dismissAsIcon
-            actions={[
-              { label: "Change status", icon: "swap_horiz", onClick: () => setBulkStatusOpen(true) },
-              {
-                label: "Download",
-                icon: "file_download",
-                onClick: () => toast.success(`Downloading ${selectedIds.size} payment${selectedIds.size === 1 ? "" : "s"}…`),
-              },
-            ]}
-          />
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full table-fixed">
+              <colgroup>
+                <col style={{ width: "4%" }} />
+                {visibleCols.map(col => <col key={col.key} style={{ width: COL_PCT[col.key] }} />)}
+                <col style={{ width: "6%" }} />
+              </colgroup>
               <thead>
                 <tr className="bg-[#F5F7FA] border-b border-[#E5E7EB]">
                   <th className="px-3 py-3 w-10">
@@ -362,21 +425,26 @@ export function Payments() {
                       }}
                       className="w-4 h-4 rounded border-[#E5E7EB] cursor-pointer accent-[#4A6FA5]" />
                   </th>
-                  {cols.map(col => (
-                    <DraggableTh key={col.key} colKey={col.key} onMove={moveCol}
-                      className="px-4 py-3 text-left text-[14px] text-[#1A2332]"
-                      style={{ fontFamily: "Geist", fontWeight: 500 }}
-                    >
-                      {col.label}
-                    </DraggableTh>
-                  ))}
+                  {visibleCols.map(col => {
+                    const sortMap: Record<string, SortField> = { number: "number", client: "clientName", invoice: "invoiceNumber", method: "method", status: "status", total: "amount", paymentDate: "date" };
+                    const sf = sortMap[col.key];
+                    return (
+                      <DraggableTh key={col.key} colKey={col.key} onMove={moveCol}
+                        className="px-4 py-3 text-left text-[14px] text-[#1A2332] whitespace-nowrap select-none"
+                        style={{ fontFamily: "Geist", fontWeight: 500 }}
+                        onClick={sf ? () => toggleSort(sf) : undefined}
+                      >
+                        <div className="flex items-center">{col.label}{sf && <SortIcon field={sf} />}</div>
+                      </DraggableTh>
+                    );
+                  })}
                   <th className="px-3 py-3 w-10" />
                 </tr>
               </thead>
               <tbody>
                 {paginated.length === 0 ? (
                   <tr>
-                    <td colSpan={cols.length + 2} className="px-4 py-16 text-center">
+                    <td colSpan={visibleCols.length + 2} className="px-4 py-16 text-center">
                       <span className="material-icons text-[#C8D5E8] mb-2" style={{ fontSize: "48px" }}>credit_card_off</span>
                       <div className="text-[14px] text-[#546478]" style={{ fontWeight: 500 }}>No payments found</div>
                       <div className="text-[12px] text-[#8899AA] mt-1">Try adjusting your filters</div>
@@ -399,7 +467,7 @@ export function Payments() {
                           }}
                           className="w-4 h-4 rounded border-[#E5E7EB] cursor-pointer accent-[#4A6FA5]" />
                       </td>
-                      {cols.map(col => {
+                      {visibleCols.map(col => {
                         switch (col.key) {
                           case "number": return (
                             <td key={col.key} className="px-4 py-4">
@@ -407,7 +475,7 @@ export function Payments() {
                             </td>
                           );
                           case "client": return (
-                            <td key={col.key} className="px-4 py-4" onClick={e => e.stopPropagation()}>
+                            <td key={col.key} className="px-4 py-4 truncate" onClick={e => e.stopPropagation()}>
                               <button
                                 onClick={() => navigate(`/clients/${p.invoiceNumber.split('-')[0]}`)}
                                 className="text-[14px] text-[#4A6FA5] hover:underline hover:text-[#3d5a85] transition-colors text-left"
@@ -436,12 +504,7 @@ export function Payments() {
                             </td>
                           );
                           case "method": return (
-                            <td key={col.key} className="px-4 py-4">
-                              <div className="flex items-center gap-1.5">
-                                <span className="material-icons text-[#546478]" style={{ fontSize: "15px" }}>{methodIcons[p.method]}</span>
-                                <span className="text-[13px] text-[#546478]">{p.method}</span>
-                              </div>
-                            </td>
+                            <td key={col.key} className="px-4 py-4 text-[13px] text-[#546478] truncate">{p.method}</td>
                           );
                           case "status": return (
                             <td key={col.key} className="px-4 py-4">
@@ -450,14 +513,14 @@ export function Payments() {
                               </span>
                             </td>
                           );
-                          case "note": return <td key={col.key} className="px-4 py-4 text-[13px] text-[#546478] max-w-[160px] truncate">{p.note || "—"}</td>;
+                          case "note": return <td key={col.key} className="px-4 py-4 text-[13px] text-[#546478] truncate">{p.note || "—"}</td>;
                           case "estimates": return (
-                            <td key={col.key} className="px-4 py-4 text-[13px] text-[#546478]">
+                            <td key={col.key} className="px-4 py-4 text-[13px] text-[#546478] truncate">
                               {p.estimateNumbers?.length ? p.estimateNumbers.join(", ") : "—"}
                             </td>
                           );
                           case "jobs": return (
-                            <td key={col.key} className="px-4 py-4 text-[13px] text-[#546478]">
+                            <td key={col.key} className="px-4 py-4 text-[13px] text-[#546478] truncate">
                               {(p.jobIds ?? (p.jobId ? [p.jobId] : [])).join(", ") || "—"}
                             </td>
                           );
@@ -468,19 +531,20 @@ export function Payments() {
                         }
                       })}
                       <td className="px-4 py-4" onClick={e => e.stopPropagation()}>
-                        {/* Single-row kebab. Refund disappears as soon as several
+                        {/* Figma order. No "Make invoice" (invoices are never created
+                            from a payment), and Refund disappears as soon as several
                             rows are selected — refunds are strictly one-by-one. */}
                         <KebabMenu>
+                          <KebabItem icon="send" onSelect={() => toast.success(`Receipt sent to ${p.clientName}`)}>Send receipt</KebabItem>
+                          <KebabItem icon="file_download" onSelect={() => toast.success(`Downloading receipt P-${1000 + p.id}…`)}>Download receipt</KebabItem>
+                          <KebabItem icon="visibility" onSelect={() => setPayoutFor(p)}>View payout</KebabItem>
+                          <KebabSeparator />
                           {selectedIds.size <= 1 && (
-                            <KebabItem icon="undo" destructive onSelect={() => {
+                            <KebabItem icon="undo" onSelect={() => {
                               paymentsStore.update(p.id, { status: "Refunded" });
-                              toast.success(`Payment P-${1000 + p.id} refunded`);
+                              toast.success(`Refunded P-${1000 + p.id}`);
                             }}>Refund</KebabItem>
                           )}
-                          <KebabItem icon="send" onSelect={() => toast.success(`Receipt sent to ${p.clientEmail}`)}>Send receipt</KebabItem>
-                          <KebabItem icon="file_download" onSelect={() => toast.success(`Downloading receipt for P-${1000 + p.id}`)}>Download receipt</KebabItem>
-                          <KebabItem icon="account_balance" onSelect={() => setPayoutFor(p)}>View payout</KebabItem>
-                          <KebabSeparator />
                           <KebabItem icon="open_in_new" onSelect={() => window.open(`/payments/${p.id}`, "_blank")}>Open in new tab</KebabItem>
                         </KebabMenu>
                       </td>
@@ -496,7 +560,7 @@ export function Payments() {
             <div className="flex items-center gap-3">
               <span className="text-[14px] text-[#6B7280]" style={{ fontWeight: 400 }}>Rows per page:</span>
               <Select value={String(perPage)} onValueChange={v => { setPerPage(Number(v)); setPage(1); }}>
-                <SelectTrigger className="h-9 w-[59px] border-[#E5E7EB] text-[14px] text-[#1A2332]" style={{ fontWeight: 400, boxShadow: "0px 1px 2px rgba(0,0,0,0.05)" }}>
+                <SelectTrigger className="h-9 w-[76px] border-[#E5E7EB] text-[14px] text-[#1A2332]" style={{ fontWeight: 400, boxShadow: "0px 1px 2px rgba(0,0,0,0.05)" }}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -528,44 +592,101 @@ export function Payments() {
 
       </div>
 
-      {/* Bulk "Change status" — Refunded is deliberately not offered here:
-          that would be bulk refund through the back door. */}
-      {bulkStatusOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={() => setBulkStatusOpen(false)}>
-          <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" />
-          <div className="relative bg-white rounded-2xl shadow-2xl w-[400px] p-6" onClick={e => e.stopPropagation()}>
-            <h3 className="text-[18px] text-[#1A2332] mb-1" style={{ fontWeight: 700 }}>Change status</h3>
-            <p className="text-[13px] text-[#6B7280] mb-4">
-              {selectedIds.size} payment{selectedIds.size === 1 ? "" : "s"} selected. Refunds are issued one payment at a time.
-            </p>
-            <select
-              value={bulkStatus}
-              onChange={(e) => setBulkStatus(e.target.value as PaymentStatus)}
-              className="w-full h-11 px-3 border border-[#E5E7EB] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5] bg-white mb-6"
-            >
-              {(["Completed", "Pending"] as PaymentStatus[]).map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
-            <div className="flex items-center justify-end gap-3">
-              <button onClick={() => setBulkStatusOpen(false)} className="px-4 py-2.5 border border-[#E5E7EB] text-[#6B7280] rounded-lg text-[13px] hover:bg-[#F3F4F6]" style={{ fontWeight: 500 }}>Cancel</button>
+      {/* ── Edit columns modal (Figma "edit-columns") ── */}
+      {editColumnsOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setEditColumnsOpen(false)} />
+          <div className="relative bg-white border border-[#E5E7EB] rounded-xl shadow-2xl w-[576px] max-w-full flex flex-col">
+            <div className="flex items-center justify-between px-4 py-4">
+              <h2 className="text-[20px] text-[#1A2332]" style={{ fontFamily: "Geist", fontWeight: 600 }}>Edit columns</h2>
+              <button onClick={() => setEditColumnsOpen(false)} aria-label="Close" className="w-6 h-6 rounded flex items-center justify-center text-[#1A2332] hover:bg-[#F3F4F6]">
+                <span className="material-icons" style={{ fontSize: "16px" }}>close</span>
+              </button>
+            </div>
+            <div className="px-4 pb-1 grid grid-rows-4 grid-flow-col gap-x-4 gap-y-2">
+              {PAYMENTS_COLS.map(col => {
+                const locked = col.key === "number";
+                const checked = locked || pendingColumns.has(col.key);
+                return (
+                  <label key={col.key} className={`flex items-center gap-3 p-3 border border-[#E5E7EB] rounded-[10px] ${locked ? "cursor-default" : "cursor-pointer hover:border-[#C5D5EC]"}`}>
+                    <span className="relative inline-flex items-center justify-center w-4 h-4" style={{ opacity: locked ? 0.5 : 1 }}>
+                      <input
+                        type="checkbox"
+                        className="peer sr-only"
+                        checked={checked}
+                        disabled={locked}
+                        onChange={(e) => setPendingColumns(prev => {
+                          const next = new Set(prev);
+                          if (e.target.checked) next.add(col.key); else next.delete(col.key);
+                          return next;
+                        })}
+                      />
+                      <span className={`w-4 h-4 rounded-[4px] border flex items-center justify-center ${checked ? "bg-[#4A6FA5] border-[#4A6FA5]" : "bg-white border-[#E5E7EB]"}`}>
+                        {checked && <span className="material-icons text-white" style={{ fontSize: "12px" }}>check</span>}
+                      </span>
+                    </span>
+                    <span className="text-[14px] text-[#1A2332]">{col.label}</span>
+                  </label>
+                );
+              })}
+            </div>
+            <div className="px-4 py-4 flex items-center justify-end gap-2">
+              <button onClick={() => setEditColumnsOpen(false)} className="h-9 px-4 border border-[#E5E7EB] rounded-lg text-[14px] text-[#1A2332] hover:bg-[#F9FAFB] transition-colors" style={{ fontWeight: 500 }}>Cancel</button>
+              <button onClick={() => { setVisibleColumns(new Set(pendingColumns)); setEditColumnsOpen(false); toast.success("Columns updated"); }} className="h-9 px-4 rounded-lg bg-[#4A6FA5] hover:bg-[#3d5a85] text-white text-[14px] transition-colors" style={{ fontWeight: 500 }}>Save</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Change status modal (Figma "change-status") ── */}
+      {changeStatusOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setChangeStatusOpen(false)} />
+          <div className="relative bg-white border border-[#E5E7EB] rounded-xl shadow-2xl w-[448px] max-w-full flex flex-col">
+            <div className="flex items-center justify-between px-4 py-4">
+              <h2 className="text-[20px] text-[#1A2332]" style={{ fontFamily: "Geist", fontWeight: 600 }}>Change status</h2>
+              <button onClick={() => setChangeStatusOpen(false)} aria-label="Close" className="w-6 h-6 rounded flex items-center justify-center text-[#1A2332] hover:bg-[#F3F4F6]">
+                <span className="material-icons" style={{ fontSize: "16px" }}>close</span>
+              </button>
+            </div>
+            {/* Refunded is deliberately NOT offered — that would be bulk refund
+                through the back door (refunds are single-payment only). */}
+            <div className="px-4 pb-1 flex flex-col gap-2">
+              {(["Completed", "Pending"] as PaymentStatus[]).map(s => {
+                const sel = changeStatusValue === s;
+                return (
+                  <label key={s} className="flex items-center gap-3 p-3 border border-[#E5E7EB] rounded-[10px] cursor-pointer hover:border-[#C5D5EC]">
+                    <span className={`w-4 h-4 rounded-full border flex items-center justify-center ${sel ? "border-[#4A6FA5]" : "border-[#E5E7EB]"}`}>
+                      {sel && <span className="w-2 h-2 rounded-full bg-[#4A6FA5]" />}
+                    </span>
+                    <input type="radio" name="change-status" className="sr-only" checked={sel} onChange={() => setChangeStatusValue(s)} />
+                    <span className="text-[14px] text-[#1A2332]">{s}</span>
+                  </label>
+                );
+              })}
+            </div>
+            <div className="px-4 py-4 flex items-center justify-end gap-2">
+              <button onClick={() => setChangeStatusOpen(false)} className="h-9 px-4 border border-[#E5E7EB] rounded-lg text-[14px] text-[#1A2332] hover:bg-[#F9FAFB] transition-colors" style={{ fontWeight: 500 }}>Cancel</button>
               <button
                 onClick={() => {
-                  selectedIds.forEach(pid => paymentsStore.update(pid, { status: bulkStatus }));
-                  toast.success(`Status changed to ${bulkStatus} for ${selectedIds.size} payment${selectedIds.size === 1 ? "" : "s"}`);
+                  const n = selectedIds.size;
+                  selectedIds.forEach(id => paymentsStore.update(id, { status: changeStatusValue }));
                   setSelectedIds(new Set());
-                  setBulkStatusOpen(false);
+                  setChangeStatusOpen(false);
+                  toast.success(`Marked ${n} payment${n === 1 ? "" : "s"} as ${changeStatusValue}`);
                 }}
-                className="px-4 py-2.5 bg-[#4A6FA5] text-white rounded-lg text-[13px] hover:bg-[#3d5a85]"
-                style={{ fontWeight: 600 }}
+                className="h-9 px-4 rounded-lg bg-[#4A6FA5] hover:bg-[#3d5a85] text-white text-[14px] transition-colors"
+                style={{ fontWeight: 500 }}
               >
-                Apply
+                Save
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* View payout — net amount after the processor fee + payout date.
-          Figures come from the Stripe integration (mocked at 3% here). */}
+      {/* ── View payout — net amount after the processor fee + payout date.
+          Figures come from the Stripe integration (mocked at 3% here). ── */}
       {payoutFor && (() => {
         const fee = payoutFor.amount * 0.03;
         const net = payoutFor.amount - fee;
@@ -577,15 +698,15 @@ export function Payments() {
         const fmt2 = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={() => setPayoutFor(null)}>
-            <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" />
-            <div className="relative bg-white rounded-2xl shadow-2xl w-[400px] overflow-hidden" onClick={e => e.stopPropagation()}>
-              <div className="px-6 py-5 border-b border-[#E5E7EB] flex items-center justify-between">
-                <h3 className="text-[18px] text-[#1A2332]" style={{ fontWeight: 700 }}>Payout · P-{1000 + payoutFor.id}</h3>
-                <button onClick={() => setPayoutFor(null)} className="w-8 h-8 rounded-lg hover:bg-[#F3F4F6] flex items-center justify-center">
-                  <span className="material-icons text-[#6B7280]" style={{ fontSize: "22px" }}>close</span>
+            <div className="absolute inset-0 bg-black/40" />
+            <div className="relative bg-white border border-[#E5E7EB] rounded-xl shadow-2xl w-[400px] max-w-full overflow-hidden" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between px-4 py-4">
+                <h3 className="text-[20px] text-[#1A2332]" style={{ fontFamily: "Geist", fontWeight: 600 }}>Payout · P-{1000 + payoutFor.id}</h3>
+                <button onClick={() => setPayoutFor(null)} aria-label="Close" className="w-6 h-6 rounded flex items-center justify-center text-[#1A2332] hover:bg-[#F3F4F6]">
+                  <span className="material-icons" style={{ fontSize: "16px" }}>close</span>
                 </button>
               </div>
-              <div className="px-6 py-5 space-y-3">
+              <div className="px-4 pb-4 space-y-3">
                 <div className="flex items-center justify-between text-[13px]">
                   <span className="text-[#6B7280]">Payment amount</span>
                   <span className="text-[#1A2332]" style={{ fontVariantNumeric: "tabular-nums" }}>${fmt2(payoutFor.amount)}</span>
@@ -602,7 +723,7 @@ export function Payments() {
                   <span className="text-[#6B7280]">Payout date</span>
                   <span className="text-[#1A2332]">{payoutDate}</span>
                 </div>
-                <div className="flex items-center gap-1.5 pt-2 text-[11px] text-[#9CA3AF]">
+                <div className="flex items-center gap-1.5 pt-1 text-[11px] text-[#9CA3AF]">
                   <span className="material-icons" style={{ fontSize: "13px" }}>info</span>
                   Payout data is provided by the Stripe integration.
                 </div>
@@ -637,8 +758,8 @@ function FilterMultiSelect({ value, options, onChange, placeholder }: {
         onClick={() => setOpen(o => !o)}
         className={`${advancedSelectClass} text-left flex items-center justify-between gap-2`}
       >
-        <span className={`truncate ${value.length ? "text-[#1A2332]" : "text-[#9CA3AF]"}`}>{summary}</span>
-        <span className="material-icons text-[#9CA3AF] shrink-0" style={{ fontSize: "18px" }}>arrow_drop_down</span>
+        <span className={`truncate ${value.length ? "text-[#1A2332]" : "text-[#6B7280]"}`}>{summary}</span>
+        <span className="material-icons text-[#9CA3AF] shrink-0" style={{ fontSize: "18px" }}>keyboard_arrow_down</span>
       </button>
       {open && (
         <>

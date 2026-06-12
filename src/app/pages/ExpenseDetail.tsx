@@ -8,7 +8,17 @@ import tanklessWaterHeaterPhoto from "../../assets/documents/34689-install-water
 
 type AttachmentTab = "media" | "files";
 
-const expenseOverrides: Record<string, Partial<Expense> & { documentNumber?: string; tax?: number }> = {
+type ExpenseLineItem = {
+  name: string;
+  description?: string;
+  quantity: number;
+  unitPrice: number;
+};
+
+const expenseOverrides: Record<
+  string,
+  Partial<Expense> & { documentNumber?: string; tax?: number; description?: string; lineItems?: ExpenseLineItem[] }
+> = {
   "1": {
     merchant: "Home Depot",
     date: "Apr 5, 2026",
@@ -18,8 +28,14 @@ const expenseOverrides: Record<string, Partial<Expense> & { documentNumber?: str
     jobId: "J-1234",
     jobTitle: "HVAC Installation",
     invoiceId: "INV-0042",
-    notes: "Supplies for commercial HVAC project",
+    description: "Supplies for commercial HVAC project",
+    notes: "Returned 2 unused fittings — credit expected on next statement.",
     documentNumber: "Rcp-72545786",
+    lineItems: [
+      { name: 'Copper Pipe 1/2" × 10 ft', quantity: 2, unitPrice: 12.98 },
+      { name: "Pipe Fittings — assorted", quantity: 1, unitPrice: 9.46 },
+      { name: "PTFE Thread Seal Tape", quantity: 3, unitPrice: 2.47 },
+    ],
   },
 };
 
@@ -59,6 +75,11 @@ export function ExpenseDetail() {
 
   const documentNumber = override?.documentNumber ?? `Rcp-${expense.id.padStart(6, "0")}`;
   const tax = override?.tax ?? Number((expense.amount * 0.075).toFixed(2));
+  // Base mock `notes` reads like a description; only override notes are true internal notes.
+  const description = override?.description ?? baseExpense?.notes ?? "";
+  const internalNotes = override?.description ? override?.notes : undefined;
+  const lineItems = override?.lineItems ?? [];
+  const lineItemsSubtotal = lineItems.reduce((sum, li) => sum + li.quantity * li.unitPrice, 0);
   const media = [
     { label: "Photo", src: installWaterHeaterPhoto },
     { label: "Photo", src: tanklessWaterHeaterPhoto },
@@ -139,7 +160,19 @@ export function ExpenseDetail() {
             </button>
 
             <div className="space-y-6">
-              <DetailBlock label="Document Number" value={documentNumber} />
+              <DetailBlock label="Description" value={description || "—"} />
+              <div className="grid grid-cols-2 gap-4">
+                <DetailBlock label="Vendor" value={expense.merchant} />
+                <DetailBlock
+                  label="Category"
+                  value={<CategoryPill category={expense.category} className="px-2.5 py-1 text-[12px]" />}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <DetailBlock label="Expense Date" value={expense.date} />
+                <DetailBlock label="Total Amount" value={money(expense.amount)} />
+              </div>
+              <DetailBlock label="Document Reference Number" value={documentNumber} />
               {expense.jobId && (
                 <DetailBlock
                   label="Job"
@@ -174,7 +207,7 @@ export function ExpenseDetail() {
                   Notes
                 </div>
                 <div className="rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] px-3 py-2 text-[13px] leading-5 text-[#374151]">
-                  {expense.notes || "No notes"}
+                  {internalNotes || "No notes"}
                 </div>
               </div>
             </div>
@@ -255,6 +288,87 @@ export function ExpenseDetail() {
             ) : (
               <div className="flex h-[320px] items-center justify-center rounded-lg border border-dashed border-[#E5E7EB] bg-[#F9FAFB] text-[13px] text-[#9CA3AF]">
                 No files attached
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="px-5 pb-5">
+          <div className="rounded-xl border border-[#E5E7EB] bg-white">
+            <div className="flex items-center border-b border-[#E5E7EB] px-5 py-3.5">
+              <span className="text-[13px] text-[#9CA3AF]" style={{ fontWeight: 600 }}>
+                Line Items ({lineItems.length})
+              </span>
+            </div>
+
+            {lineItems.length > 0 ? (
+              <>
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-[#E5E7EB]">
+                      <th className="px-5 py-2.5 text-left text-[11px] uppercase tracking-wider text-[#546478]" style={{ fontWeight: 600 }}>
+                        Item
+                      </th>
+                      <th className="w-[90px] px-5 py-2.5 text-right text-[11px] uppercase tracking-wider text-[#546478]" style={{ fontWeight: 600 }}>
+                        Qty
+                      </th>
+                      <th className="w-[140px] px-5 py-2.5 text-right text-[11px] uppercase tracking-wider text-[#546478]" style={{ fontWeight: 600 }}>
+                        Unit Price
+                      </th>
+                      <th className="w-[140px] px-5 py-2.5 text-right text-[11px] uppercase tracking-wider text-[#546478]" style={{ fontWeight: 600 }}>
+                        Total
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {lineItems.map((li) => (
+                      <tr key={li.name} className="border-b border-[#F1F3F7] last:border-0">
+                        <td className="px-5 py-3">
+                          <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{li.name}</div>
+                          {li.description && (
+                            <div className="mt-0.5 text-[12px] text-[#8899AA]">{li.description}</div>
+                          )}
+                        </td>
+                        <td className="px-5 py-3 text-right text-[13px] text-[#374151]" style={{ fontVariantNumeric: "tabular-nums" }}>
+                          {li.quantity}
+                        </td>
+                        <td className="px-5 py-3 text-right text-[13px] text-[#374151]" style={{ fontVariantNumeric: "tabular-nums" }}>
+                          {money(li.unitPrice)}
+                        </td>
+                        <td className="px-5 py-3 text-right text-[13px] text-[#1A2332]" style={{ fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>
+                          {money(li.quantity * li.unitPrice)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <div className="flex justify-end border-t border-[#E5E7EB] px-5 py-4">
+                  <div className="w-[260px] space-y-2">
+                    <div className="flex items-center justify-between text-[13px]">
+                      <span className="text-[#8899AA]">Subtotal</span>
+                      <span className="text-[#1A2332]" style={{ fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>
+                        {money(lineItemsSubtotal)}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-[13px]">
+                      <span className="text-[#8899AA]">Tax</span>
+                      <span className="text-[#1A2332]" style={{ fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>
+                        {money(tax)}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between border-t border-[#E5E7EB] pt-2 text-[14px]">
+                      <span className="text-[#1A2332]" style={{ fontWeight: 600 }}>Total</span>
+                      <span className="text-[#1A2332]" style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
+                        {money(lineItemsSubtotal + tax)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="m-5 rounded-lg border-2 border-dashed border-[#E5E7EB] py-8 text-center">
+                <span className="material-icons text-[#D1D5DB]" style={{ fontSize: "32px" }}>inventory_2</span>
+                <p className="mt-1 text-[13px] text-[#8899AA]">No line items on this expense</p>
               </div>
             )}
           </div>

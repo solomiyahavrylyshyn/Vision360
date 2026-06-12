@@ -393,6 +393,7 @@ export function Estimates() {
       <PageHeader
         title="Estimates"
         count={selectedIds.size > 0 ? `${filtered.length} · ${selectedIds.size} selected` : filtered.length}
+        countSuffix="records"
       />
 
       {/* ── Stats Cards (Clients-template style) ── */}
@@ -485,8 +486,8 @@ export function Estimates() {
             )}
           </button>
           <div className="ml-auto flex items-center gap-2">
-            <CreateActionButton onClick={() => setCreateModalOpen(true)}>
-              Create Estimate
+            <CreateActionButton onClick={() => navigate("/estimates/new")}>
+              Create estimate
             </CreateActionButton>
             <KebabMenu triggerClassName="w-10 h-10 border border-[#D8DEE8] rounded-xl bg-white">
               <KebabItem icon="view_column" onClick={() => setEditColsOpen(true)}>Edit Columns</KebabItem>
@@ -709,15 +710,16 @@ export function Estimates() {
                     <KebabMenu>
                       <KebabItem icon="visibility" onClick={() => navigate(`/estimates/${est.id}?preview=1`)}>Preview estimate</KebabItem>
                       <KebabItem icon="edit" onClick={() => navigate(`/estimates/${est.id}`)}>Edit</KebabItem>
-                      <KebabItem icon="send" onClick={() => toast.success(`Sent ${est.estimateNumber} to ${est.clientName}`)}>Send to Client</KebabItem>
-                      <KebabItem icon="receipt" onClick={() => toast(`Make invoice from ${est.estimateNumber}`)}>Make Invoice</KebabItem>
-                      <KebabItem icon="work" onClick={() => toast(`Convert ${est.estimateNumber} to a job`)}>Convert to Job</KebabItem>
+                      <KebabItem icon="send" onClick={() => toast.success(`Sent ${est.estimateNumber} to ${est.clientName}`)}>Send to client</KebabItem>
+                      <KebabItem icon="receipt" onClick={() => toast(`Make invoice from ${est.estimateNumber}`)}>Make invoice</KebabItem>
+                      <KebabItem icon="work" onClick={() => toast(`Convert ${est.estimateNumber} to a job`)}>Convert to job</KebabItem>
                       <KebabItem icon="print" onClick={() => toast(`Printing ${est.estimateNumber}`)}>Print</KebabItem>
                       <KebabItem icon="swap_horiz" onClick={() => toast(`Change status for ${est.estimateNumber}`)}>Change status</KebabItem>
                       <KebabSeparator />
                       <KebabItem icon="content_copy" onClick={() => toast(`Duplicated ${est.estimateNumber}`)}>Duplicate</KebabItem>
                       <KebabSeparator />
                       <KebabItem icon="archive" destructive onClick={() => setDeleteConfirm({ ids: [est.id] })}>Archive</KebabItem>
+                      <KebabItem icon="open_in_new" onClick={() => window.open(`/estimates/${est.id}`, "_blank", "noopener,noreferrer")}>Open in new tab</KebabItem>
                     </KebabMenu>
                   </td>
                 </tr>

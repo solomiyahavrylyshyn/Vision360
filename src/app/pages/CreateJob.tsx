@@ -11,6 +11,7 @@ import { scheduleSettingsStore } from "../stores/scheduleSettingsStore";
 import { PageHeader } from "../components/ui/page-header";
 import { PlusIcon } from "../components/ui/plus-icon";
 import { itemsStore } from "../stores/itemsStore";
+import { type JobStatus, JOB_STATUSES } from "../constants/jobStatuses";
 
 // Note: mockClients is replaced by live clientsStore data — removed.
 
@@ -76,6 +77,11 @@ export function CreateJob() {
   // Figma "Estimate" link field in Job overview (e.g. 1024-E01). Prefilled when
   // a job is created from an estimate (Convert flow); editable otherwise.
   const [estimateNumber, setEstimateNumber] = useState("");
+  const [pickedEstimateId, setPickedEstimateId] = useState<number | undefined>(undefined);
+  // Optional status at creation (Part 8). Blank → derived on save: Scheduled when
+  // the job is being scheduled, else Unscheduled.
+  const [status, setStatus] = useState<JobStatus | "">("");
+  const allEstimates = useSyncExternalStore(estimatesStore.subscribe, estimatesStore.getSnapshot);
   const fromEstimateId = Number(sp.get("fromEstimate") || 0);
   // Pre-populate line items from the source estimate (Convert → Job flow).
   useState(() => {
@@ -151,6 +157,16 @@ export function CreateJob() {
       address: [c.address, c.city, c.state, c.zip].filter(Boolean).join(", "),
     }));
 
+  // Estimate dropdown (Part 7): the SELECTED client's estimates, filtered to the
+  // statuses that can still become a job — Sent / Viewed / Approved / Expired.
+  // Draft / Rejected / Archived / Converted are hidden to force finalization.
+  // Expired is shown on purpose (it's only a timer; a late-accepted estimate can
+  // still spawn a job).
+  const ESTIMATE_PICKABLE = new Set(["Sent", "Viewed", "Approved", "Expired"]);
+  const clientEstimates = allEstimates.filter(
+    (e) => ESTIMATE_PICKABLE.has(e.status) && e.clientName === client.trim(),
+  );
+
   const fmt = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   const handleSave = () => {
@@ -192,13 +208,15 @@ export function CreateJob() {
       endDate: scheduleJob ? endDate : "",
       startTime: scheduleJob ? startTime : "",
       endTime: scheduleJob ? resolvedEndTime : "",
-      status: "Scheduled",
+      // Use the chosen status; if left blank, derive it — Unscheduled when the
+      // "Schedule job" toggle is off (no date), otherwise Scheduled.
+      status: status || (scheduleJob ? "Scheduled" : "Unscheduled"),
       totalPrice: Math.round(computedTotal * 100) / 100,
       notes,
       fieldNotes,
       privateNotes,
       taxRate,
-      estimateId: fromEstimateId || undefined,
+      estimateId: fromEstimateId || pickedEstimateId || undefined,
       estimateNumber: estimateNumber.trim()
         || (fromEstimateId ? estimatesStore.getById(fromEstimateId)?.estimateNumber : undefined),
     });
@@ -265,7 +283,7 @@ export function CreateJob() {
                   </select>
                 </div>
                 <div>
-                  <label className="text-[11px] text-[#9CA3AF] mb-1 block">Customer</label>
+                  <label className="text-[11px] text-[#9CA3AF] mb-1 block">Client</label>
                   <div className="relative">
                     <input
                       type="text"
@@ -342,9 +360,38 @@ export function CreateJob() {
                   </select>
                 </div>
                 <div>
-                  {/* Figma: Estimate link field in Job overview (e.g. 1024-E01). */}
+                  {/* Part 8: status is optional at creation; blank → derived on save
+                      (Scheduled when scheduling, otherwise Unscheduled). */}
+                  <label className="text-[11px] text-[#9CA3AF] mb-1 block">Status</label>
+                  <select value={status} onChange={(e) => setStatus(e.target.value as JobStatus | "")} className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] text-[#1A2332] bg-white focus:outline-none focus:border-[#4A6FA5]">
+                    <option value="">Default ({scheduleJob ? "Scheduled" : "Unscheduled"})</option>
+                    {JOB_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+                <div>
+                  {/* Figma + Part 7: Estimate is a DROPDOWN of the selected client's
+                      estimates, filtered to Sent / Viewed / Approved / Expired. */}
                   <label className="text-[11px] text-[#9CA3AF] mb-1 block">Estimate</label>
-                  <input type="text" placeholder="e.g. 1024-E01" value={estimateNumber} onChange={(e) => setEstimateNumber(e.target.value)} className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] focus:outline-none focus:border-[#4A6FA5]" />
+                  <select
+                    value={estimateNumber}
+                    onChange={(e) => {
+                      setEstimateNumber(e.target.value);
+                      setPickedEstimateId(clientEstimates.find((es) => es.estimateNumber === e.target.value)?.id);
+                    }}
+                    disabled={!client.trim()}
+                    className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] text-[#1A2332] bg-white focus:outline-none focus:border-[#4A6FA5] disabled:bg-[#F5F7FA] disabled:text-[#9CA3AF]"
+                  >
+                    <option value="">{!client.trim() ? "Select a client first" : clientEstimates.length ? "No estimate" : "No eligible estimates"}</option>
+                    {/* Keep a prefilled (converted-from) number visible even if it's not in the eligible list. */}
+                    {estimateNumber && !clientEstimates.some((es) => es.estimateNumber === estimateNumber) && (
+                      <option value={estimateNumber}>{estimateNumber}</option>
+                    )}
+                    {clientEstimates.map((es) => (
+                      <option key={es.id} value={es.estimateNumber}>
+                        {es.estimateNumber}{es.estimateName ? ` — ${es.estimateName}` : ""} · {es.status}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
 

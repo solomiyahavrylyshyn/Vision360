@@ -172,6 +172,54 @@ export function hasTimeConflict(
   );
 }
 
+// ── Overlap packing (board lane layout) ───────────────────────────────────
+// When a technician lane holds jobs whose [start,end) intervals overlap, they
+// must NOT be painted on top of each other. Greedy interval-partitioning packs
+// each job into the first sub-row whose previous job has already ended, so two
+// overlapping jobs never share a sub-row. Returns the row index per job id plus
+// the total row count (always >= 1) so the lane can grow to fit. Back-to-back
+// jobs (one ends exactly when the next starts) are NOT an overlap → same row.
+export function packOverlaps<T extends { id: number; start: number; end: number }>(
+  jobs: T[],
+): { rowByJobId: Record<number, number>; rowCount: number } {
+  const sorted = [...jobs].sort((a, b) => a.start - b.start || a.end - b.end);
+  const rowEnds: number[] = []; // rowEnds[r] = end time of the last job in row r
+  const rowByJobId: Record<number, number> = {};
+  for (const job of sorted) {
+    let placed = rowEnds.findIndex((end) => end <= job.start);
+    if (placed === -1) { placed = rowEnds.length; rowEnds.push(job.end); }
+    else { rowEnds[placed] = job.end; }
+    rowByJobId[job.id] = placed;
+  }
+  return { rowByJobId, rowCount: Math.max(1, rowEnds.length) };
+}
+
+// ── Seed deconfliction (no technician double-booked) ───────────────────────
+// A technician can't be in two places at once, so the board must never show one
+// person two time-overlapping jobs on the same day. Demo seeds assembled from
+// multiple sources can violate this once placed on real dates. deconflict() keeps
+// a non-overlapping set per (technician, day) greedily by start time — the FIRST
+// item wins a tie (caller orders by priority). Jobs with no technician ("") or no
+// date (unscheduled) never conflict and are always kept. Pure + deterministic
+// given the input order; never run user-created jobs through it (don't hide data).
+export function deconflict<
+  T extends Pick<SchedulableJob, "technicianId" | "start" | "end" | "unscheduled"> & { date: Date | null },
+>(list: T[]): T[] {
+  const dayKey = (d: Date) => `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+  const placed = new Map<string, { start: number; end: number }[]>();
+  const kept: T[] = [];
+  for (const j of [...list].sort((a, b) => a.start - b.start || a.end - b.end)) {
+    if (!j.technicianId || j.unscheduled || j.date == null) { kept.push(j); continue; }
+    const key = `${j.technicianId}|${dayKey(j.date)}`;
+    const slots = placed.get(key) ?? [];
+    if (slots.some((s) => j.start < s.end && s.start < j.end)) continue; // overlaps a kept job → drop
+    slots.push({ start: j.start, end: j.end });
+    placed.set(key, slots);
+    kept.push(j);
+  }
+  return kept;
+}
+
 // ── Daily KPI aggregation ─────────────────────────────────────────────────
 // Backlog: compact counts (scheduled / in_progress / completed) + revenue,
 // whole numbers. Cancelled jobs are excluded from the board KPIs.

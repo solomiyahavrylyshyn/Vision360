@@ -1615,7 +1615,7 @@ function ItemModal({ item, categories, brands, groups, onClose, onSave }: {
             <FieldGroup label="Sales Description">
               <textarea
                 value={form.salesDescription} onChange={(e) => update("salesDescription", e.target.value)}
-                placeholder="Customer-facing description"
+                placeholder="Client-facing description"
                 className="w-full min-h-[72px] px-3 py-2 border border-[#E5E7EB] rounded-lg text-[14px] resize-y focus:outline-none focus:border-[#4A6FA5]"
                 spellCheck
               />

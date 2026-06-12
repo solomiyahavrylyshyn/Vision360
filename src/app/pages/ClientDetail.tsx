@@ -1010,7 +1010,7 @@ export function ClientDetail() {
               ["Website", client.website, true],
               ["Company name", client.company, false],
               ["Role", client.role, false],
-              ["Customer since", client.customerSince, false],
+              ["Client since", client.customerSince, false],
             ] as [string, string, boolean][]
           ).map(([label, value, isLink]) => (
             <div key={label}>
@@ -1221,7 +1221,7 @@ export function ClientDetail() {
                   onChange={(e) => handleCheckboxChange("isTaxable", e.target.checked)}
                   className="w-4 h-4 accent-[#4A6FA5]"
                 />
-                <span className="text-[13px] text-[#4B5563]">Taxable Customer</span>
+                <span className="text-[13px] text-[#4B5563]">Taxable client</span>
               </label>
             </div>
           </div>
@@ -1378,7 +1378,7 @@ export function ClientDetail() {
         <div className="px-6 py-5 space-y-5">
           {/* Customer number */}
           <div>
-            <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Customer number</Label>
+            <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Client number</Label>
             <Input placeholder="e.g. 10245" value={editedClient.customerId} onChange={(e) => handleFieldChange("customerId", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
           </div>
           {/* Name row */}

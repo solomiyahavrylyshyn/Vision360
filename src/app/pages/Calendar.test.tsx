@@ -58,7 +58,7 @@ describe("Calendar — daily Dispatch board (integration)", () => {
     expect(screen.getByRole("option", { name: "Show all" })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: "Show unassigned" })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: "Show unscheduled" })).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: "Show scheduled today" })).toBeInTheDocument();   // scope-aware label (day view)
+    expect(screen.getByRole("option", { name: "Show scheduled" })).toBeInTheDocument();   // bare label, no time scope (Figma)
     expect(screen.queryByRole("option", { name: "Show paused" })).not.toBeInTheDocument();
     expect(screen.getByRole("option", { name: "Show unassigned + unscheduled" })).toBeInTheDocument();
   });
@@ -270,16 +270,19 @@ describe("Calendar — week view (integration)", () => {
     expect(screen.getAllByText("Maria Garcia")).toHaveLength(1);
   });
 
-  it("the 'scheduled' filter label is scope-aware (week → 'Show scheduled this week')", () => {
-    // Marek: the chip must read the current calendar window, not a bare
-    // "Scheduled". Day → today, week → this week, month → this month.
+  it("the 'scheduled' filter label is bare — 'Show scheduled', no time-scope suffix (Figma)", () => {
+    // Figma: the dropdown reads "Show scheduled" with no "today / this week /
+    // this month" suffix on any view. The filter still windows to the active
+    // calendar scope via pendingSource; only the LABEL drops the suffix.
     render(
       <MemoryRouter initialEntries={["/calendar"]}>
         <Calendar />
       </MemoryRouter>,
     );
-    expect(screen.getByRole("option", { name: "Show scheduled this week" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Show scheduled" })).toBeInTheDocument();
     expect(screen.queryByRole("option", { name: "Show scheduled today" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: "Show scheduled this week" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: "Show scheduled this month" })).not.toBeInTheDocument();
   });
 
   it("shows the Pending drawer with week pending jobs", () => {
@@ -301,14 +304,17 @@ describe("Calendar — week view (integration)", () => {
       </MemoryRouter>,
     );
     const aside = screen.getByRole("complementary") as HTMLElement;
-    // Smith Resi… (unified id 17 = old week id 1 + 16) is scheduled+assigned → NOT pending yet.
-    expect(within(aside).queryByText("Smith Resi...")).not.toBeInTheDocument();
+    // Miller Residence (id 1) is scheduled + assigned (Peter, today) → on the board,
+    // not pending. We drag a DAY-ORIGIN job on purpose: the seed deconflicter drops
+    // same-tech time-overlaps, so a week-origin duplicate can be absent on some
+    // weekdays — a day-origin job is always present, keeping this test deterministic.
+    expect(within(aside).queryByText("Miller Residence")).not.toBeInTheDocument();
     // Simulate dropping a week board card onto the drawer (week: payload).
     const dt = makeDataTransfer();
-    dt.setData("text/plain", "week:17");
+    dt.setData("text/plain", "week:1");
     fireEvent.drop(aside, { dataTransfer: dt });
     // Now it's pending (unscheduled) and appears in the drawer.
-    const moved = within(aside).getByText("Smith Resi...").closest('[data-job-card="true"]') as HTMLElement;
+    const moved = within(aside).getByText("Miller Residence").closest('[data-job-card="true"]') as HTMLElement;
     expect(within(moved).getByText(/--:--/)).toBeInTheDocument();
   });
 });
