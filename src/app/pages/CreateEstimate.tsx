@@ -58,13 +58,19 @@ export function CreateEstimate() {
       const s = fmtAddr(selectedClient.address, selectedClient.city, selectedClient.state, selectedClient.zip);
       if (s) list.push(s);
     }
+    // Last-resort fallback to the billing address so the dropdown is never empty
+    // for a client that has any address on file at all.
+    if (!list.length && (selectedClient as any).billingAddress) {
+      const s = fmtAddr((selectedClient as any).billingAddress, (selectedClient as any).billingCity, (selectedClient as any).billingState, (selectedClient as any).billingZip);
+      if (s) list.push(s);
+    }
     return list;
   }, [selectedClient]);
 
-  // Keep the picked address valid for the current client: auto-select when there
-  // is exactly one, clear it when the client changes to one that lacks it.
+  // Every client must carry an address — pre-select the first (primary) one so
+  // the field is never left blank. With several addresses the user can change it.
   useEffect(() => {
-    setServiceAddress((prev) => (clientAddresses.includes(prev) ? prev : (clientAddresses.length === 1 ? clientAddresses[0] : "")));
+    setServiceAddress((prev) => (clientAddresses.includes(prev) ? prev : (clientAddresses[0] ?? "")));
   }, [clientAddresses]);
 
   const [estimateName, setEstimateName] = useState("");
@@ -146,6 +152,7 @@ export function CreateEstimate() {
 
   const handleSaveEstimate = () => {
     if (!client.trim()) { toast.error("Select a client before saving the estimate."); return; }
+    if (!serviceAddress.trim()) { toast.error("Select a service address."); return; }
     if (lineItems.length === 0) { toast.error("Add at least one line item before saving."); return; }
     persistEstimate("Draft", "Estimate created");
   };
@@ -198,7 +205,7 @@ export function CreateEstimate() {
                 </select>
               </div>
               <div>
-                <label className={labelClass}>Service address</label>
+                <label className={labelClass}>Service address {reqStar}</label>
                 <select
                   value={serviceAddress}
                   onChange={(e) => setServiceAddress(e.target.value)}

@@ -431,6 +431,32 @@ function persistPatch(id: string, patch: Partial<ClientRecord>) {
   });
 }
 
+// Every client must carry at least one service address (Marek rule). If a new
+// record arrives without one, derive it from the client's address fields (or
+// billing address) so address pickers downstream are never empty.
+function ensureServiceAddress(record: ClientRecord): ClientRecord {
+  const hasAddr = (record.serviceAddresses || []).some((a) => (a.street || "").trim());
+  if (hasAddr) return record;
+  const street = (record.address || record.billingAddress || "").trim();
+  if (!street) return record; // nothing to derive from; caller-side forms still guard
+  return {
+    ...record,
+    serviceAddresses: [
+      {
+        id: "1",
+        street,
+        unit: record.unit || record.billingUnit || "",
+        city: record.city || record.billingCity || "",
+        state: record.state || record.billingState || "",
+        zip: record.zip || record.billingZip || "",
+        county: record.county || record.billingCounty || "",
+        notes: record.gateCode ? `Gate code: ${record.gateCode}` : "",
+        isPrimary: true,
+      },
+    ],
+  };
+}
+
 export const clientsStore = {
   getSnapshot: (): ClientRecord[] => clients,
   getClient: (id: string | undefined): ClientRecord | undefined => clients.find((c) => c.id === id),
@@ -442,10 +468,11 @@ export const clientsStore = {
     };
   },
   addClient: (record: ClientRecord) => {
-    clients = [record, ...clients];
+    const normalized = ensureServiceAddress(record);
+    clients = [normalized, ...clients];
     saveLS();
     notify();
-    persistNew(record);
+    persistNew(normalized);
   },
   updateClient: (id: string, patch: Partial<ClientRecord>) => {
     clients = clients.map((c) => (c.id === id ? { ...c, ...patch } : c));
