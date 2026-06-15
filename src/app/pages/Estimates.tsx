@@ -88,12 +88,12 @@ function getAvatarColor(name: string) {
 }
 
 const ESTIMATES_COLS = [
-  // Figma column order (node 523:31958): Estimate · Client · Job · Technician ·
+  // Figma column order (node 523:31958): Estimate · Client name · Job · Created by ·
   // Status · Amount, then the optional date/deposit columns.
   { key: "estimate",       label: "Estimate",        sortable: true },
-  { key: "client",         label: "Client",           sortable: true },
+  { key: "client",         label: "Client name",      sortable: true },
   { key: "job",            label: "Job" },
-  { key: "technician",     label: "Technician" },
+  { key: "technician",     label: "Created by" },
   { key: "status",         label: "Status",           sortable: true },
   { key: "amount",         label: "Amount",           sortable: true },
   { key: "created",        label: "Created",          sortable: true },
@@ -242,7 +242,7 @@ export function Estimates() {
   const [search, setSearch] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [page, setPage] = useState(1);
-  const perPage = 10;
+  const [perPage, setPerPage] = useState(10);
 
   type SortField = "estimateNumber" | "clientName" | "createdDate" | "amount" | "status";
   const [sortField, setSortField] = useState<SortField>("createdDate");
@@ -471,7 +471,7 @@ export function Estimates() {
             {otherStatuses.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
           <select value={qfDate} onChange={e => { setQfDate(e.target.value); setPage(1); }} className={qfClass(qfDate !== "All time")}>
-            {timeFilters.map(t => <option key={t} value={t}>{t}</option>)}
+            {timeFilters.map(t => <option key={t} value={t}>{t === "All time" ? "Date: All time" : t}</option>)}
           </select>
           <div className="w-px h-5 bg-[#E5E7EB] mx-1" />
           <button
@@ -732,17 +732,28 @@ export function Estimates() {
           </table>
         </div>
 
-        {/* Pagination */}
+        {/* Pagination (Figma: "Rows per page: N   X-Y of Z   ‹ ›") */}
         <div className="flex items-center justify-between px-4 py-3 border-t border-[#E5E7EB] bg-[#FAFBFC]">
-          <span className="text-[13px] text-[#546478]">
-            Showing {filtered.length === 0 ? 0 : (page - 1) * perPage + 1} to {Math.min(page * perPage, filtered.length)} of {filtered.length} results
-          </span>
+          <div className="flex items-center gap-5 text-[13px] text-[#546478]">
+            <div className="flex items-center gap-2">
+              <span>Rows per page:</span>
+              <select
+                value={perPage}
+                onChange={e => { setPerPage(Number(e.target.value)); setPage(1); }}
+                className="h-8 rounded-lg border border-[#E5E7EB] bg-white pl-2.5 pr-7 text-[13px] text-[#1A2332] outline-none focus:border-[#4A6FA5] cursor-pointer"
+              >
+                {[10, 25, 50].map(n => <option key={n} value={n}>{n}</option>)}
+              </select>
+            </div>
+            <span style={{ fontVariantNumeric: "tabular-nums" }}>
+              {filtered.length === 0 ? 0 : (page - 1) * perPage + 1}-{Math.min(page * perPage, filtered.length)} of {filtered.length}
+            </span>
+          </div>
           <div className="flex items-center gap-1">
             <button onClick={() => setPage(Math.max(1, page - 1))} disabled={page <= 1}
               className="w-8 h-8 flex items-center justify-center rounded hover:bg-[#EDF0F5] disabled:opacity-30">
               <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>chevron_left</span>
             </button>
-            <span className="text-[13px] text-[#1A2332] min-w-[80px] text-center" style={{ fontWeight: 500 }}>Page {page} of {totalPages}</span>
             <button onClick={() => setPage(Math.min(totalPages, page + 1))} disabled={page >= totalPages}
               className="w-8 h-8 flex items-center justify-center rounded hover:bg-[#EDF0F5] disabled:opacity-30">
               <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>chevron_right</span>
