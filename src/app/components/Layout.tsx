@@ -726,7 +726,7 @@ export function Layout() {
             </div>
             <button
               type="button"
-              onClick={() => navigate("/account")}
+              onClick={() => navigate("/settings?section=billing")}
               className="h-8 shrink-0 rounded-md bg-[#4A6FA5] px-3 text-[13px] text-white transition-colors hover:bg-[#3d5a85]"
               style={{ fontWeight: 600 }}
             >
