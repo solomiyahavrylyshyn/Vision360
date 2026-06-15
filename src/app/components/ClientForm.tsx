@@ -298,7 +298,7 @@ export function ClientForm({ open, onOpenChange, client, onSave }: ClientFormPro
                 <div className="space-y-4">
                   <div>
                     <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>
-                      Mobile phone
+                      Mobile phone <span className="text-[#DC2626]">*</span>
                     </Label>
                     <div className="flex gap-[19px]">
                       <Input
@@ -307,6 +307,7 @@ export function ClientForm({ open, onOpenChange, client, onSave }: ClientFormPro
                         value={formData.mobilePhone || formData.phone}
                         onChange={(e) => handleChange("mobilePhone", e.target.value)}
                         className="border-[#D1D5DB] bg-white h-10 text-[14px] flex-1"
+                        required
                       />
                       <Input
                         type="text"
@@ -422,7 +423,7 @@ export function ClientForm({ open, onOpenChange, client, onSave }: ClientFormPro
                 </div>
                 <div className="space-y-4">
                   <div>
-                    <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Address</Label>
+                    <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Address <span className="text-[#DC2626]">*</span></Label>
                     <div className="flex gap-0">
                       <Input
                         type="text"
@@ -430,6 +431,7 @@ export function ClientForm({ open, onOpenChange, client, onSave }: ClientFormPro
                         value={formData.address}
                         onChange={(e) => handleChange("address", e.target.value)}
                         className="border-[#D1D5DB] bg-white h-10 text-[14px] rounded-r-none border-r-0 flex-1"
+                        required
                       />
                       <Input
                         type="text"

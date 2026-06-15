@@ -735,6 +735,14 @@ export function ClientDetail() {
   };
 
   const handleSaveClick = () => {
+    // Every client must carry name, a primary phone and an address (Marek rule).
+    const firstName = (editedClient.firstName || "").trim();
+    const lastName = (editedClient.lastName || "").trim();
+    const phone = (editedClient.mobilePhone || "").trim();
+    const hasAddress = Boolean((editedClient.address || "").trim()) || serviceAddresses.length > 0;
+    if (!firstName || !lastName) { toast.error("First and last name are required"); return; }
+    if (!phone) { toast.error("A primary phone number is required"); return; }
+    if (!hasAddress) { toast.error("A service address is required — add one in the Properties tab"); return; }
     clientsStore.updateClient(client.id, editedClient);
     toast.success("Client updated successfully");
     setIsEditing(false);
@@ -1301,7 +1309,7 @@ export function ClientDetail() {
           </div>
           {/* Name row */}
           <div>
-            <Label className="text-[14px] text-[#1A2332] mb-2 block" style={{ fontWeight: 500 }}>Name</Label>
+            <Label className="text-[14px] text-[#1A2332] mb-2 block" style={{ fontWeight: 500 }}>Name <span className="text-[#DC2626]">*</span></Label>
             <div className="grid grid-cols-[100px_1fr_60px_1fr] gap-3">
               <Select value={editedClient.title || "none"} onValueChange={(v) => handleFieldChange("title", v === "none" ? "" : v)}>
                 <SelectTrigger className="border-[#E5E7EB] bg-white h-9 text-[14px] rounded-[8px] shadow-[0px_1px_2px_rgba(0,0,0,0.05)]"><SelectValue placeholder="Title" /></SelectTrigger>
@@ -1455,7 +1463,7 @@ export function ClientDetail() {
         <div className="px-6 py-5 space-y-5">
           {/* Primary phone */}
           <div>
-            <Label className="text-[14px] text-[#1A2332] mb-2 block" style={{ fontWeight: 500 }}>Primary phone number</Label>
+            <Label className="text-[14px] text-[#1A2332] mb-2 block" style={{ fontWeight: 500 }}>Primary phone number <span className="text-[#DC2626]">*</span></Label>
             <div className="flex gap-[19px]">
               <Input type="tel" placeholder="(555) 123-4567" value={editedClient.mobilePhone} onChange={(e) => handleFieldChange("mobilePhone", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px] flex-1" />
               <Input type="text" placeholder="EXT" value={editedClient.mobilePhoneExt} onChange={(e) => handleFieldChange("mobilePhoneExt", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px] w-[80px]" />
@@ -2552,7 +2560,7 @@ export function ClientDetail() {
               {editingSection === "name" && (
                 <>
                   <div>
-                    <Label className="text-[14px] text-[#1A2332] mb-2 block" style={{ fontWeight: 500 }}>Name</Label>
+                    <Label className="text-[14px] text-[#1A2332] mb-2 block" style={{ fontWeight: 500 }}>Name <span className="text-[#DC2626]">*</span></Label>
                     <div className="grid grid-cols-[100px_1fr_60px_1fr] gap-3">
                       <Select value={editedClient.title || "none"} onValueChange={(v) => handleFieldChange("title", v === "none" ? "" : v)}>
                         <SelectTrigger className="border-[#E5E7EB] bg-white h-9 text-[14px] rounded-[8px] shadow-[0px_1px_2px_rgba(0,0,0,0.05)]"><SelectValue placeholder="Title" /></SelectTrigger>
@@ -2580,7 +2588,7 @@ export function ClientDetail() {
               {editingSection === "contact" && (
                 <>
                   <div>
-                    <Label className="text-[14px] text-[#1A2332] mb-2 block" style={{ fontWeight: 500 }}>Primary phone number</Label>
+                    <Label className="text-[14px] text-[#1A2332] mb-2 block" style={{ fontWeight: 500 }}>Primary phone number <span className="text-[#DC2626]">*</span></Label>
                     <div className="grid grid-cols-[1fr_64px] gap-2">
                       <Input value={editedClient.mobilePhone} onChange={(e) => handleFieldChange("mobilePhone", e.target.value)} className="border-[#E5E7EB] bg-white h-9 text-[14px] rounded-[8px] shadow-[0px_1px_2px_rgba(0,0,0,0.05)]" />
                       <Input placeholder="EXT" value={editedClient.mobilePhoneExt} onChange={(e) => handleFieldChange("mobilePhoneExt", e.target.value)} className="border-[#E5E7EB] bg-white h-9 text-[14px] rounded-[8px] shadow-[0px_1px_2px_rgba(0,0,0,0.05)]" />
@@ -2619,7 +2627,7 @@ export function ClientDetail() {
               {editingSection === "addresses" && (
                 <>
                   <div>
-                    <Label className="text-[14px] text-[#1A2332] mb-2 block" style={{ fontWeight: 500 }}>Service address</Label>
+                    <Label className="text-[14px] text-[#1A2332] mb-2 block" style={{ fontWeight: 500 }}>Service address <span className="text-[#DC2626]">*</span></Label>
                     <Input placeholder="Street address" value={editedClient.address} onChange={(e) => handleFieldChange("address", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px] mb-2" />
                     <Input placeholder="Unit / Suite" value={editedClient.unit} onChange={(e) => handleFieldChange("unit", e.target.value)} className="border-[#E5E7EB] bg-white h-9 text-[14px] rounded-[8px] shadow-[0px_1px_2px_rgba(0,0,0,0.05)]" />
                   </div>
@@ -2698,6 +2706,17 @@ export function ClientDetail() {
               </Button>
               <Button
                 onClick={() => {
+                  // Mandatory client info (Marek rule): name, primary phone, address.
+                  // Validated per section so each modal only guards its own fields.
+                  if (editingSection === "name" && (!(editedClient.firstName || "").trim() || !(editedClient.lastName || "").trim())) {
+                    toast.error("First and last name are required"); return;
+                  }
+                  if (editingSection === "contact" && !(editedClient.mobilePhone || "").trim()) {
+                    toast.error("A primary phone number is required"); return;
+                  }
+                  if (editingSection === "addresses" && !(editedClient.address || "").trim()) {
+                    toast.error("A service address is required"); return;
+                  }
                   clientsStore.updateClient(client.id, editedClient);
                   toast.success("Changes saved");
                   setEditingSection(null);
