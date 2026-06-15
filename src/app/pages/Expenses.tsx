@@ -182,8 +182,8 @@ export function Expenses() {
         count={selectedIds.size > 0 ? `${filtered.length} · ${selectedIds.size} selected` : filtered.length}
       />
 
-      {/* KPI strip — mirrors Clients/Jobs/Estimates/Invoices/Payments */}
-      <div className="mb-6 grid grid-cols-4 gap-4">
+      {/* KPI strip (3 tiles — "Top category" card removed per Marek) */}
+      <div className="mb-6 grid grid-cols-3 gap-4">
         <StatCard
           value={`$${totalAmount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
           label="Total expenses"
@@ -204,13 +204,6 @@ export function Expenses() {
           sub="Across filtered set"
           data={[200, 260, 220, 300, 250, 280, 320]}
           sparklineColor="#4A6FA5"
-        />
-        <StatCard
-          value={topCategoryName}
-          label="Top category"
-          sub={topCategoryEntry ? `$${topCategoryAmount.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })} · ${billablePct}% billable` : "—"}
-          data={[60, 80, 75, 100, 110, 95, 130]}
-          sparklineColor={expenseCategoryColors[topCategoryName] || "#4A6FA5"}
         />
       </div>
 
