@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { useNavigate } from "react-router";
 import { Input } from "../components/ui/input";
+// Profile page — aligned to Figma node 1122-7158.
 
-type SidebarPreference = "Expanded sidebar" | "Collapsed sidebar by default";
+type SidebarPreference = "Expanded sidebar" | "Collapsed sidebar";
 
 const jobNotifications = [
   "New job assigned",
@@ -24,34 +24,23 @@ const invoiceNotifications = [
 ];
 
 export function Profile() {
-  const navigate = useNavigate();
-
   const [firstName, setFirstName] = useState("John");
   const [lastName, setLastName] = useState("Doe");
-  const [email, setEmail] = useState("john.doe@omegahomeservices.com");
+  const [email, setEmail] = useState("johndoe@example.com");
   const [phone, setPhone] = useState("(813) 555-0142");
-  const [jobTitle, setJobTitle] = useState("Operations Manager");
-  const [employeeId, setEmployeeId] = useState("EMP-1007");
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [jobTitle, setJobTitle] = useState("Operations manager");
 
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const [enabledNotifications, setEnabledNotifications] = useState<Set<string>>(
     () => new Set([...jobNotifications, ...estimateNotifications, ...invoiceNotifications])
   );
   const [sidebar, setSidebar] = useState<SidebarPreference>("Expanded sidebar");
-
-  const initials = `${firstName[0] || ""}${lastName[0] || ""}`.toUpperCase();
-
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => setAvatarUrl(String(reader.result));
-    reader.readAsDataURL(file);
-  };
 
   const toggleNotification = (label: string) => {
     setEnabledNotifications(prev => {
@@ -61,14 +50,11 @@ export function Profile() {
     });
   };
 
-  const Section = ({ title, eyebrow, children, action }: { title: string; eyebrow?: string; children: React.ReactNode; action?: React.ReactNode }) => (
+  const Section = ({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) => (
     <section className="rounded-xl border border-[#E5E7EB] bg-white p-5">
-      <div className="mb-5 flex items-start justify-between gap-4">
-        <div>
-          {eyebrow && <div className="mb-1 text-[11px] uppercase tracking-wide text-[#8A97A8]" style={{ fontWeight: 700 }}>{eyebrow}</div>}
-          <h2 className="text-[16px] leading-6 text-[#1A2332]" style={{ fontWeight: 700 }}>{title}</h2>
-        </div>
-        {action}
+      <div className="mb-4">
+        <h2 className="text-[16px] leading-6 text-[#1A2332]" style={{ fontWeight: 700 }}>{title}</h2>
+        {subtitle && <p className="mt-1 text-[12px] leading-4 text-[#8A97A8]">{subtitle}</p>}
       </div>
       {children}
     </section>
@@ -79,6 +65,27 @@ export function Profile() {
       <span className="text-[13px] text-[#374151]" style={{ fontWeight: 600 }}>{label}</span>
       {children}
     </label>
+  );
+
+  const PasswordField = ({ label, value, onChange, show, onToggle }: { label: string; value: string; onChange: (v: string) => void; show: boolean; onToggle: () => void }) => (
+    <Field label={label}>
+      <div className="relative">
+        <Input
+          type={show ? "text" : "password"}
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          className="h-9 border-[#D8DEE8] pr-10"
+        />
+        <button
+          type="button"
+          onClick={onToggle}
+          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#8A97A8] transition-colors hover:text-[#546478]"
+          aria-label={show ? "Hide password" : "Show password"}
+        >
+          <span className="material-icons" style={{ fontSize: "18px" }}>{show ? "visibility_off" : "visibility"}</span>
+        </button>
+      </div>
+    </Field>
   );
 
   const Toggle = ({ checked, onChange }: { checked: boolean; onChange: () => void }) => (
@@ -109,7 +116,7 @@ export function Profile() {
     </div>
   );
 
-  const Choice = <T extends string>({ label, selected, onClick }: { label: T; selected: boolean; onClick: () => void }) => (
+  const Choice = ({ label, selected, onClick }: { label: string; selected: boolean; onClick: () => void }) => (
     <button
       type="button"
       onClick={onClick}
@@ -128,93 +135,52 @@ export function Profile() {
   return (
     <div className="min-h-full bg-[#F5F7FA] p-8">
       <div className="mx-auto max-w-[1120px]">
-        <div className="mb-6 flex items-start justify-between gap-4">
-          <div>
-            <button
-              onClick={() => navigate(-1)}
-              className="mb-3 inline-flex items-center gap-1.5 text-[13px] text-[#4A6FA5] transition-colors hover:text-[#3d5a85]"
-              style={{ fontWeight: 600 }}
-            >
-              <span className="material-icons" style={{ fontSize: "18px" }}>arrow_back</span>
-              Back
-            </button>
-            <h1 className="text-[26px] leading-8 text-[#1A2332]" style={{ fontWeight: 750 }}>User Account Profile</h1>
-            <p className="mt-1 text-[14px] leading-5 text-[#6B7280]">Personal information, notifications, appearance, and account access.</p>
-          </div>
-        </div>
+        <h1 className="mb-6 text-[26px] leading-8 text-[#1A2332]" style={{ fontWeight: 750 }}>User profile</h1>
 
-        <div className="grid grid-cols-[minmax(0,1.05fr)_minmax(360px,0.95fr)] gap-4">
+        <div className="grid grid-cols-[minmax(0,1fr)_minmax(360px,1fr)] gap-4">
+          {/* Left column */}
           <div className="space-y-4">
-            <Section title="Profile" eyebrow="1">
-              <div className="mb-6 flex items-center gap-5">
-                {avatarUrl ? (
-                  <img src={avatarUrl} alt="Profile avatar" className="h-20 w-20 rounded-full object-cover" />
-                ) : (
-                  <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[#4A6FA5] text-[26px] text-white" style={{ fontWeight: 700 }}>
-                    {initials}
-                  </div>
-                )}
-                <div className="flex flex-wrap gap-2">
-                  <label className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border border-[#D8DEE8] bg-white px-4 text-[13px] text-[#374151] transition-colors hover:bg-[#F5F7FA]" style={{ fontWeight: 600 }}>
-                    <span className="material-icons" style={{ fontSize: "16px" }}>upload</span>
-                    Upload avatar/photo
-                    <input type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => setAvatarUrl(null)}
-                    className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[#FECACA] bg-white px-4 text-[13px] text-[#B91C1C] transition-colors hover:bg-[#FEF2F2]"
-                    style={{ fontWeight: 600 }}
-                  >
-                    <span className="material-icons" style={{ fontSize: "16px" }}>delete_outline</span>
-                    Remove photo
-                  </button>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <Field label="First Name"><Input value={firstName} onChange={e => setFirstName(e.target.value)} className="h-9 border-[#D8DEE8]" /></Field>
-                <Field label="Last Name"><Input value={lastName} onChange={e => setLastName(e.target.value)} className="h-9 border-[#D8DEE8]" /></Field>
+            <Section title="Profile">
+              <div className="grid grid-cols-3 gap-4">
+                <Field label="First name"><Input value={firstName} onChange={e => setFirstName(e.target.value)} className="h-9 border-[#D8DEE8]" /></Field>
+                <Field label="Last name"><Input value={lastName} onChange={e => setLastName(e.target.value)} className="h-9 border-[#D8DEE8]" /></Field>
                 <Field label="Email"><Input type="email" value={email} onChange={e => setEmail(e.target.value)} className="h-9 border-[#D8DEE8]" /></Field>
-                <Field label="Mobile Phone"><Input value={phone} onChange={e => setPhone(e.target.value)} className="h-9 border-[#D8DEE8]" /></Field>
-                <Field label="Job Title"><Input value={jobTitle} onChange={e => setJobTitle(e.target.value)} className="h-9 border-[#D8DEE8]" /></Field>
-                <Field label="Employee ID"><Input value={employeeId} onChange={e => setEmployeeId(e.target.value)} className="h-9 border-[#D8DEE8]" /></Field>
+              </div>
+              <div className="mt-4 grid grid-cols-2 gap-4">
+                <Field label="Phone"><Input value={phone} onChange={e => setPhone(e.target.value)} className="h-9 border-[#D8DEE8]" /></Field>
+                <Field label="Job title"><Input value={jobTitle} onChange={e => setJobTitle(e.target.value)} className="h-9 border-[#D8DEE8]" /></Field>
               </div>
             </Section>
 
-            <Section title="Password">
+            <Section title="Change password" subtitle="Minimum 8 characters, with uppercase, number, and special character recommended.">
               <div className="grid grid-cols-1 gap-4">
-                <Field label="Current password"><Input type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} className="h-9 border-[#D8DEE8]" /></Field>
-                <Field label="Change password"><Input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="h-9 border-[#D8DEE8]" /></Field>
-                <Field label="Password requirements"><Input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="Confirm new password" className="h-9 border-[#D8DEE8]" /></Field>
+                <PasswordField label="Current password" value={currentPassword} onChange={setCurrentPassword} show={showCurrent} onToggle={() => setShowCurrent(v => !v)} />
+                <PasswordField label="New password" value={newPassword} onChange={setNewPassword} show={showNew} onToggle={() => setShowNew(v => !v)} />
+                <PasswordField label="Confirm new password" value={confirmPassword} onChange={setConfirmPassword} show={showConfirm} onToggle={() => setShowConfirm(v => !v)} />
               </div>
-              <div className="mt-3 rounded-lg border border-[#E5E7EB] bg-[#F8FAFC] px-4 py-3 text-[12px] leading-5 text-[#546478]">
-                Minimum 8 characters, with uppercase, number, and special character recommended.
+            </Section>
+
+            <Section title="Appearance">
+              <span className="mb-2 block text-[13px] text-[#374151]" style={{ fontWeight: 600 }}>Navigation</span>
+              <div className="grid grid-cols-2 gap-2">
+                {(["Expanded sidebar", "Collapsed sidebar"] as SidebarPreference[]).map(option => (
+                  <Choice key={option} label={option} selected={sidebar === option} onClick={() => setSidebar(option)} />
+                ))}
               </div>
             </Section>
           </div>
 
+          {/* Right column */}
           <div className="space-y-4">
-            <Section title="Notifications" eyebrow="2">
+            <Section title="Notifications">
               <div className="space-y-3">
-                <NotificationGroup title="Job Notifications" rows={jobNotifications} />
+                <NotificationGroup title="Job notifications" rows={jobNotifications} />
                 <NotificationGroup title="Estimate Notifications" rows={estimateNotifications} />
                 <NotificationGroup title="Invoice & Payment Notifications" rows={invoiceNotifications} />
               </div>
             </Section>
 
-            <Section title="Navigation" eyebrow="3">
-              <div className="grid grid-cols-2 gap-2">
-                {(["Expanded sidebar", "Collapsed sidebar by default"] as SidebarPreference[]).map(option => (
-                  <Choice key={option} label={option} selected={sidebar === option} onClick={() => setSidebar(option)} />
-                ))}
-              </div>
-            </Section>
-
-            <div className="flex justify-end gap-2">
-              <button className="h-9 rounded-lg border border-[#D8DEE8] bg-white px-4 text-[13px] text-[#546478] transition-colors hover:bg-[#F5F7FA]" style={{ fontWeight: 600 }}>
-                Cancel
-              </button>
+            <div className="flex justify-end">
               <button className="h-9 rounded-lg bg-[#4A6FA5] px-4 text-[13px] text-white transition-colors hover:bg-[#3d5a85]" style={{ fontWeight: 700 }}>
                 Save changes
               </button>
