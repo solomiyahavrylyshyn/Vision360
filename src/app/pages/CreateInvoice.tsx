@@ -6,7 +6,6 @@ import { jobsStore } from "../stores/jobsStore";
 import { estimatesStore } from "../stores/estimatesStore";
 import { itemsStore } from "../stores/itemsStore";
 import { ItemPicker, catalogItemToLineItem, type CatalogItem, type SelectedLineItem } from "../components/ItemPicker";
-import { PageHeader } from "../components/ui/page-header";
 import { PlusIcon } from "../components/ui/plus-icon";
 
 // Legacy HVAC/plumbing options kept alongside the live Items catalog.
@@ -21,6 +20,16 @@ const legacyCatalogItems: CatalogItem[] = [
   { id: 1007, name: "Thermostat - Smart WiFi", itemDescription: "Smart thermostat with WiFi connectivity", salesDescription: "Smart WiFi Thermostat — professional installation included", brand: "Ecobee", modelNumber: "EB-STATE5-01", rate: 450, cost: 180, taxable: true, category: "HVAC", type: "Product" },
 ];
 
+const JOB_STATUS_BADGE: Record<string, { bg: string; color: string }> = {
+  "Completed": { bg: "#DCFCE7", color: "#16A34A" },
+  "Scheduled": { bg: "#EBF0F8", color: "#4A6FA5" },
+  "In Progress": { bg: "#FEF3C7", color: "#D97706" },
+  "Unscheduled": { bg: "#F3F4F6", color: "#6B7280" },
+  "Cancelled": { bg: "#FEE2E2", color: "#DC2626" },
+  "Paused": { bg: "#FEF3C7", color: "#D97706" },
+  "On Hold": { bg: "#FEF3C7", color: "#D97706" },
+};
+
 export function CreateInvoice() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -31,17 +40,15 @@ export function CreateInvoice() {
   const clientNames = liveClients.map((c) => c.name);
   const clientOptions = client && !clientNames.includes(client) ? [client, ...clientNames] : clientNames;
 
-  // Live jobs from jobsStore + legacy demo labels so the picker shows real jobs.
   const liveJobs = useSyncExternalStore(jobsStore.subscribe, jobsStore.getSnapshot);
   const jobOptions = [
     ...liveJobs.map(j => `${j.jobNumber}: ${j.title || "Service"}`),
     "10245-J01: Kitchen Renovation", "10246-J01: Bathroom Remodel",
     "10247-J01: Plumbing Fix", "10248-J01: Electrical Work", "10250-J01: HVAC Install",
-  ].filter((v, i, a) => a.indexOf(v) === i); // dedupe
+  ].filter((v, i, a) => a.indexOf(v) === i);
 
-  // Live estimates from estimatesStore + legacy demo labels. Only estimates a
-  // customer could act on are linkable — hide Draft/Rejected/Archived; show
-  // Sent/Viewed/Approved/Expired (Marek, Jun 5 — same rule as the job picker).
+  // Only estimates a customer could act on are linkable — hide Draft/Rejected/
+  // Archived; show Sent/Viewed/Approved/Expired (Marek, Jun 5).
   const INVOICE_ESTIMATE_PICKABLE = ["Sent", "Viewed", "Approved", "Expired"];
   const liveEstimates = useSyncExternalStore(estimatesStore.subscribe, estimatesStore.getSnapshot);
   const estimateOptions = [
@@ -49,7 +56,6 @@ export function CreateInvoice() {
     "10245-E01: HVAC System Quote", "10246-E01: Kitchen Quote", "10248-E01: Electrical Quote",
   ].filter((v, i, a) => a.indexOf(v) === i);
 
-  // Catalog = live Items + legacy (deduped by name).
   const catalogStoreItems = useSyncExternalStore(itemsStore.subscribe, itemsStore.getSnapshot);
   const catalogItems: CatalogItem[] = (() => {
     const names = new Set(catalogStoreItems.map(i => i.name.toLowerCase()));
@@ -59,13 +65,10 @@ export function CreateInvoice() {
   const fromJobId = Number(searchParams.get("fromJob") || 0);
   const fromEstimateId = Number(searchParams.get("fromEstimate") || 0);
 
-  const [invoiceNumber] = useState("10245-I02");
   const [invoiceDate, setInvoiceDate] = useState(() => new Date().toISOString().split("T")[0]);
   const [dueDate, setDueDate] = useState(() => { const d = new Date(); d.setDate(d.getDate() + 30); return d.toISOString().split("T")[0]; });
 
-  // Pre-populate from source job or estimate. Jobs are a MULTI-select: one
-  // invoice can settle several jobs at once (windows + doors + fence sold as
-  // three jobs, closed with a single invoice). "None" (empty) is a valid value.
+  // One invoice can settle SEVERAL jobs; items aggregate from all of them.
   const [linkedJobs, setLinkedJobs] = useState<string[]>(() => {
     if (fromJobId) {
       const j = liveJobs.find(j => j.id === fromJobId);
@@ -74,7 +77,9 @@ export function CreateInvoice() {
     const param = searchParams.get("job");
     return param ? [param] : [];
   });
-  const [jobsDropdownOpen, setJobsDropdownOpen] = useState(false);
+  const [jobAddOpen, setJobAddOpen] = useState(false);
+  const [jobSearch, setJobSearch] = useState("");
+  // At most ONE estimate per invoice. "None" is valid.
   const [linkedEstimate, setLinkedEstimate] = useState(() => {
     if (fromEstimateId) {
       const e = liveEstimates.find(e => e.id === fromEstimateId);
@@ -83,8 +88,10 @@ export function CreateInvoice() {
     return searchParams.get("estimate") || "";
   });
 
-  // Pre-populate line items from the source job or estimate.
-  const [lineItems, setLineItems] = useState<SelectedLineItem[]>(() => {
+  // Line items are SNAPSHOT copies — independent of their source. `sourceJob`
+  // tags items that came from a job so unlinking that job can clean them up.
+  type InvLineItem = SelectedLineItem & { sourceJob?: string };
+  const [lineItems, setLineItems] = useState<InvLineItem[]>(() => {
     const sourceJob = fromJobId ? liveJobs.find(j => j.id === fromJobId) : null;
     const sourceEst = fromEstimateId ? liveEstimates.find(e => e.id === fromEstimateId) : null;
     const items = sourceJob?.items ?? sourceEst?.items ?? [];
@@ -92,77 +99,104 @@ export function CreateInvoice() {
       id: idx + 1, catalogItemId: 0,
       name: it.name, description: it.description,
       quantity: it.quantity, unitPrice: it.price,
-      unitCost: it.cost ?? 0, taxable: it.taxable,
-      total: it.amount,
+      unitCost: it.cost ?? 0, taxable: it.taxable, total: it.amount,
+      sourceJob: sourceJob ? sourceJob.jobNumber : undefined,
     }));
   });
 
   const [notes, setNotes] = useState("");
-  const [terms, setTerms] = useState("Payment is due within 30 days of invoice date.");
   const [itemPickerOpen, setItemPickerOpen] = useState(false);
-  // Carry tax rate from the source job/estimate.
-  const [taxRate, setTaxRate] = useState(() => {
+  const [taxRate] = useState(() => {
     const sourceJob = fromJobId ? liveJobs.find(j => j.id === fromJobId) : null;
     const sourceEst = fromEstimateId ? liveEstimates.find(e => e.id === fromEstimateId) : null;
     return sourceJob?.taxRate ?? sourceEst?.taxRate ?? 7.5;
   });
 
+  const nextItemId = (items: InvLineItem[]) => (items.length ? Math.max(...items.map(li => li.id)) + 1 : 1);
+
   const updateLineItem = (id: number, field: keyof SelectedLineItem, value: any) => {
-    setLineItems(lineItems.map((li) => {
+    setLineItems(items => items.map((li) => {
       if (li.id === id) {
         const updated = { ...li, [field]: value };
-        if (field === "quantity" || field === "unitPrice") {
-          updated.total = updated.quantity * updated.unitPrice;
-        }
+        if (field === "quantity" || field === "unitPrice") updated.total = updated.quantity * updated.unitPrice;
         return updated;
       }
       return li;
     }));
   };
-
-  const removeLineItem = (id: number) => setLineItems(lineItems.filter(li => li.id !== id));
-
+  const removeLineItem = (id: number) => setLineItems(items => items.filter(li => li.id !== id));
   const handleSelectItem = (catalogItem: CatalogItem) => {
-    const newId = lineItems.length > 0 ? Math.max(...lineItems.map(li => li.id)) + 1 : 1;
-    setLineItems([...lineItems, catalogItemToLineItem(catalogItem, newId, 1)]);
+    setLineItems(items => [...items, catalogItemToLineItem(catalogItem, nextItemId(items), 1)]);
     setItemPickerOpen(false);
   };
 
-  // Selecting an estimate copies its line items into the invoice (they stay
-  // fully editable afterwards). One invoice links to at most ONE estimate.
+  // Estimate of the currently linked estimate label → its job number (for overlap).
+  const linkedEstimateJobNumber = (() => {
+    if (!linkedEstimate) return "";
+    const num = linkedEstimate.split(":")[0].trim();
+    return liveEstimates.find(e => e.estimateNumber === num)?.job || "";
+  })();
+
+  // Add a job: warn (don't block) if it overlaps the linked estimate, then
+  // aggregate the job's items into the invoice as snapshot copies.
+  const addJob = (label: string) => {
+    if (linkedJobs.includes(label)) return;
+    const num = label.split(":")[0].trim();
+    if (linkedEstimateJobNumber && linkedEstimateJobNumber === num) {
+      toast.warning(`Job ${num} from the linked estimate is already covered — items may duplicate`);
+    }
+    setLinkedJobs(js => [...js, label]);
+    const job = liveJobs.find(j => j.jobNumber === num);
+    if (job?.items?.length) {
+      setLineItems(items => [
+        ...items,
+        ...job.items!.map((it) => ({
+          id: 0, catalogItemId: 0, name: it.name, description: it.description,
+          quantity: it.quantity, unitPrice: it.price, unitCost: it.cost ?? 0,
+          taxable: it.taxable, total: it.amount, sourceJob: num,
+        })),
+      ].map((li, i) => ({ ...li, id: i + 1 })));
+      toast.success(`Added ${job.items.length} item${job.items.length === 1 ? "" : "s"} from ${num}`);
+    }
+    setJobAddOpen(false);
+  };
+  // Unlinking a job removes the job + the items it contributed (its snapshot copies).
+  const removeJob = (label: string) => {
+    const num = label.split(":")[0].trim();
+    setLinkedJobs(js => js.filter(j => j !== label));
+    setLineItems(items => items.filter(li => li.sourceJob !== num));
+  };
+
+  // Selecting an estimate copies its line items in (max 1 estimate). Warn if it
+  // overlaps an already-linked job.
   const applyEstimateSelection = (value: string) => {
     setLinkedEstimate(value);
     if (!value) return;
     const num = value.split(":")[0].trim();
     const est = liveEstimates.find(e => e.estimateNumber === num);
+    if (est?.job && linkedJobs.some(l => l.split(":")[0].trim() === est.job)) {
+      toast.warning(`Job ${est.job} from this estimate is already selected — items may duplicate`);
+    }
     if (est?.items?.length) {
-      setLineItems(est.items.map((it, idx) => ({
-        id: idx + 1, catalogItemId: 0,
-        name: it.name, description: it.description,
-        quantity: it.quantity, unitPrice: it.price,
-        unitCost: it.cost ?? 0, taxable: it.taxable,
-        total: it.amount,
-      })));
-      if (est.taxRate != null) setTaxRate(est.taxRate);
+      setLineItems(items => {
+        const manual = items.filter(li => !li.sourceJob); // keep job-sourced items
+        const copied = est.items!.map((it) => ({
+          id: 0, catalogItemId: 0, name: it.name, description: it.description,
+          quantity: it.quantity, unitPrice: it.price, unitCost: it.cost ?? 0,
+          taxable: it.taxable, total: it.amount,
+        }));
+        return [...manual, ...copied].map((li, i) => ({ ...li, id: i + 1 }));
+      });
       toast.success(`Copied ${est.items.length} line item${est.items.length === 1 ? "" : "s"} from ${num}`);
     }
   };
 
-  const toggleLinkedJob = (label: string) =>
-    setLinkedJobs(js => js.includes(label) ? js.filter(j => j !== label) : [...js, label]);
-
-  // "Create new job" lives as the last row of the jobs dropdown so the user can
-  // spin up a fresh job without leaving the form (the existing jobs may all be
-  // stale, e.g. 60 days old and irrelevant).
   const createNewJobInline = () => {
     if (!client.trim()) { toast.error("Select a client before creating a job."); return; }
     const rec = liveClients.find(c => c.name === client);
     const base = rec?.id || "10245";
     const prefix = `${base}-J`;
-    const used = liveJobs
-      .filter(j => j.jobNumber.startsWith(prefix))
-      .map(j => Number(j.jobNumber.slice(prefix.length)))
-      .filter(Number.isFinite);
+    const used = liveJobs.filter(j => j.jobNumber.startsWith(prefix)).map(j => Number(j.jobNumber.slice(prefix.length))).filter(Number.isFinite);
     const next = used.length ? Math.max(...used) + 1 : 1;
     const record = jobsStore.add({
       jobNumber: `${prefix}${String(next).padStart(2, "0")}`,
@@ -170,18 +204,13 @@ export function CreateInvoice() {
       address: rec?.address || "", city: rec?.city || "", state: rec?.state || "", zip: rec?.zip || "",
       gateCode: "", assignedTo: "", jobType: "One-off", jobCategory: "Service",
       startDate: "", endDate: "", startTime: "", endTime: "",
-      status: "Scheduled", totalPrice: 0, notes: "", fieldNotes: "", privateNotes: "",
-      taxRate: 7.5,
+      status: "Scheduled", totalPrice: 0, notes: "", fieldNotes: "", privateNotes: "", taxRate: 7.5,
     });
     setLinkedJobs(js => [...js, `${record.jobNumber}: ${record.title}`]);
-    setJobsDropdownOpen(false);
+    setJobAddOpen(false);
     toast.success(`Job ${record.jobNumber} created and linked`);
   };
 
-  // Save handlers with validation + feedback (was a silent redirect with no checks).
-  // Required: Client, Invoice date, Due date. Linked jobs/estimate are optional —
-  // "None" is a valid value (an invoice with no estimate and no job is a real
-  // case, e.g. selling used equipment off the shelf).
   const handleSaveInvoice = () => {
     if (!client.trim()) { toast.error("Select a client before saving the invoice."); return; }
     if (!invoiceDate) { toast.error("Invoice date is required."); return; }
@@ -191,7 +220,7 @@ export function CreateInvoice() {
     navigate(returnTo || "/invoices");
   };
   const handleSaveDraft = () => {
-    if (!client.trim() && lineItems.length === 0) { toast.error("Add a client or a line item before saving a draft."); return; }
+    if (!client.trim()) { toast.error("Select a client before saving the draft."); return; }
     toast.success("Draft saved");
     navigate(returnTo || "/invoices");
   };
@@ -200,267 +229,244 @@ export function CreateInvoice() {
   const taxableAmount = lineItems.filter(li => li.taxable).reduce((sum, li) => sum + li.total, 0);
   const taxAmount = taxableAmount * (taxRate / 100);
   const total = subtotal + taxAmount;
+  const fmt = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 
-  const fmt = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  // Resolve a linked-job label to its live record fields for the Jobs table.
+  const resolveJob = (label: string) => {
+    const num = label.split(":")[0].trim();
+    const title = label.split(":").slice(1).join(":").trim();
+    const j = liveJobs.find(x => x.jobNumber === num);
+    return { num, title: j?.title || title, scheduled: j?.startDate || "", status: j?.status || "", total: j?.totalPrice ?? null };
+  };
+  const linkedJobsTotal = linkedJobs.reduce((s, l) => s + (resolveJob(l).total ?? 0), 0);
+  const filteredJobOptions = jobOptions.filter(j => !jobSearch || j.toLowerCase().includes(jobSearch.toLowerCase()));
+
+  const reqStar = <span className="text-[#DC2626]">*</span>;
+  const fieldClass = "w-full h-11 px-3.5 border border-[#E5E7EB] rounded-lg text-[14px] text-[#1A2332] focus:outline-none focus:border-[#4A6FA5] bg-white";
+  const labelClass = "block text-[13px] text-[#374151] mb-1.5";
+
+  const Section = ({ label, children }: { label: React.ReactNode; children: React.ReactNode }) => (
+    <div className="grid grid-cols-[180px_minmax(0,1fr)] gap-8 px-6 py-6">
+      <div className="text-[16px] text-[#1A2332]" style={{ fontWeight: 700 }}>{label}</div>
+      <div>{children}</div>
+    </div>
+  );
 
   return (
-    <div className="min-h-full bg-white">
-      <div className="h-1 bg-[#4A6FA5]" />
-
-      <div className="max-w-[800px] mx-auto py-6 px-4 sm:px-6">
-        <button
-          onClick={() => navigate(returnTo || "/invoices")}
-          className="inline-flex items-center gap-1.5 text-[13px] text-[#4A6FA5] hover:text-[#3d5a85] transition-colors mb-6"
-          style={{ fontWeight: 500 }}
-        >
-          <span className="material-icons" style={{ fontSize: "18px" }}>arrow_back</span>
-          <span>Back to Invoices</span>
-        </button>
+    <div className="min-h-full bg-[#F5F7FA] p-8">
+      <div className="mx-auto max-w-[1100px]">
         {/* Header */}
-        <PageHeader
-          title="Create Invoice"
-          icon="receipt"
-          className="mb-6"
-          actions={<span className="text-[14px] text-[#546478]">{invoiceNumber}</span>}
-        />
+        <div className="mb-5 flex items-center gap-2">
+          <button onClick={() => navigate(returnTo || "/invoices")} className="flex h-8 w-8 items-center justify-center rounded-md text-[#546478] hover:bg-[#EDF0F5]" aria-label="Back to Invoices">
+            <span className="material-icons" style={{ fontSize: "22px" }}>chevron_left</span>
+          </button>
+          <span className="material-icons text-[#1A2332]" style={{ fontSize: "22px" }}>receipt</span>
+          <h1 className="text-[24px] leading-8 text-[#1A2332]" style={{ fontWeight: 700 }}>Create invoice</h1>
+        </div>
 
-        {/* Client */}
-        <div className="space-y-4 mb-6">
-          <div>
-            <label className="block text-[12px] uppercase tracking-wider text-[#546478] mb-1.5" style={{ fontWeight: 600 }}>Client <span className="text-[#DC2626]">*</span></label>
-            <select
-              value={client}
-              onChange={(e) => setClient(e.target.value)}
-              className="w-full px-4 py-3 border border-[#E5E7EB] rounded-md text-sm focus:outline-none focus:border-[#4A6FA5] bg-white"
-            >
-              <option value="">Select a client</option>
-              {clientOptions.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
-          </div>
-
-          {/* Dates */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-[12px] uppercase tracking-wider text-[#546478] mb-1.5" style={{ fontWeight: 600 }}>Invoice Date <span className="text-[#DC2626]">*</span></label>
-              <input type="date" value={invoiceDate} onChange={(e) => setInvoiceDate(e.target.value)}
-                className="w-full px-4 py-3 border border-[#E5E7EB] rounded-md text-sm focus:outline-none focus:border-[#4A6FA5]" />
-            </div>
-            <div>
-              <label className="block text-[12px] uppercase tracking-wider text-[#546478] mb-1.5" style={{ fontWeight: 600 }}>Due Date <span className="text-[#DC2626]">*</span></label>
-              <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)}
-                className="w-full px-4 py-3 border border-[#E5E7EB] rounded-md text-sm focus:outline-none focus:border-[#4A6FA5]" />
-            </div>
-          </div>
-
-          {/* Linked Jobs / Estimate */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-[12px] uppercase tracking-wider text-[#546478] mb-1.5" style={{ fontWeight: 600 }}>Linked Jobs</label>
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => setJobsDropdownOpen(o => !o)}
-                  className="w-full px-4 py-3 border border-[#E5E7EB] rounded-md text-sm focus:outline-none focus:border-[#4A6FA5] bg-white text-left flex items-center justify-between gap-2"
-                >
-                  <span className="text-[#1A2332]">
-                    {linkedJobs.length === 0 ? "None" : `${linkedJobs.length} job${linkedJobs.length === 1 ? "" : "s"} linked`}
-                  </span>
-                  <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "20px" }}>arrow_drop_down</span>
-                </button>
-                {jobsDropdownOpen && (
-                  <>
-                    <div className="fixed inset-0 z-10" onClick={() => setJobsDropdownOpen(false)} />
-                    <div className="absolute z-20 mt-1 w-full bg-white border border-[#E5E7EB] rounded-md shadow-lg max-h-[260px] overflow-y-auto">
-                      {jobOptions.map(j => (
-                        <label key={j} className="flex items-center gap-2.5 px-3 py-2.5 text-[13px] text-[#1A2332] hover:bg-[#F5F7FA] cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={linkedJobs.includes(j)}
-                            onChange={() => toggleLinkedJob(j)}
-                            className="accent-[#4A6FA5]"
-                          />
-                          <span className="truncate">{j}</span>
-                        </label>
-                      ))}
-                      {/* Shortcut: create a job without leaving the form — always the last row. */}
-                      <button
-                        type="button"
-                        onClick={createNewJobInline}
-                        className="w-full flex items-center gap-2 px-3 py-2.5 text-[13px] text-[#4A6FA5] hover:bg-[#EEF3FA] border-t border-[#E5E7EB]"
-                        style={{ fontWeight: 600 }}
-                      >
-                        <PlusIcon className="h-3.5 w-3.5" /> Create new job
-                      </button>
-                    </div>
-                  </>
-                )}
+        <div className="rounded-xl border border-[#E5E7EB] bg-white">
+          {/* Invoice details */}
+          <Section label="Invoice details">
+            <div className="grid grid-cols-2 gap-5">
+              <div>
+                <label className={labelClass}>Client name {reqStar}</label>
+                <select value={client} onChange={(e) => setClient(e.target.value)} className={fieldClass}>
+                  <option value="">Select client</option>
+                  {clientOptions.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
               </div>
-              {linkedJobs.length > 0 && (
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  {linkedJobs.map(j => (
-                    <span key={j} className="inline-flex items-center gap-1 pl-2.5 pr-1.5 py-1 bg-[#EEF3FA] text-[#4A6FA5] rounded-md text-[12px]" style={{ fontWeight: 500 }}>
-                      {j.split(":")[0]}
-                      <button type="button" onClick={() => toggleLinkedJob(j)} aria-label={`Unlink ${j}`} className="w-4 h-4 flex items-center justify-center rounded hover:bg-[#DCE6F5]">
-                        <span className="material-icons" style={{ fontSize: "13px" }}>close</span>
-                      </button>
-                    </span>
-                  ))}
+              <div>
+                <label className={labelClass}>Invoice date {reqStar}</label>
+                <input type="date" value={invoiceDate} onChange={(e) => setInvoiceDate(e.target.value)} className={fieldClass} />
+              </div>
+              <div>
+                <label className={labelClass}>Due date {reqStar}</label>
+                <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className={fieldClass} />
+              </div>
+              <div>
+                <label className={labelClass}>Linked estimate</label>
+                <select value={linkedEstimate} onChange={(e) => applyEstimateSelection(e.target.value)} className={fieldClass}>
+                  <option value="">None</option>
+                  {estimateOptions.map(e => <option key={e} value={e}>{e}</option>)}
+                </select>
+              </div>
+            </div>
+          </Section>
+
+          <div className="border-t border-[#E5E7EB]" />
+
+          {/* Jobs */}
+          <Section label="Jobs">
+            <div className="overflow-visible rounded-xl border border-[#E5E7EB]">
+              <div className="flex items-center justify-between gap-3 border-b border-[#E5E7EB] px-4 py-3">
+                <div className="relative w-[280px] max-w-full">
+                  <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: "18px" }}>search</span>
+                  <input type="text" value={jobSearch} onChange={(e) => setJobSearch(e.target.value)} placeholder="Search jobs..."
+                    className="h-9 w-full rounded-lg border border-[#E5E7EB] bg-white pl-10 pr-3 text-[13px] text-[#1A2332] placeholder:text-[#9CA3AF] outline-none focus:border-[#4A6FA5]" />
                 </div>
+                <div className="relative">
+                  <button type="button" onClick={() => setJobAddOpen(o => !o)}
+                    className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#4A6FA5] px-3.5 text-[13px] text-white transition-colors hover:bg-[#3d5a85]" style={{ fontWeight: 600 }}>
+                    <PlusIcon className="h-4 w-4" /> Add job
+                    <span className="material-icons" style={{ fontSize: "18px" }}>arrow_drop_down</span>
+                  </button>
+                  {jobAddOpen && (
+                    <>
+                      <div className="fixed inset-0 z-10" onClick={() => setJobAddOpen(false)} />
+                      <div className="absolute right-0 z-20 mt-1 w-[300px] rounded-lg border border-[#E5E7EB] bg-white shadow-lg max-h-[280px] overflow-y-auto">
+                        {filteredJobOptions.filter(j => !linkedJobs.includes(j)).map(j => (
+                          <button key={j} type="button" onClick={() => addJob(j)} className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-[13px] text-[#1A2332] hover:bg-[#F5F7FA]">
+                            <span className="truncate">{j}</span>
+                          </button>
+                        ))}
+                        <button type="button" onClick={createNewJobInline} className="flex w-full items-center gap-2 border-t border-[#E5E7EB] px-3 py-2.5 text-[13px] text-[#4A6FA5] hover:bg-[#EEF3FA]" style={{ fontWeight: 600 }}>
+                          <PlusIcon className="h-3.5 w-3.5" /> Create new job
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {linkedJobs.length === 0 ? (
+                <div className="px-5 py-10 text-center text-[13px] text-[#8899AA]">No jobs linked. Line items will come from the jobs you add.</div>
+              ) : (
+                <>
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-[#E5E7EB] bg-[#F9FAFB]">
+                        <th className="px-4 py-3 text-left text-[13px] text-[#546478]" style={{ fontWeight: 500 }}>Number</th>
+                        <th className="px-4 py-3 text-left text-[13px] text-[#546478]" style={{ fontWeight: 500 }}>Scheduled</th>
+                        <th className="px-4 py-3 text-left text-[13px] text-[#546478]" style={{ fontWeight: 500 }}>Status</th>
+                        <th className="px-4 py-3 text-right text-[13px] text-[#546478]" style={{ fontWeight: 500 }}>Total</th>
+                        <th className="w-[44px] px-4 py-3" />
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {linkedJobs.map((label) => {
+                        const j = resolveJob(label);
+                        const badge = JOB_STATUS_BADGE[j.status] || { bg: "#F3F4F6", color: "#6B7280" };
+                        return (
+                          <tr key={label} className="border-b border-[#EDF0F5] last:border-b-0">
+                            <td className="px-4 py-3">
+                              <button onClick={() => { const n = liveJobs.find(x => x.jobNumber === j.num); if (n) navigate(`/jobs/${n.id}`); }} className="text-left text-[14px] text-[#4A6FA5] hover:underline" style={{ fontWeight: 500 }}>{j.num}</button>
+                              {j.title && <div className="text-[13px] text-[#8899AA]">{j.title}</div>}
+                            </td>
+                            <td className="px-4 py-3 text-[14px] text-[#546478]">{j.scheduled || "—"}</td>
+                            <td className="px-4 py-3">
+                              {j.status ? <span className="rounded-md px-2.5 py-1 text-[12px]" style={{ fontWeight: 600, backgroundColor: badge.bg, color: badge.color }}>{j.status}</span> : <span className="text-[#C8D5E8]">—</span>}
+                            </td>
+                            <td className="px-4 py-3 text-right text-[14px] text-[#1A2332]" style={{ fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>{j.total != null ? `$${fmt(j.total)}` : "—"}</td>
+                            <td className="px-4 py-3 text-right">
+                              <button onClick={() => removeJob(label)} className="flex h-7 w-7 items-center justify-center rounded text-[#9CA3AF] hover:bg-[#FEE2E2] hover:text-[#DC2626]" aria-label="Unlink job">
+                                <span className="material-icons" style={{ fontSize: "18px" }}>delete_outline</span>
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                  <div className="flex justify-end border-t border-[#E5E7EB] bg-[#F9FAFB] px-5 py-3 text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>
+                    Total: ${fmt(linkedJobsTotal)}
+                  </div>
+                </>
               )}
             </div>
-            <div>
-              <label className="block text-[12px] uppercase tracking-wider text-[#546478] mb-1.5" style={{ fontWeight: 600 }}>Linked Estimate</label>
-              <select value={linkedEstimate} onChange={(e) => applyEstimateSelection(e.target.value)}
-                className="w-full px-4 py-3 border border-[#E5E7EB] rounded-md text-sm focus:outline-none focus:border-[#4A6FA5] bg-white">
-                <option value="">None</option>
-                {estimateOptions.map(e => <option key={e} value={e}>{e}</option>)}
-              </select>
-              <div className="mt-1.5 text-[12px] text-[#9CA3AF]">Selecting an estimate copies its line items into the invoice.</div>
-            </div>
-          </div>
-        </div>
+          </Section>
 
-        {/* Line Items */}
-        <div className="border border-[#E5E7EB] rounded-lg mb-6">
-          <div className="px-5 py-4 border-b border-[#E5E7EB] flex items-center justify-between">
-            <h3 className="text-[16px] text-[#1A2332]" style={{ fontWeight: 700 }}>Line Items</h3>
-            {/* Same style as the estimate form's "Add item". */}
-            <button
-              onClick={() => setItemPickerOpen(true)}
-              className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#4A6FA5] text-white rounded-lg text-[13px] hover:bg-[#3d5a85]"
-              style={{ fontWeight: 600 }}
-            >
-              <PlusIcon className="h-4 w-4" /> Add item
-            </button>
-          </div>
+          <div className="border-t border-[#E5E7EB]" />
 
-          {lineItems.length === 0 ? (
-            <div className="px-5 py-12 text-center">
-              <div className="w-16 h-16 mx-auto mb-3 bg-[#F5F7FA] rounded-full flex items-center justify-center">
-                <span className="material-icons text-[#C8D5E8]" style={{ fontSize: "32px" }}>receipt_long</span>
+          {/* Line Items */}
+          <Section label={<>Line Items {reqStar}</>}>
+            <div className="overflow-hidden rounded-xl border border-[#E5E7EB]">
+              <div className="flex items-center justify-between gap-3 border-b border-[#E5E7EB] px-4 py-3">
+                <div className="relative w-[280px] max-w-full">
+                  <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: "18px" }}>search</span>
+                  <input type="text" disabled placeholder="Search items..."
+                    className="h-9 w-full rounded-lg border border-[#E5E7EB] bg-white pl-10 pr-3 text-[13px] text-[#9CA3AF] outline-none" />
+                </div>
+                <button type="button" onClick={() => setItemPickerOpen(true)}
+                  className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#4A6FA5] px-3.5 text-[13px] text-white transition-colors hover:bg-[#3d5a85]" style={{ fontWeight: 600 }}>
+                  <PlusIcon className="h-4 w-4" /> Add item
+                </button>
               </div>
-              <div className="text-[14px] text-[#546478]" style={{ fontWeight: 500 }}>No items added yet</div>
-              <div className="text-[12px] text-[#8899AA] mt-1">Click "Add item" to choose from your pricebook</div>
-            </div>
-          ) : (
-            <>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-[#E5E7EB] bg-[#FAFBFC]">
-                      {["Item", "Qty", "Unit Price", "Unit Cost", "Total", ""].map(h => (
-                        <th key={h} className={`px-4 py-3 text-left text-[11px] uppercase tracking-wider text-[#546478] ${h === "" ? "w-[50px]" : ""}`} style={{ fontWeight: 600 }}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {lineItems.map(item => (
-                      <tr key={item.id} className="border-b border-[#EDF0F5] hover:bg-[#FAFBFC]">
-                        <td className="px-4 py-3">
-                          <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{item.name}</div>
-                          {item.description && <div className="text-[12px] text-[#8899AA]">{item.description}</div>}
-                          {item.taxable && (
-                            <span className="text-[11px] px-1.5 py-0.5 rounded bg-[#DCFCE7] text-[#15803D] mt-1 inline-block" style={{ fontWeight: 600 }}>Taxable</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3">
-                          <input type="number" min="0" step="1" value={item.quantity}
-                            onChange={(e) => updateLineItem(item.id, "quantity", Number(e.target.value) || 0)}
-                            className="w-20 px-2 py-1 border border-[#E5E7EB] rounded text-[13px] text-center focus:outline-none focus:border-[#4A6FA5]" />
-                        </td>
-                        <td className="px-4 py-3">
-                          <input type="number" min="0" step="0.01" value={item.unitPrice}
-                            onChange={(e) => updateLineItem(item.id, "unitPrice", Number(e.target.value) || 0)}
-                            className="w-28 px-2 py-1 border border-[#E5E7EB] rounded text-[13px] text-right focus:outline-none focus:border-[#4A6FA5]"
-                            style={{ fontVariantNumeric: "tabular-nums" }} />
-                        </td>
-                        <td className="px-4 py-3 text-[13px] text-[#546478]" style={{ fontVariantNumeric: "tabular-nums" }}>${fmt(item.unitCost)}</td>
-                        <td className="px-4 py-3 text-[13px] text-[#1A2332]" style={{ fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>${fmt(item.total)}</td>
-                        <td className="px-4 py-3">
-                          <button onClick={() => removeLineItem(item.id)} className="w-7 h-7 flex items-center justify-center rounded hover:bg-[#FEE2E2]">
-                            <span className="material-icons text-[#DC2626]" style={{ fontSize: "16px" }}>close</span>
-                          </button>
-                        </td>
+
+              {lineItems.length === 0 ? (
+                <div className="px-5 py-14 text-center">
+                  <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-[#F5F7FA]">
+                    <span className="material-icons text-[#C8D5E8]" style={{ fontSize: "32px" }}>receipt_long</span>
+                  </div>
+                  <div className="text-[14px] text-[#546478]" style={{ fontWeight: 500 }}>No items added yet</div>
+                  <div className="mt-1 text-[12px] text-[#8899AA]">Items come from linked jobs/estimate, or click "Add item"</div>
+                </div>
+              ) : (
+                <>
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-[#E5E7EB] bg-[#F9FAFB]">
+                        <th className="px-4 py-3 text-left text-[13px] text-[#546478]" style={{ fontWeight: 500 }}>Item</th>
+                        <th className="px-4 py-3 text-left text-[13px] text-[#546478]" style={{ fontWeight: 500 }}>Quantity</th>
+                        <th className="px-4 py-3 text-right text-[13px] text-[#546478]" style={{ fontWeight: 500 }}>Unit price</th>
+                        <th className="px-4 py-3 text-right text-[13px] text-[#546478]" style={{ fontWeight: 500 }}>Unit cost</th>
+                        <th className="px-4 py-3 text-right text-[13px] text-[#546478]" style={{ fontWeight: 500 }}>Total</th>
+                        <th className="w-[44px] px-4 py-3" />
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Totals */}
-              <div className="border-t border-[#E5E7EB] px-5 py-4 bg-[#FAFBFC]">
-                <div className="flex justify-end">
-                  <div className="space-y-2 min-w-[300px]">
-                    <div className="flex items-center justify-between text-[13px]">
-                      <span className="text-[#546478]">Subtotal:</span>
-                      <span className="text-[#1A2332]" style={{ fontVariantNumeric: "tabular-nums" }}>${fmt(subtotal)}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-[13px]">
-                      <span className="text-[#546478]">Taxable amount:</span>
-                      <span className="text-[#1A2332]" style={{ fontVariantNumeric: "tabular-nums" }}>${fmt(taxableAmount)}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-[13px]">
-                      <span className="text-[#546478] flex items-center gap-1.5">
-                        Tax
-                        <span className="relative inline-flex items-center">
-                          <input type="number" min="0" max="100" step="0.1" value={taxRate}
-                            onChange={(e) => setTaxRate(Math.max(0, Math.min(100, Number(e.target.value) || 0)))}
-                            className="w-16 pl-2 pr-4 py-0.5 border border-[#E5E7EB] rounded text-[13px] tabular-nums text-right focus:outline-none focus:border-[#4A6FA5]"
-                            aria-label="Tax rate percent" />
-                          <span className="absolute right-1.5 text-[#9CA3AF] pointer-events-none">%</span>
-                        </span>
-                      </span>
-                      <span className="text-[#1A2332]" style={{ fontVariantNumeric: "tabular-nums" }}>${fmt(taxAmount)}</span>
-                    </div>
-                    <div className="flex items-center justify-between pt-2 border-t border-[#E5E7EB]">
-                      <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Total:</span>
-                      <span className="text-[18px] text-[#1A2332]" style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>${fmt(total)}</span>
+                    </thead>
+                    <tbody>
+                      {lineItems.map((item) => (
+                        <tr key={item.id} className="border-b border-[#EDF0F5] last:border-b-0">
+                          <td className="px-4 py-3">
+                            <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>{item.name}</div>
+                            {item.description && <div className="text-[13px] text-[#8899AA]">{item.description}</div>}
+                          </td>
+                          <td className="px-4 py-3">
+                            <input type="number" min="0" step="1" value={item.quantity}
+                              onChange={(e) => updateLineItem(item.id, "quantity", Number(e.target.value) || 0)}
+                              className="h-9 w-16 rounded-md border border-[#E5E7EB] px-2 text-center text-[13px] focus:border-[#4A6FA5] focus:outline-none" />
+                          </td>
+                          <td className="px-4 py-3 text-right text-[14px] text-[#546478]" style={{ fontVariantNumeric: "tabular-nums" }}>${fmt(item.unitPrice)}</td>
+                          <td className="px-4 py-3 text-right text-[14px] text-[#546478]" style={{ fontVariantNumeric: "tabular-nums" }}>${fmt(item.unitCost)}</td>
+                          <td className="px-4 py-3 text-right text-[14px] text-[#1A2332]" style={{ fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>${fmt(item.total)}</td>
+                          <td className="px-4 py-3 text-right">
+                            <button onClick={() => removeLineItem(item.id)} className="flex h-7 w-7 items-center justify-center rounded text-[#9CA3AF] hover:bg-[#FEE2E2] hover:text-[#DC2626]" aria-label="Remove item">
+                              <span className="material-icons" style={{ fontSize: "18px" }}>delete_outline</span>
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  <div className="border-t border-[#E5E7EB] bg-[#F9FAFB] px-5 py-4">
+                    <div className="ml-auto w-full max-w-[320px] space-y-2">
+                      <div className="flex items-center justify-between text-[13px]"><span className="text-[#546478]">Subtotal:</span><span className="text-[#1A2332]" style={{ fontVariantNumeric: "tabular-nums" }}>${fmt(subtotal)}</span></div>
+                      <div className="flex items-center justify-between text-[13px]"><span className="text-[#546478]">Taxable amount:</span><span className="text-[#1A2332]" style={{ fontVariantNumeric: "tabular-nums" }}>${fmt(taxableAmount)}</span></div>
+                      <div className="flex items-center justify-between text-[13px]"><span className="text-[#546478]">Tax ({taxRate}%):</span><span className="text-[#1A2332]" style={{ fontVariantNumeric: "tabular-nums" }}>${fmt(taxAmount)}</span></div>
+                      <div className="flex items-center justify-between border-t border-[#E5E7EB] pt-2"><span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 700 }}>Total:</span><span className="text-[16px] text-[#1A2332]" style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>${fmt(total)}</span></div>
                     </div>
                   </div>
-                </div>
-              </div>
-            </>
-          )}
+                </>
+              )}
+            </div>
+          </Section>
+
+          <div className="border-t border-[#E5E7EB]" />
+
+          {/* Internal Notes */}
+          <Section label="Internal Notes">
+            <textarea value={notes} onChange={(e) => setNotes(e.target.value)}
+              className="min-h-[96px] w-full resize-y rounded-lg border border-[#E5E7EB] px-3.5 py-2.5 text-[13px] text-[#1A2332] outline-none focus:border-[#4A6FA5]"
+              placeholder={`Notes for your team - e.g. "Do not walk on right side, dog in yard"...`} />
+          </Section>
         </div>
 
-        {/* Notes & Terms */}
-        <div className="mb-8">
-          <h3 className="text-[16px] text-[#1A2332] mb-3" style={{ fontWeight: 700 }}>Notes & Terms</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-[12px] uppercase tracking-wider text-[#546478] mb-1.5" style={{ fontWeight: 600 }}>Internal Notes</label>
-              <textarea value={notes} onChange={(e) => setNotes(e.target.value)}
-                className="w-full px-3 py-2 border border-[#E5E7EB] rounded-md text-sm focus:outline-none focus:border-[#4A6FA5] min-h-[100px] resize-y"
-                placeholder="Notes visible only to your team..." />
-            </div>
-            <div>
-              <label className="block text-[12px] uppercase tracking-wider text-[#546478] mb-1.5" style={{ fontWeight: 600 }}>Terms & Conditions</label>
-              <textarea value={terms} onChange={(e) => setTerms(e.target.value)}
-                className="w-full px-3 py-2 border border-[#E5E7EB] rounded-md text-sm focus:outline-none focus:border-[#4A6FA5] min-h-[100px] resize-y"
-                placeholder="Terms visible to client..." />
-            </div>
+        {/* Footer actions */}
+        <div className="mt-5 flex items-center justify-between pb-8">
+          <button onClick={() => navigate(returnTo || "/invoices")} className="h-10 rounded-lg border border-[#E5E7EB] bg-white px-5 text-[13px] text-[#546478] transition-colors hover:bg-[#F5F7FA]" style={{ fontWeight: 600 }}>Cancel</button>
+          <div className="flex items-center gap-3">
+            <button onClick={handleSaveDraft} className="h-10 rounded-lg border border-[#E5E7EB] bg-white px-5 text-[13px] text-[#1A2332] transition-colors hover:bg-[#F5F7FA]" style={{ fontWeight: 600 }}>Save as draft</button>
+            <button onClick={handleSaveInvoice} className="h-10 rounded-lg bg-[#4A6FA5] px-5 text-[13px] text-white transition-colors hover:bg-[#3d5a85]" style={{ fontWeight: 600 }}>Save invoice</button>
           </div>
-        </div>
-
-        {/* Actions */}
-        <div className="flex items-center justify-end gap-3 pb-8">
-          <button onClick={() => navigate(returnTo || "/invoices")} className="px-6 py-2.5 text-sm text-[#546478] hover:text-[#1A2332]" style={{ fontWeight: 500 }}>
-            Cancel
-          </button>
-          <button
-            onClick={handleSaveDraft}
-            className="px-6 py-2.5 border border-[#E5E7EB] rounded-md text-sm text-[#1A2332] hover:bg-[#F5F7FA]"
-            style={{ fontWeight: 500 }}
-          >
-            Save as Draft
-          </button>
-          <button
-            onClick={handleSaveInvoice}
-            className="px-6 py-2.5 bg-[#4A6FA5] text-white rounded-md text-sm hover:bg-[#3d5a85]"
-            style={{ fontWeight: 600 }}
-          >
-            Save Invoice
-          </button>
         </div>
       </div>
 
