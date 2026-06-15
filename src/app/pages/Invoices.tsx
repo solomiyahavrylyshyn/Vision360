@@ -243,16 +243,18 @@ export const initialInvoices: Invoice[] = [
   },
 ];
 
+// Figma column order (node 645:64301): Number · Client name · Job · Status ·
+// Date · Due date · Total · Balance · Note.
 const INVOICES_COLS = [
-  { key: "number", label: "Invoice #" },
-  { key: "date", label: "Date" },
-  { key: "client", label: "Client" },
+  { key: "number", label: "Number" },
+  { key: "client", label: "Client name" },
   { key: "job", label: "Job" },
   { key: "status", label: "Status" },
+  { key: "date", label: "Date" },
+  { key: "dueDate", label: "Due date" },
   { key: "total", label: "Total" },
   { key: "balance", label: "Balance" },
-  { key: "dueDate", label: "Due Date" },
-  { key: "memo", label: "Memo" },
+  { key: "memo", label: "Note" },
 ] as const;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -303,7 +305,7 @@ export function Invoices() {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [page, setPage] = useState(1);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
-  const perPage = 10;
+  const [perPage, setPerPage] = useState(10);
 
 
   const fmt = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
@@ -480,13 +482,13 @@ export function Invoices() {
           </div>
           <div className="w-px h-5 bg-[#E5E7EB] mx-1" />
           <select value={qfStatus} onChange={e => { setQfStatus(e.target.value); setPage(1); }} className={qfClass(qfStatus !== "All")}>
-            <option value="All">All statuses</option>
+            <option value="All">Status: All</option>
             {allStatuses.map(s => (
               <option key={s} value={s}>{s}</option>
             ))}
           </select>
           <select value={qfDate} onChange={e => { setQfDate(e.target.value); setPage(1); }} className={qfClass(qfDate !== "All time")}>
-            {timeFilters.map(t => <option key={t} value={t}>{t}</option>)}
+            {timeFilters.map(t => <option key={t} value={t}>{t === "All time" ? "Date: All time" : t}</option>)}
           </select>
           <select value={qfBalance} onChange={e => { setQfBalance(e.target.value); setPage(1); }} className={qfClass(qfBalance !== "All")}>
             <option value="All">All invoices</option>
@@ -510,7 +512,7 @@ export function Invoices() {
           </button>
           <div className="ml-auto flex items-center gap-2">
             <CreateActionButton onClick={() => navigate("/invoices/new")}>
-              Create Invoice
+              Create invoice
             </CreateActionButton>
             <KebabMenu triggerClassName="w-10 h-10 border border-[#D8DEE8] rounded-xl bg-white">
               <KebabItem icon="view_column">Edit Columns</KebabItem>
@@ -596,7 +598,7 @@ export function Invoices() {
                 </th>
                 {cols.map(col => (
                   <DraggableTh key={col.key} colKey={col.key} onMove={moveCol}
-                    className="px-4 py-3 text-left text-[14px] text-[#1A2332] whitespace-nowrap"
+                    className={`px-4 py-3 text-[14px] text-[#1A2332] whitespace-nowrap ${col.key === "total" || col.key === "balance" ? "text-right" : "text-left"}`}
                     style={{ fontFamily: "Geist", fontWeight: 500 }}
                   >
                     {col.label}
@@ -668,9 +670,9 @@ export function Invoices() {
                           )}
                         </td>
                       );
-                      case "total": return <td key={col.key} className="px-4 py-4 text-[14px] text-[#1A2332] whitespace-nowrap" style={{ fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>${fmt(inv.total)}</td>;
+                      case "total": return <td key={col.key} className="px-4 py-4 text-[14px] text-[#1A2332] whitespace-nowrap text-right" style={{ fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>${fmt(inv.total)}</td>;
                       case "balance": return (
-                        <td key={col.key} className="px-4 py-4 text-[14px] whitespace-nowrap" style={{ fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>
+                        <td key={col.key} className="px-4 py-4 text-[14px] whitespace-nowrap text-right" style={{ fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>
                           <span className={inv.balance > 0 ? "text-[#EF4444]" : "text-[#22C55E]"}>${fmt(inv.balance)}</span>
                         </td>
                       );
@@ -739,17 +741,28 @@ export function Invoices() {
           })}
         </div>
 
-        {/* Pagination */}
+        {/* Pagination (Figma: "Rows per page: N   X-Y of Z   ‹ ›") */}
         <div className="flex items-center justify-between px-4 py-3 border-t border-[#E5E7EB] bg-[#FAFBFC]">
-          <span className="text-[13px] text-[#546478]">
-            Showing {filtered.length === 0 ? 0 : (page - 1) * perPage + 1} to {Math.min(page * perPage, filtered.length)} of {filtered.length}
-          </span>
+          <div className="flex items-center gap-5 text-[13px] text-[#546478]">
+            <div className="flex items-center gap-2">
+              <span>Rows per page:</span>
+              <select
+                value={perPage}
+                onChange={e => { setPerPage(Number(e.target.value)); setPage(1); }}
+                className="h-8 rounded-lg border border-[#E5E7EB] bg-white pl-2.5 pr-7 text-[13px] text-[#1A2332] outline-none focus:border-[#4A6FA5] cursor-pointer"
+              >
+                {[10, 25, 50].map(n => <option key={n} value={n}>{n}</option>)}
+              </select>
+            </div>
+            <span style={{ fontVariantNumeric: "tabular-nums" }}>
+              {filtered.length === 0 ? 0 : (page - 1) * perPage + 1}-{Math.min(page * perPage, filtered.length)} of {filtered.length}
+            </span>
+          </div>
           <div className="flex items-center gap-1">
             <button onClick={() => setPage(Math.max(1, page - 1))} disabled={page <= 1}
               className="w-8 h-8 flex items-center justify-center rounded hover:bg-[#EDF0F5] disabled:opacity-30">
               <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>chevron_left</span>
             </button>
-            <span className="text-[13px] text-[#1A2332] min-w-[80px] text-center" style={{ fontWeight: 500 }}>Page {page} of {totalPages}</span>
             <button onClick={() => setPage(Math.min(totalPages, page + 1))} disabled={page >= totalPages}
               className="w-8 h-8 flex items-center justify-center rounded hover:bg-[#EDF0F5] disabled:opacity-30">
               <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>chevron_right</span>
