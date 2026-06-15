@@ -373,7 +373,7 @@ const PRICEBOOK_COLS = [
 export function Items() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabKey>("all");
-  const [showInfoBar, setShowInfoBar] = useState(true);
+  const [showInfoBar, setShowInfoBar] = useState(false);
   const [showInfoBarDismiss, setShowInfoBarDismiss] = useState(false);
 
   // Items state
@@ -526,8 +526,8 @@ export function Items() {
   );
 
   const tabs: { key: TabKey; label: string }[] = [
-    { key: "all", label: "All Items" },
-    { key: "pricebook", label: "Price Book" },
+    { key: "all", label: "All items" },
+    { key: "pricebook", label: "Price book" },
     { key: "services", label: "Services" },
     { key: "materials", label: "Materials" },
     { key: "equipment", label: "Equipment" },
@@ -621,13 +621,13 @@ export function Items() {
             <select value={pbCategoryFilter} onChange={(e) => { setPbCategoryFilter(e.target.value); setPbPage(1); }}
               className="h-8 px-3 pr-8 border border-[#E5E7EB] rounded-lg text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5] min-w-[145px]"
               style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23546478' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`, backgroundRepeat: "no-repeat", backgroundPosition: "right 10px center", appearance: "none" }}>
-              <option value="All">All Categories</option>
+              <option value="All">Categories: All</option>
               {pbCategories.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
             <select value={pbStatusFilter} onChange={(e) => { setPbStatusFilter(e.target.value); setPbPage(1); }}
               className="h-8 px-3 pr-8 border border-[#E5E7EB] rounded-lg text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5] min-w-[125px]"
               style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23546478' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`, backgroundRepeat: "no-repeat", backgroundPosition: "right 10px center", appearance: "none" }}>
-              <option value="All">All Statuses</option>
+              <option value="All">Status: All</option>
               <option value="Active">Active</option>
               <option value="Inactive">Inactive</option>
             </select>
@@ -641,7 +641,7 @@ export function Items() {
               style={{ fontWeight: 500 }}
             >
               <span className="material-icons" style={{ fontSize: "16px" }}>filter_alt</span>
-              Filters
+              Filter
               {advancedFilterCount > 0 && (
                 <span className="w-4 h-4 bg-[#4A6FA5] text-white text-[10px] rounded-full flex items-center justify-center" style={{ fontWeight: 700 }}>
                   {advancedFilterCount}
@@ -650,7 +650,7 @@ export function Items() {
             </button>
             <div className="ml-auto flex items-center gap-2">
               <CreateActionButton onClick={() => { setEditingItem(null); setItemModalOpen(true); }}>
-                {activeTab === "pricebook" ? "Create Pricebook Item" : "Create Item"}
+                {activeTab === "pricebook" ? "Create pricebook item" : "Create item"}
               </CreateActionButton>
               <KebabMenu triggerClassName="w-10 h-10 border border-[#D8DEE8] rounded-xl bg-white">
                 <KebabItem icon="view_column">Edit Columns</KebabItem>
@@ -794,7 +794,7 @@ export function Items() {
               className="h-8 px-3 pr-8 border border-[#E5E7EB] rounded-lg text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5] min-w-[145px]"
               style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23546478' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`, backgroundRepeat: "no-repeat", backgroundPosition: "right 10px center", appearance: "none" }}
             >
-              <option value="All">All Categories</option>
+              <option value="All">Categories: All</option>
               {uniqueCategories.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
             <select
@@ -803,7 +803,7 @@ export function Items() {
               className="h-8 px-3 pr-8 border border-[#E5E7EB] rounded-lg text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5] min-w-[125px]"
               style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23546478' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`, backgroundRepeat: "no-repeat", backgroundPosition: "right 10px center", appearance: "none" }}
             >
-              <option value="All">All Statuses</option>
+              <option value="All">Status: All</option>
               <option value="Active">Active</option>
               <option value="Inactive">Inactive</option>
             </select>
@@ -817,7 +817,7 @@ export function Items() {
               style={{ fontWeight: 500 }}
             >
               <span className="material-icons" style={{ fontSize: "16px" }}>filter_alt</span>
-              Filters
+              Filter
               {advancedFilterCount > 0 && (
                 <span className="w-4 h-4 bg-[#4A6FA5] text-white text-[10px] rounded-full flex items-center justify-center" style={{ fontWeight: 700 }}>
                   {advancedFilterCount}
@@ -826,7 +826,7 @@ export function Items() {
             </button>
             <div className="ml-auto flex items-center gap-2">
               <CreateActionButton onClick={() => { setEditingItem(null); setItemModalOpen(true); }}>
-                {activeTab === "pricebook" ? "Create Pricebook Item" : "Create Item"}
+                {activeTab === "pricebook" ? "Create pricebook item" : "Create item"}
               </CreateActionButton>
               <KebabMenu triggerClassName="w-10 h-10 border border-[#D8DEE8] rounded-xl bg-white">
                 <KebabItem icon="view_column">Edit Columns</KebabItem>
@@ -874,18 +874,18 @@ export function Items() {
                     />
                   </th>
                   {[
-                    { key: "name", label: "Item Name", w: "min-w-[220px]", sortable: true },
-                    { key: "type", label: "Type", w: "w-[110px]", sortable: true },
+                    { key: "name", label: "Name", w: "min-w-[220px]", sortable: true },
                     { key: "category", label: "Category", w: "w-[120px]", sortable: true },
-                    { key: "modelNumber", label: "SKU / Item Code", w: "w-[130px]", sortable: true },
+                    { key: "type", label: "Type", w: "w-[110px]", sortable: true },
+                    { key: "modelNumber", label: "SKU / Item code", w: "w-[130px]", sortable: true },
                     { key: "rate", label: "Price", w: "w-[90px]", sortable: true },
                     { key: "cost", label: "Cost", w: "w-[85px]", sortable: true },
                     { key: "taxable", label: "Taxable", w: "w-[80px]", sortable: false },
                   ].map(col => (
                     <th
                       key={col.key}
-                      className={`px-4 py-2 text-left text-[11px] uppercase tracking-wider text-[#546478] ${col.sortable ? "cursor-pointer hover:text-[#1A2332]" : ""} select-none ${col.w}`}
-                      style={{ fontWeight: 600 }}
+                      className={`px-4 py-2.5 text-left text-[13px] text-[#546478] ${col.sortable ? "cursor-pointer hover:text-[#1A2332]" : ""} select-none ${col.w}`}
+                      style={{ fontWeight: 500 }}
                       onClick={() => { if (col.sortable) handleSortItems(col.key); }}
                     >
                       <div className="flex items-center gap-0.5">
@@ -929,20 +929,16 @@ export function Items() {
                       <td className="px-4 py-2">
                         <div className="truncate max-w-[200px] text-[14px] text-[#4A6FA5] hover:underline" style={{ fontFamily: "Geist", fontWeight: 400, lineHeight: "20px" }}>{item.name}</div>
                       </td>
+                      <td className="px-4 py-2 text-[14px] text-[#546478]" style={{ fontFamily: "Geist", fontWeight: 400, lineHeight: "20px" }}>{item.category || "—"}</td>
                       <td className="px-4 py-2">
                         <span className="inline-block px-2 py-0.5 rounded text-[11px] whitespace-nowrap" style={{ fontWeight: 600, backgroundColor: badge.bg, color: badge.color }}>
                           {badge.label}
                         </span>
                       </td>
-                      <td className="px-4 py-2 text-[14px] text-[#546478]" style={{ fontFamily: "Geist", fontWeight: 400, lineHeight: "20px" }}>{item.category || "—"}</td>
                       <td className="px-4 py-2 text-[14px] text-[#546478]" style={{ fontFamily: "Geist", fontWeight: 400, lineHeight: "20px", fontVariantNumeric: "tabular-nums" }}>{item.modelNumber || "—"}</td>
                       <td className="px-4 py-2 text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist", fontWeight: 400, lineHeight: "20px", fontVariantNumeric: "tabular-nums" }}>${item.rate.toFixed(2)}</td>
                       <td className="px-4 py-2 text-[14px] text-[#546478]" style={{ fontFamily: "Geist", fontWeight: 400, lineHeight: "20px", fontVariantNumeric: "tabular-nums" }}>${item.cost.toFixed(2)}</td>
-                      <td className="px-4 py-2">
-                        {item.taxable
-                          ? <span className="material-icons text-[#16A34A]" style={{ fontSize: "18px" }}>check</span>
-                          : <span className="text-[#C8D5E8]">—</span>}
-                      </td>
+                      <td className="px-4 py-2 text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist", fontWeight: 400, lineHeight: "20px" }}>{item.taxable ? "Yes" : "No"}</td>
                       <td className="px-4 py-2 text-right" onClick={(e) => e.stopPropagation()}>
                         <KebabMenu>
                           <KebabItem icon="edit" onClick={() => { setEditingItem(item); setItemModalOpen(true); }}>Edit</KebabItem>
