@@ -44,6 +44,7 @@ import { ServiceAgreements } from "./pages/ServiceAgreements";
 import { CreateServiceAgreement } from "./pages/CreateServiceAgreement";
 import { CreatePayment } from "./pages/CreatePayment";
 import { Profile } from "./pages/Profile";
+import { HelpCenter } from "./pages/HelpCenter";
 import { Account } from "./pages/Account";
 
 // Friendly error page shown instead of React Router's default "Hey developer 👈"
@@ -148,6 +149,7 @@ export const router = createBrowserRouter([
       { path: "settings", Component: Settings },
       { path: "settings/team/new", Component: NewUser },
       { path: "profile", Component: Profile },
+      { path: "help", Component: HelpCenter },
       { path: "account", Component: Account },
     ],
   },

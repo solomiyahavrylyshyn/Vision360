@@ -5,7 +5,6 @@ import wordmarkLogo from "../../assets/vision360-wordmark.png";
 import { MessagingCenter } from "./MessagingCenter";
 import { AiAssistant } from "./AiAssistant";
 import { Dialer } from "./Dialer";
-import { HelpCenter } from "./HelpCenter";
 import { ProfileMenu } from "./ProfileMenu";
 import { PlusIcon } from "./ui/plus-icon";
 import {
@@ -55,7 +54,6 @@ export function Layout() {
   const [messagingOpen, setMessagingOpen] = useState(false);
   const [aiAssistantOpen, setAiAssistantOpen] = useState(false);
   const [dialerOpen, setDialerOpen] = useState(false);
-  const [helpCenterOpen, setHelpCenterOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [companyLogoSrc, setCompanyLogoSrc] = useState(() => getStoredBrandLogo() || wordmarkLogo);
   const trial = useSyncExternalStore(trialStore.subscribe, trialStore.getSnapshot);
@@ -652,7 +650,7 @@ export function Layout() {
               <BellIcon width={20} height={20} />
               <span className="absolute top-1.5 right-1.5 w-[7px] h-[7px] rounded-full bg-[#DC2626] border border-white" />
             </button>
-            <button title="Help Center" onClick={() => setHelpCenterOpen(true)}
+            <button title="Help Center" onClick={() => navigate("/help")}
               className="w-9 h-9 p-2 rounded-lg flex items-center justify-center text-[#1A2332] hover:bg-[#F5F7FA] transition-colors">
               <HelpIcon width={20} height={20} />
             </button>
@@ -873,9 +871,6 @@ export function Layout() {
 
       {/* Dialer */}
       <Dialer isOpen={dialerOpen} onClose={() => setDialerOpen(false)} />
-
-      {/* Help Center */}
-      <HelpCenter isOpen={helpCenterOpen} onClose={() => setHelpCenterOpen(false)} />
     </div>
   );
 }

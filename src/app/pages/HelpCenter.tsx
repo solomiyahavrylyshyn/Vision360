@@ -1,0 +1,290 @@
+import { useMemo, useState } from "react";
+import { toast } from "sonner";
+
+// Help Center — full page, aligned to Figma node 1195-79448:
+// 300px category rail (search + topics) + 900px main area with an accordion
+// article list, a "Contact us" button, and a centered Contact-us modal.
+
+type CatKey =
+  | "all" | "getting-started" | "clients" | "jobs"
+  | "estimates" | "payments" | "items" | "reports" | "settings";
+
+const categories: { key: CatKey; label: string; icon: string; count: number }[] = [
+  { key: "getting-started", label: "Getting started", icon: "rocket_launch", count: 8 },
+  { key: "clients", label: "Clients & contacts", icon: "people", count: 12 },
+  { key: "jobs", label: "Jobs & scheduling", icon: "work", count: 15 },
+  { key: "estimates", label: "Estimates & invoices", icon: "description", count: 18 },
+  { key: "payments", label: "Payments & billing", icon: "payments", count: 10 },
+  { key: "items", label: "Items & catalog", icon: "inventory_2", count: 6 },
+  { key: "reports", label: "Reports & analytics", icon: "bar_chart", count: 9 },
+  { key: "settings", label: "Settings & account", icon: "settings", count: 7 },
+];
+
+interface Article {
+  id: number;
+  title: string;
+  categoryKey: CatKey;
+  category: string;
+  readTime: string;
+  body: string[];
+}
+
+const articles: Article[] = [
+  {
+    id: 1,
+    title: "How to create your first invoice?",
+    categoryKey: "estimates",
+    category: "Estimates & invoices",
+    readTime: "3 min read",
+    body: [
+      "Creating an invoice in Vision360 is straightforward. Navigate to Invoices from the sidebar and click the \"Add New\" button in the top right.",
+      "Start by selecting the client from the dropdown. The invoice number will be auto-generated. Set the invoice date and due date according to your payment terms.",
+      "If the invoice is related to a specific job or estimate, link it using the respective dropdowns. This helps maintain a clear audit trail across your workflow.",
+      "Add line items by clicking \"Add Item\" to open the Item Picker. Search and select items from your catalog — the price, cost, and tax settings will auto-populate. Adjust quantities as needed.",
+      "The totals section will automatically calculate subtotal, taxable amount, tax, and grand total. Add any notes or terms, then click \"Save Invoice\" to create it.",
+    ],
+  },
+  {
+    id: 2,
+    title: "Setting up your company profile",
+    categoryKey: "getting-started",
+    category: "Getting started",
+    readTime: "3 min read",
+    body: [
+      "Go to Settings from the sidebar or the user menu. Under the Company tab, you can update your business name, address, phone, and email.",
+      "Upload your company logo — it will appear on invoices, estimates, and other client-facing documents.",
+      "Set your default tax rate, payment terms, and currency preferences. These defaults will auto-apply when creating new documents.",
+    ],
+  },
+  {
+    id: 3,
+    title: "Adding and managing clients",
+    categoryKey: "clients",
+    category: "Clients & contacts",
+    readTime: "3 min read",
+    body: [
+      "Navigate to Clients from the sidebar. Click \"Create Client\" to add a new contact. Fill in their name, phone, and address details.",
+      "Each client profile shows their complete history — jobs, estimates, invoices, and payments all linked in one place.",
+      "Use the search and filter options on the Clients list to quickly find existing clients by name, email, or phone number.",
+    ],
+  },
+  {
+    id: 4,
+    title: "Recording payments on invoices",
+    categoryKey: "payments",
+    category: "Payments & billing",
+    readTime: "5 min read",
+    body: [
+      "Open the invoice you want to record a payment for. Click the \"Collect Payment\" button in the top toolbar.",
+      "Enter the payment amount, date, and method (Cash, Check, Credit Card, Bank Transfer, etc.). Add an optional note for reference.",
+      "The invoice balance will automatically recalculate. If the full amount is paid, the status changes to \"Paid\". Partial payments update the status to \"Partially Paid\".",
+      "All payment activity is logged in the Activity section, providing a complete audit trail.",
+    ],
+  },
+  {
+    id: 5,
+    title: "Using the item catalog for line items",
+    categoryKey: "items",
+    category: "Items & catalog",
+    readTime: "5 min read",
+    body: [
+      "The Items module lets you maintain a catalog of products, services, labor, and equipment with preset pricing.",
+      "When creating estimates, invoices, or jobs, use the \"Add Item\" button to open the Item Picker. Search by name, brand, or category.",
+      "Selecting an item auto-fills the price, cost, and tax settings. You can adjust the quantity and, in some cases, override the unit price.",
+    ],
+  },
+  {
+    id: 6,
+    title: "Scheduling jobs on calendar",
+    categoryKey: "jobs",
+    category: "Jobs & scheduling",
+    readTime: "5 min read",
+    body: [
+      "Navigate to Schedule from the sidebar. You can view your schedule in Day, Week, or Month view.",
+      "Create a new job directly from the calendar or go to Jobs → Create Job. Assign a client, set the date/time, and add relevant details.",
+      "Jobs appear color-coded on the calendar based on their status. Drag and drop to reschedule.",
+    ],
+  },
+];
+
+export function HelpCenter() {
+  const [activeCat, setActiveCat] = useState<CatKey>("all");
+  const [search, setSearch] = useState("");
+  const [expanded, setExpanded] = useState<number | null>(null);
+  const [contactOpen, setContactOpen] = useState(false);
+  const [contact, setContact] = useState({ name: "", email: "", subject: "", message: "" });
+
+  const totalCount = categories.reduce((sum, c) => sum + c.count, 0);
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return articles.filter(a =>
+      (activeCat === "all" || a.categoryKey === activeCat) &&
+      (!q || a.title.toLowerCase().includes(q) || a.category.toLowerCase().includes(q))
+    );
+  }, [activeCat, search]);
+
+  const sendMessage = () => {
+    toast.success("Message sent — we'll get back to you within 24 hours.");
+    setContactOpen(false);
+    setContact({ name: "", email: "", subject: "", message: "" });
+  };
+
+  return (
+    <div className="flex h-full bg-[#F5F7FA]">
+      {/* Category rail */}
+      <aside className="flex w-[300px] shrink-0 flex-col border-r border-[#E5E7EB] bg-white">
+        <div className="border-b border-[#EDF0F5] p-4">
+          <div className="relative">
+            <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: "18px" }}>search</span>
+            <input
+              type="text"
+              placeholder="Search..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="h-10 w-full rounded-lg border border-[#E5E7EB] bg-white pl-10 pr-3 text-[13px] text-[#1A2332] placeholder:text-[#9CA3AF] outline-none focus:border-[#4A6FA5]"
+            />
+          </div>
+        </div>
+        <nav className="flex-1 overflow-y-auto p-3">
+          <button
+            onClick={() => setActiveCat("all")}
+            className={`mb-1 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors ${
+              activeCat === "all" ? "bg-[#EBF0F8]" : "hover:bg-[#F5F7FA]"
+            }`}
+          >
+            <span className="material-icons" style={{ fontSize: "18px", color: activeCat === "all" ? "#4A6FA5" : "#8899AA" }}>menu_book</span>
+            <span className="flex-1 text-[13px] text-[#1A2332]" style={{ fontWeight: activeCat === "all" ? 600 : 500 }}>All articles</span>
+            <span className="text-[12px] text-[#8899AA]">{totalCount}</span>
+          </button>
+          {categories.map(cat => (
+            <button
+              key={cat.key}
+              onClick={() => setActiveCat(cat.key)}
+              className={`mb-1 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors ${
+                activeCat === cat.key ? "bg-[#EBF0F8]" : "hover:bg-[#F5F7FA]"
+              }`}
+            >
+              <span className="material-icons" style={{ fontSize: "18px", color: activeCat === cat.key ? "#4A6FA5" : "#8899AA" }}>{cat.icon}</span>
+              <span className="flex-1 text-[13px] text-[#1A2332]" style={{ fontWeight: activeCat === cat.key ? 600 : 500 }}>{cat.label}</span>
+              <span className="text-[12px] text-[#8899AA]">{cat.count}</span>
+            </button>
+          ))}
+        </nav>
+      </aside>
+
+      {/* Main area */}
+      <main className="flex-1 overflow-y-auto">
+        <div className="flex items-center justify-between px-5 py-5">
+          <h1 className="text-[24px] leading-8 text-[#1A2332]" style={{ fontWeight: 700 }}>Help center</h1>
+          <button
+            onClick={() => setContactOpen(true)}
+            className="h-9 rounded-md bg-[#4A6FA5] px-4 text-[13px] text-white transition-colors hover:bg-[#3d5a85]"
+            style={{ fontWeight: 600 }}
+          >
+            Contact us
+          </button>
+        </div>
+
+        <div className="px-5 pb-8">
+          {filtered.length === 0 ? (
+            <div className="rounded-xl border border-[#E5E7EB] bg-white py-16 text-center">
+              <span className="material-icons text-[#C8D5E8]" style={{ fontSize: "40px" }}>search_off</span>
+              <div className="mt-2 text-[14px] text-[#8899AA]">No articles found</div>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {filtered.map((article) => {
+                const open = expanded === article.id;
+                return (
+                  <div key={article.id} className="overflow-hidden rounded-xl border border-[#E5E7EB] bg-white">
+                    <button
+                      onClick={() => setExpanded(open ? null : article.id)}
+                      className="flex w-full items-center gap-3 px-4 py-4 text-left transition-colors hover:bg-[#F9FAFB]"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <span className="text-[15px] text-[#1A2332]" style={{ fontWeight: 600 }}>{article.title}</span>
+                        <span className="ml-2 text-[13px] text-[#8899AA]">{article.category} • {article.readTime}</span>
+                      </div>
+                      <span className="material-icons shrink-0 text-[#8899AA] transition-transform" style={{ fontSize: "22px", transform: open ? "rotate(180deg)" : "none" }}>expand_more</span>
+                    </button>
+                    {open && (
+                      <div className="space-y-3 px-4 pb-5 pt-0">
+                        {article.body.map((p, idx) => (
+                          <p key={idx} className="text-[14px] leading-[1.7] text-[#546478]">{p}</p>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </main>
+
+      {/* Contact us modal */}
+      {contactOpen && (
+        <div className="fixed inset-0 z-[3000] flex items-center justify-center bg-black/30 p-4" onClick={() => setContactOpen(false)}>
+          <div className="w-[650px] max-w-full overflow-hidden rounded-xl bg-white shadow-2xl" onClick={e => e.stopPropagation()}>
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-[#E5E7EB] px-4 py-4">
+              <h2 className="text-[18px] text-[#1A2332]" style={{ fontWeight: 600 }}>Contact us</h2>
+              <button onClick={() => setContactOpen(false)} className="flex h-6 w-6 items-center justify-center rounded text-[#6B7280] hover:bg-[#F3F4F6]" aria-label="Close">
+                <span className="material-icons" style={{ fontSize: "20px" }}>close</span>
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="space-y-4 px-4 py-5">
+              <div className="grid grid-cols-2 gap-4">
+                <label className="flex flex-col gap-1.5">
+                  <span className="text-[13px] text-[#374151]" style={{ fontWeight: 500 }}>Name</span>
+                  <input value={contact.name} onChange={e => setContact({ ...contact, name: e.target.value })} className="h-9 rounded-lg border border-[#E5E7EB] px-3 text-[13px] text-[#1A2332] outline-none focus:border-[#4A6FA5]" placeholder="Your name" />
+                </label>
+                <label className="flex flex-col gap-1.5">
+                  <span className="text-[13px] text-[#374151]" style={{ fontWeight: 500 }}>Email</span>
+                  <input type="email" value={contact.email} onChange={e => setContact({ ...contact, email: e.target.value })} className="h-9 rounded-lg border border-[#E5E7EB] px-3 text-[13px] text-[#1A2332] outline-none focus:border-[#4A6FA5]" placeholder="name@example.com" />
+                </label>
+              </div>
+              <label className="flex flex-col gap-1.5">
+                <span className="text-[13px] text-[#374151]" style={{ fontWeight: 500 }}>Subject</span>
+                <input value={contact.subject} onChange={e => setContact({ ...contact, subject: e.target.value })} className="h-9 rounded-lg border border-[#E5E7EB] px-3 text-[13px] text-[#1A2332] outline-none focus:border-[#4A6FA5]" placeholder="Brief description of your issue" />
+              </label>
+              <label className="flex flex-col gap-1.5">
+                <span className="text-[13px] text-[#374151]" style={{ fontWeight: 500 }}>Message</span>
+                <textarea value={contact.message} onChange={e => setContact({ ...contact, message: e.target.value })} className="min-h-[76px] rounded-lg border border-[#E5E7EB] px-3 py-2 text-[13px] text-[#1A2332] outline-none focus:border-[#4A6FA5] resize-y" placeholder="Describe your issue in detail..." />
+              </label>
+
+              <div className="border-t border-[#EDF0F5] pt-4">
+                <h3 className="mb-3 text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Other ways to reach us</h3>
+                <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[13px] text-[#546478]">
+                  <span className="inline-flex items-center gap-2"><span className="material-icons text-[#4A6FA5]" style={{ fontSize: "16px" }}>mail</span>support@vision360.app</span>
+                  <span className="h-4 w-px bg-[#E5E7EB]" />
+                  <span className="inline-flex items-center gap-2"><span className="material-icons text-[#4A6FA5]" style={{ fontSize: "16px" }}>phone</span>(800) 360-0360</span>
+                  <span className="h-4 w-px bg-[#E5E7EB]" />
+                  <span className="inline-flex items-center gap-2"><span className="material-icons text-[#4A6FA5]" style={{ fontSize: "16px" }}>schedule</span>Mon–Fri, 8:00 AM – 6:00 PM EST</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="flex items-center justify-end gap-2 border-t border-[#E5E7EB] px-4 py-4">
+              <button onClick={() => setContactOpen(false)} className="h-9 rounded-lg border border-[#E5E7EB] bg-white px-4 text-[13px] text-[#546478] transition-colors hover:bg-[#F5F7FA]" style={{ fontWeight: 600 }}>
+                Cancel
+              </button>
+              <button
+                onClick={sendMessage}
+                disabled={!contact.subject.trim() || !contact.message.trim()}
+                className="h-9 rounded-lg bg-[#4A6FA5] px-4 text-[13px] text-white transition-colors hover:bg-[#3d5a85] disabled:opacity-40"
+                style={{ fontWeight: 600 }}
+              >
+                Send message
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
