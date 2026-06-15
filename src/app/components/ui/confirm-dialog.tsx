@@ -27,7 +27,7 @@ export function ConfirmDialog({
         <h2 className="text-[20px] text-[#1A2332]" style={{ fontWeight: 600, lineHeight: "1.35" }}>{title}</h2>
         <p className="text-[14px] text-[#6B7280] leading-[20px]">{message}</p>
         <div className="flex items-center justify-end gap-2">
-          <Button variant="outline" onClick={onCancel} className="border-[#E5E7EB] text-[#1A2332] hover:bg-[#F5F7FA] h-9 px-4 text-[14px] rounded-lg">
+          <Button variant="outline" onClick={onCancel} className="border-[#E5E7EB] text-[#1A2332] hover:bg-[#F5F7FA] bg-white h-9 px-4 text-[14px] rounded-lg">
             Cancel
           </Button>
           <Button onClick={onConfirm} className="bg-[#DC2626] hover:bg-[#B91C1C] text-white h-9 px-4 text-[14px] rounded-lg">

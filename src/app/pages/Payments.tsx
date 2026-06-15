@@ -41,6 +41,13 @@ export interface Payment {
   note: string;
   createdBy: string;
   createdAt: string;
+  // Refund details (Marek, Jun 11): a refund records a memo (purpose), a MANUAL
+  // amount (full or partial), and how it was returned (cash record vs through the
+  // system / Stripe). Present once a refund has been issued against this payment.
+  refundAmount?: number;
+  refundMemo?: string;
+  refundMethod?: "Cash / manual" | "Original payment method";
+  refundDate?: string;
 }
 
 // Figma badges: semantic-token text colour + the same colour at 15% as bg.

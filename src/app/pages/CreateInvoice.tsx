@@ -39,10 +39,13 @@ export function CreateInvoice() {
     "10247-J01: Plumbing Fix", "10248-J01: Electrical Work", "10250-J01: HVAC Install",
   ].filter((v, i, a) => a.indexOf(v) === i); // dedupe
 
-  // Live estimates from estimatesStore + legacy demo labels.
+  // Live estimates from estimatesStore + legacy demo labels. Only estimates a
+  // customer could act on are linkable — hide Draft/Rejected/Archived; show
+  // Sent/Viewed/Approved/Expired (Marek, Jun 5 — same rule as the job picker).
+  const INVOICE_ESTIMATE_PICKABLE = ["Sent", "Viewed", "Approved", "Expired"];
   const liveEstimates = useSyncExternalStore(estimatesStore.subscribe, estimatesStore.getSnapshot);
   const estimateOptions = [
-    ...liveEstimates.map(e => `${e.estimateNumber}: ${e.estimateName || e.clientName}`),
+    ...liveEstimates.filter(e => INVOICE_ESTIMATE_PICKABLE.includes(e.status)).map(e => `${e.estimateNumber}: ${e.estimateName || e.clientName}`),
     "10245-E01: HVAC System Quote", "10246-E01: Kitchen Quote", "10248-E01: Electrical Quote",
   ].filter((v, i, a) => a.indexOf(v) === i);
 

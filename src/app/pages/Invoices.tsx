@@ -244,6 +244,7 @@ export const initialInvoices: Invoice[] = [
 ];
 
 const INVOICES_COLS = [
+  { key: "number", label: "Invoice #" },
   { key: "date", label: "Date" },
   { key: "client", label: "Client" },
   { key: "job", label: "Job" },
@@ -573,7 +574,7 @@ export function Invoices() {
           onDeselect={() => setSelectedIds(new Set())}
           actions={[
             {
-              label: "Archive selected",
+              label: "Archive",
               icon: "archive",
               destructive: true,
               onClick: () => setDeleteConfirm(true),

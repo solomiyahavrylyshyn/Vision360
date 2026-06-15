@@ -18,15 +18,12 @@ export interface SchedulableJob {
 }
 
 // ── Default job duration by type (hours) ──────────────────────────────────
-// Backlog: "duration auto by job type" when a job is dropped without one.
+// Product decision (Marek call): the default duration is 2h for EVERY job type,
+// with the single exception of Installation → 8h. It auto-fills the end time on
+// create/drag and is configurable per client afterwards.
 export const DEFAULT_DURATION_BY_TYPE: Record<string, number> = {
-  Install: 4,
-  Installation: 4,
-  Repair: 2,
-  Maintenance: 1.5,
-  Inspection: 1,
-  Estimate: 1,
-  Emergency: 2,
+  Install: 8,
+  Installation: 8,
 };
 export const DEFAULT_JOB_DURATION = 2;
 
@@ -35,9 +32,17 @@ export function durationForType(jobType?: string): number {
   return DEFAULT_DURATION_BY_TYPE[jobType] ?? DEFAULT_JOB_DURATION;
 }
 
-// ── Board visibility & draggability ───────────────────────────────────────
-// Backlog: "completed not draggable; cancelled not shown".
-export function isShownOnBoard(status: JobStatus): boolean {
+// ── Board visibility, slot occupancy & draggability ───────────────────────
+// PO decision: a CANCELLED job STAYS on the board (rendered greyed / struck
+// through) but it never OCCUPIES its slot — you can schedule another job over it.
+// So "shown on board" and "occupies the slot" are two DIFFERENT predicates.
+export function isShownOnBoard(_status: JobStatus): boolean {
+  return true; // every status renders on the board, including Cancelled
+}
+// Does the job actually take up its time slot? A cancelled job does not, so it
+// never blocks a conflict check (you can schedule over it) and is kept off the
+// route map.
+export function occupiesSlot(status: JobStatus): boolean {
   return status !== "Cancelled";
 }
 export function isDraggable(status: JobStatus): boolean {
@@ -167,7 +172,7 @@ export function hasTimeConflict(
       j.id !== jobId &&
       j.technicianId === technicianId &&
       !j.unscheduled &&
-      isShownOnBoard(j.status) &&
+      occupiesSlot(j.status) &&
       rangesOverlap(start, end, j.start, j.end),
   );
 }

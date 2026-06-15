@@ -3,6 +3,7 @@ import {
   durationForType,
   DEFAULT_JOB_DURATION,
   isShownOnBoard,
+  occupiesSlot,
   isDraggable,
   statusAfterAssignToSlot,
   applyMoveToPending,
@@ -41,11 +42,16 @@ describe("durationForType — default duration by job type", () => {
   });
 });
 
-describe("board visibility & draggability (AC: completed not draggable; cancelled not shown)", () => {
-  it("hides only cancelled from the board", () => {
+describe("board visibility, slot occupancy & draggability (AC: cancelled STAYS on board but never blocks its slot)", () => {
+  it("shows every status on the board, including cancelled", () => {
     expect(isShownOnBoard("Scheduled")).toBe(true);
     expect(isShownOnBoard("Completed")).toBe(true);
-    expect(isShownOnBoard("Cancelled")).toBe(false);
+    expect(isShownOnBoard("Cancelled")).toBe(true);
+  });
+  it("a cancelled job does NOT occupy its slot (you can schedule over it)", () => {
+    expect(occupiesSlot("Scheduled")).toBe(true);
+    expect(occupiesSlot("Completed")).toBe(true);
+    expect(occupiesSlot("Cancelled")).toBe(false);
   });
   it("blocks dragging completed and cancelled, allows the rest", () => {
     expect(isDraggable("Scheduled")).toBe(true);
@@ -156,8 +162,8 @@ describe("two-flag model (Marek): date + assignee are independent; filters overl
     expect(belongsOnBoard(techNoDate)).toBe(false);    // missing date
     expect(belongsOnBoard(neither)).toBe(false);
   });
-  it("cancelled never belongs on the board even with date + assignee", () => {
-    expect(belongsOnBoard(job({ technicianId: "peter", unscheduled: false, status: "Cancelled" }))).toBe(false);
+  it("cancelled STAYS on the board when it has date + assignee (schedulable over)", () => {
+    expect(belongsOnBoard(job({ technicianId: "peter", unscheduled: false, status: "Cancelled" }))).toBe(true);
   });
 });
 

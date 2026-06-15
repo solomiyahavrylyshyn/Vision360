@@ -8,6 +8,7 @@ import { Label } from "../components/ui/label";
 import { Switch } from "../components/ui/switch";
 import { ColumnSettingsIcon } from "../components/ui/column-settings-icon";
 import { companyStore } from "../stores/companyStore";
+import { setupStore } from "../stores/setupStore";
 import { countiesStore } from "../stores/countiesStore";
 import { relationshipsStore } from "../stores/relationshipsStore";
 import { customFieldsStore, type CfEntity, type CfFieldType } from "../stores/customFieldsStore";
@@ -18,6 +19,7 @@ import { tagsStore } from "../stores/tagsStore";
 import { applyBrandTheme, DEFAULT_BRAND_THEME, getStoredBrandLogo, getStoredBrandTheme, resetBrandLogo, resetBrandTheme, setBrandLogo } from "../utils/brandTheme";
 import { businessHoursStore, type BusinessHourRow } from "../stores/businessHoursStore";
 import { regionalSettingsStore, type RegionalSettings } from "../stores/regionalSettingsStore";
+import { estimateSettingsStore } from "../stores/estimateSettingsStore";
 
 type SettingsSection =
   | "home"
@@ -154,6 +156,41 @@ const defaultRbacPermissions: RbacPermission[] = [
   { area: "System", module: "Reports", access: createAccess(fullAccess, [], readAccess) },
   { area: "System", module: "Integrations", access: createAccess(fullAccess, [], []) },
 ];
+
+// RPT-2 — Reports access is no longer a single on/off. Owners grant access to
+// individual reports, grouped by category, defaulting to all-on. Mirrors the
+// report catalog rendered on the dashboard Reports tab (14 reports).
+const reportAccessCatalog: Array<{ category: string; icon: string; reports: string[] }> = [
+  {
+    category: "Financial / Business",
+    icon: "account_balance",
+    reports: [
+      "Revenue Report",
+      "Profit & Loss Statement",
+      "Invoice Summary (Accounts Receivable)",
+      "Expense Report",
+      "Sales Tax Report",
+      "Payments Report",
+    ],
+  },
+  {
+    category: "Estimates",
+    icon: "description",
+    reports: ["Estimates Report", "Estimate Conversion Report", "Revenue by Technician"],
+  },
+  {
+    category: "Jobs",
+    icon: "work",
+    reports: ["Jobs Report", "Job Costing Summary"],
+  },
+  {
+    category: "Clients / Team / Items",
+    icon: "groups",
+    reports: ["Client Report", "Team Report", "Items Report (Items Usage Report)"],
+  },
+];
+
+const allReportNames = reportAccessCatalog.flatMap(c => c.reports);
 
 const templateCards = [
   { title: "Classic", description: "Simple layout with logo, totals, and notes." },
@@ -669,8 +706,9 @@ function RegionalSettingsCard() {
           <div className="flex-1">
             <SelectField label="Country" value={regionalSettings.country} onChange={value => regionalSettingsStore.setSettings({ country: value })}>
               <option>United States</option>
-              <option>Ukraine</option>
               <option>Canada</option>
+              <option>Mexico</option>
+              <option>Ukraine</option>
               <option>Cyprus</option>
             </SelectField>
           </div>
@@ -678,6 +716,11 @@ function RegionalSettingsCard() {
             <SelectField label="Language" value={regionalSettings.language} onChange={value => regionalSettingsStore.setSettings({ language: value })}>
               <option>English</option>
               <option>Spanish</option>
+              <option>Portuguese</option>
+              <option>French</option>
+              <option>German</option>
+              <option>Danish</option>
+              <option>Dutch</option>
             </SelectField>
           </div>
         </div>
@@ -1528,6 +1571,28 @@ function ItemsPreferences() {
   );
 }
 
+// Estimate validity — the default expiration window applied on Create Estimate
+// (Marek, Jun 11: default 30 days, configurable; salespeople drop it to 2–3 days).
+function EstimateValidityCard() {
+  const settings = useSyncExternalStore(estimateSettingsStore.subscribe, estimateSettingsStore.getSnapshot);
+  return (
+    <SectionCard title="Estimate validity" description="How long a new estimate stays valid. The expiration date on Create Estimate defaults to the creation date plus this many days.">
+      <div className="flex items-center gap-3">
+        <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Default validity</span>
+        <Input
+          type="number"
+          min={0}
+          max={365}
+          value={String(settings.defaultValidityDays)}
+          onChange={(e) => estimateSettingsStore.setDefaultValidityDays(Number(e.target.value))}
+          className="h-9 w-24 border-[#D8DEE8] text-[13px]"
+        />
+        <span className="text-[14px] text-[#6B7280]">days after creation</span>
+      </div>
+    </SectionCard>
+  );
+}
+
 // Invoices Preferences — Marek's spec
 function InvoicesPreferences({ templateCards }: { templateCards: { title: string; description: string }[] }) {
   const [selectedTemplate, setSelectedTemplate] = useState<string>("Classic");
@@ -1996,6 +2061,27 @@ export function Settings() {
   const [permissionRoles, setPermissionRoles] = useState<PermissionRole[]>(defaultPermissionRoles);
   const [newPermissionRole, setNewPermissionRole] = useState("");
   const [rbacRows, setRbacRows] = useState<RbacPermission[]>(defaultRbacPermissions);
+  // RPT-2 — per-report access (all granted by default) + which categories are expanded.
+  const [reportAccess, setReportAccess] = useState<Record<string, boolean>>(
+    () => Object.fromEntries(allReportNames.map(name => [name, true]))
+  );
+  const [expandedReportCats, setExpandedReportCats] = useState<Set<string>>(
+    () => new Set(reportAccessCatalog.map(c => c.category))
+  );
+  const toggleReportCat = (category: string) =>
+    setExpandedReportCats(prev => {
+      const next = new Set(prev);
+      next.has(category) ? next.delete(category) : next.add(category);
+      return next;
+    });
+  const toggleReport = (name: string) =>
+    setReportAccess(prev => ({ ...prev, [name]: !prev[name] }));
+  const setCategoryReports = (reports: string[], on: boolean) =>
+    setReportAccess(prev => {
+      const next = { ...prev };
+      reports.forEach(r => { next[r] = on; });
+      return next;
+    });
   const emptyInvite = { name: "", email: "", role: "Employee" as AppRole, rate: "" };
   const [invite, setInvite] = useState(emptyInvite);
   // When set, the invite modal is in "edit existing member" mode (keyed by the
@@ -2187,6 +2273,9 @@ export function Settings() {
     }
     companyStore.setCompanyName(trimmedName);
     setCompanyEmailSaved(trimmedEmail);
+    // Saving company info counts as finishing onboarding (AUTH-3): clears the
+    // "Finish setup" bell item + banner for users who skipped Company Setup.
+    setupStore.markComplete();
     toast.success("Company info saved");
   };
   const [brandPrimary, setBrandPrimary] = useState(() => getStoredBrandTheme().primary);
@@ -2854,6 +2943,92 @@ export function Settings() {
                       Manage Custom Fields
                     </button>
                   </div>
+                </div>
+              </div>
+
+              {/* Report access (RPT-2) — per-report grants grouped by category */}
+              <div className="flex flex-col rounded-xl border border-[#E5E7EB] bg-white overflow-hidden">
+                <div className="flex items-start justify-between gap-3 px-4 py-4 border-b border-[#E5E7EB]">
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[16px] leading-6 text-[#1A2332]" style={{ fontWeight: 600 }}>Report access</span>
+                    <span className="text-[12px] leading-4 text-[#6B7280]">
+                      Choose which reports this role can open. {Object.values(reportAccess).filter(Boolean).length} of {allReportNames.length} enabled.
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={e => { e.stopPropagation(); setReportAccess(Object.fromEntries(allReportNames.map(n => [n, true]))); }}
+                      className="h-8 px-3 rounded-lg border border-[#E5E7EB] bg-white hover:bg-[#F5F7FA] text-[13px] text-[#1A2332] transition-colors"
+                      style={{ fontWeight: 500 }}
+                    >
+                      Select all
+                    </button>
+                    <button
+                      type="button"
+                      onClick={e => { e.stopPropagation(); setReportAccess(Object.fromEntries(allReportNames.map(n => [n, false]))); }}
+                      className="h-8 px-3 rounded-lg border border-[#E5E7EB] bg-white hover:bg-[#F5F7FA] text-[13px] text-[#1A2332] transition-colors"
+                      style={{ fontWeight: 500 }}
+                    >
+                      Clear all
+                    </button>
+                  </div>
+                </div>
+
+                <div className="divide-y divide-[#E5E7EB]">
+                  {reportAccessCatalog.map(group => {
+                    const selectedCount = group.reports.filter(r => reportAccess[r]).length;
+                    const allOn = selectedCount === group.reports.length;
+                    const someOn = selectedCount > 0 && !allOn;
+                    const expanded = expandedReportCats.has(group.category);
+                    return (
+                      <div key={group.category}>
+                        {/* Category header */}
+                        <div className="flex items-center gap-3 px-4 py-3">
+                          <button
+                            type="button"
+                            onClick={e => { e.stopPropagation(); toggleReportCat(group.category); }}
+                            className="flex flex-1 items-center gap-2.5 text-left"
+                          >
+                            <span className="material-icons text-[#6B7280] transition-transform" style={{ fontSize: "20px", transform: expanded ? "rotate(0deg)" : "rotate(-90deg)" }}>expand_more</span>
+                            <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "18px" }}>{group.icon}</span>
+                            <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>{group.category}</span>
+                            <span className="text-[12px] text-[#6B7280]">{selectedCount}/{group.reports.length}</span>
+                          </button>
+                          <label className="flex items-center gap-2 text-[12px] text-[#546478] cursor-pointer shrink-0" onClick={e => e.stopPropagation()}>
+                            <input
+                              type="checkbox"
+                              checked={allOn}
+                              ref={el => { if (el) el.indeterminate = someOn; }}
+                              onChange={() => setCategoryReports(group.reports, !allOn)}
+                              className="h-4 w-4 rounded border-[#CBD5E1] text-[#4A6FA5] accent-[#4A6FA5] cursor-pointer"
+                            />
+                            Select category
+                          </label>
+                        </div>
+
+                        {/* Report rows */}
+                        {expanded && (
+                          <div className="pb-2">
+                            {group.reports.map(report => (
+                              <label
+                                key={report}
+                                className="flex items-center gap-3 px-4 py-2 pl-12 hover:bg-[#F9FAFB] cursor-pointer"
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={Boolean(reportAccess[report])}
+                                  onChange={() => toggleReport(report)}
+                                  className="h-4 w-4 rounded border-[#CBD5E1] text-[#4A6FA5] accent-[#4A6FA5] cursor-pointer"
+                                />
+                                <span className="text-[13px] text-[#374151]">{report}</span>
+                              </label>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -3537,7 +3712,9 @@ export function Settings() {
                 {activeSection === "jobs" && (
                   <>
                     {/* Job Types */}
-                    <SectionCard title="Job Types" description="Types used when creating jobs. Helps categorize and filter work orders.">
+                    <SectionCard title="Job Types" description="Types used when creating jobs, each with a default duration (hours) that pre-fills the end time. Installation defaults to 8h, others to 2h.">
+
+
                       <div className="mt-2 flex w-[422px] gap-3">
                         <Input
                           value={newJobTypeName}
@@ -3562,6 +3739,17 @@ export function Settings() {
                                 className="min-w-0 flex-1 bg-transparent text-[13px] text-[#1A2332] outline-none"
                                 style={{ fontWeight: 500 }}
                               />
+                              <div className="flex shrink-0 items-center gap-1" title="Default duration (hours)">
+                                <input
+                                  type="number"
+                                  min={0}
+                                  step={0.5}
+                                  value={String(jobTypesStore.getDuration(jt))}
+                                  onChange={e => jobTypesStore.setDuration(jt, Number(e.target.value))}
+                                  className="w-11 rounded border border-[#E5E7EB] bg-white px-1.5 py-0.5 text-[13px] text-[#1A2332] text-right outline-none focus:border-[#4A6FA5]"
+                                />
+                                <span className="text-[12px] text-[#9CA3AF]">h</span>
+                              </div>
                               <button
                                 onClick={() => { jobTypesStore.removeJobType(jt); toast.success("Job type removed"); }}
                                 className="shrink-0 text-[#9CA3AF] hover:text-[#DC2626] transition-colors"
@@ -3888,6 +4076,7 @@ export function Settings() {
                         </div>
                       )}
                     </SectionCard>
+                    <EstimateValidityCard />
                     <SectionCard title="Estimate rules">
                       <div className="grid grid-cols-2 gap-2">
                         <div className="flex flex-col gap-1">

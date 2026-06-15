@@ -27,9 +27,10 @@ import {
 } from "../components/ui/dropdown-menu";
 import { KebabMenu as KebabMenuShared, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
 import { DetailTabs, TabSettingsButton } from "../components/ui/detail-tabs";
+import { RecordTab, type RecordColumn, type RecordAction, type RecordBulkAction } from "../components/ui/record-tab";
 import { toast } from "sonner";
 import { formatRegionalDate } from "../stores/regionalSettingsStore";
-import { clientsStore } from "../stores/clientsStore";
+import { clientsStore, deriveClientStatus } from "../stores/clientsStore";
 import { estimatesStore } from "../stores/estimatesStore";
 import { jobsStore, type JobRecord } from "../stores/jobsStore";
 import { JOB_STATUS_STYLES as JOB_STATUS_COLORS, JOB_STATUSES as JOB_STATUS_OPTIONS } from "../constants/jobStatuses";
@@ -249,10 +250,10 @@ function ClientJobsPanel({ rows, onOpen, onCreate }: {
             <button onClick={() => setStatusTarget([...selected])} className="h-8 px-3 rounded-lg border border-[#E5E7EB] bg-white text-[13px] text-[#546478] hover:bg-[#F5F7FA] flex items-center gap-1.5">
               <span className="material-icons" style={{ fontSize: "16px" }}>swap_horiz</span>Change status
             </button>
-            <button onClick={() => cancelJobs([...selected])} className="h-8 px-3 rounded-lg border border-[#E5E7EB] bg-white text-[13px] text-[#DC2626] hover:bg-[#FEF2F2] flex items-center gap-1.5">
-              <span className="material-icons" style={{ fontSize: "16px" }}>cancel</span>Cancel
+            <button onClick={() => { toast.success(`Downloading ${selected.size} job${selected.size > 1 ? "s" : ""}`); }} className="h-8 px-3 rounded-lg border border-[#E5E7EB] bg-white text-[13px] text-[#546478] hover:bg-[#F5F7FA] flex items-center gap-1.5">
+              <span className="material-icons" style={{ fontSize: "16px" }}>download</span>Download
             </button>
-            <button onClick={() => setSelected(new Set())} className="ml-auto text-[13px] text-[#6B7280] hover:text-[#1A2332]">Deselect</button>
+            <button onClick={() => setSelected(new Set())} className="ml-auto text-[13px] text-[#1A2332] hover:underline" style={{ fontWeight: 500 }}>Unselect</button>
           </div>
         ) : (
           <div className="flex items-center gap-2 px-4 py-3 border-b border-[#E5E7EB] flex-wrap">
@@ -397,197 +398,84 @@ function ClientJobsPanel({ rows, onOpen, onCreate }: {
   );
 }
 
-/* ── ClientEstimatesTable ────────────────────────────────────────────────── */
+/* ── EST_STATUS_COLORS — shared by the Estimates RecordTab grid ───────────── */
 const EST_STATUS_COLORS: Record<string, { bg: string; color: string }> = {
   Draft:     { bg: "#F3F4F6", color: "#6B7280"  },
   Sent:      { bg: "#DBEAFE", color: "#1E40AF"  },
   Viewed:    { bg: "#FEF3C7", color: "#92400E"  },
+  "Changes Requested": { bg: "#FEF3C7", color: "#B45309" },
+  Updated:   { bg: "#EBF0F8", color: "#4A6FA5"  },
   Approved:  { bg: "#DCFCE7", color: "#166534"  },
   Rejected:  { bg: "#FEE2E2", color: "#DC2626"  },
   Expired:   { bg: "#F3F4F6", color: "#6B7280"  },
   Converted: { bg: "#EBF0F8", color: "#4A6FA5"  },
   Archived:  { bg: "#E5E7EB", color: "#4B5563"  },
 };
-const EST_COLS = [
-  { key: "number",  label: "Estimate #" },
-  { key: "name",    label: "Title"      },
-  { key: "date",    label: "Date"       },
-  { key: "status",  label: "Status"     },
-  { key: "amount",  label: "Total"      },
-] as const;
-
-function ClientEstimatesTable({ rows, onNavigate }: {
-  rows: Array<{ id: number; estimateNumber: string; estimateName: string; createdDate: string; status: string; amount: number }>;
-  onNavigate: (id: number) => void;
-}) {
-  const [cols, moveCols] = useDraggableColumns([...EST_COLS]);
-  return (
-    <DndProvider backend={HTML5Backend}>
-      <table className="w-full">
-        <thead>
-          <tr className="border-b border-[#E5E7EB]">
-            {cols.map(col => (
-              <DraggableTh key={col.key} colKey={col.key} onMove={moveCols}
-                className={`pb-3 text-[12px] text-[#6B7280] whitespace-nowrap ${col.key === "amount" ? "text-right" : "text-left"}`}
-                style={{ fontWeight: 500 }}>{col.label}</DraggableTh>
-            ))}
-            <th className="w-10" />
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map(row => {
-            const ss = EST_STATUS_COLORS[row.status] ?? EST_STATUS_COLORS["Draft"];
-            return (
-              <tr key={row.id} onClick={() => onNavigate(row.id)} className="border-b border-[#E5E7EB] last:border-0 hover:bg-[#F9FAFB] cursor-pointer">
-                {cols.map(col => {
-                  switch (col.key) {
-                    case "number": return <td key="number" className="py-3.5 pr-4"><span className="text-[13px] text-[#4A6FA5] font-medium">{row.estimateNumber}</span></td>;
-                    case "name":   return <td key="name"   className="py-3.5 pr-4"><span className="text-[13px] text-[#1A2332]">{row.estimateName || "—"}</span></td>;
-                    case "date":   return <td key="date"   className="py-3.5 pr-4"><span className="text-[13px] text-[#6B7280]">{row.createdDate || "—"}</span></td>;
-                    case "status": return <td key="status" className="py-3.5 pr-4">
-                      <span className="px-2 py-0.5 rounded-md text-[12px]" style={{ fontWeight: 600, backgroundColor: ss.bg, color: ss.color }}>{row.status}</span>
-                    </td>;
-                    case "amount": return <td key="amount" className="py-3.5 text-right"><span className="text-[13px] text-[#1A2332] font-medium">${row.amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></td>;
-                    default: return null;
-                  }
-                })}
-                <td className="py-3.5 pl-2 text-right" onClick={e => e.stopPropagation()}>
-                  <KebabMenuShared>
-                    <KebabItem icon="open_in_new" onSelect={() => onNavigate(row.id)}>Open estimate</KebabItem>
-                  </KebabMenuShared>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </DndProvider>
-  );
-}
-
-/* ── InvoiceTable ── */
+/* ── InvoiceRow / invoiceRows — seed data + type for the Invoices RecordTab grid ── */
 interface InvoiceRow {
-  id: number; invoiceNo: string; jobNo: string; type: string;
+  id: number; invoiceNo: string; jobNo: string; jobName?: string; type: string;
+  status: string; note: string;
   date: string;
   total: string; balance: string; dueDate: string;
 }
-const INVOICE_COLS = [
-  { key: "invoiceNo", label: "Invoice #" },
-  { key: "jobNo",     label: "Job #"     },
-  { key: "type",      label: "Type"      },
-  { key: "date",      label: "Date"      },
-  { key: "total",     label: "Total"     },
-  { key: "balance",   label: "Balance"   },
-  { key: "dueDate",   label: "Due Date"  },
-] as const;
 const invoiceRows: InvoiceRow[] = [
-  { id: 1, invoiceNo: "INV-2026-0041", jobNo: "J-1048", type: "Service",      date: "Mar 15, 2026", total: "$1,240.00", balance: "$1,240.00", dueDate: "Apr 14, 2026" },
-  { id: 2, invoiceNo: "INV-2026-0035", jobNo: "J-1039", type: "Service",      date: "Feb 20, 2026", total: "$890.00",   balance: "$0.00",     dueDate: "Mar 22, 2026" },
-  { id: 3, invoiceNo: "INV-2025-0198", jobNo: "J-0997", type: "Maintenance",  date: "Nov 4, 2025",  total: "$430.00",   balance: "$0.00",     dueDate: "Dec 4, 2025"  },
-  { id: 4, invoiceNo: "INV-2025-0177", jobNo: "J-0981", type: "Installation", date: "Sep 8, 2025",  total: "$3,750.00", balance: "$0.00",     dueDate: "Oct 8, 2025"  },
-  { id: 5, invoiceNo: "INV-2026-0048", jobNo: "J-1054", type: "Service",      date: "Apr 28, 2026", total: "$560.00",   balance: "$560.00",   dueDate: "May 28, 2026" },
+  { id: 1, invoiceNo: "INV-2026-0041", jobNo: "J-1048", jobName: "Plumbing fix",   type: "Service",      status: "Overdue",         note: "Progress invoice", date: "Mar 15, 2026", total: "$1,240.00", balance: "$1,240.00", dueDate: "Apr 14, 2026" },
+  { id: 2, invoiceNo: "INV-2026-0035", jobNo: "J-1039", jobName: "AC tune-up",     type: "Service",      status: "Paid",            note: "Progress invoice", date: "Feb 20, 2026", total: "$890.00",   balance: "$0.00",     dueDate: "Mar 22, 2026" },
+  { id: 3, invoiceNo: "INV-2025-0198", jobNo: "J-0997", jobName: "Filter swap",    type: "Maintenance",  status: "Paid",            note: "Progress invoice", date: "Nov 4, 2025",  total: "$430.00",   balance: "$0.00",     dueDate: "Dec 4, 2025"  },
+  { id: 4, invoiceNo: "INV-2025-0177", jobNo: "J-0981", jobName: "Heat pump inst", type: "Installation", status: "Paid",            note: "Progress invoice", date: "Sep 8, 2025",  total: "$3,750.00", balance: "$0.00",     dueDate: "Oct 8, 2025"  },
+  { id: 5, invoiceNo: "INV-2026-0048", jobNo: "J-1054", jobName: "Drain clear",    type: "Service",      status: "Partially paid",  note: "Progress invoice", date: "Apr 28, 2026", total: "$560.00",   balance: "$560.00",   dueDate: "May 28, 2026" },
 ];
-function InvoiceTable({ rows }: { rows: InvoiceRow[] }) {
-  const [cols, moveCols] = useDraggableColumns([...INVOICE_COLS]);
-  return (
-    <DndProvider backend={HTML5Backend}>
-      <table className="w-full">
-        <thead>
-          <tr className="border-b border-[#E5E7EB]">
-            {cols.map(col => (
-              <DraggableTh key={col.key} colKey={col.key} onMove={moveCols}
-                className={`pb-3 text-[12px] text-[#6B7280] whitespace-nowrap ${["total","balance"].includes(col.key) ? "text-right" : "text-left"}`}
-                style={{ fontWeight: 500 }}
-              >{col.label}</DraggableTh>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map(row => (
-            <tr key={row.id} className="border-b border-[#E5E7EB] last:border-0 hover:bg-[#F9FAFB] cursor-pointer">
-              {cols.map(col => {
-                switch (col.key) {
-                  case "invoiceNo": return <td key="invoiceNo" className="py-3.5 pr-4"><span className="text-[13px] text-[#4A6FA5] font-medium hover:underline">{row.invoiceNo}</span></td>;
-                  case "jobNo":     return <td key="jobNo"     className="py-3.5 pr-4"><span className="text-[13px] text-[#4A6FA5] hover:underline">{row.jobNo}</span></td>;
-                  case "type":      return <td key="type"      className="py-3.5 pr-4"><span className="text-[13px] text-[#374151]">{row.type}</span></td>;
-                  case "date":      return <td key="date"      className="py-3.5 pr-4"><span className="text-[13px] text-[#6B7280]">{row.date}</span></td>;
-                  case "total":     return <td key="total"     className="py-3.5 pr-4 text-right"><span className="text-[13px] text-[#1A2332] font-medium">{row.total}</span></td>;
-                  case "balance":   return <td key="balance"   className="py-3.5 pr-4 text-right"><span className={`text-[13px] font-medium ${row.balance === "$0.00" ? "text-[#16A34A]" : "text-[#DC2626]"}`}>{row.balance}</span></td>;
-                  case "dueDate":   return <td key="dueDate"   className="py-3.5"><span className="text-[13px] text-[#6B7280]">{row.dueDate}</span></td>;
-                  default: return null;
-                }
-              })}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </DndProvider>
-  );
+
+// Status → badge colour (shared by the inner Invoices / Payments grids).
+const RECORD_STATUS_STYLE: Record<string, { color: string; backgroundColor: string }> = {
+  Paid:             { color: "#16A34A", backgroundColor: "rgba(22,163,74,0.15)" },
+  Completed:        { color: "#16A34A", backgroundColor: "rgba(22,163,74,0.15)" },
+  Overdue:          { color: "#DC2626", backgroundColor: "rgba(220,38,38,0.15)" },
+  Unpaid:           { color: "#DC2626", backgroundColor: "rgba(220,38,38,0.15)" },
+  Failed:           { color: "#DC2626", backgroundColor: "rgba(220,38,38,0.15)" },
+  "Partially paid": { color: "#F59E0B", backgroundColor: "rgba(245,158,11,0.15)" },
+  Pending:          { color: "#F59E0B", backgroundColor: "rgba(245,158,11,0.15)" },
+  Void:             { color: "#6B7280", backgroundColor: "rgba(107,114,128,0.15)" },
+  Refunded:         { color: "#6B7280", backgroundColor: "rgba(107,114,128,0.15)" },
+};
+function RecordStatusBadge({ status }: { status: string }) {
+  const s = RECORD_STATUS_STYLE[status] || { color: "#6B7280", backgroundColor: "rgba(107,114,128,0.15)" };
+  return <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-[12px] whitespace-nowrap" style={{ fontWeight: 500, ...s }}>{status}</span>;
 }
 
-/* ── PaymentTable ── */
+// Columns for the inner Invoices grid (Figma: Number · Job · Status · Date ·
+// Due date · Total · Balance · Note).
+const INVOICE_GRID_COLS: RecordColumn<InvoiceRow>[] = [
+  { key: "number",  label: "Number",   render: (r) => <span className="text-[#4A6FA5]" style={{ fontWeight: 500 }}>{r.invoiceNo}</span> },
+  { key: "job",     label: "Job",      render: (r) => r.jobNo ? (<div><div className="text-[#4A6FA5] text-[14px]" style={{ fontWeight: 500 }}>{r.jobNo}</div><div className="text-[13px] text-[#6B7280]">{r.jobName}</div></div>) : <span className="text-[#9CA3AF]">—</span> },
+  { key: "status",  label: "Status",   render: (r) => <RecordStatusBadge status={r.status} /> },
+  { key: "date",    label: "Date",     render: (r) => <span className="text-[#1A2332]">{r.date}</span> },
+  { key: "dueDate", label: "Due date", render: (r) => <span className="text-[#1A2332]">{r.dueDate}</span> },
+  { key: "total",   label: "Total",    align: "right", render: (r) => <span className="text-[#1A2332]" style={{ fontWeight: 600 }}>{r.total}</span> },
+  { key: "balance", label: "Balance",  align: "right", render: (r) => <span style={{ fontWeight: 500, color: r.balance === "$0.00" ? "#16A34A" : "#DC2626" }}>{r.balance}</span> },
+  { key: "note",    label: "Note",     render: (r) => <span className="text-[#6B7280]">{r.note || "—"}</span> },
+];
+
+// Columns for the inner Payments grid.
+const PAYMENT_GRID_COLS: RecordColumn<PaymentRow>[] = [
+  { key: "invoiceNo", label: "Invoice", render: (r) => <span className="text-[#4A6FA5]" style={{ fontWeight: 500 }}>{r.invoiceNo}</span> },
+  { key: "date",      label: "Date",    render: (r) => <span className="text-[#1A2332]">{r.date}</span> },
+  { key: "method",    label: "Method",  render: (r) => <span className="text-[#1A2332]">{r.method}</span> },
+  { key: "status",    label: "Status",  render: (r) => <RecordStatusBadge status={r.status} /> },
+  { key: "note",      label: "Note",    render: (r) => <span className="text-[#6B7280]">{r.note || "—"}</span> },
+  { key: "amount",    label: "Amount",  align: "right", render: (r) => <span className="text-[#1A2332]" style={{ fontWeight: 600 }}>{r.amount}</span> },
+];
+/* ── PaymentRow / paymentRows — seed data + type for the Payments RecordTab grid ── */
 interface PaymentRow {
   id: number; invoiceNo: string; date: string;
   method: string; status: string; note: string; amount: string;
 }
-const PAYMENT_COLS = [
-  { key: "invoiceNo", label: "Invoice #" },
-  { key: "date",      label: "Date"      },
-  { key: "method",    label: "Method"    },
-  { key: "status",    label: "Status"    },
-  { key: "note",      label: "Note"      },
-  { key: "amount",    label: "Amount"    },
-] as const;
-const PAYMENT_STATUS_STYLES: Record<string, { bg: string; color: string }> = {
-  Completed: { bg: "#DCFCE7", color: "#166534" },
-  Pending:   { bg: "#FEF9C3", color: "#92400E" },
-  Refunded:  { bg: "#EDE9FE", color: "#4C1D95" },
-};
 const paymentRows: PaymentRow[] = [
   { id: 1, invoiceNo: "INV-2026-0035", date: "Mar 22, 2026", method: "ACH",         status: "Completed", note: "" },
   { id: 2, invoiceNo: "INV-2025-0198", date: "Dec 3, 2025",  method: "Credit Card", status: "Completed", note: "" },
   { id: 3, invoiceNo: "INV-2025-0177", date: "Oct 7, 2025",  method: "Check",       status: "Completed", note: "Partial - check #4421" },
   { id: 4, invoiceNo: "INV-2025-0177", date: "Oct 20, 2025", method: "ACH",         status: "Completed", note: "Final balance" },
 ].map((r, i) => ({ ...r, amount: ["$890.00","$430.00","$2,000.00","$1,750.00"][i] }));
-function PaymentTable({ rows }: { rows: PaymentRow[] }) {
-  const [cols, moveCols] = useDraggableColumns([...PAYMENT_COLS]);
-  return (
-    <DndProvider backend={HTML5Backend}>
-      <table className="w-full">
-        <thead>
-          <tr className="border-b border-[#E5E7EB]">
-            {cols.map(col => (
-              <DraggableTh key={col.key} colKey={col.key} onMove={moveCols}
-                className={`pb-3 text-[12px] text-[#6B7280] whitespace-nowrap ${col.key === "amount" ? "text-right" : "text-left"}`}
-                style={{ fontWeight: 500 }}
-              >{col.label}</DraggableTh>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map(row => (
-            <tr key={row.id} className="border-b border-[#E5E7EB] last:border-0 hover:bg-[#F9FAFB] cursor-pointer">
-              {cols.map(col => {
-                switch (col.key) {
-                  case "invoiceNo": return <td key="invoiceNo" className="py-3.5 pr-4"><span className="text-[13px] text-[#4A6FA5] hover:underline cursor-pointer font-medium">{row.invoiceNo}</span></td>;
-                  case "date":      return <td key="date"      className="py-3.5 pr-4"><span className="text-[13px] text-[#6B7280]">{row.date}</span></td>;
-                  case "method":    return <td key="method"    className="py-3.5 pr-4"><span className="text-[13px] text-[#374151]">{row.method}</span></td>;
-                  case "status": {
-                    const ss = PAYMENT_STATUS_STYLES[row.status] ?? PAYMENT_STATUS_STYLES["Completed"];
-                    return <td key="status" className="py-3.5 pr-4"><span className="px-2 py-0.5 rounded-md text-[12px]" style={{ fontWeight: 600, backgroundColor: ss.bg, color: ss.color }}>{row.status}</span></td>;
-                  }
-                  case "amount":    return <td key="amount"    className="py-3.5 pr-4 text-right"><span className="text-[13px] text-[#1A2332] font-medium">{row.amount}</span></td>;
-                  case "note":      return <td key="note"      className="py-3.5"><span className="text-[13px] text-[#6B7280] italic">{row.note || "—"}</span></td>;
-                  default: return null;
-                }
-              })}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </DndProvider>
-  );
-}
 
 export function ClientDetail() {
   const navigate = useNavigate();
@@ -614,6 +502,10 @@ export function ClientDetail() {
   const [showTabSettings, setShowTabSettings] = useState(false);
   const [pendingHidden, setPendingHidden] = useState<Set<TabKey>>(new Set()); // staged edits for the Edit tabs modal
   const tabSettingsRef = useRef<HTMLDivElement>(null);
+  // Inner-tab grids own their rows locally so row actions (Void / Archive /
+  // Change status) can mutate them; seeded from the demo data.
+  const [invoiceList, setInvoiceList] = useState<InvoiceRow[]>(invoiceRows);
+  const [paymentList, setPaymentList] = useState<PaymentRow[]>(paymentRows);
 
   const toggleTabVisibility = (key: TabKey) => {
     setHiddenTabs(prev => {
@@ -633,7 +525,6 @@ export function ClientDetail() {
 
   const [isEditing, setIsEditing] = useState(false);
   const [editingSection, setEditingSection] = useState<null | "name" | "contact" | "addresses" | "finance">(null);
-  const [clientStatus, setClientStatus] = useState<"Prospect" | "Active" | "Inactive">("Active");
   const [clientStatusOpen, setClientStatusOpen] = useState(false);
   const clientStatusColors: Record<string, string> = { Prospect: "#4A6FA5", Active: "#16A34A", Inactive: "#6B7280" };
   const [notesExpanded, setNotesExpanded] = useState(false);
@@ -833,8 +724,6 @@ export function ClientDetail() {
   const [editedClient, setEditedClient] = useState(client);
   // Re-seed the edit form whenever the active client changes (id switch or store update).
   useEffect(() => { setEditedClient(client); }, [client]);
-  // Status chip reflects the real client status (was hardcoded "Active").
-  useEffect(() => { setClientStatus(client.status); }, [client]);
   // Reset the (sample) documents per client so navigating to a fresh client
   // doesn't carry over the previous client's media. New clients → empty.
   useEffect(() => { setDocuments(hasDocActivity(client) ? SEED_DOCUMENTS : []); /* eslint-disable-line react-hooks/exhaustive-deps */ }, [client.id]);
@@ -889,6 +778,10 @@ export function ClientDetail() {
       return true;
     });
   })();
+  // Status follows the work: ≥1 job (live store, or the seeded totalJobs) → Active;
+  // none → Prospect. An explicit "Inactive" flag still wins. Active/Prospect is automatic.
+  const clientJobCount = Math.max(client.totalJobs ?? 0, liveClientJobs.length);
+  const derivedStatus = deriveClientStatus(client.status, clientJobCount);
   // Merge: show live store jobs, then fall back to legacy demo rows for clients
   // that have `totalJobs > 0` but nothing in the store yet.
   const jobItems = liveClientJobs.length > 0
@@ -916,9 +809,23 @@ export function ClientDetail() {
   const liveClientEstimates = allEstimates
     // Match by clientId when present (exact link); fall back to name only for
     // legacy records with no clientId — prevents same-name data bleed.
-    .filter((e) => e.clientId ? e.clientId === client.id : e.clientName === client.name);
-  const clientInvoiceRows = hasBilling ? invoiceRows : [];
-  const clientPaymentRows = hasBilling ? paymentRows : [];
+    .filter((e) => e.clientId ? e.clientId === client.id : e.clientName === client.name)
+    // Attach the jobs linked to each estimate so the table can show job IDs
+    // (Marek, Jun 8). Sources: the estimate's own appointment job (`job`/`jobTitle`)
+    // plus any jobs created FROM it in jobsStore (matched by estimateId/number).
+    .map((e) => {
+      const jobs: Array<{ number: string; name: string }> = [];
+      const push = (number: string, name: string) => {
+        if (number && !jobs.some((j) => j.number === number)) jobs.push({ number, name });
+      };
+      if ((e as { job?: string }).job) push((e as { job?: string }).job!, (e as { jobTitle?: string }).jobTitle ?? "");
+      allStoreJobs
+        .filter((j) => (j.estimateId != null && j.estimateId === e.id) || (!!j.estimateNumber && !!e.estimateNumber && j.estimateNumber === e.estimateNumber))
+        .forEach((j) => push(j.jobNumber || String(j.id), j.title || ""));
+      return { ...e, jobs };
+    });
+  const clientInvoiceRows = hasBilling ? invoiceList : [];
+  const clientPaymentRows = hasBilling ? paymentList : [];
 
   // Visible tabs with LIVE counts derived from the actual data arrays (no hardcoded literals).
   const visibleTabs = tabs
@@ -948,19 +855,19 @@ export function ClientDetail() {
           <span className="material-icons ml-1 -mr-1 shrink-0" style={{ fontSize: "18px" }}>keyboard_arrow_down</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-[200px]">
+      <DropdownMenuContent align="end" className="w-[185px] p-0.5">
         {([
-          { label: "Estimate", icon: "description", path: "/estimates/new", tab: "estimates" as TabKey },
-          { label: "Job",      icon: "work",        path: "/jobs/new",      tab: "jobs" as TabKey },
-          { label: "Invoice",  icon: "receipt",     path: "/invoices/new",  tab: "invoices" as TabKey },
-          { label: "Payment",  icon: "credit_card", path: "/payments/new",  tab: "payments" as TabKey },
+          { label: "Estimate", icon: "schedule",                path: "/estimates/new", tab: "estimates" as TabKey },
+          { label: "Job",      icon: "work_outline",            path: "/jobs/new",      tab: "jobs" as TabKey },
+          { label: "Invoice",  icon: "description",             path: "/invoices/new",  tab: "invoices" as TabKey },
+          { label: "Payment",  icon: "account_balance_wallet",  path: "/payments/new",  tab: "payments" as TabKey },
         ]).map(({ label, icon, path, tab }) => (
           <DropdownMenuItem
             key={label}
-            className="flex items-center gap-3 py-2.5"
+            className="flex items-center gap-2 h-8 min-h-8 rounded-md px-2"
             onClick={() => navigate(createUrl(path, tab))}
           >
-            <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>{icon}</span>
+            <span className="material-icons text-[#6B7280]" style={{ fontSize: "20px" }}>{icon}</span>
             <span className="text-[14px] text-[#1A2332]">{label}</span>
           </DropdownMenuItem>
         ))}
@@ -972,10 +879,20 @@ export function ClientDetail() {
      KEBAB MENU
   ────────────────────────────────────────── */
   const KebabMenu = () => (
-    <KebabMenuShared triggerClassName="w-9 h-9 border border-[#E5E7EB] rounded-md bg-white" contentClassName="min-w-[220px]">
-      <KebabItem icon="print" onClick={() => { setStatementOpen(true); setTimeout(() => window.print(), 300); }}>Print statement</KebabItem>
-      <KebabItem icon="receipt_long" onClick={() => setStatementOpen(true)}>Statement activity</KebabItem>
-      <KebabItem icon="payments" onClick={() => navigate(createUrl("/payments/new", "payments", { amount: String(client.openBalance), method: client.paymentMethod || "" }))}>Collect payment</KebabItem>
+    <KebabMenuShared triggerClassName="w-9 h-9 border border-[#E5E7EB] rounded-lg bg-white" contentClassName="min-w-[200px]">
+      <KebabItem icon="print" onClick={() => { setStatementOpen(true); setTimeout(() => window.print(), 300); }}>Print</KebabItem>
+      <DropdownMenuSub>
+        <DropdownMenuSubTrigger className="gap-2 rounded-md px-2 text-[14px] text-[#1A2332]" style={{ height: 32, minHeight: 32 }}>
+          <span className="material-icons text-[#6B7280]" style={{ fontSize: "20px" }}>description</span>
+          <span className="flex-1">Statement actions</span>
+        </DropdownMenuSubTrigger>
+        <DropdownMenuSubContent className="min-w-[185px] p-0.5">
+          <KebabItem icon="mail" onClick={() => setStatementOpen(true)}>Email statement</KebabItem>
+          <KebabItem icon="print" onClick={() => { setStatementOpen(true); setTimeout(() => window.print(), 300); }}>Print statement</KebabItem>
+          <KebabItem icon="visibility" onClick={() => setStatementOpen(true)}>View statement</KebabItem>
+        </DropdownMenuSubContent>
+      </DropdownMenuSub>
+      <KebabItem icon="account_balance_wallet" onClick={() => navigate(createUrl("/payments/new", "payments", { amount: String(client.openBalance), method: client.paymentMethod || "" }))}>Collect Payment</KebabItem>
     </KebabMenuShared>
   );
 
@@ -988,19 +905,18 @@ export function ClientDetail() {
 
       {/* Card 1: Contact Information */}
       <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
-        {/* Card header */}
-        <div className="flex items-center gap-2 px-5 py-3.5 border-b border-[#E5E7EB]">
-          <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>person</span>
-          <span className="flex-1 text-[13px] font-semibold text-[#1A2332]">Contact Information</span>
+        {/* Card header — Figma: 16px title + bordered edit button, no leading icon/divider */}
+        <div className="flex items-center justify-between gap-2 px-4 pt-4">
+          <span className="text-[16px] text-[#1A2332]" style={{ fontWeight: 600 }}>Contact information</span>
           <button
             onClick={() => { setEditedClient(client); setEditingSection("contact"); }}
-            className="w-7 h-7 flex items-center justify-center hover:bg-[#F5F7FA] rounded-md transition-colors"
+            className="w-8 h-8 flex items-center justify-center border border-[#E5E7EB] rounded-lg hover:bg-[#F5F7FA] transition-colors"
             aria-label="Edit contact"
           >
-            <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "16px" }}>edit</span>
+            <span className="material-icons text-[#1A2332]" style={{ fontSize: "16px" }}>edit</span>
           </button>
         </div>
-        <div className="p-5 space-y-4">
+        <div className="px-4 pt-3 pb-4 space-y-4">
           {/* Fields — always shown to match Figma 488:31819 (empty → "—") */}
           {(
             [
@@ -1010,7 +926,7 @@ export function ClientDetail() {
               ["Website", client.website, true],
               ["Company name", client.company, false],
               ["Role", client.role, false],
-              ["Client since", client.customerSince, false],
+              ["Customer since", client.customerSince, false],
             ] as [string, string, boolean][]
           ).map(([label, value, isLink]) => (
             <div key={label}>
@@ -1072,26 +988,28 @@ export function ClientDetail() {
         </div>
       </div>
 
+      {/* Column 2: Addresses + Billing details — two stacked cards (Figma) */}
+      <div className="flex flex-col gap-4">
       {/* Card 2: Addresses */}
       <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
-        {/* Card header */}
-        <div className="flex items-center gap-2 px-5 py-3.5 border-b border-[#E5E7EB]">
-          <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>location_on</span>
-          <span className="flex-1 text-[13px] font-semibold text-[#1A2332]">Addresses</span>
+        {/* Card header — Figma: 16px title + bordered edit button */}
+        <div className="flex items-center justify-between gap-2 px-4 pt-4">
+          <span className="text-[16px] text-[#1A2332]" style={{ fontWeight: 600 }}>Addresses</span>
           <button
             onClick={() => { setEditAddressId(null); setAddressForm({ street: client.address, unit: client.unit, city: client.city, state: client.state, zip: client.zip, county: client.county, country: client.country || "United States", notes: client.gateCode }); setEditAddressOpen(true); }}
-            className="w-7 h-7 flex items-center justify-center hover:bg-[#F5F7FA] rounded-md transition-colors"
+            className="w-8 h-8 flex items-center justify-center border border-[#E5E7EB] rounded-lg hover:bg-[#F5F7FA] transition-colors"
             aria-label="Edit address"
           >
-            <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "16px" }}>edit</span>
+            <span className="material-icons text-[#1A2332]" style={{ fontSize: "16px" }}>edit</span>
           </button>
         </div>
-        <div className="p-5 space-y-4">
+        <div className="px-4 pt-3 pb-4 space-y-4">
           {/* Billing Address */}
           <div>
             <div className="text-[12px] font-semibold text-[#1A2332] mb-1">Billing Address</div>
             <div className="text-[13px] text-[#1A2332] font-medium leading-[20px]">{client.billingAddress}</div>
             <div className="text-[13px] text-[#1A2332] font-medium leading-[20px]">{client.billingCity}, {client.billingState} {client.billingZip}</div>
+            {client.gateCode && <div className="text-[12px] text-[#6B7280] mt-1">Gate code: {client.gateCode}</div>}
           </div>
           <label className="flex items-center gap-2 cursor-pointer pb-4 border-b border-[#E5E7EB]">
             <input
@@ -1102,31 +1020,194 @@ export function ClientDetail() {
             />
             <span className="text-[13px] text-[#4B5563]">Use as service address</span>
           </label>
-          {/* Service Address */}
-          <div>
-            <div className="text-[12px] font-semibold text-[#1A2332] mb-1">Service Address</div>
-            <div className="text-[13px] text-[#1A2332] font-medium leading-[20px]">{client.address}</div>
-            <div className="text-[13px] text-[#1A2332] font-medium leading-[20px]">{client.city}, {client.state} {client.zip}</div>
-          </div>
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>Address notes</div>
-              <button
-                onClick={() => { setNotesDraft(client.gateCode || ""); setEditNotesOpen(true); }}
-                className="w-6 h-6 flex items-center justify-center hover:bg-[#F5F7FA] rounded-md transition-colors text-[#9CA3AF]"
-                aria-label="Edit address notes"
-              >
-                <span className="material-icons" style={{ fontSize: "15px" }}>edit</span>
-              </button>
+          {/* Service Address — Figma: inline gate code, own edit pencil, empty state */}
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex-1 min-w-0">
+              <div className="text-[12px] font-semibold text-[#1A2332] mb-1">Service Address</div>
+              {clientData.isBillingSameAsService ? (
+                <>
+                  <div className="text-[13px] text-[#1A2332] font-medium leading-[20px]">{client.billingAddress}</div>
+                  <div className="text-[13px] text-[#1A2332] font-medium leading-[20px]">{client.billingCity}, {client.billingState} {client.billingZip}</div>
+                  {client.gateCode && <div className="text-[12px] text-[#6B7280] mt-1">Gate code: {client.gateCode}</div>}
+                </>
+              ) : client.address ? (
+                <>
+                  <div className="text-[13px] text-[#1A2332] font-medium leading-[20px]">{client.address}</div>
+                  <div className="text-[13px] text-[#1A2332] font-medium leading-[20px]">{client.city}, {client.state} {client.zip}</div>
+                  {client.gateCode && <div className="text-[12px] text-[#6B7280] mt-1">Gate code: {client.gateCode}</div>}
+                </>
+              ) : (
+                <div className="text-[13px] text-[#6B7280]">
+                  No service address yet.{" "}
+                  <button onClick={() => navigate(`/clients/${client.id}?tab=properties`)} className="text-[#4A6FA5] hover:underline" style={{ fontWeight: 500 }}>Go to properties</button>
+                </div>
+              )}
             </div>
-            <div className="text-[13px] text-[#1A2332]">
-              {client.gateCode ? `Gate code: ${client.gateCode}` : <span className="text-[#9CA3AF]">—</span>}
-            </div>
+            <button
+              onClick={() => { setEditAddressId(null); setAddressForm({ street: client.address, unit: client.unit, city: client.city, state: client.state, zip: client.zip, county: client.county, country: client.country || "United States", notes: client.gateCode }); setEditAddressOpen(true); }}
+              className="w-6 h-6 flex items-center justify-center rounded hover:bg-[#F5F7FA] text-[#9CA3AF] hover:text-[#1A2332] shrink-0"
+              aria-label="Edit service address"
+            >
+              <span className="material-icons" style={{ fontSize: "15px" }}>edit</span>
+            </button>
           </div>
+        </div>
+      </div>
 
-          {/* Custom Fields section — lives in the Addresses card */}
-          <div className="pt-3 border-t border-[#E5E7EB]">
-            <div className="text-[13px] text-[#1A2332] mb-2" style={{ fontWeight: 600 }}>Custom Fields</div>
+      {/* Card 2b: Billing details — separate card with Taxable Customer (Figma) */}
+      <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
+        <div className="flex items-center justify-between gap-2 px-4 pt-4">
+          <span className="text-[16px] text-[#1A2332]" style={{ fontWeight: 600 }}>Billing details</span>
+          <button
+            onClick={() => { setEditedClient(client); setEditingSection("finance"); }}
+            className="w-8 h-8 flex items-center justify-center border border-[#E5E7EB] rounded-lg hover:bg-[#F5F7FA] transition-colors"
+            aria-label="Edit billing details"
+          >
+            <span className="material-icons text-[#1A2332]" style={{ fontSize: "16px" }}>edit</span>
+          </button>
+        </div>
+        <div className="px-4 pt-3 pb-4 space-y-4">
+          <div>
+            <div className="text-[14px] text-[#6B7280] leading-[20px]">Payment terms</div>
+            <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>{clientData.paymentTerms || "—"}</div>
+          </div>
+          <div>
+            <div className="text-[14px] text-[#6B7280] leading-[20px]">Preferred method</div>
+            <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>{clientData.paymentMethod || "—"}</div>
+          </div>
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input type="checkbox" checked={clientData.isTaxable} onChange={(e) => handleCheckboxChange("isTaxable", e.target.checked)} className="w-4 h-4 accent-[#4A6FA5]" />
+            <span className="text-[14px] text-[#1A2332]">Taxable client</span>
+          </label>
+        </div>
+      </div>
+      </div>
+
+      {/* Card 3: Notes */}
+      <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
+        {/* Card header — Figma: 16px title + bordered add button */}
+        <div className="flex items-center justify-between gap-2 px-4 pt-4">
+          <span className="text-[16px] text-[#1A2332]" style={{ fontWeight: 600 }}>
+            Notes
+            {clientData.notesArray.length > 0 && (
+              <span className="ml-1 text-[#9CA3AF]" style={{ fontWeight: 400 }}>({clientData.notesArray.length})</span>
+            )}
+          </span>
+          <button
+            onClick={() => { setAddingNote(true); setNewNoteText(""); }}
+            className="w-8 h-8 flex items-center justify-center border border-[#E5E7EB] rounded-lg hover:bg-[#F5F7FA] transition-colors"
+            aria-label="Add note"
+          >
+            <PlusIcon className="h-4 w-4 text-[#1A2332]" />
+          </button>
+        </div>
+
+        <div className="px-4 pt-3 pb-2">
+          {clientData.notesArray.length === 0 && !addingNote && (
+            <div className="py-6 text-center text-[12px] text-[#9CA3AF]">No notes yet</div>
+          )}
+          <>{(notesExpanded ? clientData.notesArray : clientData.notesArray.slice(0, 4)).map((note, index, arr) => {
+            const isLong = note.text.length > 120;
+            const isExpanded = expandedNoteIds.has(note.id);
+            const isEditingThis = editingNoteId === note.id;
+            return (
+              <div key={note.id} className={`group py-3 ${index < arr.length - 1 ? "border-b border-[#E5E7EB]" : ""}`}>
+                {isEditingThis ? (
+                  /* ── Edit mode ── */
+                  <div>
+                    <textarea
+                      autoFocus
+                      value={editingNoteText}
+                      onChange={e => setEditingNoteText(e.target.value)}
+                      rows={3}
+                      className="w-full text-[13px] text-[#1A2332] border border-[#4A6FA5] rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-[#4A6FA5] bg-white"
+                    />
+                    <div className="flex gap-2 mt-2">
+                      <button
+                        onClick={() => {
+                          const trimmed = editingNoteText.trim();
+                          if (!trimmed) return;
+                          clientsStore.updateClient(client.id, { notesArray: client.notesArray.map(n => n.id === note.id ? { ...n, text: trimmed } : n) });
+                          setEditingNoteId(null);
+                        }}
+                        disabled={!editingNoteText.trim()}
+                        className="h-7 px-3 bg-[#4A6FA5] hover:bg-[#3d5a85] disabled:opacity-40 text-white text-[12px] rounded-md transition-colors"
+                        style={{ fontWeight: 500 }}
+                      >
+                        Save
+                      </button>
+                      <button
+                        onClick={() => setEditingNoteId(null)}
+                        className="h-7 px-3 text-[#546478] hover:bg-[#EDF0F5] text-[12px] rounded-md transition-colors"
+                        style={{ fontWeight: 500 }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  /* ── Read mode (Figma: "Added {date}" above the note text) ── */
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[12px] text-[#6B7280] mb-0.5">{note.date.startsWith("Added") ? note.date : `Added ${note.date}`}</div>
+                      <p className={`text-[14px] text-[#1A2332] leading-[20px] ${!isExpanded && isLong ? "line-clamp-2" : ""}`}>
+                        {note.text}
+                      </p>
+                      {isLong && (
+                        <button
+                          onClick={() => setExpandedNoteIds(prev => {
+                            const s = new Set(prev);
+                            isExpanded ? s.delete(note.id) : s.add(note.id);
+                            return s;
+                          })}
+                          className="mt-1 text-[11px] text-[#4A6FA5] hover:underline"
+                          style={{ fontWeight: 500 }}
+                        >
+                          {isExpanded ? "Show less" : "Read more"}
+                        </button>
+                      )}
+                    </div>
+                    {/* Actions — visible on hover */}
+                    <div className="flex items-center gap-0.5 shrink-0 mt-0.5">
+                      <button
+                        onClick={() => { setEditingNoteId(note.id); setEditingNoteText(note.text); }}
+                        className="w-6 h-6 flex items-center justify-center hover:bg-[#EDF0F5] rounded transition-colors"
+                        title="Edit"
+                      >
+                        <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "14px" }}>edit</span>
+                      </button>
+                      <button
+                        onClick={() => setPendingDelete(() => () => {
+                          clientsStore.updateClient(client.id, { notesArray: client.notesArray.filter(n => n.id !== note.id) });
+                          setExpandedNoteIds(prev => { const s = new Set(prev); s.delete(note.id); return s; });
+                        })}
+                        className="w-6 h-6 flex items-center justify-center hover:bg-[#FEF2F2] rounded transition-colors"
+                        title="Delete"
+                      >
+                        <span className="material-icons text-[#9CA3AF] hover:text-[#DC2626]" style={{ fontSize: "14px" }}>delete</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+          {clientData.notesArray.length > 4 && (
+            <button
+              onClick={() => setNotesExpanded(v => !v)}
+              className="w-full py-2.5 text-[12px] text-[#4A6FA5] hover:text-[#3d5a85] hover:bg-[#F5F7FA] rounded-lg transition-colors flex items-center justify-center gap-1 border-t border-[#E5E7EB] mt-1"
+              style={{ fontWeight: 500 }}
+            >
+              <span className="material-icons" style={{ fontSize: "14px" }}>
+                {notesExpanded ? "expand_less" : "expand_more"}
+              </span>
+              {notesExpanded ? "Show less" : `Show ${clientData.notesArray.length - 4} more`}
+            </button>
+          )}</>
+
+          {/* Custom Fields — Figma places this at the bottom of the Notes column */}
+          <div className="pt-3 mt-2 border-t border-[#E5E7EB]">
+            <div className="text-[14px] text-[#1A2332] mb-2" style={{ fontWeight: 600 }}>Custom Fields</div>
             {(() => {
               const configured = cfClientFields.slice(0, 2).filter(f => f.label.trim() !== "");
               if (configured.length === 0) {
@@ -1188,169 +1269,6 @@ export function ClientDetail() {
               );
             })()}
           </div>
-
-          {/* Billing terms subsection */}
-          <div className="pt-3 border-t border-[#E5E7EB]">
-            <div className="flex items-center justify-between mb-3">
-              <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>Billing terms</div>
-              <button
-                onClick={() => { setEditedClient(client); setEditingSection("finance"); }}
-                className="w-6 h-6 flex items-center justify-center hover:bg-[#F5F7FA] rounded-md transition-colors text-[#9CA3AF]"
-                aria-label="Edit billing terms"
-              >
-                <span className="material-icons" style={{ fontSize: "15px" }}>edit</span>
-              </button>
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-[13px] text-[#6B7280]">Payment terms</span>
-                <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>
-                  {clientData.paymentTerms || "—"}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-[13px] text-[#6B7280]">Preferred method</span>
-                <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>
-                  {clientData.paymentMethod || "—"}
-                </span>
-              </div>
-              <label className="flex items-center gap-2.5 cursor-pointer pt-0.5">
-                <input
-                  type="checkbox"
-                  checked={clientData.isTaxable}
-                  onChange={(e) => handleCheckboxChange("isTaxable", e.target.checked)}
-                  className="w-4 h-4 accent-[#4A6FA5]"
-                />
-                <span className="text-[13px] text-[#4B5563]">Taxable client</span>
-              </label>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Card 3: Notes */}
-      <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
-        {/* Card header */}
-        <div className="flex items-center gap-2 px-5 py-3.5 border-b border-[#E5E7EB]">
-          <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>notes</span>
-          <span className="flex-1 text-[13px] font-semibold text-[#1A2332]">
-            Notes
-            {clientData.notesArray.length > 0 && (
-              <span className="ml-1 text-[#9CA3AF]" style={{ fontWeight: 400 }}>({clientData.notesArray.length})</span>
-            )}
-          </span>
-          <button
-            onClick={() => { setAddingNote(true); setNewNoteText(""); }}
-            className="w-7 h-7 flex items-center justify-center hover:bg-[#F5F7FA] rounded-md transition-colors"
-            aria-label="Add note"
-          >
-            <PlusIcon className="h-4 w-4 text-[#9CA3AF]" />
-          </button>
-        </div>
-
-        <div className="px-5 pt-2 pb-1">
-          {clientData.notesArray.length === 0 && !addingNote && (
-            <div className="py-6 text-center text-[12px] text-[#9CA3AF]">No notes yet</div>
-          )}
-          <>{(notesExpanded ? clientData.notesArray : clientData.notesArray.slice(0, 4)).map((note, index, arr) => {
-            const isLong = note.text.length > 120;
-            const isExpanded = expandedNoteIds.has(note.id);
-            const isEditingThis = editingNoteId === note.id;
-            return (
-              <div key={note.id} className={`group py-3 ${index < arr.length - 1 ? "border-b border-[#E5E7EB]" : ""}`}>
-                {isEditingThis ? (
-                  /* ── Edit mode ── */
-                  <div>
-                    <textarea
-                      autoFocus
-                      value={editingNoteText}
-                      onChange={e => setEditingNoteText(e.target.value)}
-                      rows={3}
-                      className="w-full text-[13px] text-[#1A2332] border border-[#4A6FA5] rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-[#4A6FA5] bg-white"
-                    />
-                    <div className="flex gap-2 mt-2">
-                      <button
-                        onClick={() => {
-                          const trimmed = editingNoteText.trim();
-                          if (!trimmed) return;
-                          clientsStore.updateClient(client.id, { notesArray: client.notesArray.map(n => n.id === note.id ? { ...n, text: trimmed } : n) });
-                          setEditingNoteId(null);
-                        }}
-                        disabled={!editingNoteText.trim()}
-                        className="h-7 px-3 bg-[#4A6FA5] hover:bg-[#3d5a85] disabled:opacity-40 text-white text-[12px] rounded-md transition-colors"
-                        style={{ fontWeight: 500 }}
-                      >
-                        Save
-                      </button>
-                      <button
-                        onClick={() => setEditingNoteId(null)}
-                        className="h-7 px-3 text-[#546478] hover:bg-[#EDF0F5] text-[12px] rounded-md transition-colors"
-                        style={{ fontWeight: 500 }}
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  /* ── Read mode ── */
-                  <div>
-                    <div className="flex items-start justify-between gap-2">
-                      <p className={`text-[13px] text-[#1A2332] leading-[20px] flex-1 ${!isExpanded && isLong ? "line-clamp-2" : ""}`}
-                        style={{ fontWeight: 500 }}>
-                        {note.text}
-                      </p>
-                      {/* Actions — visible on hover */}
-                      <div className="flex items-center gap-0.5 shrink-0 mt-0.5">
-                        <button
-                          onClick={() => { setEditingNoteId(note.id); setEditingNoteText(note.text); }}
-                          className="w-6 h-6 flex items-center justify-center hover:bg-[#EDF0F5] rounded transition-colors"
-                          title="Edit"
-                        >
-                          <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "14px" }}>edit</span>
-                        </button>
-                        <button
-                          onClick={() => setPendingDelete(() => () => {
-                            clientsStore.updateClient(client.id, { notesArray: client.notesArray.filter(n => n.id !== note.id) });
-                            setExpandedNoteIds(prev => { const s = new Set(prev); s.delete(note.id); return s; });
-                          })}
-                          className="w-6 h-6 flex items-center justify-center hover:bg-[#FEF2F2] rounded transition-colors"
-                          title="Delete"
-                        >
-                          <span className="material-icons text-[#9CA3AF] hover:text-[#DC2626]" style={{ fontSize: "14px" }}>delete</span>
-                        </button>
-                      </div>
-                    </div>
-                    {isLong && (
-                      <button
-                        onClick={() => setExpandedNoteIds(prev => {
-                          const s = new Set(prev);
-                          isExpanded ? s.delete(note.id) : s.add(note.id);
-                          return s;
-                        })}
-                        className="mt-1 text-[11px] text-[#4A6FA5] hover:underline"
-                        style={{ fontWeight: 500 }}
-                      >
-                        {isExpanded ? "Show less" : "Read more"}
-                      </button>
-                    )}
-                    <div className="text-[11px] text-[#9CA3AF] mt-1">{note.date}</div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-          {clientData.notesArray.length > 4 && (
-            <button
-              onClick={() => setNotesExpanded(v => !v)}
-              className="w-full py-2.5 text-[12px] text-[#4A6FA5] hover:text-[#3d5a85] hover:bg-[#F5F7FA] rounded-lg transition-colors flex items-center justify-center gap-1 border-t border-[#E5E7EB] mt-1"
-              style={{ fontWeight: 500 }}
-            >
-              <span className="material-icons" style={{ fontSize: "14px" }}>
-                {notesExpanded ? "expand_less" : "expand_more"}
-              </span>
-              {notesExpanded ? "Show less" : `Show ${clientData.notesArray.length - 4} more`}
-            </button>
-          )}</>
         </div>
       </div>
     </div>
@@ -1378,39 +1296,39 @@ export function ClientDetail() {
         <div className="px-6 py-5 space-y-5">
           {/* Customer number */}
           <div>
-            <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Client number</Label>
-            <Input placeholder="e.g. 10245" value={editedClient.customerId} onChange={(e) => handleFieldChange("customerId", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
+            <Label className="text-[14px] text-[#1A2332] mb-2 block" style={{ fontWeight: 500 }}>Client number</Label>
+            <Input placeholder="e.g. 10245" value={editedClient.customerId} onChange={(e) => handleFieldChange("customerId", e.target.value)} className="border-[#E5E7EB] bg-white h-9 text-[14px] rounded-[8px] shadow-[0px_1px_2px_rgba(0,0,0,0.05)]" />
           </div>
           {/* Name row */}
           <div>
-            <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Name</Label>
+            <Label className="text-[14px] text-[#1A2332] mb-2 block" style={{ fontWeight: 500 }}>Name</Label>
             <div className="grid grid-cols-[100px_1fr_60px_1fr] gap-3">
               <Select value={editedClient.title || "none"} onValueChange={(v) => handleFieldChange("title", v === "none" ? "" : v)}>
-                <SelectTrigger className="border-[#E5E7EB] bg-white h-10 text-[14px]"><SelectValue placeholder="Title" /></SelectTrigger>
+                <SelectTrigger className="border-[#E5E7EB] bg-white h-9 text-[14px] rounded-[8px] shadow-[0px_1px_2px_rgba(0,0,0,0.05)]"><SelectValue placeholder="Title" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">Title</SelectItem>
                   {["Mr.", "Mrs.", "Ms.", "Dr.", "Prof."].map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
                 </SelectContent>
               </Select>
-              <Input placeholder="First name" value={editedClient.firstName} onChange={(e) => handleFieldChange("firstName", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
-              <Input placeholder="M.I." value={editedClient.middleInitial} onChange={(e) => handleFieldChange("middleInitial", e.target.value.slice(0,1).toUpperCase())} className="border-[#E5E7EB] bg-white h-10 text-[14px]" maxLength={1} />
-              <Input placeholder="Last name" value={editedClient.lastName} onChange={(e) => handleFieldChange("lastName", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
+              <Input placeholder="First name" value={editedClient.firstName} onChange={(e) => handleFieldChange("firstName", e.target.value)} className="border-[#E5E7EB] bg-white h-9 text-[14px] rounded-[8px] shadow-[0px_1px_2px_rgba(0,0,0,0.05)]" />
+              <Input placeholder="M.I." value={editedClient.middleInitial} onChange={(e) => handleFieldChange("middleInitial", e.target.value.slice(0,1).toUpperCase())} className="border-[#E5E7EB] bg-white h-9 text-[14px] rounded-[8px] shadow-[0px_1px_2px_rgba(0,0,0,0.05)]" maxLength={1} />
+              <Input placeholder="Last name" value={editedClient.lastName} onChange={(e) => handleFieldChange("lastName", e.target.value)} className="border-[#E5E7EB] bg-white h-9 text-[14px] rounded-[8px] shadow-[0px_1px_2px_rgba(0,0,0,0.05)]" />
             </div>
           </div>
           {/* Preferred name */}
           <div>
-            <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Preferred name (Goes by)</Label>
-            <Input placeholder="e.g. Mia, Bobby, TJ" value={editedClient.preferredName} onChange={(e) => handleFieldChange("preferredName", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
+            <Label className="text-[14px] text-[#1A2332] mb-2 block" style={{ fontWeight: 500 }}>Preferred name (Goes by)</Label>
+            <Input placeholder="e.g. Mia, Bobby, TJ" value={editedClient.preferredName} onChange={(e) => handleFieldChange("preferredName", e.target.value)} className="border-[#E5E7EB] bg-white h-9 text-[14px] rounded-[8px] shadow-[0px_1px_2px_rgba(0,0,0,0.05)]" />
           </div>
           {/* Company + Role */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Company name</Label>
-              <Input placeholder="Company name" value={editedClient.company} onChange={(e) => handleFieldChange("company", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
+              <Label className="text-[14px] text-[#1A2332] mb-2 block" style={{ fontWeight: 500 }}>Company name</Label>
+              <Input placeholder="Company name" value={editedClient.company} onChange={(e) => handleFieldChange("company", e.target.value)} className="border-[#E5E7EB] bg-white h-9 text-[14px] rounded-[8px] shadow-[0px_1px_2px_rgba(0,0,0,0.05)]" />
             </div>
             <div>
-              <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Role</Label>
-              <Input placeholder="e.g. Owner, Manager" value={editedClient.role} onChange={(e) => handleFieldChange("role", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
+              <Label className="text-[14px] text-[#1A2332] mb-2 block" style={{ fontWeight: 500 }}>Role</Label>
+              <Input placeholder="e.g. Owner, Manager" value={editedClient.role} onChange={(e) => handleFieldChange("role", e.target.value)} className="border-[#E5E7EB] bg-white h-9 text-[14px] rounded-[8px] shadow-[0px_1px_2px_rgba(0,0,0,0.05)]" />
             </div>
           </div>
         </div>
@@ -1456,7 +1374,7 @@ export function ClientDetail() {
 
           {/* Available tags */}
           <div>
-            <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Select tags</Label>
+            <Label className="text-[14px] text-[#1A2332] mb-2 block" style={{ fontWeight: 500 }}>Select tags</Label>
             <div className="grid grid-cols-2 gap-2 max-h-[240px] overflow-y-auto p-2 border border-[#E5E7EB] rounded-md">
               {availableTags.map((tag) => (
                 <label key={tag} className="flex items-center gap-2 cursor-pointer hover:bg-[#F5F7FA] p-2 rounded">
@@ -1495,7 +1413,7 @@ export function ClientDetail() {
               onChange={(e) => handleFieldChange("isTaxable", e.target.checked)}
               className="w-4 h-4 accent-[#4A6FA5]"
             />
-            <span className="text-[14px] text-[#374151]">Taxable customer</span>
+            <span className="text-[14px] text-[#374151]">Taxable client</span>
           </label>
 
           {/* Payment terms */}
@@ -1537,7 +1455,7 @@ export function ClientDetail() {
         <div className="px-6 py-5 space-y-5">
           {/* Primary phone */}
           <div>
-            <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Primary phone number</Label>
+            <Label className="text-[14px] text-[#1A2332] mb-2 block" style={{ fontWeight: 500 }}>Primary phone number</Label>
             <div className="flex gap-[19px]">
               <Input type="tel" placeholder="(555) 123-4567" value={editedClient.mobilePhone} onChange={(e) => handleFieldChange("mobilePhone", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px] flex-1" />
               <Input type="text" placeholder="EXT" value={editedClient.mobilePhoneExt} onChange={(e) => handleFieldChange("mobilePhoneExt", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px] w-[80px]" />
@@ -1545,7 +1463,7 @@ export function ClientDetail() {
           </div>
           {/* Secondary phone */}
           <div>
-            <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Secondary phone number</Label>
+            <Label className="text-[14px] text-[#1A2332] mb-2 block" style={{ fontWeight: 500 }}>Secondary phone number</Label>
             <div className="flex gap-[19px]">
               <Input type="tel" placeholder="(555) 456-7890" value={editedClient.workPhone} onChange={(e) => handleFieldChange("workPhone", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px] flex-1" />
               <Input type="text" placeholder="EXT" value={editedClient.workPhoneExt} onChange={(e) => handleFieldChange("workPhoneExt", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px] w-[80px]" />
@@ -1553,13 +1471,13 @@ export function ClientDetail() {
           </div>
           {/* Email */}
           <div>
-            <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Email</Label>
-            <Input type="email" placeholder="john@example.com" value={editedClient.email} onChange={(e) => handleFieldChange("email", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
+            <Label className="text-[14px] text-[#1A2332] mb-2 block" style={{ fontWeight: 500 }}>Email</Label>
+            <Input type="email" placeholder="john@example.com" value={editedClient.email} onChange={(e) => handleFieldChange("email", e.target.value)} className="border-[#E5E7EB] bg-white h-9 text-[14px] rounded-[8px] shadow-[0px_1px_2px_rgba(0,0,0,0.05)]" />
           </div>
           {/* Website */}
           <div>
-            <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Website</Label>
-            <Input type="url" placeholder="https://example.com" value={editedClient.website} onChange={(e) => handleFieldChange("website", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
+            <Label className="text-[14px] text-[#1A2332] mb-2 block" style={{ fontWeight: 500 }}>Website</Label>
+            <Input type="url" placeholder="https://example.com" value={editedClient.website} onChange={(e) => handleFieldChange("website", e.target.value)} className="border-[#E5E7EB] bg-white h-9 text-[14px] rounded-[8px] shadow-[0px_1px_2px_rgba(0,0,0,0.05)]" />
           </div>
         </div>
       </div>
@@ -1572,9 +1490,9 @@ export function ClientDetail() {
         <div className="px-6 py-5 space-y-5">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Payment terms</Label>
+              <Label className="text-[14px] text-[#1A2332] mb-2 block" style={{ fontWeight: 500 }}>Payment terms</Label>
               <Select value={editedClient.paymentTerms || "none"} onValueChange={(v) => handleFieldChange("paymentTerms", v === "none" ? "" : v)}>
-                <SelectTrigger className="border-[#E5E7EB] bg-white h-10 text-[14px]"><SelectValue placeholder="Select terms" /></SelectTrigger>
+                <SelectTrigger className="border-[#E5E7EB] bg-white h-9 text-[14px] rounded-[8px] shadow-[0px_1px_2px_rgba(0,0,0,0.05)]"><SelectValue placeholder="Select terms" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">— Select —</SelectItem>
                   <SelectItem value="Due on receipt">Due on receipt</SelectItem>
@@ -1586,9 +1504,9 @@ export function ClientDetail() {
               </Select>
             </div>
             <div>
-              <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Payment method</Label>
+              <Label className="text-[14px] text-[#1A2332] mb-2 block" style={{ fontWeight: 500 }}>Payment method</Label>
               <Select value={editedClient.paymentMethod || "none"} onValueChange={(v) => handleFieldChange("paymentMethod", v === "none" ? "" : v)}>
-                <SelectTrigger className="border-[#E5E7EB] bg-white h-10 text-[14px]"><SelectValue placeholder="Select method" /></SelectTrigger>
+                <SelectTrigger className="border-[#E5E7EB] bg-white h-9 text-[14px] rounded-[8px] shadow-[0px_1px_2px_rgba(0,0,0,0.05)]"><SelectValue placeholder="Select method" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">— Select —</SelectItem>
                   {PAYMENT_METHODS.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
@@ -1597,8 +1515,8 @@ export function ClientDetail() {
             </div>
           </div>
           <div>
-            <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Credit limit</Label>
-            <Input type="number" placeholder="0" value={editedClient.creditLimit} onChange={(e) => handleFieldChange("creditLimit", parseFloat(e.target.value) || 0)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
+            <Label className="text-[14px] text-[#1A2332] mb-2 block" style={{ fontWeight: 500 }}>Credit limit</Label>
+            <Input type="number" placeholder="0" value={editedClient.creditLimit} onChange={(e) => handleFieldChange("creditLimit", parseFloat(e.target.value) || 0)} className="border-[#E5E7EB] bg-white h-9 text-[14px] rounded-[8px] shadow-[0px_1px_2px_rgba(0,0,0,0.05)]" />
           </div>
         </div>
       </div>
@@ -1703,49 +1621,113 @@ export function ClientDetail() {
           />
         );
 
-      case "estimates":
+      case "estimates": {
+        const estReturn = encodeURIComponent(`/clients/${client.id}?tab=estimates`);
         return (
-          <>
-            <TabHeader title="Estimates" count={liveClientEstimates.length} onAdd={() => navigate(createUrl("/estimates/new", "estimates"))} addLabel="Create estimate" />
-            {liveClientEstimates.length === 0 ? (
-              <EmptyState icon="request_quote" message="No estimates yet for this client." />
-            ) : (
-              <div className="overflow-x-auto">
-                <ClientEstimatesTable
-                  rows={liveClientEstimates}
-                  onNavigate={(id) => navigate(`/estimates/${id}?returnTo=${encodeURIComponent(`/clients/${client.id}?tab=estimates`)}`)}
-                />
-              </div>
-            )}
-          </>
+          <RecordTab
+            rows={liveClientEstimates}
+            emptyIcon="request_quote" emptyTitle="No estimates yet" emptySubtitle="Create an estimate to send this client a quote"
+            searchPlaceholder="Search estimates…"
+            searchMatch={(r, q) => [r.estimateNumber, r.estimateName, r.status, ...(r.jobs ?? []).map((j) => j.number)].some((v) => (v || "").toLowerCase().includes(q.toLowerCase()))}
+            filters={[
+              { key: "status", label: "Status", options: [
+                { value: "", label: "All" }, { value: "Draft", label: "Draft" }, { value: "Sent", label: "Sent" }, { value: "Viewed", label: "Viewed" },
+                { value: "Changes Requested", label: "Changes Requested" }, { value: "Updated", label: "Updated" },
+                { value: "Approved", label: "Approved" }, { value: "Rejected", label: "Rejected" }, { value: "Expired", label: "Expired" },
+              ], match: (r, v) => r.status === v },
+            ]}
+            createLabel="Create estimate"
+            onCreate={() => navigate(createUrl("/estimates/new", "estimates"))}
+            onRowClick={(r) => navigate(`/estimates/${r.id}?returnTo=${estReturn}`)}
+            columns={[
+              { key: "number", label: "Number", render: (r) => <span className="text-[#4A6FA5]" style={{ fontWeight: 500 }}>{r.estimateNumber}</span> },
+              { key: "name", label: "Name", render: (r) => <span className="text-[#1A2332]">{r.estimateName || "—"}</span> },
+              { key: "jobs", label: "Jobs", render: (r) => {
+                const js = r.jobs ?? [];
+                const label = js.length === 0 ? "—" : js.length === 1 ? `${js[0].number}${js[0].name ? ` — ${js[0].name}` : ""}` : js.map((j) => j.number).join(", ");
+                return <span className="text-[#4A6FA5]" title={js.map((j) => `${j.number}${j.name ? ` — ${j.name}` : ""}`).join("\n")}>{label}</span>;
+              } },
+              { key: "date", label: "Date", render: (r) => <span className="text-[#1A2332]">{r.createdDate || "—"}</span> },
+              { key: "status", label: "Status", render: (r) => { const ss = EST_STATUS_COLORS[r.status] ?? EST_STATUS_COLORS["Draft"]; return <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-[12px]" style={{ fontWeight: 500, backgroundColor: ss.bg, color: ss.color }}>{r.status}</span>; } },
+              { key: "amount", label: "Amount", align: "right", render: (r) => <span className="text-[#1A2332]" style={{ fontWeight: 600 }}>${r.amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span> },
+            ]}
+            rowActions={(r) => [
+              { label: "Preview estimate", icon: "visibility", onClick: () => navigate(`/estimates/${r.id}?returnTo=${estReturn}`) },
+              { label: "Send to client", icon: "send", onClick: () => toast.success(`Estimate ${r.estimateNumber} sent to ${client.name}`) },
+              { label: "Make invoice", icon: "request_quote", onClick: () => navigate(createUrl("/invoices/new", "invoices", { fromEstimate: String(r.id) })) },
+              { label: "Convert to job", icon: "work_outline", onClick: () => navigate(createUrl("/jobs/new", "jobs", { fromEstimate: String(r.id) })) },
+              { label: "Change status", icon: "swap_horiz", separatorBefore: true, onClick: () => { estimatesStore.update(Number(r.id), { status: "Sent" }); toast.success(`Estimate ${r.estimateNumber} marked as Sent`); } },
+              { label: "Duplicate", icon: "content_copy", onClick: () => toast.success(`Estimate ${r.estimateNumber} duplicated`) },
+              { label: "Archive", icon: "inventory_2", separatorBefore: true, destructive: true, onClick: () => { estimatesStore.remove(Number(r.id)); toast.success(`Estimate ${r.estimateNumber} archived`); } },
+              { label: "Open in new tab", icon: "open_in_new", onClick: () => window.open(`/estimates/${r.id}`, "_blank") },
+            ]}
+            bulkActions={[
+              { label: "Change status", icon: "swap_horiz", onClick: (sel) => { sel.forEach((e) => estimatesStore.update(Number(e.id), { status: "Sent" })); toast.success(`${sel.length} estimate${sel.length > 1 ? "s" : ""} marked as Sent`); } },
+              { label: "Download", icon: "download", onClick: (sel) => toast.success(`Downloading ${sel.length} estimate${sel.length > 1 ? "s" : ""}`) },
+              { label: "Archive", icon: "inventory_2", onClick: (sel) => { estimatesStore.removeMany(new Set(sel.map((e) => Number(e.id)))); toast.success(`${sel.length} estimate${sel.length > 1 ? "s" : ""} archived`); } },
+            ]}
+          />
         );
+      }
 
       case "invoices":
         return (
-          <>
-            <TabHeader title="Invoices" count={clientInvoiceRows.length} onAdd={() => navigate(createUrl("/invoices/new", "invoices"))} addLabel="Create invoice" />
-            {clientInvoiceRows.length === 0 ? (
-              <EmptyState icon="receipt_long" message="No invoices yet for this client." />
-            ) : (
-              <div className="overflow-x-auto">
-                <InvoiceTable rows={clientInvoiceRows} />
-              </div>
-            )}
-          </>
+          <RecordTab<InvoiceRow>
+            rows={clientInvoiceRows}
+            columns={INVOICE_GRID_COLS}
+            emptyIcon="description" emptyTitle="No invoices yet" emptySubtitle="Create an invoice to bill this client for your work"
+            searchPlaceholder="Search invoices…"
+            searchMatch={(r, q) => [r.invoiceNo, r.jobNo, r.jobName, r.status, r.note].some((v) => (v || "").toLowerCase().includes(q.toLowerCase()))}
+            filters={[
+              { key: "status", label: "Status", options: [
+                { value: "", label: "All" }, { value: "Paid", label: "Paid" }, { value: "Overdue", label: "Overdue" },
+                { value: "Partially paid", label: "Partially paid" }, { value: "Void", label: "Void" },
+              ], match: (r, v) => r.status === v },
+            ]}
+            createLabel="Create invoice"
+            onCreate={() => navigate(createUrl("/invoices/new", "invoices"))}
+            onRowClick={(r) => navigate(`/invoices/${r.id}?returnTo=${encodeURIComponent(`/clients/${client.id}?tab=invoices`)}`)}
+            rowActions={(r) => [
+              { label: "Send to client", icon: "send", onClick: () => toast.success(`Invoice ${r.invoiceNo} sent to ${client.name}`) },
+              { label: "Change status", icon: "swap_horiz", onClick: () => { setInvoiceList((list) => list.map((x) => x.id === r.id ? { ...x, status: x.status === "Paid" ? "Overdue" : "Paid", balance: x.status === "Paid" ? x.total : "$0.00" } : x)); toast.success("Status updated"); } },
+              { label: "Duplicate", icon: "content_copy", onClick: () => setInvoiceList((list) => { const nid = Math.max(0, ...list.map((i) => i.id)) + 1; return [...list, { ...r, id: nid, invoiceNo: `${r.invoiceNo}-COPY` }]; }) },
+              { label: "Void", icon: "block", separatorBefore: true, onClick: () => { setInvoiceList((list) => list.map((x) => x.id === r.id ? { ...x, status: "Void" } : x)); toast.success(`Invoice ${r.invoiceNo} voided`); } },
+              { label: "Archive", icon: "inventory_2", destructive: true, onClick: () => { setInvoiceList((list) => list.filter((x) => x.id !== r.id)); toast.success(`Invoice ${r.invoiceNo} archived`); } },
+            ] as RecordAction<InvoiceRow>[]}
+            bulkActions={[
+              { label: "Change status", icon: "swap_horiz", onClick: (sel) => { const ids = new Set(sel.map((x) => x.id)); setInvoiceList((list) => list.map((x) => ids.has(x.id) ? { ...x, status: x.status === "Paid" ? "Overdue" : "Paid", balance: x.status === "Paid" ? x.total : "$0.00" } : x)); toast.success(`${sel.length} invoice${sel.length > 1 ? "s" : ""} updated`); } },
+              { label: "Download", icon: "download", onClick: (sel) => toast.success(`Downloading ${sel.length} invoice${sel.length > 1 ? "s" : ""}`) },
+              { label: "Archive", icon: "inventory_2", onClick: (sel) => { const ids = new Set(sel.map((x) => x.id)); setInvoiceList((list) => list.filter((x) => !ids.has(x.id))); toast.success(`${sel.length} invoice${sel.length > 1 ? "s" : ""} archived`); } },
+            ] as RecordBulkAction<InvoiceRow>[]}
+          />
         );
 
       case "payments":
         return (
-          <>
-            <TabHeader title="Payments" count={clientPaymentRows.length} onAdd={() => navigate(createUrl("/payments/new", "payments", { amount: String(client.openBalance), method: client.paymentMethod || "" }))} addLabel="Collect payment" />
-            {clientPaymentRows.length === 0 ? (
-              <EmptyState icon="payments" message="No payments yet for this client." />
-            ) : (
-              <div className="overflow-x-auto">
-                <PaymentTable rows={clientPaymentRows} />
-              </div>
-            )}
-          </>
+          <RecordTab<PaymentRow>
+            rows={clientPaymentRows}
+            columns={PAYMENT_GRID_COLS}
+            emptyIcon="account_balance_wallet" emptyTitle="No payments yet" emptySubtitle="Record a payment to track what this client has paid"
+            searchPlaceholder="Search payments…"
+            searchMatch={(r, q) => [r.invoiceNo, r.method, r.status, r.note].some((v) => (v || "").toLowerCase().includes(q.toLowerCase()))}
+            filters={[
+              { key: "status", label: "Status", options: [
+                { value: "", label: "All" }, { value: "Completed", label: "Completed" }, { value: "Pending", label: "Pending" }, { value: "Refunded", label: "Refunded" },
+              ], match: (r, v) => r.status === v },
+            ]}
+            createLabel="Collect payment"
+            onCreate={() => navigate(createUrl("/payments/new", "payments", { amount: String(client.openBalance), method: client.paymentMethod || "" }))}
+            onRowClick={(r) => navigate(`/payments/${r.id}?returnTo=${encodeURIComponent(`/clients/${client.id}?tab=payments`)}`)}
+            rowActions={(r) => [
+              { label: "View payment", icon: "visibility", onClick: () => navigate(`/payments/${r.id}?returnTo=${encodeURIComponent(`/clients/${client.id}?tab=payments`)}`) },
+              { label: "Send receipt", icon: "send", onClick: () => toast.success(`Receipt for ${r.invoiceNo} sent to ${client.name}`) },
+              { label: "Refund", icon: "swap_horiz", separatorBefore: true, destructive: true, onClick: () => { setPaymentList((list) => list.map((x) => x.id === r.id ? { ...x, status: "Refunded" } : x)); toast.success(`Payment for ${r.invoiceNo} refunded`); } },
+            ] as RecordAction<PaymentRow>[]}
+            bulkActions={[
+              { label: "Send receipts", icon: "send", onClick: (sel) => toast.success(`${sel.length} receipt${sel.length > 1 ? "s" : ""} sent to ${client.name}`) },
+              { label: "Download", icon: "download", onClick: (sel) => toast.success(`Downloading ${sel.length} payment${sel.length > 1 ? "s" : ""}`) },
+            ] as RecordBulkAction<PaymentRow>[]}
+          />
         );
 
       case "addresses": {
@@ -1926,14 +1908,30 @@ export function ClientDetail() {
 
             {/* Files: Estimate-style inline preview pane + miniature thumbnails strip */}
             {sortedDocuments.length === 0 ? (
-              <div className="bg-white border border-[#E5E7EB] rounded-xl py-12 text-center">
-                <span className="material-icons text-[#D1D5DB] mb-2 block" style={{ fontSize: "40px" }}>folder_open</span>
-                <div className="text-[13px] text-[#9CA3AF]">
-                  {docSearch || docDate !== "all" || docCategory !== "all" || docUploader !== "all"
-                    ? "No documents match your filters"
-                    : "No documents yet"}
+              (docSearch || docDate !== "all" || docCategory !== "all" || docUploader !== "all") ? (
+                <div className="bg-white border border-[#E5E7EB] rounded-xl py-12 text-center">
+                  <span className="material-icons text-[#D1D5DB] mb-2 block" style={{ fontSize: "40px" }}>folder_open</span>
+                  <div className="text-[13px] text-[#9CA3AF]">No documents match your filters</div>
                 </div>
-              </div>
+              ) : (
+                <div className="bg-white border border-[#E5E7EB] rounded-xl py-16 flex flex-col items-center justify-center text-center gap-4">
+                  <div className="w-12 h-12 rounded-full bg-[#F5F7FA] flex items-center justify-center">
+                    <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "24px" }}>folder_open</span>
+                  </div>
+                  <div>
+                    <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>No documents yet</div>
+                    <div className="text-[12px] text-[#6B7280] mt-1">Upload files to keep everything in one place</div>
+                  </div>
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="h-9 px-4 inline-flex items-center gap-1.5 bg-[#4A6FA5] hover:bg-[#3d5a85] text-white rounded-lg text-[14px] transition-colors"
+                    style={{ fontWeight: 500 }}
+                  >
+                    <span className="material-icons" style={{ fontSize: "16px" }}>upload</span>
+                    Upload
+                  </button>
+                </div>
+              )
             ) : (() => {
               const safeIdx = Math.min(docPreviewIdx, Math.max(0, sortedDocuments.length - 1));
               const current = sortedDocuments[safeIdx];
@@ -2072,6 +2070,24 @@ export function ClientDetail() {
                                       </button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end" className="w-[160px] p-1">
+                                      <DropdownMenuItem
+                                        className="h-9 px-3 text-[13px] text-[#374151] flex items-center gap-2.5 cursor-pointer"
+                                        onClick={() => {
+                                          // Trigger a real download when we have a blob/url; otherwise acknowledge.
+                                          if (file.previewUrl) {
+                                            const a = document.createElement("a");
+                                            a.href = file.previewUrl;
+                                            a.download = file.name;
+                                            document.body.appendChild(a);
+                                            a.click();
+                                            a.remove();
+                                          }
+                                          toast.success(`Downloading ${file.name}`);
+                                        }}
+                                      >
+                                        <span className="material-icons text-[#546478]" style={{ fontSize: "16px" }}>download</span>
+                                        Download
+                                      </DropdownMenuItem>
                                       <DropdownMenuItem
                                         className="h-9 px-3 text-[13px] text-[#374151] flex items-center gap-2.5 cursor-pointer"
                                         onClick={() => { setRenameDocId(file.id); setRenameDocDraft(file.name); }}
@@ -2344,15 +2360,15 @@ export function ClientDetail() {
       <div className="px-6 pt-6 pb-4 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <button
+            type="button"
             onClick={() => navigate("/clients")}
-            className="inline-flex items-center gap-1.5 text-[13px] text-[#4A6FA5] hover:text-[#3d5a85] transition-colors"
-            style={{ fontWeight: 500 }}
-            aria-label="Back to Clients"
-            title="Back to Clients"
+            aria-label="Back to clients"
+            title="Back to clients"
+            className="w-9 h-9 flex items-center justify-center rounded-lg text-[#1A2332] hover:bg-[#EDF0F5] transition-colors"
           >
-            <span className="material-icons" style={{ fontSize: "18px" }}>arrow_back</span>
-            <span>Back to Clients</span>
+            <span className="material-icons" style={{ fontSize: "24px" }}>chevron_left</span>
           </button>
+          <h1 className="text-[24px] text-[#1A2332]" style={{ fontWeight: 600 }}>Client details</h1>
         </div>
         {isEditing && (
           <div className="flex items-center gap-2">
@@ -2387,29 +2403,40 @@ export function ClientDetail() {
               <span className="text-[16px] text-[#6B7280] leading-[24px]" style={{ fontWeight: 400 }}>
                 ({client.customerId.replace(/^C-/, "")})
               </span>
-              {/* Status chip — functional (changes client status) */}
+              {/* Status chip — Active/Prospect is derived from jobs; the menu only
+                  toggles the manual Inactive flag (Inactivate / Reactivate). */}
               <div className="relative">
                 <button
                   onClick={() => setClientStatusOpen(!clientStatusOpen)}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[13px] transition-colors"
-                  style={{ fontWeight: 600, backgroundColor: `${clientStatusColors[clientStatus]}18`, color: clientStatusColors[clientStatus] }}
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[12px] transition-colors"
+                  style={{ fontWeight: 500, backgroundColor: `${clientStatusColors[derivedStatus]}26`, color: clientStatusColors[derivedStatus] }}
+                  title={derivedStatus === "Prospect" ? "No jobs yet — a new prospect" : derivedStatus === "Active" ? "Has at least one job" : "Manually deactivated"}
                 >
-                  <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: clientStatusColors[clientStatus] }} />
-                  {clientStatus}
-                  <span className="material-icons" style={{ fontSize: "14px" }}>arrow_drop_down</span>
+                  {derivedStatus}
+                  <span className="material-icons" style={{ fontSize: "14px" }}>expand_more</span>
                 </button>
                 {clientStatusOpen && (
-                  <div className="absolute left-0 top-full mt-1 bg-white border border-[#E5E7EB] rounded-md shadow-lg z-50 w-[160px] py-1">
-                    {(["Prospect", "Active", "Inactive"] as const).map((s) => (
+                  <div className="absolute left-0 top-full mt-1 bg-white border border-[#E5E7EB] rounded-md shadow-lg z-50 w-[200px] py-1">
+                    <div className="px-3 py-1.5 text-[11px] text-[#9CA3AF]" style={{ fontWeight: 500 }}>
+                      {derivedStatus === "Inactive" ? "Deactivated" : `${derivedStatus} · ${clientJobCount} job${clientJobCount === 1 ? "" : "s"}`}
+                    </div>
+                    {derivedStatus === "Inactive" ? (
                       <button
-                        key={s}
-                        onClick={() => { clientsStore.updateClient(client.id, { status: s }); setClientStatusOpen(false); }}
+                        onClick={() => { clientsStore.updateClient(client.id, { status: "Active" }); setClientStatusOpen(false); }}
                         className="w-full text-left px-3 py-2 text-[13px] hover:bg-[#F3F4F6] flex items-center gap-2"
                       >
-                        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: clientStatusColors[s] }} />
-                        <span style={{ color: clientStatusColors[s], fontWeight: 500 }}>{s}</span>
+                        <span className="material-icons text-[#16A34A]" style={{ fontSize: "16px" }}>check_circle</span>
+                        <span className="text-[#1A2332]" style={{ fontWeight: 500 }}>Reactivate</span>
                       </button>
-                    ))}
+                    ) : (
+                      <button
+                        onClick={() => { clientsStore.updateClient(client.id, { status: "Inactive" }); setClientStatusOpen(false); }}
+                        className="w-full text-left px-3 py-2 text-[13px] hover:bg-[#FEF2F2] flex items-center gap-2"
+                      >
+                        <span className="material-icons text-[#DC2626]" style={{ fontSize: "16px" }}>block</span>
+                        <span className="text-[#DC2626]" style={{ fontWeight: 500 }}>Inactivate</span>
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
@@ -2456,6 +2483,19 @@ export function ClientDetail() {
               {client.email}
             </a>
           </div>
+
+          {/* Row 3: Created + Last activity (Figma — calendar/clock icons + divider) */}
+          <div className="flex items-center gap-3 text-[14px] flex-wrap">
+            <div className="flex items-center gap-2">
+              <span className="material-icons text-[#1A2332]" style={{ fontSize: "16px" }}>calendar_today</span>
+              <span className="text-[#6B7280]">Created: <span className="text-[#1A2332]">{client.customerSince || "—"}</span></span>
+            </div>
+            <div className="w-px h-6 bg-[#E5E7EB]" />
+            <div className="flex items-center gap-2">
+              <span className="material-icons text-[#1A2332]" style={{ fontSize: "16px" }}>schedule</span>
+              <span className="text-[#6B7280]">Last activity: <span className="text-[#1A2332]">{client.lastActivity || "—"}</span></span>
+            </div>
+          </div>
         </div>
 
         {/* Divider separating the client header from the tab bar */}
@@ -2496,7 +2536,7 @@ export function ClientDetail() {
                 {editingSection === "name" && "Edit name & role"}
                 {editingSection === "contact" && "Edit contact information"}
                 {editingSection === "addresses" && "Edit addresses"}
-                {editingSection === "finance" && "Edit finance details"}
+                {editingSection === "finance" && "Edit billing details"}
               </h2>
               <button
                 onClick={() => setEditingSection(null)}
@@ -2512,27 +2552,27 @@ export function ClientDetail() {
               {editingSection === "name" && (
                 <>
                   <div>
-                    <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Name</Label>
+                    <Label className="text-[14px] text-[#1A2332] mb-2 block" style={{ fontWeight: 500 }}>Name</Label>
                     <div className="grid grid-cols-[100px_1fr_60px_1fr] gap-3">
                       <Select value={editedClient.title || "none"} onValueChange={(v) => handleFieldChange("title", v === "none" ? "" : v)}>
-                        <SelectTrigger className="border-[#E5E7EB] bg-white h-10 text-[14px]"><SelectValue placeholder="Title" /></SelectTrigger>
+                        <SelectTrigger className="border-[#E5E7EB] bg-white h-9 text-[14px] rounded-[8px] shadow-[0px_1px_2px_rgba(0,0,0,0.05)]"><SelectValue placeholder="Title" /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="none">Title</SelectItem>
                           {["Mr.", "Mrs.", "Ms.", "Dr.", "Prof."].map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
                         </SelectContent>
                       </Select>
-                      <Input placeholder="First name" value={editedClient.firstName} onChange={(e) => handleFieldChange("firstName", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
-                      <Input placeholder="M.I." value={editedClient.middleInitial} onChange={(e) => handleFieldChange("middleInitial", e.target.value.slice(0, 1).toUpperCase())} className="border-[#E5E7EB] bg-white h-10 text-[14px]" maxLength={1} />
-                      <Input placeholder="Last name" value={editedClient.lastName} onChange={(e) => handleFieldChange("lastName", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
+                      <Input placeholder="First name" value={editedClient.firstName} onChange={(e) => handleFieldChange("firstName", e.target.value)} className="border-[#E5E7EB] bg-white h-9 text-[14px] rounded-[8px] shadow-[0px_1px_2px_rgba(0,0,0,0.05)]" />
+                      <Input placeholder="M.I." value={editedClient.middleInitial} onChange={(e) => handleFieldChange("middleInitial", e.target.value.slice(0, 1).toUpperCase())} className="border-[#E5E7EB] bg-white h-9 text-[14px] rounded-[8px] shadow-[0px_1px_2px_rgba(0,0,0,0.05)]" maxLength={1} />
+                      <Input placeholder="Last name" value={editedClient.lastName} onChange={(e) => handleFieldChange("lastName", e.target.value)} className="border-[#E5E7EB] bg-white h-9 text-[14px] rounded-[8px] shadow-[0px_1px_2px_rgba(0,0,0,0.05)]" />
                     </div>
                   </div>
                   <div>
-                    <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Preferred name</Label>
-                    <Input placeholder="e.g. Mike" value={editedClient.preferredName} onChange={(e) => handleFieldChange("preferredName", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
+                    <Label className="text-[14px] text-[#1A2332] mb-2 block" style={{ fontWeight: 500 }}>Preferred name</Label>
+                    <Input placeholder="e.g. Mike" value={editedClient.preferredName} onChange={(e) => handleFieldChange("preferredName", e.target.value)} className="border-[#E5E7EB] bg-white h-9 text-[14px] rounded-[8px] shadow-[0px_1px_2px_rgba(0,0,0,0.05)]" />
                   </div>
                   <div>
-                    <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Role</Label>
-                    <Input placeholder="e.g. Property Owner" value={editedClient.role} onChange={(e) => handleFieldChange("role", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
+                    <Label className="text-[14px] text-[#1A2332] mb-2 block" style={{ fontWeight: 500 }}>Role</Label>
+                    <Input placeholder="e.g. Property Owner" value={editedClient.role} onChange={(e) => handleFieldChange("role", e.target.value)} className="border-[#E5E7EB] bg-white h-9 text-[14px] rounded-[8px] shadow-[0px_1px_2px_rgba(0,0,0,0.05)]" />
                   </div>
                 </>
               )}
@@ -2540,37 +2580,37 @@ export function ClientDetail() {
               {editingSection === "contact" && (
                 <>
                   <div>
-                    <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Primary phone number</Label>
-                    <div className="grid grid-cols-[1fr_88px] gap-2">
-                      <Input value={editedClient.mobilePhone} onChange={(e) => handleFieldChange("mobilePhone", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
-                      <Input placeholder="EXT" value={editedClient.mobilePhoneExt} onChange={(e) => handleFieldChange("mobilePhoneExt", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
+                    <Label className="text-[14px] text-[#1A2332] mb-2 block" style={{ fontWeight: 500 }}>Primary phone number</Label>
+                    <div className="grid grid-cols-[1fr_64px] gap-2">
+                      <Input value={editedClient.mobilePhone} onChange={(e) => handleFieldChange("mobilePhone", e.target.value)} className="border-[#E5E7EB] bg-white h-9 text-[14px] rounded-[8px] shadow-[0px_1px_2px_rgba(0,0,0,0.05)]" />
+                      <Input placeholder="EXT" value={editedClient.mobilePhoneExt} onChange={(e) => handleFieldChange("mobilePhoneExt", e.target.value)} className="border-[#E5E7EB] bg-white h-9 text-[14px] rounded-[8px] shadow-[0px_1px_2px_rgba(0,0,0,0.05)]" />
                     </div>
                   </div>
                   <div>
-                    <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Secondary phone number</Label>
-                    <div className="grid grid-cols-[1fr_88px] gap-2">
-                      <Input value={editedClient.workPhone} onChange={(e) => handleFieldChange("workPhone", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
-                      <Input placeholder="EXT" value={editedClient.workPhoneExt} onChange={(e) => handleFieldChange("workPhoneExt", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
+                    <Label className="text-[14px] text-[#1A2332] mb-2 block" style={{ fontWeight: 500 }}>Secondary phone number</Label>
+                    <div className="grid grid-cols-[1fr_64px] gap-2">
+                      <Input value={editedClient.workPhone} onChange={(e) => handleFieldChange("workPhone", e.target.value)} className="border-[#E5E7EB] bg-white h-9 text-[14px] rounded-[8px] shadow-[0px_1px_2px_rgba(0,0,0,0.05)]" />
+                      <Input placeholder="EXT" value={editedClient.workPhoneExt} onChange={(e) => handleFieldChange("workPhoneExt", e.target.value)} className="border-[#E5E7EB] bg-white h-9 text-[14px] rounded-[8px] shadow-[0px_1px_2px_rgba(0,0,0,0.05)]" />
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Email</Label>
-                      <Input type="email" value={editedClient.email} onChange={(e) => handleFieldChange("email", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
+                      <Label className="text-[14px] text-[#1A2332] mb-2 block" style={{ fontWeight: 500 }}>Email</Label>
+                      <Input type="email" value={editedClient.email} onChange={(e) => handleFieldChange("email", e.target.value)} className="border-[#E5E7EB] bg-white h-9 text-[14px] rounded-[8px] shadow-[0px_1px_2px_rgba(0,0,0,0.05)]" />
                     </div>
                     <div>
-                      <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Website</Label>
-                      <Input value={editedClient.website} onChange={(e) => handleFieldChange("website", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
+                      <Label className="text-[14px] text-[#1A2332] mb-2 block" style={{ fontWeight: 500 }}>Website</Label>
+                      <Input value={editedClient.website} onChange={(e) => handleFieldChange("website", e.target.value)} className="border-[#E5E7EB] bg-white h-9 text-[14px] rounded-[8px] shadow-[0px_1px_2px_rgba(0,0,0,0.05)]" />
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Company name</Label>
-                      <Input value={editedClient.company} onChange={(e) => handleFieldChange("company", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
+                      <Label className="text-[14px] text-[#1A2332] mb-2 block" style={{ fontWeight: 500 }}>Company name</Label>
+                      <Input value={editedClient.company} onChange={(e) => handleFieldChange("company", e.target.value)} className="border-[#E5E7EB] bg-white h-9 text-[14px] rounded-[8px] shadow-[0px_1px_2px_rgba(0,0,0,0.05)]" />
                     </div>
                     <div>
-                      <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Role</Label>
-                      <Input value={editedClient.role} onChange={(e) => handleFieldChange("role", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
+                      <Label className="text-[14px] text-[#1A2332] mb-2 block" style={{ fontWeight: 500 }}>Role</Label>
+                      <Input value={editedClient.role} onChange={(e) => handleFieldChange("role", e.target.value)} className="border-[#E5E7EB] bg-white h-9 text-[14px] rounded-[8px] shadow-[0px_1px_2px_rgba(0,0,0,0.05)]" />
                     </div>
                   </div>
                 </>
@@ -2579,27 +2619,27 @@ export function ClientDetail() {
               {editingSection === "addresses" && (
                 <>
                   <div>
-                    <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Service address</Label>
+                    <Label className="text-[14px] text-[#1A2332] mb-2 block" style={{ fontWeight: 500 }}>Service address</Label>
                     <Input placeholder="Street address" value={editedClient.address} onChange={(e) => handleFieldChange("address", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px] mb-2" />
-                    <Input placeholder="Unit / Suite" value={editedClient.unit} onChange={(e) => handleFieldChange("unit", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
+                    <Input placeholder="Unit / Suite" value={editedClient.unit} onChange={(e) => handleFieldChange("unit", e.target.value)} className="border-[#E5E7EB] bg-white h-9 text-[14px] rounded-[8px] shadow-[0px_1px_2px_rgba(0,0,0,0.05)]" />
                   </div>
                   <div className="grid grid-cols-[1fr_120px_120px] gap-3">
                     <div>
-                      <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>City</Label>
-                      <Input value={editedClient.city} onChange={(e) => handleFieldChange("city", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
+                      <Label className="text-[14px] text-[#1A2332] mb-2 block" style={{ fontWeight: 500 }}>City</Label>
+                      <Input value={editedClient.city} onChange={(e) => handleFieldChange("city", e.target.value)} className="border-[#E5E7EB] bg-white h-9 text-[14px] rounded-[8px] shadow-[0px_1px_2px_rgba(0,0,0,0.05)]" />
                     </div>
                     <div>
-                      <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>State</Label>
-                      <Input value={editedClient.state} onChange={(e) => handleFieldChange("state", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
+                      <Label className="text-[14px] text-[#1A2332] mb-2 block" style={{ fontWeight: 500 }}>State</Label>
+                      <Input value={editedClient.state} onChange={(e) => handleFieldChange("state", e.target.value)} className="border-[#E5E7EB] bg-white h-9 text-[14px] rounded-[8px] shadow-[0px_1px_2px_rgba(0,0,0,0.05)]" />
                     </div>
                     <div>
-                      <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>ZIP</Label>
-                      <Input value={editedClient.zip} onChange={(e) => handleFieldChange("zip", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
+                      <Label className="text-[14px] text-[#1A2332] mb-2 block" style={{ fontWeight: 500 }}>ZIP</Label>
+                      <Input value={editedClient.zip} onChange={(e) => handleFieldChange("zip", e.target.value)} className="border-[#E5E7EB] bg-white h-9 text-[14px] rounded-[8px] shadow-[0px_1px_2px_rgba(0,0,0,0.05)]" />
                     </div>
                   </div>
                   <div>
-                    <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Address notes</Label>
-                    <Input placeholder="Gate code, access instructions…" value={editedClient.gateCode} onChange={(e) => handleFieldChange("gateCode", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
+                    <Label className="text-[14px] text-[#1A2332] mb-2 block" style={{ fontWeight: 500 }}>Address notes</Label>
+                    <Input placeholder="Gate code, access instructions…" value={editedClient.gateCode} onChange={(e) => handleFieldChange("gateCode", e.target.value)} className="border-[#E5E7EB] bg-white h-9 text-[14px] rounded-[8px] shadow-[0px_1px_2px_rgba(0,0,0,0.05)]" />
                   </div>
                 </>
               )}
@@ -2607,9 +2647,9 @@ export function ClientDetail() {
               {editingSection === "finance" && (
                 <>
                   <div>
-                    <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Payment terms</Label>
+                    <Label className="text-[14px] text-[#1A2332] mb-2 block" style={{ fontWeight: 500 }}>Payment terms</Label>
                     <Select value={editedClient.paymentTerms || "none"} onValueChange={(v) => handleFieldChange("paymentTerms", v === "none" ? "" : v)}>
-                      <SelectTrigger className="border-[#E5E7EB] bg-white h-10 text-[14px]"><SelectValue placeholder="Select terms" /></SelectTrigger>
+                      <SelectTrigger className="border-[#E5E7EB] bg-white h-9 text-[14px] rounded-[8px] shadow-[0px_1px_2px_rgba(0,0,0,0.05)]"><SelectValue placeholder="Select terms" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="none">— Select —</SelectItem>
                         <SelectItem value="Due on receipt">Due on receipt</SelectItem>
@@ -2621,9 +2661,9 @@ export function ClientDetail() {
                     </Select>
                   </div>
                   <div>
-                    <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Payment method</Label>
+                    <Label className="text-[14px] text-[#1A2332] mb-2 block" style={{ fontWeight: 500 }}>Payment method</Label>
                     <Select value={editedClient.paymentMethod || "none"} onValueChange={(v) => handleFieldChange("paymentMethod", v === "none" ? "" : v)}>
-                      <SelectTrigger className="border-[#E5E7EB] bg-white h-10 text-[14px]"><SelectValue placeholder="Select method" /></SelectTrigger>
+                      <SelectTrigger className="border-[#E5E7EB] bg-white h-9 text-[14px] rounded-[8px] shadow-[0px_1px_2px_rgba(0,0,0,0.05)]"><SelectValue placeholder="Select method" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="none">— Select —</SelectItem>
                         {PAYMENT_METHODS.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
@@ -2631,8 +2671,8 @@ export function ClientDetail() {
                     </Select>
                   </div>
                   <div>
-                    <Label className="text-[13px] text-[#374151] mb-2 block" style={{ fontWeight: 500 }}>Department</Label>
-                    <Input value={editedClient.department} onChange={(e) => handleFieldChange("department", e.target.value)} className="border-[#E5E7EB] bg-white h-10 text-[14px]" />
+                    <Label className="text-[14px] text-[#1A2332] mb-2 block" style={{ fontWeight: 500 }}>Department</Label>
+                    <Input value={editedClient.department} onChange={(e) => handleFieldChange("department", e.target.value)} className="border-[#E5E7EB] bg-white h-9 text-[14px] rounded-[8px] shadow-[0px_1px_2px_rgba(0,0,0,0.05)]" />
                   </div>
                   <label className="flex items-center gap-2.5 cursor-pointer pt-1">
                     <input
@@ -2747,28 +2787,28 @@ export function ClientDetail() {
       {showTabSettings && (
         <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={() => setShowTabSettings(false)}>
           <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" />
-          <div className="relative bg-white rounded-xl shadow-2xl w-[460px] max-w-[92vw] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+          <div className="relative bg-white rounded-xl shadow-2xl w-[576px] max-w-[92vw] overflow-hidden" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-4 py-4">
               <h2 className="text-[20px] text-[#1A2332]" style={{ fontWeight: 600, lineHeight: "1.35" }}>Edit tabs</h2>
               <button onClick={() => setShowTabSettings(false)} className="w-6 h-6 flex items-center justify-center rounded hover:bg-[#F3F4F6] text-[#6B7280]" aria-label="Close">
                 <span className="material-icons" style={{ fontSize: "18px" }}>close</span>
               </button>
             </div>
-            <div className="px-4 grid grid-cols-2 grid-rows-4 grid-flow-col gap-x-6 gap-y-3">
+            <div className="px-4 grid grid-cols-2 gap-4">
               {tabs.map(({ key, label }) => (
-                <label key={key} className="flex items-center gap-2.5 cursor-pointer">
+                <label key={key} className="flex items-center gap-3 cursor-pointer border border-[#E5E7EB] rounded-[10px] p-3">
                   <input
                     type="checkbox"
                     checked={!pendingHidden.has(key)}
                     onChange={() => setPendingHidden((prev) => { const n = new Set(prev); if (n.has(key)) n.delete(key); else n.add(key); return n; })}
                     className="w-4 h-4 accent-[#4A6FA5]"
                   />
-                  <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>{label}</span>
+                  <span className="text-[14px] text-[#1A2332]">{label}</span>
                 </label>
               ))}
             </div>
             <div className="flex items-center justify-end gap-2 px-4 py-4 mt-2">
-              <Button variant="outline" onClick={() => setShowTabSettings(false)} className="border-[#E5E7EB] text-[#1A2332] hover:bg-[#F5F7FA] h-9 px-4 text-[14px] rounded-lg">Cancel</Button>
+              <Button variant="outline" onClick={() => setShowTabSettings(false)} className="border-[#E5E7EB] text-[#1A2332] hover:bg-[#F5F7FA] bg-white h-9 px-4 text-[14px] rounded-lg">Cancel</Button>
               <Button onClick={() => { setHiddenTabs(new Set(pendingHidden)); setShowTabSettings(false); }} className="bg-[#4A6FA5] hover:bg-[#3d5a85] text-white h-9 px-4 text-[14px] rounded-lg">Save</Button>
             </div>
           </div>
@@ -2832,7 +2872,9 @@ export function ClientDetail() {
             <div className="flex items-center justify-end gap-2 px-4 py-4 mt-1">
               <Button variant="outline" onClick={() => setEditAddressOpen(false)} className="border-[#E5E7EB] text-[#1A2332] hover:bg-[#F5F7FA] h-9 px-4 text-[14px] rounded-lg">Cancel</Button>
               <Button
+                disabled={!addressForm.street.trim()}
                 onClick={() => {
+                  if (!addressForm.street.trim()) return;
                   if (editAddressId == null) {
                     clientsStore.updateClient(client.id, {
                       address: addressForm.street, unit: addressForm.unit, city: addressForm.city,
@@ -2855,7 +2897,7 @@ export function ClientDetail() {
                   }
                   setEditAddressOpen(false);
                 }}
-                className="bg-[#4A6FA5] hover:bg-[#3d5a85] text-white h-9 px-4 text-[14px] rounded-lg"
+                className="bg-[#4A6FA5] hover:bg-[#3d5a85] text-white h-9 px-4 text-[14px] rounded-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#4A6FA5]"
               >
                 Save
               </Button>

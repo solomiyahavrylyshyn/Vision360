@@ -6,6 +6,7 @@ import { Label } from "../components/ui/label";
 import logoImg from "figma:asset/58956be46c544ae8676a6fc4c67137e1d450e75f.png";
 import { companyStore } from "../stores/companyStore";
 import { trialStore } from "../stores/trialStore";
+import { setupStore } from "../stores/setupStore";
 
 type SetupErrors = Partial<Record<"companyName" | "firstName" | "lastName" | "phone" | "industry" | "otherIndustry" | "teamSize", string>>;
 
@@ -38,6 +39,16 @@ export function CompanySetup() {
 
     if (companyName.trim()) companyStore.setCompanyName(companyName.trim());
     trialStore.startTrialIfMissing();
+    setupStore.markComplete();
+    navigate("/welcome");
+  };
+
+  // AUTH-2 — skipping is non-blocking: drop the user straight into the app and
+  // mark setup incomplete so the bell + banner reminders (AUTH-3) appear.
+  const handleSkip = () => {
+    if (companyName.trim()) companyStore.setCompanyName(companyName.trim());
+    trialStore.startTrialIfMissing();
+    setupStore.markIncomplete();
     navigate("/welcome");
   };
 
@@ -273,9 +284,16 @@ export function CompanySetup() {
               Continue
             </Button>
 
-            <div className="text-center">
-              {/* removed skip button — business info is required */}
-            </div>
+            <button
+              type="button"
+              onClick={handleSkip}
+              className="w-full h-11 text-[15px] font-medium text-[#546478] bg-white border border-[#E5E7EB] rounded-md hover:bg-[#F5F7FA] transition-colors"
+            >
+              Skip for now
+            </button>
+            <p className="text-center text-xs text-[#8899AA]">
+              You can finish this anytime from Settings.
+            </p>
           </form>
         </div>
       </div>

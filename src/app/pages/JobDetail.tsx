@@ -1608,17 +1608,21 @@ export function JobDetail() {
             {/* Row 1: Job number + status */}
             <div className="flex items-center gap-2">
               <h2 className="text-[20px] text-[#1A2332] leading-[27px]" style={{ fontFamily: "Geist", fontWeight: 600 }}>
-                {job.client} <span className="text-[#6B7280]" style={{ fontWeight: 500 }}>({job.jobNumber})</span>
+                {job.client}
               </h2>
-              {/* Status dropdown — Figma badge: 15% tint, 12px label, chevron, no dot */}
+              <span className="text-[16px] text-[#6B7280] leading-[24px]" style={{ fontWeight: 400 }}>
+                ({job.jobNumber})
+              </span>
+              {/* Status dropdown — unified detail-header pill (dot + 13px label + chevron) */}
               <div className="relative">
                 <button
                   onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[12px] transition-colors"
-                  style={{ fontWeight: 500, backgroundColor: `${statusColor}26`, color: statusColor }}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[13px] transition-colors"
+                  style={{ fontWeight: 600, backgroundColor: `${statusColor}18`, color: statusColor }}
                 >
+                  <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: statusColor }} />
                   {displayStatus}
-                  <span className="material-icons" style={{ fontSize: "14px" }}>keyboard_arrow_down</span>
+                  <span className="material-icons" style={{ fontSize: "14px" }}>arrow_drop_down</span>
                 </button>
                 {statusDropdownOpen && (
                   <div className="absolute left-0 top-full mt-1 bg-white border border-[#E5E7EB] rounded-md shadow-lg z-50 w-[160px] py-1">

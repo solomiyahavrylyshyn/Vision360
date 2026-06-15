@@ -68,7 +68,6 @@ const EXPENSES_COLS = [
   { key: "merchant", label: "Vendor" },
   { key: "amount", label: "Amount" },
   { key: "jobId", label: "Job #" },
-  { key: "invoiceId", label: "Invoice #" },
   { key: "notes", label: "Notes" },
 ] as const;
 
@@ -112,7 +111,9 @@ export function Expenses() {
   const [amountMin, setAmountMin] = useState("");
   const [amountMax, setAmountMax] = useState("");
   const [receiptFilter, setReceiptFilter] = useState("All");
-  const [invoiceFilter, setInvoiceFilter] = useState("All");
+  // Expenses link to a JOB (job costing), not an invoice (Marek, Jun 11). The
+  // advanced filter buckets by job linkage; the quick filter picks a specific job.
+  const [jobLinkFilter, setJobLinkFilter] = useState("All");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const filtered = expenses.filter((e) => {
@@ -135,12 +136,12 @@ export function Expenses() {
     if (amountMax && e.amount > Number(amountMax)) return false;
     if (receiptFilter === "With receipts" && e.receipts <= 0) return false;
     if (receiptFilter === "Missing receipts" && e.receipts > 0) return false;
-    if (invoiceFilter === "Linked to invoice" && !e.invoiceId) return false;
-    if (invoiceFilter === "No invoice" && e.invoiceId) return false;
+    if (jobLinkFilter === "Linked to job" && !e.jobId) return false;
+    if (jobLinkFilter === "Unlinked" && e.jobId) return false;
     return true;
   });
 
-  const activeFilterCount = [dateFrom, dateTo, amountMin, amountMax, receiptFilter !== "All", invoiceFilter !== "All"].filter(Boolean).length;
+  const activeFilterCount = [dateFrom, dateTo, amountMin, amountMax, receiptFilter !== "All", jobLinkFilter !== "All"].filter(Boolean).length;
   const advancedActive = activeFilterCount > 0;
   const resetAdvancedFilters = () => {
     setDateFrom("");
@@ -148,7 +149,7 @@ export function Expenses() {
     setAmountMin("");
     setAmountMax("");
     setReceiptFilter("All");
-    setInvoiceFilter("All");
+    setJobLinkFilter("All");
   };
 
   const totalAmount = filtered.reduce((s, e) => s + e.amount, 0);
@@ -291,11 +292,11 @@ export function Expenses() {
                 <option>Missing receipts</option>
               </select>
             </AdvancedFilterField>
-            <AdvancedFilterField label="Invoice">
-              <select value={invoiceFilter} onChange={(e) => setInvoiceFilter(e.target.value)} className={advancedSelectClass}>
+            <AdvancedFilterField label="Link to job">
+              <select value={jobLinkFilter} onChange={(e) => setJobLinkFilter(e.target.value)} className={advancedSelectClass}>
                 <option>All</option>
-                <option>Linked to invoice</option>
-                <option>No invoice</option>
+                <option>Linked to job</option>
+                <option>Unlinked</option>
               </select>
             </AdvancedFilterField>
           </AdvancedFilterPanel>

@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { clientsStore } from "../stores/clientsStore";
 import { estimatesStore, type EstimateStatus } from "../stores/estimatesStore";
 import { formatRegionalDate } from "../stores/regionalSettingsStore";
+import { estimateSettingsStore } from "../stores/estimateSettingsStore";
 import { ItemPicker, catalogItemToLineItem, type CatalogItem, type SelectedLineItem } from "../components/ItemPicker";
 import { PageHeader } from "../components/ui/page-header";
 import { PlusIcon } from "../components/ui/plus-icon";
@@ -56,8 +57,13 @@ export function CreateEstimate() {
   // assigns it on create, so the form intentionally shows none.
   const [dateCreated] = useState(() => new Date().toISOString().split("T")[0]);
   const [createdBy] = useState("Marek Stroz");
-  // Expiration defaults to the creation date; the user moves it out if needed.
-  const [expirationDate, setExpirationDate] = useState(dateCreated);
+  // Expiration defaults to creation date + the company's default validity window
+  // (Settings → Estimates, default 30 days; Marek Jun 11). Still editable.
+  const [expirationDate, setExpirationDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + estimateSettingsStore.getSnapshot().defaultValidityDays);
+    return d.toISOString().split("T")[0];
+  });
   // A job is never picked for an estimate manually. Either the estimate is
   // created from a job visit (the job appointment number arrives via the URL
   // and is locked), or there was no visit and the estimate has no job at all.

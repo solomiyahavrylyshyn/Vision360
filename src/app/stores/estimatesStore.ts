@@ -7,7 +7,7 @@
 type Listener = () => void;
 
 export type EstimateStatus =
-  | "Draft" | "Sent" | "Viewed" | "Approved" | "Rejected" | "Expired" | "Archived" | "Converted";
+  | "Draft" | "Sent" | "Viewed" | "Changes Requested" | "Updated" | "Approved" | "Rejected" | "Expired" | "Archived" | "Converted";
 
 // Line items are stored alongside the record so EstimateDetail can rebuild the
 // document without falling back to seed data when the user opens an estimate

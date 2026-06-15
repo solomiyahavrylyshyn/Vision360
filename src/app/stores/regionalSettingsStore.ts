@@ -31,9 +31,11 @@ const isValidDateFormat = (value: unknown): value is DateFormatOption =>
 
 const isValidTimeFormat = (value: unknown): value is TimeFormatOption => value === "12h" || value === "24h";
 
+const SUPPORTED_LANGUAGES = ["English", "Spanish", "Portuguese", "French", "German", "Danish", "Dutch"];
+
 const normalizeSettings = (settings: Partial<RegionalSettings>): RegionalSettings => ({
   country: settings.country || DEFAULT_REGIONAL_SETTINGS.country,
-  language: settings.language === "Spanish" ? "Spanish" : DEFAULT_REGIONAL_SETTINGS.language,
+  language: SUPPORTED_LANGUAGES.includes(settings.language || "") ? (settings.language as string) : DEFAULT_REGIONAL_SETTINGS.language,
   timeZone: settings.timeZone || DEFAULT_REGIONAL_SETTINGS.timeZone,
   dateFormat: isValidDateFormat(settings.dateFormat) ? settings.dateFormat : DEFAULT_REGIONAL_SETTINGS.dateFormat,
   timeFormat: isValidTimeFormat(settings.timeFormat) ? settings.timeFormat : DEFAULT_REGIONAL_SETTINGS.timeFormat,

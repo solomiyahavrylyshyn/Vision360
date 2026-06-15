@@ -31,6 +31,18 @@ export interface ServiceAddress {
 
 export type ClientStatus = "Prospect" | "Active" | "Inactive";
 
+/**
+ * Derive a client's status from the work we've done for them. The rule:
+ *  - an explicit "Inactive" flag (manual deactivation / merge loser) always wins;
+ *  - otherwise a client with at least one job (done OR scheduled) is "Active";
+ *  - a client we have never created a job for is a "Prospect" (a new prospect).
+ * Active vs Prospect is therefore automatic — it follows the jobs, not a manual toggle.
+ */
+export function deriveClientStatus(status: ClientStatus | undefined, jobCount: number): ClientStatus {
+  if (status === "Inactive") return "Inactive";
+  return jobCount > 0 ? "Active" : "Prospect";
+}
+
 export interface ClientRecord {
   // identity
   id: string;
@@ -67,6 +79,7 @@ export interface ClientRecord {
   zip: string;
   country: string;
   county: string;
+  addressNotes: string;
   // billing
   isBillingSameAsService: boolean;
   billingAddress: string;
@@ -147,6 +160,7 @@ const mk = (s: ClientSeed): ClientRecord => {
     zip: s.zip,
     country: "United States",
     county: "",
+    addressNotes: "",
     isBillingSameAsService: true,
     billingAddress: s.address,
     billingUnit: "",
@@ -156,7 +170,7 @@ const mk = (s: ClientSeed): ClientRecord => {
     billingCounty: "",
     gateCode: "",
     isTaxable: true,
-    paymentTerms: "Net 30",
+    paymentTerms: "Due on receipt",
     paymentMethod: "Credit card on file",
     creditLimit: 5000,
     totalJobs: 0,

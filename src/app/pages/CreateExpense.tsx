@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { toast } from "sonner";
 import { ItemPicker, catalogItemToLineItem, type CatalogItem, type SelectedLineItem } from "../components/ItemPicker";
@@ -75,15 +75,21 @@ export function CreateExpense() {
   const returnTo = searchParams.get("returnTo");
   const expenseHome = returnTo || "/expenses";
 
-  const [merchant, setMerchant] = useState("");
-  const [category, setCategory] = useState("");
+  // EXP-3 — "Duplicate" copies vendor/category/description/notes/job from a
+  // source expense but deliberately leaves the amount blank so the user must
+  // re-enter it for the new expense. The amount field is highlighted until typed.
+  const isDuplicate = searchParams.get("dup") === "1";
+  const amountInputRef = useRef<HTMLInputElement>(null);
+
+  const [merchant, setMerchant] = useState(searchParams.get("vendor") || "");
+  const [category, setCategory] = useState(searchParams.get("category") || "");
   const [expenseDate, setExpenseDate] = useState(
     new Date().toISOString().split("T")[0]
   );
   const [total, setTotal] = useState("");
-  const [description, setDescription] = useState("");
+  const [description, setDescription] = useState(searchParams.get("description") || "");
   const [referenceNumber, setReferenceNumber] = useState("");
-  const [notes, setNotes] = useState("");
+  const [notes, setNotes] = useState(searchParams.get("notes") || "");
   const [jobId, setJobId] = useState(initialJobId);
   const [invoiceId, setInvoiceId] = useState(initialInvoiceId);
   const [receipts, setReceipts] = useState<ReceiptFile[]>([]);
@@ -92,6 +98,12 @@ export function CreateExpense() {
   const [lineItems, setLineItems] = useState<SelectedLineItem[]>([]);
   const [itemPickerOpen, setItemPickerOpen] = useState(false);
   const [taxRate] = useState(7.5);
+
+  // On a duplicate, drop focus straight onto the (blank) amount field so the
+  // one piece the user must re-enter is front and center.
+  useEffect(() => {
+    if (isDuplicate) amountInputRef.current?.focus();
+  }, [isDuplicate]);
 
   // Job search
   const [jobSearch, setJobSearch] = useState("");
@@ -416,16 +428,27 @@ export function CreateExpense() {
                       $
                     </span>
                     <input
+                      ref={amountInputRef}
                       type="number"
                       step="0.01"
                       min="0"
                       value={total}
                       onChange={(e) => setTotal(e.target.value)}
                       placeholder="0.00"
-                      className="w-full h-10 pl-8 pr-3.5 border border-[#E5E7EB] rounded-lg text-[13px] bg-white text-[#1A2332] placeholder:text-[#B0BEC5] outline-none focus:border-[#4A6FA5] focus:ring-2 focus:ring-[#4A6FA5]/10 transition-all"
+                      className={`w-full h-10 pl-8 pr-3.5 border rounded-lg text-[13px] bg-white text-[#1A2332] placeholder:text-[#B0BEC5] outline-none transition-all ${
+                        isDuplicate && !total
+                          ? "border-[#F59E0B] ring-2 ring-[#F59E0B]/20 focus:border-[#F59E0B] focus:ring-[#F59E0B]/20"
+                          : "border-[#E5E7EB] focus:border-[#4A6FA5] focus:ring-2 focus:ring-[#4A6FA5]/10"
+                      }`}
                       style={{ fontVariantNumeric: "tabular-nums" }}
                     />
                   </div>
+                  {isDuplicate && !total && (
+                    <p className="mt-1.5 flex items-center gap-1 text-[11px] text-[#B45309]" style={{ fontWeight: 500 }}>
+                      <span className="material-icons" style={{ fontSize: "14px" }}>edit</span>
+                      Enter the amount for this duplicated expense
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -460,11 +483,11 @@ export function CreateExpense() {
                   className="text-[15px] text-[#1A2332]"
                   style={{ fontWeight: 600 }}
                 >
-                  Link to Job or Invoice
+                  Link to job
                 </h2>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4">
                 {/* Job searchable select */}
                 <div className="relative">
                   <label
@@ -564,7 +587,9 @@ export function CreateExpense() {
                   )}
                 </div>
 
-                {/* Invoice searchable select */}
+                {/* Invoice link intentionally removed — expenses link to a JOB only
+                    for job costing (Marek, Jun 11: "Do we link an invoice? No"). */}
+                {false && (
                 <div className="relative">
                   <label
                     className="block text-[12px] text-[#546478] mb-1.5"
@@ -660,6 +685,7 @@ export function CreateExpense() {
                     </div>
                   )}
                 </div>
+                )}
               </div>
 
               {jobId && (

@@ -71,12 +71,13 @@ describe("Calendar — daily Dispatch board (integration)", () => {
     expect(screen.getAllByText(/--:--/).length).toBeGreaterThan(0);
   });
 
-  it("renders status badges and never shows Cancelled on the board", () => {
+  it("renders status badges on the board", () => {
     renderDayBoard();
     const body = document.body.textContent || "";
     expect(/Scheduled|In Progress|Completed/.test(body)).toBe(true);
-    // No seed job is cancelled, and cancelled jobs must not appear on the board.
-    expect(screen.queryByText("Cancelled")).not.toBeInTheDocument();
+    // NOTE: cancelled jobs now STAY on the board (greyed, struck-through) so a new
+    // job can be scheduled over them — they are no longer hidden. The day seeds
+    // include no cancelled job, so none renders here.
   });
 
   it("dragging a board job into Pending clears its date but keeps the technician", () => {

@@ -10,6 +10,7 @@ import { PlusIcon } from "../components/ui/plus-icon";
 import { CreateActionButton } from "../components/ui/create-action-button";
 import { AdvancedFilterField, AdvancedFilterPanel, advancedInputClass, advancedSelectClass } from "../components/ui/advanced-filters";
 import { itemsStore, mapItemTypeToCatalog } from "../stores/itemsStore";
+import { toast } from "sonner";
 import type { CatalogItem } from "../components/ItemPicker";
 
 // Project the rich Items-module record onto the catalog shape the
@@ -73,6 +74,7 @@ interface Item {
   picture: string;
   inventory: boolean;         // keep for backward compat
   booking: boolean;           // keep for backward compat
+  usageCount?: number;        // how many jobs/estimates have used this item (drives Delete vs Deactivate)
 }
 
 interface ItemGroup {
@@ -375,7 +377,9 @@ export function Items() {
   const [showInfoBarDismiss, setShowInfoBarDismiss] = useState(false);
 
   // Items state
-  const [items, setItems] = useState<Item[]>(initialItems);
+  // Seed a couple of items with usage history so Deactivate (kept) vs Delete
+  // (permanent, unused-only) are both demonstrable per ITM-3.
+  const [items, setItems] = useState<Item[]>(initialItems.map((it, i) => ({ ...it, usageCount: i < 2 ? 3 : 0 })));
   const [itemSearch, setItemSearch] = useState("");
   const [itemFilter, setItemFilter] = useState("All");
   const [itemStatusFilter, setItemStatusFilter] = useState("All");
@@ -410,8 +414,11 @@ export function Items() {
   const [catalogModalOpen, setCatalogModalOpen] = useState(false);
   const [editingCatalog, setEditingCatalog] = useState<Catalog | null>(null);
 
-  // Delete confirmation
-  const [deleteConfirm, setDeleteConfirm] = useState<{ type: string; id: number; name: string } | null>(null);
+  // Delete / Deactivate confirmation. mode "deactivate" keeps the record (it has
+  // usage history); mode "delete" permanently removes it (never used). Non-item
+  // entities (group/category/...) keep the legacy delete behaviour.
+  const [deleteConfirm, setDeleteConfirm] = useState<{ type: string; id: number; name: string; mode?: "delete" | "deactivate" } | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
 
   // Pricebook state
   const [pbItems, setPbItems] = useState<PricebookItem[]>(initialPricebookItems);
@@ -649,7 +656,7 @@ export function Items() {
                 <KebabItem icon="view_column">Edit Columns</KebabItem>
                 <KebabItem icon="content_copy">Manage Duplicates</KebabItem>
                 <KebabSeparator />
-                <KebabItem icon="file_upload">Import</KebabItem>
+                <KebabItem icon="file_upload" onClick={() => setImportOpen(true)}>Import</KebabItem>
                 <KebabItem icon="file_download" onClick={() => handleExport()}>Export</KebabItem>
               </KebabMenu>
             </div>
@@ -731,7 +738,7 @@ export function Items() {
                         <KebabItem icon="edit">Edit</KebabItem>
                         <KebabItem icon="content_copy">Duplicate</KebabItem>
                         <KebabSeparator />
-                        <KebabItem icon="block" destructive>Inactivate</KebabItem>
+                        <KebabItem icon="block" destructive>Deactivate</KebabItem>
                       </KebabMenu>
                     </td>
                   </tr>
@@ -825,7 +832,7 @@ export function Items() {
                 <KebabItem icon="view_column">Edit Columns</KebabItem>
                 <KebabItem icon="content_copy">Manage Duplicates</KebabItem>
                 <KebabSeparator />
-                <KebabItem icon="file_upload">Import</KebabItem>
+                <KebabItem icon="file_upload" onClick={() => setImportOpen(true)}>Import</KebabItem>
                 <KebabItem icon="file_download" onClick={() => handleExport()}>Export</KebabItem>
               </KebabMenu>
             </div>
@@ -837,12 +844,12 @@ export function Items() {
             onDeselect={() => setSelectedItems(new Set())}
             actions={[
               {
-                label: "Inactivate selected",
+                label: "Deactivate selected",
                 icon: "block",
                 destructive: true,
                 onClick: () => {
-                  setItems(prev => prev.filter(i => !selectedItems.has(i.id)));
-                  itemsStore.removeMany(selectedItems);
+                  setItems(prev => prev.map(i => selectedItems.has(i.id) ? { ...i, active: false } : i));
+                  items.filter(i => selectedItems.has(i.id)).forEach(i => itemsStore.upsert({ ...i, active: false } as any));
                   setSelectedItems(new Set());
                 },
               },
@@ -941,7 +948,13 @@ export function Items() {
                           <KebabItem icon="edit" onClick={() => { setEditingItem(item); setItemModalOpen(true); }}>Edit</KebabItem>
                           <KebabItem icon="content_copy">Duplicate</KebabItem>
                           <KebabSeparator />
-                          <KebabItem icon="block" destructive onClick={() => setDeleteConfirm({ type: "item", id: item.id, name: item.name })}>Inactivate</KebabItem>
+                          {!item.active ? (
+                            <KebabItem icon="check_circle" onClick={() => { const upd = { ...item, active: true }; setItems(prev => prev.map(i => i.id === item.id ? upd : i)); itemsStore.upsert(upd as any); }}>Reactivate</KebabItem>
+                          ) : (item.usageCount ?? 0) > 0 ? (
+                            <KebabItem icon="block" destructive onClick={() => setDeleteConfirm({ type: "item", id: item.id, name: item.name, mode: "deactivate" })}>Deactivate</KebabItem>
+                          ) : (
+                            <KebabItem icon="delete_outline" destructive onClick={() => setDeleteConfirm({ type: "item", id: item.id, name: item.name, mode: "delete" })}>Delete</KebabItem>
+                          )}
                         </KebabMenu>
                       </td>
                     </tr>
@@ -1457,17 +1470,23 @@ export function Items() {
               <div className="w-10 h-10 rounded-full bg-[#FEE2E2] flex items-center justify-center">
                 <span className="material-icons text-[#DC2626]" style={{ fontSize: "22px" }}>warning</span>
               </div>
-              <h3 className="text-[18px] text-[#1A2332]" style={{ fontWeight: 700 }}>{deleteConfirm.type === "item" ? "Inactivate item?" : `Inactivate ${deleteConfirm.type}?`}</h3>
+              <h3 className="text-[18px] text-[#1A2332]" style={{ fontWeight: 700 }}>{deleteConfirm.mode === "deactivate" ? "Deactivate item?" : deleteConfirm.type === "item" ? "Delete item?" : `Delete ${deleteConfirm.type}?`}</h3>
             </div>
             <p className="text-[14px] text-[#546478] mb-6">
-              Are you sure you want to inactivate <strong>"{deleteConfirm.name}"</strong>? It will no longer appear in active lists.
+              {deleteConfirm.mode === "deactivate"
+                ? <>Deactivate <strong>"{deleteConfirm.name}"</strong>? It has usage history, so it's kept for reporting but removed from active lists. You can reactivate it anytime.</>
+                : <>Permanently delete <strong>"{deleteConfirm.name}"</strong>? It has never been used, so this can't be undone.</>}
             </p>
             <div className="flex items-center justify-end gap-3">
               <button onClick={() => setDeleteConfirm(null)} className="px-4 py-2.5 border border-[#E5E7EB] text-[#546478] rounded-lg text-[13px] hover:bg-[#F5F7FA]" style={{ fontWeight: 500 }}>Cancel</button>
               <button
                 onClick={() => {
-                  const { type, id } = deleteConfirm;
-                  if (type === "item") { setItems(prev => prev.filter(i => i.id !== id)); itemsStore.remove(id); }
+                  const { type, id, mode } = deleteConfirm;
+                  if (type === "item" && mode === "deactivate") {
+                    setItems(prev => prev.map(i => i.id === id ? { ...i, active: false } : i));
+                    const rec = items.find(i => i.id === id);
+                    if (rec) itemsStore.upsert({ ...rec, active: false } as any);
+                  } else if (type === "item") { setItems(prev => prev.filter(i => i.id !== id)); itemsStore.remove(id); }
                   else if (type === "group") setGroups(prev => prev.filter(g => g.id !== id));
                   else if (type === "category") setCategories(prev => prev.filter(c => c.id !== id));
                   else if (type === "brand") setBrands(prev => prev.filter(b => b.id !== id));
@@ -1477,8 +1496,39 @@ export function Items() {
                 className="px-4 py-2.5 bg-[#DC2626] text-white rounded-lg text-[13px] hover:bg-[#B91C1C]"
                 style={{ fontWeight: 600 }}
               >
-                Inactivate
+                {deleteConfirm.mode === "deactivate" ? "Deactivate" : "Delete"}
               </button>
+            </div>
+          </div>
+        </ModalBackdrop>
+      )}
+
+      {/* ── Bulk upload (Import items) ── */}
+      {importOpen && (
+        <ModalBackdrop onClose={() => setImportOpen(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-[460px] p-6">
+            <div className="flex items-center justify-between mb-1">
+              <h3 className="text-[18px] text-[#1A2332]" style={{ fontWeight: 700 }}>Import items</h3>
+              <button onClick={() => setImportOpen(false)} className="w-8 h-8 flex items-center justify-center rounded hover:bg-[#F5F7FA] text-[#6B7280]"><span className="material-icons" style={{ fontSize: "20px" }}>close</span></button>
+            </div>
+            <p className="text-[13px] text-[#6B7280] mb-4">Bulk-upload your price book from a CSV/XLSX file. Existing items are matched by name; new ones are added.</p>
+            <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-[#C8D5E8] rounded-xl py-8 cursor-pointer hover:bg-[#F9FBFD]">
+              <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "28px" }}>upload_file</span>
+              <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>Choose a CSV or XLSX file</span>
+              <span className="text-[12px] text-[#9CA3AF]">or drag and drop here</span>
+              <input
+                type="file"
+                accept=".csv,.xlsx,.xls"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) { toast.success(`Importing items from "${f.name}"`); setImportOpen(false); }
+                }}
+              />
+            </label>
+            <div className="mt-4 flex items-center justify-between">
+              <button className="text-[13px] text-[#4A6FA5] hover:underline" style={{ fontWeight: 500 }} onClick={() => toast.success("Template downloaded")}>Download template</button>
+              <button onClick={() => setImportOpen(false)} className="px-4 py-2.5 border border-[#E5E7EB] text-[#546478] rounded-lg text-[13px] hover:bg-[#F5F7FA]" style={{ fontWeight: 500 }}>Cancel</button>
             </div>
           </div>
         </ModalBackdrop>

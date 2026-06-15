@@ -366,31 +366,29 @@ export function ItemDetail() {
                 <h2 className="text-[20px] text-[#1A2332] leading-[27px]" style={{ fontWeight: 600 }}>
                   {item.name}
                 </h2>
-                <span className="text-[16px] text-[#6B7280] leading-[24px]" style={{ fontWeight: 400 }}>#{item.id}</span>
-              </div>
-              <div className="flex items-center gap-0.5 flex-wrap">
-                <span className={`inline-block px-2.5 py-1 rounded-full text-[11px] ${getTypeBadgeClass(item.type)}`} style={{ fontWeight: 600 }}>
+                <span className="text-[16px] text-[#6B7280] leading-[24px]" style={{ fontWeight: 400 }}>({item.id})</span>
+                <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[13px] ${getTypeBadgeClass(item.type)}`} style={{ fontWeight: 600 }}>
                   {item.type}
                 </span>
                 <span
-                  className="inline-block px-2.5 py-1 rounded-full text-[11px]"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[13px]"
                   style={{
                     fontWeight: 600,
                     backgroundColor: item.active ? "#D1FAE5" : "#F3F4F6",
                     color: item.active ? "#16A34A" : "#6B7280",
                   }}
                 >
+                  <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: item.active ? "#16A34A" : "#6B7280" }} />
                   {item.active ? "Active" : "Inactive"}
                 </span>
+              </div>
+              <div className="flex items-center gap-0.5 flex-wrap">
                 {item.category && (
-                  <>
-                    <div className="w-px h-6 bg-[#E5E7EB] mx-1" />
-                    <span className="text-[14px] text-[#1A2332]">{item.category}{item.subcategory ? ` · ${item.subcategory}` : ""}</span>
-                  </>
+                  <span className="text-[14px] text-[#1A2332]">{item.category}{item.subcategory ? ` · ${item.subcategory}` : ""}</span>
                 )}
                 {item.brand && (
                   <>
-                    <div className="w-px h-6 bg-[#E5E7EB] mx-1" />
+                    {item.category && <div className="w-px h-6 bg-[#E5E7EB] mx-1" />}
                     <span className="text-[14px] text-[#1A2332]">Mfg: {item.brand}</span>
                   </>
                 )}

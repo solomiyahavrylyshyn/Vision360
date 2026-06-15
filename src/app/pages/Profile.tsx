@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useNavigate } from "react-router";
 import { Input } from "../components/ui/input";
 
-type ThemePreference = "Light" | "Dark" | "System default";
 type SidebarPreference = "Expanded sidebar" | "Collapsed sidebar by default";
 
 const jobNotifications = [
@@ -34,7 +33,6 @@ export function Profile() {
   const [jobTitle, setJobTitle] = useState("Operations Manager");
   const [employeeId, setEmployeeId] = useState("EMP-1007");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const [signature, setSignature] = useState("John Doe");
 
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -43,7 +41,6 @@ export function Profile() {
   const [enabledNotifications, setEnabledNotifications] = useState<Set<string>>(
     () => new Set([...jobNotifications, ...estimateNotifications, ...invoiceNotifications])
   );
-  const [theme, setTheme] = useState<ThemePreference>("System default");
   const [sidebar, setSidebar] = useState<SidebarPreference>("Expanded sidebar");
 
   const initials = `${firstName[0] || ""}${lastName[0] || ""}`.toUpperCase();
@@ -183,16 +180,6 @@ export function Profile() {
                 <Field label="Job Title"><Input value={jobTitle} onChange={e => setJobTitle(e.target.value)} className="h-9 border-[#D8DEE8]" /></Field>
                 <Field label="Employee ID"><Input value={employeeId} onChange={e => setEmployeeId(e.target.value)} className="h-9 border-[#D8DEE8]" /></Field>
               </div>
-
-              <div className="mt-5">
-                <Field label="Signature">
-                  <textarea
-                    value={signature}
-                    onChange={e => setSignature(e.target.value)}
-                    className="min-h-[74px] w-full resize-y rounded-lg border border-[#D8DEE8] px-3 py-2 text-[14px] text-[#1A2332] outline-none focus:border-[#4A6FA5] focus:ring-2 focus:ring-[#4A6FA5]/20"
-                  />
-                </Field>
-              </div>
             </Section>
 
             <Section title="Password">
@@ -216,24 +203,11 @@ export function Profile() {
               </div>
             </Section>
 
-            <Section title="Appearance" eyebrow="3">
-              <div className="space-y-5">
-                <div>
-                  <h3 className="mb-3 text-[14px] text-[#1A2332]" style={{ fontWeight: 700 }}>Theme</h3>
-                  <div className="grid grid-cols-3 gap-2">
-                    {(["Light", "Dark", "System default"] as ThemePreference[]).map(option => (
-                      <Choice key={option} label={option} selected={theme === option} onClick={() => setTheme(option)} />
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <h3 className="mb-3 text-[14px] text-[#1A2332]" style={{ fontWeight: 700 }}>Navigation</h3>
-                  <div className="grid grid-cols-2 gap-2">
-                    {(["Expanded sidebar", "Collapsed sidebar by default"] as SidebarPreference[]).map(option => (
-                      <Choice key={option} label={option} selected={sidebar === option} onClick={() => setSidebar(option)} />
-                    ))}
-                  </div>
-                </div>
+            <Section title="Navigation" eyebrow="3">
+              <div className="grid grid-cols-2 gap-2">
+                {(["Expanded sidebar", "Collapsed sidebar by default"] as SidebarPreference[]).map(option => (
+                  <Choice key={option} label={option} selected={sidebar === option} onClick={() => setSidebar(option)} />
+                ))}
               </div>
             </Section>
 

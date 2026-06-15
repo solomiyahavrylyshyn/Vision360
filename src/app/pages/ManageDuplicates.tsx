@@ -3,15 +3,15 @@ import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import { clientsStore, type ClientRecord } from "../stores/clientsStore";
 import { dismissalsStore } from "../stores/dismissalsStore";
+import { KebabMenu, KebabItem } from "../components/ui/kebab-menu";
 
 // ─── Grouping helpers ────────────────────────────────────────────────────────
 type MatchField =
-  | "Same phone number"
-  | "Same email"
-  | "Same name"
-  | "Same property address"
-  | "Similar name + phone"
-  | "Same company name";
+  | "Name"
+  | "Email"
+  | "Phone number"
+  | "Property address"
+  | "Company name";
 
 const normalise = (s: string) =>
   s.toLowerCase().replace(/[^a-z0-9]/g, "").trim();
@@ -23,24 +23,18 @@ const anyPhone = (c: ClientRecord) =>
 
 function groupKey(client: ClientRecord, field: MatchField): string {
   switch (field) {
-    case "Same phone number":
+    case "Phone number":
       // Match on the last 7 digits of any phone field (mobile, home, work).
       return anyPhone(client);
-    case "Same email":
+    case "Email":
       return normalise(client.email);
-    case "Same name":
+    case "Name":
       // Exact display-name match (normalised) — per the walkthrough.
       return normalise(client.name);
-    case "Same property address":
+    case "Property address":
       // Normalise street + zip (ignores unit/apt differences).
       return normalise(client.address + client.zip);
-    case "Similar name + phone":
-      // Composite key: first three name tokens + last 7 phone digits.
-      // Groups clients who share a surname (or first+last) AND a phone.
-      const namePart = normalise(client.name).slice(0, 10);
-      const phonePart = anyPhone(client);
-      return phonePart ? namePart + "_" + phonePart : "";
-    case "Same company name":
+    case "Company name":
       return normalise(client.company || "");
   }
 }
@@ -213,28 +207,31 @@ function MergeModal({
 
 // ─── Main page ───────────────────────────────────────────────────────────────
 const matchOptions: MatchField[] = [
-  "Same phone number",
-  "Same email",
-  "Same name",
-  "Same property address",
-  "Similar name + phone",
-  "Same company name",
+  "Name",
+  "Email",
+  "Phone number",
+  "Property address",
+  "Company name",
 ];
 
 export function ManageDuplicates() {
   const navigate = useNavigate();
-  const [matchOn, setMatchOn] = useState<MatchField>("Same phone number");
+  const [matchOn, setMatchOn] = useState<MatchField>("Name");
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [selectedClients, setSelectedClients] = useState<Set<string>>(new Set());
-  const [rowsPerPage, setRowsPerPage] = useState(25);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [dupPage, setDupPage] = useState(1);
   const [mergeModalCandidates, setMergeModalCandidates] = useState<ClientRecord[] | null>(null);
-  const [archiveConfirmId, setArchiveConfirmId] = useState<string | null>(null);
   const [bulkConfirmOpen, setBulkConfirmOpen] = useState(false);
 
   const clients = useSyncExternalStore(clientsStore.subscribe, clientsStore.getSnapshot);
   const dismissed = useSyncExternalStore(dismissalsStore.subscribe, dismissalsStore.getSnapshot);
 
   const groups = buildGroups(clients, matchOn, dismissed);
+  // Paginate the duplicate groups (the rows-per-page control drives this).
+  const dupTotalPages = Math.max(1, Math.ceil(groups.length / rowsPerPage));
+  const dupPageSafe = Math.min(dupPage, dupTotalPages);
+  const pagedGroups = groups.slice((dupPageSafe - 1) * rowsPerPage, dupPageSafe * rowsPerPage);
 
   // Show archived records panel
   const [showArchived, setShowArchived] = useState(false);
@@ -312,204 +309,200 @@ export function ManageDuplicates() {
     setSelectedClients(new Set());
   };
 
-  // ── Not a Duplicate (Keep Both removed per walkthrough) ───────────────────
-  const dismissPair = () => {
+  // ── Mark as not duplicate (dismiss pairs so they won't resurface) ─────────
+  const dismissAmong = (ids: string[]) => {
+    for (let i = 0; i < ids.length; i++)
+      for (let j = i + 1; j < ids.length; j++)
+        dismissalsStore.add(ids[i], ids[j], "not_duplicate");
+  };
+  const markNotDuplicateSelected = () => {
     const ids = [...selectedClients];
-    if (ids.length !== 2) return;
-    dismissalsStore.add(ids[0], ids[1], "not_duplicate");
-    toast.success("Pair marked as not a duplicate — won't resurface.");
+    if (ids.length < 2) return;
+    dismissAmong(ids);
+    toast.success("Marked as not a duplicate — won't resurface.");
+    setSelectedClients(new Set());
+  };
+  // Per-row: this record is not a duplicate of the others in its group.
+  const markRowNotDuplicate = (client: ClientRecord) => {
+    const group = groups.find(g => g.clients.some(c => c.id === client.id));
+    if (!group) return;
+    group.clients.filter(c => c.id !== client.id).forEach(o =>
+      dismissalsStore.add(client.id, o.id, "not_duplicate"));
+    toast.success(`${client.name} marked as not a duplicate.`);
+    setSelectedClients(prev => { const n = new Set(prev); n.delete(client.id); return n; });
+  };
+
+  // ── Inactivate (soft-hides from the active list + duplicate scan) ─────────
+  const inactivateClient = (id: string) => {
+    clientsStore.updateClient(id, { archivedAt: new Date().toISOString(), status: "Inactive" as ClientRecord["status"] });
+    const c = clients.find(x => x.id === id);
+    toast.success(`${c?.name ?? "Client"} inactivated. Restore from the panel below.`);
+    setSelectedClients(prev => { const n = new Set(prev); n.delete(id); return n; });
+  };
+  const inactivateSelected = () => {
+    const ids = [...selectedClients];
+    if (!ids.length) return;
+    ids.forEach(id => clientsStore.updateClient(id, { archivedAt: new Date().toISOString(), status: "Inactive" as ClientRecord["status"] }));
+    toast.success(`${ids.length} record${ids.length !== 1 ? "s" : ""} inactivated.`);
     setSelectedClients(new Set());
   };
 
-  // ── Archive ──────────────────────────────────────────────────────────────
-  const archiveClient = (id: string) => {
-    clientsStore.updateClient(id, { archivedAt: new Date().toISOString() });
-    toast.success("Client archived. Restore from the archived records panel below.");
-    setArchiveConfirmId(null);
-    setSelectedClients(prev => { const n = new Set(prev); n.delete(id); return n; });
-  };
-
   const restoreClient = (id: string) => {
-    clientsStore.updateClient(id, { archivedAt: undefined });
+    clientsStore.updateClient(id, { archivedAt: undefined, status: "Active" as ClientRecord["status"] });
     toast.success("Client restored to active.");
   };
 
-  // ── Selection state ──────────────────────────────────────────────────────
-  const exactly2 = selectedClients.size === 2;
-  const twoOrMore = selectedClients.size >= 2;
+  const toolbarBtnCls = (enabled: boolean) =>
+    `h-9 px-4 border border-[#E5E7EB] rounded-lg text-[14px] bg-white text-[#1A2332] transition-colors ${enabled ? "hover:bg-[#F5F7FA] cursor-pointer" : "opacity-50 cursor-not-allowed"}`;
+  const COLS = "grid grid-cols-[52px_1fr_1fr_1.35fr_1fr_1fr_52px]";
 
   return (
-    <div className="p-8">
-      <button onClick={() => navigate("/clients")}
-        className="inline-flex items-center gap-1.5 text-[13px] text-[#4A6FA5] hover:text-[#3d5a85] transition-colors mb-5"
-        style={{ fontWeight: 500 }}>
-        <span className="material-icons" style={{ fontSize: "18px" }}>arrow_back</span>
-        Back to Clients
-      </button>
-
-      <div className="mb-6">
-        <h1 className="text-[26px] text-[#1A2332]" style={{ fontWeight: 700 }}>Manage duplicates</h1>
-        <p className="text-[14px] text-[#546478] mt-1 mb-1">
-          We've grouped possible duplicate client profiles. Select rows to merge, dismiss, or archive.
-        </p>
-        <p className="text-[13px] text-[#6B7280]">Possible duplicates if: same phone number · same email · same property address · similar name&nbsp;+&nbsp;phone · same company name.</p>
+    <div className="bg-[#F5F7FA] min-h-full">
+      {/* Page header */}
+      <div className="flex items-center gap-2 px-6 py-6">
+        <button
+          type="button"
+          onClick={() => navigate("/clients")}
+          aria-label="Back to clients"
+          className="w-9 h-9 flex items-center justify-center rounded-lg text-[#1A2332] hover:bg-[#EDF0F5] transition-colors"
+        >
+          <span className="material-icons" style={{ fontSize: "24px" }}>chevron_left</span>
+        </button>
+        <h1 className="text-[24px] text-[#1A2332]" style={{ fontWeight: 600 }}>Manage duplicates</h1>
       </div>
 
-      {/* Toolbar */}
-      <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
-        {/* Match-on pill */}
-        <div className="relative inline-flex items-center h-9 border border-[#E5E7EB] rounded-lg bg-white overflow-hidden">
-          <span className="pl-3 pr-2 text-[13px] text-[#6B7280] whitespace-nowrap" style={{ fontWeight: 500 }}>Match customers on:</span>
-          <select value={matchOn} onChange={e => { setMatchOn(e.target.value as MatchField); setSelectedClients(new Set()); setExpandedGroups(new Set()); }}
-            className="h-full pl-0 pr-7 text-[13px] text-[#1A2332] bg-transparent border-none focus:outline-none appearance-none cursor-pointer"
-            style={{ fontWeight: 600 }}>
-            {matchOptions.map(o => <option key={o} value={o}>{o}</option>)}
-          </select>
-          <span className="material-icons absolute right-2 top-1/2 -translate-y-1/2 text-[#9AA3AF] pointer-events-none" style={{ fontSize: "16px" }}>expand_more</span>
-        </div>
-
-        {/* Action buttons — shown when rows are selected */}
-        {twoOrMore && (
-          <div className="flex items-center gap-2 flex-wrap">
-            {exactly2 && selectedGroups.length <= 1 && (
-              <button onClick={dismissPair}
-                className="h-9 px-4 border border-[#E5E7EB] rounded-lg text-[13px] text-[#546478] bg-white hover:bg-[#F5F7FA] transition-colors inline-flex items-center gap-1.5"
+      {/* Single card: action bar + column headers + rows + pagination */}
+      <div className="px-6 pb-6">
+        <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
+          {/* Action bar */}
+          <div className="flex items-center justify-between gap-6 p-3 flex-wrap">
+            {/* Match-on dropdown */}
+            <div className="relative inline-flex items-center h-9 border border-[#E5E7EB] rounded-lg bg-white shadow-[0px_1px_2px_rgba(0,0,0,0.05)] overflow-hidden">
+              <span className="pl-3 pr-2 text-[14px] text-[#6B7280] whitespace-nowrap">Match customers on:</span>
+              <select value={matchOn} onChange={e => { setMatchOn(e.target.value as MatchField); setSelectedClients(new Set()); setExpandedGroups(new Set()); }}
+                className="h-full pl-0 pr-7 text-[14px] text-[#1A2332] bg-transparent border-none focus:outline-none appearance-none cursor-pointer"
                 style={{ fontWeight: 500 }}>
-                <span className="material-icons" style={{ fontSize: "15px" }}>do_not_disturb</span>
-                Not a duplicate
+                {matchOptions.map(o => <option key={o} value={o}>{o}</option>)}
+              </select>
+              <span className="material-icons absolute right-2 top-1/2 -translate-y-1/2 text-[#6B7280] pointer-events-none" style={{ fontSize: "16px" }}>expand_more</span>
+            </div>
+
+            {/* Action buttons — always visible; disabled (opacity-50) until a valid selection */}
+            <div className="flex items-center gap-3 flex-wrap">
+              <button onClick={inactivateSelected} disabled={selectedClients.size < 1}
+                className={toolbarBtnCls(selectedClients.size >= 1)} style={{ fontWeight: 500 }}>
+                Inactivate
               </button>
-            )}
-            <button onClick={() => setSelectedClients(new Set())}
-              className="h-9 px-4 border border-[#E5E7EB] rounded-lg text-[13px] text-[#546478] bg-white hover:bg-[#F5F7FA] transition-colors"
-              style={{ fontWeight: 500 }}>
-              Cancel
-            </button>
-            <button onClick={openMergeModal}
-              className="h-9 px-5 rounded-lg text-[13px] text-white bg-[#1A2332] hover:bg-[#0f1620] transition-colors inline-flex items-center gap-1.5"
-              style={{ fontWeight: 500 }}>
-              <span className="material-icons" style={{ fontSize: "15px" }}>merge</span>
-              {selectedGroups.length > 1
-                ? `Merge ${selectedGroups.length} groups`
-                : `Merge (${selectedClients.size})`}
-            </button>
+              <button onClick={markNotDuplicateSelected} disabled={selectedClients.size < 2}
+                className={toolbarBtnCls(selectedClients.size >= 2)} style={{ fontWeight: 500 }}>
+                Mark as not duplicate
+              </button>
+              <button onClick={openMergeModal} disabled={selectedClients.size < 2}
+                className={toolbarBtnCls(selectedClients.size >= 2)} style={{ fontWeight: 500 }}>
+                Merge
+              </button>
+              {selectedClients.size > 0 && (
+                <>
+                  <div className="w-px h-6 bg-[#E5E7EB]" />
+                  <button onClick={() => setSelectedClients(new Set())}
+                    className="h-9 px-4 rounded-lg text-[14px] text-[#1A2332] hover:bg-[#F5F7FA] transition-colors" style={{ fontWeight: 500 }}>
+                    Cancel
+                  </button>
+                </>
+              )}
+            </div>
           </div>
-        )}
-      </div>
 
-      {/* Table */}
-      <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
-        {/* Column headers */}
-        <div className="grid grid-cols-[40px_1fr_1fr_1fr_1fr_1fr_120px] bg-[#F5F7FA] border-b border-[#E5E7EB] text-[11px] uppercase tracking-wide text-[#546478]" style={{ fontWeight: 600 }}>
-          <div className="px-4 py-3" />
-          <div className="px-4 py-3">Client</div>
-          <div className="px-4 py-3">Company</div>
-          <div className="px-4 py-3">Address</div>
-          <div className="px-4 py-3">Email</div>
-          <div className="px-4 py-3">Phone</div>
-          <div className="px-4 py-3">Actions</div>
-        </div>
-
-        {groups.length === 0 ? (
-          <div className="py-16 text-center">
-            <span className="material-icons text-[#D1FAE5] mb-3 block" style={{ fontSize: "48px" }}>check_circle</span>
-            <p className="text-[15px] text-[#546478]" style={{ fontWeight: 500 }}>No duplicates found</p>
-            <p className="text-[13px] text-[#9AA3AF] mt-1">All client profiles are unique for the selected match field.</p>
+          {/* Column headers */}
+          <div className={`${COLS} min-h-[40px] items-center bg-[#F5F7FA] border-b border-[#E5E7EB] text-[14px] text-[#1A2332]`} style={{ fontWeight: 500 }}>
+            <div className="px-4" />
+            <div className="px-4">Customer</div>
+            <div className="px-4">Company</div>
+            <div className="px-4">Address</div>
+            <div className="px-4">Email</div>
+            <div className="px-4">Phone</div>
+            <div className="px-4" />
           </div>
-        ) : groups.map(group => (
-          <div key={group.key} className="border-b border-[#E5E7EB] last:border-0">
-            {/* Group header — checkbox selects all rows in the group (bulk) */}
-            {(() => {
-              const allSelected = group.clients.every(c => selectedClients.has(c.id));
-              const toggleAll = () => setSelectedClients(prev => {
-                const n = new Set(prev);
-                if (allSelected) group.clients.forEach(c => n.delete(c.id));
-                else group.clients.forEach(c => n.add(c.id));
-                return n;
-              });
-              return (
-                <div className="grid grid-cols-[40px_1fr_1fr_1fr_1fr_1fr_120px] items-center hover:bg-[#F9FAFB] cursor-pointer"
-                  onClick={() => toggleGroup(group.key)}>
-                  <div className="px-4 py-3.5 flex items-center justify-center" onClick={e => e.stopPropagation()}>
-                    <input type="checkbox" checked={allSelected} onChange={toggleAll}
-                      title="Select all in this group"
+
+          {groups.length === 0 ? (
+            /* Empty state */
+            <div className="flex flex-col items-center justify-center text-center py-24 gap-4">
+              <div className="w-10 h-10 rounded-full border border-[#E5E7EB] flex items-center justify-center">
+                <span className="material-icons text-[#1A2332]" style={{ fontSize: "16px" }}>content_copy</span>
+              </div>
+              <div className="flex flex-col items-center gap-1">
+                <p className="text-[14px] text-[#1A2332]">No duplicates found</p>
+                <p className="text-[12px] text-[#6B7280]">Your customer list looks clean</p>
+              </div>
+            </div>
+          ) : pagedGroups.map(group => (
+            <div key={group.key} className="border-b border-[#E5E7EB] last:border-0">
+              {/* Group header — chevron + name + count (no checkbox) */}
+              <div className={`${COLS} min-h-[60px] items-center hover:bg-[#F9FAFB] cursor-pointer`}
+                onClick={() => toggleGroup(group.key)}>
+                <div className="px-4 flex items-center justify-center">
+                  <span className={`material-icons text-[#9AA3AF] transition-transform ${expandedGroups.has(group.key) ? "rotate-180" : ""}`} style={{ fontSize: "20px" }}>expand_more</span>
+                </div>
+                <div className="px-4 text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>{group.clients[0].name}</div>
+                <div className="px-4 col-span-4 text-[14px] text-[#9AA3AF]">{group.clients.length} possible duplicate{group.clients.length !== 1 ? "s" : ""}</div>
+              </div>
+
+              {/* Member rows */}
+              {expandedGroups.has(group.key) && group.clients.map(client => (
+                <div key={client.id}
+                  className={`${COLS} min-h-[60px] items-center border-t border-[#F0F2F5] transition-colors cursor-pointer ${selectedClients.has(client.id) ? "bg-[#F0F4FB]" : "hover:bg-[#F9FAFB]"}`}
+                  onClick={() => toggleClient(client.id)}>
+                  <div className="px-4 flex items-center justify-center" onClick={e => e.stopPropagation()}>
+                    <input type="checkbox" checked={selectedClients.has(client.id)}
+                      onChange={() => toggleClient(client.id)}
                       className="w-4 h-4 rounded border-[#E5E7EB] accent-[#4A6FA5] cursor-pointer" />
                   </div>
-                  <div className="px-4 py-3.5 text-[14px] text-[#1A2332] flex items-center gap-2" style={{ fontWeight: 600 }}>
-                    {group.clients[0].name}
-                    <span className={`material-icons text-[#9AA3AF] transition-transform ${expandedGroups.has(group.key) ? "rotate-180" : ""}`} style={{ fontSize: "16px" }}>expand_more</span>
+                  <div className="px-4 text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>{client.name}</div>
+                  <div className="px-4 text-[14px] text-[#546478]">{client.company || "—"}</div>
+                  <div className="px-4 text-[14px] text-[#546478]">{[client.address, [client.city, client.state].filter(Boolean).join(", "), client.zip].filter(Boolean).join(" ") || "—"}</div>
+                  <div className="px-4 text-[14px] text-[#546478] truncate">{client.email || "—"}</div>
+                  <div className="px-4 text-[14px] text-[#546478] whitespace-nowrap">{client.mobilePhone || "—"}</div>
+                  <div className="px-4 flex items-center justify-center" onClick={e => e.stopPropagation()}>
+                    <KebabMenu align="end">
+                      <KebabItem icon="visibility" onClick={() => window.open(`/clients/${client.id}`, "_blank")}>View existing record</KebabItem>
+                      <KebabItem icon="check" onClick={() => markRowNotDuplicate(client)}>Mark as not duplicate</KebabItem>
+                      <KebabItem icon="block" onClick={() => inactivateClient(client.id)}>Inactivate</KebabItem>
+                    </KebabMenu>
                   </div>
-                  <div className="px-4 py-3.5 col-span-5 text-[12px] text-[#9AA3AF]">{group.clients.length} possible duplicate{group.clients.length !== 1 ? "s" : ""}</div>
                 </div>
-              );
-            })()}
+              ))}
+            </div>
+          ))}
 
-            {/* Client rows */}
-            {expandedGroups.has(group.key) && group.clients.map(client => (
-              <div key={client.id}
-                className={`grid grid-cols-[40px_1fr_1fr_1fr_1fr_1fr_120px] items-start border-t border-[#F0F2F5] transition-colors ${selectedClients.has(client.id) ? "bg-[#EDF5FF]" : "hover:bg-[#F9FAFB]"}`}
-                onClick={() => toggleClient(client.id)}>
-                <div className="px-4 py-3.5 flex items-center justify-center pt-4">
-                  <input type="checkbox" checked={selectedClients.has(client.id)}
-                    onChange={e => { e.stopPropagation(); toggleClient(client.id); }}
-                    onClick={e => e.stopPropagation()}
-                    className="w-4 h-4 rounded border-[#E5E7EB] accent-[#4A6FA5] cursor-pointer" />
-                </div>
-                {/* ① View record — name is a link */}
-                <div className="px-4 py-3.5" onClick={e => e.stopPropagation()}>
-                  <button
-                    onClick={() => window.open(`/clients/${client.id}`, "_blank")}
-                    className="text-[14px] text-[#4A6FA5] hover:underline text-left"
-                    style={{ fontWeight: 500 }}
-                    title="Open client profile in new tab"
-                  >
-                    {client.name}
-                  </button>
-                </div>
-                <div className="px-4 py-3.5 text-[14px] text-[#546478]">{client.company || "—"}</div>
-                <div className="px-4 py-3.5 text-[14px] text-[#546478] whitespace-pre-line">{[client.address, `${client.city}, ${client.state} ${client.zip}`].filter(Boolean).join("\n") || "—"}</div>
-                <div className="px-4 py-3.5 text-[14px] text-[#546478]">{client.email || "—"}</div>
-                <div className="px-4 py-3.5 text-[14px] text-[#546478]">{client.mobilePhone || "—"}</div>
-                {/* ⑤ Archive per-row */}
-                <div className="px-4 py-3.5 flex items-center" onClick={e => e.stopPropagation()}>
-                  <button
-                    onClick={() => setArchiveConfirmId(client.id)}
-                    className="h-7 px-2.5 text-[12px] text-[#546478] border border-[#E5E7EB] rounded-md hover:bg-[#FEF2F2] hover:text-[#DC2626] hover:border-[#FCA5A5] transition-colors inline-flex items-center gap-1"
-                    style={{ fontWeight: 500 }}
-                    title="Archive this record"
-                  >
-                    <span className="material-icons" style={{ fontSize: "13px" }}>archive</span>
-                    Archive
-                  </button>
-                </div>
+          {/* Pagination — inside the card (hidden on empty state) */}
+          {groups.length > 0 && (
+            <div className="flex items-center justify-between p-4">
+              <div className="flex items-center gap-3 text-[14px] text-[#6B7280]">
+                <span>Rows per page:</span>
+                <select value={rowsPerPage} onChange={e => { setRowsPerPage(Number(e.target.value)); setDupPage(1); }}
+                  className="h-9 pl-3 pr-2 border border-[#E5E7EB] rounded-lg text-[14px] text-[#1A2332] bg-white shadow-[0px_1px_2px_rgba(0,0,0,0.05)] focus:outline-none">
+                  {[10, 25, 50].map(n => <option key={n} value={n}>{n}</option>)}
+                </select>
+                <span>{(dupPageSafe - 1) * rowsPerPage + 1}-{Math.min(dupPageSafe * rowsPerPage, groups.length)} of {groups.length}</span>
               </div>
-            ))}
-          </div>
-        ))}
-      </div>
-
-      {/* Pagination */}
-      <div className="mt-4 flex items-center justify-between">
-        <div className="flex items-center gap-2 text-[13px] text-[#546478]">
-          Rows per page:
-          <select value={rowsPerPage} onChange={e => setRowsPerPage(Number(e.target.value))}
-            className="h-8 px-2 border border-[#E5E7EB] rounded text-[13px] bg-white focus:outline-none">
-            {[10, 25, 50].map(n => <option key={n} value={n}>{n}</option>)}
-          </select>
-        </div>
-        <span className="text-[13px] text-[#546478]">1–{Math.min(rowsPerPage, groups.length)} of {groups.length}</span>
-        <div className="flex items-center gap-1">
-          <button className="p-1 text-[#546478] hover:bg-[#EDF0F5] rounded disabled:opacity-40" disabled>
-            <span className="material-icons" style={{ fontSize: "20px" }}>chevron_left</span>
-          </button>
-          <button className="p-1 text-[#546478] hover:bg-[#EDF0F5] rounded disabled:opacity-40" disabled>
-            <span className="material-icons" style={{ fontSize: "20px" }}>chevron_right</span>
-          </button>
+              <div className="flex items-center gap-2">
+                <button onClick={() => setDupPage(p => Math.max(1, p - 1))} disabled={dupPageSafe <= 1}
+                  className="w-9 h-9 flex items-center justify-center text-[#1A2332] hover:bg-[#F5F7FA] rounded-lg disabled:opacity-50 disabled:hover:bg-transparent disabled:cursor-not-allowed">
+                  <span className="material-icons" style={{ fontSize: "20px" }}>chevron_left</span>
+                </button>
+                <button onClick={() => setDupPage(p => Math.min(dupTotalPages, p + 1))} disabled={dupPageSafe >= dupTotalPages}
+                  className="w-9 h-9 flex items-center justify-center text-[#1A2332] hover:bg-[#F5F7FA] rounded-lg disabled:opacity-50 disabled:hover:bg-transparent disabled:cursor-not-allowed">
+                  <span className="material-icons" style={{ fontSize: "20px" }}>chevron_right</span>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Dismissed pairs section */}
       {dismissed.length > 0 && (
-        <div className="mt-8">
+        <div className="px-6 pb-6">
           <h3 className="text-[14px] text-[#1A2332] mb-2" style={{ fontWeight: 600 }}>Dismissed pairs ({dismissed.length})</h3>
           <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden divide-y divide-[#F3F4F6]">
             {dismissed.map(d => {
@@ -536,13 +529,13 @@ export function ManageDuplicates() {
         </div>
       )}
 
-      {/* Archived records section */}
+      {/* Inactivated records section */}
       {archivedClients.length > 0 && (
-        <div className="mt-6">
+        <div className="px-6 pb-6">
           <button onClick={() => setShowArchived(v => !v)}
             className="text-[13px] text-[#4A6FA5] hover:underline inline-flex items-center gap-1" style={{ fontWeight: 500 }}>
             <span className="material-icons" style={{ fontSize: "16px" }}>{showArchived ? "expand_less" : "expand_more"}</span>
-            {showArchived ? "Hide" : "Show"} archived records ({archivedClients.length})
+            {showArchived ? "Hide" : "Show"} inactivated records ({archivedClients.length})
           </button>
           {showArchived && (
             <div className="mt-2 bg-white border border-[#E5E7EB] rounded-xl overflow-hidden divide-y divide-[#F3F4F6]">
@@ -551,7 +544,7 @@ export function ManageDuplicates() {
                   <div className="text-[13px] text-[#1A2332]">
                     <span style={{ fontWeight: 500 }}>{c.name}</span>
                     {c.email && <span className="text-[#6B7280] ml-2">{c.email}</span>}
-                    <span className="ml-3 px-2 py-0.5 rounded bg-[#F3F4F6] text-[#6B7280] text-[11px]" style={{ fontWeight: 600 }}>Archived</span>
+                    <span className="ml-3 px-2 py-0.5 rounded bg-[#F3F4F6] text-[#6B7280] text-[11px]" style={{ fontWeight: 600 }}>Inactivated</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <button onClick={() => window.open(`/clients/${c.id}`, "_blank")}
@@ -606,25 +599,6 @@ export function ManageDuplicates() {
           </div>
         </div>
       )}
-
-      {/* Archive confirmation */}
-      {archiveConfirmId && (() => {
-        const target = clients.find(c => c.id === archiveConfirmId);
-        return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm" onClick={() => setArchiveConfirmId(null)}>
-            <div className="bg-white rounded-xl shadow-2xl p-6 w-[420px]" onClick={e => e.stopPropagation()}>
-              <h2 className="text-[17px] text-[#1A2332] mb-2" style={{ fontWeight: 700 }}>Archive client?</h2>
-              <p className="text-[13px] text-[#6B7280] mb-5">
-                <strong>{target?.name}</strong> will be soft-archived and hidden from the active client list and future duplicate scans. You can restore them at any time.
-              </p>
-              <div className="flex gap-2 justify-end">
-                <button onClick={() => setArchiveConfirmId(null)} className="h-9 px-4 border border-[#E5E7EB] rounded-lg text-[13px] text-[#546478] hover:bg-[#F5F7FA]" style={{ fontWeight: 500 }}>Cancel</button>
-                <button onClick={() => archiveClient(archiveConfirmId)} className="h-9 px-4 rounded-lg text-[13px] text-white bg-[#DC2626] hover:bg-[#B91C1C]" style={{ fontWeight: 500 }}>Archive</button>
-              </div>
-            </div>
-          </div>
-        );
-      })()}
     </div>
   );
 }

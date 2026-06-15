@@ -15,7 +15,7 @@ import { useDraggableColumns, DraggableTh } from "../components/ui/draggable-col
 import { AdvancedFilterField, AdvancedFilterPanel, advancedInputClass, advancedSelectClass } from "../components/ui/advanced-filters";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
-type EstimateStatus = "Draft" | "Sent" | "Viewed" | "Approved" | "Rejected" | "Expired" | "Archived" | "Converted";
+type EstimateStatus = "Draft" | "Sent" | "Viewed" | "Changes Requested" | "Updated" | "Approved" | "Rejected" | "Expired" | "Archived" | "Converted";
 
 interface Estimate {
   id: number;
@@ -46,7 +46,7 @@ interface Client {
   address: string;
 }
 
-const primaryStatuses: EstimateStatus[] = ["Draft", "Sent", "Viewed", "Approved", "Rejected", "Expired"];
+const primaryStatuses: EstimateStatus[] = ["Draft", "Sent", "Viewed", "Changes Requested", "Updated", "Approved", "Rejected", "Expired"];
 const otherStatuses: EstimateStatus[] = ["Archived"];
 
 // Status badge colours aligned to the Figma estimates page (verified node
@@ -57,6 +57,8 @@ const statusColors: Record<EstimateStatus, string> = {
   Draft: "#9333EA",
   Sent: "#4A6FA5",
   Viewed: "#F59E0B",
+  "Changes Requested": "#B45309",
+  Updated: "#4A6FA5",
   Approved: "#16A34A",
   Rejected: "#DC2626",
   Expired: "#6B7280",
@@ -68,6 +70,8 @@ const statusBg: Record<EstimateStatus, string> = {
   Draft: "rgba(147,51,234,0.15)",
   Sent: "rgba(74,111,165,0.15)",
   Viewed: "rgba(245,158,11,0.15)",
+  "Changes Requested": "rgba(180,83,9,0.15)",
+  Updated: "rgba(74,111,165,0.15)",
   Approved: "rgba(22,163,74,0.15)",
   Rejected: "rgba(220,38,38,0.15)",
   Expired: "rgba(107,114,128,0.15)",
@@ -383,8 +387,8 @@ export function Estimates() {
     !clientSearch || c.name.toLowerCase().includes(clientSearch.toLowerCase()) || c.email.toLowerCase().includes(clientSearch.toLowerCase()) || c.phone.includes(clientSearch)
   );
 
-  // 2-decimal amount so the list matches what EstimateDetail shows (DEF-M01-07).
-  const fmt = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  // Estimate list amounts are shown WITHOUT decimals (Marek, Jun 8 call: "amount without decimals").
+  const fmt = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
   return (
     <DndProvider backend={HTML5Backend}>
@@ -566,7 +570,7 @@ export function Estimates() {
               onClick: () => { const n = selectedIds.size; toast(`Duplicated ${n} estimate${n === 1 ? "" : "s"}`); },
             },
             {
-              label: "Archive selected",
+              label: "Archive",
               icon: "archive",
               destructive: true,
               onClick: () => setDeleteConfirm({ ids: Array.from(selectedIds) }),

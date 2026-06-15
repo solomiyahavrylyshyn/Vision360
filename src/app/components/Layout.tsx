@@ -16,21 +16,26 @@ import {
 import { applyStoredBrandTheme, BRAND_LOGO_EVENT, getStoredBrandLogo } from "../utils/brandTheme";
 import { formatTrialDate, getTrialDaysRemaining, isTrialActive, trialStore } from "../stores/trialStore";
 import { clientsStore } from "../stores/clientsStore";
+import { setupStore } from "../stores/setupStore";
+import { useT } from "../i18n";
 
 const navItems = [
-  { to: "/", icon: HomeIcon, label: "Home" },
-  { to: "/calendar", icon: ScheduleIcon, label: "Schedule" },
-  { to: "/clients", icon: ClientsIcon, label: "Clients" },
-  { to: "/jobs", icon: JobsIcon, label: "Jobs" },
-  { to: "/estimates", icon: EstimatesIcon, label: "Estimates" },
-  { to: "/invoices", icon: InvoicesIcon, label: "Invoices" },
-  { to: "/payments", icon: PaymentsIcon, label: "Payments" },
-  { to: "/expenses", icon: ExpensesIcon, label: "Expenses" },
-  { to: "/items", icon: ItemsIcon, label: "Items" },
+  { to: "/", icon: HomeIcon, key: "nav.home", label: "Home" },
+  { to: "/calendar", icon: ScheduleIcon, key: "nav.schedule", label: "Schedule" },
+  { to: "/clients", icon: ClientsIcon, key: "nav.clients", label: "Clients" },
+  { to: "/jobs", icon: JobsIcon, key: "nav.jobs", label: "Jobs" },
+  { to: "/estimates", icon: EstimatesIcon, key: "nav.estimates", label: "Estimates" },
+  { to: "/invoices", icon: InvoicesIcon, key: "nav.invoices", label: "Invoices" },
+  { to: "/payments", icon: PaymentsIcon, key: "nav.payments", label: "Payments" },
+  { to: "/expenses", icon: ExpensesIcon, key: "nav.expenses", label: "Expenses" },
+  { to: "/items", icon: ItemsIcon, key: "nav.items", label: "Items" },
 ];
 
 export function Layout() {
   const navigate = useNavigate();
+  const { t, langCode } = useT();
+  // Reflect the chosen language on <html lang> for a11y / browser hints.
+  useEffect(() => { document.documentElement.lang = langCode; }, [langCode]);
   const [deskCollapsed, setDeskCollapsed] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [isDesktop, setIsDesktop] = useState(() =>
@@ -54,6 +59,10 @@ export function Layout() {
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [companyLogoSrc, setCompanyLogoSrc] = useState(() => getStoredBrandLogo() || wordmarkLogo);
   const trial = useSyncExternalStore(trialStore.subscribe, trialStore.getSnapshot);
+  const setup = useSyncExternalStore(setupStore.subscribe, setupStore.getSnapshot);
+  // AUTH-3 — nudge users who skipped Company Setup. Banner can be dismissed
+  // ("Don't show again"); the bell item stays until setup is actually finished.
+  const showSetupBanner = !setup.complete && !setup.bannerDismissed;
   // Real clients for global search (was a hardcoded mock that didn't match the actual data).
   const allClients = useSyncExternalStore(clientsStore.subscribe, clientsStore.getSnapshot);
   const showTrialBanner = isTrialActive(trial);
@@ -312,11 +321,11 @@ export function Layout() {
                   className="text-[11px] text-center"
                   style={{ fontWeight: 500, lineHeight: "14px" }}
                 >
-                  {item.label}
+                  {t(item.key, item.label)}
                 </span>
               ) : (
                 <span className="text-[14px]" style={{ fontWeight: 500, lineHeight: "20px" }}>
-                  {item.label}
+                  {t(item.key, item.label)}
                 </span>
               )}
             </NavLink>
@@ -328,7 +337,7 @@ export function Layout() {
         <div className="flex-shrink-0 border-t border-[rgba(255,255,255,0.1)] pt-1">
           <button
             onClick={() => setDeskCollapsed(!collapsed)}
-            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            title={collapsed ? t("nav.expand") : t("nav.collapse")}
             className={`rounded-[6px] flex transition-all duration-150 text-white hover:bg-[rgba(255,255,255,0.08)] ${
               collapsed
                 ? "flex-col items-center justify-center w-full py-1.5 gap-0.5"
@@ -343,11 +352,11 @@ export function Layout() {
             />
             {collapsed ? (
               <span className="text-[11px] text-center" style={{ fontWeight: 500, lineHeight: "14px" }}>
-                Collapse
+                {t("nav.collapse")}
               </span>
             ) : (
               <span className="text-[14px]" style={{ fontWeight: 500, lineHeight: "20px" }}>
-                Collapse
+                {t("nav.collapse")}
               </span>
             )}
           </button>
@@ -384,7 +393,7 @@ export function Layout() {
               className="w-full h-9 flex items-center gap-2 px-3 border border-[#E5E7EB] rounded-lg bg-white hover:border-[#B0BEC5] transition-all cursor-text shadow-[0px_1px_2px_rgba(0,0,0,0.05)]"
             >
               <SearchIcon width={18} height={18} className="text-[#9CA3AF] flex-shrink-0" />
-              <span className="text-[13px] text-[#9CA3AF] flex-1 text-left">Search customers, jobs, invoices...</span>
+              <span className="text-[13px] text-[#9CA3AF] flex-1 text-left">{t("search.placeholder")}</span>
               <span className="text-[11px] text-[#9CA3AF] border border-[#E5E7EB] rounded px-1.5 py-0.5">⌘K</span>
             </button>
           )}
@@ -398,7 +407,7 @@ export function Layout() {
                 <input
                   ref={searchInputRef}
                   type="text"
-                  placeholder="Search customers, jobs, invoices..."
+                  placeholder={t("search.placeholder")}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="flex-1 text-[14px] text-[#111827] placeholder:text-[#9CA3AF] outline-none bg-transparent"
@@ -618,7 +627,7 @@ export function Layout() {
           {/* Create button — blue (now first) */}
           <button
             ref={createBtnRef}
-            title="Create"
+            title={t("create.title")}
             onClick={() => {
               setCreateMenuOpen(!createMenuOpen);
               setNotifMenuOpen(false);
@@ -677,6 +686,35 @@ export function Layout() {
         </div>
         </header>
 
+        {showSetupBanner && (
+          <div className="flex flex-shrink-0 items-center justify-between gap-4 border-b border-[#FCE7B5] bg-[#FFF8EB] px-5 py-2.5">
+            <div className="flex min-w-0 items-center gap-2.5 text-[13px] text-[#1A2332]">
+              <span className="material-icons-outlined text-[#D97706]" style={{ fontSize: "18px" }}>business_center</span>
+              <span className="truncate">
+                {t("setup.banner")}
+              </span>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <button
+                type="button"
+                onClick={() => navigate("/settings")}
+                className="h-8 shrink-0 rounded-md bg-[#D97706] px-3 text-[13px] text-white transition-colors hover:bg-[#B45309]"
+                style={{ fontWeight: 600 }}
+              >
+                {t("setup.finish")}
+              </button>
+              <button
+                type="button"
+                onClick={() => setupStore.dismissBanner()}
+                className="h-8 shrink-0 rounded-md px-2.5 text-[13px] text-[#8A6D3B] transition-colors hover:bg-[#FCEFCF]"
+                style={{ fontWeight: 500 }}
+              >
+                {t("setup.dontShow")}
+              </button>
+            </div>
+          </div>
+        )}
+
         {showTrialBanner && trial && (
           <div className="flex flex-shrink-0 items-center justify-between gap-4 border-b border-[#D8E4F2] bg-[#EBF2FC] px-5 py-2.5">
             <div className="flex min-w-0 items-center gap-2.5 text-[13px] text-[#1A2332]">
@@ -692,7 +730,7 @@ export function Layout() {
               className="h-8 shrink-0 rounded-md bg-[#4A6FA5] px-3 text-[13px] text-white transition-colors hover:bg-[#3d5a85]"
               style={{ fontWeight: 600 }}
             >
-              Subscribe now
+              {t("header.subscribeNow")}
             </button>
           </div>
         )}
@@ -720,44 +758,44 @@ export function Layout() {
             <div className="w-8 h-8 rounded-lg bg-[#EBF2FC] flex items-center justify-center group-hover:bg-[#4A6FA5] transition-colors flex-shrink-0">
               <span className="material-icons-outlined text-[#4A6FA5] group-hover:text-white transition-colors" style={{ fontSize: "18px" }}>description</span>
             </div>
-            <span style={{ fontWeight: 500 }}>Estimate</span>
+            <span style={{ fontWeight: 500 }}>{t("create.estimate")}</span>
           </button>
           <button onClick={() => { setCreateMenuOpen(false); navigate("/invoices/new"); }} className="w-full flex items-center gap-3 px-4 py-2.5 text-[13px] text-[#1A2332] hover:bg-[#F5F7FA] transition-colors group">
             <div className="w-8 h-8 rounded-lg bg-[#EBF2FC] flex items-center justify-center group-hover:bg-[#4A6FA5] transition-colors flex-shrink-0">
               <span className="material-icons-outlined text-[#4A6FA5] group-hover:text-white transition-colors" style={{ fontSize: "18px" }}>receipt</span>
             </div>
-            <span style={{ fontWeight: 500 }}>Invoice</span>
+            <span style={{ fontWeight: 500 }}>{t("create.invoice")}</span>
           </button>
           <button onClick={() => { setCreateMenuOpen(false); navigate("/payments/new"); }} className="w-full flex items-center gap-3 px-4 py-2.5 text-[13px] text-[#1A2332] hover:bg-[#F5F7FA] transition-colors group">
             <div className="w-8 h-8 rounded-lg bg-[#EBF2FC] flex items-center justify-center group-hover:bg-[#4A6FA5] transition-colors flex-shrink-0">
               <span className="material-icons-outlined text-[#4A6FA5] group-hover:text-white transition-colors" style={{ fontSize: "18px" }}>payments</span>
             </div>
-            <span style={{ fontWeight: 500 }}>Payment</span>
+            <span style={{ fontWeight: 500 }}>{t("create.payment")}</span>
           </button>
           <button onClick={() => { setCreateMenuOpen(false); navigate("/jobs/new"); }} className="w-full flex items-center gap-3 px-4 py-2.5 text-[13px] text-[#1A2332] hover:bg-[#F5F7FA] transition-colors group">
             <div className="w-8 h-8 rounded-lg bg-[#EBF2FC] flex items-center justify-center group-hover:bg-[#4A6FA5] transition-colors flex-shrink-0">
               <span className="material-icons-outlined text-[#4A6FA5] group-hover:text-white transition-colors" style={{ fontSize: "18px" }}>work</span>
             </div>
-            <span style={{ fontWeight: 500 }}>Job</span>
+            <span style={{ fontWeight: 500 }}>{t("create.job")}</span>
           </button>
 
           <button onClick={() => { setCreateMenuOpen(false); navigate("/clients/new"); }} className="w-full flex items-center gap-3 px-4 py-2.5 text-[13px] text-[#1A2332] hover:bg-[#F5F7FA] transition-colors group">
             <div className="w-8 h-8 rounded-lg bg-[#EBF2FC] flex items-center justify-center group-hover:bg-[#4A6FA5] transition-colors flex-shrink-0">
               <span className="material-icons-outlined text-[#4A6FA5] group-hover:text-white transition-colors" style={{ fontSize: "18px" }}>person_add</span>
             </div>
-            <span style={{ fontWeight: 500 }}>Client</span>
+            <span style={{ fontWeight: 500 }}>{t("create.client")}</span>
           </button>
           <button onClick={() => { setCreateMenuOpen(false); navigate("/expenses/new"); }} className="w-full flex items-center gap-3 px-4 py-2.5 text-[13px] text-[#1A2332] hover:bg-[#F5F7FA] transition-colors group">
             <div className="w-8 h-8 rounded-lg bg-[#EBF2FC] flex items-center justify-center group-hover:bg-[#4A6FA5] transition-colors flex-shrink-0">
               <span className="material-icons-outlined text-[#4A6FA5] group-hover:text-white transition-colors" style={{ fontSize: "18px" }}>receipt_long</span>
             </div>
-            <span style={{ fontWeight: 500 }}>Expense</span>
+            <span style={{ fontWeight: 500 }}>{t("create.expense")}</span>
           </button>
           <button onClick={() => { setCreateMenuOpen(false); navigate("/items"); }} className="w-full flex items-center gap-3 px-4 py-2.5 text-[13px] text-[#1A2332] hover:bg-[#F5F7FA] transition-colors group">
             <div className="w-8 h-8 rounded-lg bg-[#EBF2FC] flex items-center justify-center group-hover:bg-[#4A6FA5] transition-colors flex-shrink-0">
               <span className="material-icons-outlined text-[#4A6FA5] group-hover:text-white transition-colors" style={{ fontSize: "18px" }}>inventory_2</span>
             </div>
-            <span style={{ fontWeight: 500 }}>Item</span>
+            <span style={{ fontWeight: 500 }}>{t("create.item")}</span>
           </button>
         </div>
       </div>
@@ -777,10 +815,29 @@ export function Layout() {
         style={{ right: "16px", top: "68px", transformOrigin: "top right" }}
       >
         <div className="flex items-center justify-between px-4 py-3 border-b border-[#F3F4F6]">
-          <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 700 }}>Notifications</span>
-          <button onClick={() => setNotifMenuOpen(false)} className="text-[12px] text-[#4A6FA5] hover:underline">Mark all read</button>
+          <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 700 }}>{t("notif.title")}</span>
+          <button onClick={() => setNotifMenuOpen(false)} className="text-[12px] text-[#4A6FA5] hover:underline">{t("notif.markAllRead")}</button>
         </div>
         <div className="divide-y divide-[#F3F4F6]">
+          {!setup.complete && (
+            <button
+              type="button"
+              onClick={() => { setNotifMenuOpen(false); navigate("/settings"); }}
+              className="flex w-full items-start gap-3 px-4 py-3 text-left cursor-pointer bg-[#FFF8EB] hover:bg-[#FCEFCF] transition-colors"
+            >
+              <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{ backgroundColor: "#FEF3C7" }}>
+                <span className="material-icons" style={{ fontSize: "16px", color: "#D97706" }}>business_center</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 700 }}>{t("setup.bellTitle")}</span>
+                  <span className="text-[11px] text-[#9CA3AF] shrink-0">{t("setup.bellTime")}</span>
+                </div>
+                <p className="text-[12px] text-[#6B7280] mt-0.5">{t("setup.bellBody")}</p>
+              </div>
+              <div className="w-2 h-2 rounded-full bg-[#D97706] shrink-0 mt-1.5" />
+            </button>
+          )}
           {[
             { icon: "description", color: "#4A6FA5", bg: "#EBF0F8", title: "Estimate signed", body: "Travis Jones signed Estimate #E-1042", time: "2 min ago", unread: true },
             { icon: "payments", color: "#16A34A", bg: "#DCFCE7", title: "Payment received", body: "Mike Delgado paid Invoice #INV-884 — $450.00", time: "1 hr ago", unread: true },
@@ -803,7 +860,7 @@ export function Layout() {
         </div>
         <div className="px-4 py-2.5 border-t border-[#F3F4F6]">
           <button className="w-full text-center text-[13px] text-[#4A6FA5] hover:underline" onClick={() => setNotifMenuOpen(false)}>
-            View all notifications
+            {t("notif.viewAll")}
           </button>
         </div>
       </div>

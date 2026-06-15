@@ -7,10 +7,13 @@ import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-men
 import { PageHeader } from "../components/ui/page-header";
 import { SelectionBar } from "../components/ui/selection-bar";
 import { QuickFilterSelect } from "../components/ui/quick-filter-select";
+import { MultiSelect } from "../components/ui/multi-select";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { useDraggableColumns, DraggableTh } from "../components/ui/draggable-columns";
-import { clientsStore } from "../stores/clientsStore";
+import { clientsStore, deriveClientStatus, type NoteEntry } from "../stores/clientsStore";
+import { jobsStore } from "../stores/jobsStore";
+import { toast } from "sonner";
 import {
   Select,
   SelectContent,
@@ -42,6 +45,16 @@ interface Client {
   status?: "Prospect" | "Active" | "Inactive";
   pastDue?: number;
   daysOverdue?: number;
+  // Optional columns / advanced-filter fields — mapped from the store record so
+  // the toggleable columns and the payment/taxable filters actually have data.
+  mobilePhone?: string;
+  website?: string;
+  customerSince?: string;
+  lastService?: string;
+  notesArray?: NoteEntry[];
+  paymentTerms?: string;
+  paymentMethod?: string;
+  isTaxable?: boolean;
 }
 
 const initialClients: Client[] = [
@@ -56,18 +69,20 @@ const initialClients: Client[] = [
 
 // All columns that can appear in the table — a subset is shown based on
 // visibleColumns. "name" is always on (locked out of the picker).
+// Column order matches the Figma table: Name · Address · Status · Last activity
+// · Total billed (then the rest, available via Edit Columns).
 const CLIENTS_COLS = [
   { key: "name",            label: "Name",             sortable: true  },
-  { key: "status",          label: "Status",           sortable: true  },
   { key: "address",         label: "Address",          sortable: false },
+  { key: "status",          label: "Status",           sortable: true  },
+  { key: "lastActivity",    label: "Last activity",    sortable: true  },
+  { key: "totalBilled",     label: "Total billed",     sortable: true  },
   { key: "mobile",          label: "Mobile",           sortable: false },
   { key: "email",           label: "Email",            sortable: false },
   { key: "website",         label: "Website",          sortable: false },
   { key: "dateCreated",     label: "Date created",     sortable: false },
   { key: "lastServiceDate", label: "Last service date",sortable: false },
-  { key: "totalBilled",     label: "Total billed",     sortable: true  },
   { key: "notes",           label: "Notes",            sortable: false },
-  { key: "lastActivity",    label: "Last activity",    sortable: true  },
   { key: "paymentTerms",    label: "Payment terms",    sortable: false },
   { key: "paymentMethod",   label: "Payment method",   sortable: false },
   { key: "taxable",         label: "Taxable",          sortable: false },
@@ -95,16 +110,36 @@ export function Clients() {
       status: c.status,
       pastDue: c.pastDue || undefined,
       daysOverdue: c.daysOverdue || undefined,
+      mobilePhone: c.mobilePhone,
+      website: c.website,
+      customerSince: c.customerSince,
+      lastService: c.lastService,
+      notesArray: c.notesArray,
+      paymentTerms: c.paymentTerms,
+      paymentMethod: c.paymentMethod,
+      isTaxable: c.isTaxable,
     })),
     [storeClients],
   );
+  // Live job counts per client (by id, with a name fallback for legacy jobs that
+  // carry no clientId) so Active/Prospect follows the actual jobs, not a stale field.
+  const storeJobs = useSyncExternalStore(jobsStore.subscribe, jobsStore.getSnapshot);
+  const jobCountByKey = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const j of storeJobs) {
+      const key = j.clientId ? j.clientId : `name:${j.client}`;
+      m.set(key, (m.get(key) || 0) + 1);
+    }
+    return m;
+  }, [storeJobs]);
+  const jobCountFor = (c: Client) => Math.max(c.totalJobs || 0, (jobCountByKey.get(c.id) || 0) + (jobCountByKey.get(`name:${c.name}`) || 0));
+  // Active/Prospect is automatic (the jobs drive it); only Inactive is a manual flag.
   const setClientStatusInStore = (id: string, status: "Prospect" | "Active" | "Inactive") => {
-    const rec = clientsStore.getClient(id);
-    clientsStore.updateClient(id, status === "Active" && rec && rec.totalJobs === 0 ? { status, totalJobs: 1 } : { status });
+    clientsStore.updateClient(id, { status });
   };
   const [selectedClients, setSelectedClients] = useState<Set<string>>(new Set());
   const [showEmptyStatePreview, setShowEmptyStatePreview] = useState(false);
-  const [rowsPerPage, setRowsPerPage] = useState(50);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
   const [clientCols, moveClientCol] = useDraggableColumns(CLIENTS_COLS);
 
@@ -125,22 +160,25 @@ export function Clients() {
   const [editColumnsOpen, setEditColumnsOpen] = useState(false);
   const [pendingColumns, setPendingColumns] = useState<Set<ColKey>>(new Set<ColKey>(["status", "address", "totalBilled", "lastActivity"]));
 
-  // Columns offered in the picker. Display name (which already shows the company
-  // under it) is always on, so First/Last/Role/Company are dropped; Work phone and
-  // Lead source removed; Website added; Customer type replaced by Status.
-  const columnDefs: { key: ColKey; label: string }[] = [
-    { key: "address", label: "Address" }, { key: "mobile", label: "Mobile" },
-    { key: "email", label: "Email" }, { key: "website", label: "Website" },
-    { key: "status", label: "Status" }, { key: "dateCreated", label: "Date created at" },
-    { key: "lastServiceDate", label: "Last service date" }, { key: "totalBilled", label: "Total Billed" },
-    { key: "notes", label: "Notes" }, { key: "lastActivity", label: "Last Activity" },
+  // Edit-columns dialog layout — two columns of bordered option boxes, matching
+  // the Figma "Edit columns" dialog. The left column leads with the locked "Name"
+  // (rendered separately); these are the toggleable columns under/beside it.
+  const editColsLeft: { key: ColKey; label: string }[] = [
+    { key: "address", label: "Address" },
+    { key: "email", label: "Email" },
+    { key: "website", label: "Website" },
+    { key: "mobile", label: "Mobile" },
+    { key: "status", label: "Status" },
+    { key: "dateCreated", label: "Date created at" },
+  ];
+  const editColsRight: { key: ColKey; label: string }[] = [
+    { key: "lastActivity", label: "Last activity" },
     { key: "paymentTerms", label: "Payment terms" },
     { key: "paymentMethod", label: "Payment method" },
     { key: "taxable", label: "Taxable" },
+    { key: "totalBilled", label: "Total billed" },
+    { key: "notes", label: "Notes" },
   ];
-  const half = Math.ceil(columnDefs.length / 2);
-  const leftCols = columnDefs.slice(0, half);
-  const rightCols = columnDefs.slice(half);
 
   // Sorting
   type SortField = "name" | "status" | "phone" | "city" | "zip" | "lastActivity" | "totalBilled";
@@ -161,7 +199,8 @@ export function Clients() {
     lastServiceFrom: "", lastServiceTo: "",
     lifetimeMin: "", lifetimeMax: "",
     leadSource: "", customerType: "",
-    city: "", county: "",
+    country: "", state: "", city: "", county: "",
+    statuses: [] as string[],
     tags: [] as string[],
     paymentTerms: "", paymentMethod: "",
     taxable: "",
@@ -169,22 +208,19 @@ export function Clients() {
   const [pendingFilters, setPendingFilters] = useState({ ...filterState });
 
   const activeFilterCount = Object.entries(filterState).filter(([k, v]) => {
-    if (k === "tags") return Array.isArray(v) && v.length > 0;
+    if (k === "tags" || k === "statuses") return Array.isArray(v) && v.length > 0;
     return v !== "";
   }).length;
 
   const handleApplyFilters = () => { setFilterState({ ...pendingFilters }); setFilterPanelOpen(false); setCurrentPage(1); };
   const handleClearFilters = () => {
-    const empty = { dateAcquiredFrom: "", dateAcquiredTo: "", lastServiceFrom: "", lastServiceTo: "", lifetimeMin: "", lifetimeMax: "", leadSource: "", customerType: "", city: "", county: "", tags: [] as string[], paymentTerms: "", paymentMethod: "", taxable: "" };
+    const empty = { dateAcquiredFrom: "", dateAcquiredTo: "", lastServiceFrom: "", lastServiceTo: "", lifetimeMin: "", lifetimeMax: "", leadSource: "", customerType: "", country: "", state: "", city: "", county: "", statuses: [] as string[], tags: [] as string[], paymentTerms: "", paymentMethod: "", taxable: "" };
     setPendingFilters(empty); setFilterState(empty); setFilterPanelOpen(false); setCurrentPage(1);
   };
 
-  /** Derive status: explicit Inactive wins; then Prospect if no jobs; else Active */
-  const getClientStatus = (c: Client): "Prospect" | "Active" | "Inactive" => {
-    if (c.status === "Inactive") return "Inactive";
-    if (c.status === "Prospect" || c.totalJobs === 0) return "Prospect";
-    return "Active";
-  };
+  /** Derive status from jobs: Inactive (manual) wins; ≥1 job → Active; none → Prospect. */
+  const getClientStatus = (c: Client): "Prospect" | "Active" | "Inactive" =>
+    deriveClientStatus(c.status, jobCountFor(c));
 
   // Parse "…• 2 days ago" / "…• today" / "…• 18 days" into a number of days.
   const daysAgoFromActivity = (activity: string): number => {
@@ -194,6 +230,19 @@ export function Clients() {
     const m = s.match(/(\d+)\s*days?/);
     return m ? parseInt(m[1], 10) : Infinity; // unknown recency → treated as very old
   };
+
+  // Derive State / City options for the Filter panel selects from client addresses
+  // ("123 Main St, City, ST 12345" → city = part[1], state = first token of part[2]).
+  const addrParts = (addr: string) => {
+    const p = addr.split(",");
+    return { city: (p[1] || "").trim(), state: ((p[2] || "").trim().split(" ")[0] || "").trim() };
+  };
+  const stateOptions = [...new Set(clients.map(c => addrParts(c.address).state).filter(Boolean))].sort();
+  const cityOptions = [...new Set(clients.map(c => addrParts(c.address).city).filter(Boolean))].sort();
+
+  // Shared field styles for the Filter slide-over (Figma: 44px tall, 8px radius).
+  const filterFieldCls = "flex-1 min-w-0 h-11 px-3 border border-[#E5E7EB] rounded-lg text-[14px] text-[#1A2332] bg-white focus:outline-none focus:border-[#4A6FA5]";
+  const filterSelectCls = "w-full h-11 px-3 border border-[#E5E7EB] rounded-lg text-[14px] text-[#374151] bg-white focus:outline-none focus:border-[#4A6FA5] disabled:bg-[#F5F7FA] disabled:text-[#9CA3AF] disabled:cursor-not-allowed";
 
   const filteredClients = clients.filter(client => {
     const matchesSearch = !searchQuery || client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -222,12 +271,14 @@ export function Clients() {
     if (filterState.lifetimeMin !== "") matchesLifetime = client.totalBilled >= Number(filterState.lifetimeMin);
     if (filterState.lifetimeMax !== "") matchesLifetime = matchesLifetime && client.totalBilled <= Number(filterState.lifetimeMax);
     const matchesCity = !filterState.city || client.address.toLowerCase().includes(filterState.city.toLowerCase());
+    const matchesState = !filterState.state || client.address.toLowerCase().includes(filterState.state.toLowerCase());
+    const matchesStatuses = filterState.statuses.length === 0 || filterState.statuses.includes(getClientStatus(client));
     const matchesPaymentTerms = !filterState.paymentTerms || client.paymentTerms === filterState.paymentTerms;
     const matchesPaymentMethod = !filterState.paymentMethod || client.paymentMethod === filterState.paymentMethod;
     const matchesTaxable = !filterState.taxable
       || (filterState.taxable === "yes" ? client.isTaxable === true : client.isTaxable === false);
 
-    return matchesSearch && matchesQfDate && matchesQfBalance && matchesStatus && matchesCustomerType && matchesTags && matchesLeadSource && matchesLifetime && matchesCity && matchesPaymentTerms && matchesPaymentMethod && matchesTaxable;
+    return matchesSearch && matchesQfDate && matchesQfBalance && matchesStatus && matchesCustomerType && matchesTags && matchesLeadSource && matchesLifetime && matchesCity && matchesState && matchesStatuses && matchesPaymentTerms && matchesPaymentMethod && matchesTaxable;
   });
 
   // Sort
@@ -266,11 +317,20 @@ export function Clients() {
     setSelectedClients(s);
   };
 
-  const SortIcon = ({ field }: { field: SortField }) => (
-    <span className="material-icons text-[#9AA3AF] ml-0.5" style={{ fontSize: "14px" }}>
-      {sortField === field ? (sortDir === "asc" ? "arrow_upward" : "arrow_downward") : "unfold_more"}
-    </span>
-  );
+  // One consistent sort glyph across all columns (Figma): the inactive double
+  // chevron (unfold_more) and the active single chevron (expand_less/expand_more)
+  // are the same thin-chevron family — not a heavy Material arrow.
+  const SortIcon = ({ field }: { field: SortField }) => {
+    const active = sortField === field;
+    return (
+      <span
+        className={`material-icons ml-0.5 ${active ? "text-[#4A6FA5]" : "text-[#9AA3AF]"}`}
+        style={{ fontSize: "14px" }}
+      >
+        {active ? (sortDir === "asc" ? "expand_less" : "expand_more") : "unfold_more"}
+      </span>
+    );
+  };
 
   const clientStatusColors: Record<string, string> = {
     Prospect: "#4A6FA5",
@@ -285,7 +345,7 @@ export function Clients() {
 
   const ClientStatusBadge = ({ status }: { status: "Prospect" | "Active" | "Inactive" }) => (
     <span
-      className="inline-flex items-center justify-center min-w-[80px] px-2.5 py-1 rounded-md text-[12px] shrink-0"
+      className="inline-flex items-center justify-center px-2.5 py-1 rounded-md text-[12px] shrink-0"
       style={{ fontWeight: 500, color: clientStatusColors[status], backgroundColor: clientStatusBg[status] }}
     >
       {status}
@@ -381,11 +441,11 @@ export function Clients() {
             ))}
           </div>
         ) : (
-          <div className="mb-4 grid grid-cols-4 gap-3">
+          <div className="mb-4 grid grid-cols-4 gap-4">
             {[
-              { value: String(clients.filter(c => getClientStatus(c) === "Prospect").length), label: "Prospects",     sub: "current",      change: "+100%", changeUp: true, period: "vs prev. period", data: [2, 3, 2, 4, 3, 5, 4] },
-              { value: String(clients.filter(c => getClientStatus(c) === "Active").length),   label: "Active clients", sub: "current",      change: "+25%",  changeUp: true, period: "vs prev. period", data: [0, 1, 0, 1, 1, 0, 1] },
-              { value: String(clients.length),                                                 label: "Total contacts", sub: "all clients",  change: "+50%",  changeUp: true, period: "vs prev. year",   data: [3, 4, 4, 5, 5, 6, 6] },
+              { value: String(clients.filter(c => getClientStatus(c) === "Prospect").length), label: "New prospects", sub: "current",     change: "+100%", changeUp: true, period: "vs prev. period", data: [2, 3, 2, 4, 3, 5, 4] },
+              { value: String(clients.filter(c => getClientStatus(c) === "Active").length),   label: "New contacts",  sub: "current",     change: "+25%",  changeUp: true, period: "vs prev. period", data: [0, 1, 0, 1, 1, 0, 1] },
+              { value: String(clients.length),                                                 label: "Total contacts", sub: "all clients", change: "+50%",  changeUp: true, period: "vs prev. year",   data: [3, 4, 4, 5, 5, 6, 6] },
             ].map(c => <StatCard key={c.label} {...c} />)}
 
             {/* What's New — QuickBooks integration tile */}
@@ -526,83 +586,99 @@ export function Clients() {
         {filterPanelOpen && (
           <div className="fixed inset-0 z-50 flex justify-end">
             <div className="absolute inset-0 bg-black/30" onClick={() => setFilterPanelOpen(false)} />
-            <div className="relative bg-white w-[340px] h-full shadow-2xl flex flex-col overflow-hidden">
-              <div className="flex items-center justify-between px-6 py-5 border-b border-[#E5E7EB]">
-                <h2 className="text-[18px] text-[#1A2332]" style={{ fontWeight: 700 }}>Advanced Filters</h2>
-                <button onClick={() => setFilterPanelOpen(false)} className="text-[#546478] hover:text-[#1A2332]">
+            <div className="relative bg-white w-[520px] max-w-full h-full shadow-2xl flex flex-col overflow-hidden">
+              <div className="flex items-center justify-between px-7 py-5">
+                <h2 className="text-[22px] text-[#1A2332]" style={{ fontWeight: 700 }}>Filter</h2>
+                <button onClick={() => setFilterPanelOpen(false)} aria-label="Close" className="text-[#546478] hover:text-[#1A2332]">
                   <span className="material-icons" style={{ fontSize: "22px" }}>close</span>
                 </button>
               </div>
-              <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
-                <div>
-                  <h3 className="text-[13px] text-[#374151] mb-4" style={{ fontWeight: 600 }}>Date Filters</h3>
-                </div>
-
+              <div className="flex-1 overflow-y-auto px-7 pb-5 space-y-5">
                 {/* Date acquired */}
                 <div>
-                  <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>Date acquired</label>
-                  <div className="flex gap-2">
+                  <label className="block text-[14px] text-[#1A2332] mb-1.5" style={{ fontWeight: 500 }}>Date acquired</label>
+                  <div className="flex gap-3">
                     <input type="date" value={pendingFilters.dateAcquiredFrom} onChange={e => setPendingFilters(p => ({ ...p, dateAcquiredFrom: e.target.value }))}
-                      className="flex-1 h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5]" />
+                      className={filterFieldCls} />
                     <input type="date" value={pendingFilters.dateAcquiredTo} onChange={e => setPendingFilters(p => ({ ...p, dateAcquiredTo: e.target.value }))}
-                      className="flex-1 h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5]" />
+                      className={filterFieldCls} />
                   </div>
                 </div>
 
                 {/* Last service date */}
                 <div>
-                  <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>Last service date</label>
-                  <div className="flex gap-2">
+                  <label className="block text-[14px] text-[#1A2332] mb-1.5" style={{ fontWeight: 500 }}>Last service date</label>
+                  <div className="flex gap-3">
                     <input type="date" value={pendingFilters.lastServiceFrom} onChange={e => setPendingFilters(p => ({ ...p, lastServiceFrom: e.target.value }))}
-                      className="flex-1 h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5]" />
+                      className={filterFieldCls} />
                     <input type="date" value={pendingFilters.lastServiceTo} onChange={e => setPendingFilters(p => ({ ...p, lastServiceTo: e.target.value }))}
-                      className="flex-1 h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5]" />
+                      className={filterFieldCls} />
                   </div>
                 </div>
 
-                <div className="border-t border-[#E5E7EB] pt-5">
-                  <h3 className="text-[13px] text-[#374151] mb-4" style={{ fontWeight: 600 }}>Financial & Location</h3>
-                </div>
-
-                {/* Lifetime value */}
+                {/* Total billed */}
                 <div>
-                  <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>Lifetime value</label>
-                  <div className="flex items-center gap-2">
-                    <input type="number" placeholder="Min" value={pendingFilters.lifetimeMin} onChange={e => setPendingFilters(p => ({ ...p, lifetimeMin: e.target.value }))}
-                      className="flex-1 h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5]" />
-                    <span className="text-[#546478] text-[13px]">—</span>
-                    <input type="number" placeholder="Max" value={pendingFilters.lifetimeMax} onChange={e => setPendingFilters(p => ({ ...p, lifetimeMax: e.target.value }))}
-                      className="flex-1 h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5]" />
+                  <label className="block text-[14px] text-[#1A2332] mb-1.5" style={{ fontWeight: 500 }}>Total billed</label>
+                  <div className="flex items-center gap-3">
+                    <input type="number" placeholder="min" value={pendingFilters.lifetimeMin} onChange={e => setPendingFilters(p => ({ ...p, lifetimeMin: e.target.value }))}
+                      className={filterFieldCls} />
+                    <input type="number" placeholder="max" value={pendingFilters.lifetimeMax} onChange={e => setPendingFilters(p => ({ ...p, lifetimeMax: e.target.value }))}
+                      className={filterFieldCls} />
                   </div>
                 </div>
 
-                {/* City */}
+                {/* Country — gates State + City (they stay disabled until a country is picked) */}
                 <div>
-                  <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>City</label>
-                  <input type="text" placeholder="e.g. Tampa, Orlando" value={pendingFilters.city} onChange={e => setPendingFilters(p => ({ ...p, city: e.target.value }))}
-                    className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5]" />
-                </div>
-
-                {/* County (dropdown from store) */}
-                <div>
-                  <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>County</label>
-                  <select value={pendingFilters.county} onChange={e => setPendingFilters(p => ({ ...p, county: e.target.value }))}
-                    className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] text-[#374151] bg-white focus:outline-none focus:border-[#4A6FA5]">
-                    <option value="">All counties</option>
-                    {availableCounties.map(c => <option key={c} value={c}>{c}</option>)}
+                  <label className="block text-[14px] text-[#1A2332] mb-1.5" style={{ fontWeight: 500 }}>Country</label>
+                  <select
+                    value={pendingFilters.country}
+                    onChange={e => setPendingFilters(p => ({ ...p, country: e.target.value, ...(e.target.value ? {} : { state: "", city: "" }) }))}
+                    className={filterSelectCls}
+                  >
+                    <option value="">All</option>
+                    <option value="United States">United States</option>
+                    <option value="Canada">Canada</option>
+                    <option value="Mexico">Mexico</option>
                   </select>
                 </div>
 
-                {/* Billing filters — moved to the bottom per walkthrough */}
-                <div className="border-t border-[#E5E7EB] pt-5">
-                  <h3 className="text-[13px] text-[#374151] mb-4" style={{ fontWeight: 600 }}>Billing</h3>
+                {/* State — disabled until a country is selected */}
+                <div>
+                  <label className="block text-[14px] text-[#1A2332] mb-1.5" style={{ fontWeight: 500 }}>State</label>
+                  <select value={pendingFilters.state} disabled={!pendingFilters.country} onChange={e => setPendingFilters(p => ({ ...p, state: e.target.value }))} className={filterSelectCls}>
+                    <option value="">All</option>
+                    {stateOptions.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+
+                {/* City — disabled until a country is selected */}
+                <div>
+                  <label className="block text-[14px] text-[#1A2332] mb-1.5" style={{ fontWeight: 500 }}>City</label>
+                  <select value={pendingFilters.city} disabled={!pendingFilters.country} onChange={e => setPendingFilters(p => ({ ...p, city: e.target.value }))} className={filterSelectCls}>
+                    <option value="">All</option>
+                    {cityOptions.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+
+                {/* Statuses — multi-select (Figma "multiple-select-example") */}
+                <div>
+                  <label className="block text-[14px] text-[#1A2332] mb-1.5" style={{ fontWeight: 500 }}>Statuses</label>
+                  <MultiSelect
+                    values={pendingFilters.statuses}
+                    onChange={vals => setPendingFilters(p => ({ ...p, statuses: vals }))}
+                    options={[
+                      { value: "Prospect", label: "Prospect" },
+                      { value: "Active", label: "Active" },
+                      { value: "Inactive", label: "Inactive" },
+                    ]}
+                    placeholder="All"
+                  />
                 </div>
 
                 {/* Payment terms */}
                 <div>
-                  <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>Payment terms</label>
-                  <select value={pendingFilters.paymentTerms} onChange={e => setPendingFilters(p => ({ ...p, paymentTerms: e.target.value }))}
-                    className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] text-[#374151] bg-white focus:outline-none focus:border-[#4A6FA5]">
+                  <label className="block text-[14px] text-[#1A2332] mb-1.5" style={{ fontWeight: 500 }}>Payment terms</label>
+                  <select value={pendingFilters.paymentTerms} onChange={e => setPendingFilters(p => ({ ...p, paymentTerms: e.target.value }))} className={filterSelectCls}>
                     <option value="">All</option>
                     {["Due on receipt", "Net 15", "Net 30", "Net 45", "Net 60"].map(t => <option key={t} value={t}>{t}</option>)}
                   </select>
@@ -610,9 +686,8 @@ export function Clients() {
 
                 {/* Payment method */}
                 <div>
-                  <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>Payment method</label>
-                  <select value={pendingFilters.paymentMethod} onChange={e => setPendingFilters(p => ({ ...p, paymentMethod: e.target.value }))}
-                    className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] text-[#374151] bg-white focus:outline-none focus:border-[#4A6FA5]">
+                  <label className="block text-[14px] text-[#1A2332] mb-1.5" style={{ fontWeight: 500 }}>Payment method</label>
+                  <select value={pendingFilters.paymentMethod} onChange={e => setPendingFilters(p => ({ ...p, paymentMethod: e.target.value }))} className={filterSelectCls}>
                     <option value="">All</option>
                     {PAYMENT_METHODS.map(m => <option key={m} value={m}>{m}</option>)}
                   </select>
@@ -620,9 +695,8 @@ export function Clients() {
 
                 {/* Taxable */}
                 <div>
-                  <label className="block text-[13px] text-[#374151] mb-1.5" style={{ fontWeight: 500 }}>Taxable</label>
-                  <select value={pendingFilters.taxable} onChange={e => setPendingFilters(p => ({ ...p, taxable: e.target.value }))}
-                    className="w-full h-10 px-3 border border-[#E5E7EB] rounded-md text-[13px] text-[#374151] bg-white focus:outline-none focus:border-[#4A6FA5]">
+                  <label className="block text-[14px] text-[#1A2332] mb-1.5" style={{ fontWeight: 500 }}>Taxable</label>
+                  <select value={pendingFilters.taxable} onChange={e => setPendingFilters(p => ({ ...p, taxable: e.target.value }))} className={filterSelectCls}>
                     <option value="">All</option>
                     <option value="yes">Yes</option>
                     <option value="no">No</option>
@@ -630,9 +704,9 @@ export function Clients() {
                 </div>
               </div>
 
-              <div className="px-6 py-4 border-t border-[#E5E7EB] flex items-center gap-3">
-                <button onClick={handleClearFilters} className="flex-1 h-10 border border-[#E5E7EB] rounded-lg text-[13px] text-[#546478] hover:bg-[#EDF0F5] transition-colors" style={{ fontWeight: 500 }}>Clear all</button>
-                <button onClick={handleApplyFilters} className="flex-1 h-10 bg-[#4A6FA5] hover:bg-[#3d5a85] rounded-lg text-[13px] text-white transition-colors" style={{ fontWeight: 500 }}>Apply</button>
+              <div className="px-7 py-4 border-t border-[#E5E7EB] flex items-center justify-end gap-3">
+                <button onClick={handleClearFilters} className="h-10 px-5 border border-[#E5E7EB] rounded-lg text-[14px] text-[#374151] bg-white hover:bg-[#F5F7FA] transition-colors" style={{ fontWeight: 500 }}>Clear All</button>
+                <button onClick={handleApplyFilters} className="h-10 px-6 bg-[#4A6FA5] hover:bg-[#3d5a85] rounded-lg text-[14px] text-white transition-colors" style={{ fontWeight: 600 }}>Apply</button>
               </div>
             </div>
           </div>
@@ -704,7 +778,7 @@ export function Clients() {
             </div>
             <div className="ml-auto flex items-center gap-2">
               <CreateActionButton onClick={() => navigate("/clients/new")}>
-                Create Client
+                Create client
               </CreateActionButton>
               <KebabMenu triggerClassName="w-10 h-10 border border-[#D8DEE8] rounded-xl bg-white">
                 {showEmptyStatePreview ? (
@@ -745,18 +819,26 @@ export function Clients() {
             onDeselect={() => setSelectedClients(new Set())}
             actions={[
               {
-                label: "Set as Active",
-                icon: "check_circle",
+                label: "Send payment reminder",
+                icon: "mail",
                 onClick: () => {
-                  [...selectedClients].forEach(id => setClientStatusInStore(id, "Active"));
+                  const withBalance = [...selectedClients].filter(id => {
+                    const c = clients.find(x => x.id === id);
+                    return c && ((c.pastDue ?? 0) > 0 || (c.totalBilled ?? 0) > 0);
+                  });
+                  if (withBalance.length === 0) {
+                    toast.error("None of the selected clients have an open balance");
+                  } else {
+                    toast.success(`Payment reminder sent to ${withBalance.length} client${withBalance.length > 1 ? "s" : ""}`);
+                  }
                   setSelectedClients(new Set());
                 },
               },
               {
-                label: "Set as Prospect",
-                icon: "person_search",
+                label: "Reactivate",
+                icon: "check_circle",
                 onClick: () => {
-                  [...selectedClients].forEach(id => setClientStatusInStore(id, "Prospect"));
+                  [...selectedClients].forEach(id => setClientStatusInStore(id, "Active"));
                   setSelectedClients(new Set());
                 },
               },
@@ -856,7 +938,7 @@ export function Clients() {
                         return (
                           <td key="totalBilled" className="px-4 py-4">
                             <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 400 }}>
-                              ${client.totalBilled.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              ${client.totalBilled.toLocaleString("en-US", { maximumFractionDigits: 0 })}
                             </div>
                           </td>
                         );
@@ -880,13 +962,9 @@ export function Clients() {
                   })}
                   <td className="px-4 py-4" onClick={e => e.stopPropagation()}>
                     <KebabMenu>
-                      {getClientStatus(client) !== "Prospect" && (
-                        <KebabItem icon="person_search" onSelect={() => setClientStatusInStore(client.id, "Prospect")}>Set as Prospect</KebabItem>
-                      )}
-                      {getClientStatus(client) !== "Active" && (
-                        <KebabItem icon="check_circle" onSelect={() => setClientStatusInStore(client.id, "Active")}>Set as Active</KebabItem>
-                      )}
-                      {getClientStatus(client) !== "Inactive" && (
+                      {getClientStatus(client) === "Inactive" ? (
+                        <KebabItem icon="check_circle" onSelect={() => setClientStatusInStore(client.id, "Active")}>Reactivate</KebabItem>
+                      ) : (
                         <KebabItem icon="block" destructive onSelect={() => setClientStatusInStore(client.id, "Inactive")}>Inactivate</KebabItem>
                       )}
                       <KebabSeparator />
@@ -937,36 +1015,48 @@ export function Clients() {
 
         {/* ── Edit Columns Modal ── */}
         {editColumnsOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/40" onClick={() => setEditColumnsOpen(false)} />
-            <div className="relative bg-white rounded-2xl shadow-2xl w-[560px] max-h-[85vh] flex flex-col overflow-hidden">
-              <div className="px-8 pt-8 pb-6 border-b border-[#E5E7EB]">
-                <h2 className="text-[20px] text-[#1A2332]" style={{ fontWeight: 700 }}>Select columns to view</h2>
+            <div className="relative bg-white rounded-2xl shadow-2xl w-[720px] max-w-full max-h-[88vh] flex flex-col overflow-hidden">
+              {/* Header — "Edit columns" + close (Figma) */}
+              <div className="flex items-center justify-between px-7 pt-6 pb-5">
+                <h2 className="text-[22px] text-[#1A2332]" style={{ fontWeight: 700 }}>Edit columns</h2>
+                <button onClick={() => setEditColumnsOpen(false)} aria-label="Close" className="flex h-8 w-8 items-center justify-center rounded-lg text-[#9CA3AF] hover:bg-[#F3F4F6] hover:text-[#1A2332] transition-colors">
+                  <span className="material-icons" style={{ fontSize: "20px" }}>close</span>
+                </button>
               </div>
-              <div className="flex-1 overflow-y-auto px-8 py-6">
-                <div className="grid grid-cols-2 gap-x-8 gap-y-0">
-                  <div className="col-span-2 mb-1">
-                    <label className="flex items-center gap-3 py-2 cursor-not-allowed opacity-70">
-                      <input type="checkbox" checked readOnly className="w-4 h-4 rounded accent-[#4A6FA5] cursor-not-allowed" />
-                      <span className="text-[14px] text-[#374151]">Display name</span>
+
+              {/* Body — two columns of bordered option boxes */}
+              <div className="flex-1 overflow-y-auto px-7 pb-2">
+                <div className="grid grid-cols-2 gap-x-4 gap-y-3 items-start">
+                  <div className="flex flex-col gap-3">
+                    {/* Name is always on (locked) */}
+                    <label className="flex items-center gap-3 rounded-[10px] border border-[#E5E7EB] bg-[#F8FAFC] px-4 py-3 cursor-not-allowed">
+                      <input type="checkbox" checked readOnly disabled className="w-5 h-5 rounded accent-[#4A6FA5]" />
+                      <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Name</span>
                     </label>
+                    {editColsLeft.map(col => (
+                      <label key={col.key} className="flex items-center gap-3 rounded-[10px] border border-[#E5E7EB] px-4 py-3 cursor-pointer hover:border-[#C8D5E8] transition-colors">
+                        <input type="checkbox" checked={pendingColumns.has(col.key)} onChange={() => { const n = new Set(pendingColumns); n.has(col.key) ? n.delete(col.key) : n.add(col.key); setPendingColumns(n); }} className="w-5 h-5 rounded accent-[#4A6FA5] cursor-pointer" />
+                        <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>{col.label}</span>
+                      </label>
+                    ))}
                   </div>
-                  <div>{leftCols.map(col => (
-                    <label key={col.key} className="flex items-center gap-3 py-2 cursor-pointer hover:text-[#1A2332]">
-                      <input type="checkbox" checked={pendingColumns.has(col.key)} onChange={() => { const n = new Set(pendingColumns); n.has(col.key) ? n.delete(col.key) : n.add(col.key); setPendingColumns(n); }} className="w-4 h-4 rounded accent-[#4A6FA5] cursor-pointer" />
-                      <span className="text-[14px] text-[#374151]">{col.label}</span>
-                    </label>
-                  ))}</div>
-                  <div>{rightCols.map(col => (
-                    <label key={col.key} className="flex items-center gap-3 py-2 cursor-pointer hover:text-[#1A2332]">
-                      <input type="checkbox" checked={pendingColumns.has(col.key)} onChange={() => { const n = new Set(pendingColumns); n.has(col.key) ? n.delete(col.key) : n.add(col.key); setPendingColumns(n); }} className="w-4 h-4 rounded accent-[#4A6FA5] cursor-pointer" />
-                      <span className="text-[14px] text-[#374151]">{col.label}</span>
-                    </label>
-                  ))}</div>
+                  <div className="flex flex-col gap-3">
+                    {editColsRight.map(col => (
+                      <label key={col.key} className="flex items-center gap-3 rounded-[10px] border border-[#E5E7EB] px-4 py-3 cursor-pointer hover:border-[#C8D5E8] transition-colors">
+                        <input type="checkbox" checked={pendingColumns.has(col.key)} onChange={() => { const n = new Set(pendingColumns); n.has(col.key) ? n.delete(col.key) : n.add(col.key); setPendingColumns(n); }} className="w-5 h-5 rounded accent-[#4A6FA5] cursor-pointer" />
+                        <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>{col.label}</span>
+                      </label>
+                    ))}
+                  </div>
                 </div>
               </div>
-              <div className="px-8 py-5 border-t border-[#E5E7EB] flex justify-end">
-                <button onClick={() => { setVisibleColumns(new Set(pendingColumns)); setEditColumnsOpen(false); }} className="px-6 py-2 bg-[#4A6FA5] hover:bg-[#3d5a85] text-white rounded-lg text-[14px] transition-colors" style={{ fontWeight: 500 }}>Done</button>
+
+              {/* Footer — Cancel + Save (Figma) */}
+              <div className="px-7 py-5 flex justify-end gap-3">
+                <button onClick={() => setEditColumnsOpen(false)} className="h-10 px-5 rounded-lg border border-[#E5E7EB] bg-white text-[14px] text-[#374151] hover:bg-[#F5F7FA] transition-colors" style={{ fontWeight: 500 }}>Cancel</button>
+                <button onClick={() => { setVisibleColumns(new Set(pendingColumns)); setEditColumnsOpen(false); }} className="h-10 px-5 rounded-lg bg-[#4A6FA5] hover:bg-[#3d5a85] text-white text-[14px] transition-colors" style={{ fontWeight: 600 }}>Save</button>
               </div>
             </div>
           </div>

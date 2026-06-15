@@ -26,7 +26,7 @@ import job44644Photo from "../../assets/documents/44644-img-20241210-123749.png"
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type EstimateStatus =
-  | "Draft" | "Sent" | "Viewed" | "Approved" | "Rejected" | "Expired" | "Archived" | "Converted";
+  | "Draft" | "Sent" | "Viewed" | "Changes Requested" | "Updated" | "Approved" | "Rejected" | "Expired" | "Archived" | "Converted";
 
 interface LineItem {
   id: number; name: string; description: string;
@@ -59,16 +59,18 @@ interface EstimateData {
 // ─── Status colours ───────────────────────────────────────────────────────────
 const statusColors: Record<EstimateStatus, string> = {
   Draft: "#6B7280", Sent: "#1E40AF", Viewed: "#92400E",
+  "Changes Requested": "#B45309", Updated: "#4A6FA5",
   Approved: "#166534", Rejected: "#DC2626", Expired: "#6B7280", Archived: "#4B5563",
   Converted: "#4A6FA5",
 };
 const statusBg: Record<EstimateStatus, string> = {
   Draft: "#F3F4F6", Sent: "#DBEAFE", Viewed: "#FEF3C7",
+  "Changes Requested": "#FEF3C7", Updated: "#EBF0F8",
   Approved: "#DCFCE7", Rejected: "#FEE2E2", Expired: "#F3F4F6", Archived: "#E5E7EB",
   Converted: "#EBF0F8",
 };
 const primaryStatuses: EstimateStatus[] = [
-  "Draft", "Sent", "Viewed", "Approved", "Rejected", "Expired",
+  "Draft", "Sent", "Viewed", "Changes Requested", "Updated", "Approved", "Rejected", "Expired",
 ];
 const otherStatuses: EstimateStatus[] = ["Archived"];
 // Converted is terminal — it's set automatically and not shown in the picker.
@@ -336,6 +338,8 @@ export function EstimateDetail() {
       Draft: "Reverted to Draft",
       Sent: "Estimate sent",
       Viewed: "Marked as Viewed",
+      "Changes Requested": "Changes requested",
+      Updated: "Estimate updated",
       Approved: "Estimate approved",
       Rejected: "Estimate rejected",
       Expired: "Marked as Expired",
@@ -991,9 +995,12 @@ export function EstimateDetail() {
             {/* Left: name + contact info */}
             <div className="flex flex-col gap-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-[20px] text-[#1A2332] leading-[27px]" style={{ fontWeight: 700 }}>
-                  Estimate #{estimate.estimateNumber}
+                <h2 className="text-[20px] text-[#1A2332] leading-[27px]" style={{ fontWeight: 600 }}>
+                  Estimate
                 </h2>
+                <span className="text-[16px] text-[#6B7280] leading-[24px]" style={{ fontWeight: 400 }}>
+                  ({estimate.estimateNumber})
+                </span>
                 <div ref={statusRef} className="relative">
                   <button onClick={() => setStatusOpen(!statusOpen)}
                     className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[13px] hover:opacity-80 transition-opacity"

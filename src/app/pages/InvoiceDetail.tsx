@@ -336,10 +336,11 @@ function Card({ title, children, onEdit, action }: { title: string; children: Re
   );
 }
 
-type TabKey = "details" | "payments" | "activity";
+type TabKey = "details" | "jobs" | "payments" | "activity";
 type NotesTabKey = "customer" | "internal";
 const TABS: { key: TabKey; label: string }[] = [
   { key: "details", label: "Details" },
+  { key: "jobs", label: "Jobs" },
   { key: "payments", label: "Payments" },
   { key: "activity", label: "Activity" },
 ];
@@ -410,6 +411,9 @@ export function InvoiceDetail() {
   const balance = total - totalPayments;
   const overdueDays = status === "Overdue" ? daysBetween(data.dueDate, TODAY) : 0;
   const isPaid = status === "Paid";
+  // Paid (and Void) invoices are locked financial documents — no line-item edits,
+  // no adding/creating jobs (Marek, Jun 11: "paid = locked, no more editing").
+  const isLocked = status === "Paid" || status === "Void";
 
   const handleStatusChange = (newStatus: InvoiceStatus) => {
     if (newStatus === "Void") {
@@ -597,22 +601,96 @@ export function InvoiceDetail() {
     </div>
   );
 
+  // Per-job accordion sections — shared by the single-job details box and the
+  // multi-job Jobs tab (Marek Jun 9: >1 job → the box disappears, jobs live in a tab).
+  const renderJobSections = () => (
+    <div>
+      {linkedJobs.map(job => {
+        const collapsed = collapsedJobs.has(job.jobNumber);
+        return (
+          <div key={job.jobNumber} className="border-b border-[#F3F4F6] last:border-b-0">
+            <div
+              className="px-4 py-3 flex items-center justify-between gap-2 cursor-pointer hover:bg-[#FAFBFC] transition-colors"
+              onClick={() => toggleJobSection(job.jobNumber)}
+            >
+              <div className="min-w-0">
+                <button
+                  onClick={(e) => { e.stopPropagation(); navigate(`/jobs/${job.jobNumber}`); }}
+                  className="text-[13px] text-[#4A6FA5] hover:underline text-left"
+                  style={{ fontWeight: 600 }}
+                >
+                  {job.jobNumber}
+                </button>
+                <div className="text-[12px] text-[#374151] truncate">{job.jobName}</div>
+              </div>
+              <span className="material-icons text-[#9CA3AF] shrink-0" style={{ fontSize: "20px" }}>
+                {collapsed ? "expand_more" : "expand_less"}
+              </span>
+            </div>
+            {!collapsed && (
+              <div className="px-4 pb-3 flex flex-col gap-3">
+                <div className="flex flex-col gap-0.5">
+                  <div className="text-[11px] text-[#9CA3AF]">Service Address</div>
+                  <span className="text-[13px] text-[#374151] leading-[19px]">
+                    {job.serviceAddress.line}<br />
+                    {job.serviceAddress.city}, {job.serviceAddress.state} {job.serviceAddress.zip}
+                  </span>
+                </div>
+                <div className="flex flex-col gap-0.5">
+                  <div className="text-[11px] text-[#9CA3AF]">Linked Estimate #</div>
+                  {job.linkedEstimate ? (
+                    <button onClick={() => navigate(`/estimates/${job.linkedEstimate}`)} className="text-[13px] text-[#4A6FA5] hover:underline text-left" style={{ fontWeight: 500 }}>
+                      {job.linkedEstimate}
+                    </button>
+                  ) : (
+                    <span className="text-[13px] text-[#9CA3AF]">—</span>
+                  )}
+                </div>
+                {job.estimateStatus && (
+                  <div className="flex flex-col gap-0.5">
+                    <div className="text-[11px] text-[#9CA3AF]">Estimate Status</div>
+                    <span className="text-[13px] text-[#374151]">{job.estimateStatus}</span>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+
+  // Jobs tab — only shown when the invoice settles MORE THAN ONE job.
+  const renderJobsTab = () => (
+    <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden max-w-[640px]">
+      <div className="px-4 py-3 border-b border-[#E5E7EB]">
+        <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Jobs ({linkedJobs.length})</h3>
+      </div>
+      {renderJobSections()}
+    </div>
+  );
+
   const renderDetailsTab = () => (
     <div className="flex flex-col lg:flex-row gap-4 items-start">
 
       {/* ── Left/main: Items list with totals ── */}
       <div className="flex-1 min-w-0 w-full bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
         <div className="px-5 py-3.5 border-b border-[#E5E7EB] flex items-center justify-between">
-          <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Items list</h3>
-          {/* Same quiet icon-plus as the estimate detail line-items header. */}
-          <button
-            onClick={() => {}}
-            aria-label="Add item"
-            title="Add item"
-            className="w-7 h-7 flex items-center justify-center rounded hover:bg-[#F5F7FA] transition-colors"
-          >
-            <PlusIcon className="h-3.5 w-3.5 text-[#9CA3AF]" />
-          </button>
+          <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>
+            Items list{isLocked && <span className="ml-2 align-middle text-[11px] text-[#9CA3AF]" style={{ fontWeight: 500 }}>· Locked</span>}
+          </h3>
+          {/* Same quiet icon-plus as the estimate detail line-items header.
+              Hidden on a locked (Paid/Void) invoice — it's a closed financial doc. */}
+          {!isLocked && (
+            <button
+              onClick={() => {}}
+              aria-label="Add item"
+              title="Add item"
+              className="w-7 h-7 flex items-center justify-center rounded hover:bg-[#F5F7FA] transition-colors"
+            >
+              <PlusIcon className="h-3.5 w-3.5 text-[#9CA3AF]" />
+            </button>
+          )}
         </div>
 
         <div className="overflow-x-auto">
@@ -693,84 +771,43 @@ export function InvoiceDetail() {
           place whatever the job count, so nothing "disappears" on the user. */}
       <div className="w-full lg:w-[300px] shrink-0">
         <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
-          <div className="px-4 py-3 border-b border-[#E5E7EB] flex items-center justify-between">
-            <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>
-              Job Details{linkedJobs.length > 1 ? ` (${linkedJobs.length})` : ""}
-            </h3>
-            <button onClick={() => navigate(`/invoices/${id}/edit`)} className="w-7 h-7 rounded text-[#9CA3AF] hover:text-[#4A6FA5] hover:bg-[#F5F7FA] flex items-center justify-center transition-colors" title="Edit job details">
-              <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
-            </button>
-          </div>
-
-          {linkedJobs.length === 0 ? (
-            /* Blank state — the box stays visible with a "+" to create a job
-               right from the invoice. */
-            <div className="px-4 py-8 flex flex-col items-center text-center gap-2">
-              <span className="material-icons text-[#D1D5DB]" style={{ fontSize: "30px" }}>work_outline</span>
-              <div className="text-[13px] text-[#9CA3AF]">No job linked to this invoice</div>
-              <button
-                onClick={createJobFromInvoice}
-                aria-label="Create job from this invoice"
-                title="Create a job from this invoice"
-                className="mt-1 w-9 h-9 rounded-full bg-[#EEF3FA] text-[#4A6FA5] hover:bg-[#DCE6F5] flex items-center justify-center transition-colors"
-              >
-                <PlusIcon className="h-4 w-4" />
-              </button>
-            </div>
-          ) : (
-            <div>
-              {linkedJobs.map(job => {
-                const collapsed = collapsedJobs.has(job.jobNumber);
-                return (
-                  <div key={job.jobNumber} className="border-b border-[#F3F4F6] last:border-b-0">
-                    <div
-                      className="px-4 py-3 flex items-center justify-between gap-2 cursor-pointer hover:bg-[#FAFBFC] transition-colors"
-                      onClick={() => toggleJobSection(job.jobNumber)}
+          {/* ≤1 job: full Job Details box. >1 job (Marek Jun 9): this box
+              disappears — the jobs move to the dedicated Jobs tab; only Memo stays. */}
+          {linkedJobs.length <= 1 && (
+            <>
+              <div className="px-4 py-3 border-b border-[#E5E7EB] flex items-center justify-between">
+                <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Job Details</h3>
+                {!isLocked && (
+                  <button onClick={() => navigate(`/invoices/${id}/edit`)} className="w-7 h-7 rounded text-[#9CA3AF] hover:text-[#4A6FA5] hover:bg-[#F5F7FA] flex items-center justify-center transition-colors" title="Edit job details">
+                    <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
+                  </button>
+                )}
+              </div>
+              {linkedJobs.length === 0 ? (
+                /* Blank state — a "+" to create a job (only while the invoice is unlocked). */
+                <div className="px-4 py-8 flex flex-col items-center text-center gap-2">
+                  <span className="material-icons text-[#D1D5DB]" style={{ fontSize: "30px" }}>work_outline</span>
+                  <div className="text-[13px] text-[#9CA3AF]">No job linked to this invoice</div>
+                  {!isLocked && (
+                    <button
+                      onClick={createJobFromInvoice}
+                      aria-label="Create job from this invoice"
+                      title="Create a job from this invoice"
+                      className="mt-1 w-9 h-9 rounded-full bg-[#EEF3FA] text-[#4A6FA5] hover:bg-[#DCE6F5] flex items-center justify-center transition-colors"
                     >
-                      <div className="min-w-0">
-                        <button
-                          onClick={(e) => { e.stopPropagation(); navigate(`/jobs/${job.jobNumber}`); }}
-                          className="text-[13px] text-[#4A6FA5] hover:underline text-left"
-                          style={{ fontWeight: 600 }}
-                        >
-                          {job.jobNumber}
-                        </button>
-                        <div className="text-[12px] text-[#374151] truncate">{job.jobName}</div>
-                      </div>
-                      <span className="material-icons text-[#9CA3AF] shrink-0" style={{ fontSize: "20px" }}>
-                        {collapsed ? "expand_more" : "expand_less"}
-                      </span>
-                    </div>
-                    {!collapsed && (
-                      <div className="px-4 pb-3 flex flex-col gap-3">
-                        <div className="flex flex-col gap-0.5">
-                          <div className="text-[11px] text-[#9CA3AF]">Service Address</div>
-                          <span className="text-[13px] text-[#374151] leading-[19px]">
-                            {job.serviceAddress.line}<br />
-                            {job.serviceAddress.city}, {job.serviceAddress.state} {job.serviceAddress.zip}
-                          </span>
-                        </div>
-                        <div className="flex flex-col gap-0.5">
-                          <div className="text-[11px] text-[#9CA3AF]">Linked Estimate #</div>
-                          {job.linkedEstimate ? (
-                            <button onClick={() => navigate(`/estimates/${job.linkedEstimate}`)} className="text-[13px] text-[#4A6FA5] hover:underline text-left" style={{ fontWeight: 500 }}>
-                              {job.linkedEstimate}
-                            </button>
-                          ) : (
-                            <span className="text-[13px] text-[#9CA3AF]">—</span>
-                          )}
-                        </div>
-                        {job.estimateStatus && (
-                          <div className="flex flex-col gap-0.5">
-                            <div className="text-[11px] text-[#9CA3AF]">Estimate Status</div>
-                            <span className="text-[13px] text-[#374151]">{job.estimateStatus}</span>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+                      <PlusIcon className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+              ) : (
+                renderJobSections()
+              )}
+            </>
+          )}
+          {linkedJobs.length > 1 && (
+            <div className="px-4 py-3 border-b border-[#E5E7EB] flex items-center justify-between">
+              <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Memo</h3>
+              <button onClick={() => setActiveTab("jobs")} className="text-[12px] text-[#4A6FA5] hover:underline">View {linkedJobs.length} jobs →</button>
             </div>
           )}
 
@@ -885,8 +922,11 @@ export function InvoiceDetail() {
             <div className="flex flex-col gap-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <h2 className="text-[20px] text-[#1A2332] leading-[27px]" style={{ fontWeight: 600 }}>
-                  Invoice #{data.number}
+                  Invoice
                 </h2>
+                <span className="text-[16px] text-[#6B7280] leading-[24px]" style={{ fontWeight: 400 }}>
+                  ({data.number})
+                </span>
                 <div className="relative">
                   <button
                     onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
@@ -1003,10 +1043,14 @@ export function InvoiceDetail() {
         <div className="-mx-4 mt-4 border-t border-[#E5E7EB]" />
 
         <DetailTabs
-          tabs={TABS.map(t => ({
-            ...t,
-            count: t.key === "activity" ? activity.length : t.key === "payments" ? payments.length : undefined,
-          }))}
+          tabs={TABS
+            // The Jobs tab only appears when the invoice settles MORE THAN ONE job
+            // (Marek Jun 9). With ≤1 job the single Job Details box covers it.
+            .filter(t => t.key !== "jobs" || linkedJobs.length > 1)
+            .map(t => ({
+              ...t,
+              count: t.key === "activity" ? activity.length : t.key === "payments" ? payments.length : t.key === "jobs" ? linkedJobs.length : undefined,
+            }))}
           activeTab={activeTab}
           onChange={setActiveTab}
           tabSuffix={<TabSettingsButton />}
@@ -1037,6 +1081,7 @@ export function InvoiceDetail() {
         {/* ── CONTENT ── */}
         <div className="mt-4">
           {activeTab === "details" && renderDetailsTab()}
+          {activeTab === "jobs" && renderJobsTab()}
           {activeTab === "payments" && renderPaymentsTab()}
           {activeTab === "activity" && renderActivityTab()}
         </div>

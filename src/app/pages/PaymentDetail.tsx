@@ -100,6 +100,12 @@ export function PaymentDetail() {
   const [draftNote, setDraftNote] = useState("");
   // "View payout" modal — payout figures come from the Stripe integration.
   const [payoutOpen, setPayoutOpen] = useState(false);
+  // Refund modal (Marek, Jun 11): memo + MANUAL amount (full or partial) + how the
+  // money is returned (cash record vs through the system / original method).
+  const [refundOpen, setRefundOpen] = useState(false);
+  const [refundAmount, setRefundAmount] = useState("");
+  const [refundMemo, setRefundMemo] = useState("");
+  const [refundMethod, setRefundMethod] = useState<"Cash / manual" | "Original payment method">("Original payment method");
 
   const handleFilesAdded = (files: FileList | null) => {
     if (!files || files.length === 0) return;
@@ -188,6 +194,31 @@ export function PaymentDetail() {
     if (status === payment.status) return;
     paymentsStore.update(payment.id, { status });
     toast.success(`Status changed to ${status}`);
+  };
+
+  // Open the refund modal seeded with the full amount + the sensible return method.
+  const openRefund = () => {
+    setRefundAmount(String(payment.amount));
+    setRefundMemo("");
+    setRefundMethod(payment.method === "Cash" ? "Cash / manual" : "Original payment method");
+    setRefundOpen(true);
+  };
+  const submitRefund = () => {
+    const amt = Number(refundAmount);
+    if (!refundMemo.trim()) { toast.error("Enter a reason for the refund."); return; }
+    if (!Number.isFinite(amt) || amt <= 0 || amt > payment.amount) {
+      toast.error(`Enter a refund amount between $0 and $${payment.amount.toLocaleString("en-US")}.`);
+      return;
+    }
+    paymentsStore.update(payment.id, {
+      status: "Refunded",
+      refundAmount: amt,
+      refundMemo: refundMemo.trim(),
+      refundMethod,
+      refundDate: new Date().toISOString().split("T")[0],
+    });
+    setRefundOpen(false);
+    toast.success(`Refunded $${amt.toLocaleString("en-US")} ${amt < payment.amount ? "(partial)" : ""}`.trim());
   };
 
   const visibleNotes = showAllNotes ? notes : notes.slice(0, 4);
@@ -444,7 +475,11 @@ export function PaymentDetail() {
       {payment.status === "Refunded" && (
         <ActivityRow
           icon="undo" iconBg="#EDE9FE" iconColor="#8B5CF6"
-          title="Payment refunded" subtitle="Invoice balance adjusted" time={fmtDateTime(payment.createdAt)}
+          title={payment.refundAmount != null
+            ? `Refunded $${payment.refundAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}${payment.refundAmount < payment.amount ? " (partial)" : ""}`
+            : "Payment refunded"}
+          subtitle={[payment.refundMethod, payment.refundMemo].filter(Boolean).join(" · ") || "Invoice balance adjusted"}
+          time={fmtDateTime(payment.refundDate ? `${payment.refundDate} 00:00` : payment.createdAt)}
         />
       )}
     </div>
@@ -463,7 +498,7 @@ export function PaymentDetail() {
         >
           <span className="material-icons" style={{ fontSize: "20px" }}>chevron_left</span>
         </button>
-        <h1 className="text-[24px] text-[#1A2332]" style={{ fontFamily: "Geist", fontWeight: 600, lineHeight: "32px" }}>
+        <h1 className="text-[24px] text-[#1A2332]" style={{ fontFamily: "Geist", fontWeight: 700, lineHeight: "32px" }}>
           Payment details
         </h1>
       </div>
@@ -480,17 +515,21 @@ export function PaymentDetail() {
             {/* Row 1: Payment number + status dropdown */}
             <div className="flex items-center gap-2 flex-wrap">
               <h2 className="text-[20px] text-[#1A2332] leading-[27px]" style={{ fontFamily: "Geist", fontWeight: 600 }}>
-                Payment <span className="text-[16px] text-[#6B7280]" style={{ fontWeight: 400 }}>({paymentNumber})</span>
+                Payment
               </h2>
+              <span className="text-[16px] text-[#6B7280] leading-[24px]" style={{ fontWeight: 400 }}>
+                ({paymentNumber})
+              </span>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button
-                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[13px] focus:outline-none"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[13px] focus:outline-none"
                     style={{ fontWeight: 600, color: ss.text, backgroundColor: ss.bg }}
                     title="Change status"
                   >
+                    <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: ss.text }} />
                     {payment.status}
-                    <span className="material-icons" style={{ fontSize: "16px" }}>expand_more</span>
+                    <span className="material-icons" style={{ fontSize: "14px" }}>arrow_drop_down</span>
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
@@ -630,7 +669,9 @@ export function PaymentDetail() {
                 }}>Download receipt</KebabItem>
                 <KebabItem icon="account_balance" onSelect={() => setPayoutOpen(true)}>View payout</KebabItem>
                 <KebabSeparator />
-                <KebabItem icon="undo" onSelect={() => changeStatus("Refunded")}>Refund</KebabItem>
+                {payment.status !== "Refunded" && (
+                  <KebabItem icon="undo" onSelect={openRefund}>Refund…</KebabItem>
+                )}
               </KebabMenu>
             </>
           }
@@ -645,6 +686,59 @@ export function PaymentDetail() {
 
       {/* View payout — net amount after the processor fee + payout date,
           provided by the Stripe integration (mocked at 3% here). */}
+      {/* Refund modal — memo + manual amount (full/partial) + return method (Marek Jun 11). */}
+      {refundOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setRefundOpen(false)}>
+          <div className="absolute inset-0 bg-black/40" />
+          <div className="relative bg-white border border-[#E5E7EB] rounded-xl shadow-2xl w-[440px] max-w-full overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[#E5E7EB]">
+              <h3 className="text-[18px] text-[#1A2332]" style={{ fontWeight: 600 }}>Issue refund</h3>
+              <button onClick={() => setRefundOpen(false)} aria-label="Close" className="w-6 h-6 rounded flex items-center justify-center text-[#1A2332] hover:bg-[#F3F4F6]">
+                <span className="material-icons" style={{ fontSize: "16px" }}>close</span>
+              </button>
+            </div>
+            <div className="px-5 py-4 space-y-4">
+              <div className="text-[13px] text-[#546478]">
+                Original payment: <span className="text-[#1A2332]" style={{ fontWeight: 600 }}>${payment.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span> · {payment.method}
+              </div>
+              <div>
+                <label className="block text-[13px] text-[#1A2332] mb-1" style={{ fontWeight: 500 }}>Refund amount</label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-[#8899AA]">$</span>
+                  <input
+                    type="number" min={0} step="0.01" max={payment.amount}
+                    value={refundAmount}
+                    onChange={(e) => setRefundAmount(e.target.value)}
+                    className="w-full h-10 pl-7 pr-3 border border-[#E5E7EB] rounded-lg text-[14px] outline-none focus:border-[#4A6FA5]"
+                  />
+                </div>
+                <p className="mt-1 text-[12px] text-[#8899AA]">Enter manually — full or partial, up to the original amount.</p>
+              </div>
+              <div>
+                <label className="block text-[13px] text-[#1A2332] mb-1" style={{ fontWeight: 500 }}>How is it returned?</label>
+                <select value={refundMethod} onChange={(e) => setRefundMethod(e.target.value as typeof refundMethod)} className="w-full h-10 px-3 border border-[#E5E7EB] rounded-lg text-[14px] bg-white outline-none focus:border-[#4A6FA5]">
+                  <option value="Original payment method">Refund to original method (through the system)</option>
+                  <option value="Cash / manual">Cash / manual (recorded outside the system)</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-[13px] text-[#1A2332] mb-1" style={{ fontWeight: 500 }}>Reason / memo {<span className="text-[#DC2626]">*</span>}</label>
+                <textarea
+                  value={refundMemo}
+                  onChange={(e) => setRefundMemo(e.target.value)}
+                  placeholder="Why is this refund being issued?"
+                  className="w-full min-h-[72px] resize-y rounded-lg border border-[#E5E7EB] px-3 py-2 text-[14px] outline-none focus:border-[#4A6FA5]"
+                />
+              </div>
+            </div>
+            <div className="px-5 py-4 border-t border-[#E5E7EB] flex justify-end gap-2">
+              <button onClick={() => setRefundOpen(false)} className="h-9 px-4 rounded-lg border border-[#E5E7EB] bg-white text-[14px] text-[#1A2332] hover:bg-[#F5F7FA]" style={{ fontWeight: 500 }}>Cancel</button>
+              <button onClick={submitRefund} className="h-9 px-4 rounded-lg bg-[#4A6FA5] text-white text-[14px] hover:bg-[#3d5a85]" style={{ fontWeight: 500 }}>Issue refund</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {payoutOpen && (() => {
         const fee = payment.amount * 0.03;
         const net = payment.amount - fee;

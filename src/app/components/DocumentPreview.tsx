@@ -97,7 +97,7 @@ export function DocumentPreview({ file, onClose, onRename, onDelete, onDownload 
         />
 
         {/* Modal card */}
-        <div className="relative bg-white rounded-xl border border-[#E5E7EB] shadow-2xl w-[680px] max-w-[92vw] max-h-[88vh] flex flex-col overflow-hidden">
+        <div className="relative bg-white rounded-xl border border-[#E5E7EB] shadow-2xl w-[700px] max-w-[92vw] max-h-[88vh] flex flex-col overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between gap-2 px-5 h-14 border-b border-[#E5E7EB] shrink-0">
           <div className="flex items-center gap-2 min-w-0">

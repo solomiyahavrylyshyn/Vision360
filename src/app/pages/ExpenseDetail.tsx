@@ -108,6 +108,9 @@ export function ExpenseDetail() {
             >
               {expense.merchant}
             </h1>
+            <span className="shrink-0 text-[16px] text-[#6B7280] leading-[24px]" style={{ fontWeight: 400 }}>
+              ({documentNumber})
+            </span>
             <span className="shrink-0 text-[14px] leading-5 text-[#9CA3AF]">{expense.date}</span>
             <CategoryPill category={expense.category} className="shrink-0 px-2.5 py-1 text-[12px]" />
           </div>
@@ -142,7 +145,22 @@ export function ExpenseDetail() {
                   Open invoice
                 </KebabItem>
               )}
-              <KebabItem icon="content_copy">Duplicate</KebabItem>
+              <KebabItem
+                icon="content_copy"
+                onSelect={() => {
+                  // EXP-3 — copy everything except the amount; CreateExpense
+                  // highlights the blank amount field (dup=1) for re-entry.
+                  const params = new URLSearchParams({ dup: "1" });
+                  if (expense.merchant) params.set("vendor", expense.merchant);
+                  if (expense.category) params.set("category", expense.category);
+                  if (description) params.set("description", description);
+                  if (internalNotes) params.set("notes", internalNotes);
+                  if (expense.jobId) params.set("fromJob", expense.jobId);
+                  navigate(`/expenses/new?${params.toString()}`);
+                }}
+              >
+                Duplicate
+              </KebabItem>
               <KebabSeparator />
               <KebabItem icon="archive" destructive>Archive</KebabItem>
             </KebabMenu>
