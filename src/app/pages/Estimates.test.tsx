@@ -18,13 +18,14 @@ describe("Estimates — estimate number sub-line", () => {
     expect(numbers.length).toBeGreaterThan(0);
   });
 
-  it("renders columns in Figma order: Estimate · Client · Job · Technician · Status · Amount", () => {
+  it("renders columns in Figma order: Estimate · Client · Job · Created by · Status · Amount", () => {
     render(
       <MemoryRouter initialEntries={["/estimates"]}>
         <Estimates />
       </MemoryRouter>,
     );
-    const wanted = ["Estimate", "Client", "Job", "Technician", "Status", "Amount"];
+    // Figma 523:31958 replaced the "Technician" column with "Created by".
+    const wanted = ["Estimate", "Client", "Job", "Created by", "Status", "Amount"];
     const headers = screen.getAllByRole("columnheader").map((th) => th.textContent?.trim() || "");
     const seq = headers
       .map((t) => wanted.find((w) => t.startsWith(w)))
