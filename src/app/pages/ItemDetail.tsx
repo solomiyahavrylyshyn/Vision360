@@ -285,7 +285,8 @@ export function ItemDetail() {
   const renderDetailsTab = () => {
     const visibleNotes = showAllNotes ? notes : notes.slice(0, 2);
     return (
-    <div className="grid grid-cols-3 gap-4 items-start">
+    // items-stretch → the three columns share the tallest column's height
+    <div className="grid grid-cols-3 gap-4 items-stretch">
       {/* ── Col 1: Item info ── */}
       <Card title="Item info" onEdit={() => setEditModal("info")}>
         <div className="flex flex-col gap-4">

@@ -156,8 +156,10 @@ export function ExpenseDetail() {
           </div>
         </div>
 
-        {/* 3-column body: Details / Documents / Notes (Figma 1141:106489) */}
-        <div className="mt-4 grid grid-cols-[176px_minmax(0,1fr)_360px] gap-4 items-start">
+        {/* 3-column body: Details / Documents / Notes (Figma 1141:106489).
+            items-stretch → all three cards share the tallest card's height,
+            regardless of how much content each holds. */}
+        <div className="mt-4 grid grid-cols-[176px_minmax(0,1fr)_360px] gap-4 items-stretch">
           {/* Col 1 — Details */}
           <div className="rounded-xl border border-[#E5E7EB] bg-white p-4">
             <h3 className="mb-4 text-[16px] text-[#1A2332]" style={{ fontWeight: 600 }}>Details</h3>
