@@ -1,5 +1,6 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useSyncExternalStore } from "react";
 import { getStoredBrandLogo, BRAND_LOGO_EVENT } from "../utils/brandTheme";
+import { termsStore, hasTerms } from "../stores/termsStore";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
 import { DetailTabs, TabSettingsButton } from "../components/ui/detail-tabs";
@@ -271,6 +272,11 @@ export function EstimateDetail() {
   const [addItemOpen, setAddItemOpen] = useState(false);
   const [customerPreviewOpen, setCustomerPreviewOpen] = useState(false);
   const [brandLogo, setBrandLogoState] = useState(() => getStoredBrandLogo());
+  // Company-default Terms & Conditions (Settings → General). These travel with the
+  // estimate as the trailing page(s) of the customer preview / PDF, so the document
+  // a client receives always reflects what the business configured.
+  const legalDocs = useSyncExternalStore(termsStore.subscribe, termsStore.getSnapshot);
+  const termsDoc = legalDocs.terms;
   const handleBrandLogoChange = useCallback((e: Event) => {
     setBrandLogoState((e as CustomEvent<string>).detail ?? "");
   }, []);
@@ -508,30 +514,28 @@ export function EstimateDetail() {
         <div className="bg-white text-[#5F6670] shadow-2xl border border-[#D7DCE3] mt-6" style={{ width: 760, minHeight: 980, padding: "32px 28px 44px", fontFamily: "Arial, sans-serif", pageBreakBefore: "always" }}>
           <div className="text-[18px] text-[#4F5660] mb-6" style={{ fontWeight: 800 }}>Terms &amp; Conditions</div>
           <div className="text-[12px] leading-[19px] space-y-4">
-            <div>
-              <div style={{ fontWeight: 700 }}>1. Acceptance of estimate</div>
-              <div>This estimate is an offer to perform the work described on page 1 for the stated price. Approving or signing this estimate constitutes acceptance of these terms and conditions in full.</div>
-            </div>
-            <div>
-              <div style={{ fontWeight: 700 }}>2. Pricing and validity</div>
-              <div>Pricing is valid until the expiration date shown on page 1. Work or materials not listed in the line items are not included and will be estimated separately.</div>
-            </div>
-            <div>
-              <div style={{ fontWeight: 700 }}>3. Deposits and payment</div>
-              <div>Where a deposit is required, work is scheduled after the deposit is received. The remaining balance is due upon completion unless otherwise agreed in writing.</div>
-            </div>
-            <div>
-              <div style={{ fontWeight: 700 }}>4. Changes and cancellations</div>
-              <div>Changes to the scope of work must be agreed in writing and may affect the price and schedule. Cancellations after materials have been ordered may incur restocking charges.</div>
-            </div>
-            <div>
-              <div style={{ fontWeight: 700 }}>5. Warranty</div>
-              <div>Labor is warranted for the period stated in the service agreement. Manufacturer warranties apply to supplied equipment and materials.</div>
-            </div>
-            <div>
-              <div style={{ fontWeight: 700 }}>6. Liability</div>
-              <div>The company is not responsible for pre-existing conditions, concealed defects, or damage not caused by its work.</div>
-            </div>
+            {termsDoc.mode === "file" && termsDoc.fileName ? (
+              <div>
+                Refer to the attached terms &amp; conditions document:{" "}
+                <span style={{ fontWeight: 700 }}>{termsDoc.fileName}</span>.
+              </div>
+            ) : hasTerms(termsDoc) ? (
+              // Render the company-configured terms text. Blocks are separated by a
+              // blank line; the first line of each block is the clause heading.
+              termsDoc.text.trim().split(/\n\s*\n/).map((block, i) => {
+                const lines = block.split("\n");
+                const heading = lines[0];
+                const body = lines.slice(1).join(" ").trim();
+                return (
+                  <div key={i}>
+                    <div style={{ fontWeight: 700 }}>{heading}</div>
+                    {body && <div>{body}</div>}
+                  </div>
+                );
+              })
+            ) : (
+              <div>Standard terms and conditions apply. Configure them in Settings &rarr; General.</div>
+            )}
           </div>
         </div>
       </div>

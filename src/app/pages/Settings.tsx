@@ -9,6 +9,7 @@ import { Switch } from "../components/ui/switch";
 import { ColumnSettingsIcon } from "../components/ui/column-settings-icon";
 import { companyStore } from "../stores/companyStore";
 import { setupStore } from "../stores/setupStore";
+import { termsStore } from "../stores/termsStore";
 import { countiesStore } from "../stores/countiesStore";
 import { relationshipsStore } from "../stores/relationshipsStore";
 import { customFieldsStore, type CfEntity, type CfFieldType } from "../stores/customFieldsStore";
@@ -2284,22 +2285,31 @@ export function Settings() {
   const [resetBrandDialogOpen, setResetBrandDialogOpen] = useState(false);
   const [companyAbout, setCompanyAbout] = useState(() => readStoredText(COMPANY_ABOUT_STORAGE_KEY, DEFAULT_COMPANY_ABOUT));
   const [socialLinks, setSocialLinks] = useState(() => readStoredSocialLinks());
-  const [tcFile, setTcFile] = useState<string | null>(null);
-  const [policiesFile, setPoliciesFile] = useState<string | null>(null);
-  const [privacyFile, setPrivacyFile] = useState<string | null>(null);
+  // Legal docs (Terms / Policies / Privacy) are persisted in termsStore so the
+  // configuration survives refresh AND feeds the estimate/invoice T&C banner.
+  const [tcFile, setTcFile] = useState<string | null>(() => termsStore.getSnapshot().terms.fileName);
+  const [policiesFile, setPoliciesFile] = useState<string | null>(() => termsStore.getSnapshot().policies.fileName);
+  const [privacyFile, setPrivacyFile] = useState<string | null>(() => termsStore.getSnapshot().privacy.fileName);
   type LegalDocId = "terms" | "policies" | "privacy";
   type LegalMode = "file" | "text";
   const [industry, setIndustry] = useState("Other");
-  const [legalModes, setLegalModes] = useState<Record<LegalDocId, LegalMode>>({
-    terms: "file",
-    policies: "text",
-    privacy: "file",
+  const [legalModes, setLegalModes] = useState<Record<LegalDocId, LegalMode>>(() => {
+    const s = termsStore.getSnapshot();
+    return { terms: s.terms.mode, policies: s.policies.mode, privacy: s.privacy.mode };
   });
-  const [legalText, setLegalText] = useState<Record<LegalDocId, string>>({
-    terms: "",
-    policies: "",
-    privacy: "",
+  const [legalText, setLegalText] = useState<Record<LegalDocId, string>>(() => {
+    const s = termsStore.getSnapshot();
+    return { terms: s.terms.text, policies: s.policies.text, privacy: s.privacy.text };
   });
+  // Persist legal-doc edits to the store (live) so they flow to estimates/invoices.
+  useEffect(() => {
+    termsStore.set({
+      terms: { mode: legalModes.terms, text: legalText.terms, fileName: tcFile, fileData: null },
+      policies: { mode: legalModes.policies, text: legalText.policies, fileName: policiesFile, fileData: null },
+      privacy: { mode: legalModes.privacy, text: legalText.privacy, fileName: privacyFile, fileData: null },
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [legalModes, legalText, tcFile, policiesFile, privacyFile]);
   const [pendingLegalMode, setPendingLegalMode] = useState<{ id: LegalDocId; mode: LegalMode } | null>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
 
@@ -3456,8 +3466,12 @@ export function Settings() {
                   );
                 })}
 
-                <div className="flex h-9 justify-end">
-                  <Button type="button" disabled className="h-9 rounded-lg bg-[#4A6FA5] px-4 text-[14px] text-white opacity-50" style={{ fontWeight: 500 }}>
+                <div className="flex h-9 items-center justify-end gap-3">
+                  <span className="flex items-center gap-1 text-[12px] text-[#6B7280]" style={{ fontWeight: 500 }}>
+                    <span className="material-icons text-[#16A34A]" style={{ fontSize: "15px" }}>check_circle</span>
+                    Saved automatically
+                  </span>
+                  <Button type="button" onClick={() => toast.success("Terms & Conditions saved")} className="h-9 rounded-lg bg-[#4A6FA5] px-4 text-[14px] text-white hover:bg-[#3d5a85]" style={{ fontWeight: 500 }}>
                     Save changes
                   </Button>
                 </div>

@@ -8,6 +8,7 @@ import { estimateSettingsStore } from "../stores/estimateSettingsStore";
 import { ItemPicker, catalogItemToLineItem, type CatalogItem, type SelectedLineItem } from "../components/ItemPicker";
 import { PlusIcon } from "../components/ui/plus-icon";
 import { itemsStore } from "../stores/itemsStore";
+import { termsStore, termsSummary, hasTerms } from "../stores/termsStore";
 
 // Legacy HVAC/plumbing options kept available alongside the live Items catalog.
 const legacyCatalogItems: CatalogItem[] = [
@@ -89,6 +90,11 @@ export function CreateEstimate() {
   const [lineItems, setLineItems] = useState<SelectedLineItem[]>([]);
   const [internalNote, setInternalNote] = useState("");
   const [taxRate] = useState(7.5);
+  // Default Terms & Conditions from Settings → General (termsStore); shown as a
+  // banner on the estimate, with "View" opening the full terms in a modal.
+  const legalDocs = useSyncExternalStore(termsStore.subscribe, termsStore.getSnapshot);
+  const terms = legalDocs.terms;
+  const [viewTermsOpen, setViewTermsOpen] = useState(false);
   const [itemPickerOpen, setItemPickerOpen] = useState(false);
   const [itemSearch, setItemSearch] = useState("");
 
@@ -358,12 +364,16 @@ export function CreateEstimate() {
               className="min-h-[96px] w-full resize-y rounded-lg border border-[#E5E7EB] px-3.5 py-2.5 text-[13px] text-[#1A2332] outline-none focus:border-[#4A6FA5]"
               placeholder={`Notes for your team - e.g. "Do not walk on right side, dog in yard"...`}
             />
-            <div className="mt-4 flex items-center justify-between rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] px-4 py-3">
+            <div className="mt-4 flex items-center justify-between gap-3 rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] px-4 py-3">
               <div className="min-w-0">
                 <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Terms &amp; Conditions apply to this estimate</div>
-                <div className="text-[12px] text-[#8899AA]">Lorem ipsum</div>
+                <div className="truncate text-[12px] text-[#8899AA]">{termsSummary(terms)}</div>
               </div>
-              <button className="shrink-0 text-[13px] text-[#4A6FA5] hover:underline" style={{ fontWeight: 600 }}>View terms and conditions</button>
+              {hasTerms(terms) ? (
+                <button type="button" onClick={() => setViewTermsOpen(true)} className="shrink-0 text-[13px] text-[#4A6FA5] hover:underline" style={{ fontWeight: 600 }}>View terms and conditions</button>
+              ) : (
+                <button type="button" onClick={() => navigate("/settings?section=general")} className="shrink-0 text-[13px] text-[#4A6FA5] hover:underline" style={{ fontWeight: 600 }}>Add in Settings</button>
+              )}
             </div>
           </Section>
         </div>
@@ -402,6 +412,33 @@ export function CreateEstimate() {
           onSelect={handleSelectItem}
           onClose={() => setItemPickerOpen(false)}
         />
+      )}
+
+      {viewTermsOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4" onClick={() => setViewTermsOpen(false)}>
+          <div className="flex max-h-[85vh] w-[640px] max-w-full flex-col overflow-hidden rounded-xl bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-[#E5E7EB] px-5 py-4">
+              <h2 className="text-[18px] text-[#1A2332]" style={{ fontWeight: 600 }}>Terms &amp; Conditions</h2>
+              <button onClick={() => setViewTermsOpen(false)} aria-label="Close" className="flex h-7 w-7 items-center justify-center rounded text-[#6B7280] hover:bg-[#F3F4F6]"><span className="material-icons" style={{ fontSize: "20px" }}>close</span></button>
+            </div>
+            <div className="overflow-y-auto px-5 py-5">
+              {terms.mode === "file" ? (
+                <div className="flex items-center gap-3 rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] px-4 py-3">
+                  <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "20px" }}>description</span>
+                  <div className="min-w-0">
+                    <div className="truncate text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>{terms.fileName}</div>
+                    <div className="text-[12px] text-[#8899AA]">Attached document — clients receive this with the estimate.</div>
+                  </div>
+                </div>
+              ) : (
+                <pre className="whitespace-pre-wrap font-sans text-[13px] leading-[20px] text-[#374151]">{terms.text}</pre>
+              )}
+            </div>
+            <div className="flex justify-end border-t border-[#E5E7EB] px-5 py-4">
+              <button onClick={() => setViewTermsOpen(false)} className="h-9 rounded-lg bg-[#4A6FA5] px-4 text-[13px] text-white hover:bg-[#3d5a85]" style={{ fontWeight: 600 }}>Done</button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

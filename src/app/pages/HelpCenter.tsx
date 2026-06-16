@@ -45,6 +45,21 @@ const articles: Article[] = [
     ],
   },
   {
+    id: 7,
+    title: "Setting up Terms & Conditions",
+    categoryKey: "estimates",
+    category: "Estimates & invoices",
+    readTime: "2 min read",
+    body: [
+      "Your default Terms & Conditions travel with every estimate and invoice you send to clients. You configure them once and they apply everywhere — there is no separate publish step.",
+      "Open Settings from the sidebar or user menu, then go to System preferences → General. The \"Terms & Conditions\" card is where you set the content.",
+      "Use the Free text / File upload toggle to choose the format. \"Free text\" lets you type or paste your terms directly into the editor. \"File upload\" lets you attach a PDF or DOCX document — drop it on the upload area or click to browse. Need something to try the upload with? Download the sample at /sample-terms-and-conditions.txt and use it as an example vendor document.",
+      "Whatever you enter is saved automatically and becomes your company default. The next estimate or invoice you create picks it up immediately — no need to re-attach it each time.",
+      "On a new estimate, look for the \"Terms & Conditions apply to this estimate\" banner near the bottom of the form. It shows a one-line summary of your configured terms; click \"View terms and conditions\" to read the full text or see the attached document's name before sending.",
+      "If you have not set any terms yet, that banner shows an \"Add in Settings\" link instead — clicking it jumps you straight to the Terms & Conditions card. Always replace the seeded sample copy with your own attorney-reviewed terms before sending documents to real clients.",
+    ],
+  },
+  {
     id: 2,
     title: "Setting up your company profile",
     categoryKey: "getting-started",
