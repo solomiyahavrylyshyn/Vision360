@@ -172,9 +172,11 @@ function Field({ label, value }: { label: string; value?: string | number | bool
 }
 
 // Offline placeholder thumbnail (data-URI SVG) so the gallery shows real images
-// without a network round-trip. Hue varies so seeded thumbs look distinct.
+// without a network round-trip. Solid fill (no gradient/url() ref) so it renders
+// reliably once URL-encoded. Hue varies so seeded thumbs look distinct.
 function demoThumb(hue: number): string {
-  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='160' height='128'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='hsl(${hue},45%,72%)'/><stop offset='1' stop-color='hsl(${hue},52%,50%)'/></linearGradient></defs><rect width='160' height='128' fill='url(%23g)'/><g fill='none' stroke='white' stroke-opacity='0.65' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'><circle cx='112' cy='40' r='13'/><path d='M16 110 L60 64 L88 90 L116 60 L150 92'/></g></svg>`;
+  const bg = `hsl(${hue} 42% 58%)`;
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='160' height='128'><rect width='160' height='128' fill='${bg}'/><circle cx='116' cy='40' r='12' fill='white' fill-opacity='0.6'/><path d='M14 116 L58 70 L86 96 L116 64 L150 98 L150 128 L14 128 Z' fill='white' fill-opacity='0.42'/></svg>`;
   return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
 }
 
@@ -212,7 +214,7 @@ export function ItemDetail() {
   const [taxProfile, setTaxProfile] = useState("Florida Sales Tax 7%");
   // Image gallery — seeded with offline placeholder thumbnails (the design shows a
   // 4-up gallery). Upload appends a data-URL so it works without a backend.
-  const [images, setImages] = useState<string[]>(() => (item.picture ? [item.picture] : [demoThumb(205), demoThumb(192), demoThumb(218)]));
+  const [images, setImages] = useState<string[]>(() => (item.picture ? [item.picture] : [demoThumb(205), demoThumb(150), demoThumb(28), demoThumb(265)]));
   // Status is changeable from the header badge (Figma: "Active ▾").
   const [statusOpen, setStatusOpen] = useState(false);
   const [notes, setNotes] = useState<{ id: number; date: string; text: string }[]>(() => {
@@ -258,26 +260,17 @@ export function ItemDetail() {
       {/* ── Col 1: Item info ── */}
       <Card title="Item info" onEdit={() => setEditModal("info")}>
         <div className="flex flex-col gap-4">
-          {/* Image gallery — thumbnails + an upload tile (Figma 1500:95027 file-row) */}
-          <div className="flex flex-wrap gap-2">
-            {images.map((src, i) => (
-              <div key={i} className="group/img relative h-16 w-[78px] shrink-0 overflow-hidden rounded-lg border border-[#E5E7EB] bg-[#F9FAFB]">
-                <img src={src} alt={`${item.name} ${i + 1}`} className="h-full w-full object-cover" />
-                <button
-                  onClick={() => removeImage(i)}
-                  aria-label="Remove image"
-                  className="absolute right-1 top-1 hidden h-5 w-5 items-center justify-center rounded-full bg-black/55 text-white group-hover/img:flex"
-                >
-                  <span className="material-icons" style={{ fontSize: "13px" }}>close</span>
-                </button>
-              </div>
-            ))}
-            <label className="flex h-16 w-[78px] shrink-0 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-lg border-2 border-dashed border-[#E5E7EB] bg-[#FAFBFC] text-[#8899AA] hover:border-[#4A6FA5] hover:text-[#4A6FA5]">
-              <span className="material-icons" style={{ fontSize: "18px" }}>add_photo_alternate</span>
-              <span className="text-[10px]" style={{ fontWeight: 500 }}>Add</span>
-              <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => handleAddImages(e.target.files)} />
-            </label>
-          </div>
+          {/* Image gallery — uniform display-only thumbnails (Figma 1500:95027).
+              Add/remove images via the Edit pencil → Edit item info modal. */}
+          {images.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {images.map((src, i) => (
+                <div key={i} className="h-16 w-[78px] shrink-0 overflow-hidden rounded-lg border border-[#E5E7EB] bg-[#F9FAFB]">
+                  <img src={src} alt={`${item.name} ${i + 1}`} className="h-full w-full object-cover" />
+                </div>
+              ))}
+            </div>
+          )}
           {item.picture && (
             <div className="flex flex-col gap-1">
               <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Image URL</div>

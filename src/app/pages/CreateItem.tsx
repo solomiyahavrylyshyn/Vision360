@@ -24,6 +24,7 @@ const CHIP_TO_TYPE: Record<ItemTypeChip, string> = {
 
 const TYPE_OPTIONS: ItemTypeChip[] = ["Service", "Material", "Equipment", "Asset", "Fees", "Price Book"];
 const MANUFACTURERS = ["Carrier", "Trane", "Lennox", "Goodman", "Rheem", "Ferguson", "Square D", "Ecobee"];
+const DEPARTMENTS = ["Field Service", "Materials", "Equipment", "Administrative", "Office"];
 const VENDORS = ["HVAC Supply Co.", "Ferguson Enterprises", "Johnstone Supply", "Grainger", "HD Supply"];
 const TAX_PROFILES = ["No Tax", "Florida Sales Tax 7%", "Texas Sales Tax 8.25%", "Polish Sales Tax 23%"];
 
@@ -45,7 +46,9 @@ export function CreateItem() {
   const [additionalInfo, setAdditionalInfo] = useState("");
   const [type, setType] = useState<ItemTypeChip>("Service");
   const [category, setCategory] = useState("");
+  const [subcategory, setSubcategory] = useState("");
   const [manufacturer, setManufacturer] = useState("");
+  const [department, setDepartment] = useState("");
   const [retailPrice, setRetailPrice] = useState("");
   const [cost, setCost] = useState("");
   const [defaultQty, setDefaultQty] = useState("1");
@@ -167,10 +170,21 @@ export function CreateItem() {
                 </select>
               </div>
               <div>
+                <label className={labelClass}>Subcategory</label>
+                <input type="text" value={subcategory} onChange={(e) => setSubcategory(e.target.value)} placeholder="Subcategory" className={fieldClass} />
+              </div>
+              <div>
                 <label className={labelClass}>Manufacturer</label>
                 <select value={manufacturer} onChange={(e) => setManufacturer(e.target.value)} className={fieldClass}>
                   <option value="">Select manufacturer</option>
                   {MANUFACTURERS.map((m) => <option key={m} value={m}>{m}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className={labelClass}>Department</label>
+                <select value={department} onChange={(e) => setDepartment(e.target.value)} className={fieldClass}>
+                  <option value="">Select department</option>
+                  {DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}
                 </select>
               </div>
             </div>
