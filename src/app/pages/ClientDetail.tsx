@@ -280,8 +280,8 @@ function ClientJobsPanel({ rows, onOpen, onCreate }: {
               <option value="this_week">This week</option>
               <option value="this_month">This month</option>
             </select>
-            <button onClick={onCreate} className="ml-auto h-8 px-3 rounded-lg bg-[#4A6FA5] hover:bg-[#3d5a85] text-white text-[13px] flex items-center gap-1.5" style={{ fontWeight: 500 }}>
-              <span className="material-icons" style={{ fontSize: "16px" }}>add</span>Create job
+            <button onClick={onCreate} title="Create job" aria-label="Create job" className="ml-auto flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#4A6FA5] hover:bg-[#3d5a85] text-white">
+              <span className="material-icons" style={{ fontSize: "18px" }}>add</span>
             </button>
           </div>
         )}
@@ -1618,12 +1618,10 @@ export function ClientDetail() {
         );
 
       case "jobs":
-        return liveClientJobs.length === 0 ? (
-          <>
-            <TabHeader title="Jobs" count={0} onAdd={() => navigate(createUrl("/jobs/new", "jobs"))} addLabel="Create job" />
-            <EmptyState icon="work" message="No jobs yet for this client." />
-          </>
-        ) : (
+        // Always render the panel — its toolbar carries the search + quick filters
+        // and the blue circular "+" create, and its body shows the empty state when
+        // there are no jobs (no redundant inner "Jobs" heading; the tab labels it).
+        return (
           <ClientJobsPanel
             rows={liveClientJobs}
             onOpen={(id) => navigate(`/jobs/${id}?returnTo=${encodeURIComponent(`/clients/${client.id}?tab=jobs`)}`)}

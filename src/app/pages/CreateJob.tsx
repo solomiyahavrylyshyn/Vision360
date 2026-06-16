@@ -206,16 +206,16 @@ export function CreateJob({ asModal = false, onClose, onCreated, prefill, headin
   });
 
   const addLineItem = () => {
-    setLineItems([...lineItems, { id: Date.now(), name: "", description: "", quantity: 1, unitCost: 0, unitPrice: 0 }]);
+    setLineItems([...lineItems, { id: Date.now(), name: "", description: "", quantity: 1, unitCost: 0, unitPrice: 0, total: 0, chargeMode: "per_appointment" }]);
   };
 
   const updateLineItem = (id: number, field: keyof SelectedLineItem, value: any) => {
     setLineItems(lineItems.map((li) => {
       if (li.id === id) {
         const updated = { ...li, [field]: value };
-        if (field === "quantity" || field === "unitPrice") {
-          updated.total = updated.quantity * updated.unitPrice;
-        }
+        // A "prepaid" (don't charge) item bills at $0; otherwise qty × unit price.
+        const mode = updated.chargeMode || "per_appointment";
+        updated.total = mode === "prepaid" ? 0 : updated.quantity * updated.unitPrice;
         return updated;
       }
       return li;
@@ -228,7 +228,7 @@ export function CreateJob({ asModal = false, onClose, onCreated, prefill, headin
 
   const handleSelectItem = (catalogItem: CatalogItem) => {
     const newId = lineItems.length > 0 ? Math.max(...lineItems.map(li => li.id)) + 1 : 1;
-    const newLineItem = catalogItemToLineItem(catalogItem, newId, 1);
+    const newLineItem = { ...catalogItemToLineItem(catalogItem, newId, 1), chargeMode: "per_appointment" as const };
     setLineItems([...lineItems, newLineItem]);
     setItemPickerOpen(false);
   };
@@ -837,13 +837,14 @@ export function CreateJob({ asModal = false, onClose, onCreated, prefill, headin
                   <th className="px-4 py-2 text-left text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Quantity</th>
                   <th className="px-4 py-2 text-right text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Unit price</th>
                   <th className="px-4 py-2 text-right text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Unit cost</th>
+                  <th className="px-4 py-2 text-left text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Charge</th>
                   <th className="px-4 py-2 text-right text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Total</th>
                   <th className="w-12" />
                 </tr>
               </thead>
               <tbody>
                 {lineItems.length === 0 ? (
-                  <tr><td colSpan={6} className="px-4 py-8 text-center text-[13px] text-[#8899AA]">No items added yet — click “Add item”.</td></tr>
+                  <tr><td colSpan={7} className="px-4 py-8 text-center text-[13px] text-[#8899AA]">No items added yet — click “Add item”.</td></tr>
                 ) : lineItems.map((item) => (
                   <tr key={item.id} className="border-b border-[#F1F3F7] last:border-0">
                     <td className="px-4 py-3">
@@ -862,6 +863,14 @@ export function CreateJob({ asModal = false, onClose, onCreated, prefill, headin
                     </td>
                     <td className="px-4 py-3 text-right text-[13px] text-[#374151]" style={{ fontVariantNumeric: "tabular-nums" }}>${fmt(item.unitPrice)}</td>
                     <td className="px-4 py-3 text-right text-[13px] text-[#6B7280]" style={{ fontVariantNumeric: "tabular-nums" }}>${fmt(item.unitCost)}</td>
+                    <td className="px-4 py-3">
+                      <select value={item.chargeMode || "per_appointment"} onChange={(e) => updateLineItem(item.id, "chargeMode", e.target.value)}
+                        className="h-8 px-2 border border-[#E5E7EB] rounded-lg text-[13px] bg-white outline-none focus:border-[#4A6FA5]">
+                        <option value="per_appointment">Per appointment</option>
+                        <option value="once">Once</option>
+                        <option value="prepaid">Don't charge</option>
+                      </select>
+                    </td>
                     <td className="px-4 py-3 text-right text-[13px] text-[#1A2332]" style={{ fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>${fmt(item.total)}</td>
                     <td className="px-4 py-3 text-right">
                       <button onClick={() => removeLineItem(item.id)} className="w-7 h-7 inline-flex items-center justify-center rounded hover:bg-[#FEE2E2]" aria-label="Remove item">

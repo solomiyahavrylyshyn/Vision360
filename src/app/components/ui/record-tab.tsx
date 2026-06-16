@@ -141,11 +141,13 @@ export function RecordTab<T extends { id: string | number }>({
               </select>
             ))}
           </div>
+          {/* Per-card create is a blue circular + at the right end of the toolbar
+              (Marek Jun 16) — the big text button is reserved for the global Create. */}
           {createLabel && onCreate && (
-            <Button type="button" onClick={onCreate} className="bg-[#4A6FA5] hover:bg-[#3d5a85] text-white h-9 px-4 text-[14px] rounded-lg inline-flex items-center gap-1.5" style={{ fontWeight: 500 }}>
-              <span className="material-icons" style={{ fontSize: "16px" }}>add_circle_outline</span>
-              {createLabel}
-            </Button>
+            <button type="button" onClick={onCreate} title={createLabel} aria-label={createLabel}
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#4A6FA5] text-white transition-colors hover:bg-[#3d5a85]">
+              <span className="material-icons" style={{ fontSize: "20px" }}>add</span>
+            </button>
           )}
         </div>
       )}
@@ -179,9 +181,7 @@ export function RecordTab<T extends { id: string | number }>({
                   <div className="text-[14px] text-[#1A2332]">{emptyTitle}</div>
                   {emptySubtitle && <div className="text-[12px] text-[#6B7280] mt-1">{emptySubtitle}</div>}
                 </div>
-                {createLabel && onCreate && (
-                  <Button type="button" onClick={onCreate} className="bg-[#4A6FA5] hover:bg-[#3d5a85] text-white h-8 px-3 text-[14px] rounded-lg" style={{ fontWeight: 500 }}>{createLabel}</Button>
-                )}
+                {/* No empty-state create button — use the + at the toolbar right (Marek Jun 16). */}
               </div>
             </td></tr>
           ) : pageRows.length === 0 ? (

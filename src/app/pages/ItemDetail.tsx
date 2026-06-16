@@ -5,7 +5,12 @@ import { itemsStore } from "../stores/itemsStore";
 import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
 import { DetailTabs, TabSettingsButton } from "../components/ui/detail-tabs";
 import { PlusIcon } from "../components/ui/plus-icon";
-import { ITEM_TYPE_GROUPS } from "./Items";
+import { TYPE_CATEGORY_PAIRS } from "./Items";
+
+// Classification option lists (mirror the Create-item form).
+const MANUFACTURERS = ["Carrier", "Trane", "Lennox", "Goodman", "Rheem", "Ferguson", "Square D", "Ecobee"];
+const DEPARTMENTS = ["Field Service", "Materials", "Equipment", "Administrative", "Office"];
+const VENDORS = ["HVAC Supply Co.", "Ferguson Enterprises", "Johnstone Supply", "Grainger", "HD Supply"];
 
 // ─── Shared type/data (mirrors Items.tsx) ────────────────────────────────────
 type ItemType =
@@ -24,10 +29,10 @@ interface Item {
   rate: number; cost: number;
   taxable: boolean; tax1: boolean; tax2: boolean; tax3: boolean;
   onHand: number; minQty: number; maxQty: number; tracking: boolean;
-  category: string; subcategory: string; type: ItemType;
+  category: string; type: ItemType;
   vendor: string; vendorCode: string; department: string;
   cogsGL: string; salesGL: string;
-  customField1: string; customField2: string; customField3: string;
+  customField1: string; customField2: string;
   notes: string; boldPrint: boolean;
   group: string; defaultQty: number; picture: string;
   inventory: boolean; booking: boolean;
@@ -44,7 +49,7 @@ const mockItems: Record<string, Item> = {
     category: "HVAC", subcategory: "Repair", type: "Service",
     vendor: "", vendorCode: "", department: "Field Service",
     cogsGL: "", salesGL: "4000 · Service Revenue",
-    customField1: "", customField2: "", customField3: "", notes: "",
+    customField1: "", customField2: "", notes: "",
     boldPrint: false, group: "", defaultQty: 1, picture: "", inventory: false, booking: false,
   },
   "1001": {
@@ -57,7 +62,7 @@ const mockItems: Record<string, Item> = {
     category: "HVAC", subcategory: "Condensers", type: "Inventory Item",
     vendor: "Trane Supply", vendorCode: "TR-XR16048", department: "Equipment",
     cogsGL: "5000 · Cost of Goods", salesGL: "4100 · Equipment Sales",
-    customField1: "", customField2: "", customField3: "", notes: "",
+    customField1: "", customField2: "", notes: "",
     boldPrint: false, group: "", defaultQty: 1, picture: "", inventory: true, booking: false,
   },
   "1002": {
@@ -70,7 +75,7 @@ const mockItems: Record<string, Item> = {
     category: "HVAC", subcategory: "Condensers", type: "Inventory Item",
     vendor: "Lennox Pro", vendorCode: "LX-XP25048", department: "Equipment",
     cogsGL: "5000 · Cost of Goods", salesGL: "4100 · Equipment Sales",
-    customField1: "", customField2: "", customField3: "", notes: "",
+    customField1: "", customField2: "", notes: "",
     boldPrint: false, group: "", defaultQty: 1, picture: "", inventory: true, booking: false,
   },
   "1003": {
@@ -83,7 +88,7 @@ const mockItems: Record<string, Item> = {
     category: "Plumbing", subcategory: "Installation", type: "Installation",
     vendor: "", vendorCode: "", department: "Field Service",
     cogsGL: "", salesGL: "4000 · Service Revenue",
-    customField1: "", customField2: "", customField3: "", notes: "",
+    customField1: "", customField2: "", notes: "",
     boldPrint: false, group: "", defaultQty: 1, picture: "", inventory: false, booking: true,
   },
   "1004": {
@@ -96,7 +101,7 @@ const mockItems: Record<string, Item> = {
     category: "Electrical", subcategory: "Panels", type: "Equipment",
     vendor: "Electrical Wholesale", vendorCode: "SQD-HOM2040", department: "Equipment",
     cogsGL: "5000 · Cost of Goods", salesGL: "4100 · Equipment Sales",
-    customField1: "", customField2: "", customField3: "", notes: "",
+    customField1: "", customField2: "", notes: "",
     boldPrint: false, group: "", defaultQty: 1, picture: "", inventory: true, booking: false,
   },
   "1005": {
@@ -109,7 +114,7 @@ const mockItems: Record<string, Item> = {
     category: "Labor", subcategory: "Technician", type: "Labor",
     vendor: "", vendorCode: "", department: "Field Service",
     cogsGL: "5100 · Labor Cost", salesGL: "4200 · Labor Revenue",
-    customField1: "", customField2: "", customField3: "", notes: "",
+    customField1: "", customField2: "", notes: "",
     boldPrint: false, group: "", defaultQty: 1, picture: "", inventory: false, booking: false,
   },
   "1006": {
@@ -122,7 +127,7 @@ const mockItems: Record<string, Item> = {
     category: "Plumbing", subcategory: "Maintenance", type: "Maintenance",
     vendor: "", vendorCode: "", department: "Field Service",
     cogsGL: "", salesGL: "4000 · Service Revenue",
-    customField1: "", customField2: "", customField3: "", notes: "",
+    customField1: "", customField2: "", notes: "",
     boldPrint: false, group: "", defaultQty: 1, picture: "", inventory: false, booking: true,
   },
   "1007": {
@@ -135,7 +140,7 @@ const mockItems: Record<string, Item> = {
     category: "HVAC", subcategory: "Controls", type: "Inventory Item",
     vendor: "Ecobee Direct", vendorCode: "EB-STATE5", department: "Equipment",
     cogsGL: "5000 · Cost of Goods", salesGL: "4100 · Equipment Sales",
-    customField1: "", customField2: "", customField3: "", notes: "",
+    customField1: "", customField2: "", notes: "",
     boldPrint: false, group: "", defaultQty: 1, picture: "", inventory: true, booking: false,
   },
 };
@@ -149,10 +154,10 @@ function catalogToItem(c: any): Item {
     brand: c.brand || "", modelNumber: c.modelNumber || "", upc: c.upc || "",
     rate: c.rate || 0, cost: c.cost || 0, taxable: !!c.taxable, tax1: false, tax2: false, tax3: false,
     onHand: 0, minQty: 0, maxQty: 0, tracking: false,
-    category: c.category || "", subcategory: c.subcategory || "", type: (c.itemType || "Service") as ItemType,
+    category: c.category || "", type: (c.itemType || "Service") as ItemType,
     vendor: c.vendor || "", vendorCode: "", department: c.department || "",
     cogsGL: "", salesGL: "",
-    customField1: c.customField1 || "", customField2: c.customField2 || "", customField3: "",
+    customField1: c.customField1 || "", customField2: c.customField2 || "",
     notes: c.notes || "", boldPrint: false, group: "", defaultQty: c.defaultQty ?? 1, picture: "",
     inventory: false, booking: false,
   };
@@ -317,14 +322,14 @@ export function ItemDetail() {
       <div className="flex flex-col gap-4">
         <Card title="Type & classification & vendor" onEdit={() => setEditModal("classification")}>
           <div className="grid grid-cols-2 gap-4">
-            <div className="flex flex-col gap-1">
-              <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Item type</div>
-              <div>
+            <div className="col-span-2 flex flex-col gap-1">
+              <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Type | Category</div>
+              <div className="flex items-center gap-2">
                 <span className={`inline-block px-2 py-0.5 rounded-full text-[11px] ${getTypeBadgeClass(item.type)}`} style={{ fontWeight: 600 }}>{item.type}</span>
+                <span className="text-[#C8D5E8]">|</span>
+                <span className="text-[13px] text-[#1A2332]">{item.category || "—"}</span>
               </div>
             </div>
-            <Field label="Category" value={item.category} />
-            <Field label="Subcategory" value={item.subcategory} />
             <Field label="Manufacturer" value={item.brand} />
             <Field label="Department" value={item.department} />
             <Field label="Vendor" value={item.vendor} />
@@ -384,6 +389,7 @@ export function ItemDetail() {
         <div className="my-4 border-t border-[#E5E7EB]" />
         <h3 className="mb-3 text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Custom Fields</h3>
         <Field label="Custom Field 1" value={item.customField1 || "Custom Field Value"} />
+        <div className="mt-3"><Field label="Custom Field 2" value={item.customField2 || "Custom Field Value"} /></div>
         <div className="mt-3 text-[12px] text-[#9CA3AF]">
           Configure in{" "}
           <button onClick={() => navigate("/settings?section=custom-fields")} className="text-[#4A6FA5] hover:underline" style={{ fontWeight: 500 }}>Settings &gt; Custom Fields</button>
@@ -625,22 +631,29 @@ function EditItemInfoModal({ item, images, onAddImages, onRemoveImage, onClose, 
 }
 
 function EditClassificationModal({ item, onClose, onSave }: { item: any; onClose: () => void; onSave: (p: any) => void }) {
-  const [type, setType] = useState(item.type || "Service");
-  const [category, setCategory] = useState(item.category || "");
-  const [subcategory, setSubcategory] = useState(item.subcategory || "");
+  // Single combined Type | Category picker (Marek Jun 16). The current pair is kept
+  // selectable even if it is a legacy/custom pair not in the predefined list.
+  const current = `${item.type || "Service"}|||${item.category || ""}`;
+  const pairs = TYPE_CATEGORY_PAIRS.map((p) => ({ value: `${p.type}|||${p.category}`, label: `${p.type}  |  ${p.category}` }));
+  const options = pairs.some((p) => p.value === current)
+    ? pairs
+    : [{ value: current, label: `${item.type || "Service"}  |  ${item.category || "—"}` }, ...pairs];
+  const [pair, setPair] = useState(current);
   const [brand, setBrand] = useState(item.brand || "");
   const [department, setDepartment] = useState(item.department || "");
   const [vendor, setVendor] = useState(item.vendor || "");
+  const save = () => {
+    const [type, category] = pair.split("|||");
+    onSave({ type, category, brand, department, vendor });
+  };
   return (
     <ModalShell title="Edit type & classification" onClose={onClose}
-      footer={<><button className={cancelBtn} style={{ fontWeight: 600 }} onClick={onClose}>Cancel</button><button className={saveBtn} style={{ fontWeight: 600 }} onClick={() => onSave({ type, category, subcategory, brand, department, vendor })}>Save</button></>}>
+      footer={<><button className={cancelBtn} style={{ fontWeight: 600 }} onClick={onClose}>Cancel</button><button className={saveBtn} style={{ fontWeight: 600 }} onClick={save}>Save</button></>}>
       <div className="grid grid-cols-2 gap-4">
-        <div><label className={mLabel}>Item type</label><select value={type} onChange={(e) => setType(e.target.value)} className={mInput}>{ITEM_TYPE_GROUPS.map((g) => <optgroup key={g.group} label={g.group}>{g.types.map((t) => <option key={t} value={t}>{t}</option>)}</optgroup>)}</select></div>
-        <div><label className={mLabel}>Category</label><input type="text" value={category} onChange={(e) => setCategory(e.target.value)} className={mInput} /></div>
-        <div><label className={mLabel}>Subcategory</label><input type="text" value={subcategory} onChange={(e) => setSubcategory(e.target.value)} className={mInput} /></div>
-        <div><label className={mLabel}>Manufacturer</label><input type="text" value={brand} onChange={(e) => setBrand(e.target.value)} className={mInput} /></div>
-        <div><label className={mLabel}>Department</label><input type="text" value={department} onChange={(e) => setDepartment(e.target.value)} className={mInput} /></div>
-        <div><label className={mLabel}>Vendor</label><input type="text" value={vendor} onChange={(e) => setVendor(e.target.value)} className={mInput} /></div>
+        <div className="col-span-2"><label className={mLabel}>Type | Category</label><select value={pair} onChange={(e) => setPair(e.target.value)} className={mInput}>{options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</select></div>
+        <div><label className={mLabel}>Manufacturer</label><select value={brand} onChange={(e) => setBrand(e.target.value)} className={mInput}><option value="">Select manufacturer</option>{MANUFACTURERS.map((m) => <option key={m} value={m}>{m}</option>)}</select></div>
+        <div><label className={mLabel}>Department</label><select value={department} onChange={(e) => setDepartment(e.target.value)} className={mInput}><option value="">Select department</option>{DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}</select></div>
+        <div><label className={mLabel}>Vendor</label><select value={vendor} onChange={(e) => setVendor(e.target.value)} className={mInput}><option value="">Select vendor</option>{VENDORS.map((v) => <option key={v} value={v}>{v}</option>)}</select></div>
       </div>
     </ModalShell>
   );

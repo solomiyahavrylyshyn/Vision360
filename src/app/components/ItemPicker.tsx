@@ -16,7 +16,6 @@ export interface CatalogItem {
   // Optional rich fields persisted by the Items module (the Estimate/Job/Invoice
   // pickers ignore them; they exist so a created item keeps its full detail).
   itemType?: string;        // fine ItemType — the coarse `type` above is for pickers
-  subcategory?: string;
   department?: string;
   vendor?: string;
   defaultQty?: number;
@@ -43,6 +42,10 @@ export interface SelectedLineItem {
   /** Set when this line item was auto-copied from an attached estimate, so it
    *  can be removed again if that estimate is un-linked. */
   sourceEstimateId?: number;
+  /** Per-item billing behavior on a (recurring) job: charge every appointment,
+   *  charge once, or don't charge (prepaid → line total $0). Defaults to
+   *  per_appointment. */
+  chargeMode?: "per_appointment" | "once" | "prepaid";
 }
 
 interface ItemPickerProps {

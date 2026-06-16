@@ -2,7 +2,7 @@ import { useMemo, useState, useSyncExternalStore } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { toast } from "sonner";
 import { itemsStore } from "../stores/itemsStore";
-import { toCatalogItem, ITEM_TYPE_GROUPS } from "./Items";
+import { toCatalogItem, ITEM_TYPES, TYPE_CATEGORIES } from "./Items";
 
 // Create item — full page aligned to Figma node 1494:127168.
 // 2-column section layout (Basic info / Type / Classification / Pricing & tax /
@@ -26,13 +26,13 @@ export function CreateItem() {
   );
 
   const [name, setName] = useState("");
+  const [itemCode, setItemCode] = useState("");
   const [active, setActive] = useState(true);
   const [internalDesc, setInternalDesc] = useState("");
   const [salesDesc, setSalesDesc] = useState("");
   const [additionalInfo, setAdditionalInfo] = useState("");
   const [type, setType] = useState("Service");
   const [category, setCategory] = useState("");
-  const [subcategory, setSubcategory] = useState("");
   const [manufacturer, setManufacturer] = useState("");
   const [department, setDepartment] = useState("");
   const [retailPrice, setRetailPrice] = useState("");
@@ -67,13 +67,12 @@ export function CreateItem() {
       salesDescription: salesDesc,
       additionalInfo,
       brand: manufacturer,
-      modelNumber: "",
+      modelNumber: itemCode.trim(),
       rate: parseFloat(retailPrice) || 0,
       cost: parseFloat(cost) || 0,
       taxable,
       taxProfile: taxable ? taxProfile : "",
       category,
-      subcategory,
       department,
       vendor,
       defaultQty: parseInt(defaultQty) || 1,
@@ -114,10 +113,14 @@ export function CreateItem() {
         <div className="rounded-xl border border-[#E5E7EB] bg-white">
           {/* Basic info */}
           <Section label="Basic info">
-            <div className="grid grid-cols-[1fr_240px] gap-5">
+            <div className="grid grid-cols-[1fr_200px_180px] gap-5">
               <div>
                 <label className={labelClass}>Name {reqStar}</label>
                 <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Item name" className={fieldClass} />
+              </div>
+              <div>
+                <label className={labelClass}>Item code</label>
+                <input type="text" value={itemCode} onChange={(e) => setItemCode(e.target.value)} placeholder="e.g. SVC-1001" className={fieldClass} />
               </div>
               <div>
                 <label className={labelClass}>Status</label>
@@ -146,15 +149,11 @@ export function CreateItem() {
 
           <div className="border-t border-[#E5E7EB]" />
 
-          {/* Type — same option set as the Item detail "Edit type & classification"
-               modal (shared ITEM_TYPE_GROUPS) so the taxonomy matches everywhere. */}
+          {/* Type — the 5 fixed top-level types (Marek Jun 16). The Category below is
+               scoped to the chosen type and stays fully customizable. */}
           <Section label={<>Type {reqStar}</>}>
-            <select value={type} onChange={(e) => setType(e.target.value)} className={`${fieldClass} max-w-[420px]`}>
-              {ITEM_TYPE_GROUPS.map((g) => (
-                <optgroup key={g.group} label={g.group}>
-                  {g.types.map((t) => <option key={t} value={t}>{t}</option>)}
-                </optgroup>
-              ))}
+            <select value={type} onChange={(e) => { setType(e.target.value); setCategory(""); }} className={`${fieldClass} max-w-[420px]`}>
+              {ITEM_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
             </select>
           </Section>
 
@@ -165,14 +164,10 @@ export function CreateItem() {
             <div className="grid grid-cols-2 gap-5">
               <div>
                 <label className={labelClass}>Category</label>
-                <select value={category} onChange={(e) => setCategory(e.target.value)} className={fieldClass}>
-                  <option value="">Select category</option>
-                  {categories.map((c) => <option key={c} value={c}>{c}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className={labelClass}>Subcategory</label>
-                <input type="text" value={subcategory} onChange={(e) => setSubcategory(e.target.value)} placeholder="Subcategory" className={fieldClass} />
+                <input list="create-cat-options" value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Select or type a category" className={fieldClass} />
+                <datalist id="create-cat-options">
+                  {(TYPE_CATEGORIES[type] || []).map((c) => <option key={c} value={c} />)}
+                </datalist>
               </div>
               <div>
                 <label className={labelClass}>Manufacturer</label>

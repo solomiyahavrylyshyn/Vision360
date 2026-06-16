@@ -19,7 +19,7 @@ export const toCatalogItem = (i: {
   id: number; name: string; description: string; salesDescription: string;
   brand: string; modelNumber: string; rate: number; cost: number; taxable: boolean;
   category: string; type: string;
-  subcategory?: string; department?: string; vendor?: string; defaultQty?: number;
+  department?: string; vendor?: string; defaultQty?: number;
   additionalInfo?: string; customField1?: string; customField2?: string; notes?: string;
   images?: string[]; taxProfile?: string; active?: boolean; upc?: string;
 }): CatalogItem => ({
@@ -27,7 +27,7 @@ export const toCatalogItem = (i: {
   brand: i.brand, modelNumber: i.modelNumber, rate: i.rate, cost: i.cost, taxable: i.taxable,
   category: i.category, type: mapItemTypeToCatalog(i.type),
   // rich fields preserved for the Items list + detail page (pickers ignore them)
-  itemType: i.type, subcategory: i.subcategory, department: i.department, vendor: i.vendor,
+  itemType: i.type, department: i.department, vendor: i.vendor,
   defaultQty: i.defaultQty, additionalInfo: i.additionalInfo,
   customField1: i.customField1, customField2: i.customField2, notes: i.notes,
   images: i.images, taxProfile: i.taxProfile, active: i.active, upc: i.upc,
@@ -69,7 +69,6 @@ interface Item {
   maxQty: number;
   tracking: boolean;
   category: string;
-  subcategory: string;
   type: ItemType;
   vendor: string;
   vendorCode: string;
@@ -279,11 +278,16 @@ const initialCatalogs: Catalog[] = [
 // ─── Type helpers ────────────────────────────────────────────────────────────
 type ItemCategory = "Service" | "Material" | "Equipment" | "Asset" | "Fee" | "Other";
 
-function getItemCategory(type: ItemType): ItemCategory {
-  if (["Service", "Labor", "Maintenance", "Diagnostics", "Installation", "Repair"].includes(type)) return "Service";
-  if (["Inventory Item", "Non-Inventory Item", "Serialized Item"].includes(type)) return "Material";
+function getItemCategory(type: string): ItemCategory {
+  // Canonical 5 types (Marek Jun 16) map straight to their bucket.
+  if (type === "Service") return "Service";
+  if (type === "Material") return "Material";
   if (type === "Equipment") return "Equipment";
-  if (type === "Asset") return "Asset";
+  if (type === "Assets" || type === "Asset") return "Asset";
+  if (type === "Fees") return "Fee";
+  // Legacy fine sub-types on older records → their bucket.
+  if (["Labor", "Maintenance", "Diagnostics", "Installation", "Repair"].includes(type)) return "Service";
+  if (["Inventory Item", "Non-Inventory Item", "Serialized Item"].includes(type)) return "Material";
   if (["Fee / Admin Code", "Discount", "Other Charge", "Material Markup", "Labor Markup", "Other Markup",
     "Material Discount", "Labor Discount", "Other Discount"].includes(type)) return "Fee";
   return "Other";
@@ -300,20 +304,24 @@ function getTypeBadge(type: ItemType): { label: string; bg: string; color: strin
 }
 
 
-// ─── Shared Item-type taxonomy ────────────────────────────────────────────────
-// ONE source of truth for the type picker, used by BOTH the Create item form and
-// the Item detail "Edit type & classification" modal, so the choices match. The
-// groups mirror getItemCategory() (Service / Material / Equipment / Asset / Fee /
-// Other) and the values are the fine ItemType stored on the record.
-export const ITEM_TYPE_GROUPS: { group: string; types: string[] }[] = [
-  { group: "Service", types: ["Service", "Labor", "Maintenance", "Diagnostics", "Installation", "Repair"] },
-  { group: "Material", types: ["Inventory Item", "Non-Inventory Item", "Serialized Item"] },
-  { group: "Equipment", types: ["Equipment"] },
-  { group: "Asset", types: ["Asset"] },
-  { group: "Fee", types: ["Fee / Admin Code", "Discount", "Other Charge"] },
-  { group: "Other", types: ["Bundle / Kit", "Expense / Reimbursement"] },
-];
-export const ITEM_TYPE_OPTIONS: string[] = ITEM_TYPE_GROUPS.flatMap((g) => g.types);
+// ─── Shared Item taxonomy (Marek Jun 16, 2026) ───────────────────────────────
+// TYPES are the 5 predefined, industry-agnostic buckets — NOT user-customizable.
+// CATEGORIES are the customizable sub-buckets under each type (defaults below come
+// straight from Marek's walkthrough examples; users may add their own). This is the
+// ONE source of truth for the Create-item form and the Item-detail edit modal.
+export const ITEM_TYPES = ["Service", "Material", "Equipment", "Assets", "Fees"] as const;
+
+export const TYPE_CATEGORIES: Record<string, string[]> = {
+  Service: ["Diagnostic", "Labor", "Installation", "Maintenance", "Repair", "Indoor Air Quality", "Electrical Service"],
+  Material: ["Copper", "Electrical Material", "Parts", "Consumables", "Refrigerant"],
+  Equipment: ["Condensers", "Air Handlers", "Water Heaters", "Boilers", "Motors"],
+  Assets: ["IT Equipment", "Tools", "Machines", "Office Equipment", "Fleet"],
+  Fees: ["Admin Fee", "Permit Fee", "Diagnostic Fee", "Trip Charge"],
+};
+
+// Every (type, category) pair, for the single combined "Type | Category" dropdown.
+export const TYPE_CATEGORY_PAIRS: { type: string; category: string }[] =
+  ITEM_TYPES.flatMap((t) => TYPE_CATEGORIES[t].map((c) => ({ type: t, category: c })));
 
 // ─── Helper Components ───────────────────────────────────────────────────────
 
@@ -398,15 +406,24 @@ const ALL_ITEMS_COLS = [
 ] as const;
 
 // ─── Pricebook column definitions ────────────────────────────────────────────
+// Customer/sales-facing (Marek Jun 16): no Cost / Margin / Taxable — those are
+// internal. Columns: Name · Category · Type · Description · Price.
 const PRICEBOOK_COLS = [
   { key: "name",        label: "Item Name",   w: "min-w-[180px]", sortable: true  },
   { key: "category",    label: "Category",    w: "w-[120px]",     sortable: true  },
+  { key: "type",        label: "Type",        w: "w-[110px]",     sortable: true  },
   { key: "description", label: "Description", w: "min-w-[200px]", sortable: false },
   { key: "price",       label: "Price",       w: "w-[90px]",      sortable: true  },
-  { key: "cost",        label: "Cost",        w: "w-[85px]",      sortable: true  },
-  { key: "margin",      label: "Margin",      w: "w-[90px]",      sortable: false },
-  { key: "taxable",     label: "Taxable",     w: "w-[80px]",      sortable: false },
 ] as const;
+
+// Price-book items are customer-facing and the seed stores no explicit type, so
+// the Type badge is derived from the category via this lightweight map.
+const PB_CATEGORY_TYPE: Record<string, string> = {
+  Maintenance: "Service", Diagnostics: "Service", Repairs: "Service", Installation: "Service",
+  Replacement: "Service", Custom: "Service", Membership: "Service",
+  Materials: "Material", Fees: "Fees",
+};
+const pbType = (category: string): string => PB_CATEGORY_TYPE[category] || "Service";
 
 // ─── Main Component ──────────────────────────────────────────────────────────
 export function Items() {
@@ -770,7 +787,7 @@ export function Items() {
               </thead>
               <tbody>
                 {paginatedPbItems.length === 0 ? (
-                  <tr><td colSpan={8} className="px-4 py-16 text-center">
+                  <tr><td colSpan={6} className="px-4 py-16 text-center">
                     <span className="material-icons text-[#C8D5E8] mb-2 block" style={{ fontSize: "48px" }}>menu_book</span>
                     <div className="text-[14px] text-[#546478]" style={{ fontWeight: 500 }}>No pricebook items found</div>
                   </td></tr>
@@ -788,6 +805,14 @@ export function Items() {
                           );
                         case "category":
                           return <td key="category" className="px-4 py-2 text-[13px] text-[#546478]">{item.category}</td>;
+                        case "type": {
+                          const tBadge = getTypeBadge(pbType(item.category) as ItemType);
+                          return (
+                            <td key="type" className="px-4 py-2">
+                              <span className="inline-block px-2 py-0.5 rounded-full text-[11px]" style={{ backgroundColor: tBadge.bg, color: tBadge.color, fontWeight: 600 }}>{tBadge.label}</span>
+                            </td>
+                          );
+                        }
                         case "description":
                           return (
                             <td key="description" className="px-4 py-2 text-[13px] text-[#546478]">
@@ -796,18 +821,6 @@ export function Items() {
                           );
                         case "price":
                           return <td key="price" className="px-4 py-2 text-[13px] text-[#1A2332]" style={{ fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>${item.price.toFixed(2)}</td>;
-                        case "cost":
-                          return <td key="cost" className="px-4 py-2 text-[13px] text-[#546478]" style={{ fontVariantNumeric: "tabular-nums" }}>${item.cost.toFixed(2)}</td>;
-                        case "margin":
-                          return <td key="margin" className="px-4 py-2 text-[13px]" style={{ fontWeight: 600, color: "#16A34A" }}>{calcMargin(item.price, item.cost)}</td>;
-                        case "taxable":
-                          return (
-                            <td key="taxable" className="px-4 py-2">
-                              {item.taxable
-                                ? <span className="material-icons text-[#16A34A]" style={{ fontSize: "18px" }}>check</span>
-                                : <span className="text-[#C8D5E8]">—</span>}
-                            </td>
-                          );
                         default:
                           return null;
                       }
