@@ -25,6 +25,15 @@ const expenseOverrides: Record<
   },
 };
 
+// Documents are scoped per expense id (no cross-entity sharing). Only the demo
+// expense "1" has attached documents; every other expense starts empty.
+const expenseDocsById: Record<string, { label: string; src: string }[]> = {
+  "1": [
+    { label: "Receipt", src: installWaterHeaterPhoto },
+    { label: "Photo", src: tanklessWaterHeaterPhoto },
+  ],
+};
+
 const money = (value: number) =>
   value.toLocaleString("en-US", {
     style: "currency",
@@ -48,12 +57,8 @@ export function ExpenseDetail() {
   const description = override?.description ?? baseExpense?.notes ?? "";
   const internalNotes = override?.description ? override?.notes : undefined;
 
-  // Documents browser — a 2-col thumbnail grid + a large preview (Figma 1141:107173).
-  const media = [
-    { label: "Photo", src: installWaterHeaterPhoto },
-    { label: "Photo", src: tanklessWaterHeaterPhoto },
-  ];
-  const documents = Array.from({ length: 8 }, (_, i) => media[i % media.length]);
+  // Documents browser — scoped to THIS expense id only (Figma 1141:107173).
+  const documents = (id && expenseDocsById[id]) || [];
   const [selectedDoc, setSelectedDoc] = useState(0);
 
   // Notes timeline (Figma 1141:106522) — add / edit / delete + "Show N more".
@@ -207,7 +212,8 @@ export function ExpenseDetail() {
                 <span className="material-icons" style={{ fontSize: "16px" }}>tune</span>
               </button>
             </div>
-            {/* thumbnail grid + preview */}
+            {/* thumbnail grid + preview — only this expense's own documents */}
+            {documents.length > 0 ? (
             <div className="mt-3 flex gap-4">
               <div className="grid max-h-[400px] w-[160px] shrink-0 grid-cols-2 gap-2 overflow-y-auto pr-1">
                 {documents.map((doc, idx) => (
@@ -246,6 +252,18 @@ export function ExpenseDetail() {
                 </div>
               </div>
             </div>
+            ) : (
+              <div className="mt-3 flex flex-col items-center justify-center rounded-lg border border-dashed border-[#E5E7EB] bg-[#FAFBFC] py-16 text-center">
+                <div className="w-10 h-10 mb-3 bg-[#F5F7FA] rounded-full flex items-center justify-center">
+                  <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "20px" }}>upload</span>
+                </div>
+                <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>No documents yet</div>
+                <div className="mt-1 text-[12px] text-[#8899AA]">Upload files to keep everything in one place</div>
+                <button className="mt-4 h-8 px-3 rounded-md bg-[#4A6FA5] hover:bg-[#3d5a85] text-white text-[13px] inline-flex items-center gap-1.5" style={{ fontWeight: 600 }}>
+                  <span className="material-icons" style={{ fontSize: "16px" }}>upload</span> Upload
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Col 3 — Notes */}

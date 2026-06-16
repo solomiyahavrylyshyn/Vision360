@@ -1,4 +1,4 @@
-import { useState, useRef, useSyncExternalStore } from "react";
+import { useState, useRef, useEffect, useSyncExternalStore } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
 import { type JobStatus, JOB_STATUSES, JOB_STATUS_COLOR } from "../constants/jobStatuses";
@@ -531,10 +531,11 @@ export function JobDetail() {
   const [notesNewText,   setNotesNewText]   = useState("");
   const [notesExpanded,  setNotesExpanded]  = useState(false);
 
-  // Documents state — empty for user-created (store) jobs; demo docs for mock jobs only.
-  const [documents, setDocuments] = useState<DocFile[]>(jobFromStore ? [] : INITIAL_DOCS);
-  // Unified attachment list (media photos + files) powering the reusable DocumentsGallery.
-  const [attachments, setAttachments] = useState<DocFile[]>(() => jobFromStore ? [] : [
+  // Documents are scoped to ONE demo job (id 1). Other mock jobs and all
+  // user-created (store) jobs start empty — no cross-job document sharing.
+  const JOB_DOCS_DEMO_ID = "1";
+  const demoHasDocs = !jobFromStore && id === JOB_DOCS_DEMO_ID;
+  const demoAttachments: DocFile[] = [
     ...MOCK_PHOTOS.map((p, i) => ({
       id: p.id,
       name: `Job photo ${i + 1}.jpg`,
@@ -547,7 +548,17 @@ export function JobDetail() {
       category: "Photos",
     })),
     ...INITIAL_DOCS.filter((d) => !d.isImage),
-  ]);
+  ];
+  const [documents, setDocuments] = useState<DocFile[]>(demoHasDocs ? INITIAL_DOCS : []);
+  // Unified attachment list (media photos + files) powering the reusable DocumentsGallery.
+  const [attachments, setAttachments] = useState<DocFile[]>(demoHasDocs ? demoAttachments : []);
+  // Re-seed when navigating directly between job detail pages (the route reuses
+  // the mounted component). Only fires on id change, so in-session uploads persist.
+  useEffect(() => {
+    setDocuments(demoHasDocs ? INITIAL_DOCS : []);
+    setAttachments(demoHasDocs ? demoAttachments : []);
+    /* eslint-disable-next-line react-hooks/exhaustive-deps */
+  }, [id]);
   // Upload input for the Documents column (details tab).
   const attachInputRef = useRef<HTMLInputElement>(null);
   const [docSearch, setDocSearch] = useState("");

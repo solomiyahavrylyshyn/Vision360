@@ -276,11 +276,10 @@ export function EstimateDetail() {
     return () => window.removeEventListener(BRAND_LOGO_EVENT, handleBrandLogoChange);
   }, [handleBrandLogoChange]);
   interface DocFile { id: string; name: string; size: string; date: string; icon: string; iconColor: string; isImage?: boolean; previewUrl?: string; previewGradient?: string; uploadedBy?: string; category?: string; }
-  // Seed documents only for legacy mock estimates that already have photos
-  // (IDs "5", "6", "7", "8" in mockEstimates). User-created estimates start
-  // with an empty gallery so QA doesn't see 11 unrelated job photos (DEF-M01-09).
-  const seedDocs: DocFile[] = Object.keys(mockEstimates).includes(id || "")
-    ? [
+  // Documents are scoped PER estimate id — each demo estimate gets its OWN
+  // subset, so estimates 5 / 6 / 7 never share the same documents (and the
+  // draft estimate 1 shows none). User-created estimates also start empty.
+  const ALL_SEED_DOCS: DocFile[] = [
         { id: "photo-34610", name: "Copy of 34610 Install outlet outdoor electrical panel.jpg", size: "3.4 MB", date: "May 19, 2026", icon: "image", iconColor: "#F59E0B", isImage: true, previewUrl: outdoorElectricalPanelPhoto, uploadedBy: "Field Crew", category: "Photos" },
         { id: "photo-33841", name: "Copy of 33841 Install AC.jpg", size: "2.4 MB", date: "May 19, 2026", icon: "image", iconColor: "#F59E0B", isImage: true, previewUrl: installAc33841Photo, uploadedBy: "Field Crew", category: "Photos" },
         { id: "photo-34689-tankless", name: "Copy of 34689 Install Water Heater Tankless.jpg", size: "1.8 MB", date: "May 19, 2026", icon: "image", iconColor: "#F59E0B", isImage: true, previewUrl: installWaterHeaterTanklessPhoto, uploadedBy: "Field Crew", category: "Photos" },
@@ -292,9 +291,19 @@ export function EstimateDetail() {
         { id: "photo-33702", name: "Copy of 33702 Install heating system.jpg", size: "1.6 MB", date: "May 19, 2026", icon: "image", iconColor: "#F59E0B", isImage: true, previewUrl: installHeatingSystemPhoto, uploadedBy: "Field Crew", category: "Photos" },
         { id: "photo-87970", name: "87970_20241208_113711.png", size: "10.0 MB", date: "May 19, 2026", icon: "image", iconColor: "#F59E0B", isImage: true, previewUrl: job87970Photo, uploadedBy: "Field Crew", category: "Photos" },
         { id: "photo-44644", name: "44644_IMG_20241210_123749.png", size: "9.5 MB", date: "May 19, 2026", icon: "image", iconColor: "#F59E0B", isImage: true, previewUrl: job44644Photo, uploadedBy: "Field Crew", category: "Photos" },
-      ]
-    : [];
+  ];
+  // Distinct subset per demo estimate id (estimate 1 = draft → none).
+  const docsByEstimateId: Record<string, DocFile[]> = {
+    "6": ALL_SEED_DOCS.slice(0, 5),
+    "7": ALL_SEED_DOCS.slice(5, 8),
+    "5": ALL_SEED_DOCS.slice(8, 11),
+  };
+  const seedDocs: DocFile[] = docsByEstimateId[id || ""] ?? [];
   const [documents, setDocuments] = useState<DocFile[]>(seedDocs);
+  // Re-seed when navigating directly between estimate detail pages (the route
+  // reuses the mounted component, so without this the previous estimate's docs
+  // would persist). Only fires on id change, so in-session uploads are kept.
+  useEffect(() => { setDocuments(docsByEstimateId[id || ""] ?? []); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [id]);
   const [previewFileId, setPreviewFileId] = useState<string | null>(null);
   const [docsPage, setDocsPage] = useState(0);
   const [createMenuOpen, setCreateMenuOpen] = useState(false);

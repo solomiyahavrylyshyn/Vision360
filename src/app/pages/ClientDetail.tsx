@@ -579,10 +579,12 @@ export function ClientDetail() {
     { id: "photo-87970", name: "87970_20241208_113711.png", size: "10.0 MB", date: "May 19, 2026", icon: "image", iconColor: "#F59E0B", isImage: true, previewUrl: job87970Photo, uploadedBy: "Field Crew", category: "Photos" },
     { id: "photo-44644", name: "44644_IMG_20241210_123749.png", size: "9.5 MB", date: "May 19, 2026", icon: "image", iconColor: "#F59E0B", isImage: true, previewUrl: job44644Photo, uploadedBy: "Field Crew", category: "Photos" },
   ];
-  const hasDocActivity = (c?: { totalJobs?: number; totalBilled?: number; totalRevenue?: number }) =>
-    !!c && ((c.totalJobs ?? 0) > 0 || (c.totalBilled ?? 0) > 0 || (c.totalRevenue ?? 0) > 0);
+  // Demo documents belong to ONE specific client (John Smith, id 10245) so they
+  // are NEVER shown for other clients — opening any other client starts with an
+  // empty Documents tab. Real per-client documents would come from the store.
+  const DEMO_DOCS_CLIENT_ID = "10245";
   const [documents, setDocuments] = useState<DocFile[]>(() =>
-    hasDocActivity(clientsStore.getClient(routeId)) ? SEED_DOCUMENTS : [],
+    routeId === DEMO_DOCS_CLIENT_ID ? SEED_DOCUMENTS : [],
   );
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -726,7 +728,7 @@ export function ClientDetail() {
   useEffect(() => { setEditedClient(client); }, [client]);
   // Reset the (sample) documents per client so navigating to a fresh client
   // doesn't carry over the previous client's media. New clients → empty.
-  useEffect(() => { setDocuments(hasDocActivity(client) ? SEED_DOCUMENTS : []); /* eslint-disable-line react-hooks/exhaustive-deps */ }, [client.id]);
+  useEffect(() => { setDocuments(client.id === DEMO_DOCS_CLIENT_ID ? SEED_DOCUMENTS : []); /* eslint-disable-line react-hooks/exhaustive-deps */ }, [client.id]);
 
   const handleEditClick = () => {
     setIsEditing(true);
