@@ -171,6 +171,13 @@ function Field({ label, value }: { label: string; value?: string | number | bool
   );
 }
 
+// Offline placeholder thumbnail (data-URI SVG) so the gallery shows real images
+// without a network round-trip. Hue varies so seeded thumbs look distinct.
+function demoThumb(hue: number): string {
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='160' height='128'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='hsl(${hue},45%,72%)'/><stop offset='1' stop-color='hsl(${hue},52%,50%)'/></linearGradient></defs><rect width='160' height='128' fill='url(%23g)'/><g fill='none' stroke='white' stroke-opacity='0.65' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'><circle cx='112' cy='40' r='13'/><path d='M16 110 L60 64 L88 90 L116 60 L150 92'/></g></svg>`;
+  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+}
+
 function Card({ title, children, onEdit }: { title: string; children: React.ReactNode; onEdit?: () => void }) {
   return (
     <div className="bg-white border border-[#E5E7EB] rounded-lg p-5">
@@ -200,9 +207,14 @@ export function ItemDetail() {
   const [activeTab, setActiveTab] = useState<TabKey>("details");
   const margin = item.rate > 0 ? ((item.rate - item.cost) / item.rate * 100) : 0;
 
-  // Edit modals (Edit item info / Edit pricing & tax / Edit note).
-  const [editModal, setEditModal] = useState<null | "info" | "pricing">(null);
+  // Edit modals (Edit item info / Edit pricing & tax / Edit classification / Edit note).
+  const [editModal, setEditModal] = useState<null | "info" | "pricing" | "classification">(null);
   const [taxProfile, setTaxProfile] = useState("Florida Sales Tax 7%");
+  // Image gallery — seeded with offline placeholder thumbnails (the design shows a
+  // 4-up gallery). Upload appends a data-URL so it works without a backend.
+  const [images, setImages] = useState<string[]>(() => (item.picture ? [item.picture] : [demoThumb(205), demoThumb(192), demoThumb(218)]));
+  // Status is changeable from the header badge (Figma: "Active ▾").
+  const [statusOpen, setStatusOpen] = useState(false);
   const [notes, setNotes] = useState<{ id: number; date: string; text: string }[]>(() => {
     const seeded = [
       "Prefers morning appointments.",
@@ -225,6 +237,20 @@ export function ItemDetail() {
 
   const money = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+  // Image upload — reads each picked file to a data URL and appends to the gallery
+  // (no backend needed). Used by the Item info card and the Edit item info modal.
+  const handleAddImages = (files: FileList | null) => {
+    const list = Array.from(files || []).filter((f) => f.type.startsWith("image/"));
+    if (!list.length) return;
+    list.forEach((f) => {
+      const reader = new FileReader();
+      reader.onload = () => setImages((prev) => [...prev, String(reader.result)]);
+      reader.readAsDataURL(f);
+    });
+    toast.success(list.length === 1 ? "Image added" : `${list.length} images added`);
+  };
+  const removeImage = (idx: number) => setImages((prev) => prev.filter((_, i) => i !== idx));
+
   const renderDetailsTab = () => {
     const visibleNotes = showAllNotes ? notes : notes.slice(0, 2);
     return (
@@ -232,15 +258,25 @@ export function ItemDetail() {
       {/* ── Col 1: Item info ── */}
       <Card title="Item info" onEdit={() => setEditModal("info")}>
         <div className="flex flex-col gap-4">
-          <div className="w-full h-36 rounded-lg overflow-hidden border border-[#E5E7EB] bg-[#F9FAFB] flex items-center justify-center">
-            {item.picture ? (
-              <img src={item.picture} alt={item.name} className="max-h-full max-w-full object-contain" />
-            ) : (
-              <div className="flex flex-col items-center gap-1.5 text-[#C8D5E8]">
-                <span className="material-icons" style={{ fontSize: "32px" }}>image</span>
-                <span className="text-[11px] text-[#9CA3AF]">No image</span>
+          {/* Image gallery — thumbnails + an upload tile (Figma 1500:95027 file-row) */}
+          <div className="flex flex-wrap gap-2">
+            {images.map((src, i) => (
+              <div key={i} className="group/img relative h-16 w-[78px] shrink-0 overflow-hidden rounded-lg border border-[#E5E7EB] bg-[#F9FAFB]">
+                <img src={src} alt={`${item.name} ${i + 1}`} className="h-full w-full object-cover" />
+                <button
+                  onClick={() => removeImage(i)}
+                  aria-label="Remove image"
+                  className="absolute right-1 top-1 hidden h-5 w-5 items-center justify-center rounded-full bg-black/55 text-white group-hover/img:flex"
+                >
+                  <span className="material-icons" style={{ fontSize: "13px" }}>close</span>
+                </button>
               </div>
-            )}
+            ))}
+            <label className="flex h-16 w-[78px] shrink-0 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-lg border-2 border-dashed border-[#E5E7EB] bg-[#FAFBFC] text-[#8899AA] hover:border-[#4A6FA5] hover:text-[#4A6FA5]">
+              <span className="material-icons" style={{ fontSize: "18px" }}>add_photo_alternate</span>
+              <span className="text-[10px]" style={{ fontWeight: 500 }}>Add</span>
+              <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => handleAddImages(e.target.files)} />
+            </label>
           </div>
           {item.picture && (
             <div className="flex flex-col gap-1">
@@ -256,7 +292,7 @@ export function ItemDetail() {
 
       {/* ── Col 2: Type & classification & vendor + Pricing & tax ── */}
       <div className="flex flex-col gap-4">
-        <Card title="Type & classification & vendor">
+        <Card title="Type & classification & vendor" onEdit={() => setEditModal("classification")}>
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-1">
               <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Item type</div>
@@ -289,46 +325,46 @@ export function ItemDetail() {
         </Card>
       </div>
 
-      {/* ── Col 3: Notes + Custom Fields ── */}
-      <div className="flex flex-col gap-4">
-        <div className="bg-white border border-[#E5E7EB] rounded-lg p-5">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Notes</h3>
-            <button onClick={() => setEditingNote({ id: 0, text: "" })} className="text-[#9CA3AF] hover:text-[#4A6FA5]" aria-label="Add note">
-              <span className="material-icons" style={{ fontSize: "18px" }}>add_circle_outline</span>
-            </button>
-          </div>
-          {notes.length === 0 ? (
-            <div className="py-4 text-center text-[12px] text-[#9CA3AF]">No notes yet</div>
-          ) : (
-            <div className="flex flex-col">
-              {visibleNotes.map((n) => (
-                <div key={n.id} className="group border-b border-[#EDF0F5] py-2.5 last:border-b-0">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="text-[11px] text-[#9CA3AF]">Added {n.date}</div>
-                    <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-                      <button onClick={() => setEditingNote({ id: n.id, text: n.text })} className="text-[#9CA3AF] hover:text-[#4A6FA5]" aria-label="Edit note"><span className="material-icons" style={{ fontSize: "15px" }}>edit</span></button>
-                      <button onClick={() => setNotes((p) => p.filter((x) => x.id !== n.id))} className="text-[#9CA3AF] hover:text-[#DC2626]" aria-label="Delete note"><span className="material-icons" style={{ fontSize: "15px" }}>delete_outline</span></button>
-                    </div>
-                  </div>
-                  <div className="mt-0.5 text-[13px] text-[#1A2332] leading-[20px]">{n.text}</div>
-                </div>
-              ))}
-              {notes.length > 2 && (
-                <button onClick={() => setShowAllNotes((v) => !v)} className="mt-2 text-[12px] text-[#4A6FA5] hover:underline" style={{ fontWeight: 500 }}>
-                  {showAllNotes ? "Show less" : `Show ${notes.length - 2} more`}
-                </button>
-              )}
-            </div>
-          )}
+      {/* ── Col 3: Notes + Custom Fields in ONE card (Figma 1500:81570) ── */}
+      <div className="bg-white border border-[#E5E7EB] rounded-lg p-5">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Notes</h3>
+          <button onClick={() => setEditingNote({ id: 0, text: "" })} className="text-[#9CA3AF] hover:text-[#4A6FA5]" aria-label="Add note">
+            <span className="material-icons" style={{ fontSize: "18px" }}>add_circle_outline</span>
+          </button>
         </div>
-
-        <Card title="Custom Fields">
-          <div className="flex flex-col gap-4">
-            <Field label="Custom Field 1" value={item.customField1 || "Custom Field Value"} />
-            <Field label="Custom Field 2" value={item.customField2} />
+        {notes.length === 0 ? (
+          <div className="py-4 text-center text-[12px] text-[#9CA3AF]">No notes yet</div>
+        ) : (
+          <div className="flex flex-col">
+            {visibleNotes.map((n) => (
+              <div key={n.id} className="group border-b border-[#EDF0F5] py-2.5 last:border-b-0">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="text-[11px] text-[#9CA3AF]">Added {n.date}</div>
+                  <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                    <button onClick={() => setEditingNote({ id: n.id, text: n.text })} className="text-[#9CA3AF] hover:text-[#4A6FA5]" aria-label="Edit note"><span className="material-icons" style={{ fontSize: "15px" }}>edit</span></button>
+                    <button onClick={() => setNotes((p) => p.filter((x) => x.id !== n.id))} className="text-[#9CA3AF] hover:text-[#DC2626]" aria-label="Delete note"><span className="material-icons" style={{ fontSize: "15px" }}>delete_outline</span></button>
+                  </div>
+                </div>
+                <div className="mt-0.5 text-[13px] text-[#1A2332] leading-[20px]">{n.text}</div>
+              </div>
+            ))}
+            {notes.length > 2 && (
+              <button onClick={() => setShowAllNotes((v) => !v)} className="mt-3 text-center text-[12px] text-[#4A6FA5] hover:underline" style={{ fontWeight: 500 }}>
+                {showAllNotes ? "Show less" : `Show ${notes.length - 2} more`}
+              </button>
+            )}
           </div>
-        </Card>
+        )}
+
+        {/* divider + Custom Fields (same card) */}
+        <div className="my-4 border-t border-[#E5E7EB]" />
+        <h3 className="mb-3 text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Custom Fields</h3>
+        <Field label="Custom Field 1" value={item.customField1 || "Custom Field Value"} />
+        <div className="mt-3 text-[12px] text-[#9CA3AF]">
+          Configure in{" "}
+          <button onClick={() => navigate("/settings?section=custom-fields")} className="text-[#4A6FA5] hover:underline" style={{ fontWeight: 500 }}>Settings &gt; Custom Fields</button>
+        </div>
       </div>
     </div>
     );
@@ -360,105 +396,95 @@ export function ItemDetail() {
 
   return (
     <div className="min-h-screen bg-[#F5F7FA]">
-      {/* ── PAGE HEADER (back arrow + actions on gray, outside the white card) ── */}
-      <div className="px-6 pt-6 pb-4 flex items-center justify-between gap-3">
+      {/* ── PAGE HEADER: back arrow icon + "Item details" title (Figma 1500:51447) ── */}
+      <div className="px-6 pt-6 pb-4 flex items-center gap-2">
         <button
           onClick={() => navigate("/items")}
-          className="inline-flex items-center gap-1.5 text-[13px] text-[#4A6FA5] hover:text-[#3d5a85] transition-colors"
-          style={{ fontWeight: 500 }}
+          aria-label="Back to Items"
+          className="flex h-9 w-9 items-center justify-center rounded-lg text-[#546478] hover:bg-[#EDF0F5] transition-colors"
         >
-          <span className="material-icons" style={{ fontSize: "18px" }}>arrow_back</span>
-          Back to Items
+          <span className="material-icons" style={{ fontSize: "20px" }}>arrow_back</span>
         </button>
+        <h1 className="text-[24px] text-[#1A2332] leading-[32px]" style={{ fontWeight: 600 }}>Item details</h1>
       </div>
 
       {/* ── ONE BIG WHITE CARD CONTAINING EVERYTHING ── */}
       <div className="relative mx-6 mb-6 bg-white border border-[#E5E7EB] rounded-xl p-4">
-        {/* Summary content */}
+        {/* Summary content (Figma 1500:51453 row-header + 1500:51465 details) */}
         <div className="flex items-start justify-between gap-4">
-            {/* Left: name + badges */}
-            <div className="min-w-0 flex flex-col gap-1">
+            {/* Left: name + changeable status dropdown */}
+            <div className="min-w-0 flex flex-col gap-3">
               <div className="flex items-center gap-2">
                 <h2 className="text-[20px] text-[#1A2332] leading-[27px]" style={{ fontWeight: 600 }}>
                   {item.name}
                 </h2>
-                <span className="text-[16px] text-[#6B7280] leading-[24px]" style={{ fontWeight: 400 }}>({item.id})</span>
-                <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[13px] ${getTypeBadgeClass(item.type)}`} style={{ fontWeight: 600 }}>
-                  {item.type}
-                </span>
-                <span
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[13px]"
-                  style={{
-                    fontWeight: 600,
-                    backgroundColor: item.active ? "#D1FAE5" : "#F3F4F6",
-                    color: item.active ? "#16A34A" : "#6B7280",
-                  }}
-                >
-                  <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: item.active ? "#16A34A" : "#6B7280" }} />
-                  {item.active ? "Active" : "Inactive"}
-                </span>
+                {/* Status badge — opens a dropdown to change Active/Inactive */}
+                <div className="relative">
+                  <button
+                    onClick={() => setStatusOpen((v) => !v)}
+                    aria-label="Change status"
+                    className="inline-flex items-center gap-1 rounded-lg px-2 py-0.5 text-[12px] transition-colors"
+                    style={{ fontWeight: 500, backgroundColor: item.active ? "rgba(22,163,74,0.15)" : "#F3F4F6", color: item.active ? "#16A34A" : "#6B7280" }}
+                  >
+                    {item.active ? "Active" : "Inactive"}
+                    <span className="material-icons" style={{ fontSize: "14px" }}>expand_more</span>
+                  </button>
+                  {statusOpen && (
+                    <>
+                      <div className="fixed inset-0 z-10" onClick={() => setStatusOpen(false)} />
+                      <div className="absolute left-0 top-full z-20 mt-1 min-w-[150px] rounded-lg border border-[#E5E7EB] bg-white py-1 shadow-lg">
+                        {[{ v: true, l: "Active" }, { v: false, l: "Inactive" }].map((o) => (
+                          <button
+                            key={o.l}
+                            onClick={() => { setItem({ active: o.v }); setStatusOpen(false); toast.success(`Item marked ${o.l}`); }}
+                            className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[13px] text-[#1A2332] hover:bg-[#F5F7FA]"
+                          >
+                            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: o.v ? "#16A34A" : "#9CA3AF" }} />
+                            {o.l}
+                            {item.active === o.v && <span className="material-icons ml-auto text-[#4A6FA5]" style={{ fontSize: "16px" }}>check</span>}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
-              <div className="flex items-center gap-0.5 flex-wrap">
-                {item.category && (
-                  <span className="text-[14px] text-[#1A2332]">{item.category}{item.subcategory ? ` · ${item.subcategory}` : ""}</span>
-                )}
-                {item.brand && (
-                  <>
-                    {item.category && <div className="w-px h-6 bg-[#E5E7EB] mx-1" />}
-                    <span className="text-[14px] text-[#1A2332]">Mfg: {item.brand}</span>
-                  </>
-                )}
+              {/* Subtitle: Category + Manufacturer with leading icons */}
+              <div className="flex items-center gap-3 text-[14px]">
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="material-icons text-[#6B7280]" style={{ fontSize: "16px" }}>grid_view</span>
+                  <span className="text-[#6B7280]">Category:</span>
+                  <span className="text-[#1A2332]">{item.category || "—"}</span>
+                </span>
+                <div className="w-px h-6 bg-[#E5E7EB]" />
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="material-icons text-[#6B7280]" style={{ fontSize: "16px" }}>apartment</span>
+                  <span className="text-[#6B7280]">Manufacturer:</span>
+                  <span className="text-[#1A2332]">{item.brand || "—"}</span>
+                </span>
               </div>
             </div>
 
-            {/* Right: key stats */}
-            <div className="flex gap-2 shrink-0">
-              <div className="flex w-[128px] items-center justify-between gap-2 rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5" style={{ minHeight: 44 }}>
-                <div className="flex min-w-0 flex-col justify-center">
-                  <div className="truncate text-[15px] leading-tight tabular-nums text-[#1A2332]" style={{ fontWeight: 700 }}>
-                    ${item.rate.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </div>
-                  <div className="truncate text-[10px] text-[#546478]">Retail Price</div>
-                </div>
-                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md" style={{ backgroundColor: "#16A34A26" }}>
-                  <span className="material-icons" style={{ fontSize: "16px", color: "#16A34A" }}>sell</span>
-                </div>
-              </div>
-              <div className="flex w-[128px] items-center justify-between gap-2 rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5" style={{ minHeight: 44 }}>
-                <div className="flex min-w-0 flex-col justify-center">
-                  <div className="truncate text-[15px] leading-tight tabular-nums text-[#1A2332]" style={{ fontWeight: 700 }}>
-                    ${item.cost.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </div>
-                  <div className="truncate text-[10px] text-[#546478]">Cost</div>
-                </div>
-                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md" style={{ backgroundColor: "#4A6FA526" }}>
-                  <span className="material-icons" style={{ fontSize: "16px", color: "#4A6FA5" }}>receipt_long</span>
-                </div>
-              </div>
-              <div className="flex w-[128px] items-center justify-between gap-2 rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5" style={{ minHeight: 44 }}>
-                <div className="flex min-w-0 flex-col justify-center">
-                  <div className="truncate text-[15px] leading-tight tabular-nums" style={{ fontWeight: 700, color: margin >= 0 ? "#16A34A" : "#DC2626" }}>
-                    {margin.toFixed(1)}%
-                  </div>
-                  <div className="truncate text-[10px] text-[#546478]">Margin</div>
-                </div>
-                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md" style={{ backgroundColor: `${margin >= 0 ? "#16A34A" : "#DC2626"}26` }}>
-                  <span className="material-icons" style={{ fontSize: "16px", color: margin >= 0 ? "#16A34A" : "#DC2626" }}>query_stats</span>
-                </div>
-              </div>
-              {item.tracking && (
-                <div className="flex w-[128px] items-center justify-between gap-2 rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5" style={{ minHeight: 44 }}>
-                  <div className="flex min-w-0 flex-col justify-center">
-                    <div className="truncate text-[15px] leading-tight tabular-nums text-[#1A2332]" style={{ fontWeight: 700 }}>
-                      {item.onHand}
+            {/* Right: KPI tiles — value + label + tinted icon circle, 1px dividers */}
+            <div className="flex items-center shrink-0">
+              {[
+                { val: `$${item.rate.toLocaleString("en-US", { maximumFractionDigits: 0 })}`, label: "Retail price", icon: "sell", color: "#16A34A", bg: "rgba(22,163,74,0.15)" },
+                { val: `$${item.cost.toLocaleString("en-US", { maximumFractionDigits: 0 })}`, label: "Cost", icon: "monetization_on", color: "#4A6FA5", bg: "rgba(74,111,165,0.15)" },
+                { val: `${margin.toFixed(0)}%`, label: "Margin", icon: "pie_chart", color: "#A856F7", bg: "rgba(168,86,247,0.15)" },
+              ].map((s, i) => (
+                <div key={s.label} className="flex items-center">
+                  {i > 0 && <div className="w-px h-6 bg-[#E5E7EB] mx-4" />}
+                  <div className="flex items-center gap-3">
+                    <div className="flex flex-col">
+                      <div className="text-[18px] text-[#1A2332] leading-none" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{s.val}</div>
+                      <div className="text-[14px] text-[#6B7280] leading-[20px]">{s.label}</div>
                     </div>
-                    <div className="truncate text-[10px] text-[#546478]">On Hand</div>
-                  </div>
-                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md" style={{ backgroundColor: "#6B728026" }}>
-                    <span className="material-icons" style={{ fontSize: "16px", color: "#6B7280" }}>inventory_2</span>
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ backgroundColor: s.bg }}>
+                      <span className="material-icons" style={{ fontSize: "18px", color: s.color }}>{s.icon}</span>
+                    </div>
                   </div>
                 </div>
-              )}
+              ))}
             </div>
         </div>
 
@@ -469,16 +495,16 @@ export function ItemDetail() {
           onChange={setActiveTab}
           tabSuffix={<TabSettingsButton />}
           trailing={
-            <>
-              <button className="border border-[#E5E7EB] text-[#546478] hover:bg-[#EDF0F5] h-9 px-2.5 rounded-md flex items-center justify-center bg-white">
-                <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
-              </button>
-              <KebabMenu triggerClassName="h-9 w-9 border border-[#E5E7EB] rounded-md hover:bg-[#EDF0F5] flex items-center justify-center bg-white">
-                <KebabItem icon="content_copy">Duplicate Item</KebabItem>
-                <KebabSeparator />
-                <KebabItem icon="block" destructive>Inactivate Item</KebabItem>
-              </KebabMenu>
-            </>
+            <KebabMenu triggerClassName="h-9 w-9 border border-[#E5E7EB] rounded-md hover:bg-[#EDF0F5] flex items-center justify-center bg-white">
+              <KebabItem icon="content_copy" onClick={() => toast.success("Item duplicated")}>Duplicate item</KebabItem>
+              <KebabItem icon="open_in_new" onClick={() => window.open(`/items/${item.id}`, "_blank")}>Open in new tab</KebabItem>
+              <KebabSeparator />
+              {item.active ? (
+                <KebabItem icon="block" destructive onClick={() => { setItem({ active: false }); toast.success("Item marked Inactive"); }}>Inactivate item</KebabItem>
+              ) : (
+                <KebabItem icon="check_circle" onClick={() => { setItem({ active: true }); toast.success("Item marked Active"); }}>Reactivate item</KebabItem>
+              )}
+            </KebabMenu>
           }
           className="mt-5"
         />
@@ -490,8 +516,12 @@ export function ItemDetail() {
       </div>
 
       {editModal === "info" && (
-        <EditItemInfoModal item={item} onClose={() => setEditModal(null)}
+        <EditItemInfoModal item={item} images={images} onAddImages={handleAddImages} onRemoveImage={removeImage} onClose={() => setEditModal(null)}
           onSave={(patch) => { setItem(patch); setEditModal(null); toast.success("Item info saved"); }} />
+      )}
+      {editModal === "classification" && (
+        <EditClassificationModal item={item} onClose={() => setEditModal(null)}
+          onSave={(patch) => { setItem(patch); setEditModal(null); toast.success("Type & classification saved"); }} />
       )}
       {editModal === "pricing" && (
         <EditPricingModal item={item} taxProfile={taxProfile} onClose={() => setEditModal(null)}
@@ -532,7 +562,7 @@ const mArea = "w-full resize-y rounded-lg border border-[#E5E7EB] px-3 py-2 text
 const cancelBtn = "h-9 rounded-lg border border-[#E5E7EB] bg-white px-4 text-[13px] text-[#546478] hover:bg-[#F5F7FA]";
 const saveBtn = "h-9 rounded-lg bg-[#4A6FA5] px-4 text-[13px] text-white hover:bg-[#3d5a85]";
 
-function EditItemInfoModal({ item, onClose, onSave }: { item: any; onClose: () => void; onSave: (p: any) => void }) {
+function EditItemInfoModal({ item, images, onAddImages, onRemoveImage, onClose, onSave }: { item: any; images: string[]; onAddImages: (f: FileList | null) => void; onRemoveImage: (i: number) => void; onClose: () => void; onSave: (p: any) => void }) {
   const [picture, setPicture] = useState(item.picture || "");
   const [description, setDescription] = useState(item.description || "");
   const [salesDescription, setSalesDescription] = useState(item.salesDescription || "");
@@ -543,17 +573,52 @@ function EditItemInfoModal({ item, onClose, onSave }: { item: any; onClose: () =
       <div className="flex flex-col gap-4">
         <div>
           <div className={mLabel} style={{ fontWeight: 600 }}>Images</div>
+          {images.length > 0 && (
+            <div className="mb-3 flex flex-wrap gap-2">
+              {images.map((src, i) => (
+                <div key={i} className="group/img relative h-16 w-[78px] overflow-hidden rounded-lg border border-[#E5E7EB]">
+                  <img src={src} alt={`Image ${i + 1}`} className="h-full w-full object-cover" />
+                  <button onClick={() => onRemoveImage(i)} aria-label="Remove image" className="absolute right-1 top-1 hidden h-5 w-5 items-center justify-center rounded-full bg-black/55 text-white group-hover/img:flex">
+                    <span className="material-icons" style={{ fontSize: "13px" }}>close</span>
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
           <label className="flex cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-[#E5E7EB] bg-[#FAFBFC] px-4 py-6 text-center hover:border-[#4A6FA5]">
             <span className="material-icons text-[#8899AA]" style={{ fontSize: "24px" }}>upload</span>
             <span className="text-[13px] text-[#546478]">Drop your files here, or <span className="text-[#4A6FA5]">click to browse</span></span>
             <span className="text-[12px] text-[#9CA3AF]">SVG, PNG, JPG or GIF (max. 3MB)</span>
-            <input type="file" accept="image/*" className="hidden" />
+            <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => onAddImages(e.target.files)} />
           </label>
         </div>
         <input type="text" value={picture} onChange={(e) => setPicture(e.target.value)} placeholder="Paste image URL" className={mInput} />
         <div><label className={mLabel}>Internal description</label><textarea value={description} onChange={(e) => setDescription(e.target.value)} className={`${mArea} min-h-[64px]`} /></div>
         <div><label className={mLabel}>Sales description</label><textarea value={salesDescription} onChange={(e) => setSalesDescription(e.target.value)} className={`${mArea} min-h-[64px]`} /></div>
         <div><label className={mLabel}>Additional information</label><textarea value={additionalInfo} onChange={(e) => setAdditionalInfo(e.target.value)} className={`${mArea} min-h-[64px]`} /></div>
+      </div>
+    </ModalShell>
+  );
+}
+
+function EditClassificationModal({ item, onClose, onSave }: { item: any; onClose: () => void; onSave: (p: any) => void }) {
+  const [type, setType] = useState(item.type || "Service");
+  const [category, setCategory] = useState(item.category || "");
+  const [subcategory, setSubcategory] = useState(item.subcategory || "");
+  const [brand, setBrand] = useState(item.brand || "");
+  const [department, setDepartment] = useState(item.department || "");
+  const [vendor, setVendor] = useState(item.vendor || "");
+  const TYPES = ["Service", "Labor", "Maintenance", "Diagnostics", "Installation", "Repair", "Inventory Item", "Non-Inventory Item", "Serialized Item", "Equipment", "Asset", "Fee / Admin Code", "Bundle / Kit"];
+  return (
+    <ModalShell title="Edit type & classification" onClose={onClose}
+      footer={<><button className={cancelBtn} style={{ fontWeight: 600 }} onClick={onClose}>Cancel</button><button className={saveBtn} style={{ fontWeight: 600 }} onClick={() => onSave({ type, category, subcategory, brand, department, vendor })}>Save</button></>}>
+      <div className="grid grid-cols-2 gap-4">
+        <div><label className={mLabel}>Item type</label><select value={type} onChange={(e) => setType(e.target.value)} className={mInput}>{TYPES.map((t) => <option key={t} value={t}>{t}</option>)}</select></div>
+        <div><label className={mLabel}>Category</label><input type="text" value={category} onChange={(e) => setCategory(e.target.value)} className={mInput} /></div>
+        <div><label className={mLabel}>Subcategory</label><input type="text" value={subcategory} onChange={(e) => setSubcategory(e.target.value)} className={mInput} /></div>
+        <div><label className={mLabel}>Manufacturer</label><input type="text" value={brand} onChange={(e) => setBrand(e.target.value)} className={mInput} /></div>
+        <div><label className={mLabel}>Department</label><input type="text" value={department} onChange={(e) => setDepartment(e.target.value)} className={mInput} /></div>
+        <div><label className={mLabel}>Vendor</label><input type="text" value={vendor} onChange={(e) => setVendor(e.target.value)} className={mInput} /></div>
       </div>
     </ModalShell>
   );
