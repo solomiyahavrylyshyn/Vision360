@@ -188,7 +188,6 @@ export function PaymentDetail() {
   const paymentNumber =
     payment.invoiceNumber.split("-")[0] + "-P" + String(payment.id).padStart(2, "0");
 
-  const payoutC = payoutColors[extras.payoutStatus] ?? payoutColors["Pending"];
 
   const changeStatus = (status: PaymentStatus) => {
     if (status === payment.status) return;
@@ -288,17 +287,6 @@ export function PaymentDetail() {
               ) : (
                 <span className="text-[#9CA3AF]">—</span>
               )
-            }
-          />
-          <Field
-            label="Status"
-            value={
-              <span
-                className="inline-flex items-center px-2.5 py-1 rounded-lg text-[12px]"
-                style={{ fontWeight: 600, color: payoutC.text, backgroundColor: payoutC.bg }}
-              >
-                {extras.payoutStatus === "—" ? "Unpaid" : extras.payoutStatus}
-              </span>
             }
           />
         </div>
