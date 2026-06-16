@@ -9,7 +9,6 @@ import { Label } from "../components/ui/label";
 import { PlusIcon } from "../components/ui/plus-icon";
 import { DocumentPreview } from "../components/DocumentPreview";
 import { DocumentsGallery } from "../components/DocumentsGallery";
-import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "../components/ui/resizable";
 import { estimatesStore, type EstimateRecord } from "../stores/estimatesStore";
 import { formatRegionalDate } from "../stores/regionalSettingsStore";
 import installHeatingSystem1Photo from "../../assets/documents/33702-install-heating-system-1.jpg";
@@ -578,10 +577,9 @@ export function EstimateDetail() {
 
   // ── Details tab ──────────────────────────────────────────────────────────────
   const renderDetailsTab = () => (
-    <ResizablePanelGroup direction="horizontal" className="min-h-[440px] items-stretch">
+    <div className="grid grid-cols-[240px_minmax(0,1fr)_300px] gap-4 items-stretch min-h-[440px]">
 
-      {/* ── Col 1: Line Items ── */}
-      <ResizablePanel defaultSize={44} minSize={28} className="min-w-0">
+      {/* ── Col 1: Items ── */}
       <div className="h-full flex flex-col gap-0 bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
         <div className="flex items-center justify-between px-5 py-3 border-b border-[#E5E7EB]">
           <h3 className="text-[16px] text-[#1A2332]" style={{ fontWeight: 600 }}>Items</h3>
@@ -685,12 +683,7 @@ export function EstimateDetail() {
         )}
       </div>
 
-      </ResizablePanel>
-
-      <ResizableHandle withHandle className="mx-2 w-1 rounded-full bg-transparent transition-colors hover:bg-[#D8DEE8] data-[resize-handle-active]:bg-[#C5D5EC] after:w-3" />
-
-      {/* ── Col 2: Documents — same shell + gallery as JobDetail ── */}
-      <ResizablePanel defaultSize={35} minSize={22} className="min-w-0">
+      {/* ── Col 2: Documents ── */}
       <div className="h-full bg-white border border-[#E5E7EB] rounded-xl overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-[#E5E7EB] px-4 py-2.5 shrink-0">
@@ -720,16 +713,8 @@ export function EstimateDetail() {
       </div>
 
 
-      </ResizablePanel>
-
-      <ResizableHandle withHandle className="mx-2 w-1 rounded-full bg-transparent transition-colors hover:bg-[#D8DEE8] data-[resize-handle-active]:bg-[#C5D5EC] after:w-3" />
-
       {/* ── Col 3: Notes ── */}
-      <ResizablePanel defaultSize={21} minSize={16} maxSize={34} className="min-w-0">
-      <div className="h-full flex flex-col gap-4">
-
-        {/* Notes card with Client/Internal sub-tabs */}
-        <div className="h-full flex flex-col bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
+      <div className="h-full flex flex-col bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
           <div className="flex items-center gap-2 border-b border-[#E5E7EB] px-4 py-2.5">
             <div className="inline-flex items-center gap-0.5 rounded-lg bg-[#F3F4F6] p-0.5">
               {[
@@ -794,9 +779,6 @@ export function EstimateDetail() {
           )}
         </div>
 
-      </div>
-      </ResizablePanel>
-
       <DocumentPreview
         file={previewFile}
         onClose={() => setPreviewFileId(null)}
@@ -838,7 +820,7 @@ export function EstimateDetail() {
           </div>
         </div>
       )}
-    </ResizablePanelGroup>
+    </div>
   );
 
   // ── Deposit tab ───────────────────────────────────────────────────────────────
