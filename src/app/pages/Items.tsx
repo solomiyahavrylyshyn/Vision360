@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useSyncExternalStore } from "react";
 import { useNavigate } from "react-router";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
@@ -15,7 +15,7 @@ import type { CatalogItem } from "../components/ItemPicker";
 
 // Project the rich Items-module record onto the catalog shape the
 // Estimate / Job pickers consume, so created items flow straight through.
-const toCatalogItem = (i: { id: number; name: string; description: string; salesDescription: string; brand: string; modelNumber: string; rate: number; cost: number; taxable: boolean; category: string; type: string }): CatalogItem => ({
+export const toCatalogItem = (i: { id: number; name: string; description: string; salesDescription: string; brand: string; modelNumber: string; rate: number; cost: number; taxable: boolean; category: string; type: string }): CatalogItem => ({
   id: i.id, name: i.name, itemDescription: i.description, salesDescription: i.salesDescription,
   brand: i.brand, modelNumber: i.modelNumber, rate: i.rate, cost: i.cost, taxable: i.taxable,
   category: i.category, type: mapItemTypeToCatalog(i.type),
@@ -380,6 +380,28 @@ export function Items() {
   // Seed a couple of items with usage history so Deactivate (kept) vs Delete
   // (permanent, unused-only) are both demonstrable per ITM-3.
   const [items, setItems] = useState<Item[]>(initialItems.map((it, i) => ({ ...it, usageCount: i < 2 ? 3 : 0 })));
+  // Items created on the /items/new page write to itemsStore; merge any store
+  // items not already in this list (matched by name) so they appear here too.
+  const storeItems = useSyncExternalStore(itemsStore.subscribe, itemsStore.getSnapshot);
+  useEffect(() => {
+    setItems((prev) => {
+      const names = new Set(prev.map((i) => i.name.toLowerCase()));
+      const additions = storeItems
+        .filter((s: any) => s.name && !names.has(String(s.name).toLowerCase()))
+        .map((s: any) => ({
+          id: s.id, active: true, name: s.name, description: s.itemDescription || "", salesDescription: s.salesDescription || "", additionalInfo: "",
+          brand: s.brand || "", modelNumber: s.modelNumber || "", upc: "",
+          rate: s.rate || 0, cost: s.cost || 0, taxable: !!s.taxable, tax1: false, tax2: false, tax3: false,
+          onHand: 0, minQty: 0, maxQty: 0, tracking: false,
+          category: s.category || "", subcategory: "", type: s.type || "Service",
+          vendor: "", vendorCode: "", department: "", cogsGL: "", salesGL: "",
+          customField1: "", customField2: "", customField3: "",
+          notes: "", boldPrint: false, group: "", defaultQty: 1, picture: "", inventory: false, booking: false,
+          usageCount: 0,
+        }) as Item);
+      return additions.length ? [...prev, ...additions] : prev;
+    });
+  }, [storeItems]);
   const [itemSearch, setItemSearch] = useState("");
   const [itemFilter, setItemFilter] = useState("All");
   const [itemStatusFilter, setItemStatusFilter] = useState("All");
@@ -649,7 +671,7 @@ export function Items() {
               )}
             </button>
             <div className="ml-auto flex items-center gap-2">
-              <CreateActionButton onClick={() => { setEditingItem(null); setItemModalOpen(true); }}>
+              <CreateActionButton onClick={() => { if (activeTab === "pricebook") { setEditingItem(null); setItemModalOpen(true); } else { navigate("/items/new"); } }}>
                 {activeTab === "pricebook" ? "Create pricebook item" : "Create item"}
               </CreateActionButton>
               <KebabMenu triggerClassName="w-10 h-10 border border-[#D8DEE8] rounded-xl bg-white">
@@ -825,7 +847,7 @@ export function Items() {
               )}
             </button>
             <div className="ml-auto flex items-center gap-2">
-              <CreateActionButton onClick={() => { setEditingItem(null); setItemModalOpen(true); }}>
+              <CreateActionButton onClick={() => { if (activeTab === "pricebook") { setEditingItem(null); setItemModalOpen(true); } else { navigate("/items/new"); } }}>
                 {activeTab === "pricebook" ? "Create pricebook item" : "Create item"}
               </CreateActionButton>
               <KebabMenu triggerClassName="w-10 h-10 border border-[#D8DEE8] rounded-xl bg-white">
