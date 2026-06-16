@@ -288,6 +288,21 @@ function getTypeBadge(type: ItemType): { label: string; bg: string; color: strin
 }
 
 
+// ─── Shared Item-type taxonomy ────────────────────────────────────────────────
+// ONE source of truth for the type picker, used by BOTH the Create item form and
+// the Item detail "Edit type & classification" modal, so the choices match. The
+// groups mirror getItemCategory() (Service / Material / Equipment / Asset / Fee /
+// Other) and the values are the fine ItemType stored on the record.
+export const ITEM_TYPE_GROUPS: { group: string; types: string[] }[] = [
+  { group: "Service", types: ["Service", "Labor", "Maintenance", "Diagnostics", "Installation", "Repair"] },
+  { group: "Material", types: ["Inventory Item", "Non-Inventory Item", "Serialized Item"] },
+  { group: "Equipment", types: ["Equipment"] },
+  { group: "Asset", types: ["Asset"] },
+  { group: "Fee", types: ["Fee / Admin Code", "Discount", "Other Charge"] },
+  { group: "Other", types: ["Bundle / Kit", "Expense / Reimbursement"] },
+];
+export const ITEM_TYPE_OPTIONS: string[] = ITEM_TYPE_GROUPS.flatMap((g) => g.types);
+
 // ─── Helper Components ───────────────────────────────────────────────────────
 
 function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {

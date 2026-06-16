@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
 import { DetailTabs, TabSettingsButton } from "../components/ui/detail-tabs";
 import { PlusIcon } from "../components/ui/plus-icon";
+import { ITEM_TYPE_GROUPS } from "./Items";
 
 // ─── Shared type/data (mirrors Items.tsx) ────────────────────────────────────
 type ItemType =
@@ -601,12 +602,11 @@ function EditClassificationModal({ item, onClose, onSave }: { item: any; onClose
   const [brand, setBrand] = useState(item.brand || "");
   const [department, setDepartment] = useState(item.department || "");
   const [vendor, setVendor] = useState(item.vendor || "");
-  const TYPES = ["Service", "Labor", "Maintenance", "Diagnostics", "Installation", "Repair", "Inventory Item", "Non-Inventory Item", "Serialized Item", "Equipment", "Asset", "Fee / Admin Code", "Bundle / Kit"];
   return (
     <ModalShell title="Edit type & classification" onClose={onClose}
       footer={<><button className={cancelBtn} style={{ fontWeight: 600 }} onClick={onClose}>Cancel</button><button className={saveBtn} style={{ fontWeight: 600 }} onClick={() => onSave({ type, category, subcategory, brand, department, vendor })}>Save</button></>}>
       <div className="grid grid-cols-2 gap-4">
-        <div><label className={mLabel}>Item type</label><select value={type} onChange={(e) => setType(e.target.value)} className={mInput}>{TYPES.map((t) => <option key={t} value={t}>{t}</option>)}</select></div>
+        <div><label className={mLabel}>Item type</label><select value={type} onChange={(e) => setType(e.target.value)} className={mInput}>{ITEM_TYPE_GROUPS.map((g) => <optgroup key={g.group} label={g.group}>{g.types.map((t) => <option key={t} value={t}>{t}</option>)}</optgroup>)}</select></div>
         <div><label className={mLabel}>Category</label><input type="text" value={category} onChange={(e) => setCategory(e.target.value)} className={mInput} /></div>
         <div><label className={mLabel}>Subcategory</label><input type="text" value={subcategory} onChange={(e) => setSubcategory(e.target.value)} className={mInput} /></div>
         <div><label className={mLabel}>Manufacturer</label><input type="text" value={brand} onChange={(e) => setBrand(e.target.value)} className={mInput} /></div>

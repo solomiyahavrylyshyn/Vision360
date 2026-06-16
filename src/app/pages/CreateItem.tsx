@@ -2,27 +2,13 @@ import { useMemo, useState, useSyncExternalStore } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { toast } from "sonner";
 import { itemsStore } from "../stores/itemsStore";
-import { toCatalogItem } from "./Items";
+import { toCatalogItem, ITEM_TYPE_GROUPS } from "./Items";
 
 // Create item — full page aligned to Figma node 1494:127168.
 // 2-column section layout (Basic info / Type / Classification / Pricing & tax /
 // Vendor / Images / Custom fields / Notes); saves through toCatalogItem so the
 // new item flows into the Items list + Estimate/Invoice/Job pickers.
 
-type ItemTypeChip = "Service" | "Material" | "Equipment" | "Asset" | "Fees" | "Price Book";
-
-// Same mapping the legacy Item modal used, so the saved item lands in the right
-// category badge on the list.
-const CHIP_TO_TYPE: Record<ItemTypeChip, string> = {
-  Service: "Service",
-  Material: "Inventory Item",
-  Equipment: "Equipment",
-  Asset: "Asset",
-  Fees: "Fee / Admin Code",
-  "Price Book": "Bundle / Kit",
-};
-
-const TYPE_OPTIONS: ItemTypeChip[] = ["Service", "Material", "Equipment", "Asset", "Fees", "Price Book"];
 const MANUFACTURERS = ["Carrier", "Trane", "Lennox", "Goodman", "Rheem", "Ferguson", "Square D", "Ecobee"];
 const DEPARTMENTS = ["Field Service", "Materials", "Equipment", "Administrative", "Office"];
 const VENDORS = ["HVAC Supply Co.", "Ferguson Enterprises", "Johnstone Supply", "Grainger", "HD Supply"];
@@ -44,7 +30,7 @@ export function CreateItem() {
   const [internalDesc, setInternalDesc] = useState("");
   const [salesDesc, setSalesDesc] = useState("");
   const [additionalInfo, setAdditionalInfo] = useState("");
-  const [type, setType] = useState<ItemTypeChip>("Service");
+  const [type, setType] = useState("Service");
   const [category, setCategory] = useState("");
   const [subcategory, setSubcategory] = useState("");
   const [manufacturer, setManufacturer] = useState("");
@@ -74,7 +60,7 @@ export function CreateItem() {
       cost: parseFloat(cost) || 0,
       taxable,
       category,
-      type: CHIP_TO_TYPE[type],
+      type,
     }));
     toast.success("Item created");
     navigate(returnTo);
@@ -138,23 +124,16 @@ export function CreateItem() {
 
           <div className="border-t border-[#E5E7EB]" />
 
-          {/* Type */}
+          {/* Type — same option set as the Item detail "Edit type & classification"
+               modal (shared ITEM_TYPE_GROUPS) so the taxonomy matches everywhere. */}
           <Section label={<>Type {reqStar}</>}>
-            <div className="grid grid-cols-3 gap-3">
-              {TYPE_OPTIONS.map((t) => {
-                const selected = type === t;
-                return (
-                  <button key={t} type="button" onClick={() => setType(t)}
-                    className={`flex h-11 items-center gap-2.5 rounded-lg border px-3.5 text-left text-[14px] transition-colors ${
-                      selected ? "border-[#4A6FA5] bg-[#EBF0F8]" : "border-[#E5E7EB] bg-white hover:border-[#B8C3D5]"}`}>
-                    <span className={`flex h-4 w-4 items-center justify-center rounded-full border ${selected ? "border-[#4A6FA5]" : "border-[#C8D5E8]"}`}>
-                      {selected && <span className="h-2 w-2 rounded-full bg-[#4A6FA5]" />}
-                    </span>
-                    <span style={{ fontWeight: selected ? 600 : 500, color: selected ? "#1A2332" : "#546478" }}>{t}</span>
-                  </button>
-                );
-              })}
-            </div>
+            <select value={type} onChange={(e) => setType(e.target.value)} className={`${fieldClass} max-w-[420px]`}>
+              {ITEM_TYPE_GROUPS.map((g) => (
+                <optgroup key={g.group} label={g.group}>
+                  {g.types.map((t) => <option key={t} value={t}>{t}</option>)}
+                </optgroup>
+              ))}
+            </select>
           </Section>
 
           <div className="border-t border-[#E5E7EB]" />
