@@ -1,23 +1,15 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router";
+import { toast } from "sonner";
 import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
 import { CategoryPill } from "../components/ui/category-pill";
 import { mockExpenses, type Expense } from "./Expenses";
 import installWaterHeaterPhoto from "../../assets/documents/34285-install-water-heater.jpg";
 import tanklessWaterHeaterPhoto from "../../assets/documents/34689-install-water-heater-tankless.jpg";
 
-type AttachmentTab = "media" | "files";
-
-type ExpenseLineItem = {
-  name: string;
-  description?: string;
-  quantity: number;
-  unitPrice: number;
-};
-
 const expenseOverrides: Record<
   string,
-  Partial<Expense> & { documentNumber?: string; tax?: number; description?: string; lineItems?: ExpenseLineItem[] }
+  Partial<Expense> & { documentNumber?: string; tax?: number; description?: string }
 > = {
   "1": {
     merchant: "Home Depot",
@@ -30,11 +22,6 @@ const expenseOverrides: Record<
     description: "Supplies for commercial HVAC project",
     notes: "Returned 2 unused fittings — credit expected on next statement.",
     documentNumber: "Rcp-72545786",
-    lineItems: [
-      { name: 'Copper Pipe 1/2" × 10 ft', quantity: 2, unitPrice: 12.98 },
-      { name: "Pipe Fittings — assorted", quantity: 1, unitPrice: 9.46 },
-      { name: "PTFE Thread Seal Tape", quantity: 3, unitPrice: 2.47 },
-    ],
   },
 };
 
@@ -46,15 +33,38 @@ const money = (value: number) =>
     maximumFractionDigits: 2,
   });
 
+type Note = { id: number; date: string; text: string };
+
 export function ExpenseDetail() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const [attachmentTab, setAttachmentTab] = useState<AttachmentTab>("media");
-  const [selectedMedia, setSelectedMedia] = useState(0);
 
   const baseExpense: Expense | undefined = mockExpenses.find(e => e.id === id);
   const override = id ? expenseOverrides[id] : undefined;
   const expense = baseExpense ? { ...baseExpense, ...override } : undefined;
+
+  const documentNumber = override?.documentNumber ?? (expense ? `Rcp-${expense.id.padStart(6, "0")}` : "");
+  const tax = override?.tax ?? (expense ? Number((expense.amount * 0.075).toFixed(2)) : 0);
+  const description = override?.description ?? baseExpense?.notes ?? "";
+  const internalNotes = override?.description ? override?.notes : undefined;
+
+  // Documents browser — a 2-col thumbnail grid + a large preview (Figma 1141:107173).
+  const media = [
+    { label: "Photo", src: installWaterHeaterPhoto },
+    { label: "Photo", src: tanklessWaterHeaterPhoto },
+  ];
+  const documents = Array.from({ length: 8 }, (_, i) => media[i % media.length]);
+  const [selectedDoc, setSelectedDoc] = useState(0);
+
+  // Notes timeline (Figma 1141:106522) — add / edit / delete + "Show N more".
+  const [notes, setNotes] = useState<Note[]>(() => {
+    const seed: string[] = [];
+    if (internalNotes) seed.push(internalNotes);
+    seed.push("Partial payment on overdue invoice", "Awaiting receipt confirmation from vendor", "Logged against the HVAC install job");
+    return seed.map((text, i) => ({ id: i + 1, date: "Mar 10, 2026", text }));
+  });
+  const [editing, setEditing] = useState<{ id: number; text: string } | null>(null);
+  const [showAll, setShowAll] = useState(false);
 
   if (!expense) {
     return (
@@ -72,304 +82,208 @@ export function ExpenseDetail() {
     );
   }
 
-  const documentNumber = override?.documentNumber ?? `Rcp-${expense.id.padStart(6, "0")}`;
-  const tax = override?.tax ?? Number((expense.amount * 0.075).toFixed(2));
-  // Base mock `notes` reads like a description; only override notes are true internal notes.
-  const description = override?.description ?? baseExpense?.notes ?? "";
-  const internalNotes = override?.description ? override?.notes : undefined;
-  const lineItems = override?.lineItems ?? [];
-  const lineItemsSubtotal = lineItems.reduce((sum, li) => sum + li.quantity * li.unitPrice, 0);
-  const media = [
-    { label: "Photo", src: installWaterHeaterPhoto },
-    { label: "Photo", src: tanklessWaterHeaterPhoto },
-  ];
-  const currentMedia = media[selectedMedia] ?? media[0];
+  const currentDoc = documents[selectedDoc] ?? documents[0];
+  const visibleNotes = showAll ? notes : notes.slice(0, 3);
+
+  const saveNote = () => {
+    if (!editing || !editing.text.trim()) { setEditing(null); return; }
+    setNotes(prev => editing.id === 0
+      ? [{ id: (prev.at(-1)?.id ?? 0) + 1, date: "Today", text: editing.text.trim() }, ...prev]
+      : prev.map(n => (n.id === editing.id ? { ...n, text: editing.text.trim() } : n)));
+    setEditing(null);
+    toast.success("Note saved");
+  };
+
+  const duplicate = () => {
+    const params = new URLSearchParams({ dup: "1" });
+    if (expense.merchant) params.set("vendor", expense.merchant);
+    if (expense.category) params.set("category", expense.category);
+    if (description) params.set("description", description);
+    if (internalNotes) params.set("notes", internalNotes);
+    if (expense.jobId) params.set("fromJob", expense.jobId);
+    navigate(`/expenses/new?${params.toString()}`);
+  };
 
   return (
     <div className="min-h-screen bg-[#F5F7FA]">
-      <div className="px-6 pt-6 pb-3">
+      {/* Page header — back arrow + title (Figma 1141:106450) */}
+      <div className="px-6 pt-6 pb-4 flex items-center gap-2">
         <button
           onClick={() => navigate("/expenses")}
-          className="inline-flex items-center gap-1.5 text-[13px] text-[#4A6FA5] hover:text-[#3d5a85] transition-colors"
-          style={{ fontWeight: 500 }}
+          aria-label="Back to Expenses"
+          className="flex h-9 w-9 items-center justify-center rounded-lg text-[#546478] hover:bg-[#EDF0F5] transition-colors"
         >
-          <span className="material-icons" style={{ fontSize: "18px" }}>arrow_back</span>
-          Back to Expenses
+          <span className="material-icons" style={{ fontSize: "20px" }}>arrow_back</span>
         </button>
+        <h1 className="text-[24px] text-[#1A2332] leading-[32px]" style={{ fontWeight: 600 }}>Expense details</h1>
       </div>
 
-      <section className="mx-6 mb-6 overflow-hidden rounded-xl border border-[#E5E7EB] bg-white">
-        <div className="flex min-h-[64px] items-center justify-between gap-4 border-b border-[#E5E7EB] px-4 py-3">
-          <div className="flex min-w-0 items-center gap-2.5">
-            <h1
-              className="truncate text-[20px] leading-[27px] text-[#1A2332]"
-              style={{ fontWeight: 600 }}
-            >
-              {expense.merchant}
-            </h1>
-            <span className="shrink-0 text-[16px] text-[#6B7280] leading-[24px]" style={{ fontWeight: 400 }}>
-              ({documentNumber})
-            </span>
-            <span className="shrink-0 text-[14px] leading-5 text-[#9CA3AF]">{expense.date}</span>
-            <CategoryPill category={expense.category} className="shrink-0 px-2.5 py-1 text-[12px]" />
+      <section className="mx-6 mb-6 rounded-xl border border-[#E5E7EB] bg-white p-4">
+        {/* Header row: merchant + date + category badge | Total/Tax KPIs (Figma 1141:106456) */}
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex min-w-0 items-center gap-2">
+            <h2 className="truncate text-[20px] leading-[27px] text-[#1A2332]" style={{ fontWeight: 600 }}>{expense.merchant}</h2>
+            <span className="shrink-0 text-[16px] leading-[24px] text-[#6B7280]">{expense.date}</span>
+            <CategoryPill category={expense.category} className="shrink-0 rounded-lg px-2 py-0.5 text-[12px]" />
           </div>
 
-          <div className="flex shrink-0 items-center gap-2">
-            <KpiTile
-              value={money(expense.amount)}
-              label="Total"
-              icon="trending_up"
-              iconBg="#DCFCE7"
-              iconColor="#16A34A"
-            />
-            <KpiTile
-              value={money(tax)}
-              label="Tax"
-              icon="paid"
-              iconBg="#EBF0F8"
-              iconColor="#4A6FA5"
-            />
-            <button
-              onClick={() => navigate("/expenses/new")}
-              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-md bg-[#4A6FA5] px-3.5 text-[13px] leading-5 text-white transition-colors hover:bg-[#3d5a85]"
-              style={{ fontWeight: 600 }}
-            >
-              <span className="material-icons" style={{ fontSize: "16px" }}>add</span>
-              Create Expense
-            </button>
-            <KebabMenu triggerClassName="h-9 w-9 border border-[#E5E7EB] rounded-md hover:bg-[#F5F7FA] bg-white">
-              <KebabItem icon="edit">Edit expense</KebabItem>
-              {/* No "Open invoice" — expenses link to a JOB, never an invoice (Marek, Jun 11). */}
-              <KebabItem
-                icon="content_copy"
-                onSelect={() => {
-                  // EXP-3 — copy everything except the amount; CreateExpense
-                  // highlights the blank amount field (dup=1) for re-entry.
-                  const params = new URLSearchParams({ dup: "1" });
-                  if (expense.merchant) params.set("vendor", expense.merchant);
-                  if (expense.category) params.set("category", expense.category);
-                  if (description) params.set("description", description);
-                  if (internalNotes) params.set("notes", internalNotes);
-                  if (expense.jobId) params.set("fromJob", expense.jobId);
-                  navigate(`/expenses/new?${params.toString()}`);
-                }}
-              >
-                Duplicate
-              </KebabItem>
-              <KebabSeparator />
-              <KebabItem icon="archive" destructive>Archive</KebabItem>
-            </KebabMenu>
+          <div className="flex shrink-0 items-center">
+            {[
+              { val: money(expense.amount), label: "Total", icon: "monetization_on", color: "#16A34A", bg: "rgba(22,163,74,0.15)" },
+              { val: money(tax), label: "Tax", icon: "payments", color: "#4A6FA5", bg: "rgba(74,111,165,0.15)" },
+            ].map((s, i) => (
+              <div key={s.label} className="flex items-center">
+                {i > 0 && <div className="mx-4 h-6 w-px bg-[#E5E7EB]" />}
+                <div className="flex items-center gap-3">
+                  <div className="flex flex-col">
+                    <div className="text-[18px] leading-none text-[#1A2332]" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{s.val}</div>
+                    <div className="text-[14px] leading-[20px] text-[#6B7280]">{s.label}</div>
+                  </div>
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ backgroundColor: s.bg }}>
+                    <span className="material-icons" style={{ fontSize: "18px", color: s.color }}>{s.icon}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+            <div className="ml-4">
+              <KebabMenu triggerClassName="h-9 w-9 border border-[#E5E7EB] rounded-md hover:bg-[#F5F7FA] bg-white">
+                <KebabItem icon="edit">Edit expense</KebabItem>
+                <KebabItem icon="content_copy" onSelect={duplicate}>Duplicate</KebabItem>
+                <KebabSeparator />
+                <KebabItem icon="archive" destructive>Archive</KebabItem>
+              </KebabMenu>
+            </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-[432px_minmax(0,1fr)] gap-8 px-5 py-4">
-          <div className="rounded-xl border border-[#E5E7EB] bg-white p-8">
-            <button
-              className="float-right -mr-1 -mt-1 inline-flex h-8 w-8 items-center justify-center rounded-md text-[#6B7280] transition-colors hover:bg-[#F5F7FA] hover:text-[#1A2332]"
-              aria-label="Edit expense details"
-              title="Edit expense details"
-            >
-              <span className="material-icons" style={{ fontSize: "18px" }}>edit</span>
-            </button>
-
-            <div className="space-y-6">
-              <DetailBlock label="Description" value={description || "—"} />
-              <div className="grid grid-cols-2 gap-4">
-                <DetailBlock label="Vendor" value={expense.merchant} />
-                <DetailBlock
-                  label="Category"
-                  value={<CategoryPill category={expense.category} className="px-2.5 py-1 text-[12px]" />}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <DetailBlock label="Expense Date" value={expense.date} />
-                <DetailBlock label="Total Amount" value={money(expense.amount)} />
-              </div>
-              <DetailBlock label="Document Reference Number" value={documentNumber} />
-              {expense.jobId && (
-                <DetailBlock
-                  label="Job"
-                  value={
-                    <button
-                      onClick={() => navigate(`/jobs/${expense.jobId!.replace("J-", "")}`)}
-                      className="text-left text-[#4A6FA5] hover:underline"
-                    >
-                      #{expense.jobId} - {expense.jobTitle}
-                    </button>
-                  }
-                />
+        {/* 3-column body: Details / Documents / Notes (Figma 1141:106489) */}
+        <div className="mt-4 grid grid-cols-[176px_minmax(0,1fr)_360px] gap-4 items-start">
+          {/* Col 1 — Details */}
+          <div className="rounded-xl border border-[#E5E7EB] bg-white p-4">
+            <h3 className="mb-4 text-[16px] text-[#1A2332]" style={{ fontWeight: 600 }}>Details</h3>
+            <div className="flex flex-col gap-4">
+              <DetailBlock label="Document number" value={documentNumber} />
+              {expense.jobId ? (
+                <div>
+                  <div className="mb-1 text-[14px] text-[#6B7280] leading-[20px]">Job</div>
+                  <button
+                    onClick={() => navigate(`/jobs/${expense.jobId!.replace("J-", "")}`)}
+                    className="block text-left text-[14px] text-[#4A6FA5] hover:underline leading-[16px]"
+                  >
+                    #{expense.jobId}
+                  </button>
+                  <div className="text-[14px] text-[#1A2332] leading-[20px]">{expense.jobTitle || "—"}</div>
+                </div>
+              ) : (
+                <DetailBlock label="Job" value="—" />
               )}
-              {/* No "Invoice" link block — expenses link to a JOB only (Marek, Jun 11). */}
-              <div>
-                <div
-                  className="mb-1.5 text-[11px] uppercase tracking-wider text-[#546478]"
-                  style={{ fontWeight: 600 }}
-                >
-                  Notes
-                </div>
-                <div className="rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] px-3 py-2 text-[13px] leading-5 text-[#374151]">
-                  {internalNotes || "No notes"}
-                </div>
-              </div>
             </div>
           </div>
 
-          <div className="min-w-0">
-            <div className="mb-2 flex h-9 items-center border-b border-[#E5E7EB]">
-              <div className="w-[190px] text-[13px] text-[#9CA3AF]" style={{ fontWeight: 600 }}>
-                Attachments
+          {/* Col 2 — Documents browser */}
+          <div className="rounded-xl border border-[#E5E7EB] bg-white p-4">
+            {/* search + view toggle */}
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex h-9 w-[294px] items-center gap-2 rounded-lg border border-[#E5E7EB] bg-white px-3">
+                <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "16px" }}>search</span>
+                <input type="text" placeholder="Search documents" className="w-full bg-transparent text-[14px] text-[#1A2332] placeholder:text-[#6B7280] focus:outline-none" />
               </div>
-              <div className="flex items-center gap-8">
-                {(["media", "files"] as AttachmentTab[]).map(tab => (
+              <button aria-label="Grid view" className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#E5E7EB] bg-white text-[#546478] hover:bg-[#F5F7FA]">
+                <span className="material-icons" style={{ fontSize: "16px" }}>grid_view</span>
+              </button>
+            </div>
+            {/* filter row */}
+            <div className="mt-2 flex items-center gap-2 rounded-lg border border-[#E5E7EB] p-3">
+              {[{ k: "Date", v: "All time" }, { k: "Categories", v: "All" }, { k: "Uploaders", v: "All" }].map(f => (
+                <button key={f.k} className="inline-flex h-9 items-center gap-2 rounded-lg border border-[#E5E7EB] bg-white pl-3 pr-2 text-[14px] hover:bg-[#F5F7FA]">
+                  <span className="text-[#6B7280]">{f.k}:</span>
+                  <span className="text-[#1A2332]">{f.v}</span>
+                  <span className="material-icons text-[#6B7280]" style={{ fontSize: "16px" }}>expand_more</span>
+                </button>
+              ))}
+              <button aria-label="Filter" className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#E5E7EB] bg-white text-[#546478] hover:bg-[#F5F7FA]">
+                <span className="material-icons" style={{ fontSize: "16px" }}>tune</span>
+              </button>
+            </div>
+            {/* thumbnail grid + preview */}
+            <div className="mt-3 flex gap-4">
+              <div className="grid max-h-[400px] w-[160px] shrink-0 grid-cols-2 gap-2 overflow-y-auto pr-1">
+                {documents.map((doc, idx) => (
                   <button
-                    key={tab}
-                    onClick={() => setAttachmentTab(tab)}
-                    className={`relative h-9 text-[13px] transition-colors ${
-                      attachmentTab === tab ? "text-[#4A6FA5]" : "text-[#6B7280] hover:text-[#1A2332]"
-                    }`}
-                    style={{ fontWeight: 600 }}
+                    key={idx}
+                    onClick={() => setSelectedDoc(idx)}
+                    className={`h-[60px] overflow-hidden rounded-md border ${selectedDoc === idx ? "border-[#4A6FA5] ring-1 ring-[#4A6FA5]" : "border-[#E5E7EB]"}`}
                   >
-                    {tab === "media" ? `Media (${media.length - 1})` : "Files (0)"}
-                    {attachmentTab === tab && (
-                      <span className="absolute inset-x-0 bottom-[-1px] h-0.5 rounded-full bg-[#4A6FA5]" />
-                    )}
+                    <img src={doc.src} alt="" className="h-full w-full object-cover" />
                   </button>
                 ))}
               </div>
-              <button className="ml-auto inline-flex h-7 w-7 items-center justify-center rounded-full text-[#9CA3AF] hover:bg-[#F5F7FA] hover:text-[#1A2332]">
-                <span className="material-icons" style={{ fontSize: "16px" }}>add_circle_outline</span>
-              </button>
-            </div>
-
-            {attachmentTab === "media" ? (
-              <div className="flex gap-4">
-                <div className="flex w-[54px] flex-col gap-2 pt-3">
-                  {media.map((item, idx) => (
-                    <button
-                      key={item.src}
-                      onClick={() => setSelectedMedia(idx)}
-                      className={`h-[54px] overflow-hidden rounded-md border ${
-                        selectedMedia === idx ? "border-[#4A6FA5]" : "border-[#E5E7EB]"
-                      }`}
-                    >
-                      <img src={item.src} alt="" className="h-full w-full object-cover" />
-                    </button>
-                  ))}
-                </div>
-
-                <div className="relative h-[320px] max-w-[620px] flex-1 overflow-hidden rounded-sm bg-[#F5F7FA]">
-                  <img
-                    src={currentMedia.src}
-                    alt="Expense attachment"
-                    className="h-full w-full object-cover"
-                  />
-                  <button className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded bg-white/90 text-[#1A2332] shadow-sm hover:bg-white">
-                    <span className="material-icons" style={{ fontSize: "18px" }}>open_in_full</span>
-                  </button>
+              <div className="relative min-w-0 flex-1 overflow-hidden rounded-lg bg-[#F5F7FA]">
+                <img src={currentDoc.src} alt="Expense document" className="h-[400px] w-full object-cover" />
+                <button aria-label="Expand" className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-md bg-white/90 text-[#1A2332] shadow-sm hover:bg-white">
+                  <span className="material-icons" style={{ fontSize: "18px" }}>open_in_full</span>
+                </button>
+                <div className="absolute inset-x-0 bottom-3 flex items-center justify-center gap-3">
                   <button
-                    onClick={() => setSelectedMedia((selectedMedia - 1 + media.length) % media.length)}
-                    className="absolute left-3 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-[#1A2332] shadow-sm hover:bg-white"
+                    onClick={() => setSelectedDoc((selectedDoc - 1 + documents.length) % documents.length)}
+                    aria-label="Previous"
+                    className="flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-[#1A2332] shadow-sm hover:bg-white"
                   >
                     <span className="material-icons" style={{ fontSize: "20px" }}>chevron_left</span>
                   </button>
+                  <span className="rounded bg-black/70 px-2 py-0.5 text-[12px] leading-5 text-white" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
+                    {selectedDoc + 1}/{documents.length}
+                  </span>
                   <button
-                    onClick={() => setSelectedMedia((selectedMedia + 1) % media.length)}
-                    className="absolute right-3 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-[#1A2332] shadow-sm hover:bg-white"
+                    onClick={() => setSelectedDoc((selectedDoc + 1) % documents.length)}
+                    aria-label="Next"
+                    className="flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-[#1A2332] shadow-sm hover:bg-white"
                   >
                     <span className="material-icons" style={{ fontSize: "20px" }}>chevron_right</span>
                   </button>
-                  <div className="absolute bottom-3 left-3 rounded bg-[#16A34A] px-2 py-0.5 text-[11px] leading-4 text-white" style={{ fontWeight: 600 }}>
-                    {currentMedia.label}
-                  </div>
-                  <div className="absolute bottom-3 right-3 rounded bg-black/70 px-2 py-0.5 text-[11px] leading-4 text-white" style={{ fontWeight: 600 }}>
-                    {selectedMedia + 1}/{media.length}
-                  </div>
                 </div>
               </div>
-            ) : (
-              <div className="flex h-[320px] items-center justify-center rounded-lg border border-dashed border-[#E5E7EB] bg-[#F9FAFB] text-[13px] text-[#9CA3AF]">
-                No files attached
-              </div>
-            )}
+            </div>
           </div>
-        </div>
 
-        <div className="px-5 pb-5">
-          <div className="rounded-xl border border-[#E5E7EB] bg-white">
-            <div className="flex items-center border-b border-[#E5E7EB] px-5 py-3.5">
-              <span className="text-[13px] text-[#9CA3AF]" style={{ fontWeight: 600 }}>
-                Line Items ({lineItems.length})
-              </span>
+          {/* Col 3 — Notes */}
+          <div className="rounded-xl border border-[#E5E7EB] bg-white p-4">
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="text-[16px] text-[#1A2332]" style={{ fontWeight: 600 }}>Notes</h3>
+              <button onClick={() => setEditing({ id: 0, text: "" })} className="text-[#9CA3AF] hover:text-[#4A6FA5]" aria-label="Add note">
+                <span className="material-icons" style={{ fontSize: "18px" }}>add_circle_outline</span>
+              </button>
             </div>
 
-            {lineItems.length > 0 ? (
-              <>
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-[#E5E7EB]">
-                      <th className="px-5 py-2.5 text-left text-[11px] uppercase tracking-wider text-[#546478]" style={{ fontWeight: 600 }}>
-                        Item
-                      </th>
-                      <th className="w-[90px] px-5 py-2.5 text-right text-[11px] uppercase tracking-wider text-[#546478]" style={{ fontWeight: 600 }}>
-                        Qty
-                      </th>
-                      <th className="w-[140px] px-5 py-2.5 text-right text-[11px] uppercase tracking-wider text-[#546478]" style={{ fontWeight: 600 }}>
-                        Unit Price
-                      </th>
-                      <th className="w-[140px] px-5 py-2.5 text-right text-[11px] uppercase tracking-wider text-[#546478]" style={{ fontWeight: 600 }}>
-                        Total
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {lineItems.map((li) => (
-                      <tr key={li.name} className="border-b border-[#F1F3F7] last:border-0">
-                        <td className="px-5 py-3">
-                          <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{li.name}</div>
-                          {li.description && (
-                            <div className="mt-0.5 text-[12px] text-[#8899AA]">{li.description}</div>
-                          )}
-                        </td>
-                        <td className="px-5 py-3 text-right text-[13px] text-[#374151]" style={{ fontVariantNumeric: "tabular-nums" }}>
-                          {li.quantity}
-                        </td>
-                        <td className="px-5 py-3 text-right text-[13px] text-[#374151]" style={{ fontVariantNumeric: "tabular-nums" }}>
-                          {money(li.unitPrice)}
-                        </td>
-                        <td className="px-5 py-3 text-right text-[13px] text-[#1A2332]" style={{ fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>
-                          {money(li.quantity * li.unitPrice)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                <div className="flex justify-end border-t border-[#E5E7EB] px-5 py-4">
-                  <div className="w-[260px] space-y-2">
-                    <div className="flex items-center justify-between text-[13px]">
-                      <span className="text-[#8899AA]">Subtotal</span>
-                      <span className="text-[#1A2332]" style={{ fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>
-                        {money(lineItemsSubtotal)}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between text-[13px]">
-                      <span className="text-[#8899AA]">Tax</span>
-                      <span className="text-[#1A2332]" style={{ fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>
-                        {money(tax)}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between border-t border-[#E5E7EB] pt-2 text-[14px]">
-                      <span className="text-[#1A2332]" style={{ fontWeight: 600 }}>Total</span>
-                      <span className="text-[#1A2332]" style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
-                        {money(lineItemsSubtotal + tax)}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </>
+            {editing?.id === 0 && (
+              <NoteEditor editing={editing} setEditing={setEditing} onSave={saveNote} />
+            )}
+
+            {notes.length === 0 && editing?.id !== 0 ? (
+              <div className="py-4 text-center text-[12px] text-[#9CA3AF]">No notes yet</div>
             ) : (
-              <div className="m-5 rounded-lg border-2 border-dashed border-[#E5E7EB] py-8 text-center">
-                <span className="material-icons text-[#D1D5DB]" style={{ fontSize: "32px" }}>inventory_2</span>
-                <p className="mt-1 text-[13px] text-[#8899AA]">No line items on this expense</p>
+              <div className="flex flex-col">
+                {visibleNotes.map(n => (
+                  editing?.id === n.id ? (
+                    <NoteEditor key={n.id} editing={editing} setEditing={setEditing} onSave={saveNote} />
+                  ) : (
+                    <div key={n.id} className="group border-b border-[#EDF0F5] py-2.5 last:border-b-0">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="text-[14px] text-[#6B7280] leading-[20px]">Added {n.date}</div>
+                        <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                          <button onClick={() => setEditing({ id: n.id, text: n.text })} className="text-[#9CA3AF] hover:text-[#4A6FA5]" aria-label="Edit note"><span className="material-icons" style={{ fontSize: "15px" }}>edit</span></button>
+                          <button onClick={() => setNotes(p => p.filter(x => x.id !== n.id))} className="text-[#9CA3AF] hover:text-[#DC2626]" aria-label="Delete note"><span className="material-icons" style={{ fontSize: "15px" }}>delete_outline</span></button>
+                        </div>
+                      </div>
+                      <div className="mt-0.5 text-[14px] text-[#1A2332] leading-[20px]">{n.text}</div>
+                    </div>
+                  )
+                ))}
+                {notes.length > 3 && (
+                  <button onClick={() => setShowAll(v => !v)} className="mt-3 text-center text-[12px] text-[#4A6FA5] hover:underline" style={{ fontWeight: 500 }}>
+                    {showAll ? "Show less" : `Show ${notes.length - 3} more`}
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -379,29 +293,19 @@ export function ExpenseDetail() {
   );
 }
 
-function KpiTile({
-  value,
-  label,
-  icon,
-  iconBg,
-  iconColor,
-}: {
-  value: string;
-  label: string;
-  icon: string;
-  iconBg: string;
-  iconColor: string;
-}) {
+function NoteEditor({ editing, setEditing, onSave }: { editing: { id: number; text: string }; setEditing: (n: { id: number; text: string } | null) => void; onSave: () => void }) {
   return (
-    <div className="flex h-10 min-w-[108px] items-center justify-between gap-2.5 rounded-md border border-[#E5E7EB] bg-white px-3 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
-      <div className="min-w-0">
-        <div className="truncate text-[14px] leading-4 text-[#1A2332]" style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
-          {value}
-        </div>
-        <div className="truncate text-[10px] leading-4 text-[#6B7280]">{label}</div>
-      </div>
-      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md" style={{ backgroundColor: iconBg }}>
-        <span className="material-icons" style={{ fontSize: "16px", color: iconColor }}>{icon}</span>
+    <div className="mb-3 rounded-lg border border-[#E5E7EB] p-2">
+      <textarea
+        value={editing.text}
+        onChange={(e) => setEditing({ ...editing, text: e.target.value })}
+        placeholder="Add a note…"
+        autoFocus
+        className="min-h-[60px] w-full resize-y rounded-md border border-[#E5E7EB] px-2.5 py-1.5 text-[13px] text-[#1A2332] outline-none focus:border-[#4A6FA5]"
+      />
+      <div className="mt-2 flex justify-end gap-2">
+        <button onClick={() => setEditing(null)} className="h-8 rounded-md border border-[#E5E7EB] bg-white px-3 text-[12px] text-[#546478] hover:bg-[#F5F7FA]" style={{ fontWeight: 600 }}>Cancel</button>
+        <button onClick={onSave} className="h-8 rounded-md bg-[#4A6FA5] px-3 text-[12px] text-white hover:bg-[#3d5a85]" style={{ fontWeight: 600 }}>Save</button>
       </div>
     </div>
   );
@@ -410,15 +314,8 @@ function KpiTile({
 function DetailBlock({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div>
-      <div
-        className="mb-1 text-[11px] uppercase tracking-wider text-[#546478]"
-        style={{ fontWeight: 600 }}
-      >
-        {label}
-      </div>
-      <div className="text-[14px] leading-5 text-[#1A2332]" style={{ fontWeight: 500 }}>
-        {value}
-      </div>
+      <div className="mb-1 text-[14px] text-[#6B7280] leading-[20px]">{label}</div>
+      <div className="text-[14px] leading-[20px] text-[#1A2332]">{value}</div>
     </div>
   );
 }
