@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { jobTypesStore } from "../stores/jobTypesStore";
 import {
   durationForType,
   DEFAULT_JOB_DURATION,
@@ -29,16 +30,23 @@ const job = (over: Partial<SchedulableJob> = {}): SchedulableJob => ({
   id: 1, technicianId: "peter", status: "Scheduled", start: 9, end: 11, ...over,
 });
 
-describe("durationForType — default duration by job type", () => {
-  it("maps known types", () => {
-    expect(durationForType("Install")).toBe(4);
-    expect(durationForType("Repair")).toBe(2);
-    expect(durationForType("Maintenance")).toBe(1.5);
-    expect(durationForType("Estimate")).toBe(1);
+describe("durationForType — default duration by job type (configurable in Settings)", () => {
+  it("maps known types from jobTypesStore defaults (Installation 8h, others 2h)", () => {
+    expect(durationForType("Installation")).toBe(8);
+    expect(durationForType("Install")).toBe(8);
+    expect(durationForType("Maintenance")).toBe(2);
+    expect(durationForType("Estimate")).toBe(2);
   });
   it("falls back for unknown / missing types", () => {
     expect(durationForType("Frobnicate")).toBe(DEFAULT_JOB_DURATION);
     expect(durationForType(undefined)).toBe(DEFAULT_JOB_DURATION);
+  });
+  it("honors a Settings change — the board (durationForType) and create form share one source", () => {
+    // D8: editing the per-type duration in Settings → Job Types must drive the
+    // schedule board's slot length, not a stale hardcoded value.
+    jobTypesStore.setDuration("Maintenance", 3);
+    expect(durationForType("Maintenance")).toBe(3);
+    jobTypesStore.setDuration("Maintenance", 2); // restore default
   });
 });
 

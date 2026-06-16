@@ -27,7 +27,6 @@ const expenseOverrides: Record<
     tax: 2.4,
     jobId: "J-1234",
     jobTitle: "HVAC Installation",
-    invoiceId: "INV-0042",
     description: "Supplies for commercial HVAC project",
     notes: "Returned 2 unused fittings — credit expected on next statement.",
     documentNumber: "Rcp-72545786",
@@ -140,11 +139,7 @@ export function ExpenseDetail() {
             </button>
             <KebabMenu triggerClassName="h-9 w-9 border border-[#E5E7EB] rounded-md hover:bg-[#F5F7FA] bg-white">
               <KebabItem icon="edit">Edit expense</KebabItem>
-              {expense.invoiceId && (
-                <KebabItem icon="receipt" onSelect={() => navigate(`/invoices/${expense.invoiceId!.replace("INV-", "")}`)}>
-                  Open invoice
-                </KebabItem>
-              )}
+              {/* No "Open invoice" — expenses link to a JOB, never an invoice (Marek, Jun 11). */}
               <KebabItem
                 icon="content_copy"
                 onSelect={() => {
@@ -204,19 +199,7 @@ export function ExpenseDetail() {
                   }
                 />
               )}
-              {expense.invoiceId && (
-                <DetailBlock
-                  label="Invoice"
-                  value={
-                    <button
-                      onClick={() => navigate(`/invoices/${expense.invoiceId!.replace("INV-", "")}`)}
-                      className="text-left text-[#4A6FA5] hover:underline"
-                    >
-                      #{expense.invoiceId}
-                    </button>
-                  }
-                />
-              )}
+              {/* No "Invoice" link block — expenses link to a JOB only (Marek, Jun 11). */}
               <div>
                 <div
                   className="mb-1.5 text-[11px] uppercase tracking-wider text-[#546478]"

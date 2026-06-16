@@ -4,6 +4,7 @@
 // of truth. Keep this free of React / DOM so it can be tested in isolation.
 
 import type { JobStatus } from "../constants/jobStatuses";
+import { jobTypesStore } from "../stores/jobTypesStore";
 
 // A minimal shape the rules operate on — both the day board and the pending
 // column pass objects compatible with this.
@@ -18,18 +19,16 @@ export interface SchedulableJob {
 }
 
 // ── Default job duration by type (hours) ──────────────────────────────────
-// Product decision (Marek call): the default duration is 2h for EVERY job type,
-// with the single exception of Installation → 8h. It auto-fills the end time on
-// create/drag and is configurable per client afterwards.
-export const DEFAULT_DURATION_BY_TYPE: Record<string, number> = {
-  Install: 8,
-  Installation: 8,
-};
+// Product decision (Marek, Jun 8): every job type carries a DEFAULT DURATION
+// that auto-fills the end time on create/drag (2h default, Installation 8h) and
+// is CONFIGURABLE in Settings → Job Types. To guarantee the create form, the
+// schedule board, and Settings never diverge, the duration has ONE source of
+// truth — jobTypesStore. This helper delegates to it so a board drag-from-pending
+// books the same slot length the user configured (not a stale hardcoded value).
 export const DEFAULT_JOB_DURATION = 2;
 
 export function durationForType(jobType?: string): number {
-  if (!jobType) return DEFAULT_JOB_DURATION;
-  return DEFAULT_DURATION_BY_TYPE[jobType] ?? DEFAULT_JOB_DURATION;
+  return jobTypesStore.getDuration(jobType);
 }
 
 // ── Board visibility, slot occupancy & draggability ───────────────────────

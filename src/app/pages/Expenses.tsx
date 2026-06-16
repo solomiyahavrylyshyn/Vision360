@@ -407,21 +407,6 @@ export function Expenses() {
                             )}
                           </td>
                         );
-                        case "invoiceId": return (
-                          <td key={col.key} className="px-4 py-4">
-                            {expense.invoiceId ? (
-                              <span
-                                className="text-[14px] text-[#4A6FA5] hover:underline"
-                                style={{ fontFamily: "Geist", fontWeight: 400, lineHeight: "20px" }}
-                                onClick={(e) => { e.stopPropagation(); navigate(`/invoices/${expense.invoiceId!.replace("INV-", "")}`); }}
-                              >
-                                #{expense.invoiceId}
-                              </span>
-                            ) : (
-                              <span className="text-[14px] text-[#8899AA]" style={{ fontFamily: "Geist", fontWeight: 400 }}>—</span>
-                            )}
-                          </td>
-                        );
                         case "notes": return (
                           <td key={col.key} className="px-4 py-4">
                             <span className="text-[14px] text-[#546478] max-w-[200px] truncate block" style={{ fontFamily: "Geist", fontWeight: 400, lineHeight: "20px" }}>{expense.notes || "—"}</span>
@@ -445,9 +430,7 @@ export function Expenses() {
                     <td className="px-4 py-4" onClick={e => e.stopPropagation()}>
                       <KebabMenu>
                         <KebabItem icon="visibility" onSelect={() => navigate(`/expenses/${expense.id}`)}>View details</KebabItem>
-                        {expense.invoiceId && (
-                          <KebabItem icon="receipt" onSelect={() => navigate(`/invoices/${expense.invoiceId!.replace("INV-", "")}`)}>Open invoice</KebabItem>
-                        )}
+                        {/* No "Open invoice" — expenses link to a JOB only (Marek, Jun 11). */}
                         <KebabItem icon="edit">Edit</KebabItem>
                         <KebabSeparator />
                         <KebabItem icon="archive" destructive>Archive</KebabItem>

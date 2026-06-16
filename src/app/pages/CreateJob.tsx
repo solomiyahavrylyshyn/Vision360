@@ -12,7 +12,6 @@ import { PageHeader } from "../components/ui/page-header";
 import { PlusIcon } from "../components/ui/plus-icon";
 import { itemsStore } from "../stores/itemsStore";
 import { type JobStatus, JOB_STATUSES } from "../constants/jobStatuses";
-import { durationForType } from "../utils/scheduleLogic";
 import { expandRecurrence, describeRecurrence, type RecurrenceFrequency, type RecurrenceRule } from "../utils/recurrence";
 
 // ── Time helpers (shared by the bidirectional duration ⇄ end-time logic) ──

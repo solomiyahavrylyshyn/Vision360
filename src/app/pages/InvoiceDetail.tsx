@@ -720,9 +720,13 @@ export function InvoiceDetail() {
                   <td className="px-3 py-3 text-[13px] text-[#374151] text-right" style={{ fontVariantNumeric: "tabular-nums" }}>${fmt(item.unitPrice)}</td>
                   <td className="px-3 py-3 text-[13px] text-[#1A2332] text-right" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>${fmt(item.qty * item.unitPrice)}</td>
                   <td className="px-3 py-3 text-right">
-                    <button className="w-7 h-7 rounded text-[#DC2626] hover:bg-[#FEE2E2] inline-flex items-center justify-center transition-colors" title="Remove item">
-                      <span className="material-icons" style={{ fontSize: "16px" }}>delete_outline</span>
-                    </button>
+                    {/* Remove-item is hidden on a locked (Paid/Void) invoice — it's a
+                        closed financial doc, no line-item editing (Marek, Jun 11). */}
+                    {!isLocked && (
+                      <button className="w-7 h-7 rounded text-[#DC2626] hover:bg-[#FEE2E2] inline-flex items-center justify-center transition-colors" title="Remove item">
+                        <span className="material-icons" style={{ fontSize: "16px" }}>delete_outline</span>
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
