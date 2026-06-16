@@ -62,11 +62,26 @@ const LS_KEY = "vision360.estimates.v1";
 // Seed used the first time the app boots on a clean browser. Subsequent loads
 // rehydrate from localStorage so user-created estimates persist across refresh.
 const SEED: EstimateRecord[] = [
-  { id: 1, estimateNumber: "10245-E02", estimateName: "", clientName: "Travis Jones", clientEmail: "cerb04@yahoo.com", createdDate: "Mon Mar 30, 2026", addedBy: "Marek Ste", option: "", amount: 0, status: "Draft", job: "", jobTitle: "", sentDate: "", expirationDate: "", teamMember: "Marek Stroz", source: "", depositDue: 0 },
-  { id: 2, estimateNumber: "10246-E04", estimateName: "Estimate 1", clientName: "John Doe", clientEmail: "cerb04@yahoo.com", createdDate: "Fri Mar 13, 2026", addedBy: "Marek Fie", option: "1", amount: 0, status: "Viewed", job: "10246-J04", jobTitle: "Bathroom Remodel", sentDate: "Mar 13, 2026", expirationDate: "Jun 13, 2026", teamMember: "Marek Stroz", source: "10246-J04", depositDue: 0 },
-  { id: 3, estimateNumber: "10246-E03", estimateName: "Option C", clientName: "John Doe", clientEmail: "cerb04@yahoo.com", createdDate: "Mon Mar 02, 2026", addedBy: "Marek Fie", option: "C", amount: 0, status: "Expired", job: "10246-J01", jobTitle: "Tree Removal", sentDate: "Mar 03, 2026", expirationDate: "Apr 02, 2026", teamMember: "Marek Stroz", source: "10246-J01", depositDue: 0 },
-  { id: 4, estimateNumber: "10246-E02", estimateName: "Option B", clientName: "John Doe", clientEmail: "cerb04@yahoo.com", createdDate: "Mon Mar 02, 2026", addedBy: "Marek Fie", option: "B", amount: 0, status: "Sent", job: "10246-J01", jobTitle: "Tree Removal", sentDate: "Mar 03, 2026", expirationDate: "", teamMember: "Marek Stroz", source: "10246-J01", depositDue: 0 },
-  { id: 5, estimateNumber: "10246-E01", estimateName: "Option A", clientName: "John Doe", clientEmail: "cerb04@yahoo.com", createdDate: "Mon Mar 02, 2026", addedBy: "Marek Fie", option: "A", amount: 3500, status: "Approved", job: "10246-J01", jobTitle: "Tree Removal", sentDate: "Mar 03, 2026", expirationDate: "Apr 02, 2026", teamMember: "Marek Stroz", source: "10246-J01", depositDue: 0, updatedDate: "Mar 02, 2026" },
+  { id: 1, estimateNumber: "10245-E02", estimateName: "", clientName: "Travis Jones", clientEmail: "cerb04@yahoo.com", createdDate: "Mon Mar 30, 2026", addedBy: "Marek Ste", option: "", amount: 228, status: "Draft", job: "", jobTitle: "", sentDate: "", expirationDate: "", teamMember: "Marek Stroz", source: "", depositDue: 0, taxRate: 7.5, items: [
+    { id: 1, name: "Diagnostic Visit", description: "Standard diagnostic service call", quantity: 1, price: 99, cost: 0, amount: 99, taxable: true },
+    { id: 2, name: "AC Tune-Up", description: "Annual AC maintenance and tune-up", quantity: 1, price: 129, cost: 0, amount: 129, taxable: true },
+  ] },
+  { id: 2, estimateNumber: "10246-E04", estimateName: "Estimate 1", clientName: "John Doe", clientEmail: "cerb04@yahoo.com", createdDate: "Fri Mar 13, 2026", addedBy: "Marek Fie", option: "1", amount: 1220, status: "Viewed", job: "10246-J04", jobTitle: "Bathroom Remodel", sentDate: "Mar 13, 2026", expirationDate: "Jun 13, 2026", teamMember: "Marek Stroz", source: "10246-J04", depositDue: 0, taxRate: 7.5, items: [
+    { id: 1, name: "Vanity & Sink Install", description: "Supply and install bathroom vanity with sink", quantity: 1, price: 650, cost: 320, amount: 650, taxable: true },
+    { id: 2, name: "Plumbing Labor", description: "Technician labor (hourly)", quantity: 6, price: 95, cost: 45, amount: 570, taxable: false },
+  ] },
+  { id: 3, estimateNumber: "10246-E03", estimateName: "Option C", clientName: "John Doe", clientEmail: "cerb04@yahoo.com", createdDate: "Mon Mar 02, 2026", addedBy: "Marek Fie", option: "C", amount: 1050, status: "Expired", job: "10246-J01", jobTitle: "Tree Removal", sentDate: "Mar 03, 2026", expirationDate: "Apr 02, 2026", teamMember: "Marek Stroz", source: "10246-J01", depositDue: 0, taxRate: 7.5, items: [
+    { id: 1, name: "Tree Removal Service", description: "Remove large tree, sectional", quantity: 1, price: 800, cost: 300, amount: 800, taxable: true },
+    { id: 2, name: "Stump Grinding", description: "Grind stump below grade", quantity: 1, price: 250, cost: 90, amount: 250, taxable: true },
+  ] },
+  { id: 4, estimateNumber: "10246-E02", estimateName: "Option B", clientName: "John Doe", clientEmail: "cerb04@yahoo.com", createdDate: "Mon Mar 02, 2026", addedBy: "Marek Fie", option: "B", amount: 800, status: "Sent", job: "10246-J01", jobTitle: "Tree Removal", sentDate: "Mar 03, 2026", expirationDate: "", teamMember: "Marek Stroz", source: "10246-J01", depositDue: 0, taxRate: 7.5, items: [
+    { id: 1, name: "Tree Removal Service", description: "Remove large tree, sectional", quantity: 1, price: 800, cost: 300, amount: 800, taxable: true },
+  ] },
+  { id: 5, estimateNumber: "10246-E01", estimateName: "Option A", clientName: "John Doe", clientEmail: "cerb04@yahoo.com", createdDate: "Mon Mar 02, 2026", addedBy: "Marek Fie", option: "A", amount: 3500, status: "Approved", job: "10246-J01", jobTitle: "Tree Removal", sentDate: "Mar 03, 2026", expirationDate: "Apr 02, 2026", teamMember: "Marek Stroz", source: "10246-J01", depositDue: 0, updatedDate: "Mar 02, 2026", taxRate: 7.5, items: [
+    { id: 1, name: "Large Tree Removal", description: "Remove oak near structure, sectional", quantity: 1, price: 2200, cost: 950, amount: 2200, taxable: true },
+    { id: 2, name: "Crane Service", description: "Crane-assisted removal (half day)", quantity: 1, price: 900, cost: 500, amount: 900, taxable: true },
+    { id: 3, name: "Cleanup & Hauling", description: "Debris cleanup and haul-away", quantity: 1, price: 400, cost: 150, amount: 400, taxable: false },
+  ] },
   // Carries line items so "copy from estimate" on Create Invoice has data to
   // copy even on a fresh browser (user-created estimates always carry items).
   { id: 6, estimateNumber: "10248-E01", estimateName: "HVAC Replacement", clientName: "Sarah Williams", clientEmail: "sarah.w@gmail.com", createdDate: "Sat Feb 28, 2026", addedBy: "Marek Fie", option: "1", amount: 10502, status: "Approved", job: "10248-J01", jobTitle: "HVAC Installation", sentDate: "Mar 01, 2026", expirationDate: "Mar 31, 2026", teamMember: "Marek Stroz", source: "10248-J01", depositDue: 500, taxRate: 7.5, items: [
@@ -74,7 +89,11 @@ const SEED: EstimateRecord[] = [
     { id: 2, name: "Copper Piping Installation", description: "Professional copper piping installation (per ft)", quantity: 40, price: 18.5, cost: 6.75, amount: 740, taxable: true },
     { id: 3, name: "General Labor - Technician", description: "Technician labor (hourly)", quantity: 30, price: 95, cost: 45, amount: 2850, taxable: false },
   ] },
-  { id: 7, estimateNumber: "10247-E01", estimateName: "Plumbing Repair", clientName: "Mike Rodriguez", clientEmail: "mike.r@outlook.com", createdDate: "Wed Feb 25, 2026", addedBy: "Marek Fie", option: "1", amount: 850, status: "Viewed", job: "10247-J01", jobTitle: "Plumbing Fix", sentDate: "Feb 26, 2026", expirationDate: "Mar 27, 2026", teamMember: "Marek Stroz", source: "10247-J01", depositDue: 0 },
+  { id: 7, estimateNumber: "10247-E01", estimateName: "Plumbing Repair", clientName: "Mike Rodriguez", clientEmail: "mike.r@outlook.com", createdDate: "Wed Feb 25, 2026", addedBy: "Marek Fie", option: "1", amount: 850, status: "Viewed", job: "10247-J01", jobTitle: "Plumbing Fix", sentDate: "Feb 26, 2026", expirationDate: "Mar 27, 2026", teamMember: "Marek Stroz", source: "10247-J01", depositDue: 0, taxRate: 7.5, items: [
+    { id: 1, name: "Drain Cleaning Service", description: "Clear main drain line", quantity: 1, price: 175, cost: 40, amount: 175, taxable: false },
+    { id: 2, name: "Pipe Repair Labor", description: "Technician labor", quantity: 3, price: 95, cost: 45, amount: 285, taxable: false },
+    { id: 3, name: "PVC Repair Materials", description: "Pipe, fittings, primer, cement", quantity: 1, price: 390, cost: 140, amount: 390, taxable: true },
+  ] },
 ];
 
 let estimates: EstimateRecord[] = SEED;
@@ -82,7 +101,20 @@ try {
   const raw = typeof localStorage !== "undefined" ? localStorage.getItem(LS_KEY) : null;
   if (raw) {
     const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) estimates = parsed;
+    if (Array.isArray(parsed)) {
+      // Backfill line items onto stored estimates that were cached before the
+      // seed gained items (older localStorage). Every estimate must carry its
+      // items so attaching it to a job/invoice copies them. User-created
+      // estimates already have items; this only repairs stale seed rows.
+      const seedById = new Map(SEED.map((s) => [s.id, s]));
+      estimates = parsed.map((e: EstimateRecord) => {
+        if (e && (!e.items || e.items.length === 0)) {
+          const seed = seedById.get(e.id);
+          if (seed?.items?.length) return { ...e, items: seed.items, taxRate: e.taxRate ?? seed.taxRate, amount: e.amount || seed.amount };
+        }
+        return e;
+      });
+    }
   }
 } catch {
   /* corrupt cache → keep seed */

@@ -84,7 +84,10 @@ const mockEstimates: Record<string, EstimateData> = {
     serviceAddress: "8377 Standish Bend Dr Unit 1\nTampa, FL 33615",
     dateCreated: "Mar 30, 2026", expirationDate: "Apr 30, 2026", sentDate: "Not Sent",
     status: "Draft", teamMember: "Marek Stroz", job: "10245-J01: AC Estimate", jobId: 1,
-    items: [], notes: "", internalNotes: "",
+    items: [
+      { id: 1, name: "Diagnostic Visit", description: "Standard diagnostic service call", quantity: 1, price: 99, cost: 0, amount: 99, taxable: true },
+      { id: 2, name: "AC Tune-Up", description: "Annual AC maintenance and tune-up", quantity: 1, price: 129, cost: 0, amount: 129, taxable: true },
+    ], notes: "", internalNotes: "",
     taxRate: 0, depositRequired: false, depositType: "amount", depositValue: 0,
     activity: [
       { id: 1, date: "Mar 30, 2026 09:00", action: "Estimate created", detail: "Created by Marek Stroz", icon: "add_circle" },

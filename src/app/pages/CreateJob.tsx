@@ -281,10 +281,27 @@ export function CreateJob({ asModal = false, onClose, onCreated, prefill, headin
       status: e.status,
       amount: estimateAmount(e),
     }]);
+    // Auto-copy ALL of the estimate's line items into the job (snapshot), tagged
+    // with the estimate id so they can be removed if the estimate is un-linked.
+    const items = (e as { items?: { name: string; description: string; quantity: number; price: number; cost: number; amount: number; taxable: boolean }[] }).items;
+    if (items?.length) {
+      setLineItems((prev) => {
+        const next = [...prev, ...items.map((it) => ({
+          id: 0, catalogItemId: 0, name: it.name, description: it.description,
+          quantity: it.quantity, unitPrice: it.price, unitCost: it.cost ?? 0,
+          taxable: it.taxable, total: it.amount, sourceEstimateId: e.id,
+        }))];
+        return next.map((li, i) => ({ ...li, id: i + 1 }));
+      });
+      toast.success(`Copied ${items.length} line item${items.length === 1 ? "" : "s"} from ${e.estimateNumber}`);
+    }
     setEstPickerOpen(false);
     setEstSearch("");
   };
-  const removeEstimate = (id: number) => setLinkedEstimates((prev) => prev.filter((l) => l.id !== id));
+  const removeEstimate = (id: number) => {
+    setLinkedEstimates((prev) => prev.filter((l) => l.id !== id));
+    setLineItems((prev) => prev.filter((li) => li.sourceEstimateId !== id).map((li, i) => ({ ...li, id: i + 1 })));
+  };
   const estimatesTotal = linkedEstimates.reduce((s, l) => s + l.amount, 0);
 
   const fmt = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });

@@ -158,6 +158,9 @@ export function CreateEstimate() {
   };
   const handleSaveDraft = () => {
     if (!client.trim()) { toast.error("Select a client before saving the draft."); return; }
+    // An estimate (even a draft) must have at least one line item — its items are
+    // what flow into a job/invoice when the estimate is attached.
+    if (lineItems.length === 0) { toast.error("Add at least one line item before saving."); return; }
     persistEstimate("Draft", "Draft saved");
   };
 

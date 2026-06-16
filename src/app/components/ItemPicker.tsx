@@ -40,6 +40,9 @@ export interface SelectedLineItem {
   unitCost: number;
   taxable: boolean;
   total: number;
+  /** Set when this line item was auto-copied from an attached estimate, so it
+   *  can be removed again if that estimate is un-linked. */
+  sourceEstimateId?: number;
 }
 
 interface ItemPickerProps {
