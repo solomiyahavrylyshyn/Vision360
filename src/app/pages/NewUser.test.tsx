@@ -42,3 +42,59 @@ describe("NewUser — Items permission replaces Show pricing", () => {
     expect(screen.getByText(/delete \/ deactivate items/)).toBeInTheDocument();            // Admin (Item Master)
   });
 });
+
+// Broader RBAC coverage: presets, the edit→custom flip, cross-feature gating,
+// and the custom-preset lifecycle.
+describe("NewUser — RBAC presets, gating & custom presets", () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it("Admin unlocks Estimates/Invoices/Payments levels that the Employee preset hides", async () => {
+    const user = userEvent.setup();
+    renderForm();
+    // Employee (default): those module sections are off, so their level rows are hidden.
+    expect(screen.queryByText(/create, edit, and archive estimates/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/void, and archive/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/collect, edit, and refund/)).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Admin" }));
+    expect(screen.getByText(/create, edit, and archive estimates/)).toBeInTheDocument();   // Estimates top tier
+    expect(screen.getByText(/void, and archive/)).toBeInTheDocument();                     // Invoices top tier
+    expect(screen.getByText(/collect, edit, and refund/)).toBeInTheDocument();             // Payments top tier
+  });
+
+  it("editing any permission flips the preset to Custom (offers save-as-preset)", async () => {
+    const user = userEvent.setup();
+    renderForm();
+    // Not custom initially → the save-as-preset affordance is absent.
+    expect(screen.queryByText("Save current settings as preset")).not.toBeInTheDocument();
+    // Employee has Schedule enabled; choosing a different level flips to Custom.
+    await user.click(screen.getByRole("button", { name: "View everyone's schedule" }));
+    expect(screen.getByText("Save current settings as preset")).toBeInTheDocument();
+  });
+
+  it("Jobs create/edit is gated by an edit-level Schedule permission", async () => {
+    const user = userEvent.setup();
+    renderForm();
+    // Employee: Schedule is view/complete-own → the Jobs "View, create, and edit" tier is locked.
+    expect(screen.getByRole("button", { name: "View, create, and edit" })).toBeDisabled();
+    // Admin: Schedule is edit-and-delete-all → the same tier unlocks.
+    await user.click(screen.getByRole("button", { name: "Admin" }));
+    expect(screen.getByRole("button", { name: "View, create, and edit" })).toBeEnabled();
+  });
+
+  it("saves a custom preset, lists it, and deletes it again", async () => {
+    const user = userEvent.setup();
+    renderForm();
+    await user.click(screen.getByRole("button", { name: "Custom" }));
+    await user.click(screen.getByRole("button", { name: /Save current settings as preset/ }));
+    await user.type(screen.getByPlaceholderText(/Field Tech, Dispatcher/), "Dispatcher");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    // The new preset appears as a selectable radio…
+    expect(screen.getByRole("button", { name: "Dispatcher" })).toBeInTheDocument();
+    // …and can be deleted again (the delete control is an icon button with a title).
+    await user.click(screen.getByTitle('Delete "Dispatcher"'));
+    expect(screen.queryByRole("button", { name: "Dispatcher" })).not.toBeInTheDocument();
+  });
+});

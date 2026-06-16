@@ -183,26 +183,29 @@ describe("Calendar — daily Dispatch board (integration)", () => {
     expect(within(clark).getByText("Unassigned")).toBeInTheDocument();
   });
 
-  it("panel agrees with the card: an unscheduled job's panel shows 'No date set', not a time", () => {
-    // QA bug: the detail panel hardcoded start–end and ignored the unscheduled
-    // flag, so it showed a real time + "Scheduled" while the card showed --:--.
+  it("panel agrees with the card: an unscheduled job's panel shows an empty start date, not a time", () => {
+    // The redesigned panel exposes editable date/time fields. For an unscheduled
+    // job the Start date is empty (placeholder), never a concrete date/time —
+    // so the panel agrees with the card's --:-- placeholder.
     renderDayBoard();
     const aside = screen.getByRole("complementary") as HTMLElement;
     fireEvent.click(within(aside).getByText("Clark Residence").closest('[data-job-card="true"]') as HTMLElement);
-    expect(screen.getByText("No date set")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("DD-MM-YYYY")).toHaveValue("");
   });
 
-  it("lifecycle lock: a completed job's Reschedule button is disabled (§7.3)", () => {
-    // QA bug: Reschedule fired on a Completed job and opened a Create dialog.
+  it("lifecycle (§7.3): a completed job's panel offers 'Reopen job'", () => {
+    // The redesigned panel routes the completed lifecycle through "Reopen job"
+    // (and the board card is drag-locked — see the draggable test above) rather
+    // than a disabled Reschedule button.
     renderDayBoard();
     fireEvent.click(screen.getAllByText("Johnson Residence")[0].closest('[data-job-card="true"]') as HTMLElement);
-    expect(screen.getByRole("button", { name: "Reschedule" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Reopen job" })).toBeInTheDocument();
   });
 
-  it("a scheduled job's Reschedule button stays enabled (not over-locked)", () => {
+  it("an active (scheduled) job's panel has no 'Reopen job' affordance", () => {
     renderDayBoard();
     fireEvent.click(screen.getAllByText("Miller Residence")[0].closest('[data-job-card="true"]') as HTMLElement);
-    expect(screen.getByRole("button", { name: "Reschedule" })).toBeEnabled();
+    expect(screen.queryByRole("button", { name: "Reopen job" })).not.toBeInTheDocument();
   });
 
   it("Edit opens an in-place dialog for the SAME job (BUG-002: no nav to a mismatched record)", () => {
@@ -225,10 +228,12 @@ describe("Calendar — daily Dispatch board (integration)", () => {
     expect(within(aside).getByText("Reyes Office")).toBeInTheDocument();
   });
 
-  it("lifecycle lock: a completed job's Edit button is disabled (§7.3)", () => {
+  it("lifecycle (§7.3): reopening a completed job clears the Completed lock", () => {
     renderDayBoard();
     fireEvent.click(screen.getAllByText("Johnson Residence")[0].closest('[data-job-card="true"]') as HTMLElement);
-    expect(screen.getByRole("button", { name: "Edit" })).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "Reopen job" }));
+    // Once reopened the job is no longer Completed, so the Reopen affordance goes away.
+    expect(screen.queryByRole("button", { name: "Reopen job" })).not.toBeInTheDocument();
   });
 });
 
