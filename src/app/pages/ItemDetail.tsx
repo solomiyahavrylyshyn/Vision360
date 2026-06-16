@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
+import { itemsStore } from "../stores/itemsStore";
 import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
 import { DetailTabs, TabSettingsButton } from "../components/ui/detail-tabs";
 import { PlusIcon } from "../components/ui/plus-icon";
@@ -139,6 +140,24 @@ const mockItems: Record<string, Item> = {
   },
 };
 
+// Map a stored catalog record (created via /items/new) onto the detail display
+// shape, so a created item shows its REAL fields instead of the mock fallback.
+function catalogToItem(c: any): Item {
+  return {
+    id: c.id, active: c.active ?? true, name: c.name,
+    description: c.itemDescription || "", salesDescription: c.salesDescription || "", additionalInfo: c.additionalInfo || "",
+    brand: c.brand || "", modelNumber: c.modelNumber || "", upc: c.upc || "",
+    rate: c.rate || 0, cost: c.cost || 0, taxable: !!c.taxable, tax1: false, tax2: false, tax3: false,
+    onHand: 0, minQty: 0, maxQty: 0, tracking: false,
+    category: c.category || "", subcategory: c.subcategory || "", type: (c.itemType || "Service") as ItemType,
+    vendor: c.vendor || "", vendorCode: "", department: c.department || "",
+    cogsGL: "", salesGL: "",
+    customField1: c.customField1 || "", customField2: c.customField2 || "", customField3: "",
+    notes: c.notes || "", boldPrint: false, group: "", defaultQty: c.defaultQty ?? 1, picture: "",
+    inventory: false, booking: false,
+  };
+}
+
 function getTypeBadgeClass(type: ItemType): string {
   const serviceTypes = ["Service", "Labor", "Maintenance", "Diagnostics", "Installation", "Repair"];
   const materialTypes = ["Inventory Item", "Non-Inventory Item", "Serialized Item"];
@@ -200,7 +219,10 @@ function Card({ title, children, onEdit }: { title: string; children: React.Reac
 export function ItemDetail() {
   const navigate = useNavigate();
   const { id } = useParams();
-  const base = mockItems[id || "1000"] || mockItems["1000"];
+  // A created item lives in itemsStore; demo items 1000-1007 come from mockItems.
+  const storeItems = useSyncExternalStore(itemsStore.subscribe, itemsStore.getSnapshot);
+  const stored = storeItems.find((s) => String(s.id) === String(id));
+  const base = stored ? catalogToItem(stored) : (mockItems[id || "1000"] || mockItems["1000"]);
   // Edits from the detail-page modals apply as an overrides layer so the header
   // + cards reflect them without persisting back to the seed.
   const [overrides, setOverrides] = useState<Partial<typeof base>>({});
@@ -212,13 +234,19 @@ export function ItemDetail() {
 
   // Edit modals (Edit item info / Edit pricing & tax / Edit classification / Edit note).
   const [editModal, setEditModal] = useState<null | "info" | "pricing" | "classification">(null);
-  const [taxProfile, setTaxProfile] = useState("Florida Sales Tax 7%");
-  // Image gallery — seeded with offline placeholder thumbnails (the design shows a
-  // 4-up gallery). Upload appends a data-URL so it works without a backend.
-  const [images, setImages] = useState<string[]>(() => (item.picture ? [item.picture] : [demoThumb(205), demoThumb(150), demoThumb(28), demoThumb(265)]));
+  const [taxProfile, setTaxProfile] = useState(stored?.taxProfile || "Florida Sales Tax 7%");
+  // Image gallery. A created item shows its OWN uploaded images (may be empty);
+  // demo items get offline placeholder thumbnails to mirror the 4-up design.
+  const [images, setImages] = useState<string[]>(() => {
+    if (stored) return stored.images && stored.images.length ? stored.images : [];
+    return item.picture ? [item.picture] : [demoThumb(205), demoThumb(150), demoThumb(28), demoThumb(265)];
+  });
   // Status is changeable from the header badge (Figma: "Active ▾").
   const [statusOpen, setStatusOpen] = useState(false);
   const [notes, setNotes] = useState<{ id: number; date: string; text: string }[]>(() => {
+    // Created items show only the note the user entered (if any); demo items get
+    // a seeded timeline so the design's Notes card isn't empty.
+    if (stored) return stored.notes ? [{ id: 1, date: "Today", text: stored.notes }] : [];
     const seeded = [
       "Prefers morning appointments.",
       "Has three properties requiring service.",

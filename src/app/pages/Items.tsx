@@ -15,10 +15,22 @@ import type { CatalogItem } from "../components/ItemPicker";
 
 // Project the rich Items-module record onto the catalog shape the
 // Estimate / Job pickers consume, so created items flow straight through.
-export const toCatalogItem = (i: { id: number; name: string; description: string; salesDescription: string; brand: string; modelNumber: string; rate: number; cost: number; taxable: boolean; category: string; type: string }): CatalogItem => ({
+export const toCatalogItem = (i: {
+  id: number; name: string; description: string; salesDescription: string;
+  brand: string; modelNumber: string; rate: number; cost: number; taxable: boolean;
+  category: string; type: string;
+  subcategory?: string; department?: string; vendor?: string; defaultQty?: number;
+  additionalInfo?: string; customField1?: string; customField2?: string; notes?: string;
+  images?: string[]; taxProfile?: string; active?: boolean; upc?: string;
+}): CatalogItem => ({
   id: i.id, name: i.name, itemDescription: i.description, salesDescription: i.salesDescription,
   brand: i.brand, modelNumber: i.modelNumber, rate: i.rate, cost: i.cost, taxable: i.taxable,
   category: i.category, type: mapItemTypeToCatalog(i.type),
+  // rich fields preserved for the Items list + detail page (pickers ignore them)
+  itemType: i.type, subcategory: i.subcategory, department: i.department, vendor: i.vendor,
+  defaultQty: i.defaultQty, additionalInfo: i.additionalInfo,
+  customField1: i.customField1, customField2: i.customField2, notes: i.notes,
+  images: i.images, taxProfile: i.taxProfile, active: i.active, upc: i.upc,
 });
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -416,14 +428,15 @@ export function Items() {
       const additions = storeItems
         .filter((s: any) => s.name && !names.has(String(s.name).toLowerCase()))
         .map((s: any) => ({
-          id: s.id, active: true, name: s.name, description: s.itemDescription || "", salesDescription: s.salesDescription || "", additionalInfo: "",
-          brand: s.brand || "", modelNumber: s.modelNumber || "", upc: "",
+          id: s.id, active: s.active ?? true, name: s.name, description: s.itemDescription || "", salesDescription: s.salesDescription || "", additionalInfo: s.additionalInfo || "",
+          brand: s.brand || "", modelNumber: s.modelNumber || "", upc: s.upc || "",
           rate: s.rate || 0, cost: s.cost || 0, taxable: !!s.taxable, tax1: false, tax2: false, tax3: false,
           onHand: 0, minQty: 0, maxQty: 0, tracking: false,
-          category: s.category || "", subcategory: "", type: s.type || "Service",
-          vendor: "", vendorCode: "", department: "", cogsGL: "", salesGL: "",
-          customField1: "", customField2: "", customField3: "",
-          notes: "", boldPrint: false, group: "", defaultQty: 1, picture: "", inventory: false, booking: false,
+          // Use the fine itemType (falls back to the coarse picker type for old data)
+          category: s.category || "", subcategory: s.subcategory || "", type: s.itemType || s.type || "Service",
+          vendor: s.vendor || "", vendorCode: "", department: s.department || "", cogsGL: "", salesGL: "",
+          customField1: s.customField1 || "", customField2: s.customField2 || "", customField3: "",
+          notes: s.notes || "", boldPrint: false, group: "", defaultQty: s.defaultQty ?? 1, picture: "", inventory: false, booking: false,
           usageCount: 0,
         }) as Item);
       return additions.length ? [...prev, ...additions] : prev;

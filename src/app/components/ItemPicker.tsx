@@ -13,6 +13,21 @@ export interface CatalogItem {
   taxable: boolean;
   category: string;
   type: "Service" | "Product" | "Labor" | "Equipment";
+  // Optional rich fields persisted by the Items module (the Estimate/Job/Invoice
+  // pickers ignore them; they exist so a created item keeps its full detail).
+  itemType?: string;        // fine ItemType — the coarse `type` above is for pickers
+  subcategory?: string;
+  department?: string;
+  vendor?: string;
+  defaultQty?: number;
+  additionalInfo?: string;
+  customField1?: string;
+  customField2?: string;
+  notes?: string;
+  images?: string[];
+  taxProfile?: string;
+  active?: boolean;
+  upc?: string;
 }
 
 export interface SelectedLineItem {

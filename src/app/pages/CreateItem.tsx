@@ -42,9 +42,20 @@ export function CreateItem() {
   const [taxProfile, setTaxProfile] = useState("Florida Sales Tax 7%");
   const [vendor, setVendor] = useState("");
   const [imageUrl, setImageUrl] = useState("");
+  const [images, setImages] = useState<string[]>([]);
   const [customField1, setCustomField1] = useState("");
   const [customField2, setCustomField2] = useState("");
   const [notes, setNotes] = useState("");
+
+  const handleAddImages = (files: FileList | null) => {
+    const list = Array.from(files || []).filter((f) => f.type.startsWith("image/"));
+    if (!list.length) return;
+    list.forEach((f) => {
+      const reader = new FileReader();
+      reader.onload = () => setImages((prev) => [...prev, String(reader.result)]);
+      reader.readAsDataURL(f);
+    });
+  };
 
   const save = () => {
     if (!name.trim()) { toast.error("Item name is required."); return; }
@@ -54,12 +65,23 @@ export function CreateItem() {
       name: name.trim(),
       description: internalDesc,
       salesDescription: salesDesc,
+      additionalInfo,
       brand: manufacturer,
       modelNumber: "",
       rate: parseFloat(retailPrice) || 0,
       cost: parseFloat(cost) || 0,
       taxable,
+      taxProfile: taxable ? taxProfile : "",
       category,
+      subcategory,
+      department,
+      vendor,
+      defaultQty: parseInt(defaultQty) || 1,
+      customField1,
+      customField2,
+      notes,
+      images: [...images, ...(imageUrl.trim() ? [imageUrl.trim()] : [])],
+      active,
       type,
     }));
     toast.success("Item created");
@@ -225,11 +247,24 @@ export function CreateItem() {
 
           {/* Images */}
           <Section label="Images">
+            {images.length > 0 && (
+              <div className="mb-3 flex flex-wrap gap-2">
+                {images.map((src, i) => (
+                  <div key={i} className="group/img relative h-16 w-[78px] overflow-hidden rounded-lg border border-[#E5E7EB]">
+                    <img src={src} alt={`Image ${i + 1}`} className="h-full w-full object-cover" />
+                    <button type="button" onClick={() => setImages((prev) => prev.filter((_, idx) => idx !== i))} aria-label="Remove image"
+                      className="absolute right-1 top-1 hidden h-5 w-5 items-center justify-center rounded-full bg-black/55 text-white group-hover/img:flex">
+                      <span className="material-icons" style={{ fontSize: "13px" }}>close</span>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
             <label className="flex cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-[#E5E7EB] bg-[#FAFBFC] px-4 py-7 text-center transition-colors hover:border-[#4A6FA5]">
               <span className="material-icons text-[#8899AA]" style={{ fontSize: "26px" }}>upload</span>
               <span className="text-[13px] text-[#546478]">Drop your files here, or <span className="text-[#4A6FA5]">click to browse</span></span>
               <span className="text-[12px] text-[#9CA3AF]">SVG, PNG, JPG or GIF (max. 3MB)</span>
-              <input type="file" accept="image/*" className="hidden" />
+              <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => handleAddImages(e.target.files)} />
             </label>
             <input type="text" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="Paste image URL" className={`${fieldClass} mt-3`} />
           </Section>
