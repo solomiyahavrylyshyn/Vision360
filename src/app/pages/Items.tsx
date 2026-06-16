@@ -358,6 +358,18 @@ function Pagination({ total, perPage, page, onPageChange, onPerPageChange }: {
   );
 }
 
+// ─── All-items column definitions ─────────────────────────────────────────────
+// Toggleable via the "Edit columns" modal (Figma 1494:89406). Name is locked-on.
+const ALL_ITEMS_COLS = [
+  { key: "name",        label: "Name",            w: "min-w-[220px]", sortable: true,  locked: true  },
+  { key: "category",    label: "Category",        w: "w-[120px]",     sortable: true,  locked: false },
+  { key: "type",        label: "Type",            w: "w-[110px]",     sortable: true,  locked: false },
+  { key: "modelNumber", label: "SKU / Item code", w: "w-[130px]",     sortable: true,  locked: false },
+  { key: "rate",        label: "Price",           w: "w-[90px]",      sortable: true,  locked: false },
+  { key: "cost",        label: "Cost",            w: "w-[85px]",      sortable: true,  locked: false },
+  { key: "taxable",     label: "Taxable",         w: "w-[80px]",      sortable: false, locked: false },
+] as const;
+
 // ─── Pricebook column definitions ────────────────────────────────────────────
 const PRICEBOOK_COLS = [
   { key: "name",        label: "Item Name",   w: "min-w-[180px]", sortable: true  },
@@ -411,6 +423,21 @@ export function Items() {
   const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set());
   const [itemModalOpen, setItemModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<Item | null>(null);
+
+  // Edit-columns modal (All items). Name is always shown; the rest toggle.
+  const [editColumnsOpen, setEditColumnsOpen] = useState(false);
+  const [itemColVis, setItemColVis] = useState<Record<string, boolean>>({
+    name: true, category: true, type: true, modelNumber: true, rate: true, cost: true, taxable: true,
+  });
+  const [draftColVis, setDraftColVis] = useState<Record<string, boolean>>(itemColVis);
+  const openEditColumns = () => { if (activeTab === "pricebook") return; setDraftColVis(itemColVis); setEditColumnsOpen(true); };
+  const visibleItemCols = ALL_ITEMS_COLS.filter((c) => itemColVis[c.key]);
+  // Row-action "Duplicate" — clone as a fresh, never-used, active item.
+  const duplicateItem = (item: Item) => {
+    const newId = Math.max(0, ...items.map((i) => i.id)) + 1;
+    setItems((prev) => [{ ...item, id: newId, name: `${item.name} (copy)`, usageCount: 0, active: true }, ...prev]);
+    toast.success(`Duplicated “${item.name}”`);
+  };
 
   // Groups state
   const [groups, setGroups] = useState<ItemGroup[]>(initialGroups);
@@ -588,6 +615,8 @@ export function Items() {
     setAdvancedCostMin("");
     setAdvancedCostMax("");
     setAdvancedTaxable("All");
+    setItemFilter("All");
+    setPbCategoryFilter("All");
     setFilterPanelOpen(false);
     setItemPage(1);
     setPbPage(1);
@@ -675,7 +704,7 @@ export function Items() {
                 {activeTab === "pricebook" ? "Create pricebook item" : "Create item"}
               </CreateActionButton>
               <KebabMenu triggerClassName="w-10 h-10 border border-[#D8DEE8] rounded-xl bg-white">
-                <KebabItem icon="view_column">Edit Columns</KebabItem>
+                <KebabItem icon="view_column" onClick={openEditColumns}>Edit columns</KebabItem>
                 <KebabItem icon="content_copy">Manage Duplicates</KebabItem>
                 <KebabSeparator />
                 <KebabItem icon="file_upload" onClick={() => setImportOpen(true)}>Import</KebabItem>
@@ -851,7 +880,7 @@ export function Items() {
                 {activeTab === "pricebook" ? "Create pricebook item" : "Create item"}
               </CreateActionButton>
               <KebabMenu triggerClassName="w-10 h-10 border border-[#D8DEE8] rounded-xl bg-white">
-                <KebabItem icon="view_column">Edit Columns</KebabItem>
+                <KebabItem icon="view_column" onClick={openEditColumns}>Edit columns</KebabItem>
                 <KebabItem icon="content_copy">Manage Duplicates</KebabItem>
                 <KebabSeparator />
                 <KebabItem icon="file_upload" onClick={() => setImportOpen(true)}>Import</KebabItem>
@@ -860,22 +889,22 @@ export function Items() {
             </div>
           </div>
 
-          {/* Bulk actions bar */}
+          {/* Bulk actions bar — Figma 1494:78210: "{N} selected" · Download · Deactivate · ✕ */}
           <SelectionBar
             count={selectedItems.size}
             onDeselect={() => setSelectedItems(new Set())}
+            dismissAsIcon
             actions={[
+              { label: "Download", icon: "file_download", onClick: () => handleExport() },
               {
-                label: "Deactivate selected",
+                label: "Deactivate",
                 icon: "block",
-                destructive: true,
                 onClick: () => {
                   setItems(prev => prev.map(i => selectedItems.has(i.id) ? { ...i, active: false } : i));
                   items.filter(i => selectedItems.has(i.id)).forEach(i => itemsStore.upsert({ ...i, active: false } as any));
                   setSelectedItems(new Set());
                 },
               },
-              { label: "Export", icon: "file_download", onClick: () => handleExport() },
             ]}
           />
 
@@ -895,15 +924,7 @@ export function Items() {
                       className="w-4 h-4 rounded border-[#E5E7EB] cursor-pointer accent-[#4A6FA5]"
                     />
                   </th>
-                  {[
-                    { key: "name", label: "Name", w: "min-w-[220px]", sortable: true },
-                    { key: "category", label: "Category", w: "w-[120px]", sortable: true },
-                    { key: "type", label: "Type", w: "w-[110px]", sortable: true },
-                    { key: "modelNumber", label: "SKU / Item code", w: "w-[130px]", sortable: true },
-                    { key: "rate", label: "Price", w: "w-[90px]", sortable: true },
-                    { key: "cost", label: "Cost", w: "w-[85px]", sortable: true },
-                    { key: "taxable", label: "Taxable", w: "w-[80px]", sortable: false },
-                  ].map(col => (
+                  {visibleItemCols.map(col => (
                     <th
                       key={col.key}
                       className={`px-4 py-2.5 text-left text-[13px] text-[#546478] ${col.sortable ? "cursor-pointer hover:text-[#1A2332]" : ""} select-none ${col.w}`}
@@ -922,7 +943,7 @@ export function Items() {
               <tbody>
                 {paginatedItems.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="px-4 py-16 text-center">
+                    <td colSpan={visibleItemCols.length + 2} className="px-4 py-16 text-center">
                       <span className="material-icons text-[#C8D5E8] mb-2 block" style={{ fontSize: "48px" }}>inventory_2</span>
                       <div className="text-[14px] text-[#546478]" style={{ fontWeight: 500 }}>No items found</div>
                       <div className="text-[12px] text-[#8899AA] mt-1">Try adjusting your search or filters</div>
@@ -951,20 +972,21 @@ export function Items() {
                       <td className="px-4 py-2">
                         <div className="truncate max-w-[200px] text-[14px] text-[#4A6FA5] hover:underline" style={{ fontFamily: "Geist", fontWeight: 400, lineHeight: "20px" }}>{item.name}</div>
                       </td>
-                      <td className="px-4 py-2 text-[14px] text-[#546478]" style={{ fontFamily: "Geist", fontWeight: 400, lineHeight: "20px" }}>{item.category || "—"}</td>
+                      {itemColVis.category && <td className="px-4 py-2 text-[14px] text-[#546478]" style={{ fontFamily: "Geist", fontWeight: 400, lineHeight: "20px" }}>{item.category || "—"}</td>}
+                      {itemColVis.type && (
                       <td className="px-4 py-2">
                         <span className="inline-block px-2 py-0.5 rounded text-[11px] whitespace-nowrap" style={{ fontWeight: 600, backgroundColor: badge.bg, color: badge.color }}>
                           {badge.label}
                         </span>
                       </td>
-                      <td className="px-4 py-2 text-[14px] text-[#546478]" style={{ fontFamily: "Geist", fontWeight: 400, lineHeight: "20px", fontVariantNumeric: "tabular-nums" }}>{item.modelNumber || "—"}</td>
-                      <td className="px-4 py-2 text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist", fontWeight: 400, lineHeight: "20px", fontVariantNumeric: "tabular-nums" }}>${item.rate.toFixed(2)}</td>
-                      <td className="px-4 py-2 text-[14px] text-[#546478]" style={{ fontFamily: "Geist", fontWeight: 400, lineHeight: "20px", fontVariantNumeric: "tabular-nums" }}>${item.cost.toFixed(2)}</td>
-                      <td className="px-4 py-2 text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist", fontWeight: 400, lineHeight: "20px" }}>{item.taxable ? "Yes" : "No"}</td>
+                      )}
+                      {itemColVis.modelNumber && <td className="px-4 py-2 text-[14px] text-[#546478]" style={{ fontFamily: "Geist", fontWeight: 400, lineHeight: "20px", fontVariantNumeric: "tabular-nums" }}>{item.modelNumber || "—"}</td>}
+                      {itemColVis.rate && <td className="px-4 py-2 text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist", fontWeight: 400, lineHeight: "20px", fontVariantNumeric: "tabular-nums" }}>${item.rate.toFixed(2)}</td>}
+                      {itemColVis.cost && <td className="px-4 py-2 text-[14px] text-[#546478]" style={{ fontFamily: "Geist", fontWeight: 400, lineHeight: "20px", fontVariantNumeric: "tabular-nums" }}>${item.cost.toFixed(2)}</td>}
+                      {itemColVis.taxable && <td className="px-4 py-2 text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist", fontWeight: 400, lineHeight: "20px" }}>{item.taxable ? "Yes" : "No"}</td>}
                       <td className="px-4 py-2 text-right" onClick={(e) => e.stopPropagation()}>
                         <KebabMenu>
-                          <KebabItem icon="edit" onClick={() => { setEditingItem(item); setItemModalOpen(true); }}>Edit</KebabItem>
-                          <KebabItem icon="content_copy">Duplicate</KebabItem>
+                          <KebabItem icon="content_copy" onClick={() => duplicateItem(item)}>Duplicate</KebabItem>
                           <KebabSeparator />
                           {!item.active ? (
                             <KebabItem icon="check_circle" onClick={() => { const upd = { ...item, active: true }; setItems(prev => prev.map(i => i.id === item.id ? upd : i)); itemsStore.upsert(upd as any); }}>Reactivate</KebabItem>
@@ -973,6 +995,7 @@ export function Items() {
                           ) : (
                             <KebabItem icon="delete_outline" destructive onClick={() => setDeleteConfirm({ type: "item", id: item.id, name: item.name, mode: "delete" })}>Delete</KebabItem>
                           )}
+                          <KebabItem icon="open_in_new" onClick={() => window.open(`/items/${item.id}`, "_blank")}>Open in new tab</KebabItem>
                         </KebabMenu>
                       </td>
                     </tr>
@@ -995,6 +1018,7 @@ export function Items() {
       {/* ═══════════════ BOTTOM INFO PANEL (conditional) ═══════════════ */}
       {filterPanelOpen && (
         <AdvancedFilterPanel
+          title="Filter"
           onClose={() => setFilterPanelOpen(false)}
           onClear={clearAdvancedFilters}
           onApply={() => {
@@ -1004,27 +1028,40 @@ export function Items() {
           }}
         >
           {activeTab !== "pricebook" && (
-            <AdvancedFilterField label="Item type">
+            <AdvancedFilterField label="Type">
               <select value={advancedType} onChange={(e) => setAdvancedType(e.target.value)} className={advancedSelectClass}>
                 <option value="All">All</option>
                 {itemTypeOptions.map(type => <option key={type} value={type}>{type}</option>)}
               </select>
             </AdvancedFilterField>
           )}
+          <AdvancedFilterField label="Category">
+            {activeTab === "pricebook" ? (
+              <select value={pbCategoryFilter} onChange={(e) => setPbCategoryFilter(e.target.value)} className={advancedSelectClass}>
+                <option value="All">All</option>
+                {pbCategories.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            ) : (
+              <select value={itemFilter} onChange={(e) => setItemFilter(e.target.value)} className={advancedSelectClass}>
+                <option value="All">All</option>
+                {uniqueCategories.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            )}
+          </AdvancedFilterField>
           <div className="border-t border-[#E5E7EB] pt-5">
             <h3 className="text-[13px] text-[#374151] mb-4" style={{ fontWeight: 600 }}>Price</h3>
             <div className="flex items-center gap-2">
-              <input type="number" min="0" placeholder="Min" value={advancedPriceMin} onChange={(e) => setAdvancedPriceMin(e.target.value)} className={advancedInputClass} />
+              <input type="number" min="0" placeholder="min" value={advancedPriceMin} onChange={(e) => setAdvancedPriceMin(e.target.value)} className={advancedInputClass} />
               <span className="text-[#546478] text-[13px]">-</span>
-              <input type="number" min="0" placeholder="Max" value={advancedPriceMax} onChange={(e) => setAdvancedPriceMax(e.target.value)} className={advancedInputClass} />
+              <input type="number" min="0" placeholder="max" value={advancedPriceMax} onChange={(e) => setAdvancedPriceMax(e.target.value)} className={advancedInputClass} />
             </div>
           </div>
           <div className="border-t border-[#E5E7EB] pt-5">
             <h3 className="text-[13px] text-[#374151] mb-4" style={{ fontWeight: 600 }}>Cost</h3>
             <div className="flex items-center gap-2">
-              <input type="number" min="0" placeholder="Min" value={advancedCostMin} onChange={(e) => setAdvancedCostMin(e.target.value)} className={advancedInputClass} />
+              <input type="number" min="0" placeholder="min" value={advancedCostMin} onChange={(e) => setAdvancedCostMin(e.target.value)} className={advancedInputClass} />
               <span className="text-[#546478] text-[13px]">-</span>
-              <input type="number" min="0" placeholder="Max" value={advancedCostMax} onChange={(e) => setAdvancedCostMax(e.target.value)} className={advancedInputClass} />
+              <input type="number" min="0" placeholder="max" value={advancedCostMax} onChange={(e) => setAdvancedCostMax(e.target.value)} className={advancedInputClass} />
             </div>
           </div>
           <AdvancedFilterField label="Taxable">
@@ -1035,6 +1072,50 @@ export function Items() {
             </select>
           </AdvancedFilterField>
         </AdvancedFilterPanel>
+      )}
+
+      {/* ═══════════════ EDIT COLUMNS MODAL (Figma 1494:89406) ═══════════════ */}
+      {editColumnsOpen && (
+        <ModalBackdrop onClose={() => setEditColumnsOpen(false)}>
+          <div className="bg-white border border-[#E5E7EB] rounded-xl shadow-2xl w-[600px] max-w-[92vw] flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between p-4">
+              <h2 className="text-[20px] text-[#1A2332]" style={{ fontWeight: 600 }}>Edit columns</h2>
+              <button onClick={() => setEditColumnsOpen(false)} aria-label="Close" className="w-6 h-6 flex items-center justify-center rounded hover:bg-[#F3F4F6] text-[#546478]">
+                <span className="material-icons" style={{ fontSize: "18px" }}>close</span>
+              </button>
+            </div>
+            {/* Body — two columns of checkbox rows */}
+            <div className="flex gap-4 px-4 py-1">
+              {[ALL_ITEMS_COLS.slice(0, 4), ALL_ITEMS_COLS.slice(4)].map((colGroup, gi) => (
+                <div key={gi} className="flex-1 flex flex-col gap-2">
+                  {colGroup.map((col) => {
+                    const checked = col.locked ? true : !!draftColVis[col.key];
+                    return (
+                      <button
+                        key={col.key}
+                        type="button"
+                        disabled={col.locked}
+                        onClick={() => { if (!col.locked) setDraftColVis((d) => ({ ...d, [col.key]: !d[col.key] })); }}
+                        className={`flex items-center gap-3 p-3 rounded-[10px] border border-[#E5E7EB] bg-white text-left transition-colors ${col.locked ? "opacity-50 cursor-not-allowed" : "hover:bg-[#F9FAFB]"}`}
+                      >
+                        <span className={`w-4 h-4 rounded-[4px] flex items-center justify-center border shrink-0 ${checked ? "bg-[#4A6FA5] border-[#4A6FA5]" : "bg-white border-[#E5E7EB]"}`}>
+                          {checked && <span className="material-icons text-white" style={{ fontSize: "12px" }}>check</span>}
+                        </span>
+                        <span className="text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist", lineHeight: "20px" }}>{col.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+            {/* Footer */}
+            <div className="flex items-center justify-end gap-2 p-4">
+              <button onClick={() => setEditColumnsOpen(false)} className="min-h-9 px-4 py-2 rounded-lg border border-[#E5E7EB] bg-white text-[14px] text-[#1A2332] hover:bg-[#F5F7FA] transition-colors" style={{ fontWeight: 500 }}>Cancel</button>
+              <button onClick={() => { setItemColVis(draftColVis); setEditColumnsOpen(false); toast.success("Columns updated"); }} className="min-h-9 px-4 py-2 rounded-lg bg-[#4A6FA5] hover:bg-[#3d5a85] text-[14px] text-white transition-colors" style={{ fontWeight: 500 }}>Save</button>
+            </div>
+          </div>
+        </ModalBackdrop>
       )}
 
       {showInfoBar && (activeTab === "pricebook" ? (
