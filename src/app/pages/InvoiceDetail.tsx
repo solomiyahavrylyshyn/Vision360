@@ -412,9 +412,10 @@ export function InvoiceDetail() {
   const balance = total - totalPayments;
   const overdueDays = status === "Overdue" ? daysBetween(data.dueDate, TODAY) : 0;
   const isPaid = status === "Paid";
-  // Paid (and Void) invoices are locked financial documents — no line-item edits,
-  // no adding/creating jobs (Marek, Jun 11: "paid = locked, no more editing").
-  const isLocked = status === "Paid" || status === "Void";
+  // Only PAID invoices are locked financial documents — no line-item edits, no
+  // adding/creating jobs (Marek, Jun 11: "paid = locked"). Void / unpaid /
+  // partially paid / overdue all remain editable (Marek confirmed Void editable).
+  const isLocked = status === "Paid";
 
   const handleStatusChange = (newStatus: InvoiceStatus) => {
     if (newStatus === "Void") {
