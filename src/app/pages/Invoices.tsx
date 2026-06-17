@@ -282,6 +282,9 @@ export function Invoices() {
   const navigate = useNavigate();
   const regionalSettings = useSyncExternalStore(regionalSettingsStore.subscribe, regionalSettingsStore.getSnapshot);
   const [cols, moveCol] = useDraggableColumns([...INVOICES_COLS]);
+  const [editColsOpen, setEditColsOpen] = useState(false);
+  const [colVis, setColVis] = useState<Set<string>>(() => new Set(INVOICES_COLS.map((c) => c.key)));
+  const shownCols = cols.filter((c) => colVis.has(c.key));
   const [invoices, setInvoices] = useState<Invoice[]>(initialInvoices);
   const [search, setSearch] = useState("");
 
@@ -515,9 +518,7 @@ export function Invoices() {
               Create invoice
             </CreateActionButton>
             <KebabMenu triggerClassName="w-10 h-10 border border-[#D8DEE8] rounded-xl bg-white">
-              <KebabItem icon="view_column">Edit Columns</KebabItem>
-              <KebabItem icon="swap_horiz">Change Status</KebabItem>
-              <KebabItem icon="content_copy">Manage Duplicates</KebabItem>
+              <KebabItem icon="view_column" onSelect={() => setEditColsOpen(true)}>Edit Columns</KebabItem>
               <KebabSeparator />
               <KebabItem icon="file_upload">Import</KebabItem>
               <KebabItem icon="file_download">Export</KebabItem>
@@ -596,7 +597,7 @@ export function Invoices() {
                     }}
                     className="w-4 h-4 rounded border-[#E5E7EB] cursor-pointer accent-[#4A6FA5]" />
                 </th>
-                {cols.map(col => (
+                {shownCols.map(col => (
                   <DraggableTh key={col.key} colKey={col.key} onMove={moveCol}
                     className={`px-4 py-3 text-[14px] text-[#1A2332] whitespace-nowrap ${col.key === "total" || col.key === "balance" ? "text-right" : "text-left"}`}
                     style={{ fontFamily: "Geist", fontWeight: 500 }}
@@ -633,7 +634,7 @@ export function Invoices() {
                       }}
                       className="w-4 h-4 rounded border-[#E5E7EB] cursor-pointer accent-[#4A6FA5]" />
                   </td>
-                  {cols.map(col => {
+                  {shownCols.map(col => {
                     switch (col.key) {
                       case "number": return <td key={col.key} className="px-4 py-4 text-[14px] text-[#4A6FA5] whitespace-nowrap" style={{ fontWeight: 600 }}>{inv.number}</td>;
                       case "type": return <td key={col.key} className="px-4 py-4 text-[14px] text-[#546478] whitespace-nowrap">{inv.type}</td>;
@@ -770,6 +771,37 @@ export function Invoices() {
           </div>
         </div>
       </div>
+
+      {/* Edit columns — toggle which columns the invoice table shows */}
+      {editColsOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={() => setEditColsOpen(false)}>
+          <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" />
+          <div className="relative bg-white rounded-xl shadow-2xl w-[360px] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="px-5 py-4 border-b border-[#E5E7EB] flex items-center justify-between">
+              <h3 className="text-[16px] text-[#1A2332]" style={{ fontWeight: 600 }}>Edit columns</h3>
+              <button onClick={() => setEditColsOpen(false)} aria-label="Close" className="text-[#9CA3AF] hover:text-[#1A2332]"><span className="material-icons" style={{ fontSize: "20px" }}>close</span></button>
+            </div>
+            <div className="px-5 py-2 max-h-[360px] overflow-y-auto">
+              {INVOICES_COLS.map((c) => {
+                const locked = c.key === "number";
+                const checked = colVis.has(c.key);
+                return (
+                  <label key={c.key} className={`flex items-center gap-2.5 py-2 text-[14px] text-[#1A2332] ${locked ? "opacity-60 cursor-not-allowed" : "cursor-pointer"}`}>
+                    <input type="checkbox" checked={checked} disabled={locked}
+                      onChange={() => setColVis((prev) => { const n = new Set(prev); if (n.has(c.key)) n.delete(c.key); else n.add(c.key); return n; })}
+                      className="h-4 w-4 rounded border-[#CBD5E1] accent-[#4A6FA5]" />
+                    <span>{c.label}</span>
+                    {locked && <span className="text-[11px] text-[#9CA3AF]">always shown</span>}
+                  </label>
+                );
+              })}
+            </div>
+            <div className="px-5 py-3 border-t border-[#E5E7EB] flex justify-end">
+              <button onClick={() => setEditColsOpen(false)} className="h-9 rounded-lg bg-[#4A6FA5] px-4 text-[13px] text-white hover:bg-[#3d5a85]" style={{ fontWeight: 600 }}>Done</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Delete Confirm */}
       {deleteConfirm && (
