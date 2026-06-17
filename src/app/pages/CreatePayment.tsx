@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { paymentsStore } from "../stores/paymentsStore";
 import type { PaymentMethod, PaymentStatus } from "./Payments";
 import { PAYMENT_METHODS } from "../constants/paymentMethods";
-import { initialInvoices } from "./Invoices";
+import { initialInvoices } from "../stores/invoicesStore";
 
 const paymentMethods = PAYMENT_METHODS;
 
@@ -156,7 +156,9 @@ export function CreatePayment() {
       createdBy: "You",
     });
     toast.success(isCharge ? `Charged ${money(total)}` : "Payment recorded");
-    navigate(returnTo || `/payments/${record.id}`);
+    // From the main Payments list (no returnTo) return to the list — consistent
+    // with Estimate/Invoice create. Contextual flows (client/invoice) pass returnTo.
+    navigate(returnTo || "/payments");
   };
 
   // ── shared field styles (universal form spec: 36px, 8px radius, shadow-xs) ──

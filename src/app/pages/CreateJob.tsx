@@ -485,7 +485,9 @@ export function CreateJob({ asModal = false, onClose, onCreated, prefill, headin
     // Modal mode: hand the record back and close, leaving the calendar in place
     // (it re-renders from jobsStore). Page mode navigates to the new job.
     if (asModal) { onCreated?.(record); onClose?.(); return; }
-    navigate(returnTo || `/jobs/${record.id}`);
+    // From the main Jobs list (no returnTo) return to the list — consistent with
+    // Estimate/Invoice create. Contextual flows (client/job) pass returnTo.
+    navigate(returnTo || "/jobs");
   };
 
   // Service address dropdown is sourced from the selected client's address.

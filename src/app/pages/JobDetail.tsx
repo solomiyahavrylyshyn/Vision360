@@ -17,6 +17,7 @@ import { formatRegionalDate } from "../stores/regionalSettingsStore";
 import { jobsStore, type JobRecord } from "../stores/jobsStore";
 import { clientsStore } from "../stores/clientsStore";
 import { estimatesStore } from "../stores/estimatesStore";
+import { invoicesStore } from "../stores/invoicesStore";
 import acServicePhoto from "../../assets/documents/33897-cu.jpg";
 import waterHeaterPhoto from "../../assets/documents/34285-install-water-heater.jpg";
 import installAcPhoto from "../../assets/documents/34689-install-ac.jpg";
@@ -511,6 +512,13 @@ export function JobDetail() {
     // Last resort: name match for legacy records with no clientId.
     return e.clientName === job.client;
   });
+  // Live invoices for this job (by job number) or this client, so a freshly
+  // created invoice shows up on the Invoices tab on return.
+  const allInvoices = useSyncExternalStore(invoicesStore.subscribe, invoicesStore.getSnapshot);
+  const jobInvoices = allInvoices.filter((inv) =>
+    (!!job.jobNumber && inv.jobNumber === job.jobNumber) ||
+    (!!job.client && inv.clientName === job.client)
+  );
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
   const [currentStatus, setCurrentStatus] = useState<string>(job.status);
   const [editingSection, setEditingSection] = useState<null | "address" | "schedule" | "overview">(null);
@@ -1180,14 +1188,16 @@ export function JobDetail() {
           <PlusIcon className="h-5 w-5" />
         </button>
       </div>
-      {job.linkedInvoice ? (
-        <button onClick={() => navigate(`/invoices/${job.linkedInvoice.id}`)} className="w-full flex items-center justify-between border border-[#E5E7EB] rounded-lg px-4 py-3 hover:bg-[#F9FAFB] text-left transition-colors">
-          <div>
-            <div className="text-[14px] text-[#4A6FA5]" style={{ fontWeight: 500 }}>{job.linkedInvoice.id}</div>
-            <div className="text-[12px] text-[#6B7280]">{job.linkedInvoice.status ?? "Invoice"}</div>
-          </div>
-          <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "18px" }}>chevron_right</span>
-        </button>
+      {jobInvoices.length > 0 ? (
+        jobInvoices.map((inv) => (
+          <button key={inv.id} onClick={() => navigate(`/invoices/${inv.id}`)} className="w-full flex items-center justify-between border border-[#E5E7EB] rounded-lg px-4 py-3 hover:bg-[#F9FAFB] text-left transition-colors mb-2">
+            <div>
+              <div className="text-[14px] text-[#4A6FA5]" style={{ fontWeight: 500 }}>{inv.number}</div>
+              <div className="text-[12px] text-[#6B7280]">{inv.status} · ${inv.total.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+            </div>
+            <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "18px" }}>chevron_right</span>
+          </button>
+        ))
       ) : (
         <div className="text-center py-12">
           <span className="material-icons text-[#D1D5DB] mb-2 block" style={{ fontSize: "40px" }}>receipt_long</span>

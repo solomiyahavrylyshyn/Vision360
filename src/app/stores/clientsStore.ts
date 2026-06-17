@@ -353,6 +353,46 @@ let clients: ClientRecord[] = [
     status: "Prospect", customerSince: "Mar 2024", lastActivity: "Created • Mar 2024",
     totalJobs: 0, openJobs: 0, totalRevenue: 0,
   }),
+
+  // Clients referenced by the estimates / invoices / payments demo data. Seeding
+  // them as real records (every one with an address) means a job created from one
+  // of their estimates/invoices gets a populated Service-address dropdown — a
+  // client is never without an address.
+  mk({
+    id: "10251", initials: "MR", avatarColor: "#0EA5E9", name: "Mike Rodriguez", firstName: "Mike", lastName: "Rodriguez",
+    role: "Property Owner", email: "mike.r@outlook.com", mobilePhone: "(210) 555-0247",
+    address: "555 Pine Rd", city: "San Antonio", state: "TX", zip: "78201", county: "Bexar",
+    status: "Active", customerSince: "Feb 2026", lastActivity: "Invoice Sent • Feb 2026",
+    totalJobs: 1, openJobs: 1, totalRevenue: 913.75, totalBilled: 913.75, openBalance: 913.75, balance: 913.75,
+  }),
+  mk({
+    id: "10252", initials: "TJ", avatarColor: "#16A34A", name: "Travis Jones", firstName: "Travis", lastName: "Jones",
+    role: "Property Owner", email: "travis.j@email.com", mobilePhone: "(512) 555-0142",
+    address: "123 Main St", city: "Austin", state: "TX", zip: "78701", county: "Travis",
+    status: "Active", customerSince: "Mar 2026", lastActivity: "Invoice Paid • Mar 2026",
+    totalJobs: 1, openJobs: 0, totalRevenue: 9480.5, totalBilled: 9480.5,
+  }),
+  mk({
+    id: "10253", initials: "JD", avatarColor: "#8B5CF6", name: "John Doe", firstName: "John", lastName: "Doe",
+    role: "Property Owner", email: "john.d@email.com", mobilePhone: "(214) 555-0188",
+    address: "789 Oak Ave", city: "Dallas", state: "TX", zip: "75201", county: "Dallas",
+    status: "Active", customerSince: "Mar 2026", lastActivity: "Invoice Overdue • Mar 2026",
+    totalJobs: 1, openJobs: 1, totalRevenue: 0, totalBilled: 5975.5, openBalance: 5975.5, pastDueBalance: 5975.5, balance: 5975.5, pastDue: 5975.5,
+  }),
+  mk({
+    id: "10254", initials: "SW", avatarColor: "#DB2777", name: "Sarah Williams", firstName: "Sarah", lastName: "Williams",
+    role: "Property Owner", email: "sarah.w@email.com", mobilePhone: "(713) 555-0301",
+    address: "321 Elm St", city: "Houston", state: "TX", zip: "77001", county: "Harris",
+    status: "Active", customerSince: "Feb 2026", lastActivity: "Invoice Paid • Feb 2026",
+    totalJobs: 2, openJobs: 1, totalRevenue: 326.25, totalBilled: 2691.25, openBalance: 1365, balance: 1365,
+  }),
+  mk({
+    id: "10255", initials: "AT", avatarColor: "#6B7280", name: "Alex Turner", firstName: "Alex", lastName: "Turner",
+    role: "Property Owner", email: "alex.t@email.com", mobilePhone: "(469) 555-0455",
+    address: "44 River Rd", city: "Plano", state: "TX", zip: "75024", county: "Collin",
+    status: "Active", customerSince: "Jan 2026", lastActivity: "Invoice Voided • Jan 2026",
+    totalJobs: 1, openJobs: 0, totalRevenue: 0, totalBilled: 0,
+  }),
 ];
 
 /* ── Browser durability cache ─────────────────────────────────────────────

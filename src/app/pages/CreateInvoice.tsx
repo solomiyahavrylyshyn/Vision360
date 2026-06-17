@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { clientsStore } from "../stores/clientsStore";
 import { jobsStore } from "../stores/jobsStore";
 import { estimatesStore } from "../stores/estimatesStore";
+import { invoicesStore } from "../stores/invoicesStore";
 import { itemsStore } from "../stores/itemsStore";
 import { ItemPicker, catalogItemToLineItem, type CatalogItem, type SelectedLineItem } from "../components/ItemPicker";
 import { PlusIcon } from "../components/ui/plus-icon";
@@ -216,6 +217,38 @@ export function CreateInvoice() {
     if (!invoiceDate) { toast.error("Invoice date is required."); return; }
     if (!dueDate) { toast.error("Due date is required."); return; }
     if (lineItems.length === 0) { toast.error("Add at least one line item before saving."); return; }
+
+    const clientRec = liveClients.find((c) => c.name === client.trim());
+    const base = clientRec?.id || "10250";
+    const firstJob = linkedJobs[0] || "";
+    const jobNumber = firstJob.includes(":") ? firstJob.split(":")[0].trim() : firstJob.trim();
+    const jobName = firstJob.includes(":") ? firstJob.split(":").slice(1).join(":").trim() : "";
+    const grand = Math.round(total * 100) / 100;
+
+    invoicesStore.add({
+      number: invoicesStore.nextInvoiceNumber(jobNumber || base),
+      type: "Standard",
+      date: invoiceDate,
+      status: "Unpaid",
+      clientName: client.trim(),
+      customerEmail: clientRec?.email || "",
+      phone: clientRec?.mobilePhone || clientRec?.phone || "",
+      jobNumber,
+      jobName,
+      total: grand,
+      balance: grand,
+      linkedEstimate: linkedEstimate ? linkedEstimate.split(":")[0].trim() : "",
+      memo: notes,
+      billingAddress: clientRec?.address || "", billingCity: clientRec?.city || "", billingState: clientRec?.state || "", billingZip: clientRec?.zip || "",
+      serviceAddress: clientRec?.address || "", serviceCity: clientRec?.city || "", serviceState: clientRec?.state || "", serviceZip: clientRec?.zip || "",
+      paymentTerms: "Net 30",
+      dueDate,
+      dateCreated: invoiceDate,
+      createdBy: "You",
+      stage: "Sent",
+      noteToCustomer: notes,
+      dateSent: invoiceDate,
+    });
     toast.success("Invoice created");
     navigate(returnTo || "/invoices");
   };
