@@ -71,7 +71,12 @@ export function CreatePayment() {
   // from the added invoices' balances. Invoices are chosen via the "Add invoice"
   // modal (catalog picker); the main table shows only what's been added.
   const allInvoices = initialInvoices;
-  const [selectedInvoiceIds, setSelectedInvoiceIds] = useState<Set<number>>(new Set());
+  // Preselect the invoice when arriving from an invoice's "Collect payment".
+  const [selectedInvoiceIds, setSelectedInvoiceIds] = useState<Set<number>>(() => {
+    const inv = searchParams.get("invoice");
+    const match = inv ? allInvoices.find((i) => i.number === inv) : null;
+    return match ? new Set([match.id]) : new Set();
+  });
   const [tableSearch, setTableSearch] = useState("");   // filters the added rows
   const [addOpen, setAddOpen] = useState(false);        // Add-invoice modal
   const [modalSearch, setModalSearch] = useState("");

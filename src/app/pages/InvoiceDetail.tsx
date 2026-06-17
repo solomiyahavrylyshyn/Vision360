@@ -386,17 +386,6 @@ export function InvoiceDetail() {
 
   const [notesTab, setNotesTab] = useState<NotesTabKey>("customer");
 
-  // Collect payment modal
-  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
-  const [payAmount, setPayAmount] = useState("");
-  const [payDate, setPayDate] = useState(TODAY);
-  const [payMethod, setPayMethod] = useState("Credit Card");
-  const [payTransactionNumber, setPayTransactionNumber] = useState("");
-  const [payNote, setPayNote] = useState("");
-  // Card methods charge + record in ONE flow; for external methods (check,
-  // Venmo, financing…) the money was already received outside the system, so
-  // the user enters the transaction number + amount and it's simply recorded.
-  const isCardCharge = ["Card", "Credit Card", "Debit Card"].includes(payMethod);
 
   // Void confirm
   const [voidConfirm, setVoidConfirm] = useState(false);
@@ -447,58 +436,6 @@ export function InvoiceDetail() {
     }, ...prev]);
   };
 
-  const handleCollectPayment = () => {
-    const amount = parseFloat(payAmount);
-    if (!amount || amount <= 0) return;
-
-    const newPayment: Payment = {
-      id: payments.length + 1,
-      date: payDate,
-      amount,
-      method: payMethod,
-      // Card charges carry the card reference; external methods carry the
-      // transaction number the user typed in.
-      checkNumber: isCardCharge
-        ? "Visa ···· 4242"
-        : (payTransactionNumber || undefined),
-      note: payNote,
-    };
-    const newPayments = [...payments, newPayment];
-    setPayments(newPayments);
-
-    const newTotalPaid = newPayments.reduce((s, p) => s + p.amount, 0);
-    const newBalance = total - newTotalPaid;
-    const newStatus: InvoiceStatus = newBalance <= 0 ? "Paid" : "Partially Paid";
-    setStatus(newStatus);
-
-    const detail = !isCardCharge && payTransactionNumber
-      ? `$${fmt(amount)} via ${payMethod} · #${payTransactionNumber}`
-      : `$${fmt(amount)} via ${payMethod}`;
-    const time = new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
-
-    setActivity(prev => [
-      {
-        id: prev.length + 2,
-        date: `${payDate} ${time}`,
-        action: "Status changed",
-        detail: `Marked as ${newStatus}`,
-        icon: newStatus === "Paid" ? "check_circle" : "info",
-      },
-      {
-        id: prev.length + 1,
-        date: `${payDate} ${time}`,
-        action: isCardCharge ? "Payment collected" : "Payment recorded",
-        detail,
-        icon: "payments",
-      },
-      ...prev,
-    ]);
-
-    setPaymentModalOpen(false);
-    setPayAmount("");
-    setPayTransactionNumber("");
-    setPayNote("");
-  };
 
   // "+" on the blank Job Details box — creates a real job from the invoice and
   // links everything up (the job carries the invoice's estimate reference).
@@ -574,7 +511,7 @@ export function InvoiceDetail() {
           ], match: (r, v) => r.status === v },
         ]}
         createLabel={canCollect ? "Collect payment" : undefined}
-        onCreate={canCollect ? () => setPaymentModalOpen(true) : undefined}
+        onCreate={canCollect ? () => navigate(`/payments/new?invoice=${encodeURIComponent(data.number)}&client=${encodeURIComponent(data.client.name)}&returnTo=${encodeURIComponent(`/invoices/${id}?tab=payments`)}`) : undefined}
         onRowClick={goToPayment}
         rowActions={(r) => [
           { label: "View payment", icon: "visibility", onClick: () => goToPayment(r) },
@@ -1086,146 +1023,6 @@ export function InvoiceDetail() {
         </div>
       </div>
 
-      {/* Collect Payment Modal — card methods charge + record in one flow;
-          external methods (check / Venmo / financing) record money already
-          received outside the system. */}
-      {paymentModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={() => setPaymentModalOpen(false)}>
-          <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" />
-          <div className="relative bg-white rounded-2xl shadow-2xl w-[480px] overflow-hidden" onClick={e => e.stopPropagation()}>
-            <div className="px-6 py-5 border-b border-[#E5E7EB] flex items-center justify-between">
-              <h2 className="text-[18px] text-[#1A2332]" style={{ fontWeight: 700 }}>{isCardCharge ? "Collect payment" : "Record payment"}</h2>
-              <button onClick={() => setPaymentModalOpen(false)} className="w-8 h-8 rounded-lg hover:bg-[#F3F4F6] flex items-center justify-center">
-                <span className="material-icons text-[#6B7280]" style={{ fontSize: "22px" }}>close</span>
-              </button>
-            </div>
-
-            <div className="px-6 py-5 space-y-4">
-              <div className="bg-[#EBF0F8] rounded-lg p-4 flex items-center justify-between">
-                <span className="text-[13px] text-[#6B7280]">Balance due</span>
-                <span className="text-[18px] text-[#4A6FA5]" style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>${fmt(Math.max(0, balance))}</span>
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="block text-[12px] uppercase tracking-wider text-[#6B7280]" style={{ fontWeight: 600 }}>Amount</label>
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => setPayAmount((balance / 2).toFixed(2))}
-                      className="text-[11px] text-[#4A6FA5] hover:underline"
-                      style={{ fontWeight: 500 }}
-                    >
-                      50%
-                    </button>
-                    <span className="text-[#D1D5DB]">·</span>
-                    <button
-                      type="button"
-                      onClick={() => setPayAmount(Math.max(0, balance).toFixed(2))}
-                      className="text-[11px] text-[#4A6FA5] hover:underline"
-                      style={{ fontWeight: 500 }}
-                    >
-                      Full balance
-                    </button>
-                  </div>
-                </div>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6B7280] text-[14px]">$</span>
-                  <input
-                    type="number" min="0" step="0.01" value={payAmount}
-                    onChange={(e) => setPayAmount(e.target.value)}
-                    placeholder={fmt(Math.max(0, balance))}
-                    className="w-full h-11 pl-7 pr-4 border border-[#E5E7EB] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]"
-                    style={{ fontVariantNumeric: "tabular-nums" }}
-                  />
-                </div>
-                {(() => {
-                  const entered = parseFloat(payAmount);
-                  if (!entered || entered <= 0) return null;
-                  const remaining = balance - entered;
-                  if (remaining > 0) {
-                    return (
-                      <div className="mt-1.5 text-[11px] text-[#D97706] flex items-center gap-1">
-                        <span className="material-icons" style={{ fontSize: "13px" }}>info</span>
-                        Partial payment — ${fmt(remaining)} will remain
-                      </div>
-                    );
-                  }
-                  if (remaining < 0) {
-                    return (
-                      <div className="mt-1.5 text-[11px] text-[#DC2626] flex items-center gap-1">
-                        <span className="material-icons" style={{ fontSize: "13px" }}>warning</span>
-                        Exceeds balance by ${fmt(-remaining)}
-                      </div>
-                    );
-                  }
-                  return (
-                    <div className="mt-1.5 text-[11px] text-[#16A34A] flex items-center gap-1">
-                      <span className="material-icons" style={{ fontSize: "13px" }}>check_circle</span>
-                      Pays the invoice in full
-                    </div>
-                  );
-                })()}
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[12px] uppercase tracking-wider text-[#6B7280] mb-1.5" style={{ fontWeight: 600 }}>Date</label>
-                  <input type="date" value={payDate} onChange={(e) => setPayDate(e.target.value)}
-                    className="w-full h-11 px-3 border border-[#E5E7EB] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]" />
-                </div>
-                <div>
-                  <label className="block text-[12px] uppercase tracking-wider text-[#6B7280] mb-1.5" style={{ fontWeight: 600 }}>Method</label>
-                  <select value={payMethod} onChange={(e) => setPayMethod(e.target.value)}
-                    className="w-full h-11 px-3 border border-[#E5E7EB] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5] bg-white">
-                    {paymentMethods.map(m => <option key={m} value={m}>{m}</option>)}
-                  </select>
-                </div>
-              </div>
-
-              {isCardCharge ? (
-                /* Card charge — the card is charged and the payment is recorded
-                   in one flow. No file uploads here. */
-                <div className="flex items-center gap-2.5 px-3 py-2.5 bg-[#F9FAFB] border border-[#E5E7EB] rounded-lg">
-                  <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "18px" }}>credit_card</span>
-                  <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>Visa ···· 4242</span>
-                  <span className="material-icons text-[#16A34A] ml-auto" title="Verified card on file" style={{ fontSize: "16px" }}>verified</span>
-                </div>
-              ) : (
-                /* Money already received outside the system — enter the
-                   transaction number and the payment is recorded. */
-                <div>
-                  <label className="block text-[12px] uppercase tracking-wider text-[#6B7280] mb-1.5" style={{ fontWeight: 600 }}>Transaction number</label>
-                  <input type="text" value={payTransactionNumber} onChange={(e) => setPayTransactionNumber(e.target.value)}
-                    placeholder="e.g. check #, Venmo confirmation, financing ref…"
-                    className="w-full h-11 px-3 border border-[#E5E7EB] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]" />
-                </div>
-              )}
-
-              <div>
-                <label className="block text-[12px] uppercase tracking-wider text-[#6B7280] mb-1.5" style={{ fontWeight: 600 }}>Note (optional)</label>
-                <input type="text" value={payNote} onChange={(e) => setPayNote(e.target.value)}
-                  placeholder="Payment note..."
-                  className="w-full h-11 px-3 border border-[#E5E7EB] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]" />
-              </div>
-            </div>
-
-            <div className="px-6 py-4 border-t border-[#E5E7EB] bg-[#FAFBFC] flex items-center justify-end gap-3">
-              <button onClick={() => setPaymentModalOpen(false)} className="px-4 py-2.5 border border-[#E5E7EB] text-[#6B7280] rounded-lg text-[13px] hover:bg-[#F3F4F6]" style={{ fontWeight: 500 }}>
-                Cancel
-              </button>
-              <button
-                onClick={handleCollectPayment}
-                disabled={!payAmount || parseFloat(payAmount) <= 0}
-                className="px-5 py-2.5 bg-[#4A6FA5] text-white rounded-lg text-[13px] hover:bg-[#3d5a85] disabled:opacity-40"
-                style={{ fontWeight: 600 }}
-              >
-                {isCardCharge ? "Collect payment" : "Record payment"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Void Confirm */}
       {voidConfirm && (
