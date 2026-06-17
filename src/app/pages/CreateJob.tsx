@@ -1,4 +1,4 @@
-import { useState, useSyncExternalStore, type ReactNode } from "react";
+import { useState, useEffect, useSyncExternalStore, type ReactNode } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { ItemPicker, catalogItemToLineItem, type CatalogItem, type SelectedLineItem } from "../components/ItemPicker";
 import { jobTypesStore } from "../stores/jobTypesStore";
@@ -496,6 +496,20 @@ export function CreateJob({ asModal = false, onClose, onCreated, prefill, headin
     ? [selClient.address, selClient.city, selClient.state, selClient.zip].filter(Boolean).join(", ")
     : "";
 
+  // A client always has an address (mandatory), so auto-fill the service address
+  // from the selected client — the field is never an empty "Select service
+  // address". Fills when empty; the user can still pick a different one.
+  useEffect(() => {
+    if (selClient && !serviceStreet) {
+      setServiceStreet(selClientAddress);
+      setServiceCity(selClient.city || "");
+      setServiceState(selClient.state || "");
+      setServiceZip(selClient.zip || "");
+      setServiceCounty(selClient.county || "");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [client]);
+
   // Shared field styles (Figma: 36px tall, 8px radius, 14px Geist, subtle shadow).
   const fieldCls = "w-full h-9 px-3 border border-[#E5E7EB] rounded-lg text-[14px] text-[#1A2332] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.05)] outline-none focus:border-[#4A6FA5] disabled:bg-[#F5F7FA] disabled:text-[#9CA3AF]";
   const reqStar = <span className="text-[#DC2626]">*</span>;
@@ -592,7 +606,7 @@ export function CreateJob({ asModal = false, onClose, onCreated, prefill, headin
             <div>
               <label className="block text-[14px] text-[#1A2332] mb-1" style={{ fontWeight: 500 }}>Service address {reqStar}</label>
               <select value={serviceStreet} onChange={(e) => setServiceStreet(e.target.value)} disabled={!client.trim()} className={fieldCls}>
-                <option value="">{client.trim() ? "Select service address" : "Select a client first"}</option>
+                {!serviceStreet && <option value="">{client.trim() ? "Select service address" : "Select a client first"}</option>}
                 {selClientAddress && <option value={selClientAddress}>{selClientAddress}</option>}
                 {serviceStreet && serviceStreet !== selClientAddress && <option value={serviceStreet}>{serviceStreet}</option>}
               </select>

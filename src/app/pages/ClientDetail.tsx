@@ -33,7 +33,7 @@ import { formatRegionalDate } from "../stores/regionalSettingsStore";
 import { clientsStore, deriveClientStatus } from "../stores/clientsStore";
 import { estimatesStore } from "../stores/estimatesStore";
 import { jobsStore, type JobRecord } from "../stores/jobsStore";
-import { invoicesStore } from "../stores/invoicesStore";
+import { invoicesStore, type InvoiceStatus } from "../stores/invoicesStore";
 import { paymentsStore } from "../stores/paymentsStore";
 import { JOB_STATUS_STYLES as JOB_STATUS_COLORS, JOB_STATUSES as JOB_STATUS_OPTIONS } from "../constants/jobStatuses";
 import { PAYMENT_METHODS } from "../constants/paymentMethods";
@@ -436,6 +436,7 @@ const RECORD_STATUS_STYLE: Record<string, { color: string; backgroundColor: stri
   Unpaid:           { color: "#DC2626", backgroundColor: "rgba(220,38,38,0.15)" },
   Failed:           { color: "#DC2626", backgroundColor: "rgba(220,38,38,0.15)" },
   "Partially paid": { color: "#F59E0B", backgroundColor: "rgba(245,158,11,0.15)" },
+  "Partially Paid": { color: "#F59E0B", backgroundColor: "rgba(245,158,11,0.15)" },
   Pending:          { color: "#F59E0B", backgroundColor: "rgba(245,158,11,0.15)" },
   Void:             { color: "#6B7280", backgroundColor: "rgba(107,114,128,0.15)" },
   Refunded:         { color: "#6B7280", backgroundColor: "rgba(107,114,128,0.15)" },
@@ -559,6 +560,8 @@ export function ClientDetail() {
   const [lastAddressGuardOpen, setLastAddressGuardOpen] = useState(false);
   // Statement activity slide-over
   const [statementOpen, setStatementOpen] = useState(false);
+  // Invoice "Change status": modal to pick from all invoice statuses.
+  const [statusModalIds, setStatusModalIds] = useState<number[] | null>(null);
   // Document rename modal
   const [renameDocId, setRenameDocId] = useState<string | null>(null);
   const [renameDocDraft, setRenameDocDraft] = useState("");
@@ -1721,13 +1724,13 @@ export function ClientDetail() {
             onRowClick={(r) => navigate(`/invoices/${r.id}?returnTo=${encodeURIComponent(`/clients/${client.id}?tab=invoices`)}`)}
             rowActions={(r) => [
               { label: "Send to client", icon: "send", onClick: () => toast.success(`Invoice ${r.invoiceNo} sent to ${client.name}`) },
-              { label: "Change status", icon: "swap_horiz", onClick: () => { const inv = invoicesStore.getById(r.id); const nowPaid = inv?.status === "Paid"; invoicesStore.update(r.id, { status: nowPaid ? "Unpaid" : "Paid", balance: nowPaid ? (inv?.total ?? 0) : 0 }); toast.success("Status updated"); } },
+              { label: "Change status", icon: "swap_horiz", onClick: () => setStatusModalIds([r.id]) },
               { label: "Duplicate", icon: "content_copy", onClick: () => { const inv = invoicesStore.getById(r.id); if (inv) invoicesStore.add({ ...inv, number: invoicesStore.nextInvoiceNumber(inv.jobNumber || inv.clientName) }); toast.success("Invoice duplicated"); } },
               { label: "Void", icon: "block", separatorBefore: true, onClick: () => { invoicesStore.update(r.id, { status: "Void", balance: 0 }); toast.success(`Invoice ${r.invoiceNo} voided`); } },
               { label: "Archive", icon: "inventory_2", destructive: true, onClick: () => { invoicesStore.remove(r.id); toast.success(`Invoice ${r.invoiceNo} archived`); } },
             ] as RecordAction<InvoiceRow>[]}
             bulkActions={[
-              { label: "Change status", icon: "swap_horiz", onClick: (sel) => { sel.forEach((x) => { const inv = invoicesStore.getById(x.id); const nowPaid = inv?.status === "Paid"; invoicesStore.update(x.id, { status: nowPaid ? "Unpaid" : "Paid", balance: nowPaid ? (inv?.total ?? 0) : 0 }); }); toast.success(`${sel.length} invoice${sel.length > 1 ? "s" : ""} updated`); } },
+              { label: "Change status", icon: "swap_horiz", onClick: (sel) => setStatusModalIds(sel.map((x) => x.id)) },
               { label: "Download", icon: "download", onClick: (sel) => toast.success(`Downloading ${sel.length} invoice${sel.length > 1 ? "s" : ""}`) },
               { label: "Archive", icon: "inventory_2", onClick: (sel) => { invoicesStore.removeMany(new Set(sel.map((x) => x.id))); toast.success(`${sel.length} invoice${sel.length > 1 ? "s" : ""} archived`); } },
             ] as RecordBulkAction<InvoiceRow>[]}
@@ -2851,6 +2854,37 @@ export function ClientDetail() {
             <div className="flex items-center justify-end gap-2 px-4 py-4 mt-2">
               <Button variant="outline" onClick={() => setShowTabSettings(false)} className="border-[#E5E7EB] text-[#1A2332] hover:bg-[#F5F7FA] bg-white h-9 px-4 text-[14px] rounded-lg">Cancel</Button>
               <Button onClick={() => { setHiddenTabs(new Set(pendingHidden)); setShowTabSettings(false); }} className="bg-[#4A6FA5] hover:bg-[#3d5a85] text-white h-9 px-4 text-[14px] rounded-lg">Save</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Change invoice status modal — pick from all invoice statuses ── */}
+      {statusModalIds && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={() => setStatusModalIds(null)}>
+          <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" />
+          <div className="relative bg-white rounded-xl shadow-xl w-[360px] max-w-[92vw] p-5" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-[16px] text-[#1A2332]" style={{ fontWeight: 600 }}>Change status</h3>
+              <button onClick={() => setStatusModalIds(null)} aria-label="Close" className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#F5F7FA] text-[#9CA3AF]"><span className="material-icons" style={{ fontSize: "18px" }}>close</span></button>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              {(["Unpaid", "Overdue", "Partially Paid", "Paid", "Void"] as InvoiceStatus[]).map((s) => (
+                <button key={s} onClick={() => {
+                  const ids = statusModalIds;
+                  ids.forEach((id) => {
+                    const inv = invoicesStore.getById(id);
+                    const total = inv?.total ?? 0;
+                    const balance = (s === "Paid" || s === "Void") ? 0 : (s === "Partially Paid" ? (inv?.balance ?? total) : total);
+                    invoicesStore.update(id, { status: s, balance });
+                  });
+                  toast.success(ids.length > 1 ? `${ids.length} invoices updated` : "Status updated");
+                  setStatusModalIds(null);
+                }} className="flex items-center justify-between px-3 py-2.5 rounded-lg border border-[#E5E7EB] hover:bg-[#F5F7FA] text-left transition-colors">
+                  <RecordStatusBadge status={s} />
+                  <span className="material-icons text-[#C8D5E8]" style={{ fontSize: "18px" }}>chevron_right</span>
+                </button>
+              ))}
             </div>
           </div>
         </div>
