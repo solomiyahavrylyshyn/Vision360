@@ -692,9 +692,9 @@ export function InvoiceDetail() {
               onClick={() => {}}
               aria-label="Add item"
               title="Add item"
-              className="w-7 h-7 flex items-center justify-center rounded hover:bg-[#F5F7FA] transition-colors"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#4A6FA5] hover:bg-[#3d5a85] text-white transition-colors"
             >
-              <PlusIcon className="h-3.5 w-3.5 text-[#9CA3AF]" />
+              <span className="material-icons" style={{ fontSize: "18px" }}>add</span>
             </button>
           )}
         </div>

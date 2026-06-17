@@ -867,7 +867,7 @@ export function CreateJob({ asModal = false, onClose, onCreated, prefill, headin
                       <select value={item.chargeMode || "per_appointment"} onChange={(e) => updateLineItem(item.id, "chargeMode", e.target.value)}
                         className="h-8 px-2 border border-[#E5E7EB] rounded-lg text-[13px] bg-white outline-none focus:border-[#4A6FA5]">
                         <option value="per_appointment">Per appointment</option>
-                        <option value="once">Once</option>
+                        <option value="once">Per series</option>
                         <option value="prepaid">Don't charge</option>
                       </select>
                     </td>

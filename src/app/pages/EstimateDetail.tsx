@@ -606,13 +606,14 @@ export function EstimateDetail() {
       <div className="h-full flex flex-col gap-0 bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
         <div className="flex items-center justify-between px-5 py-3 border-b border-[#E5E7EB]">
           <h3 className="text-[16px] text-[#1A2332]" style={{ fontWeight: 600 }}>Items</h3>
+          {/* Blue circular "+" — consistent per-section create affordance (Marek). */}
           <button
             onClick={() => setAddItemOpen(true)}
-            className="h-8 px-3 rounded-md bg-[#4A6FA5] hover:bg-[#3d5a85] text-white text-[13px] inline-flex items-center gap-1.5 transition-colors"
-            style={{ fontWeight: 600 }}
+            aria-label="Add item"
+            title="Add item"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#4A6FA5] hover:bg-[#3d5a85] text-white transition-colors"
           >
-            <span className="material-icons" style={{ fontSize: "16px" }}>add</span>
-            Add Item
+            <span className="material-icons" style={{ fontSize: "18px" }}>add</span>
           </button>
         </div>
 
