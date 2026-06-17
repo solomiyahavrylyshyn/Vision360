@@ -532,6 +532,17 @@ export function JobDetail() {
   const [notesAdding,    setNotesAdding]    = useState(false);
   const [notesNewText,   setNotesNewText]   = useState("");
   const [notesExpanded,  setNotesExpanded]  = useState(false);
+  // Notes live in local state (seeded from the job) so adding one shows up
+  // immediately; re-seed when the job id changes.
+  const [noteData, setNoteData] = useState(() => ({
+    office: job.notes ?? [],
+    field: job.fieldNotes ?? [],
+    internal: job.internalNotes ?? [],
+  }));
+  useEffect(() => {
+    setNoteData({ office: job.notes ?? [], field: job.fieldNotes ?? [], internal: job.internalNotes ?? [] });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [job.id]);
 
   // Documents are scoped to ONE demo job (id 1). Other mock jobs and all
   // user-created (store) jobs start empty — no cross-job document sharing.
@@ -759,9 +770,9 @@ export function JobDetail() {
 
   const renderDetailsTab = () => {
     const noteTabs = [
-      { key: "office"   as const, label: "Job",      notes: job.notes         },
-      { key: "field"    as const, label: "Field",    notes: job.fieldNotes    },
-      { key: "internal" as const, label: "Internal", notes: job.internalNotes },
+      { key: "office"   as const, label: "Job",      notes: noteData.office   },
+      { key: "field"    as const, label: "Field",    notes: noteData.field    },
+      { key: "internal" as const, label: "Internal", notes: noteData.internal },
     ];
     const activeNotes = noteTabs.find(t => t.key === noteTab)?.notes ?? [];
     const SHOW_N = 5;
@@ -790,6 +801,8 @@ export function JobDetail() {
     const handleSaveNote = () => {
       const trimmed = notesNewText.trim();
       if (!trimmed) return;
+      const entry = { id: Date.now(), text: trimmed, date: formatRegionalDate(new Date()) };
+      setNoteData((prev) => ({ ...prev, [noteTab]: [entry, ...prev[noteTab]] }));
       setNotesAdding(false);
       setNotesNewText("");
     };
@@ -1774,7 +1787,6 @@ export function JobDetail() {
               </DropdownMenuContent>
             </DropdownMenu>
             <KebabMenu triggerClassName="h-9 w-9 border border-[#E5E7EB] rounded-lg hover:bg-[#EDF0F5] flex items-center justify-center bg-white">
-              <KebabItem icon="edit" onClick={() => navigate(`/jobs/${id}/edit`)}>Edit Job</KebabItem>
               <KebabItem icon="content_copy">Duplicate Job</KebabItem>
               <KebabSeparator />
               <KebabItem icon="cancel" destructive>Cancel Job</KebabItem>

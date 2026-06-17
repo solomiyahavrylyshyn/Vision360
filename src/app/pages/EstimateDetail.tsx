@@ -572,8 +572,9 @@ export function EstimateDetail() {
           <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Jobs ({jobs.length})</h3>
           <button
             onClick={() => navigate(`/jobs/new?fromEstimate=${estimate.id}&client=${encodeURIComponent(estimate.clientName)}&returnTo=${encodeURIComponent(`/estimates/${estimate.id}`)}`)}
-            className="h-8 px-3 rounded-md bg-[#4A6FA5] hover:bg-[#3d5a85] text-white text-[13px] inline-flex items-center gap-1.5 transition-colors" style={{ fontWeight: 600 }}>
-            <span className="material-icons" style={{ fontSize: "16px" }}>add</span> Add job
+            aria-label="Add job" title="Add job"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[#4A6FA5] hover:bg-[#EEF3FA] transition-colors">
+            <PlusIcon className="h-5 w-5" />
           </button>
         </div>
         {jobs.length === 0 ? (

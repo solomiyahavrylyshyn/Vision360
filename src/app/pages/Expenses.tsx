@@ -8,6 +8,7 @@ import { useDraggableColumns, DraggableTh } from "../components/ui/draggable-col
 import { PageHeader } from "../components/ui/page-header";
 import { StatCard } from "../components/ui/stat-card";
 import { SelectionBar } from "../components/ui/selection-bar";
+import { PaginationFooter } from "../components/ui/pagination-footer";
 import { CreateActionButton } from "../components/ui/create-action-button";
 import { AdvancedFilterField, AdvancedFilterPanel, advancedInputClass, advancedSelectClass } from "../components/ui/advanced-filters";
 
@@ -115,6 +116,8 @@ export function Expenses() {
   // advanced filter buckets by job linkage; the quick filter picks a specific job.
   const [jobLinkFilter, setJobLinkFilter] = useState("All");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(10);
 
   const filtered = expenses.filter((e) => {
     const dateValue = toDateInputValue(e.date);
@@ -152,6 +155,7 @@ export function Expenses() {
     setJobLinkFilter("All");
   };
 
+  const paginated = filtered.slice((page - 1) * perPage, page * perPage);
   const totalAmount = filtered.reduce((s, e) => s + e.amount, 0);
   const uniqueJobs = Array.from(new Set(expenses.filter((e) => e.jobId).map((e) => e.jobId!)));
 
@@ -343,7 +347,7 @@ export function Expenses() {
                   </td>
                 </tr>
               ) : (
-                filtered.map((expense) => (
+                paginated.map((expense) => (
                   <tr
                     key={expense.id}
                     onClick={() => navigate(`/expenses/${expense.id}`)}
@@ -443,23 +447,7 @@ export function Expenses() {
           </table>
         </div>
 
-        {/* Pagination */}
-        <div className="flex items-center justify-between px-4 py-3 border-t border-[#E5E7EB]">
-          <div className="text-[13px] text-[#546478]">
-            Showing <span style={{ fontWeight: 600 }}>1</span> to{" "}
-            <span style={{ fontWeight: 600 }}>{filtered.length}</span> of{" "}
-            <span style={{ fontWeight: 600 }}>{filtered.length}</span> entries
-          </div>
-          <div className="flex items-center gap-2">
-            <button className="w-8 h-8 flex items-center justify-center border border-[#E5E7EB] rounded-md text-[#8899AA] hover:bg-[#F5F7FA] transition-colors disabled:opacity-40" disabled>
-              <span className="material-icons" style={{ fontSize: "18px" }}>chevron_left</span>
-            </button>
-            <button className="w-8 h-8 flex items-center justify-center bg-[#4A6FA5] rounded-md text-white text-[13px]" style={{ fontWeight: 600 }}>1</button>
-            <button className="w-8 h-8 flex items-center justify-center border border-[#E5E7EB] rounded-md text-[#8899AA] hover:bg-[#F5F7FA] transition-colors disabled:opacity-40" disabled>
-              <span className="material-icons" style={{ fontSize: "18px" }}>chevron_right</span>
-            </button>
-          </div>
-        </div>
+        <PaginationFooter page={page} perPage={perPage} total={filtered.length} onPageChange={setPage} onPerPageChange={setPerPage} />
       </div>
 
     </div>
