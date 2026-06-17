@@ -1225,7 +1225,7 @@ export function ClientDetail() {
                   <div className="flex items-center gap-1 text-[11px] text-[#6B7280]">
                     <span>Configure in</span>
                     <button
-                      onClick={() => navigate("/settings?section=customFields")}
+                      onClick={() => navigate("/settings?section=general")}
                       className="text-[11px] text-[#4A6FA5] hover:underline"
                       style={{ fontWeight: 500 }}
                     >
@@ -2681,10 +2681,6 @@ export function ClientDetail() {
                         {PAYMENT_METHODS.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
                       </SelectContent>
                     </Select>
-                  </div>
-                  <div>
-                    <Label className="text-[14px] text-[#1A2332] mb-2 block" style={{ fontWeight: 500 }}>Department</Label>
-                    <Input value={editedClient.department} onChange={(e) => handleFieldChange("department", e.target.value)} className="border-[#E5E7EB] bg-white h-9 text-[14px] rounded-[8px] shadow-[0px_1px_2px_rgba(0,0,0,0.05)]" />
                   </div>
                   <label className="flex items-center gap-2.5 cursor-pointer pt-1">
                     <input
