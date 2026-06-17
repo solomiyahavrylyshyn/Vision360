@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { clientsStore, type ClientRecord } from "../stores/clientsStore";
 import { dismissalsStore } from "../stores/dismissalsStore";
 import { KebabMenu, KebabItem } from "../components/ui/kebab-menu";
+import { PaginationFooter } from "../components/ui/pagination-footer";
 
 // ─── Grouping helpers ────────────────────────────────────────────────────────
 type MatchField =
@@ -476,26 +477,7 @@ export function ManageDuplicates() {
 
           {/* Pagination — inside the card (hidden on empty state) */}
           {groups.length > 0 && (
-            <div className="flex items-center justify-between p-4">
-              <div className="flex items-center gap-3 text-[14px] text-[#6B7280]">
-                <span>Rows per page:</span>
-                <select value={rowsPerPage} onChange={e => { setRowsPerPage(Number(e.target.value)); setDupPage(1); }}
-                  className="h-9 pl-3 pr-2 border border-[#E5E7EB] rounded-lg text-[14px] text-[#1A2332] bg-white shadow-[0px_1px_2px_rgba(0,0,0,0.05)] focus:outline-none">
-                  {[10, 25, 50].map(n => <option key={n} value={n}>{n}</option>)}
-                </select>
-                <span>{(dupPageSafe - 1) * rowsPerPage + 1}-{Math.min(dupPageSafe * rowsPerPage, groups.length)} of {groups.length}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <button onClick={() => setDupPage(p => Math.max(1, p - 1))} disabled={dupPageSafe <= 1}
-                  className="w-9 h-9 flex items-center justify-center text-[#1A2332] hover:bg-[#F5F7FA] rounded-lg disabled:opacity-50 disabled:hover:bg-transparent disabled:cursor-not-allowed">
-                  <span className="material-icons" style={{ fontSize: "20px" }}>chevron_left</span>
-                </button>
-                <button onClick={() => setDupPage(p => Math.min(dupTotalPages, p + 1))} disabled={dupPageSafe >= dupTotalPages}
-                  className="w-9 h-9 flex items-center justify-center text-[#1A2332] hover:bg-[#F5F7FA] rounded-lg disabled:opacity-50 disabled:hover:bg-transparent disabled:cursor-not-allowed">
-                  <span className="material-icons" style={{ fontSize: "20px" }}>chevron_right</span>
-                </button>
-              </div>
-            </div>
+            <PaginationFooter page={dupPage} perPage={rowsPerPage} total={groups.length} onPageChange={setDupPage} onPerPageChange={setRowsPerPage} />
           )}
         </div>
       </div>

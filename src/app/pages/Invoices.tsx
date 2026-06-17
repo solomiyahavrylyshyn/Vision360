@@ -8,6 +8,7 @@ import { useDraggableColumns, DraggableTh } from "../components/ui/draggable-col
 import { PageHeader } from "../components/ui/page-header";
 import { SelectionBar } from "../components/ui/selection-bar";
 import { CreateActionButton } from "../components/ui/create-action-button";
+import { PaginationFooter } from "../components/ui/pagination-footer";
 import { StatCard } from "../components/ui/stat-card";
 import { formatRegionalDate, regionalSettingsStore } from "../stores/regionalSettingsStore";
 import { AdvancedFilterField, AdvancedFilterPanel, advancedInputClass, advancedSelectClass } from "../components/ui/advanced-filters";
@@ -208,7 +209,6 @@ export function Invoices() {
   };
 
   const paginated = filtered.slice((page - 1) * perPage, page * perPage);
-  const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
   const allSelected = paginated.length > 0 && paginated.every(i => selectedIds.has(i.id));
 
   const handleBulkDelete = () => {
@@ -549,33 +549,7 @@ export function Invoices() {
         </div>
 
         {/* Pagination (Figma: "Rows per page: N   X-Y of Z   ‹ ›") */}
-        <div className="flex items-center justify-between px-4 py-3 border-t border-[#E5E7EB] bg-[#FAFBFC]">
-          <div className="flex items-center gap-5 text-[13px] text-[#546478]">
-            <div className="flex items-center gap-2">
-              <span>Rows per page:</span>
-              <select
-                value={perPage}
-                onChange={e => { setPerPage(Number(e.target.value)); setPage(1); }}
-                className="h-8 rounded-lg border border-[#E5E7EB] bg-white pl-2.5 pr-7 text-[13px] text-[#1A2332] outline-none focus:border-[#4A6FA5] cursor-pointer"
-              >
-                {[10, 25, 50].map(n => <option key={n} value={n}>{n}</option>)}
-              </select>
-            </div>
-            <span style={{ fontVariantNumeric: "tabular-nums" }}>
-              {filtered.length === 0 ? 0 : (page - 1) * perPage + 1}-{Math.min(page * perPage, filtered.length)} of {filtered.length}
-            </span>
-          </div>
-          <div className="flex items-center gap-1">
-            <button onClick={() => setPage(Math.max(1, page - 1))} disabled={page <= 1}
-              className="w-8 h-8 flex items-center justify-center rounded hover:bg-[#EDF0F5] disabled:opacity-30">
-              <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>chevron_left</span>
-            </button>
-            <button onClick={() => setPage(Math.min(totalPages, page + 1))} disabled={page >= totalPages}
-              className="w-8 h-8 flex items-center justify-center rounded hover:bg-[#EDF0F5] disabled:opacity-30">
-              <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>chevron_right</span>
-            </button>
-          </div>
-        </div>
+        <PaginationFooter page={page} perPage={perPage} total={filtered.length} onPageChange={setPage} onPerPageChange={setPerPage} />
       </div>
 
       {/* Edit columns — toggle which columns the invoice table shows */}

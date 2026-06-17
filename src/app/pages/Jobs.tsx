@@ -7,12 +7,9 @@ import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-men
 import { PageHeader } from "../components/ui/page-header";
 import { SelectionBar } from "../components/ui/selection-bar";
 import { useDraggableColumns, DraggableTh } from "../components/ui/draggable-columns";
-import {
-  Select, SelectContent, SelectItem,
-  SelectTrigger, SelectValue,
-} from "../components/ui/select";
 import { CreateActionButton } from "../components/ui/create-action-button";
 import { StatCard } from "../components/ui/stat-card";
+import { PaginationFooter } from "../components/ui/pagination-footer";
 import { formatRegionalDate, regionalSettingsStore } from "../stores/regionalSettingsStore";
 import { jobsStore } from "../stores/jobsStore";
 import { type JobStatus, JOB_STATUSES, JOB_STATUS_COLOR as statusColors, JOB_STATUS_BG as statusBg } from "../constants/jobStatuses";
@@ -538,40 +535,7 @@ export function Jobs() {
         </div>
 
         {/* ── Pagination (inside table card per template) ── */}
-        <div className="flex items-center justify-between bg-white px-4 py-4 border-t border-[#E5E7EB]">
-          <div className="flex items-center gap-3">
-            <span className="text-[14px] text-[#6B7280]" style={{ fontWeight: 400 }}>Rows per page:</span>
-            <Select value={String(rowsPerPage)} onValueChange={v => { setRowsPerPage(Number(v)); setCurrentPage(1); }}>
-              <SelectTrigger className="h-9 w-[72px] border-[#E5E7EB] text-[14px] text-[#1A2332]" style={{ fontWeight: 400, boxShadow: "0px 1px 2px rgba(0,0,0,0.05)" }}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {[5, 10, 25, 50, 100].map(n => <SelectItem key={n} value={String(n)}>{n}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            <span className="text-[14px] text-[#6B7280]" style={{ fontWeight: 400 }}>
-              {totalItems === 0 ? "0-0" : `${startIndex + 1}-${endIndex}`} of {totalItems}
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              className="w-9 h-9 flex items-center justify-center text-[#1A2332] hover:bg-[#F3F4F6] rounded-lg disabled:opacity-50 transition-colors"
-              disabled={currentPage === 1}
-              onClick={() => setCurrentPage(currentPage - 1)}
-              aria-label="Previous page"
-            >
-              <span className="material-icons" style={{ fontSize: "16px" }}>chevron_left</span>
-            </button>
-            <button
-              className="w-9 h-9 flex items-center justify-center text-[#1A2332] hover:bg-[#F3F4F6] rounded-lg disabled:opacity-50 transition-colors"
-              disabled={currentPage === totalPages || totalPages === 0}
-              onClick={() => setCurrentPage(currentPage + 1)}
-              aria-label="Next page"
-            >
-              <span className="material-icons" style={{ fontSize: "16px" }}>chevron_right</span>
-            </button>
-          </div>
-        </div>
+        <PaginationFooter page={currentPage} perPage={rowsPerPage} total={totalItems} onPageChange={setCurrentPage} onPerPageChange={setRowsPerPage} />
       </div>
     </div>
 

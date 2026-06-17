@@ -9,6 +9,7 @@ import { useDraggableColumns, DraggableTh } from "../components/ui/draggable-col
 import { PlusIcon } from "../components/ui/plus-icon";
 import { CreateActionButton } from "../components/ui/create-action-button";
 import { AdvancedFilterField, AdvancedFilterPanel, advancedInputClass, advancedSelectClass } from "../components/ui/advanced-filters";
+import { PaginationFooter } from "../components/ui/pagination-footer";
 import { itemsStore, mapItemTypeToCatalog } from "../stores/itemsStore";
 import { toast } from "sonner";
 import type { CatalogItem } from "../components/ItemPicker";
@@ -344,51 +345,6 @@ function ModalBackdrop({ children, onClose }: { children: React.ReactNode; onClo
       <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" />
       <div className="relative" onClick={(e) => e.stopPropagation()}>
         {children}
-      </div>
-    </div>
-  );
-}
-
-function Pagination({ total, perPage, page, onPageChange, onPerPageChange }: {
-  total: number; perPage: number; page: number;
-  onPageChange: (p: number) => void; onPerPageChange: (pp: number) => void;
-}) {
-  const totalPages = Math.max(1, Math.ceil(total / perPage));
-  const from = total === 0 ? 0 : (page - 1) * perPage + 1;
-  const to = Math.min(page * perPage, total);
-
-  return (
-    <div className="flex items-center justify-between px-4 py-2 border-t border-[#E5E7EB] bg-[#FAFBFC]">
-      <span className="text-[13px] text-[#546478]">
-        Showing {from} to {to} of {total} results
-      </span>
-      <div className="flex items-center gap-4">
-        <select
-          value={perPage}
-          onChange={(e) => { onPerPageChange(Number(e.target.value)); onPageChange(1); }}
-          className="px-2 py-1 border border-[#E5E7EB] rounded text-[13px] bg-white"
-        >
-          {[10, 25, 50].map(n => <option key={n} value={n}>{n}</option>)}
-        </select>
-        <div className="flex items-center gap-1">
-          <button
-            onClick={() => onPageChange(Math.max(1, page - 1))}
-            disabled={page <= 1}
-            className="w-8 h-8 flex items-center justify-center rounded hover:bg-[#EDF0F5] disabled:opacity-30"
-          >
-            <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>chevron_left</span>
-          </button>
-          <span className="text-[13px] text-[#1A2332] min-w-[80px] text-center" style={{ fontWeight: 500 }}>
-            Page {page} of {totalPages}
-          </span>
-          <button
-            onClick={() => onPageChange(Math.min(totalPages, page + 1))}
-            disabled={page >= totalPages}
-            className="w-8 h-8 flex items-center justify-center rounded hover:bg-[#EDF0F5] disabled:opacity-30"
-          >
-            <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>chevron_right</span>
-          </button>
-        </div>
       </div>
     </div>
   );
@@ -873,30 +829,7 @@ export function Items() {
           </div>
 
           {/* Pagination */}
-          <div className="flex items-center justify-between px-4 py-2 border-t border-[#E5E7EB] bg-[#FAFBFC]">
-            <span className="text-[13px] text-[#546478]">
-              Showing {filteredPbItems.length === 0 ? 0 : (pbPage - 1) * pbPerPage + 1} to {Math.min(pbPage * pbPerPage, filteredPbItems.length)} of {filteredPbItems.length} pricebook items
-            </span>
-            <div className="flex items-center gap-4">
-              <select value={pbPerPage} onChange={e => { setPbPerPage(Number(e.target.value)); setPbPage(1); }}
-                className="px-2 py-1 border border-[#E5E7EB] rounded text-[13px] bg-white">
-                {[10, 25, 50].map(n => <option key={n} value={n}>{n}</option>)}
-              </select>
-              <div className="flex items-center gap-1">
-                <button onClick={() => setPbPage(p => Math.max(1, p - 1))} disabled={pbPage <= 1}
-                  className="w-8 h-8 flex items-center justify-center rounded hover:bg-[#EDF0F5] disabled:opacity-30">
-                  <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>chevron_left</span>
-                </button>
-                <span className="text-[13px] text-[#1A2332] min-w-[80px] text-center" style={{ fontWeight: 500 }}>
-                  Page {pbPage} of {Math.max(1, Math.ceil(filteredPbItems.length / pbPerPage))}
-                </span>
-                <button onClick={() => setPbPage(p => Math.min(Math.ceil(filteredPbItems.length / pbPerPage), p + 1))} disabled={pbPage >= Math.ceil(filteredPbItems.length / pbPerPage)}
-                  className="w-8 h-8 flex items-center justify-center rounded hover:bg-[#EDF0F5] disabled:opacity-30">
-                  <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>chevron_right</span>
-                </button>
-              </div>
-            </div>
-          </div>
+          <PaginationFooter page={pbPage} perPage={pbPerPage} total={filteredPbItems.length} onPageChange={setPbPage} onPerPageChange={setPbPerPage} />
         </div>
       ) : (
         /* existing All Items / Services / etc table */
@@ -1079,13 +1012,7 @@ export function Items() {
             </table>
           </div>
 
-          <Pagination
-            total={filteredItems.length}
-            perPage={itemPerPage}
-            page={itemPage}
-            onPageChange={setItemPage}
-            onPerPageChange={setItemPerPage}
-          />
+          <PaginationFooter page={itemPage} perPage={itemPerPage} total={filteredItems.length} onPageChange={setItemPage} onPerPageChange={setItemPerPage} />
         </div>
       )}
 

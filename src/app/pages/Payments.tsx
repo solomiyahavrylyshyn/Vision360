@@ -4,11 +4,11 @@ import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
 import { useDraggableColumns, DraggableTh } from "../components/ui/draggable-columns";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { PageHeader } from "../components/ui/page-header";
 import { SelectionBar } from "../components/ui/selection-bar";
 import { CreateActionButton } from "../components/ui/create-action-button";
 import { StatCard } from "../components/ui/stat-card";
+import { PaginationFooter } from "../components/ui/pagination-footer";
 import { AdvancedFilterField, AdvancedFilterPanel, advancedInputClass, advancedSelectClass } from "../components/ui/advanced-filters";
 import { formatRegionalDate } from "../stores/regionalSettingsStore";
 import { paymentsStore } from "../stores/paymentsStore";
@@ -563,38 +563,7 @@ export function Payments() {
           </div>
 
           {/* Pagination */}
-          <div className="flex items-center justify-between bg-white px-4 py-4 border-t border-[#E5E7EB]">
-            <div className="flex items-center gap-3">
-              <span className="text-[14px] text-[#6B7280]" style={{ fontWeight: 400 }}>Rows per page:</span>
-              <Select value={String(perPage)} onValueChange={v => { setPerPage(Number(v)); setPage(1); }}>
-                <SelectTrigger className="h-9 w-[76px] border-[#E5E7EB] text-[14px] text-[#1A2332]" style={{ fontWeight: 400, boxShadow: "0px 1px 2px rgba(0,0,0,0.05)" }}>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {[10, 25, 50, 100].map(n => <SelectItem key={n} value={String(n)}>{n}</SelectItem>)}
-                </SelectContent>
-              </Select>
-              <span className="text-[14px] text-[#6B7280]" style={{ fontWeight: 400 }}>
-                {filtered.length === 0 ? "0-0" : `${(page - 1) * perPage + 1}-${Math.min(page * perPage, filtered.length)}`} of {filtered.length}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                className="w-9 h-9 flex items-center justify-center text-[#1A2332] hover:bg-[#F3F4F6] rounded-lg disabled:opacity-50 transition-colors"
-                disabled={page === 1}
-                onClick={() => setPage(page - 1)}
-              >
-                <span className="material-icons" style={{ fontSize: "16px" }}>chevron_left</span>
-              </button>
-              <button
-                className="w-9 h-9 flex items-center justify-center text-[#1A2332] hover:bg-[#F3F4F6] rounded-lg disabled:opacity-50 transition-colors"
-                disabled={page === totalPages || totalPages === 0}
-                onClick={() => setPage(page + 1)}
-              >
-                <span className="material-icons" style={{ fontSize: "16px" }}>chevron_right</span>
-              </button>
-            </div>
-          </div>
+          <PaginationFooter page={page} perPage={perPage} total={filtered.length} onPageChange={setPage} onPerPageChange={setPerPage} />
         </div>
 
       </div>
