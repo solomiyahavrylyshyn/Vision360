@@ -529,7 +529,7 @@ export function ItemDetail() {
               <KebabItem icon="open_in_new" onClick={() => window.open(`/items/${item.id}`, "_blank")}>Open in new tab</KebabItem>
               <KebabSeparator />
               {item.active ? (
-                <KebabItem icon="block" destructive onClick={() => { setItem({ active: false }); toast.success("Item marked Inactive"); }}>Inactivate item</KebabItem>
+                <KebabItem icon="block" destructive onClick={() => { setItem({ active: false }); toast.success("Item marked Inactive"); }}>Deactivate item</KebabItem>
               ) : (
                 <KebabItem icon="check_circle" onClick={() => { setItem({ active: true }); toast.success("Item marked Active"); }}>Reactivate item</KebabItem>
               )}

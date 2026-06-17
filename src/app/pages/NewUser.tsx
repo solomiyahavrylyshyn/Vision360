@@ -670,7 +670,7 @@ export function NewUser() {
                         nameAddressOnly: "View client name and address only",
                         viewFull: "View full client and property info",
                         viewCreateEditFull: "View, create, and edit full client and property info",
-                        viewCreateEditInactivateFull: "View, create, edit, and inactivate full client and property info",
+                        viewCreateEditInactivateFull: "View, create, edit, and deactivate full client and property info",
                       }[level]}
                       description={level === "nameAddressOnly"
                         ? "Hides the phone number — for sales roles, so jobs can't be booked off the books."

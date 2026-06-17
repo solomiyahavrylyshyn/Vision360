@@ -336,14 +336,14 @@ export function ManageDuplicates() {
   const inactivateClient = (id: string) => {
     clientsStore.updateClient(id, { archivedAt: new Date().toISOString(), status: "Inactive" as ClientRecord["status"] });
     const c = clients.find(x => x.id === id);
-    toast.success(`${c?.name ?? "Client"} inactivated. Restore from the panel below.`);
+    toast.success(`${c?.name ?? "Client"} deactivated. Restore from the panel below.`);
     setSelectedClients(prev => { const n = new Set(prev); n.delete(id); return n; });
   };
   const inactivateSelected = () => {
     const ids = [...selectedClients];
     if (!ids.length) return;
     ids.forEach(id => clientsStore.updateClient(id, { archivedAt: new Date().toISOString(), status: "Inactive" as ClientRecord["status"] }));
-    toast.success(`${ids.length} record${ids.length !== 1 ? "s" : ""} inactivated.`);
+    toast.success(`${ids.length} record${ids.length !== 1 ? "s" : ""} deactivated.`);
     setSelectedClients(new Set());
   };
 
@@ -391,7 +391,7 @@ export function ManageDuplicates() {
             <div className="flex items-center gap-3 flex-wrap">
               <button onClick={inactivateSelected} disabled={selectedClients.size < 1}
                 className={toolbarBtnCls(selectedClients.size >= 1)} style={{ fontWeight: 500 }}>
-                Inactivate
+                Deactivate
               </button>
               <button onClick={markNotDuplicateSelected} disabled={selectedClients.size < 2}
                 className={toolbarBtnCls(selectedClients.size >= 2)} style={{ fontWeight: 500 }}>
@@ -466,7 +466,7 @@ export function ManageDuplicates() {
                     <KebabMenu align="end">
                       <KebabItem icon="visibility" onClick={() => window.open(`/clients/${client.id}`, "_blank")}>View existing record</KebabItem>
                       <KebabItem icon="check" onClick={() => markRowNotDuplicate(client)}>Mark as not duplicate</KebabItem>
-                      <KebabItem icon="block" onClick={() => inactivateClient(client.id)}>Inactivate</KebabItem>
+                      <KebabItem icon="block" onClick={() => inactivateClient(client.id)}>Deactivate</KebabItem>
                     </KebabMenu>
                   </div>
                 </div>
@@ -535,7 +535,7 @@ export function ManageDuplicates() {
           <button onClick={() => setShowArchived(v => !v)}
             className="text-[13px] text-[#4A6FA5] hover:underline inline-flex items-center gap-1" style={{ fontWeight: 500 }}>
             <span className="material-icons" style={{ fontSize: "16px" }}>{showArchived ? "expand_less" : "expand_more"}</span>
-            {showArchived ? "Hide" : "Show"} inactivated records ({archivedClients.length})
+            {showArchived ? "Hide" : "Show"} deactivated records ({archivedClients.length})
           </button>
           {showArchived && (
             <div className="mt-2 bg-white border border-[#E5E7EB] rounded-xl overflow-hidden divide-y divide-[#F3F4F6]">
@@ -544,7 +544,7 @@ export function ManageDuplicates() {
                   <div className="text-[13px] text-[#1A2332]">
                     <span style={{ fontWeight: 500 }}>{c.name}</span>
                     {c.email && <span className="text-[#6B7280] ml-2">{c.email}</span>}
-                    <span className="ml-3 px-2 py-0.5 rounded bg-[#F3F4F6] text-[#6B7280] text-[11px]" style={{ fontWeight: 600 }}>Inactivated</span>
+                    <span className="ml-3 px-2 py-0.5 rounded bg-[#F3F4F6] text-[#6B7280] text-[11px]" style={{ fontWeight: 600 }}>Deactivated</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <button onClick={() => window.open(`/clients/${c.id}`, "_blank")}

@@ -843,7 +843,7 @@ export function Clients() {
                 },
               },
               {
-                label: "Inactivate",
+                label: "Deactivate",
                 icon: "block",
                 destructive: true,
                 onClick: () => {
@@ -965,7 +965,7 @@ export function Clients() {
                       {getClientStatus(client) === "Inactive" ? (
                         <KebabItem icon="check_circle" onSelect={() => setClientStatusInStore(client.id, "Active")}>Reactivate</KebabItem>
                       ) : (
-                        <KebabItem icon="block" destructive onSelect={() => setClientStatusInStore(client.id, "Inactive")}>Inactivate</KebabItem>
+                        <KebabItem icon="block" destructive onSelect={() => setClientStatusInStore(client.id, "Inactive")}>Deactivate</KebabItem>
                       )}
                       <KebabSeparator />
                       <KebabItem icon="open_in_new" onSelect={e => { e.preventDefault(); window.open(`/clients/${client.id}`, "_blank"); }}>Open in New Tab</KebabItem>

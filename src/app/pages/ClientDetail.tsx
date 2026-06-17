@@ -341,7 +341,7 @@ function ClientJobsPanel({ rows, onOpen, onCreate }: {
                     <KebabMenuShared>
                       <KebabItem icon="content_copy" onSelect={() => duplicateJob(row)}>Duplicate</KebabItem>
                       <KebabItem icon="swap_horiz" onSelect={() => setStatusTarget([row.id])}>Change status</KebabItem>
-                      <KebabItem icon="block" onSelect={() => cancelJobs([row.id])}>Inactivate</KebabItem>
+                      <KebabItem icon="block" onSelect={() => cancelJobs([row.id])}>Deactivate</KebabItem>
                       <KebabSeparator />
                       <KebabItem icon="open_in_new" onSelect={() => window.open(`/jobs/${row.id}`, "_blank")}>Open in New Tab</KebabItem>
                     </KebabMenuShared>
@@ -2442,7 +2442,7 @@ export function ClientDetail() {
                         className="w-full text-left px-3 py-2 text-[13px] hover:bg-[#FEF2F2] flex items-center gap-2"
                       >
                         <span className="material-icons text-[#DC2626]" style={{ fontSize: "16px" }}>block</span>
-                        <span className="text-[#DC2626]" style={{ fontWeight: 500 }}>Inactivate</span>
+                        <span className="text-[#DC2626]" style={{ fontWeight: 500 }}>Deactivate</span>
                       </button>
                     )}
                   </div>
