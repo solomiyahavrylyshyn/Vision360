@@ -5,7 +5,7 @@ import { itemsStore } from "../stores/itemsStore";
 import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
 import { DetailTabs, TabSettingsButton } from "../components/ui/detail-tabs";
 import { PlusIcon } from "../components/ui/plus-icon";
-import { TYPE_CATEGORY_PAIRS } from "./Items";
+import { ITEM_TYPES, TYPE_CATEGORIES } from "./Items";
 
 // Classification option lists (mirror the Create-item form).
 const MANUFACTURERS = ["Carrier", "Trane", "Lennox", "Goodman", "Rheem", "Ferguson", "Square D", "Ecobee"];
@@ -388,8 +388,10 @@ export function ItemDetail() {
         {/* divider + Custom Fields (same card) */}
         <div className="my-4 border-t border-[#E5E7EB]" />
         <h3 className="mb-3 text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Custom Fields</h3>
-        <Field label="Custom Field 1" value={item.customField1 || "Custom Field Value"} />
-        <div className="mt-3"><Field label="Custom Field 2" value={item.customField2 || "Custom Field Value"} /></div>
+        {/* Only show a custom field when it actually has a value — otherwise just
+            the configure link (Marek: empty custom fields shouldn't render). */}
+        {item.customField1 && <Field label="Custom Field 1" value={item.customField1} />}
+        {item.customField2 && <div className={item.customField1 ? "mt-3" : ""}><Field label="Custom Field 2" value={item.customField2} /></div>}
         <div className="mt-3 text-[11px] text-[#9CA3AF]">
           Configure in{" "}
           <button onClick={() => navigate("/settings?section=custom-fields")} className="text-[11px] text-[#4A6FA5] hover:underline" style={{ fontWeight: 500 }}>Settings &gt; Custom Fields</button>
@@ -634,10 +636,7 @@ function EditClassificationModal({ item, onClose, onSave }: { item: any; onClose
   // Single combined Type | Category picker (Marek Jun 16). The current pair is kept
   // selectable even if it is a legacy/custom pair not in the predefined list.
   const current = `${item.type || "Service"}|||${item.category || ""}`;
-  const pairs = TYPE_CATEGORY_PAIRS.map((p) => ({ value: `${p.type}|||${p.category}`, label: `${p.type}  |  ${p.category}` }));
-  const options = pairs.some((p) => p.value === current)
-    ? pairs
-    : [{ value: current, label: `${item.type || "Service"}  |  ${item.category || "—"}` }, ...pairs];
+  const [curType, curCat] = current.split("|||");
   const [pair, setPair] = useState(current);
   const [brand, setBrand] = useState(item.brand || "");
   const [department, setDepartment] = useState(item.department || "");
@@ -650,7 +649,15 @@ function EditClassificationModal({ item, onClose, onSave }: { item: any; onClose
     <ModalShell title="Edit type & classification" onClose={onClose}
       footer={<><button className={cancelBtn} style={{ fontWeight: 600 }} onClick={onClose}>Cancel</button><button className={saveBtn} style={{ fontWeight: 600 }} onClick={save}>Save</button></>}>
       <div className="grid grid-cols-2 gap-4">
-        <div className="col-span-2"><label className={mLabel}>Type | Category</label><select value={pair} onChange={(e) => setPair(e.target.value)} className={mInput}>{options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</select></div>
+        <div className="col-span-2"><label className={mLabel}>Type | Category</label>
+          <select value={pair} onChange={(e) => setPair(e.target.value)} className={mInput}>
+            {ITEM_TYPES.map((t) => {
+              const cats = [...TYPE_CATEGORIES[t]];
+              if (t === curType && curCat && !cats.includes(curCat)) cats.unshift(curCat);
+              return <optgroup key={t} label={t}>{cats.map((c) => <option key={`${t}|||${c}`} value={`${t}|||${c}`}>{c}</option>)}</optgroup>;
+            })}
+          </select>
+        </div>
         <div><label className={mLabel}>Manufacturer</label><select value={brand} onChange={(e) => setBrand(e.target.value)} className={mInput}><option value="">Select manufacturer</option>{MANUFACTURERS.map((m) => <option key={m} value={m}>{m}</option>)}</select></div>
         <div><label className={mLabel}>Department</label><select value={department} onChange={(e) => setDepartment(e.target.value)} className={mInput}><option value="">Select department</option>{DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}</select></div>
         <div><label className={mLabel}>Vendor</label><select value={vendor} onChange={(e) => setVendor(e.target.value)} className={mInput}><option value="">Select vendor</option>{VENDORS.map((v) => <option key={v} value={v}>{v}</option>)}</select></div>

@@ -149,12 +149,23 @@ export function CreateItem() {
 
           <div className="border-t border-[#E5E7EB]" />
 
-          {/* Type — the 5 fixed top-level types (Marek Jun 16). The Category below is
-               scoped to the chosen type and stays fully customizable. */}
-          <Section label={<>Type {reqStar}</>}>
-            <select value={type} onChange={(e) => { setType(e.target.value); setCategory(""); }} className={`${fieldClass} max-w-[420px]`}>
-              {ITEM_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+          {/* Type & category — ONE grouped dropdown (Marek Jun 16): the optgroup
+               header is the Type, the options under it are its Categories, and the
+               selection records both together (e.g. Service + Diagnostic). */}
+          <Section label={<>Type &amp; category {reqStar}</>}>
+            <select
+              value={category ? `${type}|||${category}` : ""}
+              onChange={(e) => { if (!e.target.value) return; const [t, c] = e.target.value.split("|||"); setType(t); setCategory(c); }}
+              className={`${fieldClass} max-w-[420px]`}
+            >
+              <option value="" disabled>Select type and category</option>
+              {ITEM_TYPES.map((t) => (
+                <optgroup key={t} label={t}>
+                  {TYPE_CATEGORIES[t].map((c) => <option key={`${t}|||${c}`} value={`${t}|||${c}`}>{c}</option>)}
+                </optgroup>
+              ))}
             </select>
+            {manageHint(<>Manage categories in <span className="cursor-pointer text-[#4A6FA5] hover:underline" onClick={() => navigate("/settings?section=items")}>Settings &gt; Items &gt; Categories</span></>)}
           </Section>
 
           <div className="border-t border-[#E5E7EB]" />
@@ -162,13 +173,6 @@ export function CreateItem() {
           {/* Classification */}
           <Section label="Classification">
             <div className="grid grid-cols-2 gap-5">
-              <div>
-                <label className={labelClass}>Category</label>
-                <input list="create-cat-options" value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Select or type a category" className={fieldClass} />
-                <datalist id="create-cat-options">
-                  {(TYPE_CATEGORIES[type] || []).map((c) => <option key={c} value={c} />)}
-                </datalist>
-              </div>
               <div>
                 <label className={labelClass}>Manufacturer</label>
                 <select value={manufacturer} onChange={(e) => setManufacturer(e.target.value)} className={fieldClass}>
@@ -184,7 +188,6 @@ export function CreateItem() {
                 </select>
               </div>
             </div>
-            {manageHint(<>Manage categories in <span className="cursor-pointer text-[#4A6FA5] hover:underline" onClick={() => navigate("/settings")}>Settings &gt; Items &gt; Categories</span></>)}
           </Section>
 
           <div className="border-t border-[#E5E7EB]" />
