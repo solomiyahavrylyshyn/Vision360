@@ -463,7 +463,7 @@ export function Payments() {
                     <tr
                       key={p.id}
                       onClick={() => navigate(`/payments/${p.id}`)}
-                      className={`border-b border-[#EDF0F5] hover:bg-[#F9FBFD] transition-colors cursor-pointer ${idx % 2 === 1 ? "bg-[#FAFBFC]" : "bg-white"}`}
+                      className="border-b border-[#EDF0F5] hover:bg-[#F9FBFD] transition-colors cursor-pointer bg-white"
                     >
                       <td className="px-3 py-4" onClick={e => e.stopPropagation()}>
                         <input type="checkbox" checked={selectedIds.has(p.id)}

@@ -1,12 +1,11 @@
 // Canonical payment-method list — single source of truth so the dropdown never
 // drifts across CreateClient / ClientDetail / CreatePayment / InvoiceDetail /
-// Payments filter. Exactly the set Marek confirmed (Jun 1 call). Card-type
-// methods (Card / Credit Card / Debit Card) are charged live; the rest are
-// recorded with a transaction / reference number.
+// Payments filter. Exactly the set Marek confirmed. Card-type methods
+// (Credit Card / Debit Card) are charged live; the rest are recorded with a
+// transaction / reference number. (Generic "Card" was dropped — use Credit/Debit.)
 export const PAYMENT_METHODS = [
   "Cash",
   "Check",
-  "Card",
   "Credit Card",
   "Debit Card",
   "Bank Transfer",
