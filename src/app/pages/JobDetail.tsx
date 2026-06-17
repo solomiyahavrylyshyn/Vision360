@@ -503,22 +503,16 @@ export function JobDetail() {
   // Live estimates linked to this job (by job number) or this client, so a
   // freshly created estimate shows up on the Estimates tab on return.
   const allEstimates = useSyncExternalStore(estimatesStore.subscribe, estimatesStore.getSnapshot);
-  const jobEstimates = allEstimates.filter((e) => {
-    // Priority: match by job number (direct link from convert flow).
-    if (job.jobNumber && (e.job === job.jobNumber || e.source === job.jobNumber)) return true;
-    // Fallback: match by clientId (exact) when no job link — prevents bleeding
-    // when two clients share the same display name.
-    if (e.clientId && job.clientId) return e.clientId === job.clientId;
-    // Last resort: name match for legacy records with no clientId.
-    return e.clientName === job.client;
-  });
+  // Only estimates linked to THIS job (by job number / source). Client-level
+  // estimates not tied to this job belong on the client's Estimates tab, not here
+  // — the broad client-name fallback made unrelated estimates bleed onto the job.
+  const jobEstimates = allEstimates.filter((e) =>
+    !!job.jobNumber && (e.job === job.jobNumber || e.source === job.jobNumber)
+  );
   // Live invoices for this job (by job number) or this client, so a freshly
   // created invoice shows up on the Invoices tab on return.
   const allInvoices = useSyncExternalStore(invoicesStore.subscribe, invoicesStore.getSnapshot);
-  const jobInvoices = allInvoices.filter((inv) =>
-    (!!job.jobNumber && inv.jobNumber === job.jobNumber) ||
-    (!!job.client && inv.clientName === job.client)
-  );
+  const jobInvoices = allInvoices.filter((inv) => !!job.jobNumber && inv.jobNumber === job.jobNumber);
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
   const [currentStatus, setCurrentStatus] = useState<string>(job.status);
   const [editingSection, setEditingSection] = useState<null | "address" | "schedule" | "overview">(null);

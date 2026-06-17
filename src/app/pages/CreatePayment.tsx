@@ -46,8 +46,11 @@ export function CreatePayment() {
   // Client comes from the launch context (or, standalone, from the chosen invoices).
   const [client] = useState(prefilledClient);
   // Guard the method param: ignore anything not in the known list (URL tampering).
-  const rawMethod = searchParams.get("method") || "Credit Card";
-  const [method, setMethod] = useState((paymentMethods as readonly string[]).includes(rawMethod) ? rawMethod : "Credit Card");
+  // Default to a no-friction method (Cash) so the form doesn't open with credit-
+  // card fields for a simple cash/check entry. A client's preferred method (if any)
+  // still arrives via the ?method param and wins.
+  const rawMethod = searchParams.get("method") || "Cash";
+  const [method, setMethod] = useState((paymentMethods as readonly string[]).includes(rawMethod) ? rawMethod : "Cash");
   const [dateText, setDateText] = useState(() => isoToDMY(new Date().toISOString().slice(0, 10)));
   const [reference, setReference] = useState("");
   const [note, setNote] = useState("");

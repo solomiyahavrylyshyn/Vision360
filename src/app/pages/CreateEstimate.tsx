@@ -126,7 +126,9 @@ export function CreateEstimate() {
   const persistEstimate = (status: EstimateStatus, successMessage: string) => {
     const todayLabel = formatRegionalDate(new Date());
     const computedTotal = subtotal + taxableAmount * (taxRate / 100);
-    const numberBase = linkedJob.includes("-") ? linkedJob.split("-")[0] : undefined;
+    // Number off the linked job's base when present; otherwise scope the series
+    // to the client id so estimates never collide on a shared "10000-EXX" series.
+    const numberBase = linkedJob.includes("-") ? linkedJob.split("-")[0] : (selectedClientId || undefined);
     estimatesStore.add({
       estimateNumber: estimatesStore.nextEstimateNumber(numberBase),
       estimateName,

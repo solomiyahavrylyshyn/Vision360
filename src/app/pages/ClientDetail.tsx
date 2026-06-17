@@ -33,6 +33,8 @@ import { formatRegionalDate } from "../stores/regionalSettingsStore";
 import { clientsStore, deriveClientStatus } from "../stores/clientsStore";
 import { estimatesStore } from "../stores/estimatesStore";
 import { jobsStore, type JobRecord } from "../stores/jobsStore";
+import { invoicesStore } from "../stores/invoicesStore";
+import { paymentsStore } from "../stores/paymentsStore";
 import { JOB_STATUS_STYLES as JOB_STATUS_COLORS, JOB_STATUSES as JOB_STATUS_OPTIONS } from "../constants/jobStatuses";
 import { PAYMENT_METHODS } from "../constants/paymentMethods";
 import { tagsStore } from "../stores/tagsStore";
@@ -502,10 +504,8 @@ export function ClientDetail() {
   const [showTabSettings, setShowTabSettings] = useState(false);
   const [pendingHidden, setPendingHidden] = useState<Set<TabKey>>(new Set()); // staged edits for the Edit tabs modal
   const tabSettingsRef = useRef<HTMLDivElement>(null);
-  // Inner-tab grids own their rows locally so row actions (Void / Archive /
-  // Change status) can mutate them; seeded from the demo data.
-  const [invoiceList, setInvoiceList] = useState<InvoiceRow[]>(invoiceRows);
-  const [paymentList, setPaymentList] = useState<PaymentRow[]>(paymentRows);
+  // Invoices & payments render from the live invoicesStore / paymentsStore,
+  // filtered by client — see clientInvoiceRows / clientPaymentRows below.
 
   const toggleTabVisibility = (key: TabKey) => {
     setHiddenTabs(prev => {
@@ -834,8 +834,30 @@ export function ClientDetail() {
         .forEach((j) => push(j.jobNumber || String(j.id), j.title || ""));
       return { ...e, jobs };
     });
-  const clientInvoiceRows = hasBilling ? invoiceList : [];
-  const clientPaymentRows = hasBilling ? paymentList : [];
+  // Invoices & payments for this client come from the live stores, so a created
+  // invoice/payment appears here immediately and survives a refresh. Records link
+  // by client name.
+  const allClientInvoices = useSyncExternalStore(invoicesStore.subscribe, invoicesStore.getSnapshot);
+  const allClientPayments = useSyncExternalStore(paymentsStore.subscribe, paymentsStore.getSnapshot);
+  const clientStoreInvoices = allClientInvoices.filter((i) => i.clientName === client.name);
+  const clientStorePayments = allClientPayments.filter((p) => p.clientName === client.name);
+  const moneyStr = (n: number) => `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const fmtISO = (d: string) => (d ? formatRegionalDate(new Date(d + "T12:00:00")) : "—");
+  const clientInvoiceRows: InvoiceRow[] = clientStoreInvoices.map((i) => ({
+    id: i.id, invoiceNo: i.number, jobNo: i.jobNumber || "", jobName: i.jobName || "",
+    type: i.type, status: i.status, note: i.memo || "",
+    date: fmtISO(i.date), total: moneyStr(i.total), balance: moneyStr(i.balance), dueDate: fmtISO(i.dueDate),
+  }));
+  const clientPaymentRows: PaymentRow[] = clientStorePayments.map((p) => ({
+    id: p.id, invoiceNo: p.invoiceNumber || "—", date: fmtISO(p.date),
+    method: p.method, status: p.status, note: p.note || "", amount: moneyStr(p.amount),
+  }));
+  // Header financial tiles: when the client has live billing data, derive the
+  // figures from it so the tiles match the tabs; otherwise keep the seeded numbers.
+  const hasLiveBilling = clientStoreInvoices.length > 0 || clientStorePayments.length > 0;
+  const tileRevenue = hasLiveBilling ? clientStoreInvoices.reduce((s, i) => s + i.total, 0) : client.totalRevenue;
+  const tileBalance = hasLiveBilling ? clientStoreInvoices.reduce((s, i) => s + i.balance, 0) : client.openBalance;
+  const tilePastDue = hasLiveBilling ? clientStoreInvoices.filter((i) => i.status === "Overdue").reduce((s, i) => s + i.balance, 0) : client.pastDueBalance;
 
   // Visible tabs with LIVE counts derived from the actual data arrays (no hardcoded literals).
   const visibleTabs = tabs
@@ -1699,15 +1721,15 @@ export function ClientDetail() {
             onRowClick={(r) => navigate(`/invoices/${r.id}?returnTo=${encodeURIComponent(`/clients/${client.id}?tab=invoices`)}`)}
             rowActions={(r) => [
               { label: "Send to client", icon: "send", onClick: () => toast.success(`Invoice ${r.invoiceNo} sent to ${client.name}`) },
-              { label: "Change status", icon: "swap_horiz", onClick: () => { setInvoiceList((list) => list.map((x) => x.id === r.id ? { ...x, status: x.status === "Paid" ? "Overdue" : "Paid", balance: x.status === "Paid" ? x.total : "$0.00" } : x)); toast.success("Status updated"); } },
-              { label: "Duplicate", icon: "content_copy", onClick: () => setInvoiceList((list) => { const nid = Math.max(0, ...list.map((i) => i.id)) + 1; return [...list, { ...r, id: nid, invoiceNo: `${r.invoiceNo}-COPY` }]; }) },
-              { label: "Void", icon: "block", separatorBefore: true, onClick: () => { setInvoiceList((list) => list.map((x) => x.id === r.id ? { ...x, status: "Void" } : x)); toast.success(`Invoice ${r.invoiceNo} voided`); } },
-              { label: "Archive", icon: "inventory_2", destructive: true, onClick: () => { setInvoiceList((list) => list.filter((x) => x.id !== r.id)); toast.success(`Invoice ${r.invoiceNo} archived`); } },
+              { label: "Change status", icon: "swap_horiz", onClick: () => { const inv = invoicesStore.getById(r.id); const nowPaid = inv?.status === "Paid"; invoicesStore.update(r.id, { status: nowPaid ? "Unpaid" : "Paid", balance: nowPaid ? (inv?.total ?? 0) : 0 }); toast.success("Status updated"); } },
+              { label: "Duplicate", icon: "content_copy", onClick: () => { const inv = invoicesStore.getById(r.id); if (inv) invoicesStore.add({ ...inv, number: invoicesStore.nextInvoiceNumber(inv.jobNumber || inv.clientName) }); toast.success("Invoice duplicated"); } },
+              { label: "Void", icon: "block", separatorBefore: true, onClick: () => { invoicesStore.update(r.id, { status: "Void", balance: 0 }); toast.success(`Invoice ${r.invoiceNo} voided`); } },
+              { label: "Archive", icon: "inventory_2", destructive: true, onClick: () => { invoicesStore.remove(r.id); toast.success(`Invoice ${r.invoiceNo} archived`); } },
             ] as RecordAction<InvoiceRow>[]}
             bulkActions={[
-              { label: "Change status", icon: "swap_horiz", onClick: (sel) => { const ids = new Set(sel.map((x) => x.id)); setInvoiceList((list) => list.map((x) => ids.has(x.id) ? { ...x, status: x.status === "Paid" ? "Overdue" : "Paid", balance: x.status === "Paid" ? x.total : "$0.00" } : x)); toast.success(`${sel.length} invoice${sel.length > 1 ? "s" : ""} updated`); } },
+              { label: "Change status", icon: "swap_horiz", onClick: (sel) => { sel.forEach((x) => { const inv = invoicesStore.getById(x.id); const nowPaid = inv?.status === "Paid"; invoicesStore.update(x.id, { status: nowPaid ? "Unpaid" : "Paid", balance: nowPaid ? (inv?.total ?? 0) : 0 }); }); toast.success(`${sel.length} invoice${sel.length > 1 ? "s" : ""} updated`); } },
               { label: "Download", icon: "download", onClick: (sel) => toast.success(`Downloading ${sel.length} invoice${sel.length > 1 ? "s" : ""}`) },
-              { label: "Archive", icon: "inventory_2", onClick: (sel) => { const ids = new Set(sel.map((x) => x.id)); setInvoiceList((list) => list.filter((x) => !ids.has(x.id))); toast.success(`${sel.length} invoice${sel.length > 1 ? "s" : ""} archived`); } },
+              { label: "Archive", icon: "inventory_2", onClick: (sel) => { invoicesStore.removeMany(new Set(sel.map((x) => x.id))); toast.success(`${sel.length} invoice${sel.length > 1 ? "s" : ""} archived`); } },
             ] as RecordBulkAction<InvoiceRow>[]}
           />
         );
@@ -1731,7 +1753,7 @@ export function ClientDetail() {
             rowActions={(r) => [
               { label: "View payment", icon: "visibility", onClick: () => navigate(`/payments/${r.id}?returnTo=${encodeURIComponent(`/clients/${client.id}?tab=payments`)}`) },
               { label: "Send receipt", icon: "send", onClick: () => toast.success(`Receipt for ${r.invoiceNo} sent to ${client.name}`) },
-              { label: "Refund", icon: "swap_horiz", separatorBefore: true, destructive: true, onClick: () => { setPaymentList((list) => list.map((x) => x.id === r.id ? { ...x, status: "Refunded" } : x)); toast.success(`Payment for ${r.invoiceNo} refunded`); } },
+              { label: "Refund", icon: "swap_horiz", separatorBefore: true, destructive: true, onClick: () => { paymentsStore.update(r.id, { status: "Refunded" }); toast.success(`Payment for ${r.invoiceNo} refunded`); } },
             ] as RecordAction<PaymentRow>[]}
             bulkActions={[
               { label: "Send receipts", icon: "send", onClick: (sel) => toast.success(`${sel.length} receipt${sel.length > 1 ? "s" : ""} sent to ${client.name}`) },
@@ -2457,9 +2479,9 @@ export function ClientDetail() {
             {/* Stats — borderless, copy left / tinted icon right, 1px dividers (Figma) */}
             <div className="flex items-center gap-4 shrink-0">
               {[
-                { label: "Total revenue", value: `$${Math.round(client.totalRevenue).toLocaleString("en-US")}`, icon: "trending_up",    iconColor: "#16A34A" },
-                { label: "Balance",       value: `$${client.openBalance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,    icon: "account_balance_wallet", iconColor: "#4A6FA5" },
-                { label: "Past due",      value: `$${client.pastDueBalance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, icon: "warning_amber",          iconColor: "#DC2626" },
+                { label: "Total revenue", value: `$${Math.round(tileRevenue).toLocaleString("en-US")}`, icon: "trending_up",    iconColor: "#16A34A" },
+                { label: "Balance",       value: `$${tileBalance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,    icon: "account_balance_wallet", iconColor: "#4A6FA5" },
+                { label: "Past due",      value: `$${tilePastDue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, icon: "warning_amber",          iconColor: "#DC2626" },
                 { label: "Open jobs",     value: String(client.openJobs), icon: "work_outline",   iconColor: "#6B7280" },
               ].map(({ label, value, icon, iconColor }, i) => (
                 <div key={label} className="flex items-center gap-4">
