@@ -5,6 +5,7 @@ import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-men
 import { DetailTabs, TabSettingsButton } from "../components/ui/detail-tabs";
 import { PlusIcon } from "../components/ui/plus-icon";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "../components/ui/resizable";
+import { RecordTab, type RecordColumn, type RecordAction } from "../components/ui/record-tab";
 import { formatRegionalDate } from "../stores/regionalSettingsStore";
 import { jobsStore } from "../stores/jobsStore";
 
@@ -526,82 +527,60 @@ export function InvoiceDetail() {
     toast.success(`Job ${jobNumber} created and linked to this invoice`);
   };
 
-  const renderPaymentsTab = () => (
-    <div className="flex gap-4 items-start">
-      <div className="flex-1 min-w-0 flex flex-col gap-4">
-        <Card
-          title={`Payments (${payments.length})`}
-          action={
-            !isPaid && status !== "Void" ? (
-              <button
-                onClick={() => setPaymentModalOpen(true)}
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-[12px] bg-[#4A6FA5] text-white hover:bg-[#3d5a85]"
-                style={{ fontWeight: 500 }}
-              >
-                <span className="material-icons" style={{ fontSize: "14px" }}>payments</span>
-                Collect payment
-              </button>
-            ) : null
-          }
-        >
-          {/* Payment terms strip */}
-          <div className="grid grid-cols-4 gap-x-6 gap-y-3 pb-4 mb-4 border-b border-[#F3F4F6]">
-            <Field label="Payment Terms" value={data.paymentTerms} />
-            <Field label="Payment Method" value={data.paymentMethod} />
-            <Field label="Transaction #" value={data.checkNumber} />
-            <div className="flex items-end">
-              <label className="inline-flex items-center gap-2 text-[13px] text-[#374151] cursor-pointer">
-                <input type="checkbox" defaultChecked className="h-4 w-4 rounded border-[#D1D5DB] text-[#4A6FA5] focus:ring-[#4A6FA5]" />
-                Accept partial payments
-              </label>
-            </div>
-          </div>
-
-          {payments.length === 0 ? (
-            <div className="py-6 text-center">
-              <span className="material-icons text-[#D1D5DB]" style={{ fontSize: "32px" }}>account_balance_wallet</span>
-              <div className="text-[13px] text-[#9CA3AF] mt-1">No payments recorded</div>
-            </div>
-          ) : (
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-[#E5E7EB]">
-                  {["Date", "Method", "Transaction #", "Note", "Amount"].map(h => (
-                    <th key={h} className={`pb-2.5 text-[11px] uppercase tracking-wider text-[#9CA3AF] ${h === "Amount" ? "text-right" : "text-left"}`} style={{ fontWeight: 600 }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {payments.map(p => (
-                  <tr key={p.id} className="border-b border-[#F3F4F6] last:border-b-0">
-                    <td className="py-3 text-[13px] text-[#374151]">{fmtDate(p.date)}</td>
-                    <td className="py-3"><span className="text-[12px] px-2 py-0.5 rounded bg-[#F3F4F6] text-[#374151]" style={{ fontWeight: 500 }}>{p.method}</span></td>
-                    <td className="py-3 text-[13px] text-[#374151]">{p.checkNumber || <span className="text-[#9CA3AF]">—</span>}</td>
-                    <td className="py-3 text-[13px] text-[#9CA3AF]">{p.note || "—"}</td>
-                    <td className="py-3 text-[13px] text-[#1A2332] text-right" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>${fmt(p.amount)}</td>
-                  </tr>
-                ))}
-                <tr>
-                  <td colSpan={4} className="pt-3 text-[13px] text-[#374151] text-right" style={{ fontWeight: 500 }}>Total paid</td>
-                  <td className="pt-3 text-[14px] text-[#16A34A] text-right" style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>${fmt(totalPayments)}</td>
-                </tr>
-                <tr>
-                  <td colSpan={4} className="pt-1 text-[13px] text-[#374151] text-right" style={{ fontWeight: 500 }}>Balance remaining</td>
-                  <td className="pt-1 text-[14px] text-right" style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums", color: balance > 0 ? "#DC2626" : "#16A34A" }}>
-                    ${fmt(Math.max(0, balance))}
-                  </td>
-                </tr>
-                <tr>
-                  <td colSpan={4} className="pt-1 text-[12px] text-[#6B7280] text-right">Invoice total</td>
-                  <td className="pt-1 text-[12px] text-[#6B7280] text-right" style={{ fontVariantNumeric: "tabular-nums" }}>${fmt(total)}</td>
-                </tr>
-              </tbody>
-            </table>
-          )}
-        </Card>
-      </div>
-    </div>
-  );
+  const renderPaymentsTab = () => {
+    // Same clean payments grid as the Client → Payments tab (Figma 1443-110747):
+    // a RecordTab with status pills + per-row kebab, replacing the old bespoke
+    // "Payment terms / Accept partial payments / totals" block. The invoice header
+    // already shows Total + Balance Due, so no totals footer is needed here.
+    const payStatusStyle: Record<string, { color: string; backgroundColor: string }> = {
+      Completed: { color: "#16A34A", backgroundColor: "rgba(22,163,74,0.15)" },
+      Pending:   { color: "#D97706", backgroundColor: "rgba(217,119,6,0.15)" },
+      Refunded:  { color: "#8B5CF6", backgroundColor: "rgba(139,92,246,0.15)" },
+    };
+    const rows = payments.map((p: any) => ({
+      id: p.id,
+      payNo: `P-${String(p.id).padStart(4, "0")}`,
+      date: fmtDate(p.date),
+      method: p.method,
+      status: p.status || "Completed",
+      note: p.note || "",
+      amount: `$${fmt(p.amount)}`,
+    }));
+    type Row = (typeof rows)[number];
+    const cols: RecordColumn<Row>[] = [
+      { key: "payNo",  label: "Payment", render: (r) => <span className="text-[#4A6FA5]" style={{ fontWeight: 500 }}>{r.payNo}</span> },
+      { key: "date",   label: "Date",    render: (r) => <span className="text-[#1A2332]">{r.date}</span> },
+      { key: "method", label: "Method",  render: (r) => <span className="text-[#1A2332]">{r.method}</span> },
+      { key: "status", label: "Status",  render: (r) => { const s = payStatusStyle[r.status] || payStatusStyle.Completed; return <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-[12px] whitespace-nowrap" style={{ fontWeight: 500, ...s }}>{r.status}</span>; } },
+      { key: "note",   label: "Note",    render: (r) => <span className="text-[#6B7280]">{r.note || "—"}</span> },
+      { key: "amount", label: "Amount",  align: "right", render: (r) => <span className="text-[#1A2332]" style={{ fontWeight: 600 }}>{r.amount}</span> },
+    ];
+    const canCollect = !isPaid && status !== "Void";
+    const goToPayment = (r: Row) => navigate(`/payments/${r.id}?returnTo=${encodeURIComponent(`/invoices/${id}?tab=payments`)}`);
+    return (
+      <RecordTab<Row>
+        rows={rows}
+        columns={cols}
+        emptyIcon="account_balance_wallet"
+        emptyTitle="No payments yet"
+        emptySubtitle="Collect a payment to record it against this invoice"
+        searchPlaceholder="Search payments…"
+        searchMatch={(r, q) => [r.payNo, r.method, r.status, r.note].some((v) => (v || "").toLowerCase().includes(q.toLowerCase()))}
+        filters={[
+          { key: "status", label: "Status", options: [
+            { value: "", label: "All" }, { value: "Completed", label: "Completed" }, { value: "Pending", label: "Pending" }, { value: "Refunded", label: "Refunded" },
+          ], match: (r, v) => r.status === v },
+        ]}
+        createLabel={canCollect ? "Collect payment" : undefined}
+        onCreate={canCollect ? () => setPaymentModalOpen(true) : undefined}
+        onRowClick={goToPayment}
+        rowActions={(r) => [
+          { label: "View payment", icon: "visibility", onClick: () => goToPayment(r) },
+          { label: "Send receipt", icon: "send", onClick: () => toast.success(`Receipt for ${r.payNo} sent`) },
+        ] as RecordAction<Row>[]}
+      />
+    );
+  };
 
   // Per-job accordion sections — shared by the single-job details box and the
   // multi-job Jobs tab (Marek Jun 9: >1 job → the box disappears, jobs live in a tab).
