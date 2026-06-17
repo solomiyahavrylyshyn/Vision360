@@ -203,6 +203,7 @@ const initialItems: Item[] = [
 interface PricebookItem {
   id: number; active: boolean; name: string; category: string;
   description: string; price: number; cost: number; taxable: boolean;
+  type?: ItemType;
 }
 
 const initialPricebookItems: PricebookItem[] = [
@@ -425,6 +426,29 @@ const PB_CATEGORY_TYPE: Record<string, string> = {
 };
 const pbType = (category: string): string => PB_CATEGORY_TYPE[category] || "Service";
 
+// Price-book seed rows are minimal; expand each into a full catalog Item so the
+// Items list and the Price book share ONE source (Price book = a customer-facing
+// view of Items). Ids are offset by 100 to avoid clashing with the base seed.
+const pbSeedToItem = (p: PricebookItem): Item => ({
+  id: 100 + p.id,
+  active: p.active,
+  name: p.name,
+  description: p.description,
+  salesDescription: p.description,
+  additionalInfo: "",
+  brand: "", modelNumber: "", upc: "",
+  rate: p.price, cost: p.cost,
+  taxable: p.taxable, tax1: p.taxable, tax2: false, tax3: false,
+  onHand: 0, minQty: 0, maxQty: 0, tracking: false,
+  category: p.category,
+  type: (PB_CATEGORY_TYPE[p.category] || "Service") as ItemType,
+  vendor: "", vendorCode: "", department: "",
+  cogsGL: "", salesGL: "",
+  customField1: "", customField2: "", customField3: "",
+  notes: "", boldPrint: false, group: "", defaultQty: 1,
+  picture: "", inventory: false, booking: false,
+});
+
 // ─── Main Component ──────────────────────────────────────────────────────────
 export function Items() {
   const navigate = useNavigate();
@@ -435,7 +459,10 @@ export function Items() {
   // Items state
   // Seed a couple of items with usage history so Deactivate (kept) vs Delete
   // (permanent, unused-only) are both demonstrable per ITM-3.
-  const [items, setItems] = useState<Item[]>(initialItems.map((it, i) => ({ ...it, usageCount: i < 2 ? 3 : 0 })));
+  const [items, setItems] = useState<Item[]>([
+    ...initialItems.map((it, i) => ({ ...it, usageCount: i < 2 ? 3 : 0 })),
+    ...initialPricebookItems.map(pbSeedToItem),
+  ]);
   // Items created on the /items/new page write to itemsStore; merge any store
   // items not already in this list (matched by name) so they appear here too.
   const storeItems = useSyncExternalStore(itemsStore.subscribe, itemsStore.getSnapshot);
@@ -515,7 +542,14 @@ export function Items() {
   const [importOpen, setImportOpen] = useState(false);
 
   // Pricebook state
-  const [pbItems, setPbItems] = useState<PricebookItem[]>(initialPricebookItems);
+  // Price book is a customer-facing VIEW of the Items catalog — derive it so any
+  // item created on the Items tab automatically appears here (one source of truth).
+  const pbItems = useMemo<PricebookItem[]>(() => items.map((i) => ({
+    id: i.id, active: i.active, name: i.name, category: i.category,
+    type: pbType(i.category) as ItemType,
+    description: i.salesDescription || i.description || "",
+    price: i.rate, cost: i.cost, taxable: i.taxable,
+  })), [items]);
   const [pbSearch, setPbSearch] = useState("");
   const [pbCategoryFilter, setPbCategoryFilter] = useState("All");
   const [pbStatusFilter, setPbStatusFilter] = useState("All");
@@ -635,7 +669,7 @@ export function Items() {
 
   const tabRecordCounts: Record<TabKey, number> = {
     all: items.length,
-    pricebook: items.filter(i => ["Inventory Item", "Non-Inventory Item"].includes(i.type)).length,
+    pricebook: items.length,
     services: items.filter(i => getItemCategory(i.type) === "Service").length,
     materials: items.filter(i => getItemCategory(i.type) === "Material").length,
     equipment: items.filter(i => getItemCategory(i.type) === "Equipment").length,
@@ -792,7 +826,7 @@ export function Items() {
                   </td></tr>
                 ) : paginatedPbItems.map(item => (
                   <tr key={item.id}
-                    onClick={() => navigate(`/items/pb-${item.id}`)}
+                    onClick={() => navigate(`/items/${item.id}`)}
                     className="group border-b border-[#E5E7EB] hover:bg-[#F9FAFB] transition-colors cursor-pointer bg-white">
                     {pbCols.map(col => {
                       switch (col.key) {

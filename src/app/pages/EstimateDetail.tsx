@@ -12,6 +12,7 @@ import { DocumentPreview } from "../components/DocumentPreview";
 import { DocumentsGallery } from "../components/DocumentsGallery";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "../components/ui/resizable";
 import { estimatesStore, type EstimateRecord } from "../stores/estimatesStore";
+import { jobsStore } from "../stores/jobsStore";
 import { formatRegionalDate } from "../stores/regionalSettingsStore";
 import installHeatingSystem1Photo from "../../assets/documents/33702-install-heating-system-1.jpg";
 import installHeatingSystemPhoto from "../../assets/documents/33702-install-heating-system.jpg";
@@ -278,6 +279,14 @@ export function EstimateDetail() {
   // a client receives always reflects what the business configured.
   const legalDocs = useSyncExternalStore(termsStore.subscribe, termsStore.getSnapshot);
   const termsDoc = legalDocs.terms;
+  // An estimate can spawn multiple jobs (phased work, change orders). The real
+  // link lives on each job (estimateId / estimateNumber), so derive the list
+  // from the jobs store; fall back to the legacy single jobId for seed estimates.
+  const linkedJobs = jobsStore.getSnapshot().filter((j) =>
+    (j.estimateId != null && j.estimateId === estimate.id) ||
+    (!!j.estimateNumber && !!estimate.estimateNumber && j.estimateNumber === estimate.estimateNumber)
+  );
+  const jobCount = linkedJobs.length || (estimate.jobId ? 1 : 0);
   const handleBrandLogoChange = useCallback((e: Event) => {
     setBrandLogoState((e as CustomEvent<string>).detail ?? "");
   }, []);
@@ -545,7 +554,16 @@ export function EstimateDetail() {
 
   // ── Jobs tab (Figma: Details · Jobs · Deposit · Activity) ──────────────────────
   const renderJobsTab = () => {
-    const jobs = estimate.jobId
+    const jobs = linkedJobs.length
+      ? linkedJobs.map((j) => ({
+          id: j.id,
+          label: j.jobNumber ? `${j.jobNumber}${j.title ? `: ${j.title}` : ""}` : (j.title || `Job #${j.id}`),
+          address: [j.address, j.city, j.state].filter(Boolean).join(", ") || estimate.serviceAddress.replace("\n", ", "),
+          scheduled: j.startDate || "—",
+          status: j.status || "Scheduled",
+          total: j.totalPrice ?? total,
+        }))
+      : estimate.jobId
       ? [{ id: estimate.jobId, label: estimate.job || `Job #${estimate.jobId}`, address: estimate.serviceAddress.replace("\n", ", "), scheduled: "—", status: "Scheduled", total }]
       : [];
     return (
@@ -553,7 +571,7 @@ export function EstimateDetail() {
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#E5E7EB]">
           <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Jobs ({jobs.length})</h3>
           <button
-            onClick={() => { if (!isConverted(estimate.status)) navigate(`/jobs/new?fromEstimate=${estimate.id}&client=${encodeURIComponent(estimate.clientName)}&returnTo=${encodeURIComponent(`/estimates/${estimate.id}`)}`); }}
+            onClick={() => navigate(`/jobs/new?fromEstimate=${estimate.id}&client=${encodeURIComponent(estimate.clientName)}&returnTo=${encodeURIComponent(`/estimates/${estimate.id}`)}`)}
             className="h-8 px-3 rounded-md bg-[#4A6FA5] hover:bg-[#3d5a85] text-white text-[13px] inline-flex items-center gap-1.5 transition-colors" style={{ fontWeight: 600 }}>
             <span className="material-icons" style={{ fontSize: "16px" }}>add</span> Add job
           </button>
@@ -1209,7 +1227,7 @@ export function EstimateDetail() {
           tabs={TABS.map(t => ({
             ...t,
             count: t.key === "jobs"
-              ? (estimate.jobId ? 1 : 0)
+              ? jobCount
               : t.key === "deposit"
               ? (estimate.depositRequired ? 1 : undefined)
               : t.key === "activity"
@@ -1245,17 +1263,15 @@ export function EstimateDetail() {
                 <div className="absolute right-0 top-[calc(100%+4px)] w-[200px] bg-white border border-[#E5E7EB] rounded-xl shadow-lg z-40 py-1.5">
                   <button
                     onClick={() => {
-                      if (isConverted(estimate.status)) return;
                       setCreateMenuOpen(false);
                       navigate(`/jobs/new?fromEstimate=${estimate.id}&client=${encodeURIComponent(estimate.clientName)}&returnTo=${encodeURIComponent(`/estimates/${estimate.id}`)}`);
                     }}
-                    disabled={isConverted(estimate.status)}
-                    className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[13px] hover:bg-[#F5F7FA] transition-colors text-left disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[13px] hover:bg-[#F5F7FA] transition-colors text-left"
                     style={{ fontWeight: 500, color: "#1A2332" }}
-                    title={isConverted(estimate.status) ? "Already converted to a job" : ""}
+                    title="An estimate can have more than one job"
                   >
                     <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "18px" }}>work</span>
-                    {isConverted(estimate.status) ? "Converted to Job" : "Create Job"}
+                    Create Job
                   </button>
                   <button
                     onClick={() => { setCreateMenuOpen(false); navigate(`/invoices/new?fromEstimate=${estimate.id}&client=${encodeURIComponent(estimate.clientName)}&returnTo=${encodeURIComponent(`/estimates/${estimate.id}`)}`); }}
