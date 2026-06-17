@@ -184,10 +184,6 @@ export function Jobs() {
   // Change-status modal — holds the ids being updated (null = closed).
   const [statusModalIds, setStatusModalIds] = useState<number[] | null>(null);
   const [statusChoice, setStatusChoice] = useState<Job["status"]>("Scheduled");
-  // Manage-duplicates overlay
-  const [manageDupsOpen, setManageDupsOpen] = useState(false);
-  const [dupMatchField, setDupMatchField] = useState<"client" | "address" | "title">("client");
-  const [dismissedDupKeys, setDismissedDupKeys] = useState<Set<string>>(new Set());
 
   const openStatusModal = (ids: number[]) => {
     if (ids.length === 0) return;
@@ -268,14 +264,6 @@ export function Jobs() {
   // Columns actually shown (Edit columns modal toggles visibility).
   const shownCols = jobCols.filter((c) => visibleCols.has(c.key));
 
-  // Duplicate groups for the Manage-duplicates view — jobs that share the match field.
-  const dupGroups = (() => {
-    const keyOf = (j: Job) => (dupMatchField === "client" ? j.client : dupMatchField === "address" ? j.address : j.title);
-    const map = new Map<string, Job[]>();
-    for (const j of jobs) { const k = keyOf(j); if (!map.has(k)) map.set(k, []); map.get(k)!.push(j); }
-    return [...map.entries()].filter(([k, g]) => g.length > 1 && !dismissedDupKeys.has(k)).map(([k, g]) => ({ key: k, jobs: g }));
-  })();
-  const dupMatchLabel = dupMatchField === "client" ? "client" : dupMatchField === "address" ? "address" : "job title";
 
   const totalItems = sorted.length;
   const totalPages = Math.ceil(totalItems / rowsPerPage);
@@ -755,88 +743,6 @@ export function Jobs() {
       </div>
     )}
 
-    {/* ── Manage duplicates overlay ── */}
-    {manageDupsOpen && (
-      <div className="fixed inset-0 z-[60] bg-[#F5F7FA] overflow-auto">
-        <div className="max-w-[1000px] mx-auto p-8">
-          <button onClick={() => setManageDupsOpen(false)} className="inline-flex items-center gap-1.5 text-[13px] text-[#4A6FA5] hover:text-[#3d5a85] mb-4" style={{ fontWeight: 500 }}>
-            <span className="material-icons" style={{ fontSize: "18px" }}>arrow_back</span>
-            Back to Jobs
-          </button>
-          <div className="flex items-center justify-between gap-3 mb-5">
-            <h1 className="text-[24px] text-[#1A2332]" style={{ fontWeight: 600 }}>Manage duplicates</h1>
-            <div className="flex items-center gap-2 text-[13px] text-[#546478]">
-              <span style={{ fontWeight: 500 }}>Match jobs on:</span>
-              <select value={dupMatchField} onChange={e => setDupMatchField(e.target.value as typeof dupMatchField)} className="h-9 px-3 border border-[#E5E7EB] rounded-lg text-[13px] bg-white text-[#1A2332] focus:outline-none focus:border-[#4A6FA5]">
-                <option value="client">Client</option>
-                <option value="address">Address</option>
-                <option value="title">Job title</option>
-              </select>
-            </div>
-          </div>
-
-          {dupGroups.length === 0 ? (
-            <div className="bg-white border border-[#E5E7EB] rounded-xl py-16 text-center">
-              <span className="material-icons text-[#16A34A] mb-2 block" style={{ fontSize: "40px" }}>check_circle</span>
-              <div className="text-[15px] text-[#1A2332]" style={{ fontWeight: 600 }}>No duplicates found</div>
-              <div className="text-[13px] text-[#6B7280] mt-1">No jobs share the same {dupMatchLabel}.</div>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-4">
-              {dupGroups.map(group => (
-                <div key={group.key} className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
-                  <div className="flex items-center justify-between px-5 py-3 border-b border-[#E5E7EB] bg-[#F9FAFB]">
-                    <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>
-                      {group.allJobs.length} jobs match on {dupMatchLabel} <span className="text-[#6B7280]" style={{ fontWeight: 400 }}>“{group.key}”</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => { setDismissedDupKeys(prev => new Set(prev).add(group.key)); toast.info("Marked as not a duplicate"); }}
-                        className="h-8 px-3 border border-[#E5E7EB] hover:bg-[#F5F7FA] text-[#546478] text-[13px] rounded-lg" style={{ fontWeight: 500 }}
-                      >Mark as not duplicate</button>
-                      <button
-                        onClick={() => { setDismissedDupKeys(prev => new Set(prev).add(group.key)); toast.success("Keeping both — group dismissed"); }}
-                        className="h-8 px-3 border border-[#E5E7EB] hover:bg-[#F5F7FA] text-[#546478] text-[13px] rounded-lg" style={{ fontWeight: 500 }}
-                      >Keep both</button>
-                      <button
-                        onClick={() => { const keepId = group.jobs[0].id; const removeIds = new Set(group.jobs.slice(1).map(j => j.id)); setJobs(prev => prev.filter(j => !removeIds.has(j.id))); setDismissedDupKeys(prev => new Set(prev).add(group.key)); toast.success(`Archived ${removeIds.size} duplicate${removeIds.size === 1 ? "" : "s"}`); void keepId; }}
-                        className="h-8 px-3 border border-[#FCA5A5] bg-white hover:bg-[#FEF2F2] text-[#DC2626] text-[13px] rounded-lg" style={{ fontWeight: 500 }}
-                      >Archive duplicates</button>
-                      <button
-                        onClick={() => { const removeIds = new Set(group.jobs.slice(1).map(j => j.id)); setJobs(prev => prev.filter(j => !removeIds.has(j.id))); setDismissedDupKeys(prev => new Set(prev).add(group.key)); toast.success(`Merged ${group.allJobs.length} jobs into one`); }}
-                        className="h-8 px-3 bg-[#4A6FA5] hover:bg-[#3d5a85] text-white text-[13px] rounded-lg" style={{ fontWeight: 500 }}
-                      >Merge</button>
-                    </div>
-                  </div>
-                  <table className="w-full">
-                    <thead className="bg-white">
-                      <tr className="border-b border-[#E5E7EB] text-left text-[12px] text-[#6B7280]">
-                        <th className="px-5 py-2" style={{ fontWeight: 500 }}>Number</th>
-                        <th className="px-5 py-2" style={{ fontWeight: 500 }}>Client</th>
-                        <th className="px-5 py-2" style={{ fontWeight: 500 }}>Address</th>
-                        <th className="px-5 py-2" style={{ fontWeight: 500 }}>Scheduled</th>
-                        <th className="px-5 py-2" style={{ fontWeight: 500 }}>Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {group.allJobs.map(j => (
-                        <tr key={j.id} className="border-b border-[#F3F4F6] last:border-0 text-[13px]">
-                          <td className="px-5 py-2.5 text-[#1A2332]">{j.jobNumber}</td>
-                          <td className="px-5 py-2.5 text-[#1A2332]">{j.client}</td>
-                          <td className="px-5 py-2.5 text-[#6B7280]">{j.address}</td>
-                          <td className="px-5 py-2.5 text-[#6B7280]">{j.schedule}</td>
-                          <td className="px-5 py-2.5"><span className="inline-flex items-center px-2 py-0.5 rounded-lg text-[12px]" style={{ fontWeight: 500, color: statusColors[j.status], backgroundColor: statusBg[j.status] }}>{j.status}</span></td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-    )}
     </>
     </DndProvider>
   );
