@@ -70,6 +70,13 @@ export function ExpenseDetail() {
   });
   const [editing, setEditing] = useState<{ id: number; text: string } | null>(null);
   const [showAll, setShowAll] = useState(false);
+  // Details card is editable via the pencil → modal (Marek: edit in a modal).
+  const [editDetailsOpen, setEditDetailsOpen] = useState(false);
+  const [detailsForm, setDetailsForm] = useState({
+    documentNumber,
+    vendor: expense?.merchant ?? "",
+    description,
+  });
 
   if (!expense) {
     return (
@@ -147,7 +154,6 @@ export function ExpenseDetail() {
             ))}
             <div className="ml-4">
               <KebabMenu triggerClassName="h-9 w-9 border border-[#E5E7EB] rounded-md hover:bg-[#F5F7FA] bg-white">
-                <KebabItem icon="edit">Edit expense</KebabItem>
                 <KebabItem icon="content_copy" onSelect={duplicate}>Duplicate</KebabItem>
                 <KebabSeparator />
                 <KebabItem icon="archive" destructive>Archive</KebabItem>
@@ -162,9 +168,15 @@ export function ExpenseDetail() {
         <div className="mt-4 grid grid-cols-[176px_minmax(0,1fr)_360px] gap-4 items-stretch">
           {/* Col 1 — Details */}
           <div className="rounded-xl border border-[#E5E7EB] bg-white p-4">
-            <h3 className="mb-4 text-[16px] text-[#1A2332]" style={{ fontWeight: 600 }}>Details</h3>
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-[16px] text-[#1A2332]" style={{ fontWeight: 600 }}>Details</h3>
+              <button onClick={() => setEditDetailsOpen(true)} aria-label="Edit details" title="Edit details" className="text-[#9CA3AF] hover:text-[#4A6FA5]">
+                <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
+              </button>
+            </div>
             <div className="flex flex-col gap-4">
-              <DetailBlock label="Document number" value={documentNumber} />
+              <DetailBlock label="Document number" value={detailsForm.documentNumber} />
+              <DetailBlock label="Vendor" value={detailsForm.vendor || "—"} />
               {expense.jobId ? (
                 <div>
                   <div className="mb-1 text-[14px] text-[#6B7280] leading-[20px]">Job</div>
@@ -179,6 +191,7 @@ export function ExpenseDetail() {
               ) : (
                 <DetailBlock label="Job" value="—" />
               )}
+              <DetailBlock label="Expense description" value={detailsForm.description || "—"} />
             </div>
           </div>
 
@@ -304,6 +317,45 @@ export function ExpenseDetail() {
           </div>
         </div>
       </section>
+
+      {editDetailsOpen && (
+        <EditDetailsModal
+          form={detailsForm}
+          onClose={() => setEditDetailsOpen(false)}
+          onSave={(next) => { setDetailsForm(next); setEditDetailsOpen(false); toast.success("Details updated"); }}
+        />
+      )}
+    </div>
+  );
+}
+
+function EditDetailsModal({ form, onClose, onSave }: {
+  form: { documentNumber: string; vendor: string; description: string };
+  onClose: () => void;
+  onSave: (f: { documentNumber: string; vendor: string; description: string }) => void;
+}) {
+  const [documentNumber, setDocumentNumber] = useState(form.documentNumber);
+  const [vendor, setVendor] = useState(form.vendor);
+  const [description, setDescription] = useState(form.description);
+  const labelCls = "mb-1 block text-[13px] text-[#374151]";
+  const inputCls = "w-full h-10 px-3 border border-[#E5E7EB] rounded-lg text-[14px] text-[#1A2332] outline-none focus:border-[#4A6FA5]";
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1A2332]/40 p-4" onClick={onClose}>
+      <div className="w-[420px] max-w-full rounded-xl bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between border-b border-[#E5E7EB] px-5 py-4">
+          <h3 className="text-[16px] text-[#1A2332]" style={{ fontWeight: 600 }}>Edit details</h3>
+          <button onClick={onClose} aria-label="Close" className="text-[#9CA3AF] hover:text-[#1A2332]"><span className="material-icons" style={{ fontSize: "20px" }}>close</span></button>
+        </div>
+        <div className="flex flex-col gap-4 px-5 py-4">
+          <div><label className={labelCls}>Document number</label><input value={documentNumber} onChange={(e) => setDocumentNumber(e.target.value)} className={inputCls} /></div>
+          <div><label className={labelCls}>Vendor</label><input value={vendor} onChange={(e) => setVendor(e.target.value)} className={inputCls} /></div>
+          <div><label className={labelCls}>Expense description</label><textarea value={description} onChange={(e) => setDescription(e.target.value)} className="min-h-[80px] w-full resize-y rounded-lg border border-[#E5E7EB] px-3 py-2 text-[14px] text-[#1A2332] outline-none focus:border-[#4A6FA5]" /></div>
+        </div>
+        <div className="flex justify-end gap-2 border-t border-[#E5E7EB] px-5 py-4">
+          <button onClick={onClose} className="h-9 rounded-lg border border-[#E5E7EB] bg-white px-4 text-[13px] text-[#546478] hover:bg-[#F5F7FA]" style={{ fontWeight: 600 }}>Cancel</button>
+          <button onClick={() => onSave({ documentNumber, vendor, description })} className="h-9 rounded-lg bg-[#4A6FA5] px-4 text-[13px] text-white hover:bg-[#3d5a85]" style={{ fontWeight: 600 }}>Save</button>
+        </div>
+      </div>
     </div>
   );
 }
