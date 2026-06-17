@@ -1586,19 +1586,21 @@ export function ClientDetail() {
   // Tab content header: title (+ optional count) followed by a small "+" icon that
   // opens the matching create page — simpler than a full button, matching the Notes card.
   const TabHeader = ({ title, count, onAdd, addLabel }: { title: string; count?: number; onAdd: () => void; addLabel: string }) => (
-    <div className="flex items-center gap-2 mb-5">
-      <h3 className="text-[15px] text-[#1A2332]" style={{ fontWeight: 600 }}>{title}</h3>
-      {typeof count === "number" && (
-        <span className="text-[13px] text-[#9CA3AF]" style={{ fontWeight: 400 }}>({count})</span>
-      )}
+    <div className="flex items-center justify-between gap-2 mb-5">
+      <div className="flex items-center gap-2">
+        <h3 className="text-[15px] text-[#1A2332]" style={{ fontWeight: 600 }}>{title}</h3>
+        {typeof count === "number" && (
+          <span className="text-[13px] text-[#9CA3AF]" style={{ fontWeight: 400 }}>({count})</span>
+        )}
+      </div>
       <button
         type="button"
         onClick={onAdd}
         aria-label={addLabel}
         title={addLabel}
-        className="w-7 h-7 flex items-center justify-center rounded-md text-[#9CA3AF] hover:text-[#4A6FA5] hover:bg-[#F5F7FA] transition-colors"
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#4A6FA5] hover:bg-[#3d5a85] text-white transition-colors"
       >
-        <PlusIcon className="h-4 w-4" />
+        <PlusIcon className="h-4 w-4 text-white" />
       </button>
     </div>
   );
@@ -1743,17 +1745,19 @@ export function ClientDetail() {
         return (
           <div>
             {/* Header — title + "+" icon (consistent with the Jobs tab) */}
-            <div className="flex items-center gap-2">
-              <h3 className="text-[16px] text-[#1A2332]" style={{ fontWeight: 600 }}>Service address</h3>
-              <span className="text-[14px] text-[#9CA3AF]" style={{ fontWeight: 400 }}>({serviceAddresses.length})</span>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <h3 className="text-[16px] text-[#1A2332]" style={{ fontWeight: 600 }}>Service address</h3>
+                <span className="text-[14px] text-[#9CA3AF]" style={{ fontWeight: 400 }}>({serviceAddresses.length})</span>
+              </div>
               <button
                 type="button"
                 onClick={openCreateAddress}
                 aria-label="Create address"
                 title="Create address"
-                className="w-7 h-7 flex items-center justify-center rounded-md text-[#9CA3AF] hover:text-[#4A6FA5] hover:bg-[#F5F7FA] transition-colors"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#4A6FA5] hover:bg-[#3d5a85] text-white transition-colors"
               >
-                <PlusIcon className="h-4 w-4" />
+                <PlusIcon className="h-4 w-4 text-white" />
               </button>
             </div>
 
