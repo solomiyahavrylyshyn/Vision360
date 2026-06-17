@@ -164,9 +164,15 @@ export function ExpenseDetail() {
             ].map((s, i) => (
               <div key={s.label} className="flex items-center">
                 {i > 0 && <div className="mx-4 h-6 w-px bg-[#E5E7EB]" />}
-                <div className="flex flex-col">
-                  <div className="text-[18px] leading-none text-[#1A2332]" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{s.val}</div>
-                  <div className="text-[14px] leading-[20px] text-[#6B7280]">{s.label}</div>
+                <div className="flex items-center gap-3">
+                  <div className="flex flex-col">
+                    <div className="text-[18px] leading-none text-[#1A2332]" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{s.val}</div>
+                    <div className="text-[14px] leading-[20px] text-[#6B7280]">{s.label}</div>
+                  </div>
+                  {/* KPI icon in a tinted rounded square (Figma 1141:106853 / :106846) */}
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: s.bg }}>
+                    <span className="material-icons" style={{ fontSize: "20px", color: s.color }}>{s.icon}</span>
+                  </div>
                 </div>
               </div>
             ))}
