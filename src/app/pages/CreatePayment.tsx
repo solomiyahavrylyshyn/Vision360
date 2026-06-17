@@ -46,25 +46,24 @@ export function CreatePayment() {
   // Client comes from the launch context (or, standalone, from the chosen invoices).
   const [client] = useState(prefilledClient);
   // Guard the method param: ignore anything not in the known list (URL tampering).
-  const rawMethod = searchParams.get("method") || "Credit card on file";
-  const [method, setMethod] = useState((paymentMethods as readonly string[]).includes(rawMethod) ? rawMethod : "Credit card on file");
+  const rawMethod = searchParams.get("method") || "Credit Card";
+  const [method, setMethod] = useState((paymentMethods as readonly string[]).includes(rawMethod) ? rawMethod : "Credit Card");
   const [dateText, setDateText] = useState(() => isoToDMY(new Date().toISOString().slice(0, 10)));
   const [reference, setReference] = useState("");
   const [note, setNote] = useState("");
 
-  // Manual card-entry fields (US): only used when method = "Type card manually".
+  // Card-entry fields (US): shown for card-type methods (Card / Credit Card / Debit Card).
   const [cardNumber, setCardNumber] = useState("");
   const [cardExpiry, setCardExpiry] = useState("");
   const [cardCvc, setCardCvc] = useState("");
   const [cardName, setCardName] = useState("");
   const [cardZip, setCardZip] = useState("");
 
-  // Card-on-file mock (in a real build this comes from the saved payment profile).
-  const cardOnFile = "Visa •••• •••• •••• 4242";
-
-  const isCardOnFile = method === "Credit card on file";
-  const isManualCard = method === "Type card manually";
-  const isCharge = isCardOnFile || isManualCard;          // integrated charge vs external record
+  // Card-type methods (Card / Credit Card / Debit Card) capture card details and
+  // count as a live charge; every other method (Cash, Check, Bank Transfer,
+  // Consumer Financing, Venmo, Zelle, Other) is recorded with a transaction #.
+  const isCard = ["Card", "Credit Card", "Debit Card"].includes(method);
+  const isCharge = isCard;
   const cardDigits = cardNumber.replace(/\D/g, "");
 
   // Invoices — payments are collected against INVOICES only (never jobs or
@@ -118,23 +117,19 @@ export function CreatePayment() {
     if (selectedInvoices.length === 0) { toast.error("Add at least one invoice"); return; }
     if (total <= 0) { toast.error("The selected invoices have nothing due"); return; }
 
-    if (isManualCard) {
+    if (isCard) {
       if (cardDigits.length < 13) { toast.error("Enter a valid card number"); return; }
       if (!/^\d{2}\s*\/\s*\d{2}$/.test(cardExpiry)) { toast.error("Enter expiry as MM / YY"); return; }
       if (cardCvc.replace(/\D/g, "").length < 3) { toast.error("Enter the card's CVC"); return; }
       if (!cardName.trim()) { toast.error("Enter the cardholder name"); return; }
       if (!/^\d{5}(-\d{4})?$/.test(cardZip.trim())) { toast.error("Enter the billing ZIP"); return; }
-    } else if (!isCardOnFile && !reference.trim()) {
+    } else if (!reference.trim()) {
       toast.error("Enter the transaction number"); return;
     }
 
-    // For a card charge the "reference" stores a masked last-4 / card-on-file
-    // label, never the full PAN. External methods keep the user's reference #.
-    const ref = isManualCard
-      ? `Card ···· ${cardDigits.slice(-4)}`
-      : isCardOnFile
-        ? cardOnFile
-        : reference.trim();
+    // For a card charge the "reference" stores a masked last-4, never the full
+    // PAN. External methods keep the user's transaction / reference number.
+    const ref = isCard ? `Card ···· ${cardDigits.slice(-4)}` : reference.trim();
 
     const effectiveClient = client.trim() || selectedInvoices[0]?.clientName || "—";
 
@@ -167,7 +162,7 @@ export function CreatePayment() {
   // Disable the submit button until the form is minimally valid (Figma: muted by default).
   const dateValid = !!dmyToISO(dateText);
   const cardValid = cardDigits.length >= 13 && /^\d{2}\s*\/\s*\d{2}$/.test(cardExpiry) && cardCvc.replace(/\D/g, "").length >= 3 && !!cardName.trim() && /^\d{5}(-\d{4})?$/.test(cardZip.trim());
-  const methodValid = isCardOnFile ? true : isManualCard ? cardValid : reference.trim().length > 0;
+  const methodValid = isCard ? cardValid : reference.trim().length > 0;
   const canSubmit = dateValid && selectedInvoices.length > 0 && total > 0 && methodValid;
 
   const Badge = ({ status }: { status: string }) => (
@@ -216,16 +211,8 @@ export function CreatePayment() {
                   </div>
                 </div>
 
-                {/* Method-dependent block */}
-                {isCardOnFile && (
-                  <div className="flex items-center gap-3 h-[57px] rounded-lg border border-[#E5E7EB] bg-white shadow-[0px_1px_2px_rgba(0,0,0,0.05)] px-3">
-                    <span className="inline-flex items-center justify-center w-[55px] h-[33px] rounded-md bg-[#1C2B3A] text-white text-[11px] tracking-wide" style={{ fontWeight: 700, fontStyle: "italic" }}>VISA</span>
-                    <span className="flex-1 text-[14px] text-[#1A2332] tracking-wide" style={{ fontWeight: 500 }}>•••• •••• •••• 4242</span>
-                    <span className="material-icons text-[#16A34A]" style={{ fontSize: "16px" }}>check_circle</span>
-                  </div>
-                )}
-
-                {isManualCard && (
+                {/* Card-entry fields show for card-type methods (live charge). */}
+                {isCard && (
                   <>
                     <div>
                       <label className={labelCls} style={{ fontWeight: 500 }}>Card number {reqStar}</label>

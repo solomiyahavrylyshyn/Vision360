@@ -390,13 +390,13 @@ export function InvoiceDetail() {
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [payAmount, setPayAmount] = useState("");
   const [payDate, setPayDate] = useState(TODAY);
-  const [payMethod, setPayMethod] = useState("Credit card on file");
+  const [payMethod, setPayMethod] = useState("Credit Card");
   const [payTransactionNumber, setPayTransactionNumber] = useState("");
   const [payNote, setPayNote] = useState("");
   // Card methods charge + record in ONE flow; for external methods (check,
   // Venmo, financing…) the money was already received outside the system, so
   // the user enters the transaction number + amount and it's simply recorded.
-  const isCardCharge = payMethod === "Credit card on file" || payMethod === "Type card manually" || payMethod === "Card reader";
+  const isCardCharge = ["Card", "Credit Card", "Debit Card"].includes(payMethod);
 
   // Void confirm
   const [voidConfirm, setVoidConfirm] = useState(false);
@@ -459,7 +459,7 @@ export function InvoiceDetail() {
       // Card charges carry the card reference; external methods carry the
       // transaction number the user typed in.
       checkNumber: isCardCharge
-        ? (payMethod === "Credit card on file" ? "Visa ···· 4242" : undefined)
+        ? "Visa ···· 4242"
         : (payTransactionNumber || undefined),
       note: payNote,
     };
@@ -1181,15 +1181,15 @@ export function InvoiceDetail() {
                 </div>
               </div>
 
-              {payMethod === "Credit card on file" ? (
-                /* Charge moment — the card on file is charged and the payment
-                   is recorded automatically in one flow. No file uploads here. */
+              {isCardCharge ? (
+                /* Card charge — the card is charged and the payment is recorded
+                   in one flow. No file uploads here. */
                 <div className="flex items-center gap-2.5 px-3 py-2.5 bg-[#F9FAFB] border border-[#E5E7EB] rounded-lg">
                   <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "18px" }}>credit_card</span>
                   <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>Visa ···· 4242</span>
                   <span className="material-icons text-[#16A34A] ml-auto" title="Verified card on file" style={{ fontSize: "16px" }}>verified</span>
                 </div>
-              ) : !isCardCharge ? (
+              ) : (
                 /* Money already received outside the system — enter the
                    transaction number and the payment is recorded. */
                 <div>
@@ -1198,7 +1198,7 @@ export function InvoiceDetail() {
                     placeholder="e.g. check #, Venmo confirmation, financing ref…"
                     className="w-full h-11 px-3 border border-[#E5E7EB] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]" />
                 </div>
-              ) : null}
+              )}
 
               <div>
                 <label className="block text-[12px] uppercase tracking-wider text-[#6B7280] mb-1.5" style={{ fontWeight: 600 }}>Note (optional)</label>
