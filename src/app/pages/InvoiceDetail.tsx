@@ -738,16 +738,10 @@ export function InvoiceDetail() {
           )}
           {linkedJobs.length > 1 && (
             <div className="px-4 py-3 border-b border-[#E5E7EB] flex items-center justify-between">
-              <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Note</h3>
+              <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Job Details</h3>
               <button onClick={() => setActiveTab("jobs")} className="text-[12px] text-[#4A6FA5] hover:underline">View {linkedJobs.length} jobs →</button>
             </div>
           )}
-
-          {/* Invoice-level memo lives outside the per-job sections. */}
-          <div className="px-4 py-3 border-t border-[#F3F4F6] flex flex-col gap-0.5">
-            <div className="text-[11px] text-[#9CA3AF]">Note</div>
-            <span className="text-[13px] text-[#374151] leading-[19px]">{data.memo || <span className="text-[#9CA3AF]">—</span>}</span>
-          </div>
         </div>
       </ResizablePanel>
 

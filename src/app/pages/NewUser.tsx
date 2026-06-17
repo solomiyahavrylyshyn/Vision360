@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
+import { ReportAccessPanel, allReportNames } from "../components/ReportAccessPanel";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type BuiltInPreset = "admin" | "employee" | "custom";
@@ -221,6 +222,10 @@ export function NewUser() {
   // Permissions
   const [preset, setPreset] = useState<PresetId>("employee");
   const [perms, setPerms] = useState<PermissionsState>(employeePreset);
+  // Per-report access (RPT-2) — revealed when the Reports permission is on.
+  const [reportAccess, setReportAccess] = useState<Record<string, boolean>>(
+    () => Object.fromEntries(allReportNames.map((n) => [n, true])),
+  );
   const [customPresets, setCustomPresets] = useState<CustomPreset[]>(() =>
     loadCustomPresets().map(cp => ({ ...cp, permissions: ensureItemsPerm(cp.permissions) })),
   );
@@ -777,6 +782,12 @@ export function NewUser() {
                   enabled={perms.reports}
                   onToggle={v => editPerms(p => ({ ...p, reports: v }))}
                 />
+                {/* When Reports is on, grant access to specific reports (RPT-2). */}
+                {perms.reports && (
+                  <div className="mt-4">
+                    <ReportAccessPanel value={reportAccess} onChange={setReportAccess} />
+                  </div>
+                )}
               </section>
 
               {/* ── Communications ────────────────────────────────── */}
