@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Button } from "./button";
+import { PlusIcon } from "./plus-icon";
 import { KebabMenu, KebabItem, KebabSeparator } from "./kebab-menu";
 
 // A Figma-grade data grid for the Client-detail inner tabs (Invoices, Jobs,
@@ -145,8 +146,8 @@ export function RecordTab<T extends { id: string | number }>({
               (Marek Jun 16) — the big text button is reserved for the global Create. */}
           {createLabel && onCreate && (
             <button type="button" onClick={onCreate} title={createLabel} aria-label={createLabel}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#4A6FA5] text-white transition-colors hover:bg-[#3d5a85]">
-              <span className="material-icons" style={{ fontSize: "20px" }}>add</span>
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[#4A6FA5] transition-colors hover:bg-[#EEF3FA]">
+              <PlusIcon className="h-5 w-5" />
             </button>
           )}
         </div>

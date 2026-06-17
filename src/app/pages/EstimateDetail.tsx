@@ -611,9 +611,9 @@ export function EstimateDetail() {
             onClick={() => setAddItemOpen(true)}
             aria-label="Add item"
             title="Add item"
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#4A6FA5] hover:bg-[#3d5a85] text-white transition-colors"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[#4A6FA5] hover:bg-[#EEF3FA] transition-colors"
           >
-            <span className="material-icons" style={{ fontSize: "18px" }}>add</span>
+            <PlusIcon className="h-5 w-5" />
           </button>
         </div>
 

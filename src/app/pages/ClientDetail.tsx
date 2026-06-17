@@ -280,8 +280,8 @@ function ClientJobsPanel({ rows, onOpen, onCreate }: {
               <option value="this_week">This week</option>
               <option value="this_month">This month</option>
             </select>
-            <button onClick={onCreate} title="Create job" aria-label="Create job" className="ml-auto flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#4A6FA5] hover:bg-[#3d5a85] text-white">
-              <span className="material-icons" style={{ fontSize: "18px" }}>add</span>
+            <button onClick={onCreate} title="Create job" aria-label="Create job" className="ml-auto flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[#4A6FA5] hover:bg-[#EEF3FA] transition-colors">
+              <PlusIcon className="h-5 w-5" />
             </button>
           </div>
         )}
@@ -1598,9 +1598,9 @@ export function ClientDetail() {
         onClick={onAdd}
         aria-label={addLabel}
         title={addLabel}
-        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#4A6FA5] hover:bg-[#3d5a85] text-white transition-colors"
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[#4A6FA5] hover:bg-[#EEF3FA] transition-colors"
       >
-        <PlusIcon className="h-4 w-4 text-white" />
+        <PlusIcon className="h-5 w-5" />
       </button>
     </div>
   );
@@ -1755,9 +1755,9 @@ export function ClientDetail() {
                 onClick={openCreateAddress}
                 aria-label="Create address"
                 title="Create address"
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#4A6FA5] hover:bg-[#3d5a85] text-white transition-colors"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[#4A6FA5] hover:bg-[#EEF3FA] transition-colors"
               >
-                <PlusIcon className="h-4 w-4 text-white" />
+                <PlusIcon className="h-5 w-5" />
               </button>
             </div>
 

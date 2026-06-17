@@ -1139,8 +1139,8 @@ export function JobDetail() {
         <h3 className="text-[15px] text-[#1A2332]" style={{ fontWeight: 600 }}>Estimates</h3>
         <button type="button" aria-label="Create estimate" title="Create estimate"
           onClick={() => navigate(`/estimates/new?client=${encodeURIComponent(job.client)}&job=${encodeURIComponent(job.jobNumber)}&returnTo=${encodeURIComponent(jobReturnUrl("estimates"))}`)}
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#4A6FA5] hover:bg-[#3d5a85] text-white transition-colors">
-          <PlusIcon className="h-4 w-4 text-white" />
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[#4A6FA5] hover:bg-[#EEF3FA] transition-colors">
+          <PlusIcon className="h-5 w-5" />
         </button>
       </div>
       {jobEstimates.length === 0 ? (
@@ -1176,8 +1176,8 @@ export function JobDetail() {
         <h3 className="text-[15px] text-[#1A2332]" style={{ fontWeight: 600 }}>Invoices</h3>
         <button type="button" aria-label="Create invoice" title="Create invoice"
           onClick={() => navigate(`/invoices/new?fromJob=${storeJob?.id ?? ''}&client=${encodeURIComponent(job.client)}&returnTo=${encodeURIComponent(jobReturnUrl('invoices'))}`)}
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#4A6FA5] hover:bg-[#3d5a85] text-white transition-colors">
-          <PlusIcon className="h-4 w-4 text-white" />
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[#4A6FA5] hover:bg-[#EEF3FA] transition-colors">
+          <PlusIcon className="h-5 w-5" />
         </button>
       </div>
       {job.linkedInvoice ? (
@@ -1205,9 +1205,9 @@ export function JobDetail() {
           type="button"
           aria-label="Add line item"
           title="Add line item"
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#4A6FA5] hover:bg-[#3d5a85] text-white transition-colors"
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[#4A6FA5] hover:bg-[#EEF3FA] transition-colors"
         >
-          <PlusIcon className="h-4 w-4 text-white" />
+          <PlusIcon className="h-5 w-5" />
         </button>
       </div>
       <table className="w-full text-[13px]">
@@ -1257,9 +1257,9 @@ export function JobDetail() {
           onClick={() => navigate(`/expenses/new?fromJob=${encodeURIComponent(job.jobNumber)}${job.linkedInvoice ? `&fromInvoice=${encodeURIComponent(job.linkedInvoice.id)}` : ""}&returnTo=${encodeURIComponent(jobReturnUrl("expense"))}`)}
           aria-label="Add expense"
           title="Add expense"
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#4A6FA5] hover:bg-[#3d5a85] text-white transition-colors"
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[#4A6FA5] hover:bg-[#EEF3FA] transition-colors"
         >
-          <PlusIcon className="h-4 w-4 text-white" />
+          <PlusIcon className="h-5 w-5" />
         </button>
       </div>
       {job.expenses.length > 0 ? (
