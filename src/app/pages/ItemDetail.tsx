@@ -390,9 +390,9 @@ export function ItemDetail() {
         <h3 className="mb-3 text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Custom Fields</h3>
         <Field label="Custom Field 1" value={item.customField1 || "Custom Field Value"} />
         <div className="mt-3"><Field label="Custom Field 2" value={item.customField2 || "Custom Field Value"} /></div>
-        <div className="mt-3 text-[12px] text-[#9CA3AF]">
+        <div className="mt-3 text-[11px] text-[#9CA3AF]">
           Configure in{" "}
-          <button onClick={() => navigate("/settings?section=custom-fields")} className="text-[#4A6FA5] hover:underline" style={{ fontWeight: 500 }}>Settings &gt; Custom Fields</button>
+          <button onClick={() => navigate("/settings?section=custom-fields")} className="text-[11px] text-[#4A6FA5] hover:underline" style={{ fontWeight: 500 }}>Settings &gt; Custom Fields</button>
         </div>
       </div>
     </div>

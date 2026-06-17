@@ -1222,11 +1222,11 @@ export function ClientDetail() {
               const configured = cfClientFields.slice(0, 2).filter(f => f.label.trim() !== "");
               if (configured.length === 0) {
                 return (
-                  <div className="flex items-center gap-1 text-[12px] text-[#6B7280]">
+                  <div className="flex items-center gap-1 text-[11px] text-[#6B7280]">
                     <span>Configure in</span>
                     <button
                       onClick={() => navigate("/settings?section=customFields")}
-                      className="text-[12px] text-[#4A6FA5] hover:underline"
+                      className="text-[11px] text-[#4A6FA5] hover:underline"
                       style={{ fontWeight: 500 }}
                     >
                       Settings &gt; Custom Fields
@@ -2412,7 +2412,7 @@ export function ClientDetail() {
                 ({client.customerId.replace(/^C-/, "")})
               </span>
               {/* Status chip — Active/Prospect is derived from jobs; the menu only
-                  toggles the manual Inactive flag (Inactivate / Reactivate). */}
+                  toggles the manual Inactive flag (Deactivate / Reactivate). */}
               <div className="relative">
                 <button
                   onClick={() => setClientStatusOpen(!clientStatusOpen)}

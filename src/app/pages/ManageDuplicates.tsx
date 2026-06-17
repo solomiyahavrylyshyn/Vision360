@@ -332,14 +332,14 @@ export function ManageDuplicates() {
     setSelectedClients(prev => { const n = new Set(prev); n.delete(client.id); return n; });
   };
 
-  // ── Inactivate (soft-hides from the active list + duplicate scan) ─────────
-  const inactivateClient = (id: string) => {
+  // ── Deactivate (soft-hides from the active list + duplicate scan) ─────────
+  const deactivateClient = (id: string) => {
     clientsStore.updateClient(id, { archivedAt: new Date().toISOString(), status: "Inactive" as ClientRecord["status"] });
     const c = clients.find(x => x.id === id);
     toast.success(`${c?.name ?? "Client"} deactivated. Restore from the panel below.`);
     setSelectedClients(prev => { const n = new Set(prev); n.delete(id); return n; });
   };
-  const inactivateSelected = () => {
+  const deactivateSelected = () => {
     const ids = [...selectedClients];
     if (!ids.length) return;
     ids.forEach(id => clientsStore.updateClient(id, { archivedAt: new Date().toISOString(), status: "Inactive" as ClientRecord["status"] }));
@@ -389,7 +389,7 @@ export function ManageDuplicates() {
 
             {/* Action buttons — always visible; disabled (opacity-50) until a valid selection */}
             <div className="flex items-center gap-3 flex-wrap">
-              <button onClick={inactivateSelected} disabled={selectedClients.size < 1}
+              <button onClick={deactivateSelected} disabled={selectedClients.size < 1}
                 className={toolbarBtnCls(selectedClients.size >= 1)} style={{ fontWeight: 500 }}>
                 Deactivate
               </button>
@@ -466,7 +466,7 @@ export function ManageDuplicates() {
                     <KebabMenu align="end">
                       <KebabItem icon="visibility" onClick={() => window.open(`/clients/${client.id}`, "_blank")}>View existing record</KebabItem>
                       <KebabItem icon="check" onClick={() => markRowNotDuplicate(client)}>Mark as not duplicate</KebabItem>
-                      <KebabItem icon="block" onClick={() => inactivateClient(client.id)}>Deactivate</KebabItem>
+                      <KebabItem icon="block" onClick={() => deactivateClient(client.id)}>Deactivate</KebabItem>
                     </KebabMenu>
                   </div>
                 </div>
@@ -529,7 +529,7 @@ export function ManageDuplicates() {
         </div>
       )}
 
-      {/* Inactivated records section */}
+      {/* Deactivated records section */}
       {archivedClients.length > 0 && (
         <div className="px-6 pb-6">
           <button onClick={() => setShowArchived(v => !v)}

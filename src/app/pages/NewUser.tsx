@@ -40,9 +40,9 @@ type TimeLevel = "viewRecordOwn" | "viewRecordEditOwn" | "viewRecordEditAll";
 type NotesLevel = "viewJobsOnly" | "viewAll" | "viewAddAll" | "viewEditAll" | "viewEditDeleteAll";
 type ExpensesLevel = "viewRecordEditOwn" | "viewRecordEditAll" | "viewRecordEditDeleteAll";
 // Per the MVP walkthrough, records are never hard-deleted — each module uses a
-// history-preserving terminal action instead (inactivate / archive / void / cancel),
+// history-preserving terminal action instead (deactivate / archive / void / cancel),
 // and Payments is a leveled permission ending in refund.
-type ClientsLevel = "nameAddressOnly" | "viewFull" | "viewCreateEditFull" | "viewCreateEditInactivateFull";
+type ClientsLevel = "nameAddressOnly" | "viewFull" | "viewCreateEditFull" | "viewCreateEditDeactivateFull";
 type EstimatesLevel = "viewOnly" | "viewCreateEdit" | "viewCreateEditArchive";
 type InvoicesLevel = "viewOnly" | "viewCreateEdit" | "viewCreateEditVoidArchive";
 type JobsLevel = "viewOnly" | "viewCreateEdit" | "viewCreateEditCancel";
@@ -100,7 +100,7 @@ const adminPreset: PermissionsState = {
   expenses: { enabled: true, level: "viewRecordEditAll" },
   items: { enabled: true, level: "fullControl" },
   jobCosting: true,
-  clients: { enabled: true, level: "viewCreateEditInactivateFull" },
+  clients: { enabled: true, level: "viewCreateEditDeactivateFull" },
   estimates: { enabled: true, level: "viewCreateEditArchive" },
   jobs: { enabled: true, level: "viewCreateEditCancel" },
   invoices: { enabled: true, level: "viewCreateEditVoidArchive" },
@@ -661,7 +661,7 @@ export function NewUser() {
                   enabled={perms.clients.enabled}
                   onToggle={v => editPerms(p => ({ ...p, clients: { ...p.clients, enabled: v } }))}
                 >
-                  {(["nameAddressOnly", "viewFull", "viewCreateEditFull", "viewCreateEditInactivateFull"] as ClientsLevel[]).map(level => (
+                  {(["nameAddressOnly", "viewFull", "viewCreateEditFull", "viewCreateEditDeactivateFull"] as ClientsLevel[]).map(level => (
                     <Radio
                       key={level}
                       checked={perms.clients.level === level}
@@ -670,7 +670,7 @@ export function NewUser() {
                         nameAddressOnly: "View client name and address only",
                         viewFull: "View full client and property info",
                         viewCreateEditFull: "View, create, and edit full client and property info",
-                        viewCreateEditInactivateFull: "View, create, edit, and deactivate full client and property info",
+                        viewCreateEditDeactivateFull: "View, create, edit, and deactivate full client and property info",
                       }[level]}
                       description={level === "nameAddressOnly"
                         ? "Hides the phone number — for sales roles, so jobs can't be booked off the books."
