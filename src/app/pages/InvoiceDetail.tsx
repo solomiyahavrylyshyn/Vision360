@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
 import { DetailTabs, TabSettingsButton } from "../components/ui/detail-tabs";
 import { PlusIcon } from "../components/ui/plus-icon";
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "../components/ui/resizable";
 import { formatRegionalDate } from "../stores/regionalSettingsStore";
 import { jobsStore } from "../stores/jobsStore";
 
@@ -670,11 +671,16 @@ export function InvoiceDetail() {
     </div>
   );
 
+  const panelHandle = (
+    <ResizableHandle withHandle className="mx-2 w-1 rounded-full bg-transparent transition-colors hover:bg-[#D8DEE8] data-[resize-handle-active]:bg-[#C5D5EC] after:w-3" />
+  );
+
   const renderDetailsTab = () => (
-    <div className="flex flex-col lg:flex-row gap-4 items-start">
+    <ResizablePanelGroup direction="horizontal" className="min-h-[420px] items-stretch">
 
       {/* ── Left/main: Items list with totals ── */}
-      <div className="flex-1 min-w-0 w-full bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
+      <ResizablePanel defaultSize={44} minSize={28} className="min-w-0">
+      <div className="h-full flex flex-col bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
         <div className="px-5 py-3.5 border-b border-[#E5E7EB] flex items-center justify-between">
           <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>
             Items list{isLocked && <span className="ml-2 align-middle text-[11px] text-[#9CA3AF]" style={{ fontWeight: 500 }}>· Locked</span>}
@@ -768,13 +774,16 @@ export function InvoiceDetail() {
           </div>
         </div>
       </div>
+      </ResizablePanel>
+
+      {panelHandle}
 
       {/* ── Right side: Job Details + Notes (side by side) ── */}
       {/* Job Details — one accordion section per linked job, all expanded by
           default (the page gets longer, that's fine). The box stays in the same
           place whatever the job count, so nothing "disappears" on the user. */}
-      <div className="w-full lg:w-[300px] shrink-0">
-        <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
+      <ResizablePanel defaultSize={28} minSize={18} className="min-w-0">
+        <div className="h-full bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
           {/* ≤1 job: full Job Details box. >1 job (Marek Jun 9): this box
               disappears — the jobs move to the dedicated Jobs tab; only Memo stays. */}
           {linkedJobs.length <= 1 && (
@@ -810,22 +819,24 @@ export function InvoiceDetail() {
           )}
           {linkedJobs.length > 1 && (
             <div className="px-4 py-3 border-b border-[#E5E7EB] flex items-center justify-between">
-              <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Memo</h3>
+              <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Note</h3>
               <button onClick={() => setActiveTab("jobs")} className="text-[12px] text-[#4A6FA5] hover:underline">View {linkedJobs.length} jobs →</button>
             </div>
           )}
 
           {/* Invoice-level memo lives outside the per-job sections. */}
           <div className="px-4 py-3 border-t border-[#F3F4F6] flex flex-col gap-0.5">
-            <div className="text-[11px] text-[#9CA3AF]">Memo</div>
+            <div className="text-[11px] text-[#9CA3AF]">Note</div>
             <span className="text-[13px] text-[#374151] leading-[19px]">{data.memo || <span className="text-[#9CA3AF]">—</span>}</span>
           </div>
         </div>
-      </div>
+      </ResizablePanel>
+
+      {panelHandle}
 
       {/* Notes (Note to Client / Internal) */}
-      <div className="w-full lg:w-[300px] shrink-0">
-        <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
+      <ResizablePanel defaultSize={28} minSize={18} className="min-w-0">
+        <div className="h-full bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
           <div className="flex border-b border-[#E5E7EB] px-4">
             {([
               { key: "customer" as NotesTabKey, label: "Note to Client" },
@@ -876,8 +887,8 @@ export function InvoiceDetail() {
             )}
           </div>
         </div>
-      </div>
-    </div>
+      </ResizablePanel>
+    </ResizablePanelGroup>
   );
 
   const renderActivityTab = () => (

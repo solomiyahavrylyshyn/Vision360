@@ -9,6 +9,7 @@ import {
   DropdownMenuItem,
 } from "../components/ui/dropdown-menu";
 import { DetailTabs, TabSettingsButton } from "../components/ui/detail-tabs";
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "../components/ui/resizable";
 import { paymentStatusColors, paymentMethodIcons, type Payment, type PaymentStatus } from "./Payments";
 import { paymentsStore } from "../stores/paymentsStore";
 import { formatRegionalDate } from "../stores/regionalSettingsStore";
@@ -221,13 +222,18 @@ export function PaymentDetail() {
   };
 
   const visibleNotes = showAllNotes ? notes : notes.slice(0, 4);
+  // Drag handle between the resizable Details / Attachments / Notes panels.
+  const panelHandle = (
+    <ResizableHandle withHandle className="mx-2 w-1 rounded-full bg-transparent transition-colors hover:bg-[#D8DEE8] data-[resize-handle-active]:bg-[#C5D5EC] after:w-3" />
+  );
 
   /* ──────────────────────── Details tab ──────────────────────── */
   const renderDetails = () => (
-    <div className="grid grid-cols-3 gap-4 items-start">
+    <ResizablePanelGroup direction="horizontal" className="min-h-[320px] items-stretch">
 
       {/* Details card */}
-      <div className="border border-[#E5E7EB] rounded-xl p-4">
+      <ResizablePanel defaultSize={34} minSize={20} className="min-w-0">
+      <div className="h-full border border-[#E5E7EB] rounded-xl p-4">
         <h3 className="text-[16px] text-[#1A2332]" style={{ fontFamily: "Geist", fontWeight: 600 }}>Details</h3>
         <div className="mt-4 flex flex-col gap-4">
           <Field label="Date" value={fmtDate(payment.date)} />
@@ -291,9 +297,13 @@ export function PaymentDetail() {
           />
         </div>
       </div>
+      </ResizablePanel>
+
+      {panelHandle}
 
       {/* Attachments card (Section 6.3 — proof of payment, photo of check) */}
-      <div className="border border-[#E5E7EB] rounded-xl p-4">
+      <ResizablePanel defaultSize={33} minSize={20} className="min-w-0">
+      <div className="h-full border border-[#E5E7EB] rounded-xl p-4">
         <h3 className="text-[16px] text-[#1A2332]" style={{ fontFamily: "Geist", fontWeight: 600 }}>
           Attachments
           {attachments.length > 0 && (
@@ -397,9 +407,13 @@ export function PaymentDetail() {
           </div>
         )}
       </div>
+      </ResizablePanel>
+
+      {panelHandle}
 
       {/* Notes card */}
-      <div className="border border-[#E5E7EB] rounded-xl p-4 flex flex-col">
+      <ResizablePanel defaultSize={33} minSize={20} className="min-w-0">
+      <div className="h-full border border-[#E5E7EB] rounded-xl p-4 flex flex-col">
         <div className="flex items-center justify-between">
           <h3 className="text-[16px] text-[#1A2332]" style={{ fontFamily: "Geist", fontWeight: 600 }}>Notes</h3>
           <button
@@ -444,7 +458,8 @@ export function PaymentDetail() {
           </button>
         )}
       </div>
-    </div>
+      </ResizablePanel>
+    </ResizablePanelGroup>
   );
 
   /* ──────────────────────── Activity tab ──────────────────────── */
@@ -495,7 +510,7 @@ export function PaymentDetail() {
       <div className="relative mx-6 mb-6 bg-white border border-[#E5E7EB] rounded-xl p-4">
 
         {/* ── HEADER: title + status + KPI ── */}
-        <div className="flex items-start justify-between gap-4 border-b border-[#E5E7EB] pb-4">
+        <div className="flex items-start justify-between gap-4 pb-4">
 
           {/* Left: title + contact row */}
           <div className="flex-1 min-w-0 flex flex-col gap-1.5">
@@ -613,8 +628,7 @@ export function PaymentDetail() {
           </div>
         </div>
 
-        {/* Divider separating the payment header from the tab bar */}
-        <div className="-mx-4 mt-4 border-t border-[#E5E7EB]" />
+        <div className="mt-4" />
 
         <DetailTabs
           tabs={[
