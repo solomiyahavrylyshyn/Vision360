@@ -555,7 +555,9 @@ export function InvoiceDetail() {
       { key: "note",   label: "Note",    render: (r) => <span className="text-[#6B7280]">{r.note || "—"}</span> },
       { key: "amount", label: "Amount",  align: "right", render: (r) => <span className="text-[#1A2332]" style={{ fontWeight: 600 }}>{r.amount}</span> },
     ];
-    const canCollect = !isPaid && status !== "Void";
+    // The blue "+" Collect-payment shows in every state except Paid (Marek):
+    // a fully-paid invoice has nothing left to collect.
+    const canCollect = !isPaid;
     const goToPayment = (r: Row) => navigate(`/payments/${r.id}?returnTo=${encodeURIComponent(`/invoices/${id}?tab=payments`)}`);
     return (
       <RecordTab<Row>
