@@ -156,9 +156,9 @@ export function Clients() {
     | "dateCreated" | "lastServiceDate" | "totalBilled" | "notes" | "lastActivity"
     | "paymentTerms" | "paymentMethod" | "taxable";
 
-  const [visibleColumns, setVisibleColumns] = useState<Set<ColKey>>(new Set<ColKey>(["status", "address", "totalBilled", "lastActivity"]));
+  const [visibleColumns, setVisibleColumns] = useState<Set<ColKey>>(new Set<ColKey>(["address", "mobile", "status", "totalBilled"]));
   const [editColumnsOpen, setEditColumnsOpen] = useState(false);
-  const [pendingColumns, setPendingColumns] = useState<Set<ColKey>>(new Set<ColKey>(["status", "address", "totalBilled", "lastActivity"]));
+  const [pendingColumns, setPendingColumns] = useState<Set<ColKey>>(new Set<ColKey>(["address", "mobile", "status", "totalBilled"]));
 
   // Edit-columns dialog layout — two columns of bordered option boxes, matching
   // the Figma "Edit columns" dialog. The left column leads with the locked "Name"

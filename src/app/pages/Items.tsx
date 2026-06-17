@@ -420,7 +420,7 @@ const PRICEBOOK_COLS = [
 // the Type badge is derived from the category via this lightweight map.
 const PB_CATEGORY_TYPE: Record<string, string> = {
   Maintenance: "Service", Diagnostics: "Service", Repairs: "Service", Installation: "Service",
-  Replacement: "Service", Custom: "Service", Membership: "Service",
+  Replacement: "Equipment", Custom: "Service", Membership: "Service",
   Materials: "Material", Fees: "Fees",
 };
 const pbType = (category: string): string => PB_CATEGORY_TYPE[category] || "Service";
@@ -586,8 +586,7 @@ export function Items() {
     else if (pbStatusFilter === "Inactive") result = result.filter(i => !i.active);
     if (advancedPriceMin) result = result.filter(i => i.price >= Number(advancedPriceMin));
     if (advancedPriceMax) result = result.filter(i => i.price <= Number(advancedPriceMax));
-    if (advancedCostMin) result = result.filter(i => i.cost >= Number(advancedCostMin));
-    if (advancedCostMax) result = result.filter(i => i.cost <= Number(advancedCostMax));
+    // Cost / Margin are not customer-facing on the Price book (Marek Jun 16) — no cost filter here.
     if (advancedTaxable === "Taxable") result = result.filter(i => i.taxable);
     if (advancedTaxable === "Non-taxable") result = result.filter(i => !i.taxable);
     if (pbSearch) {
@@ -1097,14 +1096,16 @@ export function Items() {
               <input type="number" min="0" placeholder="max" value={advancedPriceMax} onChange={(e) => setAdvancedPriceMax(e.target.value)} className={advancedInputClass} />
             </div>
           </div>
-          <div className="border-t border-[#E5E7EB] pt-5">
-            <h3 className="text-[13px] text-[#374151] mb-4" style={{ fontWeight: 600 }}>Cost</h3>
-            <div className="flex items-center gap-2">
-              <input type="number" min="0" placeholder="min" value={advancedCostMin} onChange={(e) => setAdvancedCostMin(e.target.value)} className={advancedInputClass} />
-              <span className="text-[#546478] text-[13px]">-</span>
-              <input type="number" min="0" placeholder="max" value={advancedCostMax} onChange={(e) => setAdvancedCostMax(e.target.value)} className={advancedInputClass} />
+          {activeTab !== "pricebook" && (
+            <div className="border-t border-[#E5E7EB] pt-5">
+              <h3 className="text-[13px] text-[#374151] mb-4" style={{ fontWeight: 600 }}>Cost</h3>
+              <div className="flex items-center gap-2">
+                <input type="number" min="0" placeholder="min" value={advancedCostMin} onChange={(e) => setAdvancedCostMin(e.target.value)} className={advancedInputClass} />
+                <span className="text-[#546478] text-[13px]">-</span>
+                <input type="number" min="0" placeholder="max" value={advancedCostMax} onChange={(e) => setAdvancedCostMax(e.target.value)} className={advancedInputClass} />
+              </div>
             </div>
-          </div>
+          )}
           <AdvancedFilterField label="Taxable">
             <select value={advancedTaxable} onChange={(e) => setAdvancedTaxable(e.target.value)} className={advancedSelectClass}>
               <option value="All">All</option>

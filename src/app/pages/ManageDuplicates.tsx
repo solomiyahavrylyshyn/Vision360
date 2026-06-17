@@ -514,8 +514,8 @@ export function ManageDuplicates() {
                     <span style={{ fontWeight: 500 }}>{a?.name ?? d.clientIdA}</span>
                     <span className="text-[#9CA3AF] mx-2">↔</span>
                     <span style={{ fontWeight: 500 }}>{b?.name ?? d.clientIdB}</span>
-                    <span className={`ml-3 px-2 py-0.5 rounded-md text-[11px] ${d.reason === "not_duplicate" ? "bg-[#FEE2E2] text-[#DC2626]" : "bg-[#DBEAFE] text-[#1E40AF]"}`} style={{ fontWeight: 600 }}>
-                      {d.reason === "not_duplicate" ? "Not a duplicate" : "Keep both"}
+                    <span className="ml-3 px-2 py-0.5 rounded-md text-[11px] bg-[#FEE2E2] text-[#DC2626]" style={{ fontWeight: 600 }}>
+                      Not a duplicate
                     </span>
                   </div>
                   <button onClick={() => dismissalsStore.remove(d.clientIdA, d.clientIdB)}

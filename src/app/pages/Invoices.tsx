@@ -654,8 +654,9 @@ export function Invoices() {
                         <td key={col.key} className="px-4 py-4 whitespace-nowrap" onClick={e => e.stopPropagation()}>
                           {inv.jobNumber ? (
                             <button onClick={() => navigate(`/jobs/${inv.jobNumber}`)} className="text-left">
-                              <div className="text-[14px] text-[#4A6FA5] hover:underline" style={{ fontFamily: "Geist", fontWeight: 400, lineHeight: "20px" }}>{inv.jobNumber}</div>
-                              {inv.jobName && inv.jobName !== "—" && <div className="text-[13px] text-[#546478]" style={{ fontFamily: "Geist", fontWeight: 400, lineHeight: "18px" }}>{inv.jobName}</div>}
+                              <div className="text-[14px] text-[#4A6FA5] hover:underline" style={{ fontFamily: "Geist", fontWeight: 400, lineHeight: "20px" }}>
+                                {inv.jobNumber}{inv.jobName && inv.jobName !== "—" ? <span className="text-[#546478]"> · {inv.jobName}</span> : ""}
+                              </div>
                             </button>
                           ) : <span className="text-[#D1D5DB]">—</span>}
                         </td>
