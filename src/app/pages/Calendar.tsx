@@ -2066,8 +2066,7 @@ export function Calendar() {
                                     onDoubleClick={(event) => event.stopPropagation()}
                                   >
                                     <div className="flex flex-col h-full px-2 py-1">
-                                      <div className="flex items-center justify-between gap-1 text-[9px] text-[#9CA3AF] tabular-nums shrink-0">
-                                        <span className="truncate">{formatRegionalTime(job.start, regionalSettings)} - {formatRegionalTime(job.end, regionalSettings)}</span>
+                                      <div className="flex items-center justify-end gap-1 shrink-0">
                                         <span className="flex h-4 w-4 items-center justify-center rounded-full text-[9px] text-white shrink-0" style={{ backgroundColor: member.color, fontWeight: 700 }}>
                                           {routeNumber}
                                         </span>
@@ -2322,10 +2321,7 @@ export function Calendar() {
                               onDoubleClick={(event) => event.stopPropagation()}
                             >
                               <div className="flex flex-col h-full px-3 py-2" style={{ textDecoration: isCancelled ? "line-through" : undefined, textDecorationColor: isCancelled ? "#9CA3AF" : undefined }}>
-                                <div className="flex items-center gap-2 w-full shrink-0">
-                                  <span className="flex-1 min-w-0 truncate text-[12px] leading-4 text-[#6B7280]" style={{ fontWeight: 400 }}>
-                                    {formatRegionalTime(job.start, regionalSettings)} - {formatRegionalTime(job.end, regionalSettings)}
-                                  </span>
+                                <div className="flex items-center justify-end gap-2 w-full shrink-0">
                                   <span className="flex h-4 min-w-[16px] px-1 items-center justify-center rounded-full text-[12px] leading-4 text-white shrink-0" style={{ backgroundColor: member.color, fontWeight: 500, textDecoration: "none" }}>
                                     {routeNumber}
                                   </span>
