@@ -618,14 +618,16 @@ const hashUnit = (seed: string, salt: number): number => {
   return ((h >>> 0) % 100000) / 100000;
 };
 
-function DispatchMap({ jobs, team, selectedJobId, onSelect }: {
+function DispatchMap({ jobs, team, selectedJobId, onSelect, floating = false }: {
   jobs: DispatchMapJob[];
   team: { id: string; name: string; color: string }[];
   selectedJobId: number | null;
   onSelect: (id: number) => void;
+  floating?: boolean;
 }) {
   const W = 900, H = 380, PAD = 56;
   const [zoom, setZoom] = useState(1);
+  const [collapsed, setCollapsed] = useState(false);
   // Auto-fit (reset zoom) whenever the mapped set changes — date/filter/status sync.
   const idKey = jobs.map((j) => j.id).join(",");
   useEffect(() => { setZoom(1); }, [idKey]);
@@ -676,6 +678,97 @@ function DispatchMap({ jobs, team, selectedJobId, onSelect }: {
     }));
   }, [jobs, visitNo]);
 
+  // Shared map canvas (street-grid backdrop + routes + pins + zoom controls).
+  // Rendered identically whether the map is the full-width strip or the
+  // compact floating panel — only the surrounding chrome differs.
+  const canvas =
+    jobs.length === 0 ? (
+      <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6">
+        <span className="material-icons text-[#B6C2CF]" style={{ fontSize: "40px" }}>map</span>
+        <p className="mt-2 text-[14px] text-[#546478]" style={{ fontWeight: 600 }}>No scheduled jobs to map</p>
+        <p className="mt-0.5 text-[13px] text-[#8899AA]">Scheduled, in-range jobs for this day appear here.</p>
+      </div>
+    ) : (
+      <>
+        <svg viewBox={`0 0 ${W} ${H}`} className="absolute inset-0 w-full h-full" preserveAspectRatio="xMidYMid meet">
+          {/* Faint street grid backdrop */}
+          {Array.from({ length: 11 }).map((_, i) => (
+            <line key={`v${i}`} x1={(W / 10) * i} y1={0} x2={(W / 10) * i} y2={H} stroke="#D4DCE6" strokeWidth={1} />
+          ))}
+          {Array.from({ length: 6 }).map((_, i) => (
+            <line key={`h${i}`} x1={0} y1={(H / 5) * i} x2={W} y2={(H / 5) * i} stroke="#D4DCE6" strokeWidth={1} />
+          ))}
+          {/* Routes (visit order) */}
+          {routes.map(({ techId, order }) => order.length > 1 && (
+            <polyline
+              key={techId}
+              fill="none"
+              stroke={teamById(techId).color}
+              strokeWidth={2}
+              strokeOpacity={0.45}
+              strokeDasharray="5 5"
+              points={order.map((j) => { const p = at(j.id); return `${p.x},${p.y}`; }).join(" ")}
+            />
+          ))}
+          {/* Pins */}
+          {jobs.map((j) => {
+            const p = at(j.id);
+            const member = teamById(j.technicianId);
+            const sel = selectedJobId === j.id;
+            return (
+              <g key={j.id} style={{ cursor: "pointer" }} onClick={() => onSelect(j.id)}>
+                <title>{`${member.name}: ${j.client} — ${j.service}\n${j.address}`}</title>
+                <circle cx={p.x} cy={p.y} r={sel ? 17 : 15} fill={member.color} stroke="#fff" strokeWidth={sel ? 4 : 3}
+                  style={sel ? { filter: "drop-shadow(0 0 0 3px rgba(26,35,50,0.25))" } : undefined} />
+                <text x={p.x} y={p.y} textAnchor="middle" dominantBaseline="central" fill="#fff" fontSize={13} fontWeight={800}>
+                  {visitNo[j.id]}
+                </text>
+              </g>
+            );
+          })}
+        </svg>
+        {/* Zoom controls (zoom in/out only — read-only map) */}
+        <div className="absolute bottom-3 right-3 flex flex-col rounded-lg border border-[#D8DCE6] bg-white shadow-sm overflow-hidden">
+          <button aria-label="Zoom in" onClick={() => setZoom((z) => Math.min(4, Math.round((z + 0.5) * 10) / 10))}
+            className="w-8 h-8 flex items-center justify-center hover:bg-[#F0F2F5] border-b border-[#E5E7EB]">
+            <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>add</span>
+          </button>
+          <button aria-label="Zoom out" onClick={() => setZoom((z) => Math.max(1, Math.round((z - 0.5) * 10) / 10))}
+            className="w-8 h-8 flex items-center justify-center hover:bg-[#F0F2F5]">
+            <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>remove</span>
+          </button>
+        </div>
+      </>
+    );
+
+  // Compact floating panel — pinned in the top-right corner over the board,
+  // collapsible to just its header so it never hides the table for long.
+  if (floating) {
+    return (
+      <div className="w-[360px] rounded-xl border border-[#D8DCE6] bg-white shadow-xl overflow-hidden pointer-events-auto">
+        <div className="flex items-center justify-between px-3 py-2 border-b border-[#EEF1F5]">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "18px" }}>map</span>
+            <span className="text-[13px] text-[#1A2332] truncate" style={{ fontWeight: 700 }}>Route map</span>
+            <span className="text-[12px] text-[#9CA3AF] shrink-0">{jobs.length} {jobs.length === 1 ? "stop" : "stops"}</span>
+          </div>
+          <button
+            onClick={() => setCollapsed((c) => !c)}
+            aria-label={collapsed ? "Expand route map" : "Collapse route map"}
+            className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-[#F0F2F5] shrink-0"
+          >
+            <span className="material-icons text-[#546478]" style={{ fontSize: "20px" }}>{collapsed ? "expand_more" : "expand_less"}</span>
+          </button>
+        </div>
+        {!collapsed && (
+          <div className="relative bg-[#EAEFF3]" style={{ height: 230 }}>
+            {canvas}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="border-t border-[#E5E7EB] bg-white shrink-0">
       <div className="flex items-center justify-between px-4 pt-4 pb-3">
@@ -691,64 +784,7 @@ function DispatchMap({ jobs, team, selectedJobId, onSelect }: {
         </div>
       </div>
       <div className="mx-4 mb-4 rounded-xl border border-[#D8DCE6] bg-[#EAEFF3] overflow-hidden relative" style={{ height: H }}>
-        {jobs.length === 0 ? (
-          <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6">
-            <span className="material-icons text-[#B6C2CF]" style={{ fontSize: "40px" }}>map</span>
-            <p className="mt-2 text-[14px] text-[#546478]" style={{ fontWeight: 600 }}>No scheduled jobs to map</p>
-            <p className="mt-0.5 text-[13px] text-[#8899AA]">Scheduled, in-range jobs for this day appear here.</p>
-          </div>
-        ) : (
-          <>
-            <svg viewBox={`0 0 ${W} ${H}`} className="absolute inset-0 w-full h-full" preserveAspectRatio="xMidYMid meet">
-              {/* Faint street grid backdrop */}
-              {Array.from({ length: 11 }).map((_, i) => (
-                <line key={`v${i}`} x1={(W / 10) * i} y1={0} x2={(W / 10) * i} y2={H} stroke="#D4DCE6" strokeWidth={1} />
-              ))}
-              {Array.from({ length: 6 }).map((_, i) => (
-                <line key={`h${i}`} x1={0} y1={(H / 5) * i} x2={W} y2={(H / 5) * i} stroke="#D4DCE6" strokeWidth={1} />
-              ))}
-              {/* Routes (visit order) */}
-              {routes.map(({ techId, order }) => order.length > 1 && (
-                <polyline
-                  key={techId}
-                  fill="none"
-                  stroke={teamById(techId).color}
-                  strokeWidth={2}
-                  strokeOpacity={0.45}
-                  strokeDasharray="5 5"
-                  points={order.map((j) => { const p = at(j.id); return `${p.x},${p.y}`; }).join(" ")}
-                />
-              ))}
-              {/* Pins */}
-              {jobs.map((j) => {
-                const p = at(j.id);
-                const member = teamById(j.technicianId);
-                const sel = selectedJobId === j.id;
-                return (
-                  <g key={j.id} style={{ cursor: "pointer" }} onClick={() => onSelect(j.id)}>
-                    <title>{`${member.name}: ${j.client} — ${j.service}\n${j.address}`}</title>
-                    <circle cx={p.x} cy={p.y} r={sel ? 17 : 15} fill={member.color} stroke="#fff" strokeWidth={sel ? 4 : 3}
-                      style={sel ? { filter: "drop-shadow(0 0 0 3px rgba(26,35,50,0.25))" } : undefined} />
-                    <text x={p.x} y={p.y} textAnchor="middle" dominantBaseline="central" fill="#fff" fontSize={13} fontWeight={800}>
-                      {visitNo[j.id]}
-                    </text>
-                  </g>
-                );
-              })}
-            </svg>
-            {/* Zoom controls (zoom in/out only — read-only map) */}
-            <div className="absolute top-3 right-3 flex flex-col rounded-lg border border-[#D8DCE6] bg-white shadow-sm overflow-hidden">
-              <button aria-label="Zoom in" onClick={() => setZoom((z) => Math.min(4, Math.round((z + 0.5) * 10) / 10))}
-                className="w-8 h-8 flex items-center justify-center hover:bg-[#F0F2F5] border-b border-[#E5E7EB]">
-                <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>add</span>
-              </button>
-              <button aria-label="Zoom out" onClick={() => setZoom((z) => Math.max(1, Math.round((z - 0.5) * 10) / 10))}
-                className="w-8 h-8 flex items-center justify-center hover:bg-[#F0F2F5]">
-                <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>remove</span>
-              </button>
-            </div>
-          </>
-        )}
+        {canvas}
       </div>
     </div>
   );
@@ -1719,7 +1755,33 @@ export function Calendar() {
           drawer is embedded: it docks full-height beside the board and the
           content column shrinks to make room (no overlay). */}
       <div className="flex gap-4 min-w-0 items-stretch">
-        <div className="flex-1 min-w-0 flex flex-col">
+        <div className="flex-1 min-w-0 flex flex-col relative">
+      {/* Route map — compact panel pinned to the top-right corner over the
+          board (day view only). The wrapper is a zero-height sticky row so the
+          map floats above the table without pushing the grid down, and stays
+          put while the rows scroll. pointer-events pass through to the grid
+          everywhere except the panel itself. */}
+      {viewMode === "day" && (
+        <div className="pointer-events-none sticky top-3 z-30 h-0 flex justify-end items-start pr-1">
+          {/* offset below the card's date-nav/legend header so the panel floats
+              over the grid cells (scrollable) rather than the nav controls */}
+          <div className="mt-[56px]">
+            <DispatchMap
+              floating
+              jobs={filteredDayJobs.filter(
+                (j) => !j.unscheduled && j.technicianId && occupiesSlot(j.status) && j.start >= workStart && j.end <= workEnd,
+              )}
+              team={TEAM}
+              selectedJobId={selectedMapJobId}
+              onSelect={(id) => {
+                const job = filteredDayJobs.find((j) => j.id === id) ?? null;
+                setSelectedMapJobId(id);
+                if (job) setSelectedDayJob(job);
+              }}
+            />
+          </div>
+        </div>
+      )}
       {/* KPI stat cards removed (per request) — the schedule grid is pulled up.
           The scheduling-conflict banner stays. */}
       {conflictMessage && (
@@ -2407,24 +2469,6 @@ export function Calendar() {
           </div>
         )}
 
-        {/* ── US-3 Dispatch map — Daily view ONLY. Read-only; pins derived from
-             addresses, coloured by technician, numbered by visit order. Excludes
-             unscheduled / unassigned / out-of-range jobs (none of which sit on the
-             board either). Clicking a pin opens that job's drawer. ── */}
-        {viewMode === "day" && (
-          <DispatchMap
-            jobs={filteredDayJobs.filter(
-              (j) => !j.unscheduled && j.technicianId && occupiesSlot(j.status) && j.start >= workStart && j.end <= workEnd,
-            )}
-            team={TEAM}
-            selectedJobId={selectedMapJobId}
-            onSelect={(id) => {
-              const job = filteredDayJobs.find((j) => j.id === id) ?? null;
-              setSelectedMapJobId(id);
-              if (job) setSelectedDayJob(job);
-            }}
-          />
-        )}
       </div>
 
       {quickJobDraft && (
