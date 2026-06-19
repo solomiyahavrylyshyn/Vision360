@@ -2073,9 +2073,12 @@ export function Calendar() {
                                           {routeNumber}
                                         </span>
                                       </div>
-                                      {/* Line 2: job title + status */}
-                                      <div className="flex items-center justify-between gap-1.5">
+                                      {/* Line 2: job title + price + status */}
+                                      <div className="flex items-center gap-1.5">
                                         <span className="flex-1 min-w-0 truncate text-[10px] text-[#546478]">{job.service}</span>
+                                        {job.amount > 0 && (
+                                          <span className="text-[10px] tabular-nums shrink-0" style={{ fontWeight: 700, color: "#1A2332" }}>${job.amount.toLocaleString("en-US")}</span>
+                                        )}
                                         <button
                                           className="px-1.5 py-0.5 rounded-full text-[9px] shrink-0"
                                           style={{ backgroundColor: statusStyle.bg, color: statusStyle.color, fontWeight: 700 }}
@@ -2325,9 +2328,12 @@ export function Calendar() {
                                     {routeNumber}
                                   </span>
                                 </div>
-                                {/* Line 2: job title + status */}
-                                <div className="flex items-center justify-between gap-2">
+                                {/* Line 2: job title + price + status */}
+                                <div className="flex items-center gap-2">
                                   <span className="flex-1 min-w-0 truncate text-[13px] leading-5 text-[#6B7280]" style={{ fontWeight: 500 }}>{job.service}</span>
+                                  {job.amount > 0 && (
+                                    <span className="text-[13px] leading-5 tabular-nums shrink-0" style={{ fontWeight: 600, color: "#1A2332" }}>${job.amount.toLocaleString("en-US")}</span>
+                                  )}
                                   <button
                                     className="px-2 py-0.5 rounded-lg text-[12px] leading-4 shrink-0 truncate max-w-[120px]"
                                     style={{ backgroundColor: statusStyle.bg, color: statusStyle.color, fontWeight: 500, textDecoration: "none" }}
