@@ -734,7 +734,27 @@ function DispatchMap({ jobs, team, selectedJobId, onSelect, floating = false, on
         .map((t) => `<span style="display:inline-flex;align-items:center;gap:6px;margin:0 14px 6px 0;font-size:13px;color:#546478"><span style="width:10px;height:10px;border-radius:50%;background:${t.color}"></span>${t.name}</span>`)
         .join("");
       const mapImgUrl = new URL(tampaMapImg, window.location.origin).href;
-      popup.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Route map — Tampa, FL</title><style>*{box-sizing:border-box}body{margin:0;font-family:system-ui,Segoe UI,Roboto,sans-serif;background:#F5F7FA;padding:24px}h1{font-size:18px;color:#1A2332;margin:0 0 8px}.legend{display:flex;flex-wrap:wrap;margin:0 0 16px}.map{position:relative;background:#EAEFF3;border:1px solid #D8DCE6;border-radius:12px;overflow:hidden;aspect-ratio:900/380}.map img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}.map svg{position:absolute;inset:0;width:100%;height:100%}</style></head><body><h1>Route map — Tampa, FL</h1><div class="legend">' + legend + '</div><div class="map"><img alt="Tampa, Florida street map" src="' + mapImgUrl + '">' + svgMarkup + '</div></body></html>');
+      popup.document.write(
+        '<!doctype html><html><head><meta charset="utf-8"><title>Route map - Tampa, FL</title><style>'
+        + '*{box-sizing:border-box}body{margin:0;font-family:system-ui,Segoe UI,Roboto,sans-serif;background:#F5F7FA;padding:24px}'
+        + 'h1{font-size:18px;color:#1A2332;margin:0 0 8px}.legend{display:flex;flex-wrap:wrap;margin:0 0 16px}'
+        + '.map{position:relative;background:#EAEFF3;border:1px solid #D8DCE6;border-radius:12px;overflow:hidden;aspect-ratio:900/380}'
+        + '.zoomwrap{position:absolute;inset:0;transform-origin:center center;transition:transform .12s ease}'
+        + '.map img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}'
+        + '.map svg{position:absolute;inset:0;width:100%;height:100%}'
+        + '.zoom{position:absolute;left:12px;bottom:12px;z-index:2;display:flex;flex-direction:column;background:#fff;border:1px solid #D8DCE6;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.12)}'
+        + '.zoom button{width:34px;height:34px;border:0;background:#fff;color:#546478;font-size:20px;line-height:1;cursor:pointer}'
+        + '.zoom button+button{border-top:1px solid #E5E7EB}.zoom button:hover{background:#F0F2F5}'
+        + '</style></head><body>'
+        + '<h1>Route map - Tampa, FL</h1>'
+        + '<div class="legend">' + legend + '</div>'
+        + '<div class="map"><div class="zoomwrap" id="zw"><img alt="Tampa, Florida street map" src="' + mapImgUrl + '">' + svgMarkup + '</div>'
+        + '<div class="zoom"><button id="zi" aria-label="Zoom in">+</button><button id="zo" aria-label="Zoom out">−</button></div></div>'
+        + '<script>(function(){var z=1,w=document.getElementById("zw");function a(){w.style.transform="scale("+z+")";}'
+        + 'document.getElementById("zi").onclick=function(){z=Math.min(4,Math.round((z+0.5)*10)/10);a();};'
+        + 'document.getElementById("zo").onclick=function(){z=Math.max(1,Math.round((z-0.5)*10)/10);a();};})();<\/script>'
+        + '</body></html>'
+      );
       popup.document.close();
     };
     // If collapsed the <svg> isn't mounted — expand first, then write next frame.
