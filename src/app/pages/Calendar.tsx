@@ -1713,29 +1713,13 @@ export function Calendar() {
           content column shrinks to make room (no overlay). */}
       <div className="flex gap-4 min-w-0 items-stretch">
         <div className="flex-1 min-w-0 flex flex-col">
-      {/* Stat cards — same 80px height as every other list page */}
-      <div className="grid grid-cols-4 gap-4 mb-4">
-        {scheduleKpis.map(s => (
-          <div
-            key={s.label}
-            className="flex h-[80px] items-center justify-between gap-3 bg-white border border-[#E5E7EB] rounded-xl px-4 py-3 min-w-0"
-            style={{ boxShadow: "0px 1px 2px rgba(0,0,0,0.05)" }}
-          >
-            <div className="flex flex-col justify-center min-w-0">
-              <div className="truncate text-[20px] text-[#1A2332] tabular-nums" style={{ fontWeight: 600, lineHeight: "27px" }}>{s.value}</div>
-              <div className="mt-0.5 truncate text-[14px] text-[#6B7280]" style={{ fontWeight: 600, lineHeight: "20px" }}>{s.label}</div>
-            </div>
-            <div className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center" style={{ color: s.color, backgroundColor: s.bg }}>
-              <span className="material-icons" style={{ fontSize: "18px" }}>{s.icon}</span>
-            </div>
-          </div>
-        ))}
-        {conflictMessage && (
-          <div className="col-span-4 px-3 py-2 rounded-lg border border-[#FCA5A5] bg-[#FEF2F2] text-[12px] text-[#B91C1C]" style={{ fontWeight: 600 }}>
-            {conflictMessage}
-          </div>
-        )}
-      </div>
+      {/* KPI stat cards removed (per request) — the schedule grid is pulled up.
+          The scheduling-conflict banner stays. */}
+      {conflictMessage && (
+        <div className="mb-4 px-3 py-2 rounded-lg border border-[#FCA5A5] bg-[#FEF2F2] text-[12px] text-[#B91C1C]" style={{ fontWeight: 600 }}>
+          {conflictMessage}
+        </div>
+      )}
 
       {/* Calendar content */}
       {/* For Month/Week views the card stretches to fill the page (flex-1).
