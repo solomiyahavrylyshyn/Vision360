@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useSyncExternalStore, useEffect, type DragEvent, type FormEvent, type MouseEvent } from "react";
+import { useState, useMemo, useRef, useSyncExternalStore, useEffect, type DragEvent, type FormEvent, type MouseEvent, type PointerEvent as ReactPointerEvent, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { useNavigate } from "react-router";
 import { PageHeader } from "../components/ui/page-header";
 import { scheduleSettingsStore } from "../stores/scheduleSettingsStore";
@@ -618,16 +618,128 @@ const hashUnit = (seed: string, salt: number): number => {
   return ((h >>> 0) % 100000) / 100000;
 };
 
-function DispatchMap({ jobs, team, selectedJobId, onSelect, floating = false }: {
+// Floating route-map window geometry + collapsed flag, owned by the parent so
+// it survives a close/reopen cycle.
+type FloatWin = { x: number; y: number; w: number; h: number; collapsed: boolean };
+
+function DispatchMap({ jobs, team, selectedJobId, onSelect, floating = false, onClose, win, onWin }: {
   jobs: DispatchMapJob[];
   team: { id: string; name: string; color: string }[];
   selectedJobId: number | null;
   onSelect: (id: number) => void;
   floating?: boolean;
+  onClose?: () => void;
+  win?: FloatWin;
+  onWin?: (updater: (prev: FloatWin) => FloatWin) => void;
 }) {
   const W = 900, H = 380, PAD = 56;
   const [zoom, setZoom] = useState(1);
-  const [collapsed, setCollapsed] = useState(false);
+
+  // ── Floating-window mechanics ─────────────────────────────────────────
+  // Position (x,y), size (w,h) and collapsed live in the PARENT (`win`) so a
+  // close+reopen keeps the user's placement. The title bar is the drag
+  // handle (pointer + arrow keys); a corner grip resizes. All updates clamp
+  // to the viewport so the controls can never be stranded off-screen.
+  const pos = { x: win?.x ?? 0, y: win?.y ?? 0 };
+  const size = { w: win?.w ?? 460, h: win?.h ?? 340 };
+  const collapsed = win?.collapsed ?? false;
+  const update = (patch: Partial<FloatWin>) => onWin?.((prev) => ({ ...prev, ...patch }));
+  const rootRef = useRef<HTMLDivElement>(null);
+  const dragRef = useRef<{ dx: number; dy: number; id: number } | null>(null);
+  const resizeRef = useRef<{ x: number; y: number; w: number; h: number; id: number } | null>(null);
+
+  // Clamp the top-left corner so the title bar always stays on-screen. Bounds
+  // are floored at 8 so they can never invert on a viewport narrower than the
+  // panel (which would otherwise push it off the left edge).
+  const clampPos = (x: number, y: number, w: number) => {
+    const vw = typeof window !== "undefined" ? window.innerWidth : 1200;
+    const vh = typeof window !== "undefined" ? window.innerHeight : 800;
+    return {
+      x: Math.min(Math.max(8, x), Math.max(8, vw - w - 8)),
+      y: Math.min(Math.max(8, y), Math.max(8, vh - 52)),
+    };
+  };
+
+  const onDragStart = (e: ReactPointerEvent<HTMLDivElement>) => {
+    if ((e.target as HTMLElement).closest("button")) return; // header buttons keep working
+    dragRef.current = { dx: e.clientX - pos.x, dy: e.clientY - pos.y, id: e.pointerId };
+    (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+  };
+  const onDragMove = (e: ReactPointerEvent<HTMLDivElement>) => {
+    const d = dragRef.current;
+    if (!d || e.pointerId !== d.id || (e.buttons & 1) === 0) return; // own pointer, button still down
+    update(clampPos(e.clientX - d.dx, e.clientY - d.dy, size.w));
+  };
+  const onDragEnd = (e: ReactPointerEvent<HTMLDivElement>) => {
+    if (dragRef.current && e.pointerId !== dragRef.current.id) return;
+    dragRef.current = null;
+    (e.currentTarget as HTMLElement).releasePointerCapture?.(e.pointerId);
+  };
+  const onHeaderKey = (e: ReactKeyboardEvent<HTMLDivElement>) => {
+    const step = e.shiftKey ? 40 : 12;
+    let nx = pos.x, ny = pos.y;
+    if (e.key === "ArrowLeft") nx -= step;
+    else if (e.key === "ArrowRight") nx += step;
+    else if (e.key === "ArrowUp") ny -= step;
+    else if (e.key === "ArrowDown") ny += step;
+    else return;
+    e.preventDefault();
+    update(clampPos(nx, ny, size.w));
+  };
+
+  const onResizeStart = (e: ReactPointerEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    resizeRef.current = { x: e.clientX, y: e.clientY, w: size.w, h: size.h, id: e.pointerId };
+    (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+  };
+  const onResizeMove = (e: ReactPointerEvent<HTMLDivElement>) => {
+    const r = resizeRef.current;
+    if (!r || e.pointerId !== r.id || (e.buttons & 1) === 0) return;
+    const vw = typeof window !== "undefined" ? window.innerWidth : 1200;
+    const vh = typeof window !== "undefined" ? window.innerHeight : 800;
+    update({
+      w: Math.min(Math.max(320, r.w + (e.clientX - r.x)), Math.max(320, vw - pos.x - 8)),
+      h: Math.min(Math.max(200, r.h + (e.clientY - r.y)), Math.max(200, vh - pos.y - 96)),
+    });
+  };
+  const onResizeEnd = (e: ReactPointerEvent<HTMLDivElement>) => {
+    if (resizeRef.current && e.pointerId !== resizeRef.current.id) return;
+    resizeRef.current = null;
+    (e.currentTarget as HTMLElement).releasePointerCapture?.(e.pointerId);
+  };
+
+  // Pull the panel back on-screen (and shrink it to fit) if the viewport
+  // shrinks under it — the on-drag clamp alone never fires without a drag.
+  useEffect(() => {
+    if (!floating || !onWin) return;
+    const onResize = () => onWin((prev) => {
+      const w = Math.min(prev.w, Math.max(320, window.innerWidth - 16));
+      return { ...prev, w, ...clampPos(prev.x, prev.y, w) };
+    });
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [floating, onWin]);
+
+  // Open the current map as a standalone page in a new browser tab. We clone
+  // the live <svg> (so it always matches what's on screen) into a minimal doc.
+  const openInNewTab = () => {
+    const popup = window.open("", "_blank");
+    if (!popup) return; // blocked by the browser
+    const writeDoc = () => {
+      const svg = rootRef.current?.querySelector("svg");
+      const svgMarkup = svg ? svg.outerHTML : '<p style="padding:24px;color:#546478;font-family:sans-serif">No scheduled stops to map for this day.</p>';
+      const legend = team
+        .map((t) => `<span style="display:inline-flex;align-items:center;gap:6px;margin:0 14px 6px 0;font-size:13px;color:#546478"><span style="width:10px;height:10px;border-radius:50%;background:${t.color}"></span>${t.name}</span>`)
+        .join("");
+      popup.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Route map</title><style>*{box-sizing:border-box}body{margin:0;font-family:system-ui,Segoe UI,Roboto,sans-serif;background:#F5F7FA;padding:24px}h1{font-size:18px;color:#1A2332;margin:0 0 8px}.legend{display:flex;flex-wrap:wrap;margin:0 0 16px}.map{background:#EAEFF3;border:1px solid #D8DCE6;border-radius:12px;overflow:hidden}svg{display:block;width:100%;height:auto}</style></head><body><h1>Route map</h1><div class="legend">' + legend + '</div><div class="map">' + svgMarkup + '</div></body></html>');
+      popup.document.close();
+    };
+    // If collapsed the <svg> isn't mounted — expand first, then write next frame.
+    if (collapsed) { update({ collapsed: false }); requestAnimationFrame(() => requestAnimationFrame(writeDoc)); }
+    else writeDoc();
+  };
+
   // Auto-fit (reset zoom) whenever the mapped set changes — date/filter/status sync.
   const idKey = jobs.map((j) => j.id).join(",");
   useEffect(() => { setZoom(1); }, [idKey]);
@@ -727,8 +839,8 @@ function DispatchMap({ jobs, team, selectedJobId, onSelect, floating = false }: 
             );
           })}
         </svg>
-        {/* Zoom controls (zoom in/out only — read-only map) */}
-        <div className="absolute bottom-3 right-3 flex flex-col rounded-lg border border-[#D8DCE6] bg-white shadow-sm overflow-hidden">
+        {/* Zoom controls (bottom-left so they clear the resize grip) */}
+        <div className="absolute bottom-3 left-3 flex flex-col rounded-lg border border-[#D8DCE6] bg-white shadow-sm overflow-hidden">
           <button aria-label="Zoom in" onClick={() => setZoom((z) => Math.min(4, Math.round((z + 0.5) * 10) / 10))}
             className="w-8 h-8 flex items-center justify-center hover:bg-[#F0F2F5] border-b border-[#E5E7EB]">
             <span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>add</span>
@@ -741,28 +853,78 @@ function DispatchMap({ jobs, team, selectedJobId, onSelect, floating = false }: 
       </>
     );
 
-  // Compact floating panel — pinned in the top-right corner over the board,
-  // collapsible to just its header so it never hides the table for long.
+  // Free-floating, draggable + resizable window. Position/size/collapsed come
+  // from the parent (`win`) so they survive a close/reopen.
   if (floating) {
     return (
-      <div className="w-[360px] rounded-xl border border-[#D8DCE6] bg-white shadow-xl overflow-hidden pointer-events-auto">
-        <div className="flex items-center justify-between px-3 py-2 border-b border-[#EEF1F5]">
-          <div className="flex items-center gap-2 min-w-0">
+      <div
+        ref={rootRef}
+        className="fixed z-40 rounded-xl border border-[#D8DCE6] bg-white shadow-2xl overflow-hidden flex flex-col"
+        style={{ left: pos.x, top: pos.y, width: size.w, maxWidth: "calc(100vw - 16px)" }}
+      >
+        {/* Title bar = drag handle (pointer + arrow keys). Buttons opt out. */}
+        <div
+          onPointerDown={onDragStart}
+          onPointerMove={onDragMove}
+          onPointerUp={onDragEnd}
+          onPointerCancel={onDragEnd}
+          onLostPointerCapture={() => { dragRef.current = null; }}
+          onKeyDown={onHeaderKey}
+          tabIndex={0}
+          role="group"
+          aria-label="Route map window — drag or use arrow keys to move"
+          className="flex items-center justify-between px-2.5 py-2 border-b border-[#EEF1F5] bg-[#FAFBFC] cursor-move select-none touch-none outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#4A6FA5]"
+        >
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="material-icons text-[#B6C2CF]" style={{ fontSize: "18px" }}>drag_indicator</span>
             <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "18px" }}>map</span>
-            <span className="text-[13px] text-[#1A2332] truncate" style={{ fontWeight: 700 }}>Route map</span>
+            <span className="text-[14px] text-[#1A2332] truncate" style={{ fontWeight: 700 }}>Route map</span>
             <span className="text-[12px] text-[#9CA3AF] shrink-0">{jobs.length} {jobs.length === 1 ? "stop" : "stops"}</span>
           </div>
-          <button
-            onClick={() => setCollapsed((c) => !c)}
-            aria-label={collapsed ? "Expand route map" : "Collapse route map"}
-            className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-[#F0F2F5] shrink-0"
-          >
-            <span className="material-icons text-[#546478]" style={{ fontSize: "20px" }}>{collapsed ? "expand_more" : "expand_less"}</span>
-          </button>
+          <div className="flex items-center gap-0.5 shrink-0">
+            <button
+              onClick={openInNewTab}
+              aria-label="Open route map in a new tab"
+              title="Open in new tab"
+              className="w-7 h-7 flex items-center justify-center rounded-lg text-[#546478] hover:bg-[#EBEEF2]"
+            >
+              <span className="material-icons" style={{ fontSize: "18px" }}>open_in_new</span>
+            </button>
+            <button
+              onClick={() => update({ collapsed: !collapsed })}
+              aria-label={collapsed ? "Expand route map" : "Collapse route map"}
+              className="w-7 h-7 flex items-center justify-center rounded-lg text-[#546478] hover:bg-[#EBEEF2]"
+            >
+              <span className="material-icons" style={{ fontSize: "20px" }}>{collapsed ? "expand_more" : "expand_less"}</span>
+            </button>
+            <button
+              onClick={() => onClose?.()}
+              aria-label="Close route map"
+              className="w-7 h-7 flex items-center justify-center rounded-lg text-[#546478] hover:bg-[#FEE2E2] hover:text-[#DC2626]"
+            >
+              <span className="material-icons" style={{ fontSize: "18px" }}>close</span>
+            </button>
+          </div>
         </div>
         {!collapsed && (
-          <div className="relative bg-[#EAEFF3]" style={{ height: 230 }}>
+          <div className="relative bg-[#EAEFF3]" style={{ height: size.h }}>
             {canvas}
+            {/* Resize grip (bottom-right corner) */}
+            <div
+              onPointerDown={onResizeStart}
+              onPointerMove={onResizeMove}
+              onPointerUp={onResizeEnd}
+              onPointerCancel={onResizeEnd}
+              onLostPointerCapture={() => { resizeRef.current = null; }}
+              role="separator"
+              aria-label="Resize route map"
+              title="Drag to resize"
+              className="absolute bottom-0 right-0 w-5 h-5 flex items-end justify-end p-0.5 cursor-nwse-resize touch-none"
+            >
+              <svg width="11" height="11" viewBox="0 0 11 11" aria-hidden="true">
+                <path d="M10 2 L2 10 M10 6 L6 10" stroke="#94A3B8" strokeWidth="1.3" fill="none" strokeLinecap="round" />
+              </svg>
+            </div>
           </div>
         )}
       </div>
@@ -869,6 +1031,13 @@ export function Calendar() {
   const [fullEditDraft, setFullEditDraft] = useState<{ view: "day" | "week"; job: DayJob | DispatchJob; dateStr: string } | null>(null);
   const [conflictMessage, setConflictMessage] = useState<string | null>(null);
   const [selectedMapJobId, setSelectedMapJobId] = useState<number | null>(DAY_JOBS[0]?.id ?? null);
+  const [mapOpen, setMapOpen] = useState(true); // floating route-map panel (day view); closable + reopenable from the header
+  const mapChipRef = useRef<HTMLButtonElement>(null); // reopen chip — focus target when the panel is closed
+  const [mapWin, setMapWin] = useState<FloatWin>(() => {
+    const w = 460;
+    const x = typeof window !== "undefined" ? Math.max(300, window.innerWidth - w - 372) : 420;
+    return { x, y: 150, w, h: 340, collapsed: false };
+  });
   const [sidebarTab, setSidebarTab] = useState<SidebarTab>("Details");
   const [jobNotes, setJobNotes] = useState<Record<string, string[]>>({});
   const [noteDraft, setNoteDraft] = useState("");
@@ -1756,31 +1925,26 @@ export function Calendar() {
           content column shrinks to make room (no overlay). */}
       <div className="flex gap-4 min-w-0 items-stretch">
         <div className="flex-1 min-w-0 flex flex-col relative">
-      {/* Route map — compact panel pinned to the top-right corner over the
-          board (day view only). The wrapper is a zero-height sticky row so the
-          map floats above the table without pushing the grid down, and stays
-          put while the rows scroll. pointer-events pass through to the grid
-          everywhere except the panel itself. */}
-      {viewMode === "day" && (
-        <div className="pointer-events-none sticky top-3 z-30 h-0 flex justify-end items-start pr-1">
-          {/* offset below the card's date-nav/legend header so the panel floats
-              over the grid cells (scrollable) rather than the nav controls */}
-          <div className="mt-[56px]">
-            <DispatchMap
-              floating
-              jobs={filteredDayJobs.filter(
-                (j) => !j.unscheduled && j.technicianId && occupiesSlot(j.status) && j.start >= workStart && j.end <= workEnd,
-              )}
-              team={TEAM}
-              selectedJobId={selectedMapJobId}
-              onSelect={(id) => {
-                const job = filteredDayJobs.find((j) => j.id === id) ?? null;
-                setSelectedMapJobId(id);
-                if (job) setSelectedDayJob(job);
-              }}
-            />
-          </div>
-        </div>
+      {/* Route map — a free-floating, draggable window (day view only),
+          position:fixed so it stays put while the board scrolls. Closable via
+          its X and reopenable from the "Route map" chip in the card header. */}
+      {viewMode === "day" && mapOpen && (
+        <DispatchMap
+          floating
+          win={mapWin}
+          onWin={setMapWin}
+          onClose={() => { setMapOpen(false); requestAnimationFrame(() => mapChipRef.current?.focus()); }}
+          jobs={filteredDayJobs.filter(
+            (j) => !j.unscheduled && j.technicianId && occupiesSlot(j.status) && j.start >= workStart && j.end <= workEnd,
+          )}
+          team={TEAM}
+          selectedJobId={selectedMapJobId}
+          onSelect={(id) => {
+            const job = filteredDayJobs.find((j) => j.id === id) ?? null;
+            setSelectedMapJobId(id);
+            if (job) setSelectedDayJob(job);
+          }}
+        />
       )}
       {/* KPI stat cards removed (per request) — the schedule grid is pulled up.
           The scheduling-conflict banner stays. */}
@@ -1833,6 +1997,25 @@ export function Calendar() {
                     {pendingBucket.length}
                   </span>
                 )}
+              </button>
+            )}
+            {/* Route-map toggle — day view only; reopens the floating map window
+                after it has been closed (and lets you hide it again). */}
+            {viewMode === "day" && (
+              <button
+                ref={mapChipRef}
+                onClick={() => setMapOpen(o => !o)}
+                aria-pressed={mapOpen}
+                title={mapOpen ? "Hide route map" : "Show route map"}
+                className={`ml-2 inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-[13px] transition-colors ${
+                  mapOpen
+                    ? "bg-[#EEF3FA] border border-[#C5D5EC] text-[#4A6FA5]"
+                    : "border border-[#E5E7EB] text-[#546478] hover:bg-[#F5F7FA]"
+                }`}
+                style={{ fontWeight: 500 }}
+              >
+                <span className="material-icons" style={{ fontSize: "16px" }}>map</span>
+                Route map
               </button>
             )}
           </div>
