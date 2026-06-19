@@ -11,7 +11,7 @@ import {
   isSameMonth, isToday, isSameDay, addMonths, subMonths, addWeeks, subWeeks,
   addDays, subDays,
 } from "date-fns";
-import { type JobStatus, JOB_STATUS_STYLES as STATUS_STYLES, JOB_STATUSES as ALL_JOB_STATUSES } from "../constants/jobStatuses";
+import { type JobStatus, JOB_STATUS_STYLES as STATUS_STYLES, JOB_STATUS_ICONS as STATUS_ICONS, JOB_STATUSES as ALL_JOB_STATUSES } from "../constants/jobStatuses";
 import { isPending, pendingJobs, type PendingFilter, hasTimeConflict, statusAfterAssignToSlot, schedulingTags, durationForType, isDraggable, isShownOnBoard, occupiesSlot, packOverlaps, deconflict } from "../utils/scheduleLogic";
 import { jobTypeColor, jobTypeTint, JOB_TYPE_ORDER, JOB_TYPE_COLORS } from "../constants/jobTypeColors";
 import { jobsStore, type JobRecord } from "../stores/jobsStore";
@@ -2080,14 +2080,16 @@ export function Calendar() {
                                           <span className="text-[10px] tabular-nums shrink-0" style={{ fontWeight: 700, color: "#1A2332" }}>${job.amount.toLocaleString("en-US")}</span>
                                         )}
                                         <button
-                                          className="px-1.5 py-0.5 rounded-full text-[9px] shrink-0"
-                                          style={{ backgroundColor: statusStyle.bg, color: statusStyle.color, fontWeight: 700 }}
+                                          className="material-icons flex h-5 w-5 items-center justify-center rounded-full shrink-0 text-[14px] leading-none"
+                                          style={{ backgroundColor: statusStyle.bg, color: statusStyle.color }}
+                                          title={job.status}
+                                          aria-label={`Status: ${job.status}. Click to advance.`}
                                           onClick={(event) => {
                                             event.stopPropagation();
                                             updateWeekStatus(job.id, nextStatus(job.status));
                                           }}
                                         >
-                                          {job.status}
+                                          {STATUS_ICONS[job.status]}
                                         </button>
                                       </div>
                                     </div>
@@ -2335,14 +2337,16 @@ export function Calendar() {
                                     <span className="text-[13px] leading-5 tabular-nums shrink-0" style={{ fontWeight: 600, color: "#1A2332" }}>${job.amount.toLocaleString("en-US")}</span>
                                   )}
                                   <button
-                                    className="px-2 py-0.5 rounded-lg text-[12px] leading-4 shrink-0 truncate max-w-[120px]"
-                                    style={{ backgroundColor: statusStyle.bg, color: statusStyle.color, fontWeight: 500, textDecoration: "none" }}
+                                    className="material-icons flex h-6 w-6 items-center justify-center rounded-full shrink-0 text-[16px] leading-none"
+                                    style={{ backgroundColor: statusStyle.bg, color: statusStyle.color, textDecoration: "none" }}
+                                    title={job.status}
+                                    aria-label={`Status: ${job.status}. Click to advance.`}
                                     onClick={(event) => {
                                       event.stopPropagation();
                                       updateDayStatus(job.id, nextStatus(job.status));
                                     }}
                                   >
-                                    {job.status}
+                                    {STATUS_ICONS[job.status]}
                                   </button>
                                 </div>
                               </div>

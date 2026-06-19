@@ -47,6 +47,20 @@ export const JOB_STATUS_STYLES: Record<JobStatus, { color: string; bg: string }>
   Cancelled:     { color: "#DC2626", bg: "rgba(220,38,38,0.12)" },
 };
 
+// Material-icon ligature per status, for compact surfaces (the schedule board
+// grid blocks) where a colored icon replaces the text pill. Keep the meaning
+// legible: calendar states use calendar glyphs, the active job uses a wrench,
+// terminal states use check / cancel.
+export const JOB_STATUS_ICONS: Record<JobStatus, string> = {
+  Unscheduled:   "event_busy",
+  Scheduled:     "event",
+  Dispatched:    "near_me",
+  "In Progress": "build",
+  Paused:        "pause_circle",
+  Completed:     "check_circle",
+  Cancelled:     "cancel",
+};
+
 // Convenience maps for call sites that want a flat color/bg lookup.
 export const JOB_STATUS_COLOR: Record<string, string> = Object.fromEntries(
   JOB_STATUSES.map((s) => [s, JOB_STATUS_STYLES[s].color]),
