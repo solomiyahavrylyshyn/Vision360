@@ -202,6 +202,23 @@ export function HelpCenter() {
         </div>
 
         <div className="px-5 pb-8">
+          {/* Sample Company sandbox (spec §8.7) — try every feature with mock
+              data. Hidden while searching so it never competes with results. */}
+          {!search && (
+            <button
+              onClick={() => { window.location.href = "/?sandbox=sample"; }}
+              className="mb-4 flex w-full items-center gap-3 rounded-xl bg-gradient-to-br from-[#4A6FA5] to-[#3d5a85] p-4 text-left shadow-[0_4px_12px_rgba(74,111,165,0.25)] transition-all hover:from-[#3d5a85] hover:to-[#2f4670] group"
+            >
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-white/15 transition-colors group-hover:bg-white/20">
+                <span className="material-icons text-white" style={{ fontSize: "22px" }}>play_circle</span>
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-[14px] text-white" style={{ fontWeight: 600 }}>Play with sample company</div>
+                <div className="mt-0.5 text-[12px] text-white/80">Try every feature with realistic mock data — no impact on your real records.</div>
+              </div>
+              <span className="material-icons shrink-0 text-white/70 transition-transform group-hover:translate-x-0.5" style={{ fontSize: "20px" }}>arrow_forward</span>
+            </button>
+          )}
           {filtered.length === 0 ? (
             <div className="rounded-xl border border-[#E5E7EB] bg-white py-16 text-center">
               <span className="material-icons text-[#C8D5E8]" style={{ fontSize: "40px" }}>search_off</span>

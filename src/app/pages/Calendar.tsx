@@ -732,7 +732,7 @@ function DispatchMap({ jobs, team, selectedJobId, onSelect, floating = false, on
       const legend = team
         .map((t) => `<span style="display:inline-flex;align-items:center;gap:6px;margin:0 14px 6px 0;font-size:13px;color:#546478"><span style="width:10px;height:10px;border-radius:50%;background:${t.color}"></span>${t.name}</span>`)
         .join("");
-      popup.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Route map</title><style>*{box-sizing:border-box}body{margin:0;font-family:system-ui,Segoe UI,Roboto,sans-serif;background:#F5F7FA;padding:24px}h1{font-size:18px;color:#1A2332;margin:0 0 8px}.legend{display:flex;flex-wrap:wrap;margin:0 0 16px}.map{background:#EAEFF3;border:1px solid #D8DCE6;border-radius:12px;overflow:hidden}svg{display:block;width:100%;height:auto}</style></head><body><h1>Route map</h1><div class="legend">' + legend + '</div><div class="map">' + svgMarkup + '</div></body></html>');
+      popup.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Route map — Tampa, FL</title><style>*{box-sizing:border-box}body{margin:0;font-family:system-ui,Segoe UI,Roboto,sans-serif;background:#F5F7FA;padding:24px}h1{font-size:18px;color:#1A2332;margin:0 0 8px}.legend{display:flex;flex-wrap:wrap;margin:0 0 16px}.map{position:relative;background:#EAEFF3;border:1px solid #D8DCE6;border-radius:12px;overflow:hidden;aspect-ratio:900/380}.map iframe{position:absolute;inset:0;width:100%;height:100%;border:0}.map svg{position:absolute;inset:0;width:100%;height:100%}</style></head><body><h1>Route map — Tampa, FL</h1><div class="legend">' + legend + '</div><div class="map"><iframe title="Tampa, Florida street map" loading="lazy" src="https://www.openstreetmap.org/export/embed.html?bbox=-82.64%2C27.86%2C-82.30%2C28.06&layer=mapnik"></iframe>' + svgMarkup + '</div></body></html>');
       popup.document.close();
     };
     // If collapsed the <svg> isn't mounted — expand first, then write next frame.
@@ -802,14 +802,18 @@ function DispatchMap({ jobs, team, selectedJobId, onSelect, floating = false, on
       </div>
     ) : (
       <>
+        {/* Real Tampa, FL basemap (OpenStreetMap) behind the route overlay.
+            Non-interactive and scaled with the same zoom as the pins so the
+            two layers stay locked together. */}
+        <iframe
+          title="Tampa, Florida street map"
+          aria-hidden="true"
+          loading="lazy"
+          src="https://www.openstreetmap.org/export/embed.html?bbox=-82.64%2C27.86%2C-82.30%2C28.06&layer=mapnik"
+          className="absolute inset-0 h-full w-full border-0 pointer-events-none"
+          style={{ transform: `scale(${zoom})`, transformOrigin: "center" }}
+        />
         <svg viewBox={`0 0 ${W} ${H}`} className="absolute inset-0 w-full h-full" preserveAspectRatio="xMidYMid meet">
-          {/* Faint street grid backdrop */}
-          {Array.from({ length: 11 }).map((_, i) => (
-            <line key={`v${i}`} x1={(W / 10) * i} y1={0} x2={(W / 10) * i} y2={H} stroke="#D4DCE6" strokeWidth={1} />
-          ))}
-          {Array.from({ length: 6 }).map((_, i) => (
-            <line key={`h${i}`} x1={0} y1={(H / 5) * i} x2={W} y2={(H / 5) * i} stroke="#D4DCE6" strokeWidth={1} />
-          ))}
           {/* Routes (visit order) */}
           {routes.map(({ techId, order }) => order.length > 1 && (
             <polyline
@@ -839,6 +843,11 @@ function DispatchMap({ jobs, team, selectedJobId, onSelect, floating = false, on
             );
           })}
         </svg>
+        {/* Location label */}
+        <div className="absolute top-2 left-2 inline-flex items-center gap-1 rounded-md bg-white/85 px-2 py-1 text-[11px] text-[#1A2332] shadow-sm backdrop-blur-sm pointer-events-none" style={{ fontWeight: 600 }}>
+          <span className="material-icons" style={{ fontSize: "13px", color: "#4A6FA5" }}>place</span>
+          Tampa, FL
+        </div>
         {/* Zoom controls (bottom-left so they clear the resize grip) */}
         <div className="absolute bottom-3 left-3 flex flex-col rounded-lg border border-[#D8DCE6] bg-white shadow-sm overflow-hidden">
           <button aria-label="Zoom in" onClick={() => setZoom((z) => Math.min(4, Math.round((z + 0.5) * 10) / 10))}
