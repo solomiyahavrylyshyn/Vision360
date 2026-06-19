@@ -756,9 +756,9 @@ export function Layout() {
         )}
 
         {sandbox && (
-          <div className="flex flex-shrink-0 items-center justify-between gap-4 border-b border-[#DDD6FE] bg-[#F5F3FF] px-5 py-2.5">
+          <div className="flex flex-shrink-0 items-center justify-between gap-4 border-b border-[#D8E4F2] bg-[#EBF2FC] px-5 py-2.5">
             <div className="flex min-w-0 items-center gap-2.5 text-[13px] text-[#1A2332]">
-              <span className="material-icons-outlined text-[#7C3AED]" style={{ fontSize: "18px" }}>science</span>
+              <span className="material-icons-outlined text-[#4A6FA5]" style={{ fontSize: "18px" }}>science</span>
               <span className="truncate">
                 You're exploring the <strong style={{ fontWeight: 700 }}>Sample Company</strong> — try anything you like; this is demo data and won't affect your real records.
               </span>
@@ -766,7 +766,7 @@ export function Layout() {
             <button
               type="button"
               onClick={exitSandbox}
-              className="h-8 shrink-0 rounded-md bg-[#7C3AED] px-3 text-[13px] text-white transition-colors hover:bg-[#6D28D9]"
+              className="h-8 shrink-0 rounded-md bg-[#4A6FA5] px-3 text-[13px] text-white transition-colors hover:bg-[#3d5a85]"
               style={{ fontWeight: 600 }}
             >
               Exit sample company
