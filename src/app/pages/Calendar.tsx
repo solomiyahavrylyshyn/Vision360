@@ -390,6 +390,13 @@ const TEAM: { id: string; name: string; initial: string; color: string }[] = [
   { id: "peter", name: "Peter Novak", initial: "PN", color: "#4A6FA5" },
   { id: "travis", name: "Travis Brown", initial: "TB", color: "#16A34A" },
   { id: "maria", name: "Maria Garcia", initial: "MG", color: "#D97706" },
+  { id: "james", name: "James Wilson", initial: "JW", color: "#7C3AED" },
+  { id: "emily", name: "Emily Clark", initial: "EC", color: "#DC2626" },
+  { id: "david", name: "David Park", initial: "DP", color: "#0891B2" },
+  { id: "karen", name: "Karen White", initial: "KW", color: "#DB2777" },
+  { id: "tom", name: "Tom Richards", initial: "TR", color: "#4338CA" },
+  { id: "anna", name: "Anna Lee", initial: "AL", color: "#65A30D" },
+  { id: "mike", name: "Mike Davis", initial: "MD", color: "#0D9488" },
 ];
 
 const DAY_JOBS: DayJob[] = [
