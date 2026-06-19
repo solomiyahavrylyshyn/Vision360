@@ -590,8 +590,8 @@ const WEEK_TODAY = _schedBase; // today, highlighted in the week view
 // sub-rows (see packOverlaps) and the lane grows to fit. With a single row the
 // math below reproduces the original fixed heights exactly (day 121, week 92),
 // so non-overlapping lanes look unchanged.
-const DAY_TOP_PAD = 15, DAY_CARD_H = 92, DAY_ROW_GAP = 6, DAY_BOT_PAD = 14; // 15+92+14 = 121
-const WK_TOP_PAD  = 8,  WK_CARD_H  = 76, WK_ROW_GAP  = 4, WK_BOT_PAD  = 8;  // 8+76+8 = 92
+const DAY_TOP_PAD = 15, DAY_CARD_H = 66, DAY_ROW_GAP = 6, DAY_BOT_PAD = 14; // 15+66+14 = 95
+const WK_TOP_PAD  = 8,  WK_CARD_H  = 54, WK_ROW_GAP  = 4, WK_BOT_PAD  = 8;  // 8+54+8 = 70
 const laneHeight = (rowCount: number, top: number, card: number, gap: number, bot: number) =>
   top + rowCount * card + (rowCount - 1) * gap + bot;
 
@@ -2065,20 +2065,17 @@ export function Calendar() {
                                     onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setSelectedDispatchJob(isSelected ? null : job); } }}
                                     onDoubleClick={(event) => event.stopPropagation()}
                                   >
-                                    <div className="flex flex-col h-full px-2 py-1">
-                                      <div className="flex items-center justify-end gap-1 shrink-0">
+                                    <div className="flex flex-col h-full px-2 py-1.5 gap-1">
+                                      {/* Line 1: client + route counter in the corner */}
+                                      <div className="flex items-start gap-1.5">
+                                        <span className="flex-1 min-w-0 truncate text-[11px] leading-tight" style={{ fontWeight: 700, color: "#1A2332" }}>{job.client}</span>
                                         <span className="flex h-4 w-4 items-center justify-center rounded-full text-[9px] text-white shrink-0" style={{ backgroundColor: member.color, fontWeight: 700 }}>
                                           {routeNumber}
                                         </span>
                                       </div>
-                                      <div className="text-[11px] leading-tight truncate shrink-0" style={{ fontWeight: 700, color: "#1A2332" }}>{job.service}</div>
-                                      <div className="text-[9px] text-[#546478] truncate shrink-0">{job.client}</div>
-                                      <div className="flex items-center justify-between gap-1 mt-auto shrink-0">
-                                        {job.amount > 0 ? (
-                                          <span className="text-[10px] tabular-nums" style={{ fontWeight: 700, color: typeColor }}>${job.amount.toLocaleString("en-US")}</span>
-                                        ) : (
-                                          <span className="text-[10px] text-[#9CA3AF]">-</span>
-                                        )}
+                                      {/* Line 2: job title + status */}
+                                      <div className="flex items-center justify-between gap-1.5">
+                                        <span className="flex-1 min-w-0 truncate text-[10px] text-[#546478]">{job.service}</span>
                                         <button
                                           className="px-1.5 py-0.5 rounded-full text-[9px] shrink-0"
                                           style={{ backgroundColor: statusStyle.bg, color: statusStyle.color, fontWeight: 700 }}
@@ -2320,20 +2317,17 @@ export function Calendar() {
                               onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setSelectedDayJob(job); setSelectedMapJobId(job.id); } }}
                               onDoubleClick={(event) => event.stopPropagation()}
                             >
-                              <div className="flex flex-col h-full px-3 py-2" style={{ textDecoration: isCancelled ? "line-through" : undefined, textDecorationColor: isCancelled ? "#9CA3AF" : undefined }}>
-                                <div className="flex items-center justify-end gap-2 w-full shrink-0">
+                              <div className="flex flex-col h-full px-3 py-2 gap-1" style={{ textDecoration: isCancelled ? "line-through" : undefined, textDecorationColor: isCancelled ? "#9CA3AF" : undefined }}>
+                                {/* Line 1: client + route counter in the corner */}
+                                <div className="flex items-start gap-2">
+                                  <span className="flex-1 min-w-0 truncate text-[14px] leading-5 text-[#1A2332]" style={{ fontWeight: 600 }}>{job.client}</span>
                                   <span className="flex h-4 min-w-[16px] px-1 items-center justify-center rounded-full text-[12px] leading-4 text-white shrink-0" style={{ backgroundColor: member.color, fontWeight: 500, textDecoration: "none" }}>
                                     {routeNumber}
                                   </span>
                                 </div>
-                                <div className="text-[14px] leading-5 text-[#1A2332] truncate shrink-0" style={{ fontWeight: 600 }}>{job.service}</div>
-                                <div className="text-[14px] leading-5 text-[#6B7280] truncate shrink-0" style={{ fontWeight: 500 }}>{job.client}</div>
-                                <div className="flex items-center justify-between gap-2 mt-auto shrink-0">
-                                  {job.amount > 0 ? (
-                                    <span className="text-[14px] leading-5 tabular-nums shrink-0" style={{ fontWeight: 500, color: typeColor }}>${job.amount.toLocaleString("en-US")}</span>
-                                  ) : (
-                                    <span className="text-[14px] leading-5 text-[#9CA3AF] shrink-0" style={{ fontWeight: 500 }}>—</span>
-                                  )}
+                                {/* Line 2: job title + status */}
+                                <div className="flex items-center justify-between gap-2">
+                                  <span className="flex-1 min-w-0 truncate text-[13px] leading-5 text-[#6B7280]" style={{ fontWeight: 500 }}>{job.service}</span>
                                   <button
                                     className="px-2 py-0.5 rounded-lg text-[12px] leading-4 shrink-0 truncate max-w-[120px]"
                                     style={{ backgroundColor: statusStyle.bg, color: statusStyle.color, fontWeight: 500, textDecoration: "none" }}
