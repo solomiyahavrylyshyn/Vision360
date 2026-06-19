@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef, useSyncExternalStore, useEffect, type DragEvent, type FormEvent, type MouseEvent, type PointerEvent as ReactPointerEvent, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { useNavigate } from "react-router";
+import tampaMapImg from "../../assets/tampa-map.png";
 import { PageHeader } from "../components/ui/page-header";
 import { scheduleSettingsStore } from "../stores/scheduleSettingsStore";
 import { businessHoursStore, isDateOpenForBusiness } from "../stores/businessHoursStore";
@@ -732,7 +733,8 @@ function DispatchMap({ jobs, team, selectedJobId, onSelect, floating = false, on
       const legend = team
         .map((t) => `<span style="display:inline-flex;align-items:center;gap:6px;margin:0 14px 6px 0;font-size:13px;color:#546478"><span style="width:10px;height:10px;border-radius:50%;background:${t.color}"></span>${t.name}</span>`)
         .join("");
-      popup.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Route map — Tampa, FL</title><style>*{box-sizing:border-box}body{margin:0;font-family:system-ui,Segoe UI,Roboto,sans-serif;background:#F5F7FA;padding:24px}h1{font-size:18px;color:#1A2332;margin:0 0 8px}.legend{display:flex;flex-wrap:wrap;margin:0 0 16px}.map{position:relative;background:#EAEFF3;border:1px solid #D8DCE6;border-radius:12px;overflow:hidden;aspect-ratio:900/380}.map iframe{position:absolute;inset:0;width:100%;height:100%;border:0}.map svg{position:absolute;inset:0;width:100%;height:100%}</style></head><body><h1>Route map — Tampa, FL</h1><div class="legend">' + legend + '</div><div class="map"><iframe title="Tampa, Florida street map" loading="lazy" src="https://www.openstreetmap.org/export/embed.html?bbox=-82.64%2C27.86%2C-82.30%2C28.06&layer=mapnik"></iframe>' + svgMarkup + '</div></body></html>');
+      const mapImgUrl = new URL(tampaMapImg, window.location.origin).href;
+      popup.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Route map — Tampa, FL</title><style>*{box-sizing:border-box}body{margin:0;font-family:system-ui,Segoe UI,Roboto,sans-serif;background:#F5F7FA;padding:24px}h1{font-size:18px;color:#1A2332;margin:0 0 8px}.legend{display:flex;flex-wrap:wrap;margin:0 0 16px}.map{position:relative;background:#EAEFF3;border:1px solid #D8DCE6;border-radius:12px;overflow:hidden;aspect-ratio:900/380}.map img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}.map svg{position:absolute;inset:0;width:100%;height:100%}</style></head><body><h1>Route map — Tampa, FL</h1><div class="legend">' + legend + '</div><div class="map"><img alt="Tampa, Florida street map" src="' + mapImgUrl + '">' + svgMarkup + '</div></body></html>');
       popup.document.close();
     };
     // If collapsed the <svg> isn't mounted — expand first, then write next frame.
@@ -802,15 +804,15 @@ function DispatchMap({ jobs, team, selectedJobId, onSelect, floating = false, on
       </div>
     ) : (
       <>
-        {/* Real Tampa, FL basemap (OpenStreetMap) behind the route overlay.
-            Non-interactive and scaled with the same zoom as the pins so the
+        {/* Real Tampa, FL basemap (bundled image so it always loads — no
+            third-party iframe). Scaled with the same zoom as the pins so the
             two layers stay locked together. */}
-        <iframe
-          title="Tampa, Florida street map"
+        <img
+          src={tampaMapImg}
+          alt="Tampa, Florida street map"
           aria-hidden="true"
-          loading="lazy"
-          src="https://www.openstreetmap.org/export/embed.html?bbox=-82.64%2C27.86%2C-82.30%2C28.06&layer=mapnik"
-          className="absolute inset-0 h-full w-full border-0 pointer-events-none"
+          draggable={false}
+          className="absolute inset-0 h-full w-full object-cover select-none pointer-events-none"
           style={{ transform: `scale(${zoom})`, transformOrigin: "center" }}
         />
         <svg viewBox={`0 0 ${W} ${H}`} className="absolute inset-0 w-full h-full" preserveAspectRatio="xMidYMid meet">
