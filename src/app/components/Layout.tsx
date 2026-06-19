@@ -66,6 +66,28 @@ export function Layout() {
   const showTrialBanner = isTrialActive(trial);
   const trialDaysRemaining = getTrialDaysRemaining(trial);
 
+  // Sample-company sandbox mode — entered from the Help Center "Play with
+  // sample company" CTA (/?sandbox=sample). Persisted to localStorage so the
+  // banner survives client-side navigation (the query param only rides the
+  // first URL); cleared on Exit.
+  const [sandbox, setSandbox] = useState(() => {
+    if (typeof window === "undefined") return false;
+    const fromUrl = new URLSearchParams(window.location.search).get("sandbox") === "sample";
+    try {
+      if (fromUrl) localStorage.setItem("vision360.sandbox", "sample");
+      return fromUrl || localStorage.getItem("vision360.sandbox") === "sample";
+    } catch {
+      return fromUrl;
+    }
+  });
+  const exitSandbox = () => {
+    try { localStorage.removeItem("vision360.sandbox"); } catch { /* ignore */ }
+    setSandbox(false);
+    if (typeof window !== "undefined" && window.location.search.includes("sandbox=")) {
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  };
+
   useEffect(() => {
     applyStoredBrandTheme();
     setCompanyLogoSrc(getStoredBrandLogo() || wordmarkLogo);
@@ -729,6 +751,25 @@ export function Layout() {
               style={{ fontWeight: 600 }}
             >
               {t("header.subscribeNow")}
+            </button>
+          </div>
+        )}
+
+        {sandbox && (
+          <div className="flex flex-shrink-0 items-center justify-between gap-4 border-b border-[#DDD6FE] bg-[#F5F3FF] px-5 py-2.5">
+            <div className="flex min-w-0 items-center gap-2.5 text-[13px] text-[#1A2332]">
+              <span className="material-icons-outlined text-[#7C3AED]" style={{ fontSize: "18px" }}>science</span>
+              <span className="truncate">
+                You're exploring the <strong style={{ fontWeight: 700 }}>Sample Company</strong> — try anything you like; this is demo data and won't affect your real records.
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={exitSandbox}
+              className="h-8 shrink-0 rounded-md bg-[#7C3AED] px-3 text-[13px] text-white transition-colors hover:bg-[#6D28D9]"
+              style={{ fontWeight: 600 }}
+            >
+              Exit sample company
             </button>
           </div>
         )}
