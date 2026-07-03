@@ -47,6 +47,7 @@ import { CreatePayment } from "./pages/CreatePayment";
 import { Profile } from "./pages/Profile";
 import { HelpCenter } from "./pages/HelpCenter";
 import { Account } from "./pages/Account";
+import { ReportView } from "./reports/ReportView";
 
 // Friendly error page shown instead of React Router's default "Hey developer 👈"
 // dev message + raw stack trace (which must never reach end users).
@@ -148,6 +149,7 @@ export const router = createBrowserRouter([
       { path: "accounting", Component: Accounting },
       { path: "marketing", Component: Marketing },
       { path: "reports", Component: Reports },
+      { path: "reports/:reportId", Component: ReportView },
       { path: "settings", Component: Settings },
       { path: "settings/team/new", Component: NewUser },
       { path: "profile", Component: Profile },
