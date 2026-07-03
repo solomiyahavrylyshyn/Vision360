@@ -8,13 +8,15 @@ export function ReportDatePicker({
   onPreset,
   custom,
   onCustom,
+  defaultPreset = "this_month",
 }: {
   preset: DatePreset;
   onPreset: (p: DatePreset) => void;
   custom: { from: string; to: string };
   onCustom: (c: { from: string; to: string }) => void;
+  defaultPreset?: DatePreset;
 }) {
-  const active = preset !== "this_month";
+  const active = preset !== defaultPreset;
   const selectCls = `h-9 pl-3 pr-8 border rounded-lg text-[13px] bg-white cursor-pointer outline-none transition-colors ${
     active ? "border-[#4A6FA5] text-[#4A6FA5] bg-[#EEF3FA]" : "border-[#E5E7EB] text-[#546478] hover:border-[#C5CEDD]"
   }`;
@@ -25,7 +27,7 @@ export function ReportDatePicker({
       <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "18px" }}>calendar_today</span>
       <select value={preset} onChange={(e) => onPreset(e.target.value as DatePreset)} className={selectCls} aria-label="Date range">
         {DATE_PRESETS.map((p) => (
-          <option key={p.value} value={p.value}>{p.value === "this_month" ? `Date: ${p.label}` : p.label}</option>
+          <option key={p.value} value={p.value}>{p.value === defaultPreset ? `Date: ${p.label}` : p.label}</option>
         ))}
       </select>
       {preset === "custom" && (

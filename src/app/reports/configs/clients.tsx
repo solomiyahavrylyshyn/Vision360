@@ -4,7 +4,7 @@ import type { ReportDef } from "../types";
 
 const money = (n: number) => `$${Math.round(n).toLocaleString("en-US")}`;
 const sum = (rows: ClientRecord[], pick: (c: ClientRecord) => number) => rows.reduce((a, c) => a + pick(c), 0);
-const pastDueOf = (c: ClientRecord) => c.pastDueBalance || c.pastDue || 0;
+const pastDueOf = (c: ClientRecord) => c.pastDueBalance ?? c.pastDue ?? 0;
 
 const STATUS_STYLE: Record<string, { c: string; bg: string }> = {
   Active: { c: "#16A34A", bg: "#DCFCE7" },
@@ -28,7 +28,7 @@ export const clientsReport: ReportDef<ClientRecord> = {
   useRows: () => useSyncExternalStore(clientsStore.subscribe, clientsStore.getSnapshot),
   rowKey: (c) => c.id,
   dateField: (c) => c.customerSince,
-  defaultDatePreset: "this_year",
+  defaultDatePreset: "this_month",
   searchText: (c) => `${c.name} ${c.email}`,
   baseFilter: (c) => !c.mergedIntoId && !c.archivedAt,
   amountField: (c) => c.totalBilled,

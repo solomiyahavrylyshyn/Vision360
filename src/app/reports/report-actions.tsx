@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { clientsStore } from "../stores/clientsStore";
+import { REPORT_TODAY } from "../utils/reportDates";
 import type { ReportDef } from "./types";
 
 // Staff pool for Share / Schedule recipients (prototype). Real app would read
@@ -32,10 +33,13 @@ function ModalShell({ title, onClose, children, footer, width = "w-[520px]" }: {
 }
 
 // ── Preview: clean, print-ready report template (also what goes to print/email) ──
-export function ReportPreviewModal<T>({ def, rows, dateLabel, onClose, autoPrint = false }: {
-  def: ReportDef<T>; rows: T[]; dateLabel: string; onClose: () => void; autoPrint?: boolean;
+export function ReportPreviewModal<T>({ def, rows, cardRows, columns, dateLabel, onClose, autoPrint = false }: {
+  def: ReportDef<T>; rows: T[]; cardRows?: T[]; columns?: ReportDef<T>["columns"]; dateLabel: string; onClose: () => void; autoPrint?: boolean;
 }) {
-  const cards = def.statCards.map((c) => ({ label: c.label, value: c.value(rows) }));
+  // Cards mirror the on-screen summary (whole period), the table mirrors the
+  // curated view (visible columns + any card selection).
+  const cards = def.statCards.map((c) => ({ label: c.label, value: c.value(cardRows ?? rows) }));
+  const cols = columns ?? def.columns;
   const print = () => window.print();
   // "Print report" opens this same template and fires the browser print dialog.
   useEffect(() => { if (autoPrint) { const t = setTimeout(() => window.print(), 250); return () => clearTimeout(t); } }, [autoPrint]);
@@ -78,7 +82,7 @@ export function ReportPreviewModal<T>({ def, rows, dateLabel, onClose, autoPrint
         <table className="mt-5 w-full border-collapse text-[12px]">
           <thead>
             <tr className="border-b border-[#D8DCE6]">
-              {def.columns.map((col) => (
+              {cols.map((col) => (
                 <th key={col.key} className={`py-2 pr-3 text-[#546478] ${col.align === "right" ? "text-right" : "text-left"}`} style={{ fontWeight: 600 }}>{col.label}</th>
               ))}
             </tr>
@@ -86,7 +90,7 @@ export function ReportPreviewModal<T>({ def, rows, dateLabel, onClose, autoPrint
           <tbody>
             {rows.slice(0, 200).map((r) => (
               <tr key={String(def.rowKey(r))} className="border-b border-[#EEF1F5]">
-                {def.columns.map((col) => (
+                {cols.map((col) => (
                   <td key={col.key} className={`py-1.5 pr-3 align-top ${col.align === "right" ? "text-right" : "text-left"}`}>{col.render(r)}</td>
                 ))}
               </tr>
@@ -122,10 +126,10 @@ export function ShareReportModal({ reportName, onClose }: { reportName: string; 
         <button onClick={send} disabled={!picked} className="h-9 rounded-lg bg-[#4A6FA5] px-4 text-[13px] text-white hover:bg-[#3d5a85] disabled:opacity-40" style={{ fontWeight: 600 }}>Send</button>
       </>}
     >
-      <label className="block text-[13px] text-[#374151]" style={{ fontWeight: 500 }}>Send to</label>
+      <label htmlFor="share-recipient" className="block text-[13px] text-[#374151]" style={{ fontWeight: 500 }}>Send to</label>
       <div className="relative mt-1.5">
         <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: "18px" }}>search</span>
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search people by name or email…"
+        <input id="share-recipient" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search people by name or email…"
           className="h-10 w-full rounded-lg border border-[#E5E7EB] bg-white pl-10 pr-3 text-[13px] outline-none focus:border-[#4A6FA5]" />
       </div>
       <div className="mt-2 max-h-[280px] overflow-y-auto rounded-lg border border-[#EEF1F5]">
@@ -158,9 +162,13 @@ export function ScheduleReportModal({ reportName, onClose }: { reportName: strin
     const hh = ((h + 11) % 12) + 1;
     return `${hh}:${String(m).padStart(2, "0")} ${ap}`;
   })();
-  const nextRun = freq === "daily" ? `tomorrow at ${timeLabel}`
-    : freq === "weekly" ? `next Monday at ${timeLabel}`
-    : `on the 1st at ${timeLabel}`;
+  const nextRun = (() => {
+    const d = new Date(REPORT_TODAY);
+    if (freq === "daily") d.setDate(d.getDate() + 1);
+    else if (freq === "weekly") { const add = ((8 - d.getDay()) % 7) || 7; d.setDate(d.getDate() + add); } // next Monday
+    else d.setMonth(d.getMonth() + 1, 1); // 1st of next month
+    return `${d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })} at ${timeLabel}`;
+  })();
 
   const save = () => { toast.success(`"${reportName}" scheduled ${freq}. First report will be created ${nextRun}.`); onClose(); };
   const field = "h-10 w-full rounded-lg border border-[#E5E7EB] bg-white px-3 text-[13px] outline-none focus:border-[#4A6FA5]";

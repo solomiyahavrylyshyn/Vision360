@@ -2,9 +2,9 @@
 @import url('https://fonts.googleapis.com/icon?family=Material+Icons');
 @import url('https://fonts.googleapis.com/icon?family=Material+Icons+Outlined');
 
-/* ── Print: hide everything except the open statement panel ── */
+/* ── Print: hide everything except the open statement panel or report preview ── */
 @media print {
-  body > *:not(:has(#client-statement-print)) { display: none !important; }
+  body > *:not(:has(#client-statement-print)):not(:has(#report-print-area)) { display: none !important; }
   #client-statement-print {
     display: flex !important;
     position: static !important;

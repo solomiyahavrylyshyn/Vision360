@@ -8,9 +8,9 @@ const sum = (rows: ClientRecord[], pick: (c: ClientRecord) => number) => rows.re
 // Field accessors with the fallbacks Marek specified (older records only carry
 // the legacy `totalBilled` / `balance` / `pastDue`; newer ones carry the
 // `total*` / `open*` / `pastDue*` fields).
-const revenueOf = (c: ClientRecord) => c.totalRevenue || c.totalBilled || 0;
-const balanceOf = (c: ClientRecord) => c.openBalance || c.balance || 0;
-const pastDueOf = (c: ClientRecord) => c.pastDueBalance || c.pastDue || 0;
+const revenueOf = (c: ClientRecord) => c.totalRevenue ?? c.totalBilled ?? 0;
+const balanceOf = (c: ClientRecord) => c.openBalance ?? c.balance ?? 0;
+const pastDueOf = (c: ClientRecord) => c.pastDueBalance ?? c.pastDue ?? 0;
 
 // Customer profitability report. MVP scope (Marek): revenue, balance and past
 // due per customer only — full job-costing margins come later. Source = the

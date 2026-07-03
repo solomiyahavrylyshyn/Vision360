@@ -78,7 +78,7 @@ export const arAgingReport: ReportDef<Invoice> = {
     { key: "status", label: "Status", render: (i) => <StatusBadge s={i.status} /> },
     { key: "date", label: "Date", render: (i) => i.date },
     { key: "dueDate", label: "Due date", render: (i) => i.dueDate || "—" },
-    { key: "dpd", label: "Days past due", render: (i) => { const d = daysPastDue(i.dueDate); return d > 0 ? `${d}d` : "Current"; } },
+    { key: "dpd", label: "Days past due", render: (i) => { const d = daysPastDue(i.dueDate); return Number.isNaN(d) ? "No due date" : d > 0 ? `${d}d` : "Current"; } },
     { key: "balance", label: "Balance", align: "right", render: (i) => <span style={{ color: i.balance > 0 ? "#DC2626" : "#16A34A" }}>{money(i.balance)}</span> },
   ],
 };

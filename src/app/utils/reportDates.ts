@@ -99,10 +99,12 @@ export function inRange(dateStr: string | undefined, range: DateRange): boolean 
 }
 
 // Whole days past a due date relative to REPORT_TODAY (for AR aging buckets).
+// Returns NaN when there is no parseable due date, so callers can treat
+// "unknown age" separately instead of folding it into the "current" bucket.
 export function daysPastDue(dueDateStr: string | undefined, today: Date = REPORT_TODAY): number {
-  if (!dueDateStr) return 0;
+  if (!dueDateStr) return NaN;
   const ms = Date.parse(dueDateStr);
-  if (Number.isNaN(ms)) return 0;
+  if (Number.isNaN(ms)) return NaN;
   return Math.floor((startOfDay(today).getTime() - startOfDay(new Date(ms)).getTime()) / 86_400_000);
 }
 

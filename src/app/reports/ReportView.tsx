@@ -91,7 +91,7 @@ function ReportPage({ def }: { def: AnyDef }) {
   if (amt.min !== "" || amt.max !== "") {
     chips.push({ key: "amt", label: `Amount: ${amt.min || "0"}–${amt.max || "∞"}`, onRemove: () => { setAmt({ min: "", max: "" }); setPage(1); } });
   }
-  if (activeCardDef) chips.push({ key: "card", label: activeCardDef.label, onRemove: () => setActiveCard(null) });
+  if (activeCardDef) chips.push({ key: "card", label: activeCardDef.label, onRemove: () => { setActiveCard(null); setPage(1); } });
 
   const qfClass = (active: boolean) => `h-9 pl-3 pr-8 border rounded-lg text-[13px] bg-white cursor-pointer outline-none transition-colors ${active ? "border-[#4A6FA5] text-[#4A6FA5] bg-[#EEF3FA]" : "border-[#E5E7EB] text-[#546478] hover:border-[#C5CEDD]"}`;
   const actionBtn = "inline-flex h-9 items-center gap-1.5 rounded-lg border border-[#E5E7EB] bg-white px-3 text-[13px] text-[#546478] hover:bg-[#F5F7FA] transition-colors";
@@ -120,7 +120,7 @@ function ReportPage({ def }: { def: AnyDef }) {
       <div className="flex flex-col rounded-xl border border-[#E5E7EB] bg-white overflow-visible">
         {/* Toolbar: date + search + quick filters + advanced ; right: select cols + export */}
         <div className="flex flex-wrap items-center gap-2 border-b border-[#E5E7EB] px-4 py-3">
-          <ReportDatePicker preset={preset} onPreset={(p) => { setPreset(p); setPage(1); }} custom={custom} onCustom={setCustom} />
+          <ReportDatePicker preset={preset} onPreset={(p) => { setPreset(p); setPage(1); }} custom={custom} onCustom={setCustom} defaultPreset={def.defaultDatePreset} />
           <div className="w-px h-5 bg-[#E5E7EB] mx-1" />
           <div className="relative">
             <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: "18px" }}>search</span>
@@ -195,7 +195,7 @@ function ReportPage({ def }: { def: AnyDef }) {
                 <button
                   key={c.key}
                   disabled={!clickable}
-                  onClick={() => clickable && setActiveCard(on ? null : c.key)}
+                  onClick={() => { if (clickable) { setActiveCard(on ? null : c.key); setPage(1); } }}
                   className={`rounded-xl border p-3 text-left transition-all ${on ? "border-[#4A6FA5] ring-2 ring-[#4A6FA5]/20" : "border-[#E5E7EB]"} ${clickable ? "cursor-pointer hover:border-[#C5D5EC] hover:shadow-sm" : "cursor-default"}`}
                 >
                   <div className="flex items-center justify-between">
@@ -242,7 +242,7 @@ function ReportPage({ def }: { def: AnyDef }) {
       </div>
 
       {(modal === "preview" || modal === "print") && (
-        <ReportPreviewModal def={def} rows={tableRows} dateLabel={rangeLabel} autoPrint={modal === "print"} onClose={() => setModal(null)} />
+        <ReportPreviewModal def={def} rows={tableRows} cardRows={baseRows} columns={cols} dateLabel={rangeLabel} autoPrint={modal === "print"} onClose={() => setModal(null)} />
       )}
       {modal === "share" && <ShareReportModal reportName={def.name} onClose={() => setModal(null)} />}
       {modal === "schedule" && <ScheduleReportModal reportName={def.name} onClose={() => setModal(null)} />}
