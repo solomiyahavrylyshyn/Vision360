@@ -45,6 +45,7 @@ export default defineConfig({
   // Forward /api calls to the local Express + Postgres server (npm run server).
   // If the server isn't running, requests fail and the stores fall back to seed.
   server: {
+    port: process.env.PORT ? parseInt(process.env.PORT) : undefined,
     proxy: {
       '/api': { target: 'http://localhost:4000', changeOrigin: true },
     },

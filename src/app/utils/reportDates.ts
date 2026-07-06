@@ -89,11 +89,21 @@ export function rangeForPreset(
   }
 }
 
-// Parse the varied date strings across stores ("2026-04-27", "Mon Mar 30, 2026")
-// and test membership. Unparseable / empty dates are excluded.
+// Parse the varied date strings across stores consistently as LOCAL time.
+// Date.parse treats an ISO date-only string ("2026-03-01") as UTC midnight,
+// which shifts it to the previous day in any west-of-UTC timezone — so a
+// month-boundary row would fall into the neighbouring month once compared
+// against the locally-built range boundaries. Anchor ISO date-only strings at
+// local noon; spelled-out formats ("Mon Mar 30, 2026") already parse as local.
+function parseLocalMs(s: string): number {
+  return /^\d{4}-\d{2}-\d{2}$/.test(s) ? Date.parse(s + "T12:00:00") : Date.parse(s);
+}
+
+// Test membership of a store date string in a range. Unparseable / empty
+// dates are excluded.
 export function inRange(dateStr: string | undefined, range: DateRange): boolean {
   if (!dateStr) return false;
-  const ms = Date.parse(dateStr);
+  const ms = parseLocalMs(dateStr);
   if (Number.isNaN(ms)) return false;
   return ms >= range.from.getTime() && ms <= range.to.getTime();
 }
@@ -103,7 +113,7 @@ export function inRange(dateStr: string | undefined, range: DateRange): boolean 
 // "unknown age" separately instead of folding it into the "current" bucket.
 export function daysPastDue(dueDateStr: string | undefined, today: Date = REPORT_TODAY): number {
   if (!dueDateStr) return NaN;
-  const ms = Date.parse(dueDateStr);
+  const ms = parseLocalMs(dueDateStr);
   if (Number.isNaN(ms)) return NaN;
   return Math.floor((startOfDay(today).getTime() - startOfDay(new Date(ms)).getTime()) / 86_400_000);
 }

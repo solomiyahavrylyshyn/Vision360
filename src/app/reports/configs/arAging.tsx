@@ -18,6 +18,12 @@ const StatusBadge = ({ s }: { s: string }) => {
   return <span className="inline-block rounded-full px-2 py-0.5 text-[12px]" style={{ color: st.c, backgroundColor: st.bg, fontWeight: 600 }}>{s}</span>;
 };
 
+// "Current unpaid" = issued but not yet past due. An open invoice with no
+// parseable due date has no computable age (daysPastDue → NaN) and would fall
+// into none of the overdue buckets; fold it in here so the six buckets always
+// sum exactly to the "All unpaid" total.
+const isCurrent = (i: Invoice) => !(daysPastDue(i.dueDate) > 0);
+
 // Invoices AR aging report. Source = Invoices list, restricted to open
 // receivables (balance owed, not voided). Cards bucket the outstanding balance
 // by days past due relative to REPORT_TODAY; the summary card shows the whole
@@ -52,9 +58,9 @@ export const arAgingReport: ReportDef<Invoice> = {
       value: (r) => money(sum(r, (i) => i.balance)),
       sublabel: (r) => `${r.length} invoices` },
     { key: "current", label: "Current unpaid", icon: "schedule", accent: "#16A34A", bg: "#DCFCE7",
-      value: (r) => money(sum(r.filter((i) => daysPastDue(i.dueDate) <= 0), (i) => i.balance)),
-      sublabel: (r) => `${r.filter((i) => daysPastDue(i.dueDate) <= 0).length} invoices`,
-      filter: (i) => daysPastDue(i.dueDate) <= 0 },
+      value: (r) => money(sum(r.filter(isCurrent), (i) => i.balance)),
+      sublabel: (r) => `${r.filter(isCurrent).length} invoices`,
+      filter: isCurrent },
     { key: "od30", label: "Overdue <30 days", icon: "warning", accent: "#D97706", bg: "#FEF3C7",
       value: (r) => money(sum(r.filter((i) => { const d = daysPastDue(i.dueDate); return d > 0 && d <= 30; }), (i) => i.balance)),
       sublabel: (r) => `${r.filter((i) => { const d = daysPastDue(i.dueDate); return d > 0 && d <= 30; }).length} invoices`,

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router";
 import { toast } from "sonner";
 import { PaginationFooter } from "../components/ui/pagination-footer";
@@ -10,23 +10,29 @@ import { ReportPreviewModal, ShareReportModal, ScheduleReportModal } from "./rep
 
 type AnyDef = ReportDef<Record<string, unknown>>;
 
-export function ReportView() {
-  const { reportId } = useParams();
+// Renders a single report. Used both as a route (reads :reportId from the URL)
+// and embedded inside the Home "Reports" tab (reportId + onBack passed as props,
+// embedded=true to drop the standalone page chrome).
+export function ReportView({ reportId: propReportId, onBack, embedded = false }: {
+  reportId?: string; onBack?: () => void; embedded?: boolean;
+} = {}) {
+  const params = useParams();
   const navigate = useNavigate();
+  const reportId = propReportId ?? params.reportId;
+  const back = onBack ?? (() => navigate("/"));
   const def = reportId ? getReportById(reportId) : undefined;
   if (!def) {
     return (
-      <div className="px-7 py-10 bg-[#F5F7FA] min-h-full">
-        <button onClick={() => navigate("/reports")} className="text-[13px] text-[#4A6FA5]" style={{ fontWeight: 600 }}>← Back to Reports</button>
+      <div className={embedded ? "" : "px-7 py-10 bg-[#F5F7FA] min-h-full"}>
+        <button onClick={back} className="text-[13px] text-[#4A6FA5]" style={{ fontWeight: 600 }}>← Back to Reports</button>
         <div className="mt-6 rounded-xl border border-[#E5E7EB] bg-white py-16 text-center text-[14px] text-[#8899AA]">Report not found.</div>
       </div>
     );
   }
-  return <ReportPage key={def.id} def={def as AnyDef} />;
+  return <ReportPage key={def.id} def={def as AnyDef} back={back} embedded={embedded} />;
 }
 
-function ReportPage({ def }: { def: AnyDef }) {
-  const navigate = useNavigate();
+function ReportPage({ def, back, embedded }: { def: AnyDef; back: () => void; embedded: boolean }) {
   const rows = def.useRows();
 
   const [preset, setPreset] = useState<DatePreset>(def.defaultDatePreset);
@@ -38,11 +44,27 @@ function ReportPage({ def }: { def: AnyDef }) {
   const [amt, setAmt] = useState({ min: "", max: "" });
   const [advOpen, setAdvOpen] = useState(false);
   const [colsOpen, setColsOpen] = useState(false);
+  const advRef = useRef<HTMLDivElement>(null);
+  const colsRef = useRef<HTMLDivElement>(null);
   const [visibleCols, setVisibleCols] = useState<Set<string>>(() =>
     new Set(def.columns.filter((c) => !c.defaultHidden).map((c) => c.key)));
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(25);
   const [modal, setModal] = useState<null | "preview" | "print" | "share" | "schedule">(null);
+
+  // Dismiss the Advanced / Columns popovers on outside-click or Escape.
+  useEffect(() => {
+    if (!advOpen && !colsOpen) return;
+    const onDown = (e: MouseEvent) => {
+      const t = e.target as Node;
+      if (advRef.current && !advRef.current.contains(t)) setAdvOpen(false);
+      if (colsRef.current && !colsRef.current.contains(t)) setColsOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") { setAdvOpen(false); setColsOpen(false); } };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => { document.removeEventListener("mousedown", onDown); document.removeEventListener("keydown", onKey); };
+  }, [advOpen, colsOpen]);
 
   const range = useMemo(() => rangeForPreset(preset, custom), [preset, custom]);
   const rangeLabel = useMemo(() => formatRangeLabel(range), [range]);
@@ -97,23 +119,26 @@ function ReportPage({ def }: { def: AnyDef }) {
   const actionBtn = "inline-flex h-9 items-center gap-1.5 rounded-lg border border-[#E5E7EB] bg-white px-3 text-[13px] text-[#546478] hover:bg-[#F5F7FA] transition-colors";
 
   return (
-    <div className="px-7 py-5 bg-[#F5F7FA] min-h-full flex flex-col">
+    <div className={embedded ? "flex flex-col" : "px-7 py-5 bg-[#F5F7FA] min-h-full flex flex-col"}>
       {/* Header: back + title/description + report actions */}
       <div className="mb-4 flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <button onClick={() => navigate("/reports")} className="mb-1 inline-flex items-center gap-1 text-[13px] text-[#4A6FA5] hover:underline" style={{ fontWeight: 600 }}>
+          <button onClick={back} className="mb-1 inline-flex items-center gap-1 text-[13px] text-[#4A6FA5] hover:underline" style={{ fontWeight: 600 }}>
             <span className="material-icons" style={{ fontSize: "16px" }}>arrow_back</span>Reports
           </button>
           <h1 className="text-[24px] leading-8 text-[#1A2332]" style={{ fontWeight: 700 }}>{def.name}</h1>
           <p className="mt-0.5 text-[13px] text-[#6B7280]">{def.description}</p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          <button className={actionBtn} onClick={() => setModal("preview")}><span className="material-icons" style={{ fontSize: "16px" }}>visibility</span>Preview</button>
+          {/* Generate report = the headline action (Marek call #21): produce the
+              professional report document from the current filtered view, which
+              can then be printed, shared or scheduled. */}
+          <button className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#4A6FA5] px-3 text-[13px] text-white hover:bg-[#3d5a85]" style={{ fontWeight: 600 }} onClick={() => setModal("preview")}>
+            <span className="material-icons" style={{ fontSize: "16px" }}>summarize</span>Generate report
+          </button>
           <button className={actionBtn} onClick={() => setModal("print")}><span className="material-icons" style={{ fontSize: "16px" }}>print</span>Print</button>
           <button className={actionBtn} onClick={() => setModal("share")}><span className="material-icons" style={{ fontSize: "16px" }}>share</span>Share</button>
-          <button className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#4A6FA5] px-3 text-[13px] text-white hover:bg-[#3d5a85]" style={{ fontWeight: 600 }} onClick={() => setModal("schedule")}>
-            <span className="material-icons" style={{ fontSize: "16px" }}>schedule</span>Schedule
-          </button>
+          <button className={actionBtn} onClick={() => setModal("schedule")}><span className="material-icons" style={{ fontSize: "16px" }}>schedule</span>Schedule</button>
         </div>
       </div>
 
@@ -133,8 +158,8 @@ function ReportPage({ def }: { def: AnyDef }) {
             </select>
           ))}
           {def.amountField && (
-            <div className="relative">
-              <button onClick={() => setAdvOpen((v) => !v)} className={`h-9 px-3 border rounded-lg text-[13px] inline-flex items-center gap-1.5 transition-colors ${advOpen || amt.min || amt.max ? "border-[#4A6FA5] text-[#4A6FA5] bg-[#EEF3FA]" : "border-[#E5E7EB] text-[#546478] hover:bg-[#F5F7FA] bg-white"}`} style={{ fontWeight: 500 }}>
+            <div className="relative" ref={advRef}>
+              <button onClick={() => { setAdvOpen((v) => !v); setColsOpen(false); }} className={`h-9 px-3 border rounded-lg text-[13px] inline-flex items-center gap-1.5 transition-colors ${advOpen || amt.min || amt.max ? "border-[#4A6FA5] text-[#4A6FA5] bg-[#EEF3FA]" : "border-[#E5E7EB] text-[#546478] hover:bg-[#F5F7FA] bg-white"}`} style={{ fontWeight: 500 }}>
                 <span className="material-icons" style={{ fontSize: "16px" }}>filter_alt</span>Advanced
               </button>
               {advOpen && (
@@ -150,8 +175,8 @@ function ReportPage({ def }: { def: AnyDef }) {
             </div>
           )}
           <div className="ml-auto flex items-center gap-2">
-            <div className="relative">
-              <button onClick={() => setColsOpen((v) => !v)} className={actionBtn}><span className="material-icons" style={{ fontSize: "16px" }}>view_column</span>Columns</button>
+            <div className="relative" ref={colsRef}>
+              <button onClick={() => { setColsOpen((v) => !v); setAdvOpen(false); }} className={actionBtn}><span className="material-icons" style={{ fontSize: "16px" }}>view_column</span>Columns</button>
               {colsOpen && (
                 <div className="absolute right-0 top-11 z-20 w-[220px] rounded-xl border border-[#E5E7EB] bg-white p-2 shadow-lg max-h-[300px] overflow-y-auto">
                   {def.columns.map((c) => (
@@ -242,7 +267,7 @@ function ReportPage({ def }: { def: AnyDef }) {
       </div>
 
       {(modal === "preview" || modal === "print") && (
-        <ReportPreviewModal def={def} rows={tableRows} cardRows={baseRows} columns={cols} dateLabel={rangeLabel} autoPrint={modal === "print"} onClose={() => setModal(null)} />
+        <ReportPreviewModal def={def} rows={tableRows} cardRows={baseRows} columns={cols} dateLabel={rangeLabel} autoPrint={modal === "print"} onShare={() => setModal("share")} onClose={() => setModal(null)} />
       )}
       {modal === "share" && <ShareReportModal reportName={def.name} onClose={() => setModal(null)} />}
       {modal === "schedule" && <ScheduleReportModal reportName={def.name} onClose={() => setModal(null)} />}

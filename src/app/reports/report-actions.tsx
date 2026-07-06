@@ -33,8 +33,8 @@ function ModalShell({ title, onClose, children, footer, width = "w-[520px]" }: {
 }
 
 // ── Preview: clean, print-ready report template (also what goes to print/email) ──
-export function ReportPreviewModal<T>({ def, rows, cardRows, columns, dateLabel, onClose, autoPrint = false }: {
-  def: ReportDef<T>; rows: T[]; cardRows?: T[]; columns?: ReportDef<T>["columns"]; dateLabel: string; onClose: () => void; autoPrint?: boolean;
+export function ReportPreviewModal<T>({ def, rows, cardRows, columns, dateLabel, onClose, onShare, autoPrint = false }: {
+  def: ReportDef<T>; rows: T[]; cardRows?: T[]; columns?: ReportDef<T>["columns"]; dateLabel: string; onClose: () => void; onShare?: () => void; autoPrint?: boolean;
 }) {
   // Cards mirror the on-screen summary (whole period), the table mirrors the
   // curated view (visible columns + any card selection).
@@ -45,11 +45,16 @@ export function ReportPreviewModal<T>({ def, rows, cardRows, columns, dateLabel,
   useEffect(() => { if (autoPrint) { const t = setTimeout(() => window.print(), 250); return () => clearTimeout(t); } }, [autoPrint]);
   return (
     <ModalShell
-      title={`Preview — ${def.name}`}
+      title={`Generated report — ${def.name}`}
       onClose={onClose}
       width="w-[900px]"
       footer={<>
-        <button onClick={onClose} className="h-9 rounded-lg border border-[#E5E7EB] bg-white px-4 text-[13px] text-[#546478] hover:bg-[#F5F7FA]" style={{ fontWeight: 600 }}>Close</button>
+        <button onClick={onClose} className="mr-auto h-9 rounded-lg border border-[#E5E7EB] bg-white px-4 text-[13px] text-[#546478] hover:bg-[#F5F7FA]" style={{ fontWeight: 600 }}>Close</button>
+        {onShare && (
+          <button onClick={onShare} className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[#E5E7EB] bg-white px-4 text-[13px] text-[#546478] hover:bg-[#F5F7FA]" style={{ fontWeight: 600 }}>
+            <span className="material-icons" style={{ fontSize: "16px" }}>share</span>Share
+          </button>
+        )}
         <button onClick={print} className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#4A6FA5] px-4 text-[13px] text-white hover:bg-[#3d5a85]" style={{ fontWeight: 600 }}>
           <span className="material-icons" style={{ fontSize: "16px" }}>print</span>Print
         </button>
@@ -66,7 +71,7 @@ export function ReportPreviewModal<T>({ def, rows, cardRows, columns, dateLabel,
           </div>
           <div className="text-right text-[12px] text-[#8899AA]">
             <div>Generated {new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</div>
-            <div>{rows.length} record{rows.length === 1 ? "" : "s"}</div>
+            <div>{rows.length > 200 ? `Showing 200 of ${rows.length} records` : `${rows.length} record${rows.length === 1 ? "" : "s"}`}</div>
           </div>
         </div>
         {cards.length > 0 && (

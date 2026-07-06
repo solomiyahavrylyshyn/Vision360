@@ -12,9 +12,17 @@ const StatusBadge = ({ s }: { s: string }) => {
 };
 
 // Semantic job types (jobCategory) — the default job-type vocabulary plus the
-// "Service" value the seed jobs carry. jobType stores the FREQUENCY, so it is a
-// SEPARATE filter (Marek: keep TYPE and FREQUENCY apart).
+// "Service" value the seed jobs carry. Frequency (One-off/Recurring) is a
+// SEPARATE dimension (Marek: keep TYPE and FREQUENCY apart), read from the
+// record's `frequency` field.
 const JOB_CATEGORY_VALUES = ["Service", "Installation", "Maintenance", "Inspection", "Estimate"];
+
+// Frequency accessor with a fallback for records persisted before the dedicated
+// `frequency` field existed: legacy seed rows stored One-off/Recurring in
+// jobType, while legacy UI-created jobs stored the category there → default those
+// to "One-off".
+const freqOf = (j: JobRecord) =>
+  j.frequency ?? (j.jobType === "Recurring" || j.jobType === "One-off" ? j.jobType : "One-off");
 
 // Job statistics report. Source = Jobs list. Default period is the whole year
 // because seed jobs span Feb–June 2026 (only one lands in March), so
@@ -55,7 +63,7 @@ export const jobsReport: ReportDef<JobRecord> = {
         { value: "One-off", label: "One-off" },
         { value: "Recurring", label: "Recurring" },
       ],
-      match: (j, v) => j.jobType === v,
+      match: (j, v) => freqOf(j) === v,
     },
   ],
   statCards: [
@@ -76,7 +84,7 @@ export const jobsReport: ReportDef<JobRecord> = {
     { key: "number", label: "Number", render: (j) => <span style={{ fontWeight: 600 }}>{j.jobNumber}</span> },
     { key: "client", label: "Client", render: (j) => j.client },
     { key: "type", label: "Type", render: (j) => j.jobCategory || "—" },
-    { key: "frequency", label: "Frequency", render: (j) => j.jobType || "—" },
+    { key: "frequency", label: "Frequency", render: (j) => freqOf(j) },
     { key: "status", label: "Status", render: (j) => <StatusBadge s={j.status} /> },
     { key: "scheduled", label: "Scheduled", render: (j) => j.startDate || "—" },
     { key: "total", label: "Total", align: "right", render: (j) => money(j.totalPrice) },

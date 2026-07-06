@@ -414,7 +414,7 @@ export function CreateJob({ asModal = false, onClose, onCreated, prefill, headin
           client: client.trim(), clientId,
           address: serviceStreet, city: serviceCity, state: serviceState, zip: serviceZip, gateCode,
           assignedTo: "",                 // unassigned
-          jobType: jobCategory || "Service", jobCategory,
+          jobType: jobCategory || "Service", jobCategory, frequency: "Recurring",
           startDate: "", endDate: "", startTime: "", endTime: "", // unscheduled
           status: "Unscheduled",
           totalPrice: Math.round(computedTotal * 100) / 100,
@@ -452,6 +452,7 @@ export function CreateJob({ asModal = false, onClose, onCreated, prefill, headin
       assignedTo,
       jobType: jobCategory || "Service",
       jobCategory,
+      frequency: "One-off",
       startDate: scheduleJob ? startDate : "",
       endDate: scheduleJob ? endDate : "",
       startTime: scheduleJob ? startTime : "",

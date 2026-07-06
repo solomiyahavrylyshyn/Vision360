@@ -17,6 +17,10 @@ export interface JobRecord {
   assignedTo: string;
   jobType: string;
   jobCategory: string;
+  // Frequency (One-off / Recurring) is a SEPARATE dimension from the semantic
+  // type in jobCategory (Marek call #21: "recurring/one-off are not job types").
+  // Optional so records persisted before this field existed still load.
+  frequency?: string;
   startDate: string;
   endDate: string;
   startTime: string;
@@ -47,6 +51,7 @@ const mkSeed = (
   client: "John Smith", clientId: "10245",
   address: "123 Main St", city: "Austin", state: "TX", zip: "78701",
   gateCode: "1145", assignedTo: "Emily Parker", jobType, jobCategory: "Service",
+  frequency: jobType, // seed's jobType arg carries the frequency (One-off/Recurring)
   startDate, endDate: startDate, startTime: "09:00", endTime: "11:00",
   status, totalPrice: total, notes: "", fieldNotes: "", privateNotes: "",
   taxRate: 8.25, createdAt: `${startDate} 09:00`,

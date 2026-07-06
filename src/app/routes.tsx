@@ -34,7 +34,6 @@ import { CreateItem } from "./pages/CreateItem";
 import { ItemDetail } from "./pages/ItemDetail";
 import { Accounting } from "./pages/Accounting";
 import { Marketing } from "./pages/Marketing";
-import { Reports } from "./pages/Reports";
 import { Settings } from "./pages/Settings";
 import { NewUser } from "./pages/NewUser";
 import { ManageDuplicates } from "./pages/ManageDuplicates";
@@ -47,7 +46,6 @@ import { CreatePayment } from "./pages/CreatePayment";
 import { Profile } from "./pages/Profile";
 import { HelpCenter } from "./pages/HelpCenter";
 import { Account } from "./pages/Account";
-import { ReportView } from "./reports/ReportView";
 
 // Friendly error page shown instead of React Router's default "Hey developer 👈"
 // dev message + raw stack trace (which must never reach end users).
@@ -148,8 +146,6 @@ export const router = createBrowserRouter([
       { path: "items/:id", Component: ItemDetail },
       { path: "accounting", Component: Accounting },
       { path: "marketing", Component: Marketing },
-      { path: "reports", Component: Reports },
-      { path: "reports/:reportId", Component: ReportView },
       { path: "settings", Component: Settings },
       { path: "settings/team/new", Component: NewUser },
       { path: "profile", Component: Profile },
