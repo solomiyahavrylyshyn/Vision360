@@ -272,7 +272,7 @@ function ClientJobsPanel({ rows, onOpen, onCreate }: {
             </select>
             {typeOptions.length > 0 && (
               <select value={qfType} onChange={(e) => { setQfType(e.target.value); setPage(1); }} className={qfClass(qfType !== "All")}>
-                <option value="All">Type: All</option>
+                <option value="All">Frequency: All</option>
                 {typeOptions.map((t) => <option key={t} value={t}>{t}</option>)}
               </select>
             )}

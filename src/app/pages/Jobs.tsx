@@ -402,7 +402,7 @@ export function Jobs() {
                 {JOB_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
               <select value={qfType} onChange={e => { setQfType(e.target.value); setCurrentPage(1); }} className={qfClass(qfType !== "All")}>
-                <option value="All">Type: All</option>
+                <option value="All">Frequency: All</option>
                 <option value="One-off">One-off</option>
                 <option value="Recurring">Recurring</option>
               </select>
@@ -557,11 +557,11 @@ export function Jobs() {
           {/* Body */}
           <div className="flex-1 overflow-y-auto px-4 py-1 flex flex-col gap-2">
 
-            {/* Section 1: Job type · Client · City dropdown */}
+            {/* Section 1: Frequency · Client · City dropdown */}
             <div className="flex flex-col gap-4 pb-4 border-b border-[#E5E7EB]">
-              {/* Job type */}
+              {/* Frequency (One-off / Recurring) */}
               <div className="flex flex-col gap-1">
-                <label className="text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist, sans-serif", fontWeight: 500, lineHeight: "20px" }}>Job type</label>
+                <label className="text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist, sans-serif", fontWeight: 500, lineHeight: "20px" }}>Frequency</label>
                 <select value={pendingFilters.jobType} onChange={e => setPendingFilters(p => ({ ...p, jobType: e.target.value }))}
                   className="min-h-[36px] pl-3 pr-8 py-2 border border-[#E5E7EB] rounded-[8px] text-[14px] text-[#1A2332] bg-white focus:outline-none focus:border-[#4A6FA5] shadow-[0px_1px_1px_rgba(0,0,0,0.05)]"
                   style={{ fontFamily: "Geist, sans-serif", fontWeight: 400 }}>
