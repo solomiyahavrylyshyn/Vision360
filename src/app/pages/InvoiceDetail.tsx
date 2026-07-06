@@ -986,13 +986,13 @@ export function InvoiceDetail() {
             <>
             {!isPaid && status !== "Void" && (
             <button
-              onClick={() => setPaymentModalOpen(true)}
+              onClick={() => navigate(`/payments/new?invoice=${encodeURIComponent(data.number)}&client=${encodeURIComponent(data.client.name)}&returnTo=${encodeURIComponent(`/invoices/${id}?tab=payments`)}`)}
               className="h-9 px-3.5 rounded-md bg-[#4A6FA5] hover:bg-[#3d5a85] text-white text-[13px] inline-flex items-center gap-1.5 transition-colors"
               style={{ fontWeight: 600 }}
-              title="Record a payment for this invoice"
+              title="Collect a payment for this invoice"
             >
               <span className="material-icons" style={{ fontSize: "16px" }}>payments</span>
-              Collect Payment
+              Collect payment
             </button>
             )}
             <KebabMenu triggerClassName="h-9 w-9 border border-[#E5E7EB] rounded-md bg-white flex items-center justify-center hover:bg-[#F5F7FA]">

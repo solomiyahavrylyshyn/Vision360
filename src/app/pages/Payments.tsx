@@ -35,6 +35,9 @@ export interface Payment {
   invoiceId: number;
   invoiceNumber: string;
   jobId?: string;
+  // Estimates / jobs traced through the paid invoice(s) (list columns).
+  estimateNumbers?: string[];
+  jobIds?: string[];
   // Reference number for external/non-integrated methods (check #, transfer ID,
   // Venmo/Zelle/Cash App confirmation, financing reference).
   reference?: string;

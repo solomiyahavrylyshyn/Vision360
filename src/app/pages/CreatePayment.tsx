@@ -1,166 +1,225 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef, useSyncExternalStore } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { Button } from "../components/ui/button";
-import { KebabMenu, KebabItem } from "../components/ui/kebab-menu";
 import { toast } from "sonner";
 import { paymentsStore } from "../stores/paymentsStore";
 import type { PaymentMethod, PaymentStatus } from "./Payments";
-import { PAYMENT_METHODS } from "../constants/paymentMethods";
-import { initialInvoices } from "../stores/invoicesStore";
+import { invoicesStore, type Invoice } from "../stores/invoicesStore";
+import { clientsStore } from "../stores/clientsStore";
 
-const paymentMethods = PAYMENT_METHODS;
+// ── Money / date helpers ─────────────────────────────────────────────────────
+const money = (n: number) =>
+  `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const round2 = (n: number) => Math.round(n * 100) / 100;
 
-// Payment date is shown as DD.MM.YYYY (Figma) but stored/saved as ISO.
-const dmyToISO = (s: string) => { const m = /^(\d{2})\.(\d{2})\.(\d{4})$/.exec((s || "").trim()); return m ? `${m[3]}-${m[2]}-${m[1]}` : ""; };
-const isoToDMY = (s: string) => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec((s || "").trim()); return m ? `${m[3]}.${m[2]}.${m[1]}` : ""; };
-
-// Long-form date for the Invoices table/picker (Figma: "April 30, 2026"); guards bad data.
 function fmtLongDate(d: string) {
   const dt = new Date((d || "") + "T12:00:00");
   if (!d || isNaN(dt.getTime())) return "—";
   return dt.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
 }
 
-const money = (n: number) => `$${n.toLocaleString("en-US")}`;
-
-// Invoice status badge colour (same semantic tokens as the Invoices list).
+// Invoice status chip colour (same semantic tokens as the Invoices list).
 function invoiceStatusStyle(status: string): { color: string; backgroundColor: string } {
   const m: Record<string, [string, string]> = {
     Paid: ["#16A34A", "rgba(22,163,74,0.15)"],
-    Unpaid: ["#DC2626", "rgba(220,38,38,0.15)"],
+    Unpaid: ["#6B7280", "rgba(107,114,128,0.15)"],
     Overdue: ["#EF4444", "rgba(239,68,68,0.15)"],
-    "Partially Paid": ["#F59E0B", "rgba(245,158,11,0.15)"],
+    "Partially Paid": ["#D97706", "rgba(217,119,6,0.15)"],
     Void: ["#9CA3AF", "rgba(156,163,175,0.15)"],
   };
   const [color, backgroundColor] = m[status] || ["#6B7280", "rgba(107,114,128,0.15)"];
   return { color, backgroundColor };
 }
 
+// ── Payment methods (form-local; the spec's set — see collect-payment-ui.md §4).
+// Stored on the record as a canonical value so the Payments list / icons keep working.
+const METHOD_OPTIONS = [
+  "Credit card — reader",
+  "Credit card — manually",
+  "Credit card — on file",
+  "Cash",
+  "Check",
+  "Zelle",
+  "CashApp",
+  "Venmo",
+  "Wire transfer",
+  "Consumer financing",
+] as const;
+type Method = (typeof METHOD_OPTIONS)[number];
+
+const isCardMethod = (m: string) => m.startsWith("Credit card");
+// Methods whose money moved outside the app → recorded with a reference # + date.
+const REF_METHODS: string[] = ["Zelle", "CashApp", "Venmo", "Wire transfer", "Consumer financing"];
+
+// Canonical value stored on the payment record (keeps list filters / icons happy).
+function canonicalMethod(m: string): string {
+  if (isCardMethod(m)) return "Credit Card";
+  if (m === "Consumer financing") return "Consumer Financing";
+  if (m === "CashApp") return "Cash App";        // match ICON_MAP key
+  if (m === "Wire transfer") return "Wire Transfer"; // match ICON_MAP key
+  return m;
+}
+
+const todayISO = () => new Date().toISOString().slice(0, 10);
+const isoToDMY = (s: string) => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec((s || "").trim()); return m ? `${m[3]}.${m[2]}.${m[1]}` : ""; };
+const dmyToISO = (s: string) => { const m = /^(\d{2})\.(\d{2})\.(\d{4})$/.exec((s || "").trim()); return m ? `${m[3]}-${m[2]}-${m[1]}` : ""; };
+
 export function CreatePayment() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const prefilledClient = searchParams.get("client") || "";
   const returnTo = searchParams.get("returnTo");
   const goBack = () => navigate(returnTo || "/payments");
 
-  // Client comes from the launch context (or, standalone, from the chosen invoices).
-  const [client] = useState(prefilledClient);
-  // Guard the method param: ignore anything not in the known list (URL tampering).
-  // Default to a no-friction method (Cash) so the form doesn't open with credit-
-  // card fields for a simple cash/check entry. A client's preferred method (if any)
-  // still arrives via the ?method param and wins.
-  const rawMethod = searchParams.get("method") || "Cash";
-  const [method, setMethod] = useState((paymentMethods as readonly string[]).includes(rawMethod) ? rawMethod : "Cash");
-  const [dateText, setDateText] = useState(() => isoToDMY(new Date().toISOString().slice(0, 10)));
-  const [reference, setReference] = useState("");
-  const [note, setNote] = useState("");
+  // Live stores.
+  const invoices = useSyncExternalStore(invoicesStore.subscribe, invoicesStore.getSnapshot);
+  const clients = useSyncExternalStore(clientsStore.subscribe, clientsStore.getSnapshot);
 
-  // Card-entry fields (US): shown for card-type methods (Card / Credit Card / Debit Card).
-  const [cardNumber, setCardNumber] = useState("");
-  const [cardExpiry, setCardExpiry] = useState("");
-  const [cardCvc, setCardCvc] = useState("");
-  const [cardName, setCardName] = useState("");
-  const [cardZip, setCardZip] = useState("");
+  // ── Customer resolution from launch context ────────────────────────────────
+  const paramClientId = searchParams.get("clientId") || "";
+  const paramClientName = searchParams.get("client") || "";
+  const paramInvoice = searchParams.get("invoice") || "";
+  const paramJob = searchParams.get("job") || "";
 
-  // Card-type methods (Card / Credit Card / Debit Card) capture card details and
-  // count as a live charge; every other method (Cash, Check, Bank Transfer,
-  // Consumer Financing, Venmo, Zelle, Other) is recorded with a transaction #.
-  const isCard = ["Card", "Credit Card", "Debit Card"].includes(method);
-  const isCharge = isCard;
-  const cardDigits = cardNumber.replace(/\D/g, "");
+  // Resolve an initial customer NAME from the launch context (clientId → client
+  // param → the launch invoice's client).
+  const initialClientName = useMemo(() => {
+    if (paramClientId) { const c = clientsStore.getClient(paramClientId); if (c) return c.name; }
+    if (paramClientName) return paramClientName;
+    if (paramInvoice) { const inv = invoicesStore.getSnapshot().find((i) => i.number === paramInvoice); if (inv) return inv.clientName; }
+    return "";
+  }, [paramClientId, paramClientName, paramInvoice]);
 
-  // Invoices — payments are collected against INVOICES only (never jobs or
-  // estimates, per Marek Jun 11 + Figma collect frame). The amount auto-sums
-  // from the added invoices' balances. Invoices are chosen via the "Add invoice"
-  // modal (catalog picker); the main table shows only what's been added.
-  const allInvoices = initialInvoices;
-  // Preselect the invoice when arriving from an invoice's "Collect payment".
-  const [selectedInvoiceIds, setSelectedInvoiceIds] = useState<Set<number>>(() => {
-    const inv = searchParams.get("invoice");
-    const match = inv ? allInvoices.find((i) => i.number === inv) : null;
-    return match ? new Set([match.id]) : new Set();
-  });
-  const [tableSearch, setTableSearch] = useState("");   // filters the added rows
-  const [addOpen, setAddOpen] = useState(false);        // Add-invoice modal
-  const [modalSearch, setModalSearch] = useState("");
-  const [modalChecked, setModalChecked] = useState<Set<number>>(new Set());
+  const [customerName, setCustomerName] = useState(initialClientName);
+  const [searching, setSearching] = useState(!initialClientName); // show the search UI when no client yet
+  const [clientQuery, setClientQuery] = useState("");
 
-  const selectedInvoices = useMemo(
-    () => allInvoices.filter((i) => selectedInvoiceIds.has(i.id)),
-    [allInvoices, selectedInvoiceIds]
+  // The chosen client's contact info (from the store when known, else the invoice).
+  const customer = useMemo(() => clients.find((c) => c.name === customerName), [clients, customerName]);
+  const customerEmail = customer?.email || invoices.find((i) => i.clientName === customerName)?.customerEmail || "";
+  const customerPhone = customer?.mobilePhone || customer?.phone || "";
+
+  const clientMatches = useMemo(() => {
+    const q = clientQuery.trim().toLowerCase();
+    const list = q
+      ? clients.filter((c) => c.name.toLowerCase().includes(q) || (c.email || "").toLowerCase().includes(q) || (c.mobilePhone || c.phone || "").toLowerCase().includes(q))
+      : clients;
+    return list.slice(0, 8);
+  }, [clients, clientQuery]);
+
+  // ── Open invoices for the chosen customer (spec §3: only Unpaid / Overdue /
+  // Partially Paid with a balance; Paid & Void never appear). ────────────────
+  const openInvoices = useMemo(
+    () => invoices.filter((i) => i.clientName === customerName && i.balance > 0 && i.status !== "Paid" && i.status !== "Void"),
+    [invoices, customerName]
   );
-  // Collect what's actually owed: balance when there is one, else the total.
-  const owed = (i: { balance: number; total: number }) => (i.balance > 0 ? i.balance : i.total);
-  const total = selectedInvoices.reduce((s, i) => s + owed(i), 0);
 
-  const visibleRows = useMemo(() => {
-    const q = tableSearch.trim().toLowerCase();
-    if (!q) return selectedInvoices;
-    return selectedInvoices.filter(
-      (i) => i.number.toLowerCase().includes(q) || i.jobNumber.toLowerCase().includes(q) || i.jobName.toLowerCase().includes(q)
-    );
-  }, [selectedInvoices, tableSearch]);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  // Preselect the launch invoice once (if it's one of the customer's open ones).
+  useEffect(() => {
+    if (!paramInvoice) return;
+    const inv = openInvoices.find((i) => i.number === paramInvoice);
+    if (inv) setSelectedIds(new Set([inv.id]));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paramInvoice, customerName]);
 
-  // Candidate invoices for the Add-invoice modal — scoped to the client when we
-  // have one, else the whole catalog; further narrowed by the modal search.
-  const candidateInvoices = useMemo(() => {
-    const c = client.trim().toLowerCase();
-    // Exact client match (not substring) so e.g. "Apple" doesn't pull "Pineapple".
-    const byClient = c ? allInvoices.filter((i) => i.clientName.trim().toLowerCase() === c) : [];
-    const base = byClient.length > 0 ? byClient : allInvoices;
-    const q = modalSearch.trim().toLowerCase();
-    return q
-      ? base.filter((i) => i.number.toLowerCase().includes(q) || i.jobNumber.toLowerCase().includes(q) || i.jobName.toLowerCase().includes(q) || i.clientName.toLowerCase().includes(q))
-      : base;
-  }, [allInvoices, client, modalSearch]);
+  const toggleInvoice = (id: number) =>
+    setSelectedIds((prev) => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
-  const openAddModal = () => { setModalChecked(new Set(selectedInvoiceIds)); setModalSearch(""); setAddOpen(true); };
-  const toggleModal = (id: number) => setModalChecked((prev) => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
-  const confirmAdd = () => { setSelectedInvoiceIds(new Set(modalChecked)); setAddOpen(false); };
-  const removeInvoice = (id: number) => setSelectedInvoiceIds((prev) => { const n = new Set(prev); n.delete(id); return n; });
+  const selectedInvoices = useMemo(() => openInvoices.filter((i) => selectedIds.has(i.id)), [openInvoices, selectedIds]);
+  const selectedCount = selectedInvoices.length;
+  const balanceSum = round2(selectedInvoices.reduce((s, i) => s + i.balance, 0));
+  const singleInvoice = selectedCount === 1 ? selectedInvoices[0] : null;
 
-  const handleSave = () => {
-    const isoDate = dmyToISO(dateText);
-    if (!isoDate) { toast.error("Enter the payment date (DD.MM.YYYY)"); return; }
-    if (selectedInvoices.length === 0) { toast.error("Add at least one invoice"); return; }
-    if (total <= 0) { toast.error("The selected invoices have nothing due"); return; }
-
-    if (isCard) {
-      if (cardDigits.length < 13) { toast.error("Enter a valid card number"); return; }
-      if (!/^\d{2}\s*\/\s*\d{2}$/.test(cardExpiry)) { toast.error("Enter expiry as MM / YY"); return; }
-      if (cardCvc.replace(/\D/g, "").length < 3) { toast.error("Enter the card's CVC"); return; }
-      if (!cardName.trim()) { toast.error("Enter the cardholder name"); return; }
-      if (!/^\d{5}(-\d{4})?$/.test(cardZip.trim())) { toast.error("Enter the billing ZIP"); return; }
-    } else if (!reference.trim()) {
-      toast.error("Enter the transaction number"); return;
+  // ── Amount (spec §5 — the core rule) ───────────────────────────────────────
+  // 0 selected → disabled. 1 → editable, default & max = balance (partial ok).
+  // 2+ → read-only sum of balances (full payment of all only).
+  const [amountInput, setAmountInput] = useState("");
+  // Default the amount to the invoice's balance only when a *different* single
+  // invoice becomes selected — this preserves the user's edit if they deselect
+  // and re-select the same invoice.
+  const lastDefaultedId = useRef<number | null>(null);
+  useEffect(() => {
+    if (singleInvoice && singleInvoice.id !== lastDefaultedId.current) {
+      setAmountInput(String(singleInvoice.balance));
+      lastDefaultedId.current = singleInvoice.id;
     }
+  }, [singleInvoice?.id]);
 
-    // For a card charge the "reference" stores a masked last-4, never the full
-    // PAN. External methods keep the user's transaction / reference number.
-    const ref = isCard ? `Card ···· ${cardDigits.slice(-4)}` : reference.trim();
+  const parsedAmount = round2(parseFloat(amountInput) || 0);
+  const amount = selectedCount === 0 ? 0 : selectedCount === 1 ? parsedAmount : balanceSum;
+  const amountMax = selectedCount === 1 ? (singleInvoice?.balance ?? 0) : balanceSum;
+  const amountValid = amount > 0 && amount <= amountMax + 0.001;
+  const singleRemaining = singleInvoice ? round2(singleInvoice.balance - amount) : 0;
 
-    const effectiveClient = client.trim() || selectedInvoices[0]?.clientName || "—";
+  // ── Payment method ─────────────────────────────────────────────────────────
+  const paramMethod = searchParams.get("method") || "";
+  const [method, setMethod] = useState<Method>(
+    (METHOD_OPTIONS as readonly string[]).includes(paramMethod) ? (paramMethod as Method) : "Cash"
+  );
+  const [checkNumber, setCheckNumber] = useState("");
+  const [refNumber, setRefNumber] = useState("");
+  const [refDateISO, setRefDateISO] = useState(todayISO());
+  const [cardLinkSent, setCardLinkSent] = useState(false);
+  useEffect(() => { setCardLinkSent(false); }, [method]); // reset the on-file link when method changes
 
-    const record = paymentsStore.add({
-      date: isoDate,
-      amount: total,
-      method: method as PaymentMethod,
-      status: "Completed" as PaymentStatus,
-      clientName: effectiveClient,
-      clientEmail: searchParams.get("clientEmail") || selectedInvoices[0]?.customerEmail || "",
-      invoiceId: selectedInvoices[0]?.id ?? 0,
-      invoiceNumber: selectedInvoices[0]?.number || "—",
-      jobId: searchParams.get("job") || selectedInvoices[0]?.jobNumber || "",
-      // Estimates / jobs trace back through the selected invoices (list columns).
-      estimateNumbers: selectedInvoices.map((i) => i.linkedEstimate).filter(Boolean),
-      jobIds: selectedInvoices.map((i) => i.jobNumber).filter(Boolean),
-      reference: ref,
-      note: note.trim(),
-      createdBy: "You",
+  const onFile = method === "Credit card — on file";
+  // Prototype: no cards are ever stored → the on-file path always routes through
+  // "Send link to collect card" and can't complete a charge here (spec §4).
+  const needsCheck = method === "Check";
+  const needsRef = REF_METHODS.includes(method);
+
+  const methodComplete =
+    onFile ? false // never collectable in-form (waiting on the customer's card)
+    : needsCheck ? checkNumber.trim().length > 0
+    : needsRef ? refNumber.trim().length > 0 && !!refDateISO
+    : true; // card reader / manually / cash
+
+  const canCollect = !!customerName && selectedCount > 0 && amountValid && methodComplete;
+
+  // ── Per-invoice payment plan (invariant: one payment ↔ one invoice) ─────────
+  const plan = useMemo(
+    () => selectedInvoices.map((inv) => {
+      const pay = selectedCount === 1 ? amount : inv.balance;
+      return { inv, pay: round2(pay), after: round2(inv.balance - pay) };
+    }),
+    [selectedInvoices, selectedCount, amount]
+  );
+
+  const handleCollect = () => {
+    if (!canCollect) return;
+    if (plan.some((p) => p.after < -0.001)) { toast.error("Payment exceeds the invoice balance."); return; }
+    const stored = canonicalMethod(method);
+    const isoDate = needsRef ? refDateISO : todayISO();
+    const ref = needsCheck ? `Check #${checkNumber.trim()}` : needsRef ? refNumber.trim() : isCardMethod(method) ? "Card charge" : "";
+
+    plan.forEach(({ inv, pay, after }) => {
+      const newBalance = Math.max(0, after);
+      invoicesStore.update(inv.id, {
+        balance: newBalance,
+        status: newBalance <= 0 ? "Paid" : "Partially Paid",
+        paymentMethod: stored,
+        ...(needsCheck ? { checkNumber: checkNumber.trim() } : {}),
+      });
+      paymentsStore.add({
+        date: isoDate,
+        amount: pay,
+        balance: newBalance, // outstanding balance on the invoice AFTER this payment
+        method: stored as PaymentMethod,
+        status: "Completed" as PaymentStatus,
+        clientName: customerName,
+        clientEmail: customerEmail,
+        invoiceId: inv.id,
+        invoiceNumber: inv.number,
+        jobId: inv.jobNumber || paramJob || "",
+        estimateNumbers: inv.linkedEstimate ? [inv.linkedEstimate] : [],
+        jobIds: inv.jobNumber ? [inv.jobNumber] : [],
+        reference: ref,
+        note: "",
+        createdBy: "You",
+      });
     });
-    toast.success(isCharge ? `Charged ${money(total)}` : "Payment recorded");
-    // From the main Payments list (no returnTo) return to the list — consistent
-    // with Estimate/Invoice create. Contextual flows (client/invoice) pass returnTo.
+
+    toast.success(`Payment collected — ${money(amount)}`);
     navigate(returnTo || "/payments");
   };
 
@@ -169,251 +228,253 @@ export function CreatePayment() {
   const labelCls = "block text-[14px] text-[#1A2332] mb-1";
   const inputCls = "w-full h-9 px-3 border border-[#E5E7EB] rounded-lg text-[14px] text-[#1A2332] bg-white shadow-[0px_1px_2px_rgba(0,0,0,0.05)] focus:outline-none focus:border-[#4A6FA5]";
 
-  // Disable the submit button until the form is minimally valid (Figma: muted by default).
-  const dateValid = !!dmyToISO(dateText);
-  const cardValid = cardDigits.length >= 13 && /^\d{2}\s*\/\s*\d{2}$/.test(cardExpiry) && cardCvc.replace(/\D/g, "").length >= 3 && !!cardName.trim() && /^\d{5}(-\d{4})?$/.test(cardZip.trim());
-  const methodValid = isCard ? cardValid : reference.trim().length > 0;
-  const canSubmit = dateValid && selectedInvoices.length > 0 && total > 0 && methodValid;
-
-  const Badge = ({ status }: { status: string }) => (
+  const Chip = ({ status }: { status: string }) => (
     <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-[12px] whitespace-nowrap" style={{ fontWeight: 500, ...invoiceStatusStyle(status) }}>{status}</span>
+  );
+
+  const SectionTitle = ({ children }: { children: React.ReactNode }) => (
+    <h2 className="shrink-0 w-[180px] text-[16px] text-[#1A2332]" style={{ fontWeight: 600 }}>{children}</h2>
   );
 
   return (
     <div className="min-h-screen bg-[#F5F7FA]">
       <div className="mx-auto w-full max-w-[1200px]">
-        {/* page_header — back chevron + title + "for <client>" inline */}
+        {/* page_header */}
         <div className="flex items-center justify-between py-6 px-4">
           <div className="flex items-center gap-2">
             <button onClick={goBack} aria-label="Back" className="w-9 h-9 flex items-center justify-center rounded-lg text-[#1A2332] hover:bg-[#EDF0F5]">
               <span className="material-icons" style={{ fontSize: "20px" }}>chevron_left</span>
             </button>
-            <div className="flex items-end gap-2">
-              <h1 className="text-[24px] text-[#1A2332]" style={{ fontWeight: 600, lineHeight: "1.35" }}>
-                {isCharge ? "Collect payment" : "Record payment"}
-              </h1>
-              {client && <span className="text-[16px] text-[#6B7280] pb-0.5 leading-6">for {client}</span>}
-            </div>
+            <h1 className="text-[24px] text-[#1A2332]" style={{ fontWeight: 600, lineHeight: "1.35" }}>Collect payment</h1>
           </div>
         </div>
 
-        {/* table_container */}
         <div className="px-4 pb-6">
           <div className="bg-white border border-[#E5E7EB] rounded-xl p-4 flex flex-col gap-6">
-            {/* ── Details ── */}
-            <section className="flex justify-between gap-16 pb-6 border-b border-[#E5E7EB]">
-              <h2 className="shrink-0 text-[16px] text-[#1A2332]" style={{ fontWeight: 600 }}>Details {reqStar}</h2>
-              <div className="w-[777px] max-w-full flex flex-col gap-4">
-                <div className="flex gap-4">
-                  <div className="flex-1">
-                    <label className={labelCls} style={{ fontWeight: 500 }}>Payment date {reqStar}</label>
-                    <div className="relative">
-                      <input type="text" inputMode="numeric" maxLength={10} value={dateText} onChange={(e) => setDateText(e.target.value)} placeholder="DD.MM.YYYY" className={`${inputCls} pr-9`} />
-                      <input type="date" aria-label="Payment date" value={dmyToISO(dateText)} onChange={(e) => setDateText(isoToDMY(e.target.value))} className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 cursor-pointer opacity-0" />
-                      <span className="material-icons pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[#6B7280]" style={{ fontSize: "18px" }}>calendar_today</span>
-                    </div>
-                  </div>
-                  <div className="flex-1">
-                    <label className={labelCls} style={{ fontWeight: 500 }}>Payment method {reqStar}</label>
-                    <select value={method} onChange={(e) => setMethod(e.target.value)} className={inputCls}>
-                      {paymentMethods.map((option) => <option key={option} value={option}>{option}</option>)}
-                    </select>
-                  </div>
-                </div>
 
-                {/* Card-entry fields show for card-type methods (live charge). */}
-                {isCard && (
-                  <>
-                    <div>
-                      <label className={labelCls} style={{ fontWeight: 500 }}>Card number {reqStar}</label>
-                      <input value={cardNumber} inputMode="numeric" autoComplete="off"
-                        onChange={(e) => setCardNumber(e.target.value.replace(/[^\d ]/g, "").slice(0, 19))}
-                        placeholder="1234 1234 1234 1234" className={`${inputCls} tabular-nums`} />
-                    </div>
-                    <div className="flex gap-4">
-                      <div className="flex-1">
-                        <label className={labelCls} style={{ fontWeight: 500 }}>Expiry {reqStar}</label>
-                        <input value={cardExpiry} inputMode="numeric" autoComplete="off"
-                          onChange={(e) => setCardExpiry(e.target.value.replace(/[^\d /]/g, "").slice(0, 7))}
-                          placeholder="08 / 27" className={`${inputCls} tabular-nums`} />
+            {/* ── Customer ── */}
+            <section className="flex justify-between gap-8 pb-6 border-b border-[#E5E7EB]">
+              <SectionTitle>Customer {reqStar}</SectionTitle>
+              <div className="flex-1 max-w-[777px]">
+                {customerName && !searching ? (
+                  <div className="flex items-center justify-between gap-3 border border-[#E5E7EB] rounded-lg px-3 py-2.5">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-[13px] shrink-0" style={{ fontWeight: 600, backgroundColor: customer?.avatarColor || "#4A6FA5" }}>
+                        {customer?.initials || customerName.slice(0, 2).toUpperCase()}
                       </div>
-                      <div className="flex-1">
-                        <label className={labelCls} style={{ fontWeight: 500 }}>CVC {reqStar}</label>
-                        <input value={cardCvc} inputMode="numeric" autoComplete="off"
-                          onChange={(e) => setCardCvc(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                          placeholder="123" className={`${inputCls} tabular-nums`} />
+                      <div className="min-w-0">
+                        <div className="text-[14px] text-[#1A2332] truncate" style={{ fontWeight: 500 }}>{customerName}</div>
+                        <div className="flex items-center gap-3 text-[12px] text-[#6B7280]">
+                          {customerEmail && <span className="inline-flex items-center gap-1 truncate"><span className="material-icons" style={{ fontSize: "14px" }}>mail</span>{customerEmail}</span>}
+                          {customerPhone && <span className="inline-flex items-center gap-1 whitespace-nowrap"><span className="material-icons" style={{ fontSize: "14px" }}>call</span>{customerPhone}</span>}
+                        </div>
                       </div>
                     </div>
-                    <div className="flex gap-4">
-                      <div className="flex-1">
-                        <label className={labelCls} style={{ fontWeight: 500 }}>Cardholder name {reqStar}</label>
-                        <input value={cardName} autoComplete="off" onChange={(e) => setCardName(e.target.value)} placeholder="Name on card" className={inputCls} />
-                      </div>
-                      <div className="flex-1">
-                        <label className={labelCls} style={{ fontWeight: 500 }}>Billing ZIP {reqStar}</label>
-                        <input value={cardZip} inputMode="numeric" autoComplete="off"
-                          onChange={(e) => setCardZip(e.target.value.replace(/[^\d-]/g, "").slice(0, 10))}
-                          placeholder="33606" className={`${inputCls} tabular-nums`} />
-                      </div>
-                    </div>
-                  </>
-                )}
-
-                {/* External methods (cash/check/etc.) — Transaction number per Marek (Jun 11). */}
-                {!isCharge && (
+                    <button onClick={() => { setSearching(true); setClientQuery(""); }} className="text-[13px] text-[#4A6FA5] hover:underline shrink-0" style={{ fontWeight: 500 }}>Change</button>
+                  </div>
+                ) : (
                   <div>
-                    <label className={labelCls} style={{ fontWeight: 500 }}>Transaction number {reqStar}</label>
-                    <input value={reference} onChange={(e) => setReference(e.target.value)} placeholder="e.g. check #, Venmo confirmation…" className={inputCls} />
+                    <label className={labelCls} style={{ fontWeight: 500 }}>Search customer</label>
+                    <div className="relative">
+                      <span className="material-icons absolute left-2.5 top-1/2 -translate-y-1/2 text-[#6B7280]" style={{ fontSize: "16px" }}>search</span>
+                      <input autoFocus value={clientQuery} onChange={(e) => setClientQuery(e.target.value)} placeholder="Search by name, email or phone…" className={`${inputCls} pl-8`} />
+                    </div>
+                    <div className="mt-2 border border-[#E5E7EB] rounded-lg divide-y divide-[#EDF0F5] max-h-[240px] overflow-y-auto">
+                      {clientMatches.length === 0 ? (
+                        <div className="px-3 py-4 text-center text-[13px] text-[#9CA3AF]">No customers found</div>
+                      ) : clientMatches.map((c) => (
+                        <button key={c.id} onClick={() => { setCustomerName(c.name); setSearching(false); setSelectedIds(new Set()); }} className="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-[#F9FBFD]">
+                          <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[12px] shrink-0" style={{ fontWeight: 600, backgroundColor: c.avatarColor || "#4A6FA5" }}>{c.initials || c.name.slice(0, 2).toUpperCase()}</div>
+                          <div className="min-w-0">
+                            <div className="text-[14px] text-[#1A2332] truncate" style={{ fontWeight: 500 }}>{c.name}</div>
+                            <div className="text-[12px] text-[#6B7280] truncate">{c.email || c.mobilePhone || c.phone}</div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
             </section>
 
-            {/* ── Invoices ── */}
-            <section className="flex justify-between gap-16 pb-6 border-b border-[#E5E7EB]">
-              <h2 className="shrink-0 text-[16px] text-[#1A2332]" style={{ fontWeight: 600 }}>Invoices {reqStar}</h2>
-              <div className="w-[777px] max-w-full">
-                <div className="border border-[#E5E7EB] rounded-xl overflow-hidden">
-                  {/* header: search + Add invoice */}
-                  <div className="flex items-center justify-between gap-2 px-4 h-[60px]">
-                    <div className="relative w-[300px] max-w-[60%]">
-                      <span className="material-icons absolute left-2.5 top-1/2 -translate-y-1/2 text-[#6B7280]" style={{ fontSize: "16px" }}>search</span>
-                      <input value={tableSearch} onChange={(e) => setTableSearch(e.target.value)} placeholder="Search invoices…" className="w-full h-8 pl-8 pr-2 border border-[#E5E7EB] rounded-lg text-[14px] text-[#1A2332] bg-white shadow-[0px_1px_2px_rgba(0,0,0,0.05)] focus:outline-none focus:border-[#4A6FA5]" />
+            {/* ── Invoices to pay ── */}
+            <section className="flex justify-between gap-8 pb-6 border-b border-[#E5E7EB]">
+              <SectionTitle>Invoices to pay {reqStar}</SectionTitle>
+              <div className="flex-1 max-w-[777px]">
+                {!customerName ? (
+                  <div className="border border-[#E5E7EB] rounded-lg py-10 text-center text-[13px] text-[#6B7280]">Select a customer to see their open invoices</div>
+                ) : openInvoices.length === 0 ? (
+                  <div className="border border-[#E5E7EB] rounded-lg flex flex-col items-center gap-3 py-10">
+                    <div className="w-10 h-10 rounded-full border border-[#E5E7EB] flex items-center justify-center">
+                      <span className="material-icons text-[#1A2332]" style={{ fontSize: "18px" }}>receipt_long</span>
                     </div>
-                    <Button type="button" onClick={openAddModal} className="bg-[#4A6FA5] hover:bg-[#3d5a85] text-white h-8 px-3 rounded-lg text-[14px] inline-flex items-center gap-1.5" style={{ fontWeight: 500 }}>
-                      <span className="material-icons" style={{ fontSize: "16px" }}>add_circle_outline</span>
-                      Add invoice
-                    </Button>
+                    <div className="text-[14px] text-[#1A2332]">No open invoices for this customer</div>
+                    <Button type="button" onClick={() => navigate(`/invoices/new?client=${encodeURIComponent(customerName)}`)} className="bg-[#4A6FA5] hover:bg-[#3d5a85] text-white h-8 px-3 rounded-lg text-[14px]" style={{ fontWeight: 500 }}>Create invoice</Button>
                   </div>
-
-                  {selectedInvoices.length === 0 ? (
-                    /* empty-state */
-                    <div className="border-t border-[#E5E7EB] flex flex-col items-center gap-4 py-[45px]">
-                      <div className="w-10 h-10 rounded-full border border-[#E5E7EB] flex items-center justify-center">
-                        <span className="material-icons text-[#1A2332]" style={{ fontSize: "16px" }}>description</span>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-[14px] text-[#1A2332]">No invoices added yet</div>
-                        <div className="text-[12px] text-[#6B7280] mt-1">Click "Add invoice" to select from catalog</div>
-                      </div>
-                    </div>
-                  ) : (
-                    <table className="w-full text-[14px] border-t border-[#E5E7EB]">
+                ) : (
+                  <div className="border border-[#E5E7EB] rounded-lg overflow-hidden">
+                    <table className="w-full text-[14px]">
                       <thead>
-                        <tr className="bg-[#F5F7FA] border-b border-[#E5E7EB] text-left text-[14px] text-[#1A2332]">
-                          <th className="px-3 py-2" style={{ fontWeight: 500 }}>Number</th>
-                          <th className="px-3 py-2" style={{ fontWeight: 500 }}>Job</th>
-                          <th className="px-3 py-2" style={{ fontWeight: 500 }}>Status</th>
-                          <th className="px-3 py-2" style={{ fontWeight: 500 }}>Due date</th>
+                        <tr className="bg-[#F5F7FA] border-b border-[#E5E7EB] text-left text-[#1A2332]">
+                          <th className="w-10 px-3 py-2" />
+                          <th className="px-3 py-2" style={{ fontWeight: 500 }}>Invoice</th>
+                          <th className="px-3 py-2" style={{ fontWeight: 500 }}>Date</th>
                           <th className="px-3 py-2 text-right" style={{ fontWeight: 500 }}>Total</th>
-                          <th className="w-12 px-3 py-2" />
+                          <th className="px-3 py-2 text-right" style={{ fontWeight: 500 }}>Balance</th>
+                          <th className="px-3 py-2" style={{ fontWeight: 500 }}>Status</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {visibleRows.length === 0 ? (
-                          <tr><td colSpan={6} className="px-3 py-6 text-center text-[13px] text-[#9CA3AF]">No matches</td></tr>
-                        ) : visibleRows.map((i) => (
-                          <tr key={i.id} className="border-b border-[#E5E7EB] last:border-0">
+                        {openInvoices.map((i) => (
+                          <tr key={i.id} className="border-b border-[#E5E7EB] last:border-0 cursor-pointer hover:bg-[#F9FBFD]" onClick={() => toggleInvoice(i.id)}>
                             <td className="px-3 py-2.5 align-middle">
-                              <span className="text-[#4A6FA5]" style={{ fontWeight: 500 }}>{i.number}</span>
+                              <input type="checkbox" checked={selectedIds.has(i.id)} onChange={() => toggleInvoice(i.id)} onClick={(e) => e.stopPropagation()} className="w-4 h-4 rounded accent-[#4A6FA5] cursor-pointer" />
                             </td>
-                            <td className="px-3 py-2.5 align-middle">
-                              {i.jobNumber ? (
-                                <>
-                                  <div className="text-[#4A6FA5] text-[14px]" style={{ fontWeight: 500 }}>{i.jobNumber}</div>
-                                  <div className="text-[14px] text-[#1A2332]">{i.jobName}</div>
-                                </>
-                              ) : <span className="text-[#9CA3AF]">—</span>}
-                            </td>
-                            <td className="px-3 py-2.5 align-middle"><Badge status={i.status} /></td>
-                            <td className="px-3 py-2.5 align-middle text-[#1A2332] whitespace-nowrap">{fmtLongDate(i.dueDate)}</td>
-                            <td className="px-3 py-2.5 align-middle text-right text-[#1A2332]" style={{ fontWeight: 600 }}>{money(i.total)}</td>
-                            <td className="px-3 py-2.5 align-middle text-right">
-                              <KebabMenu>
-                                <KebabItem icon="visibility" onSelect={() => navigate(`/invoices/${i.id}`)}>View invoice</KebabItem>
-                                <KebabItem icon="open_in_new" onSelect={() => window.open(`/invoices/${i.id}`, "_blank", "noopener,noreferrer")}>Open in new tab</KebabItem>
-                                <KebabItem icon="close" destructive onSelect={() => removeInvoice(i.id)}>Remove</KebabItem>
-                              </KebabMenu>
-                            </td>
+                            <td className="px-3 py-2.5 align-middle text-[#4A6FA5]" style={{ fontWeight: 500 }}>{i.number}</td>
+                            <td className="px-3 py-2.5 align-middle text-[#1A2332] whitespace-nowrap">{fmtLongDate(i.date)}</td>
+                            <td className="px-3 py-2.5 align-middle text-right text-[#1A2332]">{money(i.total)}</td>
+                            <td className="px-3 py-2.5 align-middle text-right text-[#1A2332]" style={{ fontWeight: 600 }}>{money(i.balance)}</td>
+                            <td className="px-3 py-2.5 align-middle"><Chip status={i.status} /></td>
                           </tr>
                         ))}
                       </tbody>
-                      <tfoot>
-                        <tr className="bg-[#F5F7FA]">
-                          <td colSpan={6} className="px-4 py-3 text-right text-[14px] text-[#1A2332]">
-                            Total: <span style={{ fontWeight: 600 }}>{money(total)}</span>
-                          </td>
-                        </tr>
-                      </tfoot>
                     </table>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             </section>
 
-            {/* ── Notes ── */}
-            <section className="flex justify-between gap-16 pb-6 border-b border-[#E5E7EB]">
-              <h2 className="shrink-0 text-[16px] text-[#1A2332]" style={{ fontWeight: 600 }}>Notes</h2>
-              <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Add any relevant notes…"
-                className="w-[777px] max-w-full h-[76px] px-3 py-2 border border-[#E5E7EB] rounded-lg text-[14px] text-[#1A2332] bg-white shadow-[0px_1px_2px_rgba(0,0,0,0.05)] focus:outline-none focus:border-[#4A6FA5] resize-y" />
+            {/* ── Payment method ── */}
+            <section className="flex justify-between gap-8 pb-6 border-b border-[#E5E7EB]">
+              <SectionTitle>Payment method {reqStar}</SectionTitle>
+              <div className="flex-1 max-w-[777px] flex flex-col gap-4">
+                <div>
+                  <label className={labelCls} style={{ fontWeight: 500 }}>Method {reqStar}</label>
+                  <select value={method} onChange={(e) => setMethod(e.target.value as Method)} className={inputCls}>
+                    {METHOD_OPTIONS.map((m) => <option key={m} value={m}>{m}</option>)}
+                  </select>
+                </div>
+
+                {/* Card reader / manually — fee hint, mock processing on submit. */}
+                {isCardMethod(method) && !onFile && (
+                  <div className="flex items-start gap-2 rounded-lg bg-[#F5F7FA] border border-[#E5E7EB] px-3 py-2.5 text-[13px] text-[#6B7280]">
+                    <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "18px" }}>{method.includes("reader") ? "point_of_sale" : "keyboard"}</span>
+                    <span>{method.includes("reader") ? "Card reader — lower processing fee. The card will be charged on submit." : "Keyed entry — higher processing fee. The card will be charged on submit."}</span>
+                  </div>
+                )}
+
+                {/* Card on file — no stored card in the prototype → send a link. */}
+                {onFile && (
+                  <div className="rounded-lg bg-[#F5F7FA] border border-[#E5E7EB] px-3 py-3 flex flex-col gap-2">
+                    {!cardLinkSent ? (
+                      <>
+                        <div className="text-[13px] text-[#1A2332]">No card on file for this customer.</div>
+                        <div className="flex items-center gap-2">
+                          <Button type="button" onClick={() => setCardLinkSent(true)} className="bg-[#4A6FA5] hover:bg-[#3d5a85] text-white h-8 px-3 rounded-lg text-[13px] inline-flex items-center gap-1.5" style={{ fontWeight: 500 }}>
+                            <span className="material-icons" style={{ fontSize: "16px" }}>send</span>
+                            Send link to collect card
+                          </Button>
+                          <span className="text-[12px] text-[#6B7280]">via SMS / email</span>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="flex items-start gap-2 text-[13px] text-[#6B7280]">
+                        <span className="material-icons text-[#D97706]" style={{ fontSize: "18px" }}>schedule</span>
+                        <span>Link sent — waiting for {customerName || "the customer"} to add their card. You can collect once it's on file.</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Check number */}
+                {needsCheck && (
+                  <div>
+                    <label className={labelCls} style={{ fontWeight: 500 }}>Check number {reqStar}</label>
+                    <input value={checkNumber} onChange={(e) => setCheckNumber(e.target.value)} placeholder="e.g. 4582" className={inputCls} />
+                  </div>
+                )}
+
+                {/* External methods — reference number + date (money moved outside the app). */}
+                {needsRef && (
+                  <div className="flex gap-4">
+                    <div className="flex-1">
+                      <label className={labelCls} style={{ fontWeight: 500 }}>Reference number {reqStar}</label>
+                      <input value={refNumber} onChange={(e) => setRefNumber(e.target.value)} placeholder="e.g. confirmation #" className={inputCls} />
+                    </div>
+                    <div className="flex-1">
+                      <label className={labelCls} style={{ fontWeight: 500 }}>Date {reqStar}</label>
+                      <div className="relative">
+                        <input type="text" inputMode="numeric" value={isoToDMY(refDateISO)} onChange={(e) => setRefDateISO(dmyToISO(e.target.value))} placeholder="DD.MM.YYYY" className={`${inputCls} pr-9`} />
+                        <input type="date" aria-label="Date" value={refDateISO} onChange={(e) => setRefDateISO(e.target.value)} className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 cursor-pointer opacity-0" />
+                        <span className="material-icons pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[#6B7280]" style={{ fontSize: "18px" }}>calendar_today</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
             </section>
+
+            {/* ── Amount ── */}
+            <section className="flex justify-between gap-8 pb-6 border-b border-[#E5E7EB]">
+              <SectionTitle>Amount {reqStar}</SectionTitle>
+              <div className="flex-1 max-w-[777px]">
+                <div className="max-w-[280px]">
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[14px] text-[#6B7280]">$</span>
+                    {selectedCount === 1 ? (
+                      <input
+                        type="number" min={0} max={amountMax} step="0.01" value={amountInput}
+                        onChange={(e) => setAmountInput(e.target.value)}
+                        className={`${inputCls} pl-6 tabular-nums`} />
+                    ) : (
+                      <input
+                        readOnly disabled={selectedCount === 0}
+                        value={selectedCount === 0 ? "" : balanceSum.toFixed(2)}
+                        placeholder={selectedCount === 0 ? "0.00" : undefined}
+                        className={`${inputCls} pl-6 tabular-nums bg-[#F5F7FA] text-[#6B7280]`} />
+                    )}
+                  </div>
+                </div>
+                {selectedCount === 0 && (
+                  <p className="mt-1.5 text-[12px] text-[#9CA3AF]">Select an invoice to set the amount.</p>
+                )}
+                {selectedCount === 1 && amount > 0 && singleRemaining > 0 && (
+                  <p className="mt-1.5 text-[12px] text-[#6B7280]">Balance after payment: <span className="text-[#1A2332]" style={{ fontWeight: 500 }}>{money(singleRemaining)}</span></p>
+                )}
+                {selectedCount >= 2 && (
+                  <p className="mt-1.5 text-[12px] text-[#6B7280]">Sum of {selectedCount} balances. To pay partially, select a single invoice.</p>
+                )}
+              </div>
+            </section>
+
+            {/* ── Summary ── */}
+            {canCollect && (
+              <section className="flex justify-between gap-8 pb-6 border-b border-[#E5E7EB]">
+                <SectionTitle>Summary</SectionTitle>
+                <div className="flex-1 max-w-[777px] border border-[#E5E7EB] rounded-lg divide-y divide-[#EDF0F5]">
+                  {plan.map(({ inv, after }) => (
+                    <div key={inv.id} className="flex items-center justify-between px-3 py-2.5 text-[14px]">
+                      <span className="text-[#4A6FA5]" style={{ fontWeight: 500 }}>{inv.number}</span>
+                      <span className="flex items-center gap-2 text-[#1A2332]">
+                        <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "16px" }}>arrow_forward</span>
+                        {after <= 0
+                          ? <span className="inline-flex items-center gap-1"><Chip status="Paid" /><span className="text-[12px] text-[#6B7280]">removed from open invoices</span></span>
+                          : <span>Partially paid — balance <span style={{ fontWeight: 600 }}>{money(after)}</span></span>}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
 
             {/* ── Actions ── */}
             <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={goBack}
-                className="border-[#E5E7EB] bg-white text-[#1A2332] hover:bg-[#F5F7FA] h-9 px-4 text-[14px] rounded-lg">
-                Cancel
-              </Button>
-              <Button type="button" onClick={handleSave} disabled={!canSubmit}
-                className="bg-[#4A6FA5] hover:bg-[#3d5a85] text-white h-9 px-4 text-[14px] rounded-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#4A6FA5]">
-                {isCharge ? "Collect payment" : "Record payment"}
-              </Button>
+              <Button type="button" variant="outline" onClick={goBack} className="border-[#E5E7EB] bg-white text-[#1A2332] hover:bg-[#F5F7FA] h-9 px-4 text-[14px] rounded-lg">Cancel</Button>
+              <Button type="button" onClick={handleCollect} disabled={!canCollect} className="bg-[#4A6FA5] hover:bg-[#3d5a85] text-white h-9 px-4 text-[14px] rounded-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#4A6FA5]">Collect payment</Button>
             </div>
           </div>
         </div>
       </div>
-
-      {/* ── Add invoice modal (576px) ── */}
-      {addOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={() => setAddOpen(false)}>
-          <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" />
-          <div className="relative bg-white border border-[#E5E7EB] rounded-xl shadow-[0px_10px_15px_-3px_rgba(0,0,0,0.1),0px_4px_6px_-4px_rgba(0,0,0,0.1)] w-[576px] max-w-[92vw] max-h-[85vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-4 py-4">
-              <h2 className="text-[20px] text-[#1A2332]" style={{ fontWeight: 600, lineHeight: "1.35" }}>Add invoice</h2>
-              <button onClick={() => setAddOpen(false)} aria-label="Close" className="w-6 h-6 flex items-center justify-center rounded text-[#1A2332] hover:bg-[#F3F4F6]">
-                <span className="material-icons" style={{ fontSize: "18px" }}>close</span>
-              </button>
-            </div>
-            <div className="px-4 pb-1 flex flex-col gap-4 overflow-y-auto">
-              <div className="relative">
-                <span className="material-icons absolute left-2.5 top-1/2 -translate-y-1/2 text-[#6B7280]" style={{ fontSize: "16px" }}>search</span>
-                <input value={modalSearch} onChange={(e) => setModalSearch(e.target.value)} placeholder="Search invoices…" className="w-full h-9 pl-8 pr-2 border border-[#E5E7EB] rounded-lg text-[14px] text-[#1A2332] bg-white shadow-[0px_1px_2px_rgba(0,0,0,0.05)] focus:outline-none focus:border-[#4A6FA5]" />
-              </div>
-              {candidateInvoices.length === 0 ? (
-                <div className="py-8 text-center text-[13px] text-[#9CA3AF]">No invoices found</div>
-              ) : candidateInvoices.map((i) => (
-                <label key={i.id} className="flex items-start gap-3 p-3 border border-[#E5E7EB] rounded-[10px] cursor-pointer hover:bg-[#F9FBFD]">
-                  <input type="checkbox" checked={modalChecked.has(i.id)} onChange={() => toggleModal(i.id)} className="mt-0.5 w-4 h-4 rounded accent-[#4A6FA5] cursor-pointer" />
-                  <div className="flex-1 min-w-0 flex flex-col gap-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[#4A6FA5] text-[12px]" style={{ fontWeight: 500 }}>{i.number}</span>
-                      <Badge status={i.status} />
-                    </div>
-                    {i.jobNumber && <div className="text-[#4A6FA5] text-[12px]" style={{ fontWeight: 500 }}>{i.jobNumber}</div>}
-                    <div className="text-[14px] text-[#1A2332]">{i.jobName || i.clientName}</div>
-                    <div className="text-[12px] text-[#6B7280]">Due date: {fmtLongDate(i.dueDate)}</div>
-                  </div>
-                  <div className="text-[14px] text-[#1A2332] flex-shrink-0" style={{ fontWeight: 600 }}>{money(i.total)}</div>
-                </label>
-              ))}
-            </div>
-            <div className="flex items-center justify-end gap-2 px-4 py-4">
-              <Button type="button" variant="outline" onClick={() => setAddOpen(false)} className="border-[#E5E7EB] bg-white text-[#1A2332] hover:bg-[#F5F7FA] h-9 px-4 text-[14px] rounded-lg">Cancel</Button>
-              <Button type="button" onClick={confirmAdd} className="bg-[#4A6FA5] hover:bg-[#3d5a85] text-white h-9 px-4 text-[14px] rounded-lg">Save</Button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

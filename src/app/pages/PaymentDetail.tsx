@@ -641,7 +641,7 @@ export function PaymentDetail() {
           trailing={
             <>
               <button
-                onClick={() => navigate(`/payments/new?client=${encodeURIComponent(payment.clientName)}&invoice=${encodeURIComponent(payment.invoiceId || "")}&job=${encodeURIComponent(payment.jobId || "")}`)}
+                onClick={() => navigate(`/payments/new?client=${encodeURIComponent(payment.clientName)}&invoice=${encodeURIComponent(payment.invoiceNumber || "")}&job=${encodeURIComponent(payment.jobId || "")}`)}
                 className="h-9 px-3.5 rounded-md bg-[#4A6FA5] hover:bg-[#3d5a85] text-white text-[13px] inline-flex items-center gap-1.5 transition-colors"
                 style={{ fontWeight: 600 }}
               >

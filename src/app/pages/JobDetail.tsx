@@ -1189,11 +1189,19 @@ export function JobDetail() {
     <>
       <div className="flex items-center justify-between gap-2 mb-5">
         <h3 className="text-[15px] text-[#1A2332]" style={{ fontWeight: 600 }}>Invoices</h3>
-        <button type="button" aria-label="Create invoice" title="Create invoice"
-          onClick={() => navigate(`/invoices/new?fromJob=${storeJob?.id ?? ''}&client=${encodeURIComponent(job.client)}&returnTo=${encodeURIComponent(jobReturnUrl('invoices'))}`)}
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[#4A6FA5] hover:bg-[#EEF3FA] transition-colors">
-          <PlusIcon className="h-5 w-5" />
-        </button>
+        <div className="flex items-center gap-1">
+          <button type="button" title="Collect a payment for this customer"
+            onClick={() => navigate(`/payments/new?client=${encodeURIComponent(job.client)}&job=${encodeURIComponent(job.jobNumber)}&returnTo=${encodeURIComponent(jobReturnUrl('invoices'))}`)}
+            className="h-8 px-3 rounded-lg text-[13px] text-[#4A6FA5] hover:bg-[#EEF3FA] inline-flex items-center gap-1.5 transition-colors" style={{ fontWeight: 500 }}>
+            <span className="material-icons" style={{ fontSize: "16px" }}>account_balance_wallet</span>
+            Collect payment
+          </button>
+          <button type="button" aria-label="Create invoice" title="Create invoice"
+            onClick={() => navigate(`/invoices/new?fromJob=${storeJob?.id ?? ''}&client=${encodeURIComponent(job.client)}&returnTo=${encodeURIComponent(jobReturnUrl('invoices'))}`)}
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[#4A6FA5] hover:bg-[#EEF3FA] transition-colors">
+            <PlusIcon className="h-5 w-5" />
+          </button>
+        </div>
       </div>
       {jobInvoices.length > 0 ? (
         jobInvoices.map((inv) => (
