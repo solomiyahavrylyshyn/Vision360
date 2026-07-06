@@ -1,42 +1,85 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router";
-import { Button } from "../components/ui/button";
-import { Input } from "../components/ui/input";
-import { Label } from "../components/ui/label";
 import { Checkbox } from "../components/ui/checkbox";
-import logoImg from "../../assets/vision360-logo.svg";
+import { AuthLayout } from "../components/AuthLayout";
+
+// ── Demo triggers (prototype only — no real auth) ────────────────────────────
+// Any submit signs in, EXCEPT these documented demo credentials that surface the
+// Figma error states for design review:
+//   • password "wrong"  → "Incorrect password. N attempts remaining" (3→2→1),
+//                          then "blocked" (locked form + countdown) after 3 tries
+//   • password "error"  → "Incorrect email or password." (email + password red)
+const PW_WRONG = "wrong";
+const PW_BAD_CREDS = "error";
+const MAX_ATTEMPTS = 3;
+const BLOCK_SECONDS = 15 * 60; // 15:00 lockout
 
 export function Login() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [email, setEmail] = useState("john@example.com");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(false);
   const [toast, setToast] = useState("");
+
+  const [error, setError] = useState<null | "password" | "credentials">(null);
+  const [wrongCount, setWrongCount] = useState(0);
+  const [blockSeconds, setBlockSeconds] = useState(0);
+  const blocked = blockSeconds > 0;
 
   useEffect(() => {
     const msg = (location.state as any)?.toast;
     if (msg) {
       setToast(msg);
-      // Clear state so toast doesn't persist on refresh
       window.history.replaceState({}, document.title);
       const timer = setTimeout(() => setToast(""), 5000);
       return () => clearTimeout(timer);
     }
   }, [location.state]);
 
+  // Lockout countdown
+  useEffect(() => {
+    if (blockSeconds <= 0) return;
+    const t = setTimeout(() => setBlockSeconds((s) => s - 1), 1000);
+    return () => clearTimeout(t);
+  }, [blockSeconds]);
+
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
+    if (blocked) return;
+
+    if (password === PW_WRONG) {
+      const used = wrongCount + 1;
+      setWrongCount(used);
+      if (MAX_ATTEMPTS - used <= 0) {
+        setError(null);
+        setBlockSeconds(BLOCK_SECONDS);
+      } else {
+        setError("password");
+      }
+      return;
+    }
+    if (password === PW_BAD_CREDS) {
+      setError("credentials");
+      return;
+    }
     navigate("/");
   };
 
-  const handleCreateAccount = (e: React.MouseEvent) => {
-    e.preventDefault();
-    navigate("/register");
-  };
+  const attemptsLeft = MAX_ATTEMPTS - wrongCount;
+  const canSubmit = email.trim() !== "" && password.trim() !== "" && !blocked;
+  const emailErr = error === "credentials";
+  const pwErr = error === "password" || error === "credentials";
+  const mmss = `${String(Math.floor(blockSeconds / 60)).padStart(2, "0")}:${String(blockSeconds % 60).padStart(2, "0")}`;
+
+  const baseInput =
+    "w-full h-10 rounded-lg border bg-white text-[14px] text-[#1A2332] placeholder:text-[#6B7280] shadow-[0_1px_2px_0_rgba(0,0,0,0.05)] outline-none transition-colors disabled:bg-[#F5F7FA] disabled:text-[#9CA3AF] disabled:cursor-not-allowed";
+  const okBorder = "border-[#E5E7EB] focus:border-[#4A6FA5] focus:ring-2 focus:ring-[#4A6FA5]/20";
+  const errBorder = "border-[#DC2626] focus:border-[#DC2626] focus:ring-2 focus:ring-[#DC2626]/20";
 
   return (
-    <div className="min-h-screen w-full flex bg-white relative">
+    <AuthLayout>
       {/* Toast notification */}
       {toast && (
         <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-top-2 duration-300">
@@ -50,169 +93,132 @@ export function Login() {
         </div>
       )}
 
-      {/* Left Column: Visual/Marketing - Hidden on small screens */}
-      <div className="hidden lg:flex w-1/2 relative bg-[#1A2332] flex-col justify-between overflow-hidden">
-        {/* Subtle background gradient accent */}
-        <div className="absolute inset-0 z-0 bg-gradient-to-br from-[#1A2332] via-[#1e2d45] to-[#1A2332]" />
-        <div className="absolute top-0 right-0 w-96 h-96 bg-[#4A6FA5]/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-        <div className="absolute bottom-0 left-0 w-80 h-80 bg-[#4A6FA5]/8 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
-
-        {/* Content */}
-        <div className="relative z-10 p-12 lg:p-16 flex flex-col h-full">
-          {/* Logo */}
-          <div>
-            <img src={logoImg} alt="Vision360 Logo" className="h-[72px] w-auto object-contain" />
+      <form onSubmit={handleLogin} className="w-full flex flex-col gap-6">
+        {/* form-top */}
+        <div className="flex flex-col gap-8">
+          {/* copy */}
+          <div className="flex flex-col gap-2">
+            <h1 className="text-[32px] font-medium leading-[1.2] text-[#1A2332]">Welcome back!</h1>
+            <p className="text-[18px] text-[#374151]">Sign in to your Vision360 account.</p>
           </div>
 
-          {/* Hero Image Card */}
-          <div className="flex-1 flex items-center justify-center py-10">
-            <div className="w-full max-w-sm relative">
-              {/* Glow behind image */}
-              <div className="absolute inset-0 rounded-2xl bg-[#4A6FA5]/20 blur-2xl scale-95" />
-              {/* Image */}
-              <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-white/10">
-                <img
-                  src="https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=600&q=80&fit=crop"
-                  alt="Field service professional"
-                  className="w-full h-64 object-cover"
-                />
-                {/* Overlay card at bottom of image */}
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-[#1A2332]/90 to-transparent px-5 py-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-[#4A6FA5] flex items-center justify-center flex-shrink-0">
-                      <span className="material-icons text-white" style={{ fontSize: "16px" }}>trending_up</span>
-                    </div>
-                    <div>
-                      <p className="text-white text-sm font-semibold">+34% efficiency</p>
-                      <p className="text-[#A0B0C4] text-xs">avg. across all teams this quarter</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Floating stat badge */}
-              <div className="absolute -top-4 -right-4 bg-[#4A6FA5] rounded-xl px-4 py-2.5 shadow-xl border border-white/10">
-                <p className="text-white text-xs font-medium opacity-80">Active jobs</p>
-                <p className="text-white text-xl font-bold leading-tight">1,248</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Text Content */}
-          <div className="mb-6">
-            <h1 className="text-3xl lg:text-4xl font-bold text-white mb-4 leading-tight">
-              Transform your <br/>
-              <span className="text-[#4A6FA5]">field operations.</span>
-            </h1>
-            <p className="text-[#A0B0C4] text-base max-w-md mb-6">
-              Join thousands of professionals scaling their service businesses with Vision360.
-            </p>
-
-            <div className="space-y-3">
-              <div className="flex items-center gap-3 text-white">
-                <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "20px" }}>check_circle</span>
-                <span className="font-medium text-sm">Smart job scheduling & dispatch</span>
-              </div>
-              <div className="flex items-center gap-3 text-white">
-                <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "20px" }}>check_circle</span>
-                <span className="font-medium text-sm">Automated quotes and invoicing</span>
-              </div>
-              <div className="flex items-center gap-3 text-white">
-                <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "20px" }}>check_circle</span>
-                <span className="font-medium text-sm">Real-time team tracking</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="text-[#546478] text-sm">
-            © 2026 Vision360 Inc. All rights reserved.
-          </div>
-        </div>
-      </div>
-
-      {/* Right Column: Login Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 lg:p-16 bg-white overflow-y-auto">
-        <div className="w-full max-w-[420px]">
-          {/* Logo for mobile only */}
-          <div className="lg:hidden mb-5">
-            <img src={logoImg} alt="Vision360 Logo" className="h-14 w-auto object-contain" />
-          </div>
-
-          <div className="mb-10">
-            <h2 className="text-3xl font-bold text-[#1A2332] mb-3">Welcome back</h2>
-            <p className="text-[#546478] text-[15px]">Sign in to your Vision360 account.</p>
-          </div>
-
-          <form onSubmit={handleLogin} className="space-y-5">
-            <div className="space-y-1.5">
-              <Label className="text-sm font-semibold text-[#1A2332]">
-                Email Address
-              </Label>
-              <Input
+          {/* form-inner */}
+          <div className="flex flex-col gap-4">
+            {/* Email */}
+            <div className="flex flex-col gap-2">
+              <label htmlFor="email" className="text-[14px] font-medium leading-5 text-[#1A2332]">
+                Email address
+              </label>
+              <input
+                id="email"
                 type="email"
-                placeholder="name@company.com"
+                placeholder="example@email.com"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="h-11 border-[#E5E7EB] focus-visible:ring-[#4A6FA5] bg-[#F5F7FA] focus:bg-white transition-colors"
+                disabled={blocked}
+                onChange={(e) => { setEmail(e.target.value); setError(null); }}
+                className={`${baseInput} px-4 ${emailErr ? errBorder : okBorder}`}
                 required
               />
             </div>
 
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <Label className="text-sm font-semibold text-[#1A2332]">
-                  Password
-                </Label>
+            {/* Password */}
+            <div className="flex flex-col gap-2">
+              <label htmlFor="password" className="text-[14px] font-medium leading-5 text-[#1A2332]">
+                Password
+              </label>
+              <div className="relative">
+                <input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  value={password}
+                  disabled={blocked}
+                  onChange={(e) => { setPassword(e.target.value); setError(null); }}
+                  className={`${baseInput} pl-4 pr-11 ${pwErr ? errBorder : okBorder}`}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#6B7280] hover:text-[#374151] disabled:text-[#9CA3AF]"
+                  disabled={blocked}
+                >
+                  <span className="material-icons" style={{ fontSize: "20px" }}>
+                    {showPassword ? "visibility" : "visibility_off"}
+                  </span>
+                </button>
               </div>
-              <Input
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="h-11 border-[#E5E7EB] focus-visible:ring-[#4A6FA5] bg-[#F5F7FA] focus:bg-white transition-colors"
-                required
-              />
+              {error === "password" && (
+                <p className="text-[13px] leading-4 text-[#DC2626]">
+                  Incorrect password. {attemptsLeft} attempt{attemptsLeft === 1 ? "" : "s"} remaining
+                </p>
+              )}
+              {error === "credentials" && (
+                <p className="text-[13px] leading-4 text-[#DC2626]">Incorrect email or password.</p>
+              )}
             </div>
 
-            <div className="flex items-center justify-between pt-1">
+            {/* Remember / Forgot */}
+            <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <Checkbox
                   id="remember"
                   checked={remember}
+                  disabled={blocked}
                   onCheckedChange={(checked) => setRemember(checked as boolean)}
-                  className="data-[state=checked]:bg-[#4A6FA5] data-[state=checked]:border-[#4A6FA5]"
+                  className="size-4 data-[state=checked]:bg-[#4A6FA5] data-[state=checked]:border-[#4A6FA5]"
                 />
-                <label htmlFor="remember" className="text-sm text-[#546478] cursor-pointer select-none">
-                  Remember me
+                <label htmlFor="remember" className={`text-[14px] cursor-pointer select-none ${blocked ? "text-[#9CA3AF]" : "text-[#1A2332]"}`}>
+                  Keep me signed in
                 </label>
               </div>
               <button
                 type="button"
                 onClick={() => navigate("/reset-password")}
-                className="text-sm text-[#4A6FA5] font-semibold hover:underline"
+                className="text-[14px] font-medium text-[#4A6FA5] hover:underline"
               >
-                Forgot password?
+                Forgot Password?
               </button>
             </div>
-
-            <Button 
-              type="submit" 
-              className="w-full h-12 text-base font-semibold bg-[#4A6FA5] hover:bg-[#3d5a85] transition-colors mt-2"
-            >
-              Sign In
-            </Button>
-          </form>
-
-          <div className="mt-10 pt-8 border-t border-[#EDF0F5] text-center">
-            <p className="text-[#546478]">
-              Don't have an account?{" "}
-              <a href="/register" onClick={handleCreateAccount} className="text-[#4A6FA5] font-semibold hover:underline">
-                Create account
-              </a>
-            </p>
           </div>
         </div>
-      </div>
-    </div>
+
+        {/* Sign in */}
+        <button
+          type="submit"
+          disabled={!canSubmit}
+          className="w-full h-10 flex items-center justify-center rounded-lg bg-[#4A6FA5] px-6 text-[14px] font-medium text-white transition-colors hover:bg-[#3d5a85] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#4A6FA5]"
+        >
+          Sign in
+        </button>
+
+        {/* Lockout alert */}
+        {blocked && (
+          <div className="flex gap-3 rounded-lg border border-[#E5E7EB] bg-white px-4 py-3">
+            <span className="material-icons text-[#DC2626] shrink-0" style={{ fontSize: "16px", marginTop: "2px" }}>lock</span>
+            <div className="flex flex-col gap-0.5 text-[14px] leading-5">
+              <p className="font-medium text-[#DC2626]">Access temporarily restricted</p>
+              <p className="text-[#DC2626]">Too many failed login attempts. Try again in {mmss}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Divider */}
+        <div className="h-px w-full bg-[#E5E7EB]" />
+
+        {/* Sign up */}
+        <div className="flex items-center gap-2">
+          <span className="text-[14px] text-[#1A2332]">Don&rsquo;t have an account yet?</span>
+          <button
+            type="button"
+            onClick={() => navigate("/register")}
+            className="text-[14px] font-medium text-[#4A6FA5] hover:underline"
+          >
+            Sign up!
+          </button>
+        </div>
+      </form>
+    </AuthLayout>
   );
 }

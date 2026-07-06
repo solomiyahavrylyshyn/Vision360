@@ -8,6 +8,7 @@ import { ResetPasswordForm } from "./pages/ResetPasswordForm";
 import { ResetPasswordVerify } from "./pages/ResetPasswordVerify";
 import { Welcome } from "./pages/Welcome";
 import { CompanySetup } from "./pages/CompanySetup";
+import { InviteExpired } from "./pages/InviteExpired";
 import { Dashboard } from "./pages/Dashboard";
 import { Home } from "./pages/Home";
 import { Clients } from "./pages/Clients";
@@ -107,6 +108,10 @@ export const router = createBrowserRouter([
   {
     path: "/setup",
     Component: CompanySetup,
+  },
+  {
+    path: "/invite/expired",
+    Component: InviteExpired,
   },
   {
     path: "/",
