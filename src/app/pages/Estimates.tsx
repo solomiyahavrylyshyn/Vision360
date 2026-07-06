@@ -97,7 +97,7 @@ const ESTIMATES_COLS = [
   { key: "technician",     label: "Created by" },
   { key: "status",         label: "Status",           sortable: true },
   { key: "amount",         label: "Amount",           sortable: true },
-  { key: "created",        label: "Created",          sortable: true },
+  { key: "created",        label: "Created date",     sortable: true },
   { key: "sentDate",       label: "Sent Date" },
   { key: "expirationDate", label: "Expiration Date" },
   { key: "depositDue",     label: "Deposit due" },
@@ -494,7 +494,7 @@ export function Estimates() {
               Create estimate
             </CreateActionButton>
             <KebabMenu triggerClassName="w-10 h-10 border border-[#D8DEE8] rounded-xl bg-white">
-              <KebabItem icon="view_column" onClick={() => setEditColsOpen(true)}>Edit Columns</KebabItem>
+              <KebabItem icon="view_column" onClick={() => setEditColsOpen(true)}>Edit columns</KebabItem>
               <KebabItem icon="content_copy">Manage Duplicates</KebabItem>
               <KebabSeparator />
               <KebabItem icon="file_upload">Import</KebabItem>
@@ -504,12 +504,20 @@ export function Estimates() {
         </div>
         {filterOpen && (
           <AdvancedFilterPanel
+            title="Filter"
             onClose={() => setFilterOpen(false)}
             onClear={() => { resetAdvancedFilters(); setFilterOpen(false); }}
             onApply={() => setFilterOpen(false)}
           >
             <AdvancedFilterField label="Client name">
               <input value={clientFilter} onChange={(e) => { setClientFilter(e.target.value); setPage(1); }} placeholder="First, last or company name" className={advancedInputClass} />
+            </AdvancedFilterField>
+            <AdvancedFilterField label="Statuses">
+              <select value={qfStatus} onChange={(e) => { setQfStatus(e.target.value as any); setPage(1); }} className={advancedSelectClass}>
+                <option value="All">All</option>
+                {primaryStatuses.map(s => <option key={s} value={s}>{s}</option>)}
+                {otherStatuses.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
             </AdvancedFilterField>
             <AdvancedFilterField label="Created from">
               <input type="date" value={createdFrom} onChange={(e) => { setCreatedFrom(e.target.value); setPage(1); }} className={advancedInputClass} />
@@ -529,17 +537,10 @@ export function Estimates() {
             <AdvancedFilterField label="Amount max">
               <input type="number" min="0" placeholder="Any" value={amountMax} onChange={(e) => { setAmountMax(e.target.value); setPage(1); }} className={advancedInputClass} />
             </AdvancedFilterField>
-            <AdvancedFilterField label="Technician">
+            <AdvancedFilterField label="Created by">
               <select value={teamFilter} onChange={(e) => { setTeamFilter(e.target.value); setPage(1); }} className={advancedSelectClass}>
                 <option>All</option>
                 {teamMembers.map((member) => <option key={member}>{member}</option>)}
-              </select>
-            </AdvancedFilterField>
-            <AdvancedFilterField label="Deposit">
-              <select value={depositFilter} onChange={(e) => { setDepositFilter(e.target.value); setPage(1); }} className={advancedSelectClass}>
-                <option>All</option>
-                <option>Deposit due</option>
-                <option>No deposit</option>
               </select>
             </AdvancedFilterField>
           </AdvancedFilterPanel>
@@ -741,7 +742,7 @@ export function Estimates() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setEditColsOpen(false)}>
           <div className="bg-white rounded-xl shadow-2xl w-[340px] border border-[#E5E7EB]" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 py-4 border-b border-[#E5E7EB]">
-              <div className="text-[15px] text-[#1A2332]" style={{ fontWeight: 700 }}>Edit Columns</div>
+              <div className="text-[15px] text-[#1A2332]" style={{ fontWeight: 700 }}>Edit columns</div>
               <button onClick={() => setEditColsOpen(false)} className="w-8 h-8 rounded-lg hover:bg-[#F5F7FA] flex items-center justify-center">
                 <span className="material-icons text-[#546478]" style={{ fontSize: "20px" }}>close</span>
               </button>
@@ -762,20 +763,20 @@ export function Estimates() {
                 </label>
               ))}
             </div>
-            <div className="flex items-center justify-between px-5 py-4 border-t border-[#E5E7EB] gap-3">
+            <div className="flex items-center justify-end px-5 py-4 border-t border-[#E5E7EB] gap-2">
               <button
-                onClick={() => setVisibleCols(new Set(DEFAULT_VISIBLE_COLS))}
-                className="text-[13px] text-[#4A6FA5] hover:underline"
+                onClick={() => setEditColsOpen(false)}
+                className="h-9 px-4 rounded-lg border border-[#E5E7EB] bg-white text-[#1A2332] text-[13px] hover:bg-[#F5F7FA] transition-colors"
                 style={{ fontWeight: 500 }}
               >
-                Reset to default
+                Cancel
               </button>
               <button
                 onClick={() => setEditColsOpen(false)}
                 className="h-9 px-5 rounded-lg bg-[#4A6FA5] text-white text-[13px] hover:bg-[#3d5a85] transition-colors"
                 style={{ fontWeight: 600 }}
               >
-                Apply
+                Save
               </button>
             </div>
           </div>

@@ -216,7 +216,7 @@ export function CreateEstimate() {
                 </select>
               </div>
               <div>
-                <label className={labelClass}>Service address {reqStar}</label>
+                <label className={labelClass}>Service address</label>
                 <select
                   value={serviceAddress}
                   onChange={(e) => setServiceAddress(e.target.value)}
@@ -278,7 +278,7 @@ export function CreateEstimate() {
                   className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#4A6FA5] px-3.5 text-[13px] text-white transition-colors hover:bg-[#3d5a85]"
                   style={{ fontWeight: 600 }}
                 >
-                  <PlusIcon className="h-4 w-4" /> Add Item
+                  <PlusIcon className="h-4 w-4" /> Add item
                 </button>
               </div>
 
@@ -288,7 +288,7 @@ export function CreateEstimate() {
                     <span className="material-icons text-[#C8D5E8]" style={{ fontSize: "32px" }}>receipt_long</span>
                   </div>
                   <div className="text-[14px] text-[#546478]" style={{ fontWeight: 500 }}>No items in this estimate yet</div>
-                  <div className="mt-1 text-[12px] text-[#8899AA]">Click "Add Item" to choose from your pricebook</div>
+                  <div className="mt-1 text-[12px] text-[#8899AA]">Click "Add item" to choose from your pricebook</div>
                 </div>
               ) : (
                 <>
@@ -299,6 +299,7 @@ export function CreateEstimate() {
                         <th className="px-4 py-3 text-left text-[13px] text-[#546478]" style={{ fontWeight: 500 }}>Quantity</th>
                         <th className="px-4 py-3 text-right text-[13px] text-[#546478]" style={{ fontWeight: 500 }}>Unit price</th>
                         <th className="px-4 py-3 text-right text-[13px] text-[#546478]" style={{ fontWeight: 500 }}>Unit cost</th>
+                        <th className="px-4 py-3 text-right text-[13px] text-[#546478]" style={{ fontWeight: 500 }}>Tax</th>
                         <th className="px-4 py-3 text-right text-[13px] text-[#546478]" style={{ fontWeight: 500 }}>Total</th>
                         <th className="w-[44px] px-4 py-3" />
                       </tr>
@@ -319,6 +320,7 @@ export function CreateEstimate() {
                           </td>
                           <td className="px-4 py-3 text-right text-[14px] text-[#546478]" style={{ fontVariantNumeric: "tabular-nums" }}>${fmt(item.unitPrice)}</td>
                           <td className="px-4 py-3 text-right text-[14px] text-[#546478]" style={{ fontVariantNumeric: "tabular-nums" }}>${fmt(item.unitCost)}</td>
+                          <td className="px-4 py-3 text-right text-[14px] text-[#546478]" style={{ fontVariantNumeric: "tabular-nums" }}>{item.taxable ? `$${fmt(item.total * (taxRate / 100))}` : "—"}</td>
                           <td className="px-4 py-3 text-right text-[14px] text-[#1A2332]" style={{ fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>${fmt(item.total)}</td>
                           <td className="px-4 py-3 text-right">
                             <button onClick={() => removeLineItem(item.id)} className="flex h-7 w-7 items-center justify-center rounded text-[#9CA3AF] hover:bg-[#FEE2E2] hover:text-[#DC2626]" aria-label="Remove item">
