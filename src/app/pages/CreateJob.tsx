@@ -155,6 +155,7 @@ export function CreateJob({ asModal = false, onClose, onCreated, prefill, headin
     return String(jobTypesStore.getDuration(prefill?.jobCategory));
   });
   const [assignedTo, setAssignedTo] = useState(prefill?.assignedTo ?? "");
+  const [industry, setIndustry] = useState("");
   // US-4 out-of-range confirm: holds a pending save while the warning modal is up.
   const [outOfRangeOpen, setOutOfRangeOpen] = useState(false);
   const [lineItems, setLineItems] = useState<SelectedLineItem[]>([]);
@@ -605,7 +606,7 @@ export function CreateJob({ asModal = false, onClose, onCreated, prefill, headin
               </div>
             </div>
             <div>
-              <label className="block text-[14px] text-[#1A2332] mb-1" style={{ fontWeight: 500 }}>Service address {reqStar}</label>
+              <label className="block text-[14px] text-[#1A2332] mb-1" style={{ fontWeight: 500 }}>Service address</label>
               <select value={serviceStreet} onChange={(e) => setServiceStreet(e.target.value)} disabled={!client.trim()} className={fieldCls}>
                 {!serviceStreet && <option value="">{client.trim() ? "Select service address" : "Select a client first"}</option>}
                 {selClientAddress && <option value={selClientAddress}>{selClientAddress}</option>}
@@ -617,6 +618,21 @@ export function CreateJob({ asModal = false, onClose, onCreated, prefill, headin
               <select value={assignedTo} onChange={(e) => setAssignedTo(e.target.value)} className={fieldCls}>
                 <option value="">Unassigned</option>
                 {fieldEmployees.map((name) => <option key={name} value={name}>{name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-[14px] text-[#1A2332] mb-1" style={{ fontWeight: 500 }}>Industry</label>
+              <select value={industry} onChange={(e) => setIndustry(e.target.value)} className={fieldCls}>
+                <option value="">Select industry</option>
+                <option value="hvac">HVAC</option>
+                <option value="plumbing">Plumbing</option>
+                <option value="electrical">Electrical</option>
+                <option value="cleaning">Cleaning</option>
+                <option value="landscaping">Landscaping</option>
+                <option value="roofing">Roofing</option>
+                <option value="pool">Pool Service</option>
+                <option value="general">General Contracting</option>
+                <option value="others">Other</option>
               </select>
             </div>
           </div>
@@ -854,7 +870,7 @@ export function CreateJob({ asModal = false, onClose, onCreated, prefill, headin
                   <th className="px-4 py-2 text-left text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Quantity</th>
                   <th className="px-4 py-2 text-right text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Unit price</th>
                   <th className="px-4 py-2 text-right text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Unit cost</th>
-                  <th className="px-4 py-2 text-left text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Charge</th>
+                  <th className="px-4 py-2 text-right text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Tax</th>
                   <th className="px-4 py-2 text-right text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Total</th>
                   <th className="w-12" />
                 </tr>
@@ -880,14 +896,7 @@ export function CreateJob({ asModal = false, onClose, onCreated, prefill, headin
                     </td>
                     <td className="px-4 py-3 text-right text-[13px] text-[#374151]" style={{ fontVariantNumeric: "tabular-nums" }}>${fmt(item.unitPrice)}</td>
                     <td className="px-4 py-3 text-right text-[13px] text-[#6B7280]" style={{ fontVariantNumeric: "tabular-nums" }}>${fmt(item.unitCost)}</td>
-                    <td className="px-4 py-3">
-                      <select value={item.chargeMode || "per_appointment"} onChange={(e) => updateLineItem(item.id, "chargeMode", e.target.value)}
-                        className="h-8 px-2 border border-[#E5E7EB] rounded-lg text-[13px] bg-white outline-none focus:border-[#4A6FA5]">
-                        <option value="per_appointment">Per appointment</option>
-                        <option value="once">Per series</option>
-                        <option value="prepaid">Don't charge</option>
-                      </select>
-                    </td>
+                    <td className="px-4 py-3 text-right text-[13px] text-[#6B7280]" style={{ fontVariantNumeric: "tabular-nums" }}>{item.taxable ? `$${fmt(item.total * (taxRate / 100))}` : "—"}</td>
                     <td className="px-4 py-3 text-right text-[13px] text-[#1A2332]" style={{ fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>${fmt(item.total)}</td>
                     <td className="px-4 py-3 text-right">
                       <button onClick={() => removeLineItem(item.id)} className="w-7 h-7 inline-flex items-center justify-center rounded hover:bg-[#FEE2E2]" aria-label="Remove item">
