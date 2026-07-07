@@ -89,6 +89,29 @@ function StatusPillSelect({ value, onChange }: { value: JobStatus; onChange: (ne
   );
 }
 
+// Compact status control for schedule cards: renders the status icon and, on
+// click, opens a native dropdown to pick any status (replaces click-to-cycle).
+function CardStatusSelect({ status, onChange, size = 5 }: { status: JobStatus; onChange: (s: JobStatus) => void; size?: number }) {
+  const styles = STATUS_STYLES[status];
+  const box = size === 6 ? "h-6 w-6 text-[16px]" : "h-5 w-5 text-[14px]";
+  return (
+    <div className="relative shrink-0" onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}>
+      <span className={`material-icons flex ${box} items-center justify-center rounded-full leading-none pointer-events-none`}
+        style={{ backgroundColor: styles.bg, color: styles.color }} title={status}>
+        {STATUS_ICONS[status]}
+      </span>
+      <select
+        value={status}
+        aria-label={`Change status (currently ${status})`}
+        onChange={(e) => onChange(e.target.value as JobStatus)}
+        className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+      >
+        {ALL_JOB_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+      </select>
+    </div>
+  );
+}
+
 const nextStatus = (status: JobStatus): JobStatus => {
   if (status === "Unscheduled") return "Scheduled"; // once it gets a date
   if (status === "Scheduled") return "Dispatched";
@@ -2362,18 +2385,7 @@ export function Calendar() {
                                         {job.amount > 0 && (
                                           <span className="text-[10px] tabular-nums shrink-0" style={{ fontWeight: 700, color: "#1A2332" }}>${job.amount.toLocaleString("en-US")}</span>
                                         )}
-                                        <button
-                                          className="material-icons flex h-5 w-5 items-center justify-center rounded-full shrink-0 text-[14px] leading-none"
-                                          style={{ backgroundColor: statusStyle.bg, color: statusStyle.color }}
-                                          title={job.status}
-                                          aria-label={`Status: ${job.status}. Click to advance.`}
-                                          onClick={(event) => {
-                                            event.stopPropagation();
-                                            updateWeekStatus(job.id, nextStatus(job.status));
-                                          }}
-                                        >
-                                          {STATUS_ICONS[job.status]}
-                                        </button>
+                                        <CardStatusSelect status={job.status} size={5} onChange={(s) => updateWeekStatus(job.id, s)} />
                                       </div>
                                     </div>
                                   </div>
@@ -2619,18 +2631,7 @@ export function Calendar() {
                                   {job.amount > 0 && (
                                     <span className="text-[13px] leading-5 tabular-nums shrink-0" style={{ fontWeight: 600, color: "#1A2332" }}>${job.amount.toLocaleString("en-US")}</span>
                                   )}
-                                  <button
-                                    className="material-icons flex h-6 w-6 items-center justify-center rounded-full shrink-0 text-[16px] leading-none"
-                                    style={{ backgroundColor: statusStyle.bg, color: statusStyle.color, textDecoration: "none" }}
-                                    title={job.status}
-                                    aria-label={`Status: ${job.status}. Click to advance.`}
-                                    onClick={(event) => {
-                                      event.stopPropagation();
-                                      updateDayStatus(job.id, nextStatus(job.status));
-                                    }}
-                                  >
-                                    {STATUS_ICONS[job.status]}
-                                  </button>
+                                  <CardStatusSelect status={job.status} size={6} onChange={(s) => updateDayStatus(job.id, s)} />
                                 </div>
                               </div>
                             </div>
