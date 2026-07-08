@@ -24,6 +24,7 @@ import { applyBrandTheme, DEFAULT_BRAND_THEME, getStoredBrandLogo, getStoredBran
 import { businessHoursStore, type BusinessHourRow } from "../stores/businessHoursStore";
 import { regionalSettingsStore, type RegionalSettings } from "../stores/regionalSettingsStore";
 import { estimateSettingsStore } from "../stores/estimateSettingsStore";
+import { trialStore, isTrialActive, getTrialDaysRemaining } from "../stores/trialStore";
 
 type SettingsSection =
   | "home"
@@ -821,6 +822,13 @@ function BillingAndPlanSection() {
   const userCount = 3;
   const monthly = BASE_PRICE + PER_USER * userCount;
 
+  // Trial vs active subscription (Figma 2483:8431 — the empty/trial state):
+  // Trial badge, "Set up subscription" CTA, no card on file, no payments yet.
+  const trial = useSyncExternalStore(trialStore.subscribe, trialStore.getSnapshot);
+  const trialActive = isTrialActive(trial);
+  const trialDaysLeft = getTrialDaysRemaining(trial);
+  const [hasCard, setHasCard] = useState(!trialActive);
+
   const [card, setCard] = useState({
     brand: "Visa",
     last4: "4242",
@@ -860,7 +868,11 @@ function BillingAndPlanSection() {
               <div className="flex flex-col gap-1 flex-1">
                 <div className="flex items-center gap-2">
                   <span className="text-[16px] leading-6 text-[#1A2332]" style={{ fontWeight: 600 }}>Vision360 Core</span>
-                  <span className="inline-flex items-center rounded-lg px-2 py-0.5 text-[12px] leading-4 text-[#16A34A]" style={{ fontWeight: 500, background: "rgba(22,163,74,0.15)" }}>Active</span>
+                  {trialActive ? (
+                    <span className="inline-flex items-center rounded-lg px-2 py-0.5 text-[12px] leading-4 text-[#B45309]" style={{ fontWeight: 500, background: "#FEF3C7" }}>Trial</span>
+                  ) : (
+                    <span className="inline-flex items-center rounded-lg px-2 py-0.5 text-[12px] leading-4 text-[#16A34A]" style={{ fontWeight: 500, background: "rgba(22,163,74,0.15)" }}>Active</span>
+                  )}
                 </div>
                 <span className="text-[14px] leading-5 text-[#6B7280]">Core module — schedule, clients, jobs, estimates, invoices, payments, expenses, items.</span>
                 <span className="text-[14px] leading-5 text-[#6B7280]">MVP ships with one plan only. Plan switching opens up when Pro and Enterprise launch.</span>
@@ -888,14 +900,30 @@ function BillingAndPlanSection() {
               </div>
               <p className="text-[12px] leading-4 text-[#6B7280]">Adding or removing users in Manage Team prorates this total on the next billing cycle.</p>
             </div>
-            <button
-              type="button"
-              onClick={() => toast.info("Subscription changes are handled by your account manager")}
-              className="flex h-9 min-h-9 w-full items-center justify-center rounded-lg border border-[#E5E7EB] bg-white px-4 text-[14px] leading-5 text-[#1A2332] transition-colors hover:bg-[#F5F7FA]"
-              style={{ fontWeight: 500 }}
-            >
-              Cancel subscription
-            </button>
+            {trialActive ? (
+              <>
+                <p className="text-[12px] leading-4 text-[#6B7280]">
+                  Your free trial ends in {trialDaysLeft} day{trialDaysLeft === 1 ? "" : "s"}. Set up billing now to keep Vision360 after the trial — you won't be charged until it ends.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => { trialStore.activateSubscription(); setHasCard(true); toast.success("Subscription set up — it starts when your trial ends"); }}
+                  className="flex h-9 min-h-9 w-full items-center justify-center rounded-lg bg-[#4A6FA5] px-4 text-[14px] leading-5 text-white transition-colors hover:bg-[#3d5a85]"
+                  style={{ fontWeight: 600 }}
+                >
+                  Set up subscription
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={() => toast.info("Subscription changes are handled by your account manager")}
+                className="flex h-9 min-h-9 w-full items-center justify-center rounded-lg border border-[#E5E7EB] bg-white px-4 text-[14px] leading-5 text-[#1A2332] transition-colors hover:bg-[#F5F7FA]"
+                style={{ fontWeight: 500 }}
+              >
+                Cancel subscription
+              </button>
+            )}
           </div>
 
           {/* Payment method card */}
@@ -904,23 +932,42 @@ function BillingAndPlanSection() {
               <span className="text-[16px] leading-6 text-[#1A2332]" style={{ fontWeight: 600 }}>Subscription payment method</span>
               <span className="text-[14px] leading-5 text-[#6B7280]">Stripe-hosted card fields used for monthly Vision360 subscription charges.</span>
             </div>
-            <div className="flex items-center gap-4 rounded-lg border border-[#E5E7EB] p-4">
-              <div className="flex items-center justify-center rounded-lg shrink-0" style={{ width: 80, height: 48, background: "#1C2B3A" }}>
-                <span className="text-white text-[13px]" style={{ fontWeight: 800, letterSpacing: "0.08em" }}>VISA</span>
+            {hasCard ? (
+              <div className="flex items-center gap-4 rounded-lg border border-[#E5E7EB] p-4">
+                <div className="flex items-center justify-center rounded-lg shrink-0" style={{ width: 80, height: 48, background: "#1C2B3A" }}>
+                  <span className="text-white text-[13px]" style={{ fontWeight: 800, letterSpacing: "0.08em" }}>VISA</span>
+                </div>
+                <div className="flex flex-col gap-1 flex-1">
+                  <span className="text-[14px] leading-5 text-[#1A2332]" style={{ fontWeight: 500 }}>•••• •••• •••• {card.last4}</span>
+                  <span className="text-[14px] leading-5 text-[#6B7280]">{card.holder} · Expires {card.expiry}</span>
+                  <span className="text-[12px] leading-4 text-[#6B7280]">{card.billingEmail} · ZIP {card.billingZip}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => { setDraftCard(card); setEditCardOpen(true); }}
+                  className="w-9 h-9 flex items-center justify-center rounded-lg text-[#1A2332] hover:bg-[#F5F7FA] transition-colors shrink-0"
+                >
+                  <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
+                </button>
               </div>
-              <div className="flex flex-col gap-1 flex-1">
-                <span className="text-[14px] leading-5 text-[#1A2332]" style={{ fontWeight: 500 }}>•••• •••• •••• {card.last4}</span>
-                <span className="text-[14px] leading-5 text-[#6B7280]">{card.holder} · Expires {card.expiry}</span>
-                <span className="text-[12px] leading-4 text-[#6B7280]">{card.billingEmail} · ZIP {card.billingZip}</span>
+            ) : (
+              /* Trial empty state (Figma 2483:8431): no card on file yet */
+              <div className="flex flex-col items-center gap-2 rounded-xl border-2 border-dashed border-[#E5E7EB] px-6 py-8 text-center">
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#F5F7FA]">
+                  <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "20px" }}>credit_card</span>
+                </span>
+                <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>No payment method on file</span>
+                <span className="max-w-[280px] text-[12px] leading-4 text-[#6B7280]">Add a card so we can start your subscription when the free trial ends.</span>
+                <button
+                  type="button"
+                  onClick={() => { setDraftCard(card); setEditCardOpen(true); setHasCard(true); }}
+                  className="mt-1 inline-flex h-8 items-center gap-1.5 rounded-lg bg-[#4A6FA5] px-3 text-[13px] text-white transition-colors hover:bg-[#3d5a85]"
+                  style={{ fontWeight: 600 }}
+                >
+                  <span className="material-icons" style={{ fontSize: "15px" }}>add</span> Add card
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => { setDraftCard(card); setEditCardOpen(true); }}
-                className="w-9 h-9 flex items-center justify-center rounded-lg text-[#1A2332] hover:bg-[#F5F7FA] transition-colors shrink-0"
-              >
-                <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
-              </button>
-            </div>
+            )}
             <p className="text-[12px] leading-4 text-[#6B7280]">Card number, expiration, CVC, billing ZIP, country, and billing email map to Stripe. Vision360 stores only Stripe IDs and safe card metadata.</p>
           </div>
         </div>
@@ -964,6 +1011,16 @@ function BillingAndPlanSection() {
               <span className="text-[16px] leading-6 text-[#1A2332]" style={{ fontWeight: 600 }}>Payment history</span>
               <span className="text-[14px] leading-5 text-[#6B7280]">Last invoices for your subscription.</span>
             </div>
+            {trialActive ? (
+              /* Trial empty state (Figma 2483:8431): no payments yet */
+              <div className="flex flex-1 flex-col items-center justify-center gap-2 rounded-lg border border-[#E5E7EB] px-6 py-10 text-center">
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#F5F7FA]">
+                  <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "20px" }}>receipt_long</span>
+                </span>
+                <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>No payments yet</span>
+                <span className="max-w-[300px] text-[12px] leading-4 text-[#6B7280]">Your first invoice will appear here once the trial converts to a paid subscription.</span>
+              </div>
+            ) : (
             <div className="relative min-h-0 flex-1">
               <div className="flex h-full flex-col gap-2 overflow-y-auto rounded-lg border border-[#E5E7EB] p-3 pr-2 isolate [scrollbar-gutter:stable]">
                 {history.map(row => (
@@ -997,6 +1054,7 @@ function BillingAndPlanSection() {
                 style={{ height: 93, background: "linear-gradient(180deg, rgba(255,255,255,0) 0%, #FFFFFF 100%)" }}
               />
             </div>
+            )}
           </div>
         </div>
       </div>
@@ -1699,6 +1757,27 @@ function InvoicesPreferences({ templateCards }: { templateCards: { title: string
         )}
       </SectionCard>
 
+      {/* Numbering (Figma 264:5793) */}
+      <SectionCard title="Numbering" description="How invoice numbers are generated.">
+        <div className="mt-3 grid grid-cols-3 gap-4">
+          <div>
+            <label className="mb-1.5 block text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>Prefix</label>
+            <Input value={numberingPrefix} onChange={e => setNumberingPrefix(e.target.value)} className="h-9 border-[#E5E7EB] shadow-[0_1px_2px_rgba(0,0,0,0.05)]" />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>Next number</label>
+            <Input value={nextNumber} onChange={e => setNextNumber(e.target.value.replace(/\D/g, "").slice(0, 8))} className="h-9 border-[#E5E7EB] shadow-[0_1px_2px_rgba(0,0,0,0.05)]" />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>Zero-pad to</label>
+            <select value={zeroPad} onChange={e => setZeroPad(e.target.value)} className="h-9 w-full rounded-lg border border-[#E5E7EB] bg-white px-3 text-[14px] text-[#1A2332] shadow-[0_1px_2px_rgba(0,0,0,0.05)] outline-none focus:border-[#4A6FA5]">
+              {["3", "4", "5", "6"].map(n => <option key={n} value={n}>{n} digits</option>)}
+            </select>
+          </div>
+        </div>
+        <p className="mt-2 text-[12px] text-[#6B7280]">Preview: {numberingPrefix}{nextNumber.padStart(Number(zeroPad), "0")}</p>
+      </SectionCard>
+
       {/* Deposits */}
       <SectionCard title="Deposits" description="Collect a deposit when the customer accepts an estimate or signs an invoice.">
         <div className="flex items-center justify-between gap-4 rounded-lg border border-[#E5E7EB] px-4 py-4">
@@ -1723,6 +1802,26 @@ function InvoicesPreferences({ templateCards }: { templateCards: { title: string
           <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "28px" }}>credit_score</span>
           <div className="text-[13px] text-[#1A2332] mt-1" style={{ fontWeight: 600 }}>Lender integration coming soon</div>
           <div className="text-[12px] text-[#6B7280] mt-1">Wells Fargo, GreenSky and Synchrony brochures will plug in here.</div>
+        </div>
+      </SectionCard>
+
+      {/* Discounts (Figma 264:5793) */}
+      <SectionCard title="Discounts" description="Predefined discount labels available on estimates and invoices.">
+        <div className="mt-3 flex gap-2">
+          <Input value={newDiscount} onChange={e => setNewDiscount(e.target.value)} placeholder="Add discount label" className="h-9 max-w-[320px] border-[#E5E7EB] text-[13px] shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
+            onKeyDown={e => { if (e.key === "Enter") { const v = newDiscount.trim(); if (!v || discountTypes.includes(v)) return; setDiscountTypes([...discountTypes, v]); setNewDiscount(""); }}}
+          />
+          <Button disabled={!newDiscount.trim()} className="h-9 bg-[#4A6FA5] px-4 text-[13px] hover:bg-[#3d5a85]"
+            onClick={() => { const v = newDiscount.trim(); if (!v || discountTypes.includes(v)) return; setDiscountTypes([...discountTypes, v]); setNewDiscount(""); }}>Add</Button>
+        </div>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {discountTypes.map(d => (
+            <span key={d} className="flex items-center gap-1 rounded-full border border-[#E5E7EB] bg-[#F8FAFC] px-3 py-1.5 text-[13px] text-[#1A2332]">
+              {d}
+              <button onClick={() => setDiscountTypes(discountTypes.filter(x => x !== d))} className="ml-1 text-[#9AA3AF] hover:text-[#DC2626]">×</button>
+            </span>
+          ))}
+          {discountTypes.length === 0 && <span className="text-[13px] text-[#9CA3AF]">No discount labels yet.</span>}
         </div>
       </SectionCard>
 
@@ -4323,7 +4422,7 @@ export function Settings() {
                     </SectionCard>
                     <EstimateValidityCard />
                     <SectionCard title="Estimate rules">
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="grid grid-cols-2 gap-x-2 gap-y-4">
                         <div className="flex flex-col gap-1">
                           <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Signature</div>
                           <div className="flex items-center gap-2 py-2">
@@ -4334,6 +4433,12 @@ export function Settings() {
                         <div className="flex flex-col gap-1">
                           <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Payment terms</div>
                           <Input defaultValue="Payment is due within 15 days of approval." className="h-9 border-[#E5E7EB] shadow-[0_1px_2px_rgba(0,0,0,0.05)]" />
+                        </div>
+                        {/* Document title (Figma 261:15834) — the heading on estimate PDFs */}
+                        <div className="flex flex-col gap-1">
+                          <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Document title</div>
+                          <Input defaultValue="Estimate" className="h-9 border-[#E5E7EB] shadow-[0_1px_2px_rgba(0,0,0,0.05)]" />
+                          <p className="text-[12px] leading-4 text-[#6B7280]">Shown as the heading on estimate PDFs — e.g. Estimate, Quote, or Proposal.</p>
                         </div>
                       </div>
                       <div className="mt-5 -mx-5 -mb-5 px-5 py-4 border-t border-[#E1E6EF] flex items-center justify-end gap-3 bg-white rounded-b-xl">
