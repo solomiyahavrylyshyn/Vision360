@@ -87,7 +87,41 @@ export function CreateEstimate() {
   // created from a job visit, otherwise the estimate has no job.
   const linkedJob = searchParams.get("job") || "";
 
-  const [lineItems, setLineItems] = useState<SelectedLineItem[]>([]);
+  // Good/Better/Best options (Figma 2509:12598) — each option carries its own
+  // line items; the client picks one when accepting. Up to 4, renamable.
+  type EstimateOption = { id: number; name: string; items: SelectedLineItem[] };
+  const OPTION_NAME_DEFAULTS = ["Good", "Better", "Best", "Premium"];
+  const MAX_OPTIONS = 4;
+  const [options, setOptions] = useState<EstimateOption[]>([{ id: 1, name: "Good", items: [] }]);
+  const [activeOptionId, setActiveOptionId] = useState(1);
+  const [renamingOption, setRenamingOption] = useState<{ id: number; name: string } | null>(null);
+  const activeOption = options.find((o) => o.id === activeOptionId) ?? options[0];
+  const lineItems = activeOption.items;
+  const setLineItems = (updater: React.SetStateAction<SelectedLineItem[]>) =>
+    setOptions((opts) => opts.map((o) => o.id === activeOption.id
+      ? { ...o, items: typeof updater === "function" ? (updater as (i: SelectedLineItem[]) => SelectedLineItem[])(o.items) : updater }
+      : o));
+  const addOption = () => {
+    if (options.length >= MAX_OPTIONS) return;
+    const name = OPTION_NAME_DEFAULTS.find((n) => !options.some((o) => o.name === n)) || `Option ${options.length + 1}`;
+    const id = Math.max(...options.map((o) => o.id)) + 1;
+    setOptions((opts) => [...opts, { id, name, items: [] }]);
+    setActiveOptionId(id);
+  };
+  const removeOption = (id: number) => {
+    if (options.length <= 1) return;
+    const removed = options.find((o) => o.id === id);
+    const rest = options.filter((o) => o.id !== id);
+    setOptions(rest);
+    if (activeOptionId === id) setActiveOptionId(rest[0].id);
+    toast.info(`Option "${removed?.name}" removed`);
+  };
+  const confirmRename = () => {
+    if (!renamingOption) return;
+    const name = renamingOption.name.trim();
+    if (name) setOptions((opts) => opts.map((o) => (o.id === renamingOption.id ? { ...o, name } : o)));
+    setRenamingOption(null);
+  };
   const [internalNote, setInternalNote] = useState("");
   const [taxRate] = useState(7.5);
   // Default Terms & Conditions from Settings → General (termsStore); shown as a
@@ -153,22 +187,44 @@ export function CreateEstimate() {
       })),
       taxRate,
       notes: internalNote,
-    });
+      // Good/Better/Best — persist every option's line items so the client can
+      // pick one when accepting (Figma 2509:12598). Single-option estimates
+      // keep the flat items list above as the canonical shape.
+      ...(options.length > 1 ? {
+        options: options.map((o) => ({
+          name: o.name,
+          items: o.items.map((li) => ({
+            id: li.id, name: li.name, description: li.description, quantity: li.quantity,
+            price: li.unitPrice, cost: li.unitCost, amount: li.total, taxable: li.taxable,
+          })),
+        })),
+      } : {}),
+    } as any);
     toast.success(successMessage);
     navigate(returnTo || "/estimates");
+  };
+
+  // Every option needs at least one line item — its items are what flow into a
+  // job/invoice when the estimate is attached / the client picks that option.
+  const emptyOptionError = (): string | null => {
+    const empty = options.find((o) => o.items.length === 0);
+    if (!empty) return null;
+    return options.length === 1
+      ? "Add at least one line item before saving."
+      : `Option "${empty.name}" has no line items — add items or remove the option.`;
   };
 
   const handleSaveEstimate = () => {
     if (!client.trim()) { toast.error("Select a client before saving the estimate."); return; }
     if (!serviceAddress.trim()) { toast.error("Select a service address."); return; }
-    if (lineItems.length === 0) { toast.error("Add at least one line item before saving."); return; }
+    const err = emptyOptionError();
+    if (err) { toast.error(err); return; }
     persistEstimate("Draft", "Estimate created");
   };
   const handleSaveDraft = () => {
     if (!client.trim()) { toast.error("Select a client before saving the draft."); return; }
-    // An estimate (even a draft) must have at least one line item — its items are
-    // what flow into a job/invoice when the estimate is attached.
-    if (lineItems.length === 0) { toast.error("Add at least one line item before saving."); return; }
+    const err = emptyOptionError();
+    if (err) { toast.error(err); return; }
     persistEstimate("Draft", "Draft saved");
   };
 
@@ -259,6 +315,85 @@ export function CreateEstimate() {
 
           {/* Line Items */}
           <Section label={<>Line Items {reqStar}</>}>
+            {/* Good/Better/Best option tabs (Figma 2509:12598) */}
+            <div className="mb-2 flex flex-wrap items-center gap-2">
+              {options.map((o) => {
+                const active = o.id === activeOption.id;
+                const renaming = renamingOption?.id === o.id;
+                return (
+                  <div
+                    key={o.id}
+                    onClick={() => { if (!renaming) setActiveOptionId(o.id); }}
+                    className={`flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border bg-white px-3 transition-colors ${active ? "border-[#4A6FA5]" : "border-[#E5E7EB] hover:border-[#C5CEDD]"}`}
+                  >
+                    {renaming ? (
+                      <>
+                        <input
+                          value={renamingOption.name}
+                          onChange={(e) => setRenamingOption({ ...renamingOption, name: e.target.value })}
+                          onKeyDown={(e) => { if (e.key === "Enter") confirmRename(); if (e.key === "Escape") setRenamingOption(null); }}
+                          onClick={(e) => e.stopPropagation()}
+                          autoFocus
+                          className="w-[72px] bg-transparent text-[13px] text-[#1A2332] outline-none"
+                          style={{ fontWeight: 500 }}
+                        />
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); confirmRename(); }}
+                          aria-label="Confirm rename"
+                          className="flex h-5 w-5 items-center justify-center rounded bg-[#DCFCE7] text-[#16A34A]"
+                        >
+                          <span className="material-icons" style={{ fontSize: "13px" }}>check</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); setRenamingOption(null); }}
+                          aria-label="Cancel rename"
+                          className="flex h-5 w-5 items-center justify-center rounded text-[#9CA3AF] hover:text-[#DC2626]"
+                        >
+                          <span className="material-icons" style={{ fontSize: "14px" }}>close</span>
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <span className={`text-[13px] ${active ? "text-[#1A2332]" : "text-[#546478]"}`} style={{ fontWeight: 500 }}>{o.name}</span>
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); setRenamingOption({ id: o.id, name: o.name }); }}
+                          aria-label={`Rename ${o.name}`}
+                          className="flex h-5 w-5 items-center justify-center rounded text-[#9CA3AF] hover:text-[#4A6FA5]"
+                        >
+                          <span className="material-icons" style={{ fontSize: "13px" }}>edit</span>
+                        </button>
+                        {active && options.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); removeOption(o.id); }}
+                            aria-label={`Remove ${o.name}`}
+                            className="flex h-5 w-5 items-center justify-center rounded text-[#9CA3AF] hover:text-[#DC2626]"
+                          >
+                            <span className="material-icons" style={{ fontSize: "14px" }}>close</span>
+                          </button>
+                        )}
+                      </>
+                    )}
+                  </div>
+                );
+              })}
+              {options.length < MAX_OPTIONS && (
+                <button
+                  type="button"
+                  onClick={addOption}
+                  className="flex h-9 items-center gap-1 rounded-lg border border-dashed border-[#C5CEDD] px-3 text-[13px] text-[#546478] transition-colors hover:border-[#4A6FA5] hover:text-[#4A6FA5]"
+                  style={{ fontWeight: 500 }}
+                >
+                  + Add option
+                </button>
+              )}
+            </div>
+            <p className="mb-3 text-[12px] text-[#8899AA]">
+              Each option has its own line items — the client picks one when accepting. Rename via the pencil; up to 4 options.
+            </p>
             <div className="overflow-hidden rounded-xl border border-[#E5E7EB]">
               {/* card header: search + add item */}
               <div className="flex items-center justify-between gap-3 border-b border-[#E5E7EB] px-4 py-3">
@@ -279,6 +414,7 @@ export function CreateEstimate() {
                   style={{ fontWeight: 600 }}
                 >
                   <PlusIcon className="h-4 w-4" /> Add item
+                  <span className="material-icons" style={{ fontSize: "16px" }}>expand_more</span>
                 </button>
               </div>
 
@@ -332,26 +468,10 @@ export function CreateEstimate() {
                     </tbody>
                   </table>
 
-                  {/* Totals */}
-                  <div className="border-t border-[#E5E7EB] bg-[#F9FAFB] px-5 py-4">
-                    <div className="ml-auto w-full max-w-[320px] space-y-2">
-                      <div className="flex items-center justify-between text-[13px]">
-                        <span className="text-[#546478]">Subtotal:</span>
-                        <span className="text-[#1A2332]" style={{ fontVariantNumeric: "tabular-nums" }}>${fmt(subtotal)}</span>
-                      </div>
-                      <div className="flex items-center justify-between text-[13px]">
-                        <span className="text-[#546478]">Taxable amount:</span>
-                        <span className="text-[#1A2332]" style={{ fontVariantNumeric: "tabular-nums" }}>${fmt(taxableAmount)}</span>
-                      </div>
-                      <div className="flex items-center justify-between text-[13px]">
-                        <span className="text-[#546478]">Tax ({taxRate}%):</span>
-                        <span className="text-[#1A2332]" style={{ fontVariantNumeric: "tabular-nums" }}>${fmt(taxAmount)}</span>
-                      </div>
-                      <div className="flex items-center justify-between border-t border-[#E5E7EB] pt-2">
-                        <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 700 }}>Total:</span>
-                        <span className="text-[16px] text-[#1A2332]" style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>${fmt(total)}</span>
-                      </div>
-                    </div>
+                  {/* Total — single right-aligned row (Figma 2509:12598) */}
+                  <div className="flex items-center justify-end gap-2 border-t border-[#E5E7EB] bg-[#F9FAFB] px-5 py-3.5">
+                    <span className="text-[14px] text-[#546478]">Total:</span>
+                    <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>${fmt(total)}</span>
                   </div>
                 </>
               )}
