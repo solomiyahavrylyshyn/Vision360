@@ -12,6 +12,7 @@ import { PaginationFooter } from "../components/ui/pagination-footer";
 import { CreateActionButton } from "../components/ui/create-action-button";
 import { AdvancedFilterField, AdvancedFilterPanel, advancedInputClass, advancedSelectClass } from "../components/ui/advanced-filters";
 import { expensesStore } from "../stores/expensesStore";
+import { LIST_DATE_OPTIONS, matchesListDatePreset, listDateOptionLabel } from "../utils/listDateFilter";
 
 // Expense data lives in expensesStore (localStorage-backed) so created
 // expenses persist and show up here; the type re-export keeps old imports working.
@@ -73,15 +74,6 @@ function toDateInputValue(date: string) {
   return parsed.toISOString().slice(0, 10);
 }
 
-function matchesDatePreset(date: string, preset: string) {
-  if (preset === "all") return true;
-  const value = toDateInputValue(date);
-  if (!value) return true;
-  if (preset === "this_month") return value >= "2026-04-01" && value <= "2026-04-30";
-  if (preset === "last_month") return value >= "2026-03-01" && value <= "2026-03-31";
-  if (preset === "last_90") return value >= "2026-01-05" && value <= "2026-04-05";
-  return true;
-}
 
 export function Expenses() {
   const navigate = useNavigate();
@@ -91,7 +83,7 @@ export function Expenses() {
   // Quick filters (Figma 1139:93081: Categories + Date; job linkage lives in
   // the advanced Filter panel)
   const [qfCategory, setQfCategory] = useState("All");
-  const [qfDate, setQfDate] = useState("all");
+  const [qfDate, setQfDate] = useState("all_time");
 
   const [searchQuery, setSearchQuery] = useState("");
   const [filterOpen, setFilterOpen] = useState(false);
@@ -119,7 +111,7 @@ export function Expenses() {
       ) return false;
     }
     if (qfCategory !== "All" && e.category !== qfCategory) return false;
-    if (!matchesDatePreset(e.date, qfDate)) return false;
+    if (!matchesListDatePreset(e.date, qfDate)) return false;
     if (dateFrom && dateValue && dateValue < dateFrom) return false;
     if (dateTo && dateValue && dateValue > dateTo) return false;
     if (amountMin && e.amount < Number(amountMin)) return false;
@@ -148,7 +140,7 @@ export function Expenses() {
   // ── KPI metrics ───────────────────────────────────────────────────────────
   // Computed off `filtered` so they reflect whatever the user has filtered to.
   const thisMonthTotal = filtered
-    .filter((e) => matchesDatePreset(e.date, "this_month"))
+    .filter((e) => matchesListDatePreset(e.date, "this_month"))
     .reduce((s, e) => s + e.amount, 0);
   const avgPerExpense = filtered.length > 0 ? totalAmount / filtered.length : 0;
   const billableCount = filtered.filter((e) => e.jobId).length;
@@ -210,11 +202,8 @@ export function Expenses() {
           <select value={qfCategory} onChange={e => setQfCategory(e.target.value)} className={qfClass(qfCategory !== "All")}>
             {categoryFilterOptions.map(c => <option key={c} value={c}>{c === "All" ? "Categories: All" : c}</option>)}
           </select>
-          <select value={qfDate} onChange={e => setQfDate(e.target.value)} className={qfClass(qfDate !== "all")}>
-            <option value="all">Date: All time</option>
-            <option value="this_month">This month</option>
-            <option value="last_month">Last month</option>
-            <option value="last_90">Last 90 days</option>
+          <select value={qfDate} onChange={e => setQfDate(e.target.value)} className={qfClass(qfDate !== "all_time")}>
+            {LIST_DATE_OPTIONS.map(o => <option key={o.value} value={o.value}>{listDateOptionLabel(o.value, o.label)}</option>)}
           </select>
           <div className="w-px h-5 bg-[#E5E7EB] mx-1" />
           <button

@@ -14,6 +14,7 @@ import { formatRegionalDate } from "../stores/regionalSettingsStore";
 import { paymentsStore } from "../stores/paymentsStore";
 import { PAYMENT_METHODS, paymentMethodIcon } from "../constants/paymentMethods";
 import { toast } from "sonner";
+import { LIST_DATE_OPTIONS, matchesListDatePreset, listDateOptionLabel } from "../utils/listDateFilter";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 // PaymentMethod is loose (string) so legacy seed values (e.g. "ACH") still
@@ -67,11 +68,6 @@ const statusColors = paymentStatusColors;
 export const paymentMethodIcons = new Proxy({}, { get: (_t, k) => paymentMethodIcon(String(k)) }) as Record<string, string>;
 // (payment-method icons removed from the table per Figma — method shows as text)
 
-const timeFilters = [
-  "All time", "Today", "Yesterday", "Last 7 days", "Last 30 days",
-  "This month", "Last month", "This year", "Last year",
-];
-
 // ─── Mock Data ───────────────────────────────────────────────────────────────
 export const mockPayments: Payment[] = [
   { id: 1, date: "2026-03-10", amount: 5000.00, balance: 0, method: "Bank transfer", status: "Completed", clientName: "Travis Jones", clientEmail: "travis.j@email.com", invoiceId: 1, invoiceNumber: "10245-I01", jobId: "10245-J01", note: "First installment", createdBy: "Marek Stroz", createdAt: "2026-03-10 14:22" },
@@ -119,19 +115,6 @@ function qfClass(active: boolean) {
   }`;
 }
 
-function matchesDatePreset(date: string, preset: string) {
-  if (preset === "All time") return true;
-  if (preset === "Today") return date === "2026-04-27";
-  if (preset === "Yesterday") return date === "2026-04-26";
-  if (preset === "Last 7 days") return date >= "2026-04-21" && date <= "2026-04-27";
-  if (preset === "Last 30 days") return date >= "2026-03-29" && date <= "2026-04-27";
-  if (preset === "This month") return date >= "2026-04-01" && date <= "2026-04-30";
-  if (preset === "Last month") return date >= "2026-03-01" && date <= "2026-03-31";
-  if (preset === "This year") return date >= "2026-01-01" && date <= "2026-12-31";
-  if (preset === "Last year") return date >= "2025-01-01" && date <= "2025-12-31";
-  return true;
-}
-
 // ═══════════════════════════════════════════════════════════════════════════════
 export function Payments() {
   const navigate = useNavigate();
@@ -141,7 +124,7 @@ export function Payments() {
 
   // Quick filters
   const [qfStatus, setQfStatus] = useState("All");
-  const [qfDate, setQfDate] = useState("All time");
+  const [qfDate, setQfDate] = useState("all_time");
   const [qfMethod, setQfMethod] = useState("All");
   // Advanced filters — exactly the Jun 11 set: Total (from–to), Client (one or
   // many), Invoice (by number, many), Methods (many), Statuses (one or many).
@@ -213,7 +196,7 @@ export function Payments() {
     let result = [...payments];
     if (qfStatus !== "All") result = result.filter(p => p.status === qfStatus);
     if (qfMethod !== "All") result = result.filter(p => p.method === qfMethod);
-    result = result.filter(p => matchesDatePreset(p.date, qfDate));
+    result = result.filter(p => matchesListDatePreset(p.date, qfDate));
     if (totalMin) result = result.filter(p => p.amount >= Number(totalMin));
     if (totalMax) result = result.filter(p => p.amount <= Number(totalMax));
     if (clientsFilter.length) result = result.filter(p => clientsFilter.includes(p.clientName));
@@ -352,8 +335,8 @@ export function Payments() {
                 <option key={s} value={s}>{s}</option>
               ))}
             </select>
-            <select value={qfDate} onChange={e => { setQfDate(e.target.value); setPage(1); }} className={qfClass(qfDate !== "All time")}>
-              {timeFilters.map(t => <option key={t} value={t}>{t === "All time" ? "Date: All time" : t}</option>)}
+            <select value={qfDate} onChange={e => { setQfDate(e.target.value); setPage(1); }} className={qfClass(qfDate !== "all_time")}>
+              {LIST_DATE_OPTIONS.map(o => <option key={o.value} value={o.value}>{listDateOptionLabel(o.value, o.label)}</option>)}
             </select>
             <select value={qfMethod} onChange={e => { setQfMethod(e.target.value); setPage(1); }} className={qfClass(qfMethod !== "All")}>
               <option value="All">Methods: All</option>

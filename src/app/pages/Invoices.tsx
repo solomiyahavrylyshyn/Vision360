@@ -14,6 +14,7 @@ import { formatRegionalDate, regionalSettingsStore } from "../stores/regionalSet
 import { AdvancedFilterField, AdvancedFilterPanel, advancedInputClass, advancedSelectClass } from "../components/ui/advanced-filters";
 import { clientsStore } from "../stores/clientsStore";
 import { invoicesStore, type Invoice, type InvoiceStatus } from "../stores/invoicesStore";
+import { LIST_DATE_OPTIONS, matchesListDatePreset, listDateOptionLabel } from "../utils/listDateFilter";
 
 const statusColors: Record<InvoiceStatus, { text: string; bg: string }> = {
   "Unpaid":          { text: "#DC2626", bg: "#FEE2E2" },
@@ -29,11 +30,6 @@ const allStatuses: InvoiceStatus[] = [
   "Paid",
   "Partially Paid",
   "Void",
-];
-
-const timeFilters = [
-  "All time", "Today", "Yesterday", "Last 7 days", "Last 30 days",
-  "This month", "Last month", "This year", "Last year",
 ];
 
 // Days between two YYYY-MM-DD dates (b - a, positive when b is after a)
@@ -70,18 +66,6 @@ function qfClass(active: boolean) {
   }`;
 }
 
-function matchesDatePreset(date: string, preset: string) {
-  if (preset === "All time") return true;
-  if (preset === "Today") return date === "2026-04-27";
-  if (preset === "Yesterday") return date === "2026-04-26";
-  if (preset === "Last 7 days") return date >= "2026-04-21" && date <= "2026-04-27";
-  if (preset === "Last 30 days") return date >= "2026-03-29" && date <= "2026-04-27";
-  if (preset === "This month") return date >= "2026-04-01" && date <= "2026-04-30";
-  if (preset === "Last month") return date >= "2026-03-01" && date <= "2026-03-31";
-  if (preset === "This year") return date >= "2026-01-01" && date <= "2026-12-31";
-  if (preset === "Last year") return date >= "2025-01-01" && date <= "2025-12-31";
-  return true;
-}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 export function Invoices() {
@@ -96,7 +80,7 @@ export function Invoices() {
 
   // Quick filters
   const [qfStatus, setQfStatus] = useState<string>("All");
-  const [qfDate, setQfDate] = useState("All time");
+  const [qfDate, setQfDate] = useState("all_time");
   const [qfBalance, setQfBalance] = useState("All");
   const [filterOpen, setFilterOpen] = useState(false);
   const [createdFrom, setCreatedFrom] = useState("");
@@ -148,7 +132,7 @@ export function Invoices() {
     if (qfStatus !== "All") {
       result = result.filter(i => i.status === qfStatus);
     }
-    result = result.filter(i => matchesDatePreset(i.date, qfDate));
+    result = result.filter(i => matchesListDatePreset(i.date, qfDate));
     if (qfBalance === "With Balance") result = result.filter(i => i.balance > 0);
     if (createdFrom) result = result.filter(i => i.date >= createdFrom);
     if (createdTo) result = result.filter(i => i.date <= createdTo);
@@ -295,8 +279,8 @@ export function Invoices() {
               <option key={s} value={s}>{s}</option>
             ))}
           </select>
-          <select value={qfDate} onChange={e => { setQfDate(e.target.value); setPage(1); }} className={qfClass(qfDate !== "All time")}>
-            {timeFilters.map(t => <option key={t} value={t}>{t === "All time" ? "Date: All time" : t}</option>)}
+          <select value={qfDate} onChange={e => { setQfDate(e.target.value); setPage(1); }} className={qfClass(qfDate !== "all_time")}>
+            {LIST_DATE_OPTIONS.map(o => <option key={o.value} value={o.value}>{listDateOptionLabel(o.value, o.label)}</option>)}
           </select>
           <select value={qfBalance} onChange={e => { setQfBalance(e.target.value); setPage(1); }} className={qfClass(qfBalance !== "All")}>
             <option value="All">Invoices: All</option>

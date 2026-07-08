@@ -14,6 +14,7 @@ import { StatCard } from "../components/ui/stat-card";
 import { useDraggableColumns, DraggableTh } from "../components/ui/draggable-columns";
 import { AdvancedFilterField, AdvancedFilterPanel, advancedInputClass, advancedSelectClass } from "../components/ui/advanced-filters";
 import { PaginationFooter } from "../components/ui/pagination-footer";
+import { LIST_DATE_OPTIONS, matchesListDatePreset, listDateOptionLabel } from "../utils/listDateFilter";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type EstimateStatus = "Draft" | "Sent" | "Viewed" | "Changes Requested" | "Updated" | "Approved" | "Rejected" | "Expired" | "Archived" | "Converted";
@@ -105,13 +106,6 @@ const ESTIMATES_COLS = [
 
 const DEFAULT_VISIBLE_COLS = new Set(["estimate", "client", "status", "amount", "job", "technician"]);
 
-const timeFilters = [
-  "All time", "Custom", "Today", "Yesterday", "Last 7 days", "Last 14 days",
-  "Last 30 days", "Last month", "This month", "This year", "Last year",
-  "This week (Sun-Today)", "This week (Mon-Today)", "Last week (Sun-Sat)",
-  "Last week (Mon-Sun)", "Last business week (Mon-Fri)",
-];
-
 // ─── Mock Data ───────────────────────────────────────────────────────────────
 const mockClients: Client[] = [
   { id: 1, name: "Travis Jones", email: "cerb04@yahoo.com", phone: "(863) 225-3254", address: "8377 Standish Bend Dr Unit 1, Tampa, Florida 33615" },
@@ -144,21 +138,6 @@ function toDateInputValue(date: string) {
   const parsed = new Date(`${date} 12:00:00`);
   if (Number.isNaN(parsed.getTime())) return "";
   return parsed.toISOString().slice(0, 10);
-}
-
-function matchesDatePreset(date: string, preset: string) {
-  if (preset === "All time") return true;
-  const value = toDateInputValue(date);
-  if (!value) return true;
-  if (preset === "Today") return value === "2026-04-27";
-  if (preset === "Yesterday") return value === "2026-04-26";
-  if (preset === "Last 7 days") return value >= "2026-04-21" && value <= "2026-04-27";
-  if (preset === "Last 30 days") return value >= "2026-03-29" && value <= "2026-04-27";
-  if (preset === "This month") return value >= "2026-04-01" && value <= "2026-04-30";
-  if (preset === "Last month") return value >= "2026-03-01" && value <= "2026-03-31";
-  if (preset === "This year") return value >= "2026-01-01" && value <= "2026-12-31";
-  if (preset === "Last year") return value >= "2025-01-01" && value <= "2025-12-31";
-  return true;
 }
 
 function ModalBackdrop({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
@@ -228,7 +207,7 @@ export function Estimates() {
 
   // Quick filters
   const [qfStatus, setQfStatus] = useState<"All" | EstimateStatus>("All");
-  const [qfDate, setQfDate] = useState("All time");
+  const [qfDate, setQfDate] = useState("all_time");
   const [filterOpen, setFilterOpen] = useState(false);
   const [createdFrom, setCreatedFrom] = useState("");
   const [createdTo, setCreatedTo] = useState("");
@@ -293,7 +272,7 @@ export function Estimates() {
   const filtered = useMemo(() => {
     let result = [...estimates];
     if (qfStatus !== "All") result = result.filter(e => e.status === qfStatus);
-    result = result.filter(e => matchesDatePreset(e.createdDate, qfDate));
+    result = result.filter(e => matchesListDatePreset(e.createdDate, qfDate));
     if (createdFrom) result = result.filter(e => toDateInputValue(e.createdDate) >= createdFrom);
     if (createdTo) result = result.filter(e => toDateInputValue(e.createdDate) <= createdTo);
     if (expiresFrom) result = result.filter(e => toDateInputValue(e.expirationDate) >= expiresFrom);
@@ -470,8 +449,8 @@ export function Estimates() {
             <option disabled>── other options ──</option>
             {otherStatuses.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
-          <select value={qfDate} onChange={e => { setQfDate(e.target.value); setPage(1); }} className={qfClass(qfDate !== "All time")}>
-            {timeFilters.map(t => <option key={t} value={t}>{t === "All time" ? "Date: All time" : t}</option>)}
+          <select value={qfDate} onChange={e => { setQfDate(e.target.value); setPage(1); }} className={qfClass(qfDate !== "all_time")}>
+            {LIST_DATE_OPTIONS.map(o => <option key={o.value} value={o.value}>{listDateOptionLabel(o.value, o.label)}</option>)}
           </select>
           <div className="w-px h-5 bg-[#E5E7EB] mx-1" />
           <button
