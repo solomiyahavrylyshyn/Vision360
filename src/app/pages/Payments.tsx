@@ -173,7 +173,10 @@ export function Payments() {
   const [perPage, setPerPage] = useState(10);
 
   // Column visibility (Number is always shown) — Figma "Edit columns" dialog
-  const [visibleColumns, setVisibleColumns] = useState<Set<string>>(new Set(PAYMENT_TOGGLE_COLS));
+  // Default set mirrors the Figma payments table: Number · Client · Invoice ·
+  // Method · Status · Total · Note. Estimate / Job / Payment date stay
+  // available via Edit columns.
+  const [visibleColumns, setVisibleColumns] = useState<Set<string>>(new Set(["client", "invoice", "method", "status", "total", "note"]));
   const [pendingColumns, setPendingColumns] = useState<Set<string>>(new Set(PAYMENT_TOGGLE_COLS));
   const [editColumnsOpen, setEditColumnsOpen] = useState(false);
 

@@ -157,7 +157,9 @@ export function Clients() {
     | "dateCreated" | "lastServiceDate" | "totalBilled" | "notes" | "lastActivity"
     | "paymentTerms" | "paymentMethod" | "taxable";
 
-  const [visibleColumns, setVisibleColumns] = useState<Set<ColKey>>(new Set<ColKey>(["address", "mobile", "status", "totalBilled"]));
+  // Default set mirrors the Figma clients table: Address · Status · Last
+  // activity · Total billed (Mobile etc. stay available via Edit Columns).
+  const [visibleColumns, setVisibleColumns] = useState<Set<ColKey>>(new Set<ColKey>(["address", "status", "lastActivity", "totalBilled"]));
   const [editColumnsOpen, setEditColumnsOpen] = useState(false);
   const [pendingColumns, setPendingColumns] = useState<Set<ColKey>>(new Set<ColKey>(["address", "mobile", "status", "totalBilled"]));
 

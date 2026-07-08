@@ -299,7 +299,7 @@ export function Invoices() {
             {timeFilters.map(t => <option key={t} value={t}>{t === "All time" ? "Date: All time" : t}</option>)}
           </select>
           <select value={qfBalance} onChange={e => { setQfBalance(e.target.value); setPage(1); }} className={qfClass(qfBalance !== "All")}>
-            <option value="All">All invoices</option>
+            <option value="All">Invoices: All</option>
             <option value="With Balance">With balance</option>
           </select>
           <div className="w-px h-5 bg-[#E5E7EB] mx-1" />
