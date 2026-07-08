@@ -1,4 +1,4 @@
-import { useMemo, useState, useSyncExternalStore } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { toast } from "sonner";
 import { itemsStore } from "../stores/itemsStore";
@@ -20,14 +20,8 @@ export function CreateItem() {
   const returnTo = searchParams.get("returnTo") || "/items";
 
   const storeItems = useSyncExternalStore(itemsStore.subscribe, itemsStore.getSnapshot);
-  const categories = useMemo(
-    () => [...new Set(storeItems.map((i: any) => i.category).filter(Boolean))].sort(),
-    [storeItems]
-  );
 
   const [name, setName] = useState("");
-  const [itemCode, setItemCode] = useState("");
-  const [active, setActive] = useState(true);
   const [internalDesc, setInternalDesc] = useState("");
   const [salesDesc, setSalesDesc] = useState("");
   const [additionalInfo, setAdditionalInfo] = useState("");
@@ -59,6 +53,8 @@ export function CreateItem() {
 
   const save = () => {
     if (!name.trim()) { toast.error("Item name is required."); return; }
+    if (retailPrice === "") { toast.error("Price is required."); return; }
+    if (cost === "") { toast.error("Cost is required."); return; }
     const nextId = storeItems.length ? Math.max(...storeItems.map((i: any) => i.id)) + 1 : 1;
     itemsStore.upsert(toCatalogItem({
       id: nextId,
@@ -67,7 +63,7 @@ export function CreateItem() {
       salesDescription: salesDesc,
       additionalInfo,
       brand: manufacturer,
-      modelNumber: itemCode.trim(),
+      modelNumber: "",
       rate: parseFloat(retailPrice) || 0,
       cost: parseFloat(cost) || 0,
       taxable,
@@ -80,7 +76,7 @@ export function CreateItem() {
       customField2,
       notes,
       images: [...images, ...(imageUrl.trim() ? [imageUrl.trim()] : [])],
-      active,
+      active: true,
       type,
     }));
     toast.success("Item created");
@@ -111,33 +107,20 @@ export function CreateItem() {
         </div>
 
         <div className="rounded-xl border border-[#E5E7EB] bg-white">
-          {/* Basic info */}
+          {/* Basic info (Figma: Name* → Sales description → Internal description → Additional information) */}
           <Section label="Basic info">
-            <div className="grid grid-cols-[1fr_200px_180px] gap-5">
-              <div>
-                <label className={labelClass}>Name {reqStar}</label>
-                <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Item name" className={fieldClass} />
-              </div>
-              <div>
-                <label className={labelClass}>Item code</label>
-                <input type="text" value={itemCode} onChange={(e) => setItemCode(e.target.value)} placeholder="e.g. SVC-1001" className={fieldClass} />
-              </div>
-              <div>
-                <label className={labelClass}>Status</label>
-                <select value={active ? "active" : "inactive"} onChange={(e) => setActive(e.target.value === "active")} className={fieldClass}>
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
-                </select>
-              </div>
-            </div>
-            <div className="mt-4">
-              <label className={labelClass}>Internal description</label>
-              <textarea value={internalDesc} onChange={(e) => setInternalDesc(e.target.value)} placeholder="Internal description is not shown to client"
-                className="min-h-[64px] w-full resize-y rounded-lg border border-[#E5E7EB] px-3.5 py-2.5 text-[14px] text-[#1A2332] outline-none focus:border-[#4A6FA5]" />
+            <div>
+              <label className={labelClass}>Name {reqStar}</label>
+              <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Item name" className={fieldClass} />
             </div>
             <div className="mt-4">
               <label className={labelClass}>Sales description</label>
               <textarea value={salesDesc} onChange={(e) => setSalesDesc(e.target.value)} placeholder="Client-facing description"
+                className="min-h-[64px] w-full resize-y rounded-lg border border-[#E5E7EB] px-3.5 py-2.5 text-[14px] text-[#1A2332] outline-none focus:border-[#4A6FA5]" />
+            </div>
+            <div className="mt-4">
+              <label className={labelClass}>Internal description</label>
+              <textarea value={internalDesc} onChange={(e) => setInternalDesc(e.target.value)} placeholder="Internal description is not shown to client"
                 className="min-h-[64px] w-full resize-y rounded-lg border border-[#E5E7EB] px-3.5 py-2.5 text-[14px] text-[#1A2332] outline-none focus:border-[#4A6FA5]" />
             </div>
             <div className="mt-4">
@@ -149,61 +132,73 @@ export function CreateItem() {
 
           <div className="border-t border-[#E5E7EB]" />
 
-          {/* Type & category — ONE grouped dropdown (Marek Jun 16): the optgroup
-               header is the Type, the options under it are its Categories, and the
-               selection records both together (e.g. Service + Diagnostic). */}
-          <Section label={<>Type &amp; category {reqStar}</>}>
-            <select
-              value={category ? `${type}|||${category}` : ""}
-              onChange={(e) => { if (!e.target.value) return; const [t, c] = e.target.value.split("|||"); setType(t); setCategory(c); }}
-              className={`${fieldClass} max-w-[420px]`}
-            >
-              <option value="" disabled>Select type and category</option>
-              {ITEM_TYPES.map((t) => (
-                <optgroup key={t} label={t}>
-                  {TYPE_CATEGORIES[t].map((c) => <option key={`${t}|||${c}`} value={`${t}|||${c}`}>{c}</option>)}
-                </optgroup>
-              ))}
-            </select>
-            {manageHint(<>Manage categories in <span className="cursor-pointer text-[#4A6FA5] hover:underline" onClick={() => navigate("/settings?section=items")}>Settings &gt; Items &gt; Categories</span></>)}
-          </Section>
-
-          <div className="border-t border-[#E5E7EB]" />
-
-          {/* Classification */}
-          <Section label="Classification">
-            <div className="grid grid-cols-2 gap-5">
-              <div>
-                <label className={labelClass}>Manufacturer</label>
-                <select value={manufacturer} onChange={(e) => setManufacturer(e.target.value)} className={fieldClass}>
-                  <option value="">Select manufacturer</option>
-                  {MANUFACTURERS.map((m) => <option key={m} value={m}>{m}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className={labelClass}>Department</label>
-                <select value={department} onChange={(e) => setDepartment(e.target.value)} className={fieldClass}>
-                  <option value="">Select department</option>
-                  {DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}
-                </select>
-              </div>
+          {/* Type — 6 radio cards (Figma 1494:127168: Service / Material /
+               Equipment / Asset / Admin / Price Book) */}
+          <Section label={<>Type {reqStar}</>}>
+            <div className="grid grid-cols-3 gap-4">
+              {ITEM_TYPES.map((t) => {
+                const selected = type === t;
+                return (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => { setType(t); setCategory(""); }}
+                    className={`flex h-11 items-center gap-2.5 rounded-lg border bg-white px-3.5 text-left transition-colors ${selected ? "border-[#4A6FA5]" : "border-[#E5E7EB] hover:border-[#C5CEDD]"}`}
+                  >
+                    <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border ${selected ? "border-[#4A6FA5]" : "border-[#C5CEDD]"}`}>
+                      {selected && <span className="h-2 w-2 rounded-full bg-[#4A6FA5]" />}
+                    </span>
+                    <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>{t}</span>
+                  </button>
+                );
+              })}
             </div>
           </Section>
 
           <div className="border-t border-[#E5E7EB]" />
 
-          {/* Pricing & tax */}
-          <Section label="Pricing & tax">
+          {/* Classification (Figma: Category select · Manufacturer · Department) */}
+          <Section label="Classification">
             <div className="grid grid-cols-3 gap-5">
               <div>
-                <label className={labelClass}>Retail price</label>
+                <label className={labelClass}>Category</label>
+                <select value={category} onChange={(e) => setCategory(e.target.value)} className={fieldClass}>
+                  <option value="">Select category</option>
+                  {(TYPE_CATEGORIES[type] || []).map((c) => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className={labelClass}>Manufacturer</label>
+                <input type="text" list="create-item-manufacturers" value={manufacturer} onChange={(e) => setManufacturer(e.target.value)} placeholder="Manufacturer" className={fieldClass} />
+                <datalist id="create-item-manufacturers">
+                  {MANUFACTURERS.map((m) => <option key={m} value={m} />)}
+                </datalist>
+              </div>
+              <div>
+                <label className={labelClass}>Department</label>
+                <input type="text" list="create-item-departments" value={department} onChange={(e) => setDepartment(e.target.value)} placeholder="Department" className={fieldClass} />
+                <datalist id="create-item-departments">
+                  {DEPARTMENTS.map((d) => <option key={d} value={d} />)}
+                </datalist>
+              </div>
+            </div>
+            {manageHint(<>Manage categories in <span className="cursor-pointer text-[#4A6FA5] hover:underline" onClick={() => navigate("/settings?section=items#item-categories")}>Settings &gt; Items &gt; Categories</span></>)}
+          </Section>
+
+          <div className="border-t border-[#E5E7EB]" />
+
+          {/* Pricing & tax (Figma: Price* · Cost* · Default quantity + Taxable box) */}
+          <Section label={<>Pricing &amp; tax {reqStar}</>}>
+            <div className="grid grid-cols-3 gap-5">
+              <div>
+                <label className={labelClass}>Price {reqStar}</label>
                 <div className="relative">
                   <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[14px] text-[#8899AA]">$</span>
                   <input type="number" min="0" step="0.01" value={retailPrice} onChange={(e) => setRetailPrice(e.target.value)} placeholder="0" className={`${fieldClass} pl-7`} style={{ fontVariantNumeric: "tabular-nums" }} />
                 </div>
               </div>
               <div>
-                <label className={labelClass}>Cost</label>
+                <label className={labelClass}>Cost {reqStar}</label>
                 <div className="relative">
                   <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[14px] text-[#8899AA]">$</span>
                   <input type="number" min="0" step="0.01" value={cost} onChange={(e) => setCost(e.target.value)} placeholder="0" className={`${fieldClass} pl-7`} style={{ fontVariantNumeric: "tabular-nums" }} />
@@ -227,18 +222,21 @@ export function CreateItem() {
                   </select>
                 </div>
               )}
+              {manageHint(<>Manage tax profiles in <span className="cursor-pointer text-[#4A6FA5] hover:underline" onClick={() => navigate("/settings")}>Settings &gt; Tax profiles</span></>)}
             </div>
-            {manageHint(<>Manage tax profiles in <span className="cursor-pointer text-[#4A6FA5] hover:underline" onClick={() => navigate("/settings")}>Settings &gt; Tax profiles</span></>)}
           </Section>
 
           <div className="border-t border-[#E5E7EB]" />
 
           {/* Vendor */}
           <Section label="Vendor">
-            <select value={vendor} onChange={(e) => setVendor(e.target.value)} className={fieldClass}>
-              <option value="">Select vendor</option>
-              {VENDORS.map((v) => <option key={v} value={v}>{v}</option>)}
-            </select>
+            <div className="max-w-[335px]">
+              <label className={labelClass}>Vendor</label>
+              <select value={vendor} onChange={(e) => setVendor(e.target.value)} className={fieldClass}>
+                <option value="">Select vendor</option>
+                {VENDORS.map((v) => <option key={v} value={v}>{v}</option>)}
+              </select>
+            </div>
           </Section>
 
           <div className="border-t border-[#E5E7EB]" />
@@ -291,15 +289,15 @@ export function CreateItem() {
             <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Add any internal notes..."
               className="min-h-[80px] w-full resize-y rounded-lg border border-[#E5E7EB] px-3.5 py-2.5 text-[13px] text-[#1A2332] outline-none focus:border-[#4A6FA5]" />
           </Section>
-        </div>
 
-        {/* Footer */}
-        <div className="mt-5 flex items-center justify-end gap-3 pb-8">
-          <button onClick={() => navigate(returnTo)} className="h-10 rounded-lg border border-[#E5E7EB] bg-white px-5 text-[13px] text-[#546478] transition-colors hover:bg-[#F5F7FA]" style={{ fontWeight: 600 }}>Cancel</button>
-          <button onClick={save} disabled={!name.trim()}
-            className="h-10 rounded-lg bg-[#4A6FA5] px-5 text-[13px] text-white transition-colors hover:bg-[#3d5a85] disabled:opacity-40" style={{ fontWeight: 600 }}>
-            Save item
-          </button>
+          {/* Footer — Cancel / Save item (Figma: right-aligned inside the card) */}
+          <div className="flex items-center justify-end gap-3 border-t border-[#E5E7EB] px-6 py-4">
+            <button onClick={() => navigate(returnTo)} className="h-9 rounded-lg border border-[#E5E7EB] bg-white px-4 text-[14px] text-[#1A2332] transition-colors hover:bg-[#F5F7FA]" style={{ fontWeight: 500 }}>Cancel</button>
+            <button onClick={save} disabled={!name.trim()}
+              className="h-9 rounded-lg bg-[#4A6FA5] px-4 text-[14px] text-white transition-colors hover:bg-[#3d5a85] disabled:opacity-40" style={{ fontWeight: 500 }}>
+              Save item
+            </button>
+          </div>
         </div>
       </div>
     </div>

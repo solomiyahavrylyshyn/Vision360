@@ -163,18 +163,19 @@ function catalogToItem(c: any): Item {
   };
 }
 
-function getTypeBadgeClass(type: ItemType): string {
+// Canonical type buckets (Figma items canvas): legacy fine-grained names on
+// old records map onto the six canonical types for display.
+function getTypeBucket(type: string): { label: string; badge: string } {
   const serviceTypes = ["Service", "Labor", "Maintenance", "Diagnostics", "Installation", "Repair"];
-  const materialTypes = ["Inventory Item", "Non-Inventory Item", "Serialized Item"];
-  const equipmentTypes = ["Equipment", "Asset"];
-  const feeTypes = ["Fee / Admin Code", "Discount", "Other Charge", "Material Markup", "Labor Markup", "Other Markup", "Material Discount", "Labor Discount", "Other Discount"];
-  const bundleTypes = ["Bundle / Kit"];
-  if (serviceTypes.includes(type)) return "bg-[#EBF0F8] text-[#4A6FA5]";
-  if (materialTypes.includes(type)) return "bg-[#D1FAE5] text-[#16A34A]";
-  if (equipmentTypes.includes(type)) return "bg-[#FEF3C7] text-[#D97706]";
-  if (feeTypes.includes(type)) return "bg-[#EDE9FE] text-[#7C3AED]";
-  if (bundleTypes.includes(type)) return "bg-[#CCFBF1] text-[#0D9488]";
-  return "bg-[#FFEDD5] text-[#EA580C]";
+  const materialTypes = ["Material", "Inventory Item", "Non-Inventory Item", "Serialized Item"];
+  const adminTypes = ["Admin", "Fees", "Fee / Admin Code", "Discount", "Other Charge", "Material Markup", "Labor Markup", "Other Markup", "Material Discount", "Labor Discount", "Other Discount"];
+  if (serviceTypes.includes(type)) return { label: "Service", badge: "bg-[#EBF0F8] text-[#4A6FA5]" };
+  if (materialTypes.includes(type)) return { label: "Material", badge: "bg-[#D1FAE5] text-[#16A34A]" };
+  if (type === "Equipment") return { label: "Equipment", badge: "bg-[#EDE9FE] text-[#7C3AED]" };
+  if (type === "Asset" || type === "Assets") return { label: "Asset", badge: "bg-[#FEF3C7] text-[#D97706]" };
+  if (adminTypes.includes(type)) return { label: "Admin", badge: "bg-[#FFEDD5] text-[#EA580C]" };
+  if (type === "Price Book" || type === "Bundle / Kit") return { label: "Price Book", badge: "bg-[#CCFBF1] text-[#0D9488]" };
+  return { label: type || "Other", badge: "bg-[#F3F4F6] text-[#6B7280]" };
 }
 
 type TabKey = "details" | "activity";
@@ -292,11 +293,11 @@ export function ItemDetail() {
     return (
     // items-stretch → the three columns share the tallest column's height
     <div className="grid grid-cols-3 gap-4 items-stretch">
-      {/* ── Col 1: Item info ── */}
-      <Card title="Item info" onEdit={() => setEditModal("info")}>
+      {/* ── Col 1: Item overview (Figma 1500:51443) ── */}
+      <Card title="Item overview" onEdit={() => setEditModal("info")}>
         <div className="flex flex-col gap-4">
           {/* Image gallery — uniform display-only thumbnails (Figma 1500:95027).
-              Add/remove images via the Edit pencil → Edit item info modal. */}
+              Add/remove images via the Edit pencil → Edit item overview modal. */}
           {images.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {images.map((src, i) => (
@@ -318,18 +319,17 @@ export function ItemDetail() {
         </div>
       </Card>
 
-      {/* ── Col 2: Type & classification & vendor + Pricing & tax ── */}
+      {/* ── Col 2: Item info + Pricing & tax (Figma 1500:51443) ── */}
       <div className="flex flex-col gap-4">
-        <Card title="Type & classification & vendor" onEdit={() => setEditModal("classification")}>
+        <Card title="Item info" onEdit={() => setEditModal("classification")}>
           <div className="grid grid-cols-2 gap-4">
-            <div className="col-span-2 flex flex-col gap-1">
-              <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Type | Category</div>
-              <div className="flex items-center gap-2">
-                <span className={`inline-block px-2 py-0.5 rounded-full text-[11px] ${getTypeBadgeClass(item.type)}`} style={{ fontWeight: 600 }}>{item.type}</span>
-                <span className="text-[#C8D5E8]">|</span>
-                <span className="text-[13px] text-[#1A2332]">{item.category || "—"}</span>
+            <div className="flex flex-col gap-1">
+              <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Item type</div>
+              <div>
+                <span className={`inline-block px-2 py-0.5 rounded-full text-[11px] ${getTypeBucket(item.type).badge}`} style={{ fontWeight: 600 }}>{getTypeBucket(item.type).label}</span>
               </div>
             </div>
+            <Field label="Category" value={item.category} />
             <Field label="Manufacturer" value={item.brand} />
             <Field label="Department" value={item.department} />
             <Field label="Vendor" value={item.vendor} />
@@ -339,7 +339,7 @@ export function ItemDetail() {
         <Card title="Pricing & tax" onEdit={() => setEditModal("pricing")}>
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-1">
-              <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Retail price</div>
+              <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Price</div>
               <div className="text-[15px] text-[#1A2332] leading-[22px]" style={{ fontWeight: 600 }}>${money(item.rate)}</div>
             </div>
             <div className="flex flex-col gap-1">
@@ -480,20 +480,6 @@ export function ItemDetail() {
                   )}
                 </div>
               </div>
-              {/* Subtitle: Category + Manufacturer with leading icons */}
-              <div className="flex items-center gap-3 text-[14px]">
-                <span className="inline-flex items-center gap-1.5">
-                  <span className="material-icons text-[#6B7280]" style={{ fontSize: "16px" }}>grid_view</span>
-                  <span className="text-[#6B7280]">Category:</span>
-                  <span className="text-[#1A2332]">{item.category || "—"}</span>
-                </span>
-                <div className="w-px h-6 bg-[#E5E7EB]" />
-                <span className="inline-flex items-center gap-1.5">
-                  <span className="material-icons text-[#6B7280]" style={{ fontSize: "16px" }}>apartment</span>
-                  <span className="text-[#6B7280]">Manufacturer:</span>
-                  <span className="text-[#1A2332]">{item.brand || "—"}</span>
-                </span>
-              </div>
             </div>
 
             {/* Right: KPI tiles — value + label + tinted icon circle, 1px dividers */}
@@ -599,7 +585,7 @@ function EditItemInfoModal({ item, images, onAddImages, onRemoveImage, onClose, 
   const [salesDescription, setSalesDescription] = useState(item.salesDescription || "");
   const [additionalInfo, setAdditionalInfo] = useState(item.additionalInfo || "");
   return (
-    <ModalShell title="Edit item info" onClose={onClose}
+    <ModalShell title="Edit item overview" onClose={onClose}
       footer={<><button className={cancelBtn} style={{ fontWeight: 600 }} onClick={onClose}>Cancel</button><button className={saveBtn} style={{ fontWeight: 600 }} onClick={() => onSave({ picture, description, salesDescription, additionalInfo })}>Save</button></>}>
       <div className="flex flex-col gap-4">
         <div>
@@ -633,29 +619,29 @@ function EditItemInfoModal({ item, images, onAddImages, onRemoveImage, onClose, 
 }
 
 function EditClassificationModal({ item, onClose, onSave }: { item: any; onClose: () => void; onSave: (p: any) => void }) {
-  // Single combined Type | Category picker (Marek Jun 16). The current pair is kept
-  // selectable even if it is a legacy/custom pair not in the predefined list.
-  const current = `${item.type || "Service"}|||${item.category || ""}`;
-  const [curType, curCat] = current.split("|||");
-  const [pair, setPair] = useState(current);
+  // Canonical Type + dependent Category (Figma items canvas taxonomy). The
+  // current category stays selectable even if it's a legacy/custom value.
+  const initialBucket = getTypeBucket(item.type || "Service").label;
+  const [type, setType] = useState((ITEM_TYPES as readonly string[]).includes(initialBucket) ? initialBucket : "Service");
+  const [category, setCategory] = useState(item.category || "");
   const [brand, setBrand] = useState(item.brand || "");
   const [department, setDepartment] = useState(item.department || "");
   const [vendor, setVendor] = useState(item.vendor || "");
-  const save = () => {
-    const [type, category] = pair.split("|||");
-    onSave({ type, category, brand, department, vendor });
-  };
+  const cats = [...(TYPE_CATEGORIES[type] || [])];
+  if (category && !cats.includes(category)) cats.unshift(category);
   return (
-    <ModalShell title="Edit type & classification" onClose={onClose}
-      footer={<><button className={cancelBtn} style={{ fontWeight: 600 }} onClick={onClose}>Cancel</button><button className={saveBtn} style={{ fontWeight: 600 }} onClick={save}>Save</button></>}>
+    <ModalShell title="Edit item info" onClose={onClose}
+      footer={<><button className={cancelBtn} style={{ fontWeight: 600 }} onClick={onClose}>Cancel</button><button className={saveBtn} style={{ fontWeight: 600 }} onClick={() => onSave({ type, category, brand, department, vendor })}>Save</button></>}>
       <div className="grid grid-cols-2 gap-4">
-        <div className="col-span-2"><label className={mLabel}>Type | Category</label>
-          <select value={pair} onChange={(e) => setPair(e.target.value)} className={mInput}>
-            {ITEM_TYPES.map((t) => {
-              const cats = [...TYPE_CATEGORIES[t]];
-              if (t === curType && curCat && !cats.includes(curCat)) cats.unshift(curCat);
-              return <optgroup key={t} label={t}>{cats.map((c) => <option key={`${t}|||${c}`} value={`${t}|||${c}`}>{c}</option>)}</optgroup>;
-            })}
+        <div><label className={mLabel}>Item type</label>
+          <select value={type} onChange={(e) => { setType(e.target.value); setCategory(""); }} className={mInput}>
+            {ITEM_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+          </select>
+        </div>
+        <div><label className={mLabel}>Category</label>
+          <select value={category} onChange={(e) => setCategory(e.target.value)} className={mInput}>
+            <option value="">Select category</option>
+            {cats.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
         </div>
         <div><label className={mLabel}>Manufacturer</label><select value={brand} onChange={(e) => setBrand(e.target.value)} className={mInput}><option value="">Select manufacturer</option>{MANUFACTURERS.map((m) => <option key={m} value={m}>{m}</option>)}</select></div>
@@ -677,7 +663,7 @@ function EditPricingModal({ item, taxProfile, onClose, onSave }: { item: any; ta
       footer={<><button className={cancelBtn} style={{ fontWeight: 600 }} onClick={onClose}>Cancel</button><button className={saveBtn} style={{ fontWeight: 600 }} onClick={() => onSave({ rate: parseFloat(rate) || 0, cost: parseFloat(cost) || 0, defaultQty: parseInt(defaultQty) || 1, taxable }, tp)}>Save</button></>}>
       <div className="flex flex-col gap-4">
         <div className="grid grid-cols-3 gap-4">
-          <div><label className={mLabel}>Retail price</label><div className="relative"><span className="absolute left-3 top-1/2 -translate-y-1/2 text-[14px] text-[#8899AA]">$</span><input type="number" min="0" step="0.01" value={rate} onChange={(e) => setRate(e.target.value)} className={`${mInput} pl-7`} style={{ fontVariantNumeric: "tabular-nums" }} /></div></div>
+          <div><label className={mLabel}>Price</label><div className="relative"><span className="absolute left-3 top-1/2 -translate-y-1/2 text-[14px] text-[#8899AA]">$</span><input type="number" min="0" step="0.01" value={rate} onChange={(e) => setRate(e.target.value)} className={`${mInput} pl-7`} style={{ fontVariantNumeric: "tabular-nums" }} /></div></div>
           <div><label className={mLabel}>Cost</label><div className="relative"><span className="absolute left-3 top-1/2 -translate-y-1/2 text-[14px] text-[#8899AA]">$</span><input type="number" min="0" step="0.01" value={cost} onChange={(e) => setCost(e.target.value)} className={`${mInput} pl-7`} style={{ fontVariantNumeric: "tabular-nums" }} /></div></div>
           <div><label className={mLabel}>Default quantity</label><input type="number" min="0" step="1" value={defaultQty} onChange={(e) => setDefaultQty(e.target.value)} className={mInput} style={{ fontVariantNumeric: "tabular-nums" }} /></div>
         </div>

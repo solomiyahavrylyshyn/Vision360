@@ -1,12 +1,8 @@
 import { useState, useMemo, useEffect, useSyncExternalStore } from "react";
 import { useNavigate } from "react-router";
-import { DndProvider } from "react-dnd";
-import { HTML5Backend } from "react-dnd-html5-backend";
 import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
 import { PageHeader } from "../components/ui/page-header";
 import { SelectionBar } from "../components/ui/selection-bar";
-import { useDraggableColumns, DraggableTh } from "../components/ui/draggable-columns";
-import { PlusIcon } from "../components/ui/plus-icon";
 import { CreateActionButton } from "../components/ui/create-action-button";
 import { AdvancedFilterField, AdvancedFilterPanel, advancedInputClass, advancedSelectClass } from "../components/ui/advanced-filters";
 import { PaginationFooter } from "../components/ui/pagination-footer";
@@ -35,19 +31,10 @@ export const toCatalogItem = (i: {
 });
 
 // ─── Types ───────────────────────────────────────────────────────────────────
-type ItemType =
-  // Service
-  | "Service" | "Labor" | "Maintenance" | "Diagnostics" | "Installation" | "Repair"
-  // Material
-  | "Inventory Item" | "Non-Inventory Item" | "Serialized Item"
-  // Equipment & Asset
-  | "Equipment" | "Asset"
-  // Fee
-  | "Fee / Admin Code" | "Discount" | "Other Charge"
-  | "Material Markup" | "Labor Markup" | "Other Markup"
-  | "Material Discount" | "Labor Discount" | "Other Discount"
-  // Other
-  | "Bundle / Kit" | "Expense / Reimbursement";
+// Canonical item types follow the Figma items module (canvas 904:76014): six
+// predefined buckets. Legacy fine-grained sub-types on old records still map
+// onto these via getItemCategory below.
+type ItemType = string;
 
 interface Item {
   id: number;
@@ -56,289 +43,130 @@ interface Item {
   description: string;        // internal description
   salesDescription: string;
   additionalInfo: string;
-  brand: string;              // shown as "Mfg." in UI
-  modelNumber: string;        // shown as "SKU" in UI
+  brand: string;              // shown as "Manufacturer" in UI
+  modelNumber: string;
   upc: string;
-  rate: number;               // shown as "Retail Price" in UI
+  rate: number;               // shown as "Price" in UI
   cost: number;
   taxable: boolean;
-  tax1: boolean;
-  tax2: boolean;
-  tax3: boolean;
-  onHand: number;
-  minQty: number;
-  maxQty: number;
-  tracking: boolean;
   category: string;
   type: ItemType;
   vendor: string;
-  vendorCode: string;
   department: string;
-  cogsGL: string;
-  salesGL: string;
   customField1: string;
   customField2: string;
-  customField3: string;
   notes: string;
-  boldPrint: boolean;
-  group: string;
   defaultQty: number;
-  picture: string;
-  inventory: boolean;         // keep for backward compat
-  booking: boolean;           // keep for backward compat
+  createdAt: string;          // "Mar 10, 2026" — Created date column
   usageCount?: number;        // how many jobs/estimates have used this item (drives Delete vs Deactivate)
 }
 
-interface ItemGroup {
-  id: number;
-  name: string;
-  description: string;
-  groupType: "Individual items" | "Bundle";
-  category: string;
-  items: number[];
-  active: boolean;
-  total: number;
-}
+type TabKey = "all" | "pricebook" | "services" | "materials" | "equipment" | "asset" | "admin";
 
-interface ItemCategoryRecord {
-  id: number;
-  name: string;
-  description: string;
-  parentCategory: string;
-  activeItems: number;
-  active: boolean;
-}
-
-interface ItemBrand {
-  id: number;
-  name: string;
-  description: string;
-}
-
-interface Catalog {
-  id: number;
-  name: string;
-  description: string;
-  itemCount: number;
-  active: boolean;
-}
-
-type TabKey = "all" | "pricebook" | "services" | "materials" | "equipment" | "asset" | "fees";
-
-// ─── Mock Data ───────────────────────────────────────────────────────────────
-const initialItems: Item[] = [
-  {
-    id: 1, active: true, name: "Diagnostic Visit",
-    description: "Standard diagnostic service call", salesDescription: "Diagnostic visit — inspects and identifies system issues",
-    additionalInfo: "", brand: "", modelNumber: "SVC-1001", upc: "",
-    rate: 99, cost: 0, taxable: true, tax1: true, tax2: false, tax3: false,
-    onHand: 0, minQty: 0, maxQty: 0, tracking: false,
-    category: "Diagnostics", subcategory: "", type: "Diagnostics",
-    vendor: "", vendorCode: "", department: "Field Service",
-    cogsGL: "", salesGL: "4000 · Service Revenue",
-    customField1: "", customField2: "", customField3: "", notes: "",
-    boldPrint: false, group: "", defaultQty: 1, picture: "", inventory: false, booking: false,
-  },
-  {
-    id: 2, active: true, name: "AC Tune-Up",
-    description: "Annual AC maintenance and tune-up", salesDescription: "AC tune-up — cleaning, inspection and performance check",
-    additionalInfo: "", brand: "", modelNumber: "SVC-1002", upc: "",
-    rate: 129, cost: 0, taxable: true, tax1: true, tax2: false, tax3: false,
-    onHand: 0, minQty: 0, maxQty: 0, tracking: false,
-    category: "Maintenance", subcategory: "", type: "Maintenance",
-    vendor: "", vendorCode: "", department: "Field Service",
-    cogsGL: "", salesGL: "4000 · Service Revenue",
-    customField1: "", customField2: "", customField3: "", notes: "",
-    boldPrint: false, group: "", defaultQty: 1, picture: "", inventory: false, booking: false,
-  },
-  {
-    id: 3, active: true, name: "R-410A Refrigerant (lb)",
-    description: "R-410A refrigerant per pound", salesDescription: "R-410A refrigerant recharge — per pound",
-    additionalInfo: "", brand: "", modelNumber: "MAT-2001", upc: "",
-    rate: 18, cost: 9, taxable: true, tax1: true, tax2: false, tax3: false,
-    onHand: 50, minQty: 10, maxQty: 200, tracking: true,
-    category: "Refrigerant", subcategory: "", type: "Inventory Item",
-    vendor: "HVAC Supply", vendorCode: "", department: "Materials",
-    cogsGL: "5000 · Cost of Goods", salesGL: "4100 · Material Sales",
-    customField1: "", customField2: "", customField3: "", notes: "",
-    boldPrint: false, group: "", defaultQty: 1, picture: "", inventory: true, booking: false,
-  },
-  {
-    id: 4, active: true, name: "Capacitor 45/5 MFD",
-    description: "Dual run capacitor 45/5 MFD 440V", salesDescription: "Capacitor 45/5 MFD — dual run capacitor replacement",
-    additionalInfo: "", brand: "", modelNumber: "MAT-2002", upc: "",
-    rate: 25, cost: 12, taxable: true, tax1: true, tax2: false, tax3: false,
-    onHand: 20, minQty: 5, maxQty: 100, tracking: true,
-    category: "Parts", subcategory: "", type: "Inventory Item",
-    vendor: "HVAC Supply", vendorCode: "", department: "Materials",
-    cogsGL: "5000 · Cost of Goods", salesGL: "4100 · Material Sales",
-    customField1: "", customField2: "", customField3: "", notes: "",
-    boldPrint: false, group: "", defaultQty: 1, picture: "", inventory: true, booking: false,
-  },
-  {
-    id: 5, active: true, name: "Blower Motor 1/2 HP",
-    description: "ECM blower motor 1/2 HP replacement", salesDescription: "Blower motor 1/2 HP — ECM variable speed",
-    additionalInfo: "", brand: "", modelNumber: "EQU-3001", upc: "",
-    rate: 225, cost: 98, taxable: true, tax1: true, tax2: false, tax3: false,
-    onHand: 8, minQty: 2, maxQty: 30, tracking: true,
-    category: "Motors", subcategory: "", type: "Equipment",
-    vendor: "Equipment Depot", vendorCode: "", department: "Equipment",
-    cogsGL: "5000 · Cost of Goods", salesGL: "4100 · Equipment Sales",
-    customField1: "", customField2: "", customField3: "", notes: "",
-    boldPrint: false, group: "", defaultQty: 1, picture: "", inventory: true, booking: false,
-  },
-  {
-    id: 6, active: true, name: "Permit Fee",
-    description: "Administrative permit processing fee", salesDescription: "Permit fee — municipal permit filing and processing",
-    additionalInfo: "", brand: "", modelNumber: "FEE-4001", upc: "",
-    rate: 75, cost: 0, taxable: true, tax1: true, tax2: false, tax3: false,
-    onHand: 0, minQty: 0, maxQty: 0, tracking: false,
-    category: "Administrative", subcategory: "", type: "Fee / Admin Code",
-    vendor: "", vendorCode: "", department: "",
-    cogsGL: "", salesGL: "4300 · Admin Revenue",
-    customField1: "", customField2: "", customField3: "", notes: "",
-    boldPrint: false, group: "", defaultQty: 1, picture: "", inventory: false, booking: false,
-  },
-];
-
-interface PricebookItem {
-  id: number; active: boolean; name: string; category: string;
-  description: string; price: number; cost: number; taxable: boolean;
-  type?: ItemType;
-}
-
-const initialPricebookItems: PricebookItem[] = [
-  { id: 1, active: true, name: "AC Tune-Up", category: "Maintenance", description: "Comprehensive AC system tune-up and inspection", price: 89, cost: 28, taxable: true },
-  { id: 2, active: true, name: "Diagnostic Fee", category: "Diagnostics", description: "System diagnostic and evaluation", price: 79, cost: 0, taxable: true },
-  { id: 3, active: true, name: "Capacitor Replacement", category: "Repairs", description: "Replace run capacitor – includes labor and capacitor", price: 289, cost: 108.50, taxable: true },
-  { id: 4, active: true, name: "Blower Motor Replacement", category: "Repairs", description: "Replace indoor blower motor – includes labor and motor", price: 649, cost: 274, taxable: true },
-  { id: 5, active: true, name: "Drain Line Clearing", category: "Repairs", description: "Clear primary drain line", price: 159, cost: 45, taxable: true },
-  { id: 6, active: true, name: "Thermostat Installation", category: "Installation", description: "Install new standard thermostat", price: 149, cost: 45, taxable: true },
-  { id: 7, active: true, name: "System Installation – 3 Ton", category: "Installation", description: "Complete 3 ton system installation", price: 6995, cost: 4250, taxable: true },
-  { id: 8, active: true, name: "R-410A Refrigerant (per lb)", category: "Materials", description: "R-410A refrigerant", price: 24, cost: 12.50, taxable: true },
-  { id: 9, active: true, name: "Permit Fee", category: "Fees", description: "Local permit fee", price: 35, cost: 0, taxable: true },
-  { id: 10, active: true, name: "After-Hours Service", category: "Fees", description: "After-hours service call", price: 125, cost: 0, taxable: true },
-  { id: 11, active: true, name: "Annual Maintenance Plan", category: "Membership", description: "Annual HVAC maintenance membership", price: 299, cost: 80, taxable: false },
-  { id: 12, active: true, name: "Filter Replacement", category: "Maintenance", description: "Replace air filter – includes filter and labor", price: 49, cost: 12, taxable: true },
-  { id: 13, active: true, name: "Coil Cleaning", category: "Maintenance", description: "Evaporator and condenser coil cleaning", price: 199, cost: 55, taxable: true },
-  { id: 14, active: true, name: "Refrigerant Recharge", category: "Repairs", description: "Recharge system refrigerant – up to 2 lbs", price: 175, cost: 40, taxable: true },
-  { id: 15, active: true, name: "Contactor Replacement", category: "Repairs", description: "Replace contactor in condenser unit", price: 189, cost: 65, taxable: true },
-  { id: 16, active: true, name: "Smart Thermostat Install", category: "Installation", description: "Install and configure smart WiFi thermostat", price: 249, cost: 95, taxable: true },
-  { id: 17, active: true, name: "Duct Inspection", category: "Diagnostics", description: "Full duct system inspection and report", price: 129, cost: 35, taxable: true },
-  { id: 18, active: true, name: "System Replacement – 2 Ton", category: "Replacement", description: "Full 2 ton system replacement – parts and labor", price: 4995, cost: 2800, taxable: true },
-  { id: 19, active: true, name: "Duct Sealing", category: "Repairs", description: "Seal duct leaks throughout system", price: 349, cost: 120, taxable: true },
-  { id: 20, active: true, name: "Emergency Service Call", category: "Fees", description: "Emergency after-hours dispatch fee", price: 199, cost: 0, taxable: true },
-  { id: 21, active: true, name: "UV Light Installation", category: "Installation", description: "Install UV germicidal light in air handler", price: 399, cost: 145, taxable: true },
-  { id: 22, active: true, name: "Drain Pan Treatment", category: "Maintenance", description: "Treat drain pan with algaecide tablets", price: 39, cost: 8, taxable: true },
-  { id: 23, active: true, name: "Float Switch Install", category: "Installation", description: "Install safety float switch on drain pan", price: 89, cost: 22, taxable: true },
-  { id: 24, active: true, name: "System Installation – 4 Ton", category: "Installation", description: "Complete 4 ton system installation", price: 8495, cost: 5100, taxable: true },
-  { id: 25, active: true, name: "Heat Strip Replacement", category: "Repairs", description: "Replace electric heat strip in air handler", price: 375, cost: 140, taxable: true },
-  { id: 26, active: true, name: "Expansion Valve Replacement", category: "Repairs", description: "Replace TXV expansion valve", price: 425, cost: 165, taxable: true },
-  { id: 27, active: true, name: "System Tune-Up – Premium", category: "Maintenance", description: "Premium system tune-up with priority scheduling", price: 149, cost: 42, taxable: true },
-  { id: 28, active: true, name: "Condenser Fan Motor", category: "Replacement", description: "Replace condenser fan motor – includes motor and labor", price: 485, cost: 195, taxable: true },
-  { id: 29, active: true, name: "Ductless Mini-Split Install", category: "Installation", description: "Install single-zone ductless mini-split system", price: 2995, cost: 1650, taxable: true },
-  { id: 30, active: true, name: "Membership – Silver", category: "Membership", description: "Silver tier annual maintenance membership", price: 199, cost: 55, taxable: false },
-  { id: 31, active: true, name: "Membership – Gold", category: "Membership", description: "Gold tier annual membership with priority service", price: 349, cost: 90, taxable: false },
-  { id: 32, active: true, name: "Pipe Insulation", category: "Materials", description: "Insulate refrigerant line set – per linear foot", price: 8, cost: 2.50, taxable: true },
-  { id: 33, active: true, name: "Humidifier Installation", category: "Installation", description: "Whole-home humidifier installation", price: 699, cost: 285, taxable: true },
-  { id: 34, active: true, name: "Air Purifier Install", category: "Installation", description: "Install electronic air purifier in air handler", price: 549, cost: 220, taxable: true },
-  { id: 35, active: true, name: "Gas Furnace Tune-Up", category: "Maintenance", description: "Gas furnace annual inspection and tune-up", price: 109, cost: 32, taxable: true },
-  { id: 36, active: true, name: "Heat Exchanger Inspection", category: "Diagnostics", description: "Inspect heat exchanger for cracks or failures", price: 159, cost: 40, taxable: true },
-  { id: 37, active: true, name: "Capacitor – Dual Run", category: "Replacement", description: "Dual run capacitor replacement – standard", price: 169, cost: 45, taxable: true },
-  { id: 38, active: true, name: "Condenser Coil Replacement", category: "Replacement", description: "Replace condenser coil – labor and parts", price: 895, cost: 420, taxable: true },
-  { id: 39, active: true, name: "Attic Insulation – per sqft", category: "Custom", description: "Add blown-in attic insulation per square foot", price: 2.50, cost: 0.80, taxable: true },
-  { id: 40, active: true, name: "Zone Damper Installation", category: "Installation", description: "Install motorized zone damper in duct", price: 299, cost: 110, taxable: true },
-  { id: 41, active: true, name: "Service Agreement – 2 Year", category: "Membership", description: "Two-year service and parts agreement", price: 499, cost: 130, taxable: false },
-  { id: 42, active: true, name: "System Flush", category: "Repairs", description: "Full refrigerant system flush and recharge", price: 325, cost: 95, taxable: true },
-];
-
-const initialGroups: ItemGroup[] = [
-  { id: 1, name: "HVAC Full Install Package", description: "Complete HVAC install bundle including unit, labor and thermostat", groupType: "Bundle", category: "HVAC", items: [1001, 1005, 1007], active: true, total: 7495 },
-  { id: 2, name: "Plumbing Emergency Kit", description: "Emergency plumbing service items", groupType: "Individual items", category: "Plumbing", items: [1003, 1006], active: true, total: 193.50 },
-];
-
-const initialCategories: ItemCategoryRecord[] = [
-  { id: 1, name: "HVAC", description: "Heating, ventilation, and air conditioning", parentCategory: "", activeItems: 4, active: true },
-  { id: 2, name: "Plumbing", description: "Plumbing services and materials", parentCategory: "", activeItems: 2, active: true },
-  { id: 3, name: "Electrical", description: "Electrical services and equipment", parentCategory: "", activeItems: 1, active: true },
-  { id: 4, name: "Labor", description: "General labor charges", parentCategory: "", activeItems: 1, active: true },
-];
-
-const initialBrands: ItemBrand[] = [
-  { id: 1, name: "Carrier", description: "Premium HVAC manufacturer" },
-  { id: 2, name: "Trane", description: "Commercial and residential HVAC" },
-  { id: 3, name: "Lennox", description: "High-efficiency heating and cooling" },
-  { id: 4, name: "Ecobee", description: "Smart home thermostats" },
-  { id: 5, name: "Square D", description: "Electrical distribution equipment" },
-];
-
-const initialCatalogs: Catalog[] = [
-  { id: 1, name: "Plumbing Price Guide 2026", description: "Complete plumbing services and materials catalog", itemCount: 2, active: true },
-  { id: 2, name: "HVAC Equipment Catalog", description: "All HVAC units, parts and accessories", itemCount: 4, active: true },
-];
-
-// ─── Type helpers ────────────────────────────────────────────────────────────
-type ItemCategory = "Service" | "Material" | "Equipment" | "Asset" | "Fee" | "Other";
-
-function getItemCategory(type: string): ItemCategory {
-  // Canonical 5 types (Marek Jun 16) map straight to their bucket.
-  if (type === "Service") return "Service";
-  if (type === "Material") return "Material";
-  if (type === "Equipment") return "Equipment";
-  if (type === "Assets" || type === "Asset") return "Asset";
-  if (type === "Fees") return "Fee";
-  // Legacy fine sub-types on older records → their bucket.
-  if (["Labor", "Maintenance", "Diagnostics", "Installation", "Repair"].includes(type)) return "Service";
-  if (["Inventory Item", "Non-Inventory Item", "Serialized Item"].includes(type)) return "Material";
-  if (["Fee / Admin Code", "Discount", "Other Charge", "Material Markup", "Labor Markup", "Other Markup",
-    "Material Discount", "Labor Discount", "Other Discount"].includes(type)) return "Fee";
-  return "Other";
-}
-
-function getTypeBadge(type: ItemType): { label: string; bg: string; color: string } {
-  const cat = getItemCategory(type);
-  if (cat === "Service") return { label: "Service", bg: "#EBF0F8", color: "#4A6FA5" };
-  if (cat === "Material") return { label: "Material", bg: "#D1FAE5", color: "#16A34A" };
-  if (cat === "Equipment") return { label: "Equipment", bg: "#EDE9FE", color: "#7C3AED" };
-  if (cat === "Asset") return { label: "Asset", bg: "#FEF3C7", color: "#D97706" };
-  if (cat === "Fee") return { label: "Fee", bg: "#FFEDD5", color: "#EA580C" };
-  return { label: "Other", bg: "#F3F4F6", color: "#6B7280" };
-}
-
-
-// ─── Shared Item taxonomy (Marek Jun 16, 2026) ───────────────────────────────
-// TYPES are the 5 predefined, industry-agnostic buckets — NOT user-customizable.
-// CATEGORIES are the customizable sub-buckets under each type (defaults below come
-// straight from Marek's walkthrough examples; users may add their own). This is the
-// ONE source of truth for the Create-item form and the Item-detail edit modal.
-export const ITEM_TYPES = ["Service", "Material", "Equipment", "Assets", "Fees"] as const;
+// ─── Shared Item taxonomy (Figma items canvas — supersedes the Jun 16 list) ──
+// TYPES are the 6 predefined buckets from the Create-item form — NOT
+// user-customizable. CATEGORIES are the customizable sub-buckets under each
+// type. This is the ONE source of truth for the Create-item form and the
+// Item-detail edit modal.
+export const ITEM_TYPES = ["Service", "Material", "Equipment", "Asset", "Admin", "Price Book"] as const;
 
 export const TYPE_CATEGORIES: Record<string, string[]> = {
   Service: ["Diagnostic", "Labor", "Installation", "Maintenance", "Repair", "Indoor Air Quality", "Electrical Service"],
   Material: ["Copper", "Electrical Material", "Parts", "Consumables", "Refrigerant"],
   Equipment: ["Condensers", "Air Handlers", "Water Heaters", "Boilers", "Motors"],
-  Assets: ["IT Equipment", "Tools", "Machines", "Office Equipment", "Fleet"],
-  Fees: ["Admin Fee", "Permit Fee", "Diagnostic Fee", "Trip Charge"],
+  Asset: ["IT Equipment", "Tools", "Machines", "Office Equipment", "Fleet"],
+  Admin: ["Admin Fee", "Permit Fee", "Diagnostic Fee", "Trip Charge"],
+  "Price Book": ["Maintenance", "Diagnostics", "Repairs", "Installation", "Replacement", "Membership", "Custom"],
 };
 
-// Every (type, category) pair, for the single combined "Type | Category" dropdown.
+// Every (type, category) pair, for consumers that need a combined list.
 export const TYPE_CATEGORY_PAIRS: { type: string; category: string }[] =
   ITEM_TYPES.flatMap((t) => TYPE_CATEGORIES[t].map((c) => ({ type: t, category: c })));
 
-// ─── Helper Components ───────────────────────────────────────────────────────
+// ─── Type helpers ────────────────────────────────────────────────────────────
+type ItemBucket = "Service" | "Material" | "Equipment" | "Asset" | "Admin" | "Price Book" | "Other";
 
-function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
-  return (
-    <button
-      type="button"
-      onClick={() => onChange(!checked)}
-      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${checked ? "bg-[#4A6FA5]" : "bg-[#D1D5DB]"}`}
-    >
-      <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-sm ${checked ? "translate-x-6" : "translate-x-1"}`} />
-    </button>
-  );
+function getItemCategory(type: string): ItemBucket {
+  // Canonical 6 types map straight to their bucket.
+  if (type === "Service") return "Service";
+  if (type === "Material") return "Material";
+  if (type === "Equipment") return "Equipment";
+  if (type === "Assets" || type === "Asset") return "Asset";
+  if (type === "Admin" || type === "Fees") return "Admin";
+  if (type === "Price Book") return "Price Book";
+  // Legacy fine sub-types on older records → their bucket.
+  if (["Labor", "Maintenance", "Diagnostics", "Installation", "Repair"].includes(type)) return "Service";
+  if (["Inventory Item", "Non-Inventory Item", "Serialized Item"].includes(type)) return "Material";
+  if (["Fee / Admin Code", "Discount", "Other Charge", "Material Markup", "Labor Markup", "Other Markup",
+    "Material Discount", "Labor Discount", "Other Discount"].includes(type)) return "Admin";
+  if (["Bundle / Kit"].includes(type)) return "Price Book";
+  return "Other";
 }
 
+// Colored-dot type badge (Figma row 904:76078: 4px dot + 12px medium label).
+function getTypeDot(type: ItemType): { label: string; color: string } {
+  const cat = getItemCategory(type);
+  if (cat === "Service") return { label: "Service", color: "#4A6FA5" };
+  if (cat === "Material") return { label: "Material", color: "#16A34A" };
+  if (cat === "Equipment") return { label: "Equipment", color: "#7C3AED" };
+  if (cat === "Asset") return { label: "Asset", color: "#D97706" };
+  if (cat === "Admin") return { label: "Admin", color: "#EA580C" };
+  if (cat === "Price Book") return { label: "Price Book", color: "#0D9488" };
+  return { label: "Other", color: "#6B7280" };
+}
+
+// Design shows whole-dollar prices as "$99" — only show cents when present.
+const fmtMoney = (n: number) => `$${n % 1 === 0 ? n.toLocaleString() : n.toFixed(2)}`;
+
+// Deterministic mock created-dates for seed rows (Created date column).
+const mockCreatedAt = (id: number) => {
+  const d = new Date(2026, 0, 2 + ((id * 7) % 150));
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+};
+
+// Map a catalog record (the itemsStore is the single source of truth for the
+// merged collection — base catalog + price book + user-created items) onto the
+// rich row shape this page renders.
+const catalogToRow = (s: any): Item => ({
+  id: s.id, active: s.active ?? true, name: s.name,
+  description: s.itemDescription || "", salesDescription: s.salesDescription || "", additionalInfo: s.additionalInfo || "",
+  brand: s.brand || "", modelNumber: s.modelNumber || "", upc: s.upc || "",
+  rate: s.rate || 0, cost: s.cost || 0, taxable: !!s.taxable,
+  // Use the fine itemType (falls back to the coarse picker type for old data)
+  category: s.category || "", type: s.itemType || s.type || "Service",
+  vendor: s.vendor || "", department: s.department || "",
+  customField1: s.customField1 || "", customField2: s.customField2 || "",
+  notes: s.notes || "", defaultQty: s.defaultQty ?? 1,
+  createdAt: mockCreatedAt(s.id),
+  // Seed items 1-2 carry usage history so Deactivate (kept) vs Delete
+  // (permanent, unused-only) are both demonstrable per ITM-3.
+  usageCount: s.id <= 2 ? 3 : 0,
+});
+
+// ─── Column definitions ──────────────────────────────────────────────────────
+// Toggleable via the "Edit columns" modal (Figma 1494:88462). Name is locked-on.
+// Modal order mirrors the design: left column then right column.
+const ALL_COLS = [
+  { key: "name",      label: "Name",         sortable: true,  locked: true,  numeric: false },
+  { key: "category",  label: "Category",     sortable: true,  locked: false, numeric: false },
+  { key: "type",      label: "Type",         sortable: true,  locked: false, numeric: false },
+  { key: "department",label: "Department",   sortable: true,  locked: false, numeric: false },
+  { key: "vendor",    label: "Vendor",       sortable: true,  locked: false, numeric: false },
+  { key: "brand",     label: "Manufacturer", sortable: true,  locked: false, numeric: false },
+  { key: "status",    label: "Status",       sortable: true,  locked: false, numeric: false },
+  { key: "createdAt", label: "Created date", sortable: true,  locked: false, numeric: false },
+  { key: "rate",      label: "Price",        sortable: true,  locked: false, numeric: true  },
+  { key: "cost",      label: "Cost",         sortable: true,  locked: false, numeric: true  },
+  { key: "taxable",   label: "Taxable",      sortable: false, locked: false, numeric: true  },
+] as const;
+type ColKey = (typeof ALL_COLS)[number]["key"];
+
+const DEFAULT_COL_VIS: Record<string, boolean> = {
+  name: true, category: true, type: true, department: false, vendor: false,
+  brand: false, status: true, createdAt: false, rate: true, cost: true, taxable: true,
+};
+
+// ─── Helper Components ───────────────────────────────────────────────────────
 function ModalBackdrop({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={onClose}>
@@ -350,98 +178,26 @@ function ModalBackdrop({ children, onClose }: { children: React.ReactNode; onClo
   );
 }
 
-// ─── All-items column definitions ─────────────────────────────────────────────
-// Toggleable via the "Edit columns" modal (Figma 1494:89406). Name is locked-on.
-const ALL_ITEMS_COLS = [
-  { key: "name",        label: "Name",            w: "min-w-[220px]", sortable: true,  locked: true  },
-  { key: "category",    label: "Category",        w: "w-[120px]",     sortable: true,  locked: false },
-  { key: "type",        label: "Type",            w: "w-[110px]",     sortable: true,  locked: false },
-  { key: "modelNumber", label: "SKU / Item code", w: "w-[130px]",     sortable: true,  locked: false },
-  { key: "rate",        label: "Price",           w: "w-[90px]",      sortable: true,  locked: false },
-  { key: "cost",        label: "Cost",            w: "w-[85px]",      sortable: true,  locked: false },
-  { key: "taxable",     label: "Taxable",         w: "w-[80px]",      sortable: false, locked: false },
-] as const;
-
-// ─── Pricebook column definitions ────────────────────────────────────────────
-// Customer/sales-facing (Marek Jun 16): no Cost / Margin / Taxable — those are
-// internal. Columns: Name · Category · Type · Description · Price.
-const PRICEBOOK_COLS = [
-  { key: "name",        label: "Item Name",   w: "min-w-[180px]", sortable: true  },
-  { key: "category",    label: "Category",    w: "w-[120px]",     sortable: true  },
-  { key: "type",        label: "Type",        w: "w-[110px]",     sortable: true  },
-  { key: "description", label: "Description", w: "min-w-[200px]", sortable: false },
-  { key: "price",       label: "Price",       w: "w-[90px]",      sortable: true  },
-] as const;
-
-// Price-book items are customer-facing and the seed stores no explicit type, so
-// the Type badge is derived from the category via this lightweight map.
-const PB_CATEGORY_TYPE: Record<string, string> = {
-  Maintenance: "Service", Diagnostics: "Service", Repairs: "Service", Installation: "Service",
-  Replacement: "Equipment", Custom: "Service", Membership: "Service",
-  Materials: "Material", Fees: "Fees",
-};
-const pbType = (category: string): string => PB_CATEGORY_TYPE[category] || "Service";
-
-// Price-book seed rows are minimal; expand each into a full catalog Item so the
-// Items list and the Price book share ONE source (Price book = a customer-facing
-// view of Items). Ids are offset by 100 to avoid clashing with the base seed.
-const pbSeedToItem = (p: PricebookItem): Item => ({
-  id: 100 + p.id,
-  active: p.active,
-  name: p.name,
-  description: p.description,
-  salesDescription: p.description,
-  additionalInfo: "",
-  brand: "", modelNumber: "", upc: "",
-  rate: p.price, cost: p.cost,
-  taxable: p.taxable, tax1: p.taxable, tax2: false, tax3: false,
-  onHand: 0, minQty: 0, maxQty: 0, tracking: false,
-  category: p.category,
-  type: (PB_CATEGORY_TYPE[p.category] || "Service") as ItemType,
-  vendor: "", vendorCode: "", department: "",
-  cogsGL: "", salesGL: "",
-  customField1: "", customField2: "", customField3: "",
-  notes: "", boldPrint: false, group: "", defaultQty: 1,
-  picture: "", inventory: false, booking: false,
-});
-
 // ─── Main Component ──────────────────────────────────────────────────────────
 export function Items() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabKey>("all");
-  const [showInfoBar, setShowInfoBar] = useState(false);
-  const [showInfoBarDismiss, setShowInfoBarDismiss] = useState(false);
 
-  // Items state
-  // Seed a couple of items with usage history so Deactivate (kept) vs Delete
-  // (permanent, unused-only) are both demonstrable per ITM-3.
-  const [items, setItems] = useState<Item[]>([
-    ...initialItems.map((it, i) => ({ ...it, usageCount: i < 2 ? 3 : 0 })),
-    ...initialPricebookItems.map(pbSeedToItem),
-  ]);
-  // Items created on the /items/new page write to itemsStore; merge any store
-  // items not already in this list (matched by name) so they appear here too.
+  // Items state — ONE collection sourced from itemsStore (base catalog +
+  // price-book entries + user-created items).
   const storeItems = useSyncExternalStore(itemsStore.subscribe, itemsStore.getSnapshot);
+  const [items, setItems] = useState<Item[]>(() => storeItems.map(catalogToRow));
+  // Items created on the /items/new page write to itemsStore; merge any store
+  // items not already in this list (matched by id) so they appear here too.
   useEffect(() => {
     setItems((prev) => {
-      const names = new Set(prev.map((i) => i.name.toLowerCase()));
-      const additions = storeItems
-        .filter((s: any) => s.name && !names.has(String(s.name).toLowerCase()))
-        .map((s: any) => ({
-          id: s.id, active: s.active ?? true, name: s.name, description: s.itemDescription || "", salesDescription: s.salesDescription || "", additionalInfo: s.additionalInfo || "",
-          brand: s.brand || "", modelNumber: s.modelNumber || "", upc: s.upc || "",
-          rate: s.rate || 0, cost: s.cost || 0, taxable: !!s.taxable, tax1: false, tax2: false, tax3: false,
-          onHand: 0, minQty: 0, maxQty: 0, tracking: false,
-          // Use the fine itemType (falls back to the coarse picker type for old data)
-          category: s.category || "", subcategory: s.subcategory || "", type: s.itemType || s.type || "Service",
-          vendor: s.vendor || "", vendorCode: "", department: s.department || "", cogsGL: "", salesGL: "",
-          customField1: s.customField1 || "", customField2: s.customField2 || "", customField3: "",
-          notes: s.notes || "", boldPrint: false, group: "", defaultQty: s.defaultQty ?? 1, picture: "", inventory: false, booking: false,
-          usageCount: 0,
-        }) as Item);
+      const ids = new Set(prev.map((i) => i.id));
+      const additions = storeItems.filter((s: any) => s.name && !ids.has(s.id)).map(catalogToRow)
+        .map((r) => ({ ...r, usageCount: 0 }));
       return additions.length ? [...prev, ...additions] : prev;
     });
   }, [storeItems]);
+
   const [itemSearch, setItemSearch] = useState("");
   const [itemFilter, setItemFilter] = useState("All");
   const [itemStatusFilter, setItemStatusFilter] = useState("All");
@@ -449,70 +205,26 @@ export function Items() {
   const [itemPage, setItemPage] = useState(1);
   const [itemPerPage, setItemPerPage] = useState(10);
   const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set());
-  const [itemModalOpen, setItemModalOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState<Item | null>(null);
 
-  // Edit-columns modal (All items). Name is always shown; the rest toggle.
+  // Edit-columns modal. Name is always shown; the rest toggle.
   const [editColumnsOpen, setEditColumnsOpen] = useState(false);
-  const [itemColVis, setItemColVis] = useState<Record<string, boolean>>({
-    name: true, category: true, type: true, modelNumber: true, rate: true, cost: true, taxable: true,
-  });
-  const [draftColVis, setDraftColVis] = useState<Record<string, boolean>>(itemColVis);
-  const openEditColumns = () => { if (activeTab === "pricebook") return; setDraftColVis(itemColVis); setEditColumnsOpen(true); };
-  const visibleItemCols = ALL_ITEMS_COLS.filter((c) => itemColVis[c.key]);
+  const [colVis, setColVis] = useState<Record<string, boolean>>(DEFAULT_COL_VIS);
+  const [draftColVis, setDraftColVis] = useState<Record<string, boolean>>(DEFAULT_COL_VIS);
+  const openEditColumns = () => { setDraftColVis(colVis); setEditColumnsOpen(true); };
+  // Price book tab has no Type column (all rows are Price Book by definition).
+  const visibleCols = ALL_COLS.filter((c) => colVis[c.key] && !(activeTab === "pricebook" && c.key === "type"));
+
   // Row-action "Duplicate" — clone as a fresh, never-used, active item.
   const duplicateItem = (item: Item) => {
     const newId = Math.max(0, ...items.map((i) => i.id)) + 1;
-    setItems((prev) => [{ ...item, id: newId, name: `${item.name} (copy)`, usageCount: 0, active: true }, ...prev]);
+    setItems((prev) => [{ ...item, id: newId, name: `${item.name} (copy)`, usageCount: 0, active: true, createdAt: mockCreatedAt(newId) }, ...prev]);
     toast.success(`Duplicated “${item.name}”`);
   };
 
-  // Groups state
-  const [groups, setGroups] = useState<ItemGroup[]>(initialGroups);
-  const [groupSearch, setGroupSearch] = useState("");
-  const [groupModalOpen, setGroupModalOpen] = useState(false);
-  const [editingGroup, setEditingGroup] = useState<ItemGroup | null>(null);
-
-  // Categories state
-  const [categories, setCategories] = useState<ItemCategoryRecord[]>(initialCategories);
-  const [catSearch, setCatSearch] = useState("");
-  const [catModalOpen, setCatModalOpen] = useState(false);
-  const [editingCat, setEditingCat] = useState<ItemCategoryRecord | null>(null);
-
-  // Brands state
-  const [brands, setBrands] = useState<ItemBrand[]>(initialBrands);
-  const [brandSearch, setBrandSearch] = useState("");
-  const [brandModalOpen, setBrandModalOpen] = useState(false);
-  const [editingBrand, setEditingBrand] = useState<ItemBrand | null>(null);
-
-  // Catalogs state
-  const [catalogs, setCatalogs] = useState<Catalog[]>(initialCatalogs);
-  const [catalogSearch, setCatalogSearch] = useState("");
-  const [catalogModalOpen, setCatalogModalOpen] = useState(false);
-  const [editingCatalog, setEditingCatalog] = useState<Catalog | null>(null);
-
-  // Delete / Deactivate confirmation. mode "deactivate" keeps the record (it has
-  // usage history); mode "delete" permanently removes it (never used). Non-item
-  // entities (group/category/...) keep the legacy delete behaviour.
-  const [deleteConfirm, setDeleteConfirm] = useState<{ type: string; id: number; name: string; mode?: "delete" | "deactivate" } | null>(null);
-  const [importOpen, setImportOpen] = useState(false);
-
-  // Pricebook state
-  // Price book is a customer-facing VIEW of the Items catalog — derive it so any
-  // item created on the Items tab automatically appears here (one source of truth).
-  const pbItems = useMemo<PricebookItem[]>(() => items.map((i) => ({
-    id: i.id, active: i.active, name: i.name, category: i.category,
-    type: pbType(i.category) as ItemType,
-    description: i.salesDescription || i.description || "",
-    price: i.rate, cost: i.cost, taxable: i.taxable,
-  })), [items]);
-  const [pbSearch, setPbSearch] = useState("");
-  const [pbCategoryFilter, setPbCategoryFilter] = useState("All");
-  const [pbStatusFilter, setPbStatusFilter] = useState("All");
-  const [pbSort, setPbSort] = useState<{ key: string; dir: "asc" | "desc" }>({ key: "id", dir: "asc" });
-  const [pbPage, setPbPage] = useState(1);
-  const [pbPerPage, setPbPerPage] = useState(10);
-  const [pbCols, movePbCol] = useDraggableColumns([...PRICEBOOK_COLS]);
+  // Delete / Deactivate confirmation. mode "deactivate" keeps the record (it
+  // has usage history); mode "delete" permanently removes it (never used).
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id: number; name: string; mode: "delete" | "deactivate" } | null>(null);
+  const [uploadOpen, setUploadOpen] = useState(false);
 
   // Advanced filters
   const [filterPanelOpen, setFilterPanelOpen] = useState(false);
@@ -523,23 +235,23 @@ export function Items() {
   const [advancedCostMax, setAdvancedCostMax] = useState("");
   const [advancedTaxable, setAdvancedTaxable] = useState("All");
 
-  // ─── Items Logic ─────────────────────────────────────────────────────
+  // ─── Filtering / sorting ─────────────────────────────────────────────
+  const tabBucketMap: Record<TabKey, ItemBucket | null> = {
+    all: null, pricebook: "Price Book",
+    services: "Service", materials: "Material",
+    equipment: "Equipment", asset: "Asset", admin: "Admin",
+  };
+
   const filteredItems = useMemo(() => {
     let result = [...items];
-    // Type-tab filter
-    const tabCatMap: Record<TabKey, ItemCategory | null> = {
-      all: null, pricebook: null,
-      services: "Service", materials: "Material",
-      equipment: "Equipment", asset: "Asset", fees: "Fee",
-    };
-    const tabCat = tabCatMap[activeTab];
-    if (tabCat) result = result.filter(i => getItemCategory(i.type) === tabCat);
+    const tabBucket = tabBucketMap[activeTab];
+    if (tabBucket) result = result.filter(i => getItemCategory(i.type) === tabBucket);
     // Category dropdown filter
     if (itemFilter !== "All") result = result.filter(i => i.category === itemFilter);
     // Status filter
     if (itemStatusFilter === "Active") result = result.filter(i => i.active);
     else if (itemStatusFilter === "Inactive") result = result.filter(i => !i.active);
-    if (advancedType !== "All") result = result.filter(i => i.type === advancedType);
+    if (advancedType !== "All") result = result.filter(i => getItemCategory(i.type) === advancedType);
     if (advancedPriceMin) result = result.filter(i => i.rate >= Number(advancedPriceMin));
     if (advancedPriceMax) result = result.filter(i => i.rate <= Number(advancedPriceMax));
     if (advancedCostMin) result = result.filter(i => i.cost >= Number(advancedCostMin));
@@ -557,9 +269,10 @@ export function Items() {
       );
     }
     result.sort((a, b) => {
-      const k = itemSort.key as keyof Item;
-      const av = a[k], bv = b[k];
+      const k = itemSort.key === "status" ? "active" : itemSort.key;
+      const av = (a as any)[k], bv = (b as any)[k];
       if (typeof av === "number" && typeof bv === "number") return itemSort.dir === "asc" ? av - bv : bv - av;
+      if (typeof av === "boolean" && typeof bv === "boolean") return itemSort.dir === "asc" ? Number(bv) - Number(av) : Number(av) - Number(bv);
       return itemSort.dir === "asc" ? String(av).localeCompare(String(bv)) : String(bv).localeCompare(String(av));
     });
     return result;
@@ -567,45 +280,27 @@ export function Items() {
 
   const paginatedItems = filteredItems.slice((itemPage - 1) * itemPerPage, itemPage * itemPerPage);
   const allItemsSelected = paginatedItems.length > 0 && paginatedItems.every(i => selectedItems.has(i.id));
-  const uniqueCategories = [...new Set(items.map(i => i.category))];
-
-  const filteredPbItems = useMemo(() => {
-    let result = [...pbItems];
-    if (pbCategoryFilter !== "All") result = result.filter(i => i.category === pbCategoryFilter);
-    if (pbStatusFilter === "Active") result = result.filter(i => i.active);
-    else if (pbStatusFilter === "Inactive") result = result.filter(i => !i.active);
-    if (advancedPriceMin) result = result.filter(i => i.price >= Number(advancedPriceMin));
-    if (advancedPriceMax) result = result.filter(i => i.price <= Number(advancedPriceMax));
-    // Cost / Margin are not customer-facing on the Price book (Marek Jun 16) — no cost filter here.
-    if (advancedTaxable === "Taxable") result = result.filter(i => i.taxable);
-    if (advancedTaxable === "Non-taxable") result = result.filter(i => !i.taxable);
-    if (pbSearch) {
-      const q = pbSearch.toLowerCase();
-      result = result.filter(i => i.name.toLowerCase().includes(q) || i.category.toLowerCase().includes(q) || i.description.toLowerCase().includes(q));
-    }
-    result.sort((a, b) => {
-      const av = (a as any)[pbSort.key], bv = (b as any)[pbSort.key];
-      if (typeof av === "number" && typeof bv === "number") return pbSort.dir === "asc" ? av - bv : bv - av;
-      return pbSort.dir === "asc" ? String(av).localeCompare(String(bv)) : String(bv).localeCompare(String(av));
-    });
-    return result;
-  }, [pbItems, pbCategoryFilter, pbStatusFilter, pbSearch, pbSort, advancedPriceMin, advancedPriceMax, advancedCostMin, advancedCostMax, advancedTaxable]);
-
-  const paginatedPbItems = filteredPbItems.slice((pbPage - 1) * pbPerPage, pbPage * pbPerPage);
-  const pbCategories = [...new Set(pbItems.map(i => i.category))];
-  const calcMargin = (price: number, cost: number) =>
-    price === 0 ? "0%" : cost === 0 ? "100%" : ((price - cost) / price * 100).toFixed(1) + "%";
+  // Category options follow the active tab so the dropdown stays relevant.
+  const uniqueCategories = useMemo(() => {
+    const tabBucket = tabBucketMap[activeTab];
+    const pool = tabBucket ? items.filter(i => getItemCategory(i.type) === tabBucket) : items;
+    return [...new Set(pool.map(i => i.category).filter(Boolean))].sort();
+  }, [items, activeTab]);
 
   const handleSortItems = (key: string) => {
     setItemSort(prev => ({ key, dir: prev.key === key && prev.dir === "asc" ? "desc" : "asc" }));
   };
 
+  // Header sort icon — double arrow at 50% opacity, active direction colored
+  // (Figma 904:76070: arrow-up-down on every sortable column).
   const SortIcon = ({ col }: { col: string }) => (
     itemSort.key === col ? (
-      <span className="material-icons text-[#4A6FA5] ml-0.5" style={{ fontSize: "14px" }}>
+      <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "14px" }}>
         {itemSort.dir === "asc" ? "arrow_upward" : "arrow_downward"}
       </span>
-    ) : null
+    ) : (
+      <span className="material-icons text-[#1A2332] opacity-50" style={{ fontSize: "14px" }}>swap_vert</span>
+    )
   );
 
   const tabs: { key: TabKey; label: string }[] = [
@@ -615,27 +310,25 @@ export function Items() {
     { key: "materials", label: "Materials" },
     { key: "equipment", label: "Equipment" },
     { key: "asset", label: "Asset" },
-    { key: "fees", label: "Fees" },
+    { key: "admin", label: "Admin" },
   ];
 
-  // ─── Export mock ─────────────────────────────────────────────────────
-  const handleExport = () => {
-    alert("Export functionality — CSV/Google Sheets export will be available with backend integration.");
+  const handleDownload = () => {
+    toast.info("Download started — CSV export will be available with backend integration.");
   };
 
   const tabRecordCounts: Record<TabKey, number> = {
     all: items.length,
-    pricebook: items.length,
+    pricebook: items.filter(i => getItemCategory(i.type) === "Price Book").length,
     services: items.filter(i => getItemCategory(i.type) === "Service").length,
     materials: items.filter(i => getItemCategory(i.type) === "Material").length,
     equipment: items.filter(i => getItemCategory(i.type) === "Equipment").length,
     asset: items.filter(i => getItemCategory(i.type) === "Asset").length,
-    fees: items.filter(i => getItemCategory(i.type) === "Fee").length,
+    admin: items.filter(i => getItemCategory(i.type) === "Admin").length,
   };
 
-  const itemTypeOptions = [...new Set(items.map(i => i.type))];
   const advancedFilterCount = [
-    activeTab !== "pricebook" && advancedType !== "All",
+    advancedType !== "All",
     advancedPriceMin,
     advancedPriceMax,
     advancedCostMin,
@@ -650,17 +343,32 @@ export function Items() {
     setAdvancedCostMax("");
     setAdvancedTaxable("All");
     setItemFilter("All");
-    setPbCategoryFilter("All");
     setFilterPanelOpen(false);
     setItemPage(1);
-    setPbPage(1);
   };
+
+  const switchTab = (key: TabKey) => {
+    setActiveTab(key);
+    setItemFilter("All");
+    setItemPage(1);
+    setSelectedItems(new Set());
+  };
+
+  // Native-select chevron (house pattern shared by the list toolbars).
+  const selectChevron = {
+    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23546478' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`,
+    backgroundRepeat: "no-repeat",
+    backgroundPosition: "right 10px center",
+    appearance: "none" as const,
+  };
+
+  // Table cell text style (Figma: Geist 14/20 regular #1A2332).
+  const cellText = { fontFamily: "Geist", fontWeight: 400, lineHeight: "20px" };
 
   // ═══════════════════════════════════════════════════════════════════════
   // ─── RENDER ────────────────────────────────────────────────────────────
   // ═══════════════════════════════════════════════════════════════════════
   return (
-    <DndProvider backend={HTML5Backend}>
     <div className="px-7 py-5 bg-[#F5F7FA] min-h-full">
       {/* Page Header */}
       <PageHeader
@@ -669,354 +377,249 @@ export function Items() {
         className="mb-4"
       />
 
-      {/* Tabs */}
-      <div className="border-b border-[#E5E7EB] mb-3">
-        <div className="flex items-center">
+      {/* Tabs — pill style (Figma 904:78133): container #F5F7FA p-[3px]
+          rounded-[10px]; active tab = solid #4A6FA5 with white label */}
+      <div className="mb-4 flex items-center">
+        <div className="flex items-center rounded-[10px] bg-[#EDF0F4] p-[3px]">
           {tabs.map((tab) => (
             <button
               key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={`relative h-[38px] px-4 shrink-0 text-[13px] transition-colors whitespace-nowrap ${
+              onClick={() => switchTab(tab.key)}
+              className={`min-h-[29px] rounded-[8px] px-2.5 py-1 text-[14px] whitespace-nowrap transition-colors ${
                 activeTab === tab.key
-                  ? "text-[#4A6FA5]"
+                  ? "bg-[#4A6FA5] text-white shadow-[0px_1px_3px_rgba(0,0,0,0.1),0px_1px_2px_rgba(0,0,0,0.1)]"
                   : "text-[#6B7280] hover:text-[#374151]"
               }`}
-              style={{ fontWeight: 500 }}
+              style={{ fontWeight: 500, lineHeight: "20px" }}
             >
               {tab.label}
-              {activeTab === tab.key && (
-                <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#4A6FA5]" />
-              )}
             </button>
           ))}
         </div>
       </div>
 
-      {/* ═══════════════ TABLE (conditional on activeTab) ═══════════════ */}
-      {activeTab === "pricebook" ? (
-        <div className="bg-white border border-[#E5E7EB] rounded-xl">
-          {/* Filter bar */}
-          <div className="flex items-center gap-2 px-4 py-2 border-b border-[#E5E7EB]">
-            <div className="relative flex-1 max-w-[240px]">
-              <span className="material-icons absolute left-2.5 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: "16px" }}>search</span>
-              <input type="text" placeholder="Search pricebook items..."
-                value={pbSearch} onChange={(e) => { setPbSearch(e.target.value); setPbPage(1); }}
-                className="w-full h-8 pl-8 pr-3 border border-[#E5E7EB] rounded-lg text-[13px] focus:outline-none focus:border-[#4A6FA5] bg-white" />
-            </div>
-            <select value={pbCategoryFilter} onChange={(e) => { setPbCategoryFilter(e.target.value); setPbPage(1); }}
-              className="h-8 px-3 pr-8 border border-[#E5E7EB] rounded-lg text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5] min-w-[145px]"
-              style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23546478' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`, backgroundRepeat: "no-repeat", backgroundPosition: "right 10px center", appearance: "none" }}>
-              <option value="All">Categories: All</option>
-              {pbCategories.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
-            <select value={pbStatusFilter} onChange={(e) => { setPbStatusFilter(e.target.value); setPbPage(1); }}
-              className="h-8 px-3 pr-8 border border-[#E5E7EB] rounded-lg text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5] min-w-[125px]"
-              style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23546478' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`, backgroundRepeat: "no-repeat", backgroundPosition: "right 10px center", appearance: "none" }}>
-              <option value="All">Status: All</option>
-              <option value="Active">Active</option>
-              <option value="Inactive">Inactive</option>
-            </select>
-            <button
-              onClick={() => setFilterPanelOpen(true)}
-              className={`h-8 px-3 rounded-lg border text-[13px] flex items-center gap-1.5 transition-colors ${
-                advancedFilterCount > 0
-                  ? "border-[#4A6FA5] text-[#4A6FA5] bg-[#EEF3FA]"
-                  : "border-[#E5E7EB] text-[#546478] hover:bg-[#F5F7FA] hover:border-[#C5CEDD]"
-              }`}
-              style={{ fontWeight: 500 }}
-            >
-              <span className="material-icons" style={{ fontSize: "16px" }}>filter_alt</span>
-              Filter
-              {advancedFilterCount > 0 && (
-                <span className="w-4 h-4 bg-[#4A6FA5] text-white text-[10px] rounded-full flex items-center justify-center" style={{ fontWeight: 700 }}>
-                  {advancedFilterCount}
-                </span>
-              )}
-            </button>
-            <div className="ml-auto flex items-center gap-2">
-              <CreateActionButton onClick={() => { if (activeTab === "pricebook") { setEditingItem(null); setItemModalOpen(true); } else { navigate("/items/new"); } }}>
-                {activeTab === "pricebook" ? "Create pricebook item" : "Create item"}
-              </CreateActionButton>
-              <KebabMenu triggerClassName="w-10 h-10 border border-[#D8DEE8] rounded-xl bg-white">
-                <KebabItem icon="view_column" onClick={openEditColumns}>Edit columns</KebabItem>
-                <KebabItem icon="content_copy">Manage Duplicates</KebabItem>
-                <KebabSeparator />
-                <KebabItem icon="file_upload" onClick={() => setImportOpen(true)}>Import</KebabItem>
-                <KebabItem icon="file_download" onClick={() => handleExport()}>Export</KebabItem>
-              </KebabMenu>
-            </div>
+      {/* ═══════════════ TABLE ═══════════════ */}
+      <div className="bg-white border border-[#E5E7EB] rounded-xl">
+        {/* Toolbar (Figma 904:76058): search | ÷ | Categories | Status | ÷ | Filter … Create item · ⋮ */}
+        <div className="flex items-center gap-3 p-3 border-b border-[#E5E7EB]">
+          <div className="relative w-[300px]">
+            <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-[#6B7280]" style={{ fontSize: "16px" }}>search</span>
+            <input
+              type="text"
+              placeholder={activeTab === "pricebook" ? "Search pricebook items..." : "Search items..."}
+              value={itemSearch}
+              onChange={(e) => { setItemSearch(e.target.value); setItemPage(1); }}
+              className="w-full h-9 pl-9 pr-3 border border-[#E5E7EB] rounded-lg text-[14px] text-[#1A2332] placeholder:text-[#6B7280] shadow-[0px_1px_2px_rgba(0,0,0,0.05)] focus:outline-none focus:border-[#4A6FA5] bg-white"
+            />
           </div>
+          <div className="w-px h-6 bg-[#E5E7EB]" />
+          <select
+            value={itemFilter}
+            onChange={(e) => { setItemFilter(e.target.value); setItemPage(1); }}
+            className="h-9 pl-3 pr-8 border border-[#E5E7EB] rounded-lg text-[14px] text-[#1A2332] bg-white shadow-[0px_1px_2px_rgba(0,0,0,0.05)] focus:outline-none focus:border-[#4A6FA5] min-w-[143px]"
+            style={selectChevron}
+          >
+            <option value="All">Categories: All</option>
+            {uniqueCategories.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+          <select
+            value={itemStatusFilter}
+            onChange={(e) => { setItemStatusFilter(e.target.value); setItemPage(1); }}
+            className="h-9 pl-3 pr-8 border border-[#E5E7EB] rounded-lg text-[14px] text-[#1A2332] bg-white shadow-[0px_1px_2px_rgba(0,0,0,0.05)] focus:outline-none focus:border-[#4A6FA5] min-w-[116px]"
+            style={selectChevron}
+          >
+            <option value="All">Status: All</option>
+            <option value="Active">Active</option>
+            <option value="Inactive">Inactive</option>
+          </select>
+          <div className="w-px h-6 bg-[#E5E7EB]" />
+          <button
+            onClick={() => setFilterPanelOpen(true)}
+            className={`h-9 px-4 rounded-lg border text-[14px] flex items-center gap-2 transition-colors ${
+              advancedFilterCount > 0
+                ? "border-[#4A6FA5] text-[#4A6FA5] bg-[#EEF3FA]"
+                : "border-[#E5E7EB] text-[#1A2332] hover:bg-[#F5F7FA]"
+            }`}
+            style={{ fontWeight: 500 }}
+          >
+            <span className="material-icons" style={{ fontSize: "16px" }}>filter_alt</span>
+            Filter
+            {advancedFilterCount > 0 && (
+              <span className="w-4 h-4 bg-[#4A6FA5] text-white text-[10px] rounded-full flex items-center justify-center" style={{ fontWeight: 700 }}>
+                {advancedFilterCount}
+              </span>
+            )}
+          </button>
+          <div className="ml-auto flex items-center gap-3">
+            <CreateActionButton onClick={() => navigate("/items/new")}>
+              Create item
+            </CreateActionButton>
+            <KebabMenu triggerClassName="w-9 h-9 border border-[#E5E7EB] rounded-lg bg-white">
+              <KebabItem icon="view_column" onClick={openEditColumns}>Edit columns</KebabItem>
+              <KebabSeparator />
+              <KebabItem icon="file_upload" onClick={() => setUploadOpen(true)}>Upload</KebabItem>
+              <KebabItem icon="file_download" onClick={handleDownload}>Download</KebabItem>
+            </KebabMenu>
+          </div>
+        </div>
 
-          {/* Table */}
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="bg-[#F5F7FA] border-b border-[#E5E7EB]">
-                  {pbCols.map(col => (
-                    <DraggableTh
-                      key={col.key}
-                      colKey={col.key}
-                      onMove={movePbCol}
-                      className={`px-4 py-3 text-left text-[14px] text-[#1A2332] select-none${col.sortable ? " cursor-pointer" : ""} ${col.w}`}
-                      style={{ fontFamily: "Geist", fontWeight: 500 }}
-                      onClick={col.sortable ? () => setPbSort(prev => ({ key: col.key, dir: prev.key === col.key && prev.dir === "asc" ? "desc" : "asc" })) : undefined}
-                    >
-                      <div className="flex items-center gap-0.5">
-                        {col.label}
-                        {col.sortable && pbSort.key === col.key && (
-                          <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "14px" }}>
-                            {pbSort.dir === "asc" ? "arrow_upward" : "arrow_downward"}
-                          </span>
-                        )}
-                      </div>
-                    </DraggableTh>
-                  ))}
-                  <th className="px-4 py-3 w-10" />
+        {/* Bulk actions bar — Figma 1494:77246: "{N} selected" · Download · Deactivate · ✕ */}
+        <SelectionBar
+          count={selectedItems.size}
+          onDeselect={() => setSelectedItems(new Set())}
+          dismissAsIcon
+          actions={[
+            { label: "Download", icon: "file_download", onClick: handleDownload },
+            {
+              label: "Deactivate",
+              icon: "block",
+              onClick: () => {
+                setItems(prev => prev.map(i => selectedItems.has(i.id) ? { ...i, active: false } : i));
+                items.filter(i => selectedItems.has(i.id)).forEach(i => itemsStore.upsert({ ...i, active: false } as any));
+                setSelectedItems(new Set());
+              },
+            },
+          ]}
+        />
+
+        {/* Table (Figma 904:76070 header + 904:76078 rows) */}
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="bg-[#F5F7FA] border-b border-[#E5E7EB]">
+                <th className="pl-4 pr-2 py-2 w-10">
+                  <input
+                    type="checkbox"
+                    checked={allItemsSelected}
+                    onChange={(e) => {
+                      if (e.target.checked) setSelectedItems(new Set(paginatedItems.map(i => i.id)));
+                      else setSelectedItems(new Set());
+                    }}
+                    className="w-3.5 h-3.5 rounded border-[#E5E7EB] cursor-pointer accent-[#4A6FA5]"
+                  />
+                </th>
+                {visibleCols.map(col => (
+                  <th
+                    key={col.key}
+                    className={`px-2 py-2 text-[14px] text-[#1A2332] select-none ${col.numeric ? "text-right" : "text-left"} ${col.sortable ? "cursor-pointer" : ""} ${col.key === "name" ? "w-[186px]" : col.key === "type" || col.key === "status" ? "w-[141px]" : ""}`}
+                    style={{ fontFamily: "Geist", fontWeight: 500, lineHeight: "20px" }}
+                    onClick={() => { if (col.sortable) handleSortItems(col.key); }}
+                  >
+                    <div className={`flex items-center gap-2 ${col.numeric ? "justify-end" : ""}`}>
+                      {col.label}
+                      {col.sortable && <SortIcon col={col.key} />}
+                    </div>
+                  </th>
+                ))}
+                <th className="px-2 py-2 w-[52px]" />
+              </tr>
+            </thead>
+            <tbody>
+              {paginatedItems.length === 0 ? (
+                <tr>
+                  <td colSpan={visibleCols.length + 2} className="px-4 py-16 text-center">
+                    <span className="material-icons text-[#C8D5E8] mb-2 block" style={{ fontSize: "48px" }}>inventory_2</span>
+                    <div className="text-[14px] text-[#546478]" style={{ fontWeight: 500 }}>No items found</div>
+                    <div className="text-[12px] text-[#8899AA] mt-1">Try adjusting your search or filters</div>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {paginatedPbItems.length === 0 ? (
-                  <tr><td colSpan={6} className="px-4 py-16 text-center">
-                    <span className="material-icons text-[#C8D5E8] mb-2 block" style={{ fontSize: "48px" }}>menu_book</span>
-                    <div className="text-[14px] text-[#546478]" style={{ fontWeight: 500 }}>No pricebook items found</div>
-                  </td></tr>
-                ) : paginatedPbItems.map(item => (
-                  <tr key={item.id}
+              ) : paginatedItems.map((item) => {
+                const dot = getTypeDot(item.type);
+                return (
+                  <tr
+                    key={item.id}
                     onClick={() => navigate(`/items/${item.id}`)}
-                    className="group border-b border-[#E5E7EB] hover:bg-[#F9FAFB] transition-colors cursor-pointer bg-white">
-                    {pbCols.map(col => {
+                    className={`group h-[60px] border-b border-[#E5E7EB] hover:bg-[#F9FAFB] transition-colors cursor-pointer ${selectedItems.has(item.id) ? "bg-[#EBF0F8]" : "bg-white"}`}
+                  >
+                    <td className="pl-4 pr-2 py-2" onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        checked={selectedItems.has(item.id)}
+                        onChange={(e) => {
+                          const s = new Set(selectedItems);
+                          e.target.checked ? s.add(item.id) : s.delete(item.id);
+                          setSelectedItems(s);
+                        }}
+                        className="w-3.5 h-3.5 rounded border-[#E5E7EB] cursor-pointer accent-[#4A6FA5]"
+                      />
+                    </td>
+                    {visibleCols.map(col => {
                       switch (col.key) {
                         case "name":
                           return (
-                            <td key="name" className="px-4 py-2">
-                              <div className="text-[13px] text-[#4A6FA5] hover:underline truncate max-w-[200px]" style={{ fontWeight: 500 }}>{item.name}</div>
+                            <td key="name" className="px-2 py-2">
+                              <div className="truncate max-w-[200px] text-[14px] text-[#4A6FA5] hover:underline" style={{ fontFamily: "Geist", fontWeight: 500, lineHeight: "20px" }}>{item.name}</div>
                             </td>
                           );
                         case "category":
-                          return <td key="category" className="px-4 py-2 text-[13px] text-[#546478]">{item.category}</td>;
-                        case "type": {
-                          const tBadge = getTypeBadge(pbType(item.category) as ItemType);
+                          return <td key="category" className="px-2 py-2 text-[14px] text-[#1A2332]" style={cellText}>{item.category || "—"}</td>;
+                        case "type":
                           return (
-                            <td key="type" className="px-4 py-2">
-                              <span className="inline-block px-2 py-0.5 rounded-full text-[11px]" style={{ backgroundColor: tBadge.bg, color: tBadge.color, fontWeight: 600 }}>{tBadge.label}</span>
+                            <td key="type" className="px-2 py-2">
+                              <span className="inline-flex items-center gap-1 whitespace-nowrap">
+                                <span className="w-1 h-1 rounded-full" style={{ backgroundColor: dot.color }} />
+                                <span className="text-[12px]" style={{ fontWeight: 500, lineHeight: "16px", color: dot.color }}>{dot.label}</span>
+                              </span>
                             </td>
                           );
-                        }
-                        case "description":
+                        case "department":
+                          return <td key="department" className="px-2 py-2 text-[14px] text-[#1A2332]" style={cellText}>{item.department || "—"}</td>;
+                        case "vendor":
+                          return <td key="vendor" className="px-2 py-2 text-[14px] text-[#1A2332]" style={cellText}>{item.vendor || "—"}</td>;
+                        case "brand":
+                          return <td key="brand" className="px-2 py-2 text-[14px] text-[#1A2332]" style={cellText}>{item.brand || "—"}</td>;
+                        case "status":
                           return (
-                            <td key="description" className="px-4 py-2 text-[13px] text-[#546478]">
-                              <div className="truncate max-w-[260px]">{item.description}</div>
+                            <td key="status" className="px-2 py-2">
+                              <span
+                                className="inline-flex items-center rounded-[8px] px-2 py-0.5 text-[12px] whitespace-nowrap"
+                                style={{
+                                  fontWeight: 500, lineHeight: "16px",
+                                  backgroundColor: item.active ? "rgba(22,163,74,0.15)" : "rgba(107,114,128,0.15)",
+                                  color: item.active ? "#16A34A" : "#6B7280",
+                                }}
+                              >
+                                {item.active ? "Active" : "Inactive"}
+                              </span>
                             </td>
                           );
-                        case "price":
-                          return <td key="price" className="px-4 py-2 text-[13px] text-[#1A2332]" style={{ fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>${item.price.toFixed(2)}</td>;
+                        case "createdAt":
+                          return <td key="createdAt" className="px-2 py-2 text-[14px] text-[#1A2332]" style={cellText}>{item.createdAt}</td>;
+                        case "rate":
+                          return <td key="rate" className="px-2 py-2 text-[14px] text-[#1A2332] text-right" style={{ ...cellText, fontVariantNumeric: "tabular-nums" }}>{fmtMoney(item.rate)}</td>;
+                        case "cost":
+                          return <td key="cost" className="px-2 py-2 text-[14px] text-[#1A2332] text-right" style={{ ...cellText, fontVariantNumeric: "tabular-nums" }}>{fmtMoney(item.cost)}</td>;
+                        case "taxable":
+                          return <td key="taxable" className="px-2 py-2 text-[14px] text-[#6B7280] text-right" style={cellText}>{item.taxable ? "Yes" : "No"}</td>;
                         default:
                           return null;
                       }
                     })}
-                    <td className="px-4 py-2 text-right" onClick={e => e.stopPropagation()}>
+                    <td className="px-2 py-2 text-right" onClick={(e) => e.stopPropagation()}>
+                      {/* Row kebab (Figma 1494:78233): Duplicate / Deactivate / Open in new tab */}
                       <KebabMenu>
-                        <KebabItem icon="edit">Edit</KebabItem>
-                        <KebabItem icon="content_copy">Duplicate</KebabItem>
-                        <KebabSeparator />
-                        <KebabItem icon="block" destructive>Deactivate</KebabItem>
+                        <KebabItem icon="content_copy" onClick={() => duplicateItem(item)}>Duplicate</KebabItem>
+                        {!item.active ? (
+                          <KebabItem icon="check_circle" onClick={() => { const upd = { ...item, active: true }; setItems(prev => prev.map(i => i.id === item.id ? upd : i)); itemsStore.upsert(upd as any); }}>Reactivate</KebabItem>
+                        ) : (item.usageCount ?? 0) > 0 ? (
+                          <KebabItem icon="block" onClick={() => setDeleteConfirm({ id: item.id, name: item.name, mode: "deactivate" })}>Deactivate</KebabItem>
+                        ) : (
+                          <KebabItem icon="delete_outline" destructive onClick={() => setDeleteConfirm({ id: item.id, name: item.name, mode: "delete" })}>Delete</KebabItem>
+                        )}
+                        <KebabItem icon="open_in_new" onClick={() => window.open(`/items/${item.id}`, "_blank")}>Open in new tab</KebabItem>
                       </KebabMenu>
                     </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Pagination */}
-          <PaginationFooter page={pbPage} perPage={pbPerPage} total={filteredPbItems.length} onPageChange={setPbPage} onPerPageChange={setPbPerPage} />
+                );
+              })}
+            </tbody>
+          </table>
         </div>
-      ) : (
-        /* existing All Items / Services / etc table */
-        <div className="bg-white border border-[#E5E7EB] rounded-xl">
-          {/* Filter bar */}
-          <div className="flex items-center gap-2 px-4 py-2 border-b border-[#E5E7EB]">
-            <div className="relative flex-1 max-w-[240px]">
-              <span className="material-icons absolute left-2.5 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: "16px" }}>search</span>
-              <input
-                type="text"
-                placeholder="Search items..."
-                value={itemSearch}
-                onChange={(e) => { setItemSearch(e.target.value); setItemPage(1); }}
-                className="w-full h-8 pl-8 pr-3 border border-[#E5E7EB] rounded-lg text-[13px] focus:outline-none focus:border-[#4A6FA5] bg-white"
-              />
-            </div>
-            <select
-              value={itemFilter}
-              onChange={(e) => { setItemFilter(e.target.value); setItemPage(1); }}
-              className="h-8 px-3 pr-8 border border-[#E5E7EB] rounded-lg text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5] min-w-[145px]"
-              style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23546478' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`, backgroundRepeat: "no-repeat", backgroundPosition: "right 10px center", appearance: "none" }}
-            >
-              <option value="All">Categories: All</option>
-              {uniqueCategories.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
-            <select
-              value={itemStatusFilter}
-              onChange={(e) => { setItemStatusFilter(e.target.value); setItemPage(1); }}
-              className="h-8 px-3 pr-8 border border-[#E5E7EB] rounded-lg text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5] min-w-[125px]"
-              style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23546478' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`, backgroundRepeat: "no-repeat", backgroundPosition: "right 10px center", appearance: "none" }}
-            >
-              <option value="All">Status: All</option>
-              <option value="Active">Active</option>
-              <option value="Inactive">Inactive</option>
-            </select>
-            <button
-              onClick={() => setFilterPanelOpen(true)}
-              className={`h-8 px-3 rounded-lg border text-[13px] flex items-center gap-1.5 transition-colors ${
-                advancedFilterCount > 0
-                  ? "border-[#4A6FA5] text-[#4A6FA5] bg-[#EEF3FA]"
-                  : "border-[#E5E7EB] text-[#546478] hover:bg-[#F5F7FA] hover:border-[#C5CEDD]"
-              }`}
-              style={{ fontWeight: 500 }}
-            >
-              <span className="material-icons" style={{ fontSize: "16px" }}>filter_alt</span>
-              Filter
-              {advancedFilterCount > 0 && (
-                <span className="w-4 h-4 bg-[#4A6FA5] text-white text-[10px] rounded-full flex items-center justify-center" style={{ fontWeight: 700 }}>
-                  {advancedFilterCount}
-                </span>
-              )}
-            </button>
-            <div className="ml-auto flex items-center gap-2">
-              <CreateActionButton onClick={() => { if (activeTab === "pricebook") { setEditingItem(null); setItemModalOpen(true); } else { navigate("/items/new"); } }}>
-                {activeTab === "pricebook" ? "Create pricebook item" : "Create item"}
-              </CreateActionButton>
-              <KebabMenu triggerClassName="w-10 h-10 border border-[#D8DEE8] rounded-xl bg-white">
-                <KebabItem icon="view_column" onClick={openEditColumns}>Edit columns</KebabItem>
-                <KebabItem icon="content_copy">Manage Duplicates</KebabItem>
-                <KebabSeparator />
-                <KebabItem icon="file_upload" onClick={() => setImportOpen(true)}>Import</KebabItem>
-                <KebabItem icon="file_download" onClick={() => handleExport()}>Export</KebabItem>
-              </KebabMenu>
-            </div>
-          </div>
 
-          {/* Bulk actions bar — Figma 1494:78210: "{N} selected" · Download · Deactivate · ✕ */}
-          <SelectionBar
-            count={selectedItems.size}
-            onDeselect={() => setSelectedItems(new Set())}
-            dismissAsIcon
-            actions={[
-              { label: "Download", icon: "file_download", onClick: () => handleExport() },
-              {
-                label: "Deactivate",
-                icon: "block",
-                onClick: () => {
-                  setItems(prev => prev.map(i => selectedItems.has(i.id) ? { ...i, active: false } : i));
-                  items.filter(i => selectedItems.has(i.id)).forEach(i => itemsStore.upsert({ ...i, active: false } as any));
-                  setSelectedItems(new Set());
-                },
-              },
-            ]}
-          />
+        <PaginationFooter page={itemPage} perPage={itemPerPage} total={filteredItems.length} onPageChange={setItemPage} onPerPageChange={setItemPerPage} />
+      </div>
 
-          {/* Table */}
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="bg-[#F5F7FA] border-b border-[#E5E7EB]">
-                  <th className="px-4 py-2 w-10">
-                    <input
-                      type="checkbox"
-                      checked={allItemsSelected}
-                      onChange={(e) => {
-                        if (e.target.checked) setSelectedItems(new Set(paginatedItems.map(i => i.id)));
-                        else setSelectedItems(new Set());
-                      }}
-                      className="w-4 h-4 rounded border-[#E5E7EB] cursor-pointer accent-[#4A6FA5]"
-                    />
-                  </th>
-                  {visibleItemCols.map(col => (
-                    <th
-                      key={col.key}
-                      className={`px-4 py-2.5 text-left text-[13px] text-[#546478] ${col.sortable ? "cursor-pointer hover:text-[#1A2332]" : ""} select-none ${col.w}`}
-                      style={{ fontWeight: 500 }}
-                      onClick={() => { if (col.sortable) handleSortItems(col.key); }}
-                    >
-                      <div className="flex items-center gap-0.5">
-                        {col.label}
-                        {col.sortable && <SortIcon col={col.key} />}
-                      </div>
-                    </th>
-                  ))}
-                  <th className="px-4 py-3 w-10" />
-                </tr>
-              </thead>
-              <tbody>
-                {paginatedItems.length === 0 ? (
-                  <tr>
-                    <td colSpan={visibleItemCols.length + 2} className="px-4 py-16 text-center">
-                      <span className="material-icons text-[#C8D5E8] mb-2 block" style={{ fontSize: "48px" }}>inventory_2</span>
-                      <div className="text-[14px] text-[#546478]" style={{ fontWeight: 500 }}>No items found</div>
-                      <div className="text-[12px] text-[#8899AA] mt-1">Try adjusting your search or filters</div>
-                    </td>
-                  </tr>
-                ) : paginatedItems.map((item) => {
-                  const badge = getTypeBadge(item.type);
-                  return (
-                    <tr
-                      key={item.id}
-                      onClick={() => navigate(`/items/${item.id}`)}
-                      className={`group border-b border-[#E5E7EB] hover:bg-[#F9FAFB] transition-colors cursor-pointer ${selectedItems.has(item.id) ? "bg-[#EBF0F8]" : "bg-white"}`}
-                    >
-                      <td className="px-4 py-2" onClick={(e) => e.stopPropagation()}>
-                        <input
-                          type="checkbox"
-                          checked={selectedItems.has(item.id)}
-                          onChange={(e) => {
-                            const s = new Set(selectedItems);
-                            e.target.checked ? s.add(item.id) : s.delete(item.id);
-                            setSelectedItems(s);
-                          }}
-                          className="w-4 h-4 rounded border-[#E5E7EB] cursor-pointer accent-[#4A6FA5]"
-                        />
-                      </td>
-                      <td className="px-4 py-2">
-                        <div className="truncate max-w-[200px] text-[14px] text-[#4A6FA5] hover:underline" style={{ fontFamily: "Geist", fontWeight: 400, lineHeight: "20px" }}>{item.name}</div>
-                      </td>
-                      {itemColVis.category && <td className="px-4 py-2 text-[14px] text-[#546478]" style={{ fontFamily: "Geist", fontWeight: 400, lineHeight: "20px" }}>{item.category || "—"}</td>}
-                      {itemColVis.type && (
-                      <td className="px-4 py-2">
-                        <span className="inline-block px-2 py-0.5 rounded text-[11px] whitespace-nowrap" style={{ fontWeight: 600, backgroundColor: badge.bg, color: badge.color }}>
-                          {badge.label}
-                        </span>
-                      </td>
-                      )}
-                      {itemColVis.modelNumber && <td className="px-4 py-2 text-[14px] text-[#546478]" style={{ fontFamily: "Geist", fontWeight: 400, lineHeight: "20px", fontVariantNumeric: "tabular-nums" }}>{item.modelNumber || "—"}</td>}
-                      {itemColVis.rate && <td className="px-4 py-2 text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist", fontWeight: 400, lineHeight: "20px", fontVariantNumeric: "tabular-nums" }}>${item.rate.toFixed(2)}</td>}
-                      {itemColVis.cost && <td className="px-4 py-2 text-[14px] text-[#546478]" style={{ fontFamily: "Geist", fontWeight: 400, lineHeight: "20px", fontVariantNumeric: "tabular-nums" }}>${item.cost.toFixed(2)}</td>}
-                      {itemColVis.taxable && <td className="px-4 py-2 text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist", fontWeight: 400, lineHeight: "20px" }}>{item.taxable ? "Yes" : "No"}</td>}
-                      <td className="px-4 py-2 text-right" onClick={(e) => e.stopPropagation()}>
-                        <KebabMenu>
-                          <KebabItem icon="content_copy" onClick={() => duplicateItem(item)}>Duplicate</KebabItem>
-                          <KebabSeparator />
-                          {!item.active ? (
-                            <KebabItem icon="check_circle" onClick={() => { const upd = { ...item, active: true }; setItems(prev => prev.map(i => i.id === item.id ? upd : i)); itemsStore.upsert(upd as any); }}>Reactivate</KebabItem>
-                          ) : (item.usageCount ?? 0) > 0 ? (
-                            <KebabItem icon="block" destructive onClick={() => setDeleteConfirm({ type: "item", id: item.id, name: item.name, mode: "deactivate" })}>Deactivate</KebabItem>
-                          ) : (
-                            <KebabItem icon="delete_outline" destructive onClick={() => setDeleteConfirm({ type: "item", id: item.id, name: item.name, mode: "delete" })}>Delete</KebabItem>
-                          )}
-                          <KebabItem icon="open_in_new" onClick={() => window.open(`/items/${item.id}`, "_blank")}>Open in new tab</KebabItem>
-                        </KebabMenu>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-
-          <PaginationFooter page={itemPage} perPage={itemPerPage} total={filteredItems.length} onPageChange={setItemPage} onPerPageChange={setItemPerPage} />
-        </div>
-      )}
-
-      {/* ═══════════════ BOTTOM INFO PANEL (conditional) ═══════════════ */}
+      {/* ═══════════════ FILTER PANEL ═══════════════ */}
       {filterPanelOpen && (
         <AdvancedFilterPanel
           title="Filter"
@@ -1025,29 +628,21 @@ export function Items() {
           onApply={() => {
             setFilterPanelOpen(false);
             setItemPage(1);
-            setPbPage(1);
           }}
         >
-          {activeTab !== "pricebook" && (
+          {activeTab === "all" && (
             <AdvancedFilterField label="Type">
               <select value={advancedType} onChange={(e) => setAdvancedType(e.target.value)} className={advancedSelectClass}>
                 <option value="All">All</option>
-                {itemTypeOptions.map(type => <option key={type} value={type}>{type}</option>)}
+                {ITEM_TYPES.map(type => <option key={type} value={type}>{type}</option>)}
               </select>
             </AdvancedFilterField>
           )}
           <AdvancedFilterField label="Category">
-            {activeTab === "pricebook" ? (
-              <select value={pbCategoryFilter} onChange={(e) => setPbCategoryFilter(e.target.value)} className={advancedSelectClass}>
-                <option value="All">All</option>
-                {pbCategories.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
-            ) : (
-              <select value={itemFilter} onChange={(e) => setItemFilter(e.target.value)} className={advancedSelectClass}>
-                <option value="All">All</option>
-                {uniqueCategories.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
-            )}
+            <select value={itemFilter} onChange={(e) => setItemFilter(e.target.value)} className={advancedSelectClass}>
+              <option value="All">All</option>
+              {uniqueCategories.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
           </AdvancedFilterField>
           <div className="border-t border-[#E5E7EB] pt-5">
             <h3 className="text-[13px] text-[#374151] mb-4" style={{ fontWeight: 600 }}>Price</h3>
@@ -1057,16 +652,14 @@ export function Items() {
               <input type="number" min="0" placeholder="max" value={advancedPriceMax} onChange={(e) => setAdvancedPriceMax(e.target.value)} className={advancedInputClass} />
             </div>
           </div>
-          {activeTab !== "pricebook" && (
-            <div className="border-t border-[#E5E7EB] pt-5">
-              <h3 className="text-[13px] text-[#374151] mb-4" style={{ fontWeight: 600 }}>Cost</h3>
-              <div className="flex items-center gap-2">
-                <input type="number" min="0" placeholder="min" value={advancedCostMin} onChange={(e) => setAdvancedCostMin(e.target.value)} className={advancedInputClass} />
-                <span className="text-[#546478] text-[13px]">-</span>
-                <input type="number" min="0" placeholder="max" value={advancedCostMax} onChange={(e) => setAdvancedCostMax(e.target.value)} className={advancedInputClass} />
-              </div>
+          <div className="border-t border-[#E5E7EB] pt-5">
+            <h3 className="text-[13px] text-[#374151] mb-4" style={{ fontWeight: 600 }}>Cost</h3>
+            <div className="flex items-center gap-2">
+              <input type="number" min="0" placeholder="min" value={advancedCostMin} onChange={(e) => setAdvancedCostMin(e.target.value)} className={advancedInputClass} />
+              <span className="text-[#546478] text-[13px]">-</span>
+              <input type="number" min="0" placeholder="max" value={advancedCostMax} onChange={(e) => setAdvancedCostMax(e.target.value)} className={advancedInputClass} />
             </div>
-          )}
+          </div>
           <AdvancedFilterField label="Taxable">
             <select value={advancedTaxable} onChange={(e) => setAdvancedTaxable(e.target.value)} className={advancedSelectClass}>
               <option value="All">All</option>
@@ -1077,20 +670,20 @@ export function Items() {
         </AdvancedFilterPanel>
       )}
 
-      {/* ═══════════════ EDIT COLUMNS MODAL (Figma 1494:89406) ═══════════════ */}
+      {/* ═══════════════ EDIT COLUMNS MODAL (Figma 1494:88462) ═══════════════ */}
       {editColumnsOpen && (
         <ModalBackdrop onClose={() => setEditColumnsOpen(false)}>
           <div className="bg-white border border-[#E5E7EB] rounded-xl shadow-2xl w-[600px] max-w-[92vw] flex flex-col">
             {/* Header */}
             <div className="flex items-center justify-between p-4">
-              <h2 className="text-[20px] text-[#1A2332]" style={{ fontWeight: 600 }}>Edit columns</h2>
+              <h2 className="text-[18px] text-[#1A2332]" style={{ fontWeight: 600 }}>Edit columns</h2>
               <button onClick={() => setEditColumnsOpen(false)} aria-label="Close" className="w-6 h-6 flex items-center justify-center rounded hover:bg-[#F3F4F6] text-[#546478]">
                 <span className="material-icons" style={{ fontSize: "18px" }}>close</span>
               </button>
             </div>
-            {/* Body — two columns of checkbox rows */}
+            {/* Body — two columns of checkbox rows (design order) */}
             <div className="flex gap-4 px-4 py-1">
-              {[ALL_ITEMS_COLS.slice(0, 4), ALL_ITEMS_COLS.slice(4)].map((colGroup, gi) => (
+              {[ALL_COLS.slice(0, 6), ALL_COLS.slice(6)].map((colGroup, gi) => (
                 <div key={gi} className="flex-1 flex flex-col gap-2">
                   {colGroup.map((col) => {
                     const checked = col.locked ? true : !!draftColVis[col.key];
@@ -1115,456 +708,13 @@ export function Items() {
             {/* Footer */}
             <div className="flex items-center justify-end gap-2 p-4">
               <button onClick={() => setEditColumnsOpen(false)} className="min-h-9 px-4 py-2 rounded-lg border border-[#E5E7EB] bg-white text-[14px] text-[#1A2332] hover:bg-[#F5F7FA] transition-colors" style={{ fontWeight: 500 }}>Cancel</button>
-              <button onClick={() => { setItemColVis(draftColVis); setEditColumnsOpen(false); toast.success("Columns updated"); }} className="min-h-9 px-4 py-2 rounded-lg bg-[#4A6FA5] hover:bg-[#3d5a85] text-[14px] text-white transition-colors" style={{ fontWeight: 500 }}>Save</button>
+              <button onClick={() => { setColVis(draftColVis); setEditColumnsOpen(false); toast.success("Columns updated"); }} className="min-h-9 px-4 py-2 rounded-lg bg-[#4A6FA5] hover:bg-[#3d5a85] text-[14px] text-white transition-colors" style={{ fontWeight: 500 }}>Save</button>
             </div>
           </div>
         </ModalBackdrop>
       )}
 
-      {showInfoBar && (activeTab === "pricebook" ? (
-        <div className="mt-3 bg-white border border-[#E5E7EB] rounded-xl px-5 py-4 flex gap-6 relative">
-          {/* Close button */}
-          <button
-            onClick={() => setShowInfoBarDismiss(true)}
-            className="absolute top-3 right-3 w-6 h-6 flex items-center justify-center rounded hover:bg-[#F3F4F6] text-[#9CA3AF] hover:text-[#546478] transition-colors"
-            title="Close"
-          >
-            <span className="material-icons" style={{ fontSize: "16px" }}>close</span>
-          </button>
-          {/* Left: About Pricebook Items */}
-          <div className="w-[220px] flex-shrink-0">
-            <div className="flex items-center gap-1.5 mb-1.5">
-              <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "17px" }}>info</span>
-              <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 700 }}>About Price Book Items</span>
-            </div>
-            <p className="text-[12px] text-[#546478] leading-snug">
-              Pricebook items are the flat-rate services, repairs, installations and fees that you sell to your customers. These items are used in estimates, invoices and jobs.
-            </p>
-          </div>
-          <div className="w-px bg-[#E5E7EB] self-stretch flex-shrink-0" />
-          {/* Middle: How it works */}
-          <div className="w-[240px] flex-shrink-0">
-            <div className="text-[12.5px] text-[#1A2332] mb-2" style={{ fontWeight: 700 }}>How it works</div>
-            {["Create flat-rate items with your selling price", "Use them in estimates and invoices", "Track costs and profit margins", "Keep your pricing consistent"].map(text => (
-              <div key={text} className="flex items-start gap-2 mb-1.5">
-                <span className="material-icons text-[#16A34A] flex-shrink-0 mt-0.5" style={{ fontSize: "15px" }}>check_circle</span>
-                <span className="text-[12px] text-[#546478] leading-snug">{text}</span>
-              </div>
-            ))}
-          </div>
-          <div className="w-px bg-[#E5E7EB] self-stretch flex-shrink-0" />
-          {/* Right: Popular Categories */}
-          <div className="flex-1">
-            <div className="text-[12.5px] text-[#1A2332] mb-2.5" style={{ fontWeight: 700 }}>Popular Categories</div>
-            <div className="flex flex-wrap gap-2">
-              {[
-                { label: "Maintenance", bg: "#EBF0F8", color: "#4A6FA5" },
-                { label: "Diagnostics", bg: "#EDE9FE", color: "#7C3AED" },
-                { label: "Repairs", bg: "#FEF3C7", color: "#D97706" },
-                { label: "Installation", bg: "#D1FAE5", color: "#16A34A" },
-                { label: "Replacement", bg: "#FFEDD5", color: "#EA580C" },
-                { label: "Membership", bg: "#FCE7F3", color: "#DB2777" },
-                { label: "Fees", bg: "#FEE2E2", color: "#DC2626" },
-                { label: "Custom", bg: "#F3F4F6", color: "#6B7280" },
-              ].map(({ label, bg, color }) => (
-                <button key={label}
-                  onClick={() => { setPbCategoryFilter(label); setPbPage(1); }}
-                  className="px-2.5 py-1 rounded-full text-[12px] transition-colors hover:opacity-80"
-                  style={{ fontWeight: 500, backgroundColor: bg, color }}>
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div className="mt-3 bg-white border border-[#E5E7EB] rounded-xl px-5 py-4 flex gap-6 relative">
-          {/* Close button */}
-          <button
-            onClick={() => setShowInfoBarDismiss(true)}
-            className="absolute top-3 right-3 w-6 h-6 flex items-center justify-center rounded hover:bg-[#F3F4F6] text-[#9CA3AF] hover:text-[#546478] transition-colors"
-            title="Close"
-          >
-            <span className="material-icons" style={{ fontSize: "16px" }}>close</span>
-          </button>
-          {/* Left: About */}
-          <div className="w-[200px] flex-shrink-0">
-            <div className="flex items-center gap-1.5 mb-1.5">
-              <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "17px" }}>info</span>
-              <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 700 }}>About Items</span>
-            </div>
-            <p className="text-[12px] text-[#546478] leading-snug mb-1.5">
-              Items include everything you sell or use in your business.
-            </p>
-            <p className="text-[12px] text-[#546478] leading-snug">
-              Use the tabs above to quickly view items by type.
-            </p>
-          </div>
-
-          {/* Divider */}
-          <div className="w-px bg-[#E5E7EB] self-stretch flex-shrink-0" />
-
-          {/* Right: Item Types */}
-          <div className="flex-1">
-            <div className="text-[12.5px] text-[#1A2332] mb-2.5" style={{ fontWeight: 700 }}>Item Types</div>
-            <div className="grid grid-cols-6 gap-4">
-              {[
-                { bg: "#4A6FA5", icon: "build", label: "Services", desc: "Labor, inspections, maintenance and other services." },
-                { bg: "#16A34A", icon: "category", label: "Materials", desc: "Parts, supplies, and consumables." },
-                { bg: "#7C3AED", icon: "settings", label: "Equipment", desc: "Installable or sellable equipment." },
-                { bg: "#EA580C", icon: "attach_money", label: "Fees", desc: "Admin, permit, disposal and other fees." },
-                { bg: "#D97706", icon: "menu_book", label: "Pricebook", desc: "Sellable flat-rate items for estimates & invoices." },
-                { bg: "#0D9488", icon: "inventory_2", label: "Asset Type", desc: "System types, locations, and asset classifications." },
-              ].map(({ bg, icon, label, desc }) => (
-                <div key={label}>
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <div className="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0" style={{ backgroundColor: bg }}>
-                      <span className="material-icons text-white" style={{ fontSize: "13px" }}>{icon}</span>
-                    </div>
-                    <span className="text-[12.5px] text-[#1A2332]" style={{ fontWeight: 600 }}>{label}</span>
-                  </div>
-                  <p className="text-[11px] text-[#546478] leading-snug">{desc}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      ))}
-
-      {/* ═══════════════ ITEM GROUPS (modal-only) ═══════════════ */}
-      {false && (
-        <div>
-          <div className="bg-white border border-[#E5E7EB] rounded-lg">
-            <div className="flex items-center justify-between p-3 border-b border-[#E5E7EB]">
-              <div className="relative w-[260px]">
-                <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: "18px" }}>search</span>
-                <input type="text" placeholder="Search groups..." value={groupSearch} onChange={(e) => setGroupSearch(e.target.value)}
-                  className="w-full h-9 pl-10 pr-3 border border-[#E5E7EB] rounded-lg text-[13px] focus:outline-none focus:border-[#4A6FA5]" />
-              </div>
-            </div>
-            <table className="w-full">
-              <thead>
-                <tr className="bg-[#F5F7FA] border-b border-[#E5E7EB]">
-                  <th className="px-4 py-3 text-left text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist", fontWeight: 500 }}>Name</th>
-                  <th className="px-4 py-3 text-left text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist", fontWeight: 500 }}>Description</th>
-                  <th className="px-4 py-3 text-left text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist", fontWeight: 500 }}>Items</th>
-                  <th className="px-4 py-3 text-left text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist", fontWeight: 500 }}>Group Type</th>
-                  <th className="px-4 py-3 text-right text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist", fontWeight: 500 }}>Total</th>
-                  <th className="px-4 py-3 text-left text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist", fontWeight: 500 }}>Category</th>
-                  <th className="px-4 py-3 w-[80px]" />
-                </tr>
-              </thead>
-              <tbody>
-                {groups.filter(g => !groupSearch || g.name.toLowerCase().includes(groupSearch.toLowerCase())).length === 0 ? (
-                  <tr><td colSpan={7} className="px-4 py-12 text-center text-[14px] text-[#546478]" style={{ fontWeight: 500 }}>No Records Found</td></tr>
-                ) : groups.filter(g => !groupSearch || g.name.toLowerCase().includes(groupSearch.toLowerCase())).map((g, idx) => (
-                  <tr key={g.id} className={`border-b border-[#EDF0F5] hover:bg-[#F9FBFD] ${idx % 2 === 1 ? "bg-[#FAFBFC]" : "bg-white"}`}>
-                    <td className="px-4 py-3 text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{g.name}</td>
-                    <td className="px-4 py-3 text-[13px] text-[#546478]"><div className="truncate max-w-[220px]">{g.description}</div></td>
-                    <td className="px-4 py-3 text-[13px] text-[#546478]">{g.items.length}</td>
-                    <td className="px-4 py-3 text-[13px] text-[#546478]">{g.groupType}</td>
-                    <td className="px-4 py-3 text-[13px] text-[#1A2332] text-right" style={{ fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>${g.total.toFixed(2)}</td>
-                    <td className="px-4 py-3 text-[13px] text-[#546478]">{g.category}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-0.5">
-                        <button onClick={() => { setEditingGroup(g); setGroupModalOpen(true); }} className="w-8 h-8 flex items-center justify-center rounded hover:bg-[#EDF0F5]"><span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>edit</span></button>
-                        <button onClick={() => setDeleteConfirm({ type: "group", id: g.id, name: g.name })} className="w-8 h-8 flex items-center justify-center rounded hover:bg-[#FEE2E2]"><span className="material-icons text-[#DC2626]" style={{ fontSize: "18px" }}>delete</span></button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* categories (modal-only) */}
-      {false && (
-        <div>
-          <div className="bg-white border border-[#E5E7EB] rounded-lg">
-            <div className="flex items-center justify-between p-3 border-b border-[#E5E7EB]">
-              <div className="relative w-[260px]">
-                <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: "18px" }}>search</span>
-                <input type="text" placeholder="Search categories..." value={catSearch} onChange={(e) => setCatSearch(e.target.value)}
-                  className="w-full h-9 pl-10 pr-3 border border-[#E5E7EB] rounded-lg text-[13px] focus:outline-none focus:border-[#4A6FA5]" />
-              </div>
-            </div>
-            <table className="w-full">
-              <thead>
-                <tr className="bg-[#F5F7FA] border-b border-[#E5E7EB]">
-                  <th className="px-4 py-3 text-left text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist", fontWeight: 500 }}>Name</th>
-                  <th className="px-4 py-3 text-left text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist", fontWeight: 500 }}>Description</th>
-                  <th className="px-4 py-3 text-left text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist", fontWeight: 500 }}>Parent Category</th>
-                  <th className="px-4 py-3 text-center text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist", fontWeight: 500 }}>No. of Active Items</th>
-                  <th className="px-4 py-3 w-[100px] text-center text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist", fontWeight: 500 }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {categories.filter(c => !catSearch || c.name.toLowerCase().includes(catSearch.toLowerCase())).length === 0 ? (
-                  <tr><td colSpan={5} className="px-4 py-12 text-center text-[14px] text-[#546478]" style={{ fontWeight: 500 }}>No Records Found</td></tr>
-                ) : categories.filter(c => !catSearch || c.name.toLowerCase().includes(catSearch.toLowerCase())).map((c, idx) => (
-                  <tr key={c.id} className={`border-b border-[#EDF0F5] hover:bg-[#F9FBFD] ${idx % 2 === 1 ? "bg-[#FAFBFC]" : "bg-white"}`}>
-                    <td className="px-4 py-3 text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{c.name}</td>
-                    <td className="px-4 py-3 text-[13px] text-[#546478]">{c.description}</td>
-                    <td className="px-4 py-3 text-[13px] text-[#546478]">{c.parentCategory || "—"}</td>
-                    <td className="px-4 py-3 text-[13px] text-[#1A2332] text-center" style={{ fontWeight: 500 }}>{c.activeItems}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center justify-center gap-0.5">
-                        <button onClick={() => { setEditingCat(c); setCatModalOpen(true); }} className="w-8 h-8 flex items-center justify-center rounded hover:bg-[#EDF0F5]"><span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>edit</span></button>
-                        <button onClick={() => setDeleteConfirm({ type: "category", id: c.id, name: c.name })} className="w-8 h-8 flex items-center justify-center rounded hover:bg-[#FEE2E2]"><span className="material-icons text-[#DC2626]" style={{ fontSize: "18px" }}>delete</span></button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* brands (modal-only) */}
-      {false && (
-        <div>
-          <div className="flex items-center justify-end mb-4">
-            <button
-              onClick={() => { setEditingBrand(null); setBrandModalOpen(true); }}
-              className="h-9 px-4 bg-[#4A6FA5] text-white rounded-lg text-[13px] hover:bg-[#3d5a85] flex items-center gap-2 shadow-sm"
-              style={{ fontWeight: 600 }}
-            >
-              <PlusIcon className="mr-1.5 shrink-0" />
-              Create Brand
-            </button>
-          </div>
-
-          <div className="bg-white border border-[#E5E7EB] rounded-lg">
-            <div className="flex items-center justify-between p-3 border-b border-[#E5E7EB]">
-              <div className="relative w-[260px]">
-                <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: "18px" }}>search</span>
-                <input type="text" placeholder="Search brands..." value={brandSearch} onChange={(e) => setBrandSearch(e.target.value)}
-                  className="w-full h-9 pl-10 pr-3 border border-[#E5E7EB] rounded-lg text-[13px] focus:outline-none focus:border-[#4A6FA5]" />
-              </div>
-            </div>
-            <table className="w-full">
-              <thead>
-                <tr className="bg-[#F5F7FA] border-b border-[#E5E7EB]">
-                  <th className="px-4 py-3 text-left text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist", fontWeight: 500 }}>Name</th>
-                  <th className="px-4 py-3 text-left text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist", fontWeight: 500 }}>Description</th>
-                  <th className="px-4 py-3 w-[100px] text-center text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist", fontWeight: 500 }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {brands.filter(b => !brandSearch || b.name.toLowerCase().includes(brandSearch.toLowerCase())).length === 0 ? (
-                  <tr><td colSpan={3} className="px-4 py-12 text-center text-[14px] text-[#546478]" style={{ fontWeight: 500 }}>No Records Found</td></tr>
-                ) : brands.filter(b => !brandSearch || b.name.toLowerCase().includes(brandSearch.toLowerCase())).map((b, idx) => (
-                  <tr key={b.id} className={`border-b border-[#EDF0F5] hover:bg-[#F9FBFD] ${idx % 2 === 1 ? "bg-[#FAFBFC]" : "bg-white"}`}>
-                    <td className="px-4 py-3 text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{b.name}</td>
-                    <td className="px-4 py-3 text-[13px] text-[#546478]">{b.description}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center justify-center gap-0.5">
-                        <button onClick={() => { setEditingBrand(b); setBrandModalOpen(true); }} className="w-8 h-8 flex items-center justify-center rounded hover:bg-[#EDF0F5]"><span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>edit</span></button>
-                        <button onClick={() => setDeleteConfirm({ type: "brand", id: b.id, name: b.name })} className="w-8 h-8 flex items-center justify-center rounded hover:bg-[#FEE2E2]"><span className="material-icons text-[#DC2626]" style={{ fontSize: "18px" }}>delete</span></button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* catalogs (modal-only) */}
-      {false && (
-        <div>
-          <div className="flex items-center justify-end mb-4">
-            <button
-              onClick={() => { setEditingCatalog(null); setCatalogModalOpen(true); }}
-              className="h-9 px-4 bg-[#4A6FA5] text-white rounded-lg text-[13px] hover:bg-[#3d5a85] flex items-center gap-2 shadow-sm"
-              style={{ fontWeight: 600 }}
-            >
-              <PlusIcon className="mr-1.5 shrink-0" />
-              Create Catalog
-            </button>
-          </div>
-
-          <div className="bg-white border border-[#E5E7EB] rounded-lg">
-            <div className="flex items-center justify-between p-3 border-b border-[#E5E7EB]">
-              <div className="relative w-[260px]">
-                <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: "18px" }}>search</span>
-                <input type="text" placeholder="Search catalogs..." value={catalogSearch} onChange={(e) => setCatalogSearch(e.target.value)}
-                  className="w-full h-9 pl-10 pr-3 border border-[#E5E7EB] rounded-lg text-[13px] focus:outline-none focus:border-[#4A6FA5]" />
-              </div>
-            </div>
-            <table className="w-full">
-              <thead>
-                <tr className="bg-[#F5F7FA] border-b border-[#E5E7EB]">
-                  <th className="px-4 py-3 text-left text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist", fontWeight: 500 }}>Name</th>
-                  <th className="px-4 py-3 text-left text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist", fontWeight: 500 }}>Description</th>
-                  <th className="px-4 py-3 text-center text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist", fontWeight: 500 }}>Items</th>
-                  <th className="px-4 py-3 text-center text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist", fontWeight: 500 }}>Status</th>
-                  <th className="px-4 py-3 w-[100px] text-center text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist", fontWeight: 500 }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {catalogs.filter(c => !catalogSearch || c.name.toLowerCase().includes(catalogSearch.toLowerCase())).length === 0 ? (
-                  <tr><td colSpan={5} className="px-4 py-12 text-center text-[14px] text-[#546478]" style={{ fontWeight: 500 }}>No Records Found</td></tr>
-                ) : catalogs.filter(c => !catalogSearch || c.name.toLowerCase().includes(catalogSearch.toLowerCase())).map((c, idx) => (
-                  <tr key={c.id} className={`border-b border-[#EDF0F5] hover:bg-[#F9FBFD] ${idx % 2 === 1 ? "bg-[#FAFBFC]" : "bg-white"}`}>
-                    <td className="px-4 py-3 text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{c.name}</td>
-                    <td className="px-4 py-3 text-[13px] text-[#546478]">{c.description}</td>
-                    <td className="px-4 py-3 text-[13px] text-[#1A2332] text-center" style={{ fontWeight: 500 }}>{c.itemCount}</td>
-                    <td className="px-4 py-3 text-center">
-                      <span className={`inline-block px-2 py-0.5 rounded-full text-[11px] ${c.active ? "bg-[#D1FAE5] text-[#16A34A]" : "bg-[#F3F4F6] text-[#6B7280]"}`} style={{ fontWeight: 600 }}>
-                        {c.active ? "Active" : "Inactive"}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center justify-center gap-0.5">
-                        <button onClick={() => { setEditingCatalog(c); setCatalogModalOpen(true); }} className="w-8 h-8 flex items-center justify-center rounded hover:bg-[#EDF0F5]"><span className="material-icons text-[#546478]" style={{ fontSize: "18px" }}>edit</span></button>
-                        <button onClick={() => setDeleteConfirm({ type: "catalog", id: c.id, name: c.name })} className="w-8 h-8 flex items-center justify-center rounded hover:bg-[#FEE2E2]"><span className="material-icons text-[#DC2626]" style={{ fontSize: "18px" }}>delete</span></button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* ═══════════════ MODALS ═══════════════ */}
-
-      {/* ── Item Modal ── */}
-      {itemModalOpen && (
-        <ItemModal
-          item={editingItem}
-          categories={uniqueCategories}
-          brands={brands}
-          groups={groups}
-          onClose={() => setItemModalOpen(false)}
-          onSave={(item) => {
-            if (editingItem) {
-              setItems(prev => prev.map(i => i.id === item.id ? item : i));
-              itemsStore.upsert(toCatalogItem(item));
-            } else {
-              const newItem = { ...item, id: Math.max(...items.map(i => i.id), 999) + 1 };
-              setItems(prev => [...prev, newItem]);
-              itemsStore.upsert(toCatalogItem(newItem));
-            }
-            setItemModalOpen(false);
-          }}
-        />
-      )}
-
-      {/* ── Group Modal ── */}
-      {groupModalOpen && (
-        <GroupModal
-          group={editingGroup}
-          items={items}
-          categories={uniqueCategories}
-          onClose={() => setGroupModalOpen(false)}
-          onSave={(group) => {
-            if (editingGroup) {
-              setGroups(prev => prev.map(g => g.id === group.id ? group : g));
-            } else {
-              setGroups(prev => [...prev, { ...group, id: Math.max(...prev.map(g => g.id), 0) + 1 }]);
-            }
-            setGroupModalOpen(false);
-          }}
-        />
-      )}
-
-      {/* ── Category Modal ── */}
-      {catModalOpen && (
-        <CategoryModal
-          category={editingCat}
-          categories={categories}
-          onClose={() => setCatModalOpen(false)}
-          onSave={(cat) => {
-            if (editingCat) {
-              setCategories(prev => prev.map(c => c.id === cat.id ? cat : c));
-            } else {
-              setCategories(prev => [...prev, { ...cat, id: Math.max(...prev.map(c => c.id), 0) + 1, activeItems: 0 }]);
-            }
-            setCatModalOpen(false);
-          }}
-        />
-      )}
-
-      {/* ── Brand Modal ── */}
-      {brandModalOpen && (
-        <BrandModal
-          brand={editingBrand}
-          onClose={() => setBrandModalOpen(false)}
-          onSave={(brand) => {
-            if (editingBrand) {
-              setBrands(prev => prev.map(b => b.id === brand.id ? brand : b));
-            } else {
-              setBrands(prev => [...prev, { ...brand, id: Math.max(...prev.map(b => b.id), 0) + 1 }]);
-            }
-            setBrandModalOpen(false);
-          }}
-        />
-      )}
-
-      {/* ── Catalog Modal ── */}
-      {catalogModalOpen && (
-        <CatalogModal
-          catalog={editingCatalog}
-          onClose={() => setCatalogModalOpen(false)}
-          onSave={(catalog) => {
-            if (editingCatalog) {
-              setCatalogs(prev => prev.map(c => c.id === catalog.id ? catalog : c));
-            } else {
-              setCatalogs(prev => [...prev, { ...catalog, id: Math.max(...prev.map(c => c.id), 0) + 1 }]);
-            }
-            setCatalogModalOpen(false);
-          }}
-        />
-      )}
-
-      {/* ── Info Bar Dismiss Modal ── */}
-      {showInfoBarDismiss && (
-        <ModalBackdrop onClose={() => setShowInfoBarDismiss(false)}>
-          <div className="bg-white rounded-2xl shadow-2xl w-[360px] p-6">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-full bg-[#EBF0F8] flex items-center justify-center flex-shrink-0">
-                <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "20px" }}>info</span>
-              </div>
-              <h3 className="text-[16px] text-[#1A2332]" style={{ fontWeight: 700 }}>Hide this panel?</h3>
-            </div>
-            <p className="text-[13px] text-[#546478] mb-5">
-              Do you want to hide the info panel just for now, or don't show it again?
-            </p>
-            <div className="flex flex-col gap-2">
-              <button
-                onClick={() => { setShowInfoBar(false); setShowInfoBarDismiss(false); }}
-                className="w-full px-4 py-2.5 bg-[#4A6FA5] text-white rounded-lg text-[13px] hover:bg-[#3d5a85] transition-colors"
-                style={{ fontWeight: 600 }}
-              >
-                Don't show again
-              </button>
-              <button
-                onClick={() => { setShowInfoBar(false); setShowInfoBarDismiss(false); }}
-                className="w-full px-4 py-2.5 border border-[#E5E7EB] text-[#546478] rounded-lg text-[13px] hover:bg-[#F5F7FA] transition-colors"
-                style={{ fontWeight: 500 }}
-              >
-                Just hide for now
-              </button>
-              <button
-                onClick={() => setShowInfoBarDismiss(false)}
-                className="w-full px-4 py-2.5 text-[#9CA3AF] rounded-lg text-[13px] hover:text-[#546478] transition-colors"
-                style={{ fontWeight: 500 }}
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </ModalBackdrop>
-      )}
-
-      {/* ── Delete Confirmation ── */}
+      {/* ── Delete / Deactivate Confirmation ── */}
       {deleteConfirm && (
         <ModalBackdrop onClose={() => setDeleteConfirm(null)}>
           <div className="bg-white rounded-2xl shadow-2xl w-[400px] p-6">
@@ -1572,7 +722,7 @@ export function Items() {
               <div className="w-10 h-10 rounded-full bg-[#FEE2E2] flex items-center justify-center">
                 <span className="material-icons text-[#DC2626]" style={{ fontSize: "22px" }}>warning</span>
               </div>
-              <h3 className="text-[18px] text-[#1A2332]" style={{ fontWeight: 700 }}>{deleteConfirm.mode === "deactivate" ? "Deactivate item?" : deleteConfirm.type === "item" ? "Delete item?" : `Delete ${deleteConfirm.type}?`}</h3>
+              <h3 className="text-[18px] text-[#1A2332]" style={{ fontWeight: 700 }}>{deleteConfirm.mode === "deactivate" ? "Deactivate item?" : "Delete item?"}</h3>
             </div>
             <p className="text-[14px] text-[#546478] mb-6">
               {deleteConfirm.mode === "deactivate"
@@ -1583,16 +733,15 @@ export function Items() {
               <button onClick={() => setDeleteConfirm(null)} className="px-4 py-2.5 border border-[#E5E7EB] text-[#546478] rounded-lg text-[13px] hover:bg-[#F5F7FA]" style={{ fontWeight: 500 }}>Cancel</button>
               <button
                 onClick={() => {
-                  const { type, id, mode } = deleteConfirm;
-                  if (type === "item" && mode === "deactivate") {
+                  const { id, mode } = deleteConfirm;
+                  if (mode === "deactivate") {
                     setItems(prev => prev.map(i => i.id === id ? { ...i, active: false } : i));
                     const rec = items.find(i => i.id === id);
                     if (rec) itemsStore.upsert({ ...rec, active: false } as any);
-                  } else if (type === "item") { setItems(prev => prev.filter(i => i.id !== id)); itemsStore.remove(id); }
-                  else if (type === "group") setGroups(prev => prev.filter(g => g.id !== id));
-                  else if (type === "category") setCategories(prev => prev.filter(c => c.id !== id));
-                  else if (type === "brand") setBrands(prev => prev.filter(b => b.id !== id));
-                  else if (type === "catalog") setCatalogs(prev => prev.filter(c => c.id !== id));
+                  } else {
+                    setItems(prev => prev.filter(i => i.id !== id));
+                    itemsStore.remove(id);
+                  }
                   setDeleteConfirm(null);
                 }}
                 className="px-4 py-2.5 bg-[#DC2626] text-white rounded-lg text-[13px] hover:bg-[#B91C1C]"
@@ -1605,15 +754,15 @@ export function Items() {
         </ModalBackdrop>
       )}
 
-      {/* ── Bulk upload (Import items) ── */}
-      {importOpen && (
-        <ModalBackdrop onClose={() => setImportOpen(false)}>
+      {/* ── Upload (bulk import) ── */}
+      {uploadOpen && (
+        <ModalBackdrop onClose={() => setUploadOpen(false)}>
           <div className="bg-white rounded-2xl shadow-2xl w-[460px] p-6">
             <div className="flex items-center justify-between mb-1">
-              <h3 className="text-[18px] text-[#1A2332]" style={{ fontWeight: 700 }}>Import items</h3>
-              <button onClick={() => setImportOpen(false)} className="w-8 h-8 flex items-center justify-center rounded hover:bg-[#F5F7FA] text-[#6B7280]"><span className="material-icons" style={{ fontSize: "20px" }}>close</span></button>
+              <h3 className="text-[18px] text-[#1A2332]" style={{ fontWeight: 700 }}>Upload items</h3>
+              <button onClick={() => setUploadOpen(false)} className="w-8 h-8 flex items-center justify-center rounded hover:bg-[#F5F7FA] text-[#6B7280]"><span className="material-icons" style={{ fontSize: "20px" }}>close</span></button>
             </div>
-            <p className="text-[13px] text-[#6B7280] mb-4">Bulk-upload your price book from a CSV/XLSX file. Existing items are matched by name; new ones are added.</p>
+            <p className="text-[13px] text-[#6B7280] mb-4">Bulk-upload items from a CSV/XLSX file. Existing items are matched by name; new ones are added.</p>
             <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-[#C8D5E8] rounded-xl py-8 cursor-pointer hover:bg-[#F9FBFD]">
               <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "28px" }}>upload_file</span>
               <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>Choose a CSV or XLSX file</span>
@@ -1624,663 +773,17 @@ export function Items() {
                 className="hidden"
                 onChange={(e) => {
                   const f = e.target.files?.[0];
-                  if (f) { toast.success(`Importing items from "${f.name}"`); setImportOpen(false); }
+                  if (f) { toast.success(`Uploading items from "${f.name}"`); setUploadOpen(false); }
                 }}
               />
             </label>
             <div className="mt-4 flex items-center justify-between">
               <button className="text-[13px] text-[#4A6FA5] hover:underline" style={{ fontWeight: 500 }} onClick={() => toast.success("Template downloaded")}>Download template</button>
-              <button onClick={() => setImportOpen(false)} className="px-4 py-2.5 border border-[#E5E7EB] text-[#546478] rounded-lg text-[13px] hover:bg-[#F5F7FA]" style={{ fontWeight: 500 }}>Cancel</button>
+              <button onClick={() => setUploadOpen(false)} className="px-4 py-2.5 border border-[#E5E7EB] text-[#546478] rounded-lg text-[13px] hover:bg-[#F5F7FA]" style={{ fontWeight: 500 }}>Cancel</button>
             </div>
           </div>
         </ModalBackdrop>
       )}
-    </div>
-    </DndProvider>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// ─── ITEM MODAL ──────────────────────────────────────────────────────────────
-// ═══════════════════════════════════════════════════════════════════════════════
-function ItemModal({ item, categories, brands, groups, onClose, onSave }: {
-  item: Item | null;
-  categories: string[];
-  brands: ItemBrand[];
-  groups: ItemGroup[];
-  onClose: () => void;
-  onSave: (item: Item) => void;
-}) {
-  const blankItem: Item = {
-    id: 0, active: true, name: "", description: "", salesDescription: "", additionalInfo: "",
-    brand: "", modelNumber: "", upc: "",
-    rate: 0, cost: 0, taxable: true, tax1: false, tax2: false, tax3: false,
-    onHand: 0, minQty: 0, maxQty: 0, tracking: false,
-    category: "", subcategory: "", type: "Service",
-    vendor: "", vendorCode: "", department: "",
-    cogsGL: "", salesGL: "",
-    customField1: "", customField2: "", customField3: "",
-    notes: "", boldPrint: false, group: "", defaultQty: 1, picture: "", inventory: false, booking: false,
-  };
-
-  const [form, setForm] = useState<Item>(item || blankItem);
-  const update = (field: keyof Item, value: any) => setForm(prev => ({ ...prev, [field]: value }));
-  const [taxProfile, setTaxProfile] = useState<string>("");
-
-  // Map item type to one of the 6 chip categories
-  type ChipType = "Service" | "Material" | "Equipment" | "Asset" | "Fees" | "Price Book";
-  const typeToChip = (t: ItemType): ChipType => {
-    if (["Service", "Labor", "Maintenance", "Diagnostics", "Installation", "Repair"].includes(t)) return "Service";
-    if (["Inventory Item", "Non-Inventory Item", "Serialized Item"].includes(t)) return "Material";
-    if (t === "Equipment") return "Equipment";
-    if (t === "Asset") return "Asset";
-    if (["Fee / Admin Code", "Discount", "Other Charge", "Material Markup", "Labor Markup", "Other Markup",
-      "Material Discount", "Labor Discount", "Other Discount"].includes(t)) return "Fees";
-    if (["Bundle / Kit", "Expense / Reimbursement"].includes(t)) return "Price Book";
-    return "Service";
-  };
-  const chipToType: Record<ChipType, ItemType> = {
-    Service: "Service",
-    Material: "Inventory Item",
-    Equipment: "Equipment",
-    Asset: "Asset",
-    Fees: "Fee / Admin Code",
-    "Price Book": "Bundle / Kit",
-  };
-  const [selectedChip, setSelectedChip] = useState<ChipType>(typeToChip(form.type));
-
-  const chipDefs: { key: ChipType; color: string; icon: string }[] = [
-    { key: "Service",    color: "#4A6FA5", icon: "build" },
-    { key: "Material",   color: "#16A34A", icon: "category" },
-    { key: "Equipment",  color: "#7C3AED", icon: "settings" },
-    { key: "Asset",      color: "#D97706", icon: "location_on" },
-    { key: "Fees",       color: "#EA580C", icon: "attach_money" },
-    { key: "Price Book", color: "#0D9488", icon: "menu_book" },
-  ];
-
-  const handleChipSelect = (chip: ChipType) => {
-    setSelectedChip(chip);
-    update("type", chipToType[chip]);
-  };
-
-  const mockVendors = ["—", "HVAC Supply Co.", "Ferguson Enterprises", "Johnstone Supply", "Grainger", "HD Supply"];
-
-  return (
-    <ModalBackdrop onClose={onClose}>
-      <div className="bg-white rounded-2xl shadow-2xl w-[780px] max-h-[90vh] overflow-hidden flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-5 border-b border-[#E5E7EB]">
-          <h2 className="text-[20px] text-[#1A2332]" style={{ fontWeight: 700 }}>{item ? "Edit Item" : "Add New Item"}</h2>
-          <div className="flex items-center gap-3">
-            <button onClick={onClose} className="w-8 h-8 rounded-lg hover:bg-[#F5F7FA] flex items-center justify-center">
-              <span className="material-icons text-[#546478]" style={{ fontSize: "22px" }}>close</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Body */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
-
-          {/* ── 1. Basic Info ── */}
-          <SectionHeader label="Basic Info" />
-          <div className="space-y-4">
-            {/* Item ID + Status side by side */}
-            <div className="grid grid-cols-2 gap-4">
-              <FieldGroup label="Item ID">
-                <input
-                  type="text"
-                  value={form.id || "Auto"}
-                  readOnly
-                  className="w-full h-10 px-3 border border-[#E5E7EB] rounded-lg text-[14px] bg-[#F5F7FA] text-[#8899AA] cursor-default focus:outline-none"
-                />
-              </FieldGroup>
-              <FieldGroup label="Status">
-                <select
-                  value={form.active ? "active" : "inactive"}
-                  onChange={(e) => update("active", e.target.value === "active")}
-                  className="w-full h-10 px-3 border border-[#E5E7EB] rounded-lg text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
-                >
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
-                </select>
-              </FieldGroup>
-            </div>
-
-            <FieldGroup label="Name" required>
-              <input
-                type="text" value={form.name} onChange={(e) => update("name", e.target.value)}
-                placeholder="Item name"
-                className="w-full h-10 px-3 border border-[#E5E7EB] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]"
-                spellCheck
-              />
-            </FieldGroup>
-
-            <FieldGroup label="Description (internal)">
-              <textarea
-                value={form.description} onChange={(e) => update("description", e.target.value)}
-                placeholder="Internal description (not shown to customers)"
-                className="w-full min-h-[72px] px-3 py-2 border border-[#E5E7EB] rounded-lg text-[14px] resize-y focus:outline-none focus:border-[#4A6FA5]"
-                spellCheck
-              />
-            </FieldGroup>
-
-            <FieldGroup label="Sales Description">
-              <textarea
-                value={form.salesDescription} onChange={(e) => update("salesDescription", e.target.value)}
-                placeholder="Client-facing description"
-                className="w-full min-h-[72px] px-3 py-2 border border-[#E5E7EB] rounded-lg text-[14px] resize-y focus:outline-none focus:border-[#4A6FA5]"
-                spellCheck
-              />
-            </FieldGroup>
-
-            <FieldGroup label="Additional Information">
-              <textarea
-                value={form.additionalInfo} onChange={(e) => update("additionalInfo", e.target.value)}
-                placeholder="Additional details (optional)"
-                className="w-full min-h-[72px] px-3 py-2 border border-[#E5E7EB] rounded-lg text-[14px] resize-y focus:outline-none focus:border-[#4A6FA5]"
-                spellCheck
-              />
-            </FieldGroup>
-          </div>
-
-          {/* ── 2. Type ── */}
-          <SectionHeader label="Type" />
-          <div className="grid grid-cols-3 gap-3">
-            {chipDefs.map(({ key, color, icon }) => {
-              const isSelected = selectedChip === key;
-              return (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => handleChipSelect(key)}
-                  className="flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition-all text-left"
-                  style={{
-                    borderColor: isSelected ? color : "#E5E7EB",
-                    backgroundColor: isSelected ? `${color}12` : "#FFFFFF",
-                  }}
-                >
-                  <div
-                    className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                    style={{ backgroundColor: color }}
-                  >
-                    <span className="material-icons text-white" style={{ fontSize: "16px" }}>{icon}</span>
-                  </div>
-                  <span
-                    className="text-[14px]"
-                    style={{ fontWeight: isSelected ? 600 : 500, color: isSelected ? color : "#1A2332" }}
-                  >
-                    {key}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* ── 3. Classification ── */}
-          <SectionHeader label="Classification" />
-          <div className="grid grid-cols-2 gap-4">
-            <FieldGroup label="Category">
-              <select
-                value={form.category} onChange={(e) => update("category", e.target.value)}
-                className="w-full h-10 px-3 border border-[#E5E7EB] rounded-lg text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
-              >
-                <option value="">Choose category (optional)</option>
-                {categories.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
-              <p className="text-[11px] text-[#8899AA] mt-1">(Configure in Settings)</p>
-            </FieldGroup>
-            <FieldGroup label="Manufacturer">
-              <select
-                value={form.brand} onChange={(e) => update("brand", e.target.value)}
-                className="w-full h-10 px-3 border border-[#E5E7EB] rounded-lg text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
-              >
-                <option value="">Select manufacturer (optional)</option>
-                {brands.map(b => <option key={b.id} value={b.name}>{b.name}</option>)}
-              </select>
-            </FieldGroup>
-          </div>
-
-          {/* ── 4. Pricing & Tax ── */}
-          <SectionHeader label="Pricing & Tax" />
-          <div className="space-y-4">
-            <div className="grid grid-cols-3 gap-4">
-              <FieldGroup label="Retail Price ($)">
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#546478] text-[14px]">$</span>
-                  <input
-                    type="number" min="0" step="0.01" value={form.rate || ""}
-                    onChange={(e) => update("rate", parseFloat(e.target.value) || 0)}
-                    className="w-full h-10 pl-7 pr-3 border border-[#E5E7EB] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]"
-                    style={{ fontVariantNumeric: "tabular-nums" }}
-                  />
-                </div>
-              </FieldGroup>
-              <FieldGroup label="Cost ($)">
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#546478] text-[14px]">$</span>
-                  <input
-                    type="number" min="0" step="0.01" value={form.cost || ""}
-                    onChange={(e) => update("cost", parseFloat(e.target.value) || 0)}
-                    className="w-full h-10 pl-7 pr-3 border border-[#E5E7EB] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]"
-                    style={{ fontVariantNumeric: "tabular-nums" }}
-                  />
-                </div>
-              </FieldGroup>
-              <FieldGroup label="Default Qty">
-                <input
-                  type="number" min="0" step="1" value={form.defaultQty || ""}
-                  onChange={(e) => update("defaultQty", parseInt(e.target.value) || 1)}
-                  className="w-full h-10 px-3 border border-[#E5E7EB] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]"
-                  style={{ fontVariantNumeric: "tabular-nums" }}
-                />
-              </FieldGroup>
-            </div>
-
-            <div className="flex items-end gap-4">
-              <div className="flex-1">
-                <FieldGroup label="Tax Profile">
-                  <select
-                    value={taxProfile}
-                    onChange={(e) => setTaxProfile(e.target.value)}
-                    className="w-full h-10 px-3 border border-[#E5E7EB] rounded-lg text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
-                  >
-                    <option value="">Select tax profile…</option>
-                    <option value="no_tax">No Tax</option>
-                    <option value="fl_7">Florida Sales Tax 7%</option>
-                    <option value="tx_8">Texas Sales Tax 8.25%</option>
-                    <option value="pl_23">Polish Sales Tax 23%</option>
-                  </select>
-                  <p className="text-[11px] text-[#8899AA] mt-1">(Configure in Settings → Tax Profiles)</p>
-                </FieldGroup>
-              </div>
-              <div className="flex items-center gap-2 pb-6 shrink-0">
-                <Toggle checked={form.taxable} onChange={(v) => update("taxable", v)} />
-                <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>Taxable</span>
-              </div>
-            </div>
-          </div>
-
-          {/* ── 5. Vendor ── */}
-          <SectionHeader label="Vendor" />
-          <FieldGroup label="Vendor">
-            <select
-              value={form.vendor} onChange={(e) => update("vendor", e.target.value === "—" ? "" : e.target.value)}
-              className="w-full h-10 px-3 border border-[#E5E7EB] rounded-lg text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
-            >
-              {mockVendors.map(v => <option key={v} value={v}>{v}</option>)}
-            </select>
-          </FieldGroup>
-
-          {/* ── 6. Pictures ── */}
-          <SectionHeader label="Pictures" />
-          <div className="flex items-start gap-4">
-            <div className="flex-1 space-y-3">
-              {/* Dashed upload area */}
-              <div className="flex flex-col items-center justify-center gap-1 border-2 border-dashed border-[#E5E7EB] rounded-xl py-5 px-4 bg-[#FAFBFC] cursor-pointer hover:border-[#4A6FA5] transition-colors">
-                <span className="material-icons text-[#8899AA]" style={{ fontSize: "32px" }}>upload_file</span>
-                <span className="text-[13px] text-[#546478]" style={{ fontWeight: 500 }}>Upload image or paste URL</span>
-              </div>
-              {/* URL input */}
-              <input
-                type="text" value={form.picture} onChange={(e) => update("picture", e.target.value)}
-                placeholder="Paste image URL (optional)"
-                className="w-full h-10 px-3 border border-[#E5E7EB] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]"
-              />
-            </div>
-            {/* Preview */}
-            {form.picture && (
-              <div className="flex-shrink-0">
-                <img
-                  src={form.picture}
-                  alt="Item preview"
-                  className="h-[60px] w-auto rounded-lg border border-[#E5E7EB] object-contain bg-[#F5F7FA]"
-                />
-              </div>
-            )}
-          </div>
-
-          {/* ── 7. Custom Fields ── */}
-          <SectionHeader label="Custom Fields" />
-          <p className="text-[11px] text-[#8899AA] -mt-4">(Configure labels in Settings → Custom Fields)</p>
-          <div className="grid grid-cols-2 gap-4">
-            <FieldGroup label="Custom Field 1">
-              <input
-                type="text" value={form.customField1} onChange={(e) => update("customField1", e.target.value)}
-                placeholder="Custom field 1"
-                className="w-full h-10 px-3 border border-[#E5E7EB] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]"
-              />
-            </FieldGroup>
-            <FieldGroup label="Custom Field 2">
-              <input
-                type="text" value={form.customField2} onChange={(e) => update("customField2", e.target.value)}
-                placeholder="Custom field 2"
-                className="w-full h-10 px-3 border border-[#E5E7EB] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]"
-              />
-            </FieldGroup>
-          </div>
-
-          {/* ── 8. Notes ── */}
-          <SectionHeader label="Notes" />
-          <textarea
-            value={form.notes} onChange={(e) => update("notes", e.target.value)}
-            placeholder="Internal notes (optional)"
-            className="w-full min-h-[80px] px-3 py-2 border border-[#E5E7EB] rounded-lg text-[14px] resize-y focus:outline-none focus:border-[#4A6FA5]"
-            spellCheck
-          />
-
-          {/* ── 9. Enterprise Fields (greyed out placeholder) ── */}
-          <div className="bg-[#F9FAFB] border border-dashed border-[#E5E7EB] rounded-xl p-5 opacity-60 pointer-events-none select-none">
-            <div className="flex items-center gap-2 mb-4">
-              <span className="text-[16px]">🔒</span>
-              <span className="text-[15px] text-[#546478]" style={{ fontWeight: 700 }}>Enterprise Fields</span>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              {[
-                { label: "SKU / Item Code", placeholder: "SKU / Item Code" },
-                { label: "UPC", placeholder: "UPC" },
-                { label: "Subcategory", placeholder: "Subcategory" },
-                { label: "Department", placeholder: "Department" },
-                { label: "Group", placeholder: "Group" },
-                { label: "On Hand", placeholder: "On Hand" },
-                { label: "COGS G/L", placeholder: "COGS G/L" },
-                { label: "Sales G/L", placeholder: "Sales G/L" },
-                { label: "Vendor Code", placeholder: "Vendor Code" },
-              ].map(({ label, placeholder }) => (
-                <div key={label}>
-                  <div className="text-[12px] text-[#8899AA] mb-1" style={{ fontWeight: 500 }}>{label}</div>
-                  <input
-                    type="text"
-                    readOnly
-                    placeholder={placeholder}
-                    className="w-full h-9 px-3 border border-[#E5E7EB] rounded-lg text-[13px] bg-white text-[#8899AA] cursor-default focus:outline-none"
-                  />
-                </div>
-              ))}
-            </div>
-            <p className="text-[12px] text-[#8899AA] mt-4">These fields are available in the Enterprise plan.</p>
-          </div>
-
-        </div>
-
-        {/* Footer */}
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[#E5E7EB] bg-[#FAFBFC]">
-          <button onClick={onClose} className="px-5 py-2.5 border border-[#E5E7EB] text-[#546478] rounded-lg text-[14px] hover:bg-[#F5F7FA]" style={{ fontWeight: 500 }}>Cancel</button>
-          <button
-            onClick={() => { if (!form.name) return; onSave(form); }}
-            className="px-5 py-2.5 bg-[#4A6FA5] text-white rounded-lg text-[14px] hover:bg-[#3d5a85]"
-            style={{ fontWeight: 600 }}
-          >
-            Save
-          </button>
-        </div>
-      </div>
-    </ModalBackdrop>
-  );
-}
-
-// ─── GROUP MODAL ─────────────────────────────────────────────────────────────
-function GroupModal({ group, items, categories, onClose, onSave }: {
-  group: ItemGroup | null; items: Item[]; categories: string[];
-  onClose: () => void; onSave: (g: ItemGroup) => void;
-}) {
-  const [form, setForm] = useState<ItemGroup>(group || {
-    id: 0, name: "", description: "", groupType: "Individual items", category: "", items: [], active: true, total: 0,
-  });
-
-  const selectedItems = items.filter(i => form.items.includes(i.id));
-  const total = selectedItems.reduce((s, i) => s + i.rate, 0);
-
-  return (
-    <ModalBackdrop onClose={onClose}>
-      <div className="bg-white rounded-2xl shadow-2xl w-[700px] max-h-[90vh] overflow-hidden flex flex-col">
-        <div className="flex items-center justify-between px-6 py-5 border-b border-[#E5E7EB]">
-          <h2 className="text-[20px] text-[#1A2332]" style={{ fontWeight: 700 }}>{group ? "Edit Item Group" : "Create Item Group"}</h2>
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <Toggle checked={form.active} onChange={(v) => setForm(prev => ({ ...prev, active: v }))} />
-              <span className="text-[13px] text-[#546478]" style={{ fontWeight: 500 }}>Enable</span>
-            </div>
-            <button onClick={onClose} className="w-8 h-8 rounded-lg hover:bg-[#F5F7FA] flex items-center justify-center">
-              <span className="material-icons text-[#546478]" style={{ fontSize: "22px" }}>close</span>
-            </button>
-          </div>
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-6 space-y-5">
-          <div className="grid grid-cols-2 gap-5">
-            <FieldGroup label="Item Group Name">
-              <input type="text" value={form.name} onChange={(e) => setForm(prev => ({ ...prev, name: e.target.value }))} placeholder="Item group name"
-                className="w-full h-10 px-3 border border-[#E5E7EB] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]" />
-            </FieldGroup>
-            <FieldGroup label="Item Group Description">
-              <textarea value={form.description} onChange={(e) => setForm(prev => ({ ...prev, description: e.target.value }))} placeholder="Item group description"
-                className="w-full min-h-[80px] px-3 py-2 border border-[#E5E7EB] rounded-lg text-[14px] resize-y focus:outline-none focus:border-[#4A6FA5]" />
-            </FieldGroup>
-          </div>
-
-          <div className="grid grid-cols-2 gap-5">
-            <FieldGroup label="Group Type">
-              <select value={form.groupType} onChange={(e) => setForm(prev => ({ ...prev, groupType: e.target.value as any }))}
-                className="w-full h-10 px-3 border border-[#E5E7EB] rounded-lg text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
-              >
-                <option value="Individual items">Individual items</option>
-                <option value="Bundle">Bundle</option>
-              </select>
-            </FieldGroup>
-            <FieldGroup label="Category">
-              <select value={form.category} onChange={(e) => setForm(prev => ({ ...prev, category: e.target.value }))}
-                className="w-full h-10 px-3 border border-[#E5E7EB] rounded-lg text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
-              >
-                <option value="">Choose category (optional)</option>
-                {categories.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
-            </FieldGroup>
-          </div>
-
-          <FieldGroup label="Add Items">
-            <select
-              onChange={(e) => {
-                const id = Number(e.target.value);
-                if (id && !form.items.includes(id)) setForm(prev => ({ ...prev, items: [...prev.items, id] }));
-                e.target.value = "";
-              }}
-              className="w-full h-10 px-3 border border-[#E5E7EB] rounded-lg text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
-            >
-              <option value="">Add items</option>
-              {items.filter(i => !form.items.includes(i.id)).map(i => <option key={i.id} value={i.id}>{i.name} — ${i.rate.toFixed(2)}</option>)}
-            </select>
-          </FieldGroup>
-
-          {/* Items table */}
-          <div className="border border-[#E5E7EB] rounded-lg overflow-hidden">
-            <table className="w-full">
-              <thead>
-                <tr className="bg-[#F5F7FA] border-b border-[#E5E7EB]">
-                  {["Item Name", "Price", "Cost", "Qty", "Amount", ""].map(h => (
-                    <th key={h} className="px-3 py-2.5 text-left text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist", fontWeight: 500 }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {selectedItems.length === 0 ? (
-                  <tr><td colSpan={6} className="px-4 py-8 text-center text-[13px] text-[#546478]">No items added yet</td></tr>
-                ) : selectedItems.map(si => (
-                  <tr key={si.id} className="border-b border-[#EDF0F5]">
-                    <td className="px-3 py-2.5 text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{si.name}</td>
-                    <td className="px-3 py-2.5 text-[13px]" style={{ fontVariantNumeric: "tabular-nums" }}>${si.rate.toFixed(2)}</td>
-                    <td className="px-3 py-2.5 text-[13px] text-[#546478]" style={{ fontVariantNumeric: "tabular-nums" }}>${si.cost.toFixed(2)}</td>
-                    <td className="px-3 py-2.5 text-[13px]">1</td>
-                    <td className="px-3 py-2.5 text-[13px]" style={{ fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>${si.rate.toFixed(2)}</td>
-                    <td className="px-3 py-2.5">
-                      <button onClick={() => setForm(prev => ({ ...prev, items: prev.items.filter(id => id !== si.id) }))} className="w-7 h-7 flex items-center justify-center rounded hover:bg-[#FEE2E2]">
-                        <span className="material-icons text-[#DC2626]" style={{ fontSize: "16px" }}>close</span>
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div className="flex items-center justify-between px-6 py-4 border-t border-[#E5E7EB] bg-[#FAFBFC]">
-          <div className="text-[14px] text-[#1A2332]">Total: <strong style={{ fontVariantNumeric: "tabular-nums" }}>${total.toFixed(2)}</strong></div>
-          <div className="flex items-center gap-3">
-            <button onClick={onClose} className="px-5 py-2.5 border border-[#E5E7EB] text-[#546478] rounded-lg text-[14px] hover:bg-[#F5F7FA]" style={{ fontWeight: 500 }}>Cancel</button>
-            <button onClick={() => onSave({ ...form, total })} className="px-5 py-2.5 bg-[#4A6FA5] text-white rounded-lg text-[14px] hover:bg-[#3d5a85]" style={{ fontWeight: 600 }}>Save</button>
-          </div>
-        </div>
-      </div>
-    </ModalBackdrop>
-  );
-}
-
-// ─── CATEGORY MODAL ──────────────────────────────────────────────────────────
-function CategoryModal({ category, categories, onClose, onSave }: {
-  category: ItemCategoryRecord | null; categories: ItemCategoryRecord[];
-  onClose: () => void; onSave: (c: ItemCategoryRecord) => void;
-}) {
-  const [form, setForm] = useState<ItemCategoryRecord>(category || {
-    id: 0, name: "", description: "", parentCategory: "", activeItems: 0, active: true,
-  });
-
-  return (
-    <ModalBackdrop onClose={onClose}>
-      <div className="bg-white rounded-2xl shadow-2xl w-[520px]">
-        <div className="flex items-center justify-between px-6 py-5 border-b border-[#E5E7EB]">
-          <h2 className="text-[20px] text-[#1A2332]" style={{ fontWeight: 700 }}>{category ? "Edit Category" : "Create New Category"}</h2>
-          <button onClick={onClose} className="w-8 h-8 rounded-lg hover:bg-[#F5F7FA] flex items-center justify-center">
-            <span className="material-icons text-[#546478]" style={{ fontSize: "22px" }}>close</span>
-          </button>
-        </div>
-        <div className="p-6 space-y-5">
-          <FieldGroup label="Category Name" required>
-            <input type="text" value={form.name} onChange={(e) => setForm(prev => ({ ...prev, name: e.target.value }))} placeholder="Category name"
-              className="w-full h-10 px-3 border border-[#E5E7EB] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]" />
-          </FieldGroup>
-
-          <FieldGroup label="Parent Category">
-            <select value={form.parentCategory} onChange={(e) => setForm(prev => ({ ...prev, parentCategory: e.target.value }))}
-              className="w-full h-10 px-3 border border-[#E5E7EB] rounded-lg text-[14px] bg-white focus:outline-none focus:border-[#4A6FA5]"
-            >
-              <option value="">Choose parent category (optional)</option>
-              {categories.filter(c => c.id !== form.id).map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
-            </select>
-          </FieldGroup>
-
-          <FieldGroup label="Category Description">
-            <textarea value={form.description} onChange={(e) => setForm(prev => ({ ...prev, description: e.target.value }))} placeholder="Category description (optional)"
-              className="w-full min-h-[100px] px-3 py-2 border border-[#E5E7EB] rounded-lg text-[14px] resize-y focus:outline-none focus:border-[#4A6FA5]" />
-          </FieldGroup>
-
-          <div className="flex items-center justify-between py-1">
-            <div>
-              <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Enable Category</div>
-              <div className="text-[12px] text-[#8899AA]">Turning this off will also disable all subcategories, item groups, and items within this category</div>
-            </div>
-            <Toggle checked={form.active} onChange={(v) => setForm(prev => ({ ...prev, active: v }))} />
-          </div>
-        </div>
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[#E5E7EB] bg-[#FAFBFC]">
-          <button onClick={onClose} className="px-5 py-2.5 border border-[#E5E7EB] text-[#546478] rounded-lg text-[14px] hover:bg-[#F5F7FA]" style={{ fontWeight: 500 }}>Cancel</button>
-          <button onClick={() => { if (!form.name) return; onSave(form); }} className="px-5 py-2.5 bg-[#4A6FA5] text-white rounded-lg text-[14px] hover:bg-[#3d5a85]" style={{ fontWeight: 600 }}>Save</button>
-        </div>
-      </div>
-    </ModalBackdrop>
-  );
-}
-
-// ─── BRAND MODAL ─────────────────────────────────────────────────────────────
-function BrandModal({ brand, onClose, onSave }: {
-  brand: ItemBrand | null; onClose: () => void; onSave: (b: ItemBrand) => void;
-}) {
-  const [form, setForm] = useState<ItemBrand>(brand || { id: 0, name: "", description: "" });
-
-  return (
-    <ModalBackdrop onClose={onClose}>
-      <div className="bg-white rounded-2xl shadow-2xl w-[480px]">
-        <div className="flex items-center justify-between px-6 py-5 border-b border-[#E5E7EB]">
-          <h2 className="text-[20px] text-[#1A2332]" style={{ fontWeight: 700 }}>{brand ? "Edit Brand" : "Create New Brand"}</h2>
-          <button onClick={onClose} className="w-8 h-8 rounded-lg hover:bg-[#F5F7FA] flex items-center justify-center">
-            <span className="material-icons text-[#546478]" style={{ fontSize: "22px" }}>close</span>
-          </button>
-        </div>
-        <div className="p-6 space-y-5">
-          <FieldGroup label="Brand Name" required>
-            <input type="text" value={form.name} onChange={(e) => setForm(prev => ({ ...prev, name: e.target.value }))} placeholder="Brand name"
-              className="w-full h-10 px-3 border border-[#E5E7EB] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]" />
-          </FieldGroup>
-          <FieldGroup label="Description">
-            <textarea value={form.description} onChange={(e) => setForm(prev => ({ ...prev, description: e.target.value }))} placeholder="Description"
-              className="w-full min-h-[100px] px-3 py-2 border border-[#E5E7EB] rounded-lg text-[14px] resize-y focus:outline-none focus:border-[#4A6FA5]" />
-          </FieldGroup>
-        </div>
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[#E5E7EB] bg-[#FAFBFC]">
-          <button onClick={onClose} className="px-5 py-2.5 border border-[#E5E7EB] text-[#546478] rounded-lg text-[14px] hover:bg-[#F5F7FA]" style={{ fontWeight: 500 }}>Cancel</button>
-          <button onClick={() => { if (!form.name) return; onSave(form); }} className="px-5 py-2.5 bg-[#4A6FA5] text-white rounded-lg text-[14px] hover:bg-[#3d5a85]" style={{ fontWeight: 600 }}>Save</button>
-        </div>
-      </div>
-    </ModalBackdrop>
-  );
-}
-
-// ─── CATALOG MODAL ───────────────────────────────────────────────────────────
-function CatalogModal({ catalog, onClose, onSave }: {
-  catalog: Catalog | null; onClose: () => void; onSave: (c: Catalog) => void;
-}) {
-  const [form, setForm] = useState<Catalog>(catalog || { id: 0, name: "", description: "", itemCount: 0, active: true });
-
-  return (
-    <ModalBackdrop onClose={onClose}>
-      <div className="bg-white rounded-2xl shadow-2xl w-[480px]">
-        <div className="flex items-center justify-between px-6 py-5 border-b border-[#E5E7EB]">
-          <h2 className="text-[20px] text-[#1A2332]" style={{ fontWeight: 700 }}>{catalog ? "Edit Catalog" : "Create Catalog"}</h2>
-          <button onClick={onClose} className="w-8 h-8 rounded-lg hover:bg-[#F5F7FA] flex items-center justify-center">
-            <span className="material-icons text-[#546478]" style={{ fontSize: "22px" }}>close</span>
-          </button>
-        </div>
-        <div className="p-6 space-y-5">
-          <FieldGroup label="Catalog Name" required>
-            <input type="text" value={form.name} onChange={(e) => setForm(prev => ({ ...prev, name: e.target.value }))} placeholder="Catalog name"
-              className="w-full h-10 px-3 border border-[#E5E7EB] rounded-lg text-[14px] focus:outline-none focus:border-[#4A6FA5]" />
-          </FieldGroup>
-          <FieldGroup label="Description">
-            <textarea value={form.description} onChange={(e) => setForm(prev => ({ ...prev, description: e.target.value }))} placeholder="Description"
-              className="w-full min-h-[100px] px-3 py-2 border border-[#E5E7EB] rounded-lg text-[14px] resize-y focus:outline-none focus:border-[#4A6FA5]" />
-          </FieldGroup>
-          <div className="flex items-center justify-between py-1">
-            <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Active</div>
-            <Toggle checked={form.active} onChange={(v) => setForm(prev => ({ ...prev, active: v }))} />
-          </div>
-        </div>
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[#E5E7EB] bg-[#FAFBFC]">
-          <button onClick={onClose} className="px-5 py-2.5 border border-[#E5E7EB] text-[#546478] rounded-lg text-[14px] hover:bg-[#F5F7FA]" style={{ fontWeight: 500 }}>Cancel</button>
-          <button onClick={() => { if (!form.name) return; onSave(form); }} className="px-5 py-2.5 bg-[#4A6FA5] text-white rounded-lg text-[14px] hover:bg-[#3d5a85]" style={{ fontWeight: 600 }}>Save</button>
-        </div>
-      </div>
-    </ModalBackdrop>
-  );
-}
-
-// ─── Shared helpers ───────────────────────────────────────────────────────────
-function FieldGroup({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
-  return (
-    <div>
-      {label && (
-        <label className="block text-[13px] text-[#1A2332] mb-1.5" style={{ fontWeight: 500 }}>
-          {label} {required && <span className="text-[#DC2626]">*</span>}
-        </label>
-      )}
-      {children}
-    </div>
-  );
-}
-
-function SectionHeader({ label }: { label: string }) {
-  return (
-    <div className="flex items-center gap-3 pt-2">
-      <span className="text-[12px] uppercase tracking-wider text-[#546478] shrink-0" style={{ fontWeight: 700 }}>{label}</span>
-      <div className="flex-1 h-px bg-[#E5E7EB]" />
     </div>
   );
 }
