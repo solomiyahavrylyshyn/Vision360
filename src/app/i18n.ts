@@ -1,17 +1,17 @@
 // Lightweight i18n bound to Settings → Localization → Language. `useT()` re-renders
 // any consumer when the language changes (it subscribes to regionalSettingsStore),
-// so picking Spanish/Portuguese/French/German/Danish/Dutch live-translates the UI.
-// English is the base + fallback for any missing key. The seven languages match
-// Marek's Jun 11 call decision (English, Spanish, Portuguese, French, German, Danish,
-// Dutch — no Arabic/RTL, no Polish). Add a key to every dictionary to translate a string.
+// so picking Spanish/Portuguese/French/German/Danish/Dutch/Polish live-translates the
+// UI. English is the base + fallback for any missing key. The original seven languages
+// match Marek's Jun 11 call decision (no Arabic/RTL); Polish was added Jul 8, 2026 on
+// user request. Add a key to every dictionary to translate a string.
 import { useSyncExternalStore } from "react";
 import { regionalSettingsStore } from "./stores/regionalSettingsStore";
 
-export type AppLanguage = "English" | "Spanish" | "Portuguese" | "French" | "German" | "Danish" | "Dutch";
+export type AppLanguage = "English" | "Spanish" | "Portuguese" | "French" | "German" | "Danish" | "Dutch" | "Polish";
 
 // BCP-47 code applied to <html lang="…"> for the active language.
 export const LANG_CODES: Record<string, string> = {
-  English: "en", Spanish: "es", Portuguese: "pt", French: "fr", German: "de", Danish: "da", Dutch: "nl",
+  English: "en", Spanish: "es", Portuguese: "pt", French: "fr", German: "de", Danish: "da", Dutch: "nl", Polish: "pl",
 };
 
 type Dict = Record<string, string>;
@@ -247,7 +247,40 @@ const da: Dict = {
   "setup.bellBody": "Udfyld din virksomhedsprofil i Indstillinger",
 };
 
-const TRANSLATIONS: Record<string, Dict> = { English: en, Spanish: es, Portuguese: pt, French: fr, German: de, Danish: da, Dutch: nl };
+const pl: Dict = {
+  "nav.home": "Start",
+  "nav.schedule": "Harmonogram",
+  "nav.clients": "Klienci",
+  "nav.jobs": "Zlecenia",
+  "nav.estimates": "Wyceny",
+  "nav.invoices": "Faktury",
+  "nav.payments": "Płatności",
+  "nav.expenses": "Wydatki",
+  "nav.items": "Pozycje",
+  "nav.collapse": "Zwiń",
+  "nav.expand": "Rozwiń panel boczny",
+  "search.placeholder": "Szukaj klientów, zleceń, faktur...",
+  "create.title": "Utwórz",
+  "create.estimate": "Wycena",
+  "create.invoice": "Faktura",
+  "create.payment": "Płatność",
+  "create.job": "Zlecenie",
+  "create.client": "Klient",
+  "create.expense": "Wydatek",
+  "create.item": "Pozycja",
+  "notif.title": "Powiadomienia",
+  "notif.markAllRead": "Oznacz wszystkie jako przeczytane",
+  "notif.viewAll": "Zobacz wszystkie powiadomienia",
+  "header.subscribeNow": "Subskrybuj teraz",
+  "setup.banner": "Dokończ konfigurację firmy, aby spersonalizować wyceny, faktury i raporty.",
+  "setup.finish": "Dokończ konfigurację",
+  "setup.dontShow": "Nie pokazuj ponownie",
+  "setup.bellTitle": "Dokończ konfigurację firmy",
+  "setup.bellTime": "Teraz",
+  "setup.bellBody": "Uzupełnij profil firmy w Ustawieniach",
+};
+
+const TRANSLATIONS: Record<string, Dict> = { English: en, Spanish: es, Portuguese: pt, French: fr, German: de, Danish: da, Dutch: nl, Polish: pl };
 
 /** Translate a key for a language, falling back to English then the raw key/fallback. */
 export function translate(language: string, key: string, fallback?: string): string {
