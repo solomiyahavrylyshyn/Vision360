@@ -4,6 +4,7 @@
 // immediately in those pickers. localStorage-backed so it survives refresh.
 
 import type { CatalogItem } from "../components/ItemPicker";
+import { createApiSync } from "./apiSync";
 
 type Listener = () => void;
 
@@ -104,10 +105,13 @@ export function mapItemTypeToCatalog(t: string): CatalogItem["type"] {
   return "Service";
 }
 
+const api = createApiSync<CatalogItem>("items", (i) => i.id);
+
 export const itemsStore = {
   getSnapshot: (): CatalogItem[] => items,
   subscribe: (listener: Listener) => {
     listeners.push(listener);
+    api.hydrate(items, (rows) => { items = rows; saveLS(); notify(); });
     return () => { listeners = listeners.filter((l) => l !== listener); };
   },
   // Insert or replace by id (used by the Items module on add / edit).
@@ -118,15 +122,18 @@ export const itemsStore = {
       : [...items, item];
     saveLS();
     notify();
+    api.persistNew(item); // POST upserts on the server too
   },
   remove: (id: number) => {
     items = items.filter((i) => i.id !== id);
     saveLS();
     notify();
+    api.persistDelete(id);
   },
   removeMany: (ids: Set<number>) => {
     items = items.filter((i) => !ids.has(i.id));
     saveLS();
     notify();
+    ids.forEach((id) => api.persistDelete(id));
   },
 };

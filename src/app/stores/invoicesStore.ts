@@ -1,9 +1,9 @@
 // Invoices store — single source of truth for the Invoices list, CreateInvoice
 // (so newly-created invoices persist), JobDetail's Invoices tab and CreatePayment's
 // invoice selector. Mirrors estimatesStore / paymentsStore: in-memory cache +
-// localStorage so created invoices survive a refresh / route change. No /api
-// route exists for invoices today; if one is added, mirror clientsStore's
-// hydrate() / persistNew() pattern here.
+// localStorage so created invoices survive a refresh / route change, with
+// optional Postgres write-through via /api/invoices.
+import { createApiSync } from "./apiSync";
 
 type Listener = () => void;
 
@@ -244,11 +244,14 @@ const nextInvoiceNumber = (base?: string) => {
   return `${prefix}${String(next).padStart(2, "0")}`;
 };
 
+const api = createApiSync<Invoice>("invoices", (i) => i.id);
+
 export const invoicesStore = {
   getSnapshot: (): Invoice[] => invoices,
   getById: (id: number): Invoice | undefined => invoices.find((i) => i.id === id),
   subscribe: (listener: Listener) => {
     listeners.push(listener);
+    api.hydrate(invoices, (rows) => { invoices = rows; saveLS(); notify(); });
     return () => { listeners = listeners.filter((l) => l !== listener); };
   },
   add: (partial: Partial<Invoice> & { clientName: string }): Invoice => {
@@ -298,22 +301,26 @@ export const invoicesStore = {
     invoices = [record, ...invoices];
     saveLS();
     notify();
+    api.persistNew(record);
     return record;
   },
   update: (id: number, patch: Partial<Invoice>) => {
     invoices = invoices.map((i) => (i.id === id ? { ...i, ...patch } : i));
     saveLS();
     notify();
+    api.persistPatch(id, patch);
   },
   remove: (id: number) => {
     invoices = invoices.filter((i) => i.id !== id);
     saveLS();
     notify();
+    api.persistDelete(id);
   },
   removeMany: (ids: Set<number>) => {
     invoices = invoices.filter((i) => !ids.has(i.id));
     saveLS();
     notify();
+    ids.forEach((id) => api.persistDelete(id));
   },
   nextInvoiceNumber,
 };

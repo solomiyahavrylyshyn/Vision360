@@ -6,12 +6,16 @@ write through on every change. Each module is a JSONB document collection
 (`clients`, `jobs`, `estimates`, `invoices`, `payments`, `items`, `expenses`),
 which is lossless for the app's rich records and still queryable.
 
-If the API/DB isn't running, the app **falls back to its built-in seed data**, so
-nothing breaks during normal frontend work.
+If the API/DB isn't running, the app **falls back to its built-in seed data /
+localStorage**, so nothing breaks during normal frontend work.
 
-## One-time setup
+**Deploying to production?** See [`../DEPLOY.md`](../DEPLOY.md) — on Vercel the
+API runs as a serverless function (`api/[...path].mjs`) and you only need to set
+`DATABASE_URL`.
 
-1. **Create the database** (you already have Postgres running on `localhost:5432`):
+## One-time setup (local)
+
+1. **Create the database** (Postgres running on `localhost:5432`):
 
    ```sql
    CREATE DATABASE vision360;
@@ -25,7 +29,9 @@ nothing breaks during normal frontend work.
    # edit .env → DATABASE_URL=postgresql://postgres:YOUR_PASSWORD@localhost:5432/vision360
    ```
 
-3. **Create the schema + seed demo data** (idempotent — safe to re-run):
+3. **(Optional) Pre-create the schema + seed demo clients.** The API creates its
+   tables automatically on first request and the frontend self-seeds an empty
+   database, so this is only for pre-populating from a terminal:
 
    ```bash
    npm run db:migrate
@@ -56,11 +62,13 @@ curl http://localhost:4000/api/clients      # seeded clients as JSON
 | GET    | `/api/:module/:id`    | One record                               |
 | POST   | `/api/:module`        | Create / upsert (body must include `id`) |
 | PATCH  | `/api/:module/:id`    | Shallow-merge fields into the record     |
+| DELETE | `/api/:module/:id`    | Delete a record                          |
 
 `:module` is allow-listed (no SQL injection via the table name).
 
 ## Status
 
-- **Clients** — wired end-to-end (list, detail, create, edits all persist).
-- **Other modules** — tables + API ready; UI wiring rolls out next using the
-  same hydrate + write-through pattern in `src/app/stores`.
+All seven modules — **clients, jobs, estimates, invoices, payments, items,
+expenses** — are wired end-to-end: each store hydrates from the API on mount and
+writes through on every create/update/delete (see `src/app/stores/apiSync.ts`).
+When no database is configured they fall back to `localStorage`.

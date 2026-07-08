@@ -3,6 +3,8 @@
 // useSyncExternalStore, with an in-memory cache + localStorage persistence so
 // newly created expenses survive a refresh (mirrors estimatesStore).
 
+import { createApiSync } from "./apiSync";
+
 type Listener = () => void;
 
 export interface Expense {
@@ -48,11 +50,14 @@ const saveLS = () => {
   try { localStorage.setItem(LS_KEY, JSON.stringify(expenses)); } catch { /* quota */ }
 };
 
+const api = createApiSync<Expense>("expenses", (e) => e.id);
+
 export const expensesStore = {
   getSnapshot: (): Expense[] => expenses,
   getExpense: (id: string | undefined): Expense | undefined => expenses.find((e) => e.id === id),
   subscribe: (listener: Listener) => {
     listeners.push(listener);
+    api.hydrate(expenses, (rows) => { expenses = rows; saveLS(); notify(); });
     return () => { listeners = listeners.filter((l) => l !== listener); };
   },
   nextId: (): string => String(expenses.reduce((max, e) => Math.max(max, Number(e.id) || 0), 0) + 1),
@@ -61,16 +66,19 @@ export const expensesStore = {
     expenses = [record, ...expenses];
     saveLS();
     notify();
+    api.persistNew(record);
     return record;
   },
   update: (id: string, patch: Partial<Expense>) => {
     expenses = expenses.map((e) => (e.id === id ? { ...e, ...patch } : e));
     saveLS();
     notify();
+    api.persistPatch(id, patch);
   },
   removeMany: (ids: Set<string>) => {
     expenses = expenses.filter((e) => !ids.has(e.id));
     saveLS();
     notify();
+    ids.forEach((id) => api.persistDelete(id));
   },
 };

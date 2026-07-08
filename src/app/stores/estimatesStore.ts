@@ -1,8 +1,8 @@
 // Estimates store — single source of truth for Estimates list, EstimateDetail
 // and ClientDetail's Estimates tab. Mirrors clientsStore's pattern: in-memory
 // cache + localStorage persistence so newly created estimates survive a
-// refresh / route change. No /api route exists for estimates today; if/when
-// one is added, mirror clientsStore's hydrate() / persistNew() pattern here.
+// refresh / route change, with optional Postgres write-through via /api/estimates.
+import { createApiSync } from "./apiSync";
 
 type Listener = () => void;
 
@@ -142,11 +142,14 @@ const nextEstimateNumber = (base?: string) => {
   return `${prefix}${String(next).padStart(2, "0")}`;
 };
 
+const api = createApiSync<EstimateRecord>("estimates", (e) => e.id);
+
 export const estimatesStore = {
   getSnapshot: (): EstimateRecord[] => estimates,
   getById: (id: number): EstimateRecord | undefined => estimates.find((e) => e.id === id),
   subscribe: (listener: Listener) => {
     listeners.push(listener);
+    api.hydrate(estimates, (rows) => { estimates = rows; saveLS(); notify(); });
     return () => { listeners = listeners.filter((l) => l !== listener); };
   },
   add: (partial: Partial<EstimateRecord> & { clientName: string }): EstimateRecord => {
@@ -185,22 +188,26 @@ export const estimatesStore = {
     estimates = [record, ...estimates];
     saveLS();
     notify();
+    api.persistNew(record);
     return record;
   },
   update: (id: number, patch: Partial<EstimateRecord>) => {
     estimates = estimates.map((e) => (e.id === id ? { ...e, ...patch } : e));
     saveLS();
     notify();
+    api.persistPatch(id, patch);
   },
   remove: (id: number) => {
     estimates = estimates.filter((e) => e.id !== id);
     saveLS();
     notify();
+    api.persistDelete(id);
   },
   removeMany: (ids: Set<number>) => {
     estimates = estimates.filter((e) => !ids.has(e.id));
     saveLS();
     notify();
+    ids.forEach((id) => api.persistDelete(id));
   },
   nextEstimateNumber,
 };
