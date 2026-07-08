@@ -1,5 +1,7 @@
 // Unified clients store — the single source of truth for BOTH the Clients list
 // and the Client detail page. Reactive via useSyncExternalStore.
+import { createApiSync } from "./apiSync";
+
 type Listener = () => void;
 
 export interface NoteEntry {
@@ -430,46 +432,7 @@ const notify = () => listeners.forEach((l) => l());
    mutation writes through. If the API/DB is unavailable it silently falls
    back to the seed data above, so the app keeps working without the DB.
    ────────────────────────────────────────────────────────────────────── */
-const API = "/api/clients";
-let hydrated = false;
-
-async function hydrate() {
-  if (hydrated) return;
-  hydrated = true;
-  try {
-    const res = await fetch(API, { headers: { Accept: "application/json" } });
-    const ct = res.headers.get("content-type") || "";
-    if (!res.ok || !ct.includes("application/json")) return; // no server/proxy → keep seed
-    const rows = (await res.json()) as ClientRecord[];
-    if (Array.isArray(rows) && rows.length) {
-      clients = rows.map((r) => mk(r as unknown as ClientSeed));
-      saveLS();
-      notify();
-    }
-  } catch {
-    /* DB not running / not configured → keep seed */
-  }
-}
-
-function persistNew(record: ClientRecord) {
-  fetch(API, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(record),
-  }).catch(() => {
-    /* best-effort; record stays in the in-memory cache */
-  });
-}
-
-function persistPatch(id: string, patch: Partial<ClientRecord>) {
-  fetch(`${API}/${encodeURIComponent(id)}`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(patch),
-  }).catch(() => {
-    /* best-effort */
-  });
-}
+const api = createApiSync<ClientRecord>("clients", (c) => c.id);
 
 // Every client must carry at least one service address (Marek rule). If a new
 // record arrives without one, derive it from the client's address fields (or
@@ -502,7 +465,13 @@ export const clientsStore = {
   getClient: (id: string | undefined): ClientRecord | undefined => clients.find((c) => c.id === id),
   subscribe: (listener: Listener) => {
     listeners.push(listener);
-    hydrate(); // lazy: pull from Postgres the first time any view mounts
+    // Lazy: pull from Postgres the first time any view mounts. Rows are re-run
+    // through mk() so any newly-added schema fields get sane defaults.
+    api.hydrate(clients, (rows) => {
+      clients = rows.map((r) => mk(r as unknown as ClientSeed));
+      saveLS();
+      notify();
+    });
     return () => {
       listeners = listeners.filter((l) => l !== listener);
     };
@@ -512,13 +481,13 @@ export const clientsStore = {
     clients = [normalized, ...clients];
     saveLS();
     notify();
-    persistNew(normalized);
+    api.persistNew(normalized);
   },
   updateClient: (id: string, patch: Partial<ClientRecord>) => {
     clients = clients.map((c) => (c.id === id ? { ...c, ...patch } : c));
     saveLS();
     notify();
-    persistPatch(id, patch);
+    api.persistPatch(id, patch);
   },
   makeRecord: mk,
 };

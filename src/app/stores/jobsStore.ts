@@ -1,5 +1,6 @@
-// Jobs store — localStorage-backed so newly created jobs survive refresh.
-// Mirrors clientsStore / estimatesStore / paymentsStore pattern.
+// Jobs store — localStorage-backed so newly created jobs survive refresh, with
+// optional Postgres write-through. Mirrors clientsStore / estimatesStore.
+import { createApiSync } from "./apiSync";
 
 type Listener = () => void;
 
@@ -86,11 +87,14 @@ const nextId = () =>
 
 const pad2 = (n: number) => String(n).padStart(2, "0");
 
+const api = createApiSync<JobRecord>("jobs", (j) => j.id);
+
 export const jobsStore = {
   getSnapshot: (): JobRecord[] => jobs,
   getById: (id: number): JobRecord | undefined => jobs.find((j) => j.id === id),
   subscribe: (listener: Listener) => {
     listeners.push(listener);
+    api.hydrate(jobs, (rows) => { jobs = rows; saveLS(); notify(); });
     return () => { listeners = listeners.filter((l) => l !== listener); };
   },
   add: (partial: Omit<JobRecord, "id" | "createdAt">): JobRecord => {
@@ -100,12 +104,14 @@ export const jobsStore = {
     jobs = [record, ...jobs];
     saveLS();
     notify();
+    api.persistNew(record);
     return record;
   },
   update: (id: number, patch: Partial<JobRecord>) => {
     jobs = jobs.map((j) => (j.id === id ? { ...j, ...patch } : j));
     saveLS();
     notify();
+    api.persistPatch(id, patch);
   },
   count: () => jobs.length,
 };

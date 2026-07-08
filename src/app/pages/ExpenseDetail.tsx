@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
 import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
 import { CategoryPill } from "../components/ui/category-pill";
-import { mockExpenses, type Expense } from "./Expenses";
+import { expensesStore, type Expense } from "../stores/expensesStore";
 import installWaterHeaterPhoto from "../../assets/documents/34285-install-water-heater.jpg";
 import tanklessWaterHeaterPhoto from "../../assets/documents/34689-install-water-heater-tankless.jpg";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "../components/ui/resizable";
@@ -51,7 +51,7 @@ export function ExpenseDetail() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
 
-  const baseExpense: Expense | undefined = mockExpenses.find(e => e.id === id);
+  const baseExpense: Expense | undefined = expensesStore.getExpense(id);
   const override = id ? expenseOverrides[id] : undefined;
   const expense = baseExpense ? { ...baseExpense, ...override } : undefined;
 

@@ -1516,7 +1516,6 @@ export function Calendar() {
       address: quickJobDraft.address.trim() || "Address TBD",
       amount,
     };
-    const createExtras = { status: "Scheduled" as JobStatus, bg: "#EBF0F8", border: "#4A6FA5" };
     const editId = quickJobDraft.editJobId;
 
     if (quickJobDraft.view === "day") {
@@ -1530,15 +1529,23 @@ export function Calendar() {
         setSelectedMapJobId(editId);
         setToast("Job rescheduled");
       } else {
-        const nextId = Math.max(0, ...jobs.map((j) => j.id)) + 1;
-        const newJob: UnifiedJob = {
-          id: nextId, num: `D${String(nextId).padStart(2, "0")}`, date: currentDate, unscheduled: false,
-          title: common.service, property: common.address, priority: "Normal", source: "Schedule", color: "blue", jobType: "Service",
-          ...common, ...createExtras,
-        };
-        setJobs((js) => [...js, newJob]);
+        // Persist through the shared jobsStore (NOT the local board array) so a
+        // job created on the schedule survives navigation/refresh and shows up
+        // in the Jobs list too. It flows back into the board via storeJobs.
+        const rec = jobsStore.add({
+          jobNumber: "",
+          title: common.service, client: common.client, clientId: "",
+          address: common.address, city: "", state: "", zip: "", gateCode: "",
+          assignedTo: techIdToAssignee(common.technicianId),
+          jobType: "Service", jobCategory: "Service", frequency: "One-off",
+          startDate: isoFromDate(currentDate), endDate: isoFromDate(currentDate),
+          startTime: hourToTimeStr(common.start), endTime: hourToTimeStr(common.end),
+          status: "Scheduled", totalPrice: amount,
+          notes: "", fieldNotes: "", privateNotes: "", taxRate: 0,
+        });
+        const newJob = unifiedFromRecord(rec);
         setSelectedDayJob({ id: newJob.id, technicianId: newJob.technicianId, start: newJob.start, end: newJob.end, client: newJob.client, service: newJob.service, address: newJob.address, status: newJob.status, amount: newJob.amount, bg: newJob.bg, border: newJob.border, jobType: newJob.jobType, unscheduled: newJob.unscheduled });
-        setSelectedMapJobId(nextId);
+        setSelectedMapJobId(newJob.id);
       }
     } else {
       const dayIdx = quickJobDraft.dayIdx ?? 0;
@@ -1552,13 +1559,19 @@ export function Calendar() {
         setSelectedDispatchJob((j) => (j && j.id === editId ? { ...j, ...common, dayIdx, unscheduled: false } : j));
         setToast("Job rescheduled");
       } else {
-        const nextId = Math.max(0, ...jobs.map((j) => j.id)) + 1;
-        const newJob: UnifiedJob = {
-          id: nextId, num: `24${String(nextId).padStart(2, "0")}`, date: storedDate, unscheduled: false,
-          title: common.service, property: common.address, priority: "Normal", source: "Schedule", color: "blue", jobType: "Repair",
-          ...common, ...createExtras,
-        };
-        setJobs((js) => [...js, newJob]);
+        // Same persistence path as the day view: write to jobsStore so the job
+        // survives navigation/refresh and appears in the Jobs list.
+        jobsStore.add({
+          jobNumber: "",
+          title: common.service, client: common.client, clientId: "",
+          address: common.address, city: "", state: "", zip: "", gateCode: "",
+          assignedTo: techIdToAssignee(common.technicianId),
+          jobType: "Repair", jobCategory: "Repair", frequency: "One-off",
+          startDate: isoFromDate(storedDate), endDate: isoFromDate(storedDate),
+          startTime: hourToTimeStr(common.start), endTime: hourToTimeStr(common.end),
+          status: "Scheduled", totalPrice: amount,
+          notes: "", fieldNotes: "", privateNotes: "", taxRate: 0,
+        });
       }
     }
 

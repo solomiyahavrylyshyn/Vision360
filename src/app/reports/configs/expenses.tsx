@@ -1,4 +1,6 @@
-import { mockExpenses, expenseCategoryColors, type Expense } from "../../pages/Expenses";
+import { useSyncExternalStore } from "react";
+import { expenseCategoryColors } from "../../pages/Expenses";
+import { expensesStore, type Expense } from "../../stores/expensesStore";
 import type { ReportDef } from "../types";
 
 const money = (n: number) => `$${Math.round(n).toLocaleString("en-US")}`;
@@ -17,7 +19,7 @@ const CategoryBadge = ({ c }: { c: string }) => {
   );
 };
 
-// Expenses report. Source = the Expenses list seed (no store — module constant).
+// Expenses report. Source = the shared expensesStore (same rows as the list).
 // Job costing view: totals for the period, split by job linkage / receipts.
 // Seed data lives in Apr 2026 (one Mar 31 row), so default preset is "this_year"
 // to avoid an empty table on open (REPORT_TODAY month = March 2026). (Marek call #21.)
@@ -27,7 +29,7 @@ export const expensesReport: ReportDef<Expense> = {
   name: "Expenses report",
   description: "All expenses for the period — totals by job linkage and receipts, from your Expenses list.",
   icon: "payments",
-  useRows: () => mockExpenses,
+  useRows: () => useSyncExternalStore(expensesStore.subscribe, expensesStore.getSnapshot),
   rowKey: (e) => e.id,
   dateField: (e) => e.date,
   defaultDatePreset: "this_year",

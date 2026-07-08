@@ -2,6 +2,7 @@
 // survive a refresh. Mirrors clientsStore / estimatesStore pattern.
 
 import type { Payment } from "../pages/Payments";
+import { createApiSync } from "./apiSync";
 
 type Listener = () => void;
 
@@ -45,11 +46,14 @@ const saveLS = () => {
 const nextId = () =>
   payments.length ? Math.max(...payments.map((p) => p.id)) + 1 : 1;
 
+const api = createApiSync<Payment>("payments", (p) => p.id);
+
 export const paymentsStore = {
   getSnapshot: (): Payment[] => payments,
   getById: (id: number): Payment | undefined => payments.find((p) => p.id === id),
   subscribe: (listener: Listener) => {
     listeners.push(listener);
+    api.hydrate(payments, (rows) => { payments = rows; saveLS(); notify(); });
     return () => { listeners = listeners.filter((l) => l !== listener); };
   },
   add: (partial: Omit<Payment, "id" | "createdAt">): Payment => {
@@ -60,11 +64,13 @@ export const paymentsStore = {
     payments = [record, ...payments];
     saveLS();
     notify();
+    api.persistNew(record);
     return record;
   },
   update: (id: number, patch: Partial<Payment>) => {
     payments = payments.map((p) => (p.id === id ? { ...p, ...patch } : p));
     saveLS();
     notify();
+    api.persistPatch(id, patch);
   },
 };

@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router";
 import { toast } from "sonner";
 import { ItemPicker, catalogItemToLineItem, type CatalogItem, type SelectedLineItem } from "../components/ItemPicker";
 import { PlusIcon } from "../components/ui/plus-icon";
+import { expensesStore } from "../stores/expensesStore";
 
 // Mock catalog items
 const mockCatalogItems: CatalogItem[] = [
@@ -186,8 +187,28 @@ export function CreateExpense() {
   const taxAmount = taxableAmount * (taxRate / 100);
   const calculatedTotal = subtotal + taxAmount;
 
+  // Persist through expensesStore so the new expense shows up in the Expenses
+  // list / detail / report and survives a page refresh.
+  const persistExpense = () => {
+    const job = mockJobs.find((j) => j.id === jobId);
+    return expensesStore.add({
+      id: expensesStore.nextId(),
+      date: new Date(`${expenseDate} 12:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+      category,
+      merchant,
+      amount: lineItems.length > 0 ? calculatedTotal : parseFloat(total) || 0,
+      jobId: jobId || undefined,
+      jobTitle: job ? job.title.split(" — ")[0] : undefined,
+      invoiceId: invoiceId || undefined,
+      notes: [description.trim(), notes.trim()].filter(Boolean).join(" — ") || undefined,
+      receipts: receipts.length,
+    });
+  };
+
   const handleSave = () => {
     setSaving(true);
+    persistExpense();
+    toast.success("Expense saved");
     setTimeout(() => navigate(expenseHome), 600);
   };
 
@@ -195,6 +216,7 @@ export function CreateExpense() {
   // keep job so the user can keep entering a stack of receipts.
   const handleSaveAndCreateAnother = () => {
     setSaving(true);
+    persistExpense();
     setTimeout(() => {
       toast.success("Expense saved");
       setMerchant("");
