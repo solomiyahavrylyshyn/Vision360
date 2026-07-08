@@ -4353,28 +4353,32 @@ export function Settings() {
 
           {activeSection === "integrations" && (
             <>
-              <SectionHeader title="Integrations" description="Connected apps visible as coming-soon cards for MVP planning." />
-              <div className="grid grid-cols-2 gap-4">
-                {[
-                  ["QuickBooks", "Sync clients, invoices, payments, and accounting data.", "account_balance"],
-                  ["Zapier", "Connect Vision360 events to outside automation.", "bolt"],
-                  ["Mailchimp", "Send customer segments into marketing lists.", "campaign"],
-                  ["GoHighLevel", "Future CRM and communication workflow connection.", "hub"],
-                ].map(([name, copy, icon]) => (
-                  <Card key={name} className="border border-[#E1E6EF] bg-white p-5">
-                    <div className="flex items-start gap-3">
-                      <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#EBF0F8] text-[#4A6FA5]"><span className="material-icons">{icon}</span></div>
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between">
-                          <div className="text-[15px] text-[#1A2332]" style={{ fontWeight: 800 }}>{name}</div>
-                          <span className="rounded-full bg-[#F1F5F9] px-2 py-0.5 text-[11px] text-[#64748B]" style={{ fontWeight: 700 }}>Coming soon</span>
+              <SectionHeader title="Connected apps" />
+              {/* Figma 299:7373 — the app cards live inside an "Advanced plans
+                  coming soon" container card. */}
+              <SectionCard title="Advanced plans coming soon" description="Vision360 Pro and Enterprise are on the roadmap. They add route optimization, dispatching, advanced reporting, multi-location and white-label.">
+                <div className="mt-4 grid grid-cols-2 gap-4">
+                  {[
+                    ["QuickBooks", "Sync clients, invoices, payments, and accounting data.", "account_balance"],
+                    ["Zapier", "Connect Vision360 events to outside automation.", "bolt"],
+                    ["Mailchimp", "Send customer segments into marketing lists.", "campaign"],
+                    ["GoHighLevel", "Future CRM and communication workflow connection.", "hub"],
+                  ].map(([name, copy, icon]) => (
+                    <div key={name} className="rounded-lg border border-[#E5E7EB] bg-white p-4">
+                      <div className="flex items-start gap-3">
+                        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#EBF0F8] text-[#4A6FA5]"><span className="material-icons">{icon}</span></div>
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between">
+                            <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>{name}</div>
+                            <span className="rounded-full bg-[#FEF3C7] px-2 py-0.5 text-[11px] text-[#B45309]" style={{ fontWeight: 600 }}>Coming soon</span>
+                          </div>
+                          <p className="mt-1 text-[13px] leading-5 text-[#546478]">{copy}</p>
                         </div>
-                        <p className="mt-1 text-[13px] leading-5 text-[#546478]">{copy}</p>
                       </div>
                     </div>
-                  </Card>
-                ))}
-              </div>
+                  ))}
+                </div>
+              </SectionCard>
             </>
           )}
 
