@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { useNavigate } from "react-router";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
@@ -11,29 +11,11 @@ import { SelectionBar } from "../components/ui/selection-bar";
 import { PaginationFooter } from "../components/ui/pagination-footer";
 import { CreateActionButton } from "../components/ui/create-action-button";
 import { AdvancedFilterField, AdvancedFilterPanel, advancedInputClass, advancedSelectClass } from "../components/ui/advanced-filters";
+import { expensesStore } from "../stores/expensesStore";
 
-export interface Expense {
-  id: string;
-  date: string;
-  category: string;
-  merchant: string;
-  amount: number;
-  jobId?: string;
-  jobTitle?: string;
-  invoiceId?: string;
-  notes?: string;
-  receipts: number;
-}
-
-export const mockExpenses: Expense[] = [
-  { id: "1", date: "Apr 5, 2026", category: "Materials", merchant: "Home Depot", amount: 1245.5, jobId: "J-1234", jobTitle: "HVAC Installation", invoiceId: "INV-0042", notes: "Supplies for commercial HVAC project", receipts: 2 },
-  { id: "2", date: "Apr 4, 2026", category: "Fuel", merchant: "Shell Gas Station", amount: 85.3, jobId: "J-1235", jobTitle: "Service Call", invoiceId: "INV-0043", notes: "Fleet vehicle fuel", receipts: 1 },
-  { id: "3", date: "Apr 4, 2026", category: "Tools", merchant: "Grainger", amount: 567.89, jobId: "J-1236", jobTitle: "Equipment Repair", notes: "Replacement tools and equipment", receipts: 1 },
-  { id: "4", date: "Apr 3, 2026", category: "Software", merchant: "Microsoft", amount: 299.0, notes: "Annual subscription renewal", receipts: 1 },
-  { id: "5", date: "Apr 2, 2026", category: "Meals", merchant: "Starbucks", amount: 42.15, jobId: "J-1237", jobTitle: "Client Meeting", invoiceId: "INV-0045", notes: "Coffee with prospective client", receipts: 1 },
-  { id: "6", date: "Apr 1, 2026", category: "Travel", merchant: "Delta Airlines", amount: 389.0, notes: "Flight to vendor conference", receipts: 1 },
-  { id: "7", date: "Mar 31, 2026", category: "Materials", merchant: "Ferguson Plumbing", amount: 723.45, jobId: "J-1235", jobTitle: "Service Call", invoiceId: "INV-0043", notes: "PVC pipes and fittings", receipts: 2 },
-];
+// Expense data lives in expensesStore (localStorage-backed) so created
+// expenses persist and show up here; the type re-export keeps old imports working.
+export type { Expense } from "../stores/expensesStore";
 
 export const expenseCategoryColors: Record<string, string> = {
   Materials: "#4A6FA5",
@@ -104,7 +86,7 @@ function matchesDatePreset(date: string, preset: string) {
 export function Expenses() {
   const navigate = useNavigate();
   const [cols, moveCol] = useDraggableColumns([...EXPENSES_COLS]);
-  const [expenses, setExpenses] = useState(mockExpenses);
+  const expenses = useSyncExternalStore(expensesStore.subscribe, expensesStore.getSnapshot);
 
   // Quick filters (Figma 1139:93081: Categories + Date; job linkage lives in
   // the advanced Filter panel)
@@ -307,7 +289,7 @@ export function Expenses() {
               icon: "archive",
               destructive: true,
               onClick: () => {
-                setExpenses(prev => prev.filter(e => !selectedIds.has(e.id)));
+                expensesStore.removeMany(selectedIds);
                 setSelectedIds(new Set());
               },
             },
