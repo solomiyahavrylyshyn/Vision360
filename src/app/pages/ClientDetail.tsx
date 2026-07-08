@@ -52,6 +52,7 @@ import installAcPhoto from "../../assets/documents/34689-install-ac.jpg";
 import installWaterHeaterTanklessPhoto from "../../assets/documents/34689-install-water-heater-tankless.jpg";
 import job87970Photo from "../../assets/documents/87970-20241208-113711.png";
 import job44644Photo from "../../assets/documents/44644-img-20241210-123749.png";
+import { LIST_DATE_OPTIONS, matchesListDatePreset, listDateOptionLabel } from "../utils/listDateFilter";
 
 const US_STATES = [
   "AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA",
@@ -140,22 +141,8 @@ function ClientJobsPanel({ rows, onOpen, onCreate }: {
   }, [rows]);
 
   const inDateRange = (startDate: string) => {
-    if (qfDate === "all_time") return true;
-    if (!startDate) return false;
-    const d = new Date(startDate);
-    if (isNaN(d.getTime())) return true;
-    const now = new Date();
-    const startOfDay = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate());
-    const today = startOfDay(now);
-    const dDay = startOfDay(d);
-    if (qfDate === "today") return dDay.getTime() === today.getTime();
-    if (qfDate === "this_week") {
-      const weekStart = new Date(today); weekStart.setDate(today.getDate() - today.getDay());
-      const weekEnd = new Date(weekStart); weekEnd.setDate(weekStart.getDate() + 7);
-      return dDay >= weekStart && dDay < weekEnd;
-    }
-    if (qfDate === "this_month") return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-    return true;
+    if (qfDate !== "all_time" && !startDate) return false;
+    return matchesListDatePreset(startDate, qfDate);
   };
 
   const filtered = useMemo(() => {
@@ -277,10 +264,7 @@ function ClientJobsPanel({ rows, onOpen, onCreate }: {
               </select>
             )}
             <select value={qfDate} onChange={(e) => { setQfDate(e.target.value); setPage(1); }} className={qfClass(qfDate !== "all_time")}>
-              <option value="all_time">Date: All time</option>
-              <option value="today">Today</option>
-              <option value="this_week">This week</option>
-              <option value="this_month">This month</option>
+              {LIST_DATE_OPTIONS.map(o => <option key={o.value} value={o.value}>{listDateOptionLabel(o.value, o.label)}</option>)}
             </select>
             <button onClick={onCreate} title="Create job" aria-label="Create job" className="ml-auto flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[#4A6FA5] hover:bg-[#EEF3FA] transition-colors">
               <PlusIcon className="h-5 w-5" />

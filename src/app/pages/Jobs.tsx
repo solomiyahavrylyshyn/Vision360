@@ -14,6 +14,7 @@ import { MultiSelect } from "../components/ui/multi-select";
 import { formatRegionalDate, regionalSettingsStore } from "../stores/regionalSettingsStore";
 import { jobsStore } from "../stores/jobsStore";
 import { type JobStatus, JOB_STATUSES, JOB_STATUS_COLOR as statusColors, JOB_STATUS_BG as statusBg } from "../constants/jobStatuses";
+import { LIST_DATE_OPTIONS, matchesListDatePreset, listDateOptionLabel } from "../utils/listDateFilter";
 
 interface Job {
   id: number;
@@ -255,6 +256,7 @@ export function Jobs() {
     if (qfStatus !== "All" && j.status !== qfStatus) return false;
     if (qfType === "One-off" && j.jobType !== "One-off") return false;
     if (qfType === "Recurring" && j.jobType !== "Recurring") return false;
+    if (!matchesListDatePreset(j.scheduleDateSort, qfDate)) return false;
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       if (!j.title.toLowerCase().includes(q) && !j.client.toLowerCase().includes(q) && !j.address.toLowerCase().includes(q) && !j.jobNumber.toLowerCase().includes(q)) return false;
@@ -429,10 +431,7 @@ export function Jobs() {
                 <option value="Recurring">Recurring</option>
               </select>
               <select value={qfDate} onChange={e => { setQfDate(e.target.value); setCurrentPage(1); }} className={qfClass(qfDate !== "all_time")}>
-                <option value="all_time">Date: All time</option>
-                <option value="today">Today</option>
-                <option value="this_week">This week</option>
-                <option value="this_month">This month</option>
+                {LIST_DATE_OPTIONS.map(o => <option key={o.value} value={o.value}>{listDateOptionLabel(o.value, o.label)}</option>)}
               </select>
               <div className="w-px h-5 bg-[#E5E7EB] mx-1" />
               <button
