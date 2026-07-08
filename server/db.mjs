@@ -1,13 +1,32 @@
-// Postgres connection pool. Reads DATABASE_URL from the environment.
-// If DATABASE_URL is absent the API stays up but data routes report 503 so the
-// frontend can fall back to its in-memory seed / localStorage cache.
+// Postgres connection pool. Reads the connection string from the environment.
+// If none is set the API stays up but data routes report 503 so the frontend
+// can fall back to its in-memory seed / localStorage cache.
 import pg from "pg";
 import { SCHEMA_SQL } from "./schema.mjs";
 
 let pool = null;
 
+// Accept whichever variable name the host / storage integration provides.
+// Vercel's Postgres/Neon integrations set POSTGRES_URL (and friends); a manual
+// setup uses DATABASE_URL. Pooled URLs are preferred first for serverless.
+const CONNECTION_VARS = [
+  "DATABASE_URL",
+  "POSTGRES_URL",
+  "POSTGRES_URL_NON_POOLING",
+  "DATABASE_URL_UNPOOLED",
+  "POSTGRES_PRISMA_URL",
+];
+
+export function connectionString() {
+  for (const name of CONNECTION_VARS) {
+    const value = process.env[name];
+    if (value) return value;
+  }
+  return null;
+}
+
 export function isConfigured() {
-  return Boolean(process.env.DATABASE_URL);
+  return Boolean(connectionString());
 }
 
 // Managed Postgres (Neon, Vercel Postgres, Supabase, Railway…) requires TLS;
@@ -25,12 +44,12 @@ function needsSsl(connectionString) {
 }
 
 export function getPool() {
-  if (!isConfigured()) return null;
+  const conn = connectionString();
+  if (!conn) return null;
   if (!pool) {
-    const connectionString = process.env.DATABASE_URL;
     pool = new pg.Pool({
-      connectionString,
-      ssl: needsSsl(connectionString) ? { rejectUnauthorized: false } : undefined,
+      connectionString: conn,
+      ssl: needsSsl(conn) ? { rejectUnauthorized: false } : undefined,
       connectionTimeoutMillis: 5000,
       max: 10,
     });
@@ -41,7 +60,7 @@ export function getPool() {
 
 export async function query(text, params) {
   const p = getPool();
-  if (!p) throw new Error("DATABASE_URL is not configured");
+  if (!p) throw new Error("No Postgres connection string configured");
   return p.query(text, params);
 }
 
