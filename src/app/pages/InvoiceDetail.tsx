@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 import { toast } from "sonner";
 import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
@@ -8,6 +8,8 @@ import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "../compone
 import { RecordTab, type RecordColumn, type RecordAction } from "../components/ui/record-tab";
 import { formatRegionalDate } from "../stores/regionalSettingsStore";
 import { jobsStore } from "../stores/jobsStore";
+import { itemsStore } from "../stores/itemsStore";
+import { ItemPicker, type CatalogItem } from "../components/ItemPicker";
 
 // A job linked to the invoice, rendered as one accordion section in the
 // Job Details card.
@@ -368,6 +370,24 @@ export function InvoiceDetail() {
   const [payments, setPayments] = useState<Payment[]>(data.payments);
   const [activity, setActivity] = useState<ActivityEntry[]>(data.activity);
 
+  // Line items live in state so "Add item" (catalog picker) and per-row remove
+  // actually work on this mock-backed page (Figma 1432:107806).
+  const [items, setItems] = useState<any[]>(data.items);
+  const [itemPickerOpen, setItemPickerOpen] = useState(false);
+  const catalogItems = useSyncExternalStore(itemsStore.subscribe, itemsStore.getSnapshot);
+  const handleSelectItem = (c: CatalogItem) => {
+    setItems(prev => [...prev, {
+      name: c.name,
+      description: c.salesDescription || c.itemDescription || "",
+      qty: 1,
+      unitPrice: c.rate,
+      taxable: !!c.taxable,
+    }]);
+    setItemPickerOpen(false);
+    toast.success(`"${c.name}" added to invoice`);
+  };
+  const removeItem = (idx: number) => setItems(prev => prev.filter((_, i) => i !== idx));
+
   // Linked jobs — local state so "+ create job" can extend it on this
   // mock-backed page. An invoice can settle several jobs; zero is also valid.
   const [linkedJobs, setLinkedJobs] = useState<LinkedJobInfo[]>(() =>
@@ -394,8 +414,8 @@ export function InvoiceDetail() {
   const fmtDate = (d: string) => d ? formatRegionalDate(new Date(d + "T12:00:00")) : "";
 
   // Calculations
-  const subtotal = data.items.reduce((s: number, i: any) => s + i.qty * i.unitPrice, 0);
-  const taxableAmount = data.items.filter((i: any) => i.taxable).reduce((s: number, i: any) => s + i.qty * i.unitPrice, 0);
+  const subtotal = items.reduce((s: number, i: any) => s + i.qty * i.unitPrice, 0);
+  const taxableAmount = items.filter((i: any) => i.taxable).reduce((s: number, i: any) => s + i.qty * i.unitPrice, 0);
   const taxAmount = taxableAmount * (data.taxRate / 100);
   const total = subtotal + taxAmount;
   const totalPayments = payments.reduce((s, p) => s + p.amount, 0);
@@ -604,16 +624,16 @@ export function InvoiceDetail() {
           <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>
             Items list{isLocked && <span className="ml-2 align-middle text-[11px] text-[#9CA3AF]" style={{ fontWeight: 500 }}>· Locked</span>}
           </h3>
-          {/* Same quiet icon-plus as the estimate detail line-items header.
-              Hidden on a locked (Paid/Void) invoice — it's a closed financial doc. */}
+          {/* "Add item" opens the catalog picker (Figma 1432:107806).
+              Hidden on a locked (Paid) invoice — it's a closed financial doc. */}
           {!isLocked && (
             <button
-              onClick={() => {}}
-              aria-label="Add item"
-              title="Add item"
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[#4A6FA5] hover:bg-[#EEF3FA] transition-colors"
+              onClick={() => setItemPickerOpen(true)}
+              className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-[#4A6FA5] px-3 text-[13px] text-white transition-colors hover:bg-[#3d5a85]"
+              style={{ fontWeight: 600 }}
             >
-              <PlusIcon className="h-5 w-5" />
+              <PlusIcon className="h-4 w-4" /> Add item
+              <span className="material-icons" style={{ fontSize: "16px" }}>expand_more</span>
             </button>
           )}
         </div>
@@ -630,7 +650,7 @@ export function InvoiceDetail() {
               </tr>
             </thead>
             <tbody>
-              {data.items.map((item: any, idx: number) => (
+              {items.map((item: any, idx: number) => (
                 <tr key={idx} className="border-b border-[#F3F4F6] last:border-b-0 hover:bg-[#FAFBFC]">
                   <td className="px-5 py-3">
                     <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{item.name}</div>
@@ -648,7 +668,7 @@ export function InvoiceDetail() {
                     {/* Remove-item is hidden on a locked (Paid/Void) invoice — it's a
                         closed financial doc, no line-item editing (Marek, Jun 11). */}
                     {!isLocked && (
-                      <button className="w-7 h-7 rounded text-[#DC2626] hover:bg-[#FEE2E2] inline-flex items-center justify-center transition-colors" title="Remove item">
+                      <button onClick={() => removeItem(idx)} className="w-7 h-7 rounded text-[#DC2626] hover:bg-[#FEE2E2] inline-flex items-center justify-center transition-colors" title="Remove item">
                         <span className="material-icons" style={{ fontSize: "16px" }}>delete_outline</span>
                       </button>
                     )}
@@ -710,9 +730,19 @@ export function InvoiceDetail() {
               <div className="px-4 py-3 border-b border-[#E5E7EB] flex items-center justify-between">
                 <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Job Details</h3>
                 {!isLocked && (
-                  <button onClick={() => navigate(`/invoices/${id}/edit`)} className="w-7 h-7 rounded text-[#9CA3AF] hover:text-[#4A6FA5] hover:bg-[#F5F7FA] flex items-center justify-center transition-colors" title="Edit job details">
-                    <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
-                  </button>
+                  <div className="flex items-center gap-1.5">
+                    <button onClick={() => navigate(`/invoices/${id}/edit`)} className="w-7 h-7 rounded text-[#9CA3AF] hover:text-[#4A6FA5] hover:bg-[#F5F7FA] flex items-center justify-center transition-colors" title="Edit job details">
+                      <span className="material-icons" style={{ fontSize: "16px" }}>edit</span>
+                    </button>
+                    {/* "Add job" — an invoice can settle several jobs (Figma 1432:107806) */}
+                    <button
+                      onClick={createJobFromInvoice}
+                      className="inline-flex h-7 items-center gap-1 rounded-lg bg-[#4A6FA5] px-2.5 text-[12px] text-white transition-colors hover:bg-[#3d5a85]"
+                      style={{ fontWeight: 600 }}
+                    >
+                      <PlusIcon className="h-3.5 w-3.5" /> Add job
+                    </button>
+                  </div>
                 )}
               </div>
               {linkedJobs.length === 0 ? (
@@ -1038,6 +1068,15 @@ export function InvoiceDetail() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Add item — catalog picker */}
+      {itemPickerOpen && (
+        <ItemPicker
+          catalogItems={catalogItems}
+          onSelect={handleSelectItem}
+          onClose={() => setItemPickerOpen(false)}
+        />
       )}
     </div>
   );
