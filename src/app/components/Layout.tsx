@@ -65,6 +65,14 @@ export function Layout() {
   const allClients = useSyncExternalStore(clientsStore.subscribe, clientsStore.getSnapshot);
   const showTrialBanner = isTrialActive(trial);
   const trialDaysRemaining = getTrialDaysRemaining(trial);
+  // "Remind me later" hides the trial banner for the rest of the session.
+  const [trialReminderSnoozed, setTrialReminderSnoozed] = useState(() => {
+    try { return sessionStorage.getItem("vision360.trialRemindLater") === "1"; } catch { return false; }
+  });
+  const snoozeTrialReminder = () => {
+    try { sessionStorage.setItem("vision360.trialRemindLater", "1"); } catch { /* ignore */ }
+    setTrialReminderSnoozed(true);
+  };
 
   // Sample-company sandbox mode — entered from the Help Center "Play with
   // sample company" CTA (/?sandbox=sample). Persisted to localStorage so the
@@ -735,23 +743,46 @@ export function Layout() {
           </div>
         )}
 
-        {showTrialBanner && trial && (
-          <div className="flex flex-shrink-0 items-center justify-between gap-4 border-b border-[#D8E4F2] bg-[#EBF2FC] px-5 py-2.5">
-            <div className="flex min-w-0 items-center gap-2.5 text-[13px] text-[#1A2332]">
-              <span className="material-icons-outlined text-[#4A6FA5]" style={{ fontSize: "18px" }}>schedule</span>
-              <span className="truncate">
-                Your 7-day free trial ends {formatTrialDate(trial.expiresAt)}
-                {trialDaysRemaining > 0 ? ` (${trialDaysRemaining} day${trialDaysRemaining === 1 ? "" : "s"} left).` : "."}
+        {/* Trial banner (Figma 2480:4471): amber prompt with Remind me later /
+            Set up subscription / dismiss. "Remind me later" hides it for the
+            rest of the browser session. */}
+        {showTrialBanner && trial && !trialReminderSnoozed && (
+          <div className="flex flex-shrink-0 items-center justify-between gap-4 border-b border-[#FCE7B5] bg-[#FFF8EB] px-5 py-2.5">
+            <div className="flex min-w-0 items-center gap-2.5 text-[13px]">
+              <span className="material-icons-outlined text-[#D97706]" style={{ fontSize: "18px" }}>hourglass_top</span>
+              <span className="min-w-0 truncate text-[#1A2332]">
+                <span style={{ fontWeight: 700 }}>
+                  Your free trial ends {trialDaysRemaining > 0 ? `in ${trialDaysRemaining} day${trialDaysRemaining === 1 ? "" : "s"}` : formatTrialDate(trial.expiresAt)}.
+                </span>{" "}
+                <span className="text-[#546478]">Set up your subscription to keep Vision360 running — you won't be charged until the trial ends.</span>
               </span>
             </div>
-            <button
-              type="button"
-              onClick={() => navigate("/settings?section=billing")}
-              className="h-8 shrink-0 rounded-md bg-[#4A6FA5] px-3 text-[13px] text-white transition-colors hover:bg-[#3d5a85]"
-              style={{ fontWeight: 600 }}
-            >
-              {t("header.subscribeNow")}
-            </button>
+            <div className="flex shrink-0 items-center gap-2">
+              <button
+                type="button"
+                onClick={snoozeTrialReminder}
+                className="h-8 rounded-md px-2.5 text-[13px] text-[#8A6D3B] transition-colors hover:bg-[#FCEFCF]"
+                style={{ fontWeight: 500 }}
+              >
+                Remind me later
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate("/settings?section=billing")}
+                className="h-8 rounded-md bg-[#4A6FA5] px-3 text-[13px] text-white transition-colors hover:bg-[#3d5a85]"
+                style={{ fontWeight: 600 }}
+              >
+                Set up subscription
+              </button>
+              <button
+                type="button"
+                onClick={snoozeTrialReminder}
+                aria-label="Dismiss trial banner"
+                className="flex h-7 w-7 items-center justify-center rounded text-[#8A6D3B] transition-colors hover:bg-[#FCEFCF]"
+              >
+                <span className="material-icons" style={{ fontSize: "16px" }}>close</span>
+              </button>
+            </div>
           </div>
         )}
 
