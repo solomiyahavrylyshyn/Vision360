@@ -150,11 +150,8 @@ export function CompanySetup() {
                     required
                   >
                     <option value="">Select team size</option>
-                    <option value="solo">Just me (solo operator)</option>
-                    <option value="plus1">Me + 1 employee</option>
-                    <option value="plus2">Me + 2 employees</option>
-                    <option value="plus5">Me + 3-5 employees</option>
-                    <option value="plus10">Me + 6-10 employees</option>
+                    <option value="solo">Just me</option>
+                    <option value="under10">Under 10</option>
                     <option value="plus10more">More than 10</option>
                   </select>
                   <span className="material-icons absolute right-3 top-1/2 -translate-y-1/2 text-[#6B7280] pointer-events-none" style={{ fontSize: "20px" }}>expand_more</span>
