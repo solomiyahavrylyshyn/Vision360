@@ -7,6 +7,9 @@ import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Switch } from "../components/ui/switch";
 import { ColumnSettingsIcon } from "../components/ui/column-settings-icon";
+import { KebabMenu, KebabItem } from "../components/ui/kebab-menu";
+import { PaginationFooter } from "../components/ui/pagination-footer";
+import { CreateActionButton } from "../components/ui/create-action-button";
 import { companyStore } from "../stores/companyStore";
 import { setupStore } from "../stores/setupStore";
 import { termsStore } from "../stores/termsStore";
@@ -217,12 +220,12 @@ function normalizeSection(section: SettingsSection): SettingsSection {
   return sectionAliases[section] ?? section;
 }
 
-function SectionHeader({ title, description, action }: { title: string; description: string; action?: React.ReactNode }) {
+function SectionHeader({ title, description, action }: { title: string; description?: string; action?: React.ReactNode }) {
   return (
     <div className="mb-5 flex items-start justify-between gap-4">
       <div>
         <h1 className="text-[26px] leading-8 text-[#1A2332]" style={{ fontWeight: 750 }}>{title}</h1>
-        <p className="mt-1.5 max-w-[740px] text-[14px] leading-5 text-[#546478]">{description}</p>
+        {description && <p className="mt-1.5 max-w-[740px] text-[14px] leading-5 text-[#546478]">{description}</p>}
       </div>
       {action && <div className="shrink-0 pt-1">{action}</div>}
     </div>
@@ -690,6 +693,7 @@ function RegionalSettingsCard() {
               <option>German</option>
               <option>Danish</option>
               <option>Dutch</option>
+              <option>Polish</option>
             </SelectField>
           </div>
         </div>
@@ -1262,280 +1266,339 @@ function TemplatePreviewLarge({ kind }: { kind: string }) {
 }
 
 // Items Preferences — Marek's spec
+// Rotating tint palette for user-created labels (custom types + categories).
+const LABEL_COLORS = [
+  { color: "#DC2626", bg: "#FEE2E2" },
+  { color: "#7C3AED", bg: "#EDE9FE" },
+  { color: "#4A6FA5", bg: "#EBF0F8" },
+  { color: "#16A34A", bg: "#DCFCE7" },
+  { color: "#D97706", bg: "#FEF3C7" },
+];
+
 function ItemsPreferences() {
-  type ItemType = { id: string; label: string; color: string; bg: string; core?: boolean };
-  const [itemTypes, setItemTypes] = useState<ItemType[]>([
+  // Figma "finance center"-era Items settings frame 287:18401. The 5th core
+  // type is labeled "Admin" (the frame predates the Fees→Admin rename — see
+  // items-taxonomy-v2); everything else mirrors the design.
+  type TypeRow = { id: string; label: string; color: string; bg: string; core?: boolean };
+  const [itemTypes, setItemTypes] = useState<TypeRow[]>([
     { id: "service",   label: "Service",   color: "#16A34A", bg: "#DCFCE7", core: true },
-    { id: "material",  label: "Material",  color: "#4A6FA5", bg: "#EBF0F8", core: true },
-    { id: "equipment", label: "Equipment", color: "#7C3AED", bg: "#EDE9FE", core: true },
+    { id: "material",  label: "Material",  color: "#7C3AED", bg: "#EDE9FE", core: true },
+    { id: "equipment", label: "Equipment", color: "#DB2777", bg: "#FCE7F3", core: true },
     { id: "asset",     label: "Asset",     color: "#0891B2", bg: "#CFFAFE", core: true },
-    { id: "fee",       label: "Fee",       color: "#EA580C", bg: "#FFEDD5", core: true },
+    { id: "admin",     label: "Admin",     color: "#EA580C", bg: "#FFEDD5", core: true },
+    { id: "custom-bundle", label: "Bundle", color: "#DC2626", bg: "#FEE2E2" },
   ]);
   const [newItemType, setNewItemType] = useState("");
+  const addItemType = () => {
+    const v = newItemType.trim();
+    if (!v || itemTypes.some(t => t.label.toLowerCase() === v.toLowerCase())) return;
+    const c = LABEL_COLORS[itemTypes.filter(t => !t.core).length % LABEL_COLORS.length];
+    setItemTypes([...itemTypes, { id: `it${Date.now()}`, label: v, ...c }]);
+    setNewItemType("");
+  };
   const [categories, setCategories] = useState<string[]>([
     "Plumbing", "Electrical", "HVAC", "Maintenance", "Parts",
   ]);
   const [newCategory, setNewCategory] = useState("");
+  const addCategory = () => {
+    const v = newCategory.trim();
+    if (!v || categories.includes(v)) return;
+    setCategories([...categories, v]);
+    setNewCategory("");
+  };
   const [vendors, setVendors] = useState([
-    { id: "v1", name: "HVAC Supply Co.",   code: "HVS",  contact: "orders@hvac-supply.com" },
-    { id: "v2", name: "Equipment Depot",   code: "EQD",  contact: "sales@equipdepot.com"  },
-    { id: "v3", name: "Square D",          code: "SQD",  contact: "support@squared.com"   },
+    { id: "v1",  name: "HVAC Supply Co.",      code: "HVS", contact: "orders@hvac-supply.com" },
+    { id: "v2",  name: "Equipment Depot",      code: "EQD", contact: "sales@equipdepot.com" },
+    { id: "v3",  name: "Square D",             code: "SQD", contact: "support@squared.com" },
+    { id: "v4",  name: "Ferguson Enterprises", code: "FRG", contact: "orders@ferguson.com" },
+    { id: "v5",  name: "Johnstone Supply",     code: "JHS", contact: "sales@johnstone.com" },
+    { id: "v6",  name: "Grainger",             code: "GRA", contact: "service@grainger.com" },
+    { id: "v7",  name: "Carrier Direct",       code: "CAR", contact: "dealer@carrier.com" },
+    { id: "v8",  name: "Trane Supply",         code: "TRN", contact: "parts@trane.com" },
+    { id: "v9",  name: "Lennox Pro",           code: "LNX", contact: "pro@lennox.com" },
+    { id: "v10", name: "HD Supply",            code: "HDS", contact: "orders@hdsupply.com" },
+    { id: "v11", name: "Ecobee Direct",        code: "ECO", contact: "partners@ecobee.com" },
+    { id: "v12", name: "Rheem Parts",          code: "RHM", contact: "parts@rheem.com" },
   ]);
-  const [pricebookActive, setPricebookActive] = useState(true);
-  const [trackInventory, setTrackInventory] = useState(false);
-  const [lowStockAlerts, setLowStockAlerts] = useState(true);
+  const [vendorPage, setVendorPage] = useState(1);
+  const [vendorPerPage, setVendorPerPage] = useState(5);
+  const pagedVendors = vendors.slice((vendorPage - 1) * vendorPerPage, vendorPage * vendorPerPage);
+  // Add/Edit vendor modal (design has an "Add vendor" button; kebab rows edit).
+  const [vendorModal, setVendorModal] = useState<null | { id?: string; name: string; code: string; contact: string }>(null);
+  const saveVendor = () => {
+    if (!vendorModal || !vendorModal.name.trim()) return;
+    if (vendorModal.id) {
+      setVendors(vs => vs.map(v => v.id === vendorModal.id ? { ...v, name: vendorModal.name.trim(), code: vendorModal.code.trim(), contact: vendorModal.contact.trim() } : v));
+      toast.success("Vendor updated");
+    } else {
+      setVendors(vs => [...vs, { id: `v${Date.now()}`, name: vendorModal.name.trim(), code: vendorModal.code.trim(), contact: vendorModal.contact.trim() }]);
+      toast.success("Vendor added");
+    }
+    setVendorModal(null);
+  };
+  const [requireDeposit, setRequireDeposit] = useState(true);
+  const [trackInventory, setTrackInventory] = useState(true);
+  const [lowStockAlerts, setLowStockAlerts] = useState(false);
   const [defaultMarkup, setDefaultMarkup] = useState("20");
+
+  const subLabel = "text-[13px] text-[#6B7280]";
+  const rowBox = "flex items-center gap-3 rounded-lg border border-[#E5E7EB] px-3 py-2";
+  const trashBtn = "shrink-0 h-9 w-9 rounded-lg border border-[#E5E7EB] bg-white text-[#9CA3AF] hover:bg-[#FEF2F2] hover:border-[#FECACA] hover:text-[#DC2626] flex items-center justify-center";
 
   return (
     <>
-      {/* Item Types */}
-      <SectionCard title="Item Types" description="Categorize everything you sell. Five core types ship with MVP; add your own as needed.">
-        <div className="space-y-2">
-          {itemTypes.map(t => (
-            <div key={t.id} className="flex items-center gap-3">
-              <div className="shrink-0 h-9 w-9 rounded-lg flex items-center justify-center" style={{ backgroundColor: t.bg }}>
-                <span className="text-[12px]" style={{ color: t.color, fontWeight: 800 }}>{t.label[0]}</span>
-              </div>
-              <label className="flex flex-col rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5 flex-1 max-w-[320px]">
-                <span className="text-[11px] text-[#6B7280]">Item type</span>
+      {/* Item types (Figma 287:18401: Core types grid + Custom types add/list) */}
+      <SectionCard title="Item types" description="Categorize everything you sell. Five core types ship with MVP; add your own as needed.">
+        <div className="mt-3">
+          <div className={subLabel}>Core types</div>
+          <div className="mt-2 grid grid-cols-3 gap-3">
+            {itemTypes.filter(t => t.core).map(t => (
+              <div key={t.id} className={rowBox}>
+                <div className="shrink-0 h-8 w-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: t.bg }}>
+                  <span className="text-[12px]" style={{ color: t.color, fontWeight: 700 }}>{t.label[0]}</span>
+                </div>
                 <input
                   value={t.label}
                   onChange={e => setItemTypes(itemTypes.map(x => x.id === t.id ? { ...x, label: e.target.value } : x))}
-                  className="bg-transparent text-[13px] outline-none mt-0.5"
-                  style={{ color: t.color, fontWeight: 600 }}
+                  className="min-w-0 flex-1 rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5 text-[13px] text-[#1A2332] outline-none focus:border-[#4A6FA5]"
+                  style={{ fontWeight: 500 }}
                 />
-              </label>
-              {t.core ? (
-                <span className="text-[11px] text-[#9CA3AF] uppercase tracking-wide" style={{ fontWeight: 700 }}>Core</span>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setItemTypes(itemTypes.filter(x => x.id !== t.id))}
-                  className="shrink-0 h-9 w-9 rounded-lg border border-[#E5E7EB] bg-white text-[#9CA3AF] hover:bg-[#FEF2F2] hover:border-[#FECACA] hover:text-[#DC2626] flex items-center justify-center"
-                  title="Remove type"
-                >
-                  <span className="material-icons" style={{ fontSize: "18px" }}>delete_outline</span>
-                </button>
-              )}
-            </div>
-          ))}
+              </div>
+            ))}
+          </div>
         </div>
-        <div className="mt-4 flex gap-2">
-          <Input
-            value={newItemType}
-            onChange={e => setNewItemType(e.target.value)}
-            placeholder="Add item type (e.g. Bundle, Membership)"
-            className="h-9 max-w-[320px] border-[#D8DEE8] text-[13px]"
-            onKeyDown={e => {
-              if (e.key === "Enter") {
-                const v = newItemType.trim();
-                if (!v) return;
-                setItemTypes([...itemTypes, { id: `it${Date.now()}`, label: v, color: "#4A6FA5", bg: "#EBF0F8" }]);
-                setNewItemType("");
-              }
-            }}
-          />
-          <Button
-            className="h-9 bg-[#4A6FA5] px-4 text-[13px] hover:bg-[#3d5a85]"
-            onClick={() => {
-              const v = newItemType.trim();
-              if (!v) return;
-              setItemTypes([...itemTypes, { id: `it${Date.now()}`, label: v, color: "#4A6FA5", bg: "#EBF0F8" }]);
-              setNewItemType("");
-            }}
-          >+ Add type</Button>
+
+        <div className="mt-5">
+          <div className={subLabel}>Custom types</div>
+          <div className="mt-2 flex w-[422px] gap-3">
+            <Input
+              value={newItemType}
+              onChange={e => setNewItemType(e.target.value)}
+              placeholder="Add item type (e.g. Bundle, Membership)"
+              className="h-9 flex-1 border-[#E5E7EB] text-[13px] shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
+              onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addItemType(); } }}
+            />
+            <Button disabled={!newItemType.trim()} className="h-9 w-[59px] rounded-lg bg-[#4A6FA5] px-4 text-[13px] text-white hover:bg-[#3d5a85]" onClick={addItemType}>Add</Button>
+          </div>
+          {itemTypes.some(t => !t.core) && (
+            <div className="mt-2 grid grid-cols-3 gap-3">
+              {itemTypes.filter(t => !t.core).map(t => (
+                <div key={t.id} className={rowBox}>
+                  <div className="shrink-0 h-8 w-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: t.bg }}>
+                    <span className="material-icons" style={{ fontSize: "15px", color: t.color }}>edit</span>
+                  </div>
+                  <input
+                    value={t.label}
+                    onChange={e => setItemTypes(itemTypes.map(x => x.id === t.id ? { ...x, label: e.target.value } : x))}
+                    className="min-w-0 flex-1 rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5 text-[13px] text-[#1A2332] outline-none focus:border-[#4A6FA5]"
+                    style={{ fontWeight: 500 }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setItemTypes(itemTypes.filter(x => x.id !== t.id))}
+                    className={trashBtn}
+                    title="Remove type"
+                  >
+                    <span className="material-icons" style={{ fontSize: "18px" }}>delete_outline</span>
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </SectionCard>
 
-      {/* Categories */}
-      <SectionCard title="Categories" description="Free-form labels used to group items in the catalog (e.g. by trade, by storage location).">
-        <div className="flex flex-wrap gap-2">
-          {categories.map(c => (
-            <span key={c} className="flex items-center gap-1 rounded-full border border-[#E5E7EB] bg-[#F8FAFC] px-3 py-1.5 text-[13px] text-[#1A2332]">
-              {c}
-              <button onClick={() => setCategories(categories.filter(x => x !== c))} className="ml-1 text-[#9AA3AF] hover:text-[#DC2626]">×</button>
-            </span>
-          ))}
-          {categories.length === 0 && <span className="text-[13px] text-[#9CA3AF]">No categories yet.</span>}
-        </div>
-        <div className="mt-3 flex gap-2">
+      {/* Categories (Figma 287:18401: add row on top + editable grid with colored icons).
+          id anchors the "Manage categories in Settings > Items > Categories" links. */}
+      <SectionCard id="item-categories" title="Categories" description="Free-form labels used to group items in the catalog (e.g. by trade, by storage location).">
+        <div className="mt-3 flex w-[422px] gap-3">
           <Input
             value={newCategory}
             onChange={e => setNewCategory(e.target.value)}
             placeholder="Add category"
-            className="h-9 max-w-[320px] border-[#D8DEE8] text-[13px]"
-            onKeyDown={e => {
-              if (e.key === "Enter") {
-                const v = newCategory.trim();
-                if (!v || categories.includes(v)) return;
-                setCategories([...categories, v]); setNewCategory("");
-              }
-            }}
+            className="h-9 flex-1 border-[#E5E7EB] text-[13px] shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
+            onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addCategory(); } }}
           />
-          <Button
-            className="h-9 bg-[#4A6FA5] px-4 text-[13px] hover:bg-[#3d5a85]"
-            onClick={() => { const v = newCategory.trim(); if (!v || categories.includes(v)) return; setCategories([...categories, v]); setNewCategory(""); }}
-          >Add</Button>
+          <Button disabled={!newCategory.trim()} className="h-9 w-[59px] rounded-lg bg-[#4A6FA5] px-4 text-[13px] text-white hover:bg-[#3d5a85]" onClick={addCategory}>Add</Button>
         </div>
+        {categories.length === 0 ? (
+          <div className="mt-3 text-[13px] text-[#9CA3AF]">No categories yet.</div>
+        ) : (
+          <div className="mt-3 grid grid-cols-3 gap-3">
+            {categories.map((c, idx) => {
+              const clr = LABEL_COLORS[idx % LABEL_COLORS.length];
+              return (
+                <div key={c} className={rowBox}>
+                  <div className="shrink-0 h-8 w-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: clr.bg }}>
+                    <span className="material-icons" style={{ fontSize: "15px", color: clr.color }}>edit</span>
+                  </div>
+                  <input
+                    value={c}
+                    onChange={e => setCategories(categories.map(x => x === c ? e.target.value : x))}
+                    className="min-w-0 flex-1 rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5 text-[13px] text-[#1A2332] outline-none focus:border-[#4A6FA5]"
+                    style={{ fontWeight: 500 }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setCategories(categories.filter(x => x !== c))}
+                    className={trashBtn}
+                    title="Remove category"
+                  >
+                    <span className="material-icons" style={{ fontSize: "18px" }}>delete_outline</span>
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </SectionCard>
 
-      {/* Pricebook */}
+      {/* Pricebook (Figma 287:18401 — copy reproduced verbatim from the frame) */}
       <SectionCard title="Pricebook" description="Flat-rate items grouped into a service price guide for the field tech.">
-        <div className="space-y-3">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Use Pricebook for jobs and estimates</div>
-              <div className="text-[13px] text-[#546478]">When enabled, techs pick from pre-priced items instead of typing prices manually.</div>
-            </div>
-            <Switch checked={pricebookActive} onCheckedChange={setPricebookActive} />
+        <div className="mt-3 flex items-center justify-between gap-4 rounded-lg border border-[#E5E7EB] px-4 py-3">
+          <div>
+            <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Require deposit before scheduling</div>
+            <div className="mt-0.5 text-[12px] text-[#6B7280]">When enabled, techs pick from pre-priced items instead of typing prices manually.</div>
           </div>
-          <div className="pt-2 border-t border-[#E5E7EB] grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-[13px] text-[#1A2332] mb-1.5" style={{ fontWeight: 600 }}>Default markup on materials</label>
-              <div className="flex items-center gap-2">
-                <Input value={defaultMarkup} onChange={e => setDefaultMarkup(e.target.value.replace(/\D/g, "").slice(0, 3))} className="h-9 w-24 border-[#D8DEE8] text-[14px]" />
-                <span className="text-[14px] text-[#6B7280]">% over cost</span>
-              </div>
+          <Switch checked={requireDeposit} onCheckedChange={setRequireDeposit} />
+        </div>
+        <div className="mt-4 grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-[13px] text-[#1A2332] mb-1.5" style={{ fontWeight: 600 }}>Default markup on materials</label>
+            <div className="relative">
+              <Input value={defaultMarkup} onChange={e => setDefaultMarkup(e.target.value.replace(/\D/g, "").slice(0, 3))} className="h-9 border-[#E5E7EB] pr-24 text-[14px]" />
+              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[13px] text-[#6B7280]">% over cost</span>
             </div>
-            <div>
-              <label className="block text-[13px] text-[#1A2332] mb-1.5" style={{ fontWeight: 600 }}>Price display on customer-facing docs</label>
-              <select className="h-9 w-full rounded-lg border border-[#D8DEE8] bg-white px-3 text-[14px] text-[#1A2332]">
-                <option>Show line-item prices</option>
-                <option>Show total only</option>
-              </select>
-            </div>
+          </div>
+          <div>
+            <label className="block text-[13px] text-[#1A2332] mb-1.5" style={{ fontWeight: 600 }}>Price display on customer-facing docs</label>
+            <select className="h-9 w-full rounded-lg border border-[#E5E7EB] bg-white px-3 text-[14px] text-[#1A2332] shadow-[0_1px_2px_rgba(0,0,0,0.05)] outline-none focus:border-[#4A6FA5]">
+              <option>Show total only</option>
+              <option>Show line-item prices</option>
+            </select>
           </div>
         </div>
       </SectionCard>
 
       {/* Equipment Settings */}
       <SectionCard title="Equipment Settings" description="Inventory and equipment-specific behavior.">
-        <div className="space-y-3">
-          <div className="flex items-center justify-between gap-4">
+        <div className="mt-3 space-y-3">
+          <div className="flex items-center justify-between gap-4 rounded-lg border border-[#E5E7EB] px-4 py-3">
             <div>
-              <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Track inventory quantities</div>
-              <div className="text-[13px] text-[#546478]">Decrement quantity-on-hand each time an item is added to a job or invoice.</div>
+              <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Track inventory quantities</div>
+              <div className="mt-0.5 text-[12px] text-[#6B7280]">Decrement quantity-on-hand each time an item is added to a job or invoice.</div>
             </div>
             <Switch checked={trackInventory} onCheckedChange={setTrackInventory} />
           </div>
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center justify-between gap-4 rounded-lg border border-[#E5E7EB] px-4 py-3">
             <div>
-              <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Low-stock alerts</div>
-              <div className="text-[13px] text-[#546478]">Notify Admin when a tracked item drops below its reorder threshold.</div>
+              <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Low-stock alerts</div>
+              <div className="mt-0.5 text-[12px] text-[#6B7280]">Notify Owner / Admin when a tracked item drops below its reorder threshold.</div>
             </div>
             <Switch checked={lowStockAlerts} onCheckedChange={setLowStockAlerts} />
           </div>
         </div>
       </SectionCard>
 
-      {/* Vendors */}
-      <SectionCard title="Vendors" description="Suppliers attached to items for cost tracking and reorder.">
-        <div className="overflow-hidden rounded-xl border border-[#E5E7EB]">
+      {/* Vendors (Figma 287:18401: Add vendor button + table + pagination) */}
+      <SectionCard
+        title="Vendors"
+        description="Suppliers attached to items for cost tracking and reorder."
+        headerAction={
+          <CreateActionButton onClick={() => setVendorModal({ name: "", code: "", contact: "" })}>
+            Add vendor
+          </CreateActionButton>
+        }
+      >
+        <div className="mt-3 overflow-hidden rounded-xl border border-[#E5E7EB]">
           <table className="w-full text-[13px]">
-            <thead className="bg-[#F5F7FA] text-[11px] uppercase tracking-wide text-[#546478]">
+            <thead className="bg-[#F5F7FA]">
               <tr>
-                <th className="px-3 py-2 text-left" style={{ fontWeight: 800 }}>Vendor</th>
-                <th className="px-3 py-2 text-left w-[100px]" style={{ fontWeight: 800 }}>Code</th>
-                <th className="px-3 py-2 text-left" style={{ fontWeight: 800 }}>Contact</th>
-                <th className="px-3 py-2 w-10" />
+                <th className="px-3 py-2.5 text-left text-[13px] text-[#546478]" style={{ fontWeight: 500 }}>Vendor</th>
+                <th className="px-3 py-2.5 text-left text-[13px] text-[#546478] w-[140px]" style={{ fontWeight: 500 }}>Code</th>
+                <th className="px-3 py-2.5 text-left text-[13px] text-[#546478]" style={{ fontWeight: 500 }}>Contact</th>
+                <th className="px-3 py-2.5 w-12" />
               </tr>
             </thead>
             <tbody>
-              {vendors.map(v => (
+              {pagedVendors.map(v => (
                 <tr key={v.id} className="border-t border-[#E5E7EB]">
-                  <td className="px-3 py-2 text-[#1A2332]" style={{ fontWeight: 600 }}>{v.name}</td>
-                  <td className="px-3 py-2 text-[#546478]">{v.code}</td>
-                  <td className="px-3 py-2 text-[#546478]">{v.contact}</td>
-                  <td className="px-3 py-2 text-right">
-                    <button onClick={() => setVendors(vendors.filter(x => x.id !== v.id))} className="text-[#9CA3AF] hover:text-[#DC2626]" title="Remove">
-                      <span className="material-icons" style={{ fontSize: "18px" }}>delete_outline</span>
-                    </button>
+                  <td className="px-3 py-2.5 text-[#1A2332]" style={{ fontWeight: 500 }}>{v.name}</td>
+                  <td className="px-3 py-2.5 text-[#546478]">{v.code}</td>
+                  <td className="px-3 py-2.5 text-[#546478]">{v.contact}</td>
+                  <td className="px-3 py-1.5 text-right">
+                    <KebabMenu>
+                      <KebabItem icon="edit" onClick={() => setVendorModal({ id: v.id, name: v.name, code: v.code, contact: v.contact })}>Edit vendor</KebabItem>
+                      <KebabItem icon="delete_outline" destructive onClick={() => { setVendors(vs => vs.filter(x => x.id !== v.id)); toast.info(`Removed "${v.name}"`); }}>Remove vendor</KebabItem>
+                    </KebabMenu>
                   </td>
                 </tr>
               ))}
+              {pagedVendors.length === 0 && (
+                <tr className="border-t border-[#E5E7EB]">
+                  <td colSpan={4} className="px-3 py-8 text-center text-[13px] text-[#9CA3AF]">No vendors yet.</td>
+                </tr>
+              )}
             </tbody>
           </table>
-        </div>
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <Button
-            variant="outline"
-            className="h-9 border-[#C8D5E8] text-[#4A6FA5] hover:bg-[#EBF0F8]"
-            onClick={() => setVendors([...vendors, { id: `v${Date.now()}`, name: "New vendor", code: "", contact: "" }])}
-          >+ Add vendor</Button>
-
-          {/* CSV upload — accepts: name, code, contact (header row optional). */}
-          <input
-            id="vendor-csv-input"
-            type="file"
-            accept=".csv,text/csv"
-            className="hidden"
-            onChange={async (e) => {
-              const file = e.target.files?.[0];
-              if (!file) return;
-              const text = await file.text();
-              // Lightweight CSV parser: split lines, skip blanks, support optional header row,
-              // tolerate quoted fields (basic). Columns: name, code, contact.
-              const rows = text.split(/\r?\n/).map(r => r.trim()).filter(Boolean);
-              if (rows.length === 0) { toast.error("CSV is empty"); return; }
-              const splitCsv = (line: string) => {
-                const out: string[] = [];
-                let cur = ""; let inQuote = false;
-                for (let i = 0; i < line.length; i++) {
-                  const c = line[i];
-                  if (c === '"' && line[i + 1] === '"') { cur += '"'; i++; continue; }
-                  if (c === '"') { inQuote = !inQuote; continue; }
-                  if (c === "," && !inQuote) { out.push(cur); cur = ""; continue; }
-                  cur += c;
-                }
-                out.push(cur);
-                return out.map(s => s.trim());
-              };
-              const first = splitCsv(rows[0]).map(s => s.toLowerCase());
-              const hasHeader = first.some(s => ["name", "vendor", "vendor name", "code", "contact"].includes(s));
-              const dataRows = hasHeader ? rows.slice(1) : rows;
-              const idx = hasHeader
-                ? {
-                    name: first.findIndex(s => s === "vendor" || s === "name" || s === "vendor name"),
-                    code: first.findIndex(s => s === "code"),
-                    contact: first.findIndex(s => s === "contact" || s === "email"),
-                  }
-                : { name: 0, code: 1, contact: 2 };
-              const added = dataRows.map((line, i) => {
-                const cells = splitCsv(line);
-                return {
-                  id: `v${Date.now()}-${i}`,
-                  name: (cells[idx.name] || "").trim() || "Unnamed vendor",
-                  code: (cells[idx.code] || "").trim(),
-                  contact: (cells[idx.contact] || "").trim(),
-                };
-              }).filter(v => v.name && v.name !== "Unnamed vendor");
-              if (added.length === 0) { toast.error("No valid vendor rows found"); }
-              else {
-                setVendors([...vendors, ...added]);
-                toast.success(`Imported ${added.length} vendor${added.length === 1 ? "" : "s"}`);
-              }
-              // reset so the same file can be re-uploaded
-              e.target.value = "";
-            }}
+          <PaginationFooter
+            page={vendorPage}
+            perPage={vendorPerPage}
+            total={vendors.length}
+            onPageChange={setVendorPage}
+            onPerPageChange={setVendorPerPage}
+            perPageOptions={[5, 10, 25]}
           />
-          <Button
-            variant="outline"
-            className="h-9 border-[#C8D5E8] text-[#4A6FA5] hover:bg-[#EBF0F8] inline-flex items-center gap-1.5"
-            onClick={() => document.getElementById("vendor-csv-input")?.click()}
-            title="Upload a CSV with columns: vendor name, code, contact"
-          >
-            <span className="material-icons" style={{ fontSize: "16px" }}>upload_file</span>
-            Upload CSV
-          </Button>
-          <span className="text-[12px] text-[#9CA3AF]">CSV columns: vendor name, code, contact</span>
-        </div>
-
-        {/* Footer — Save / Cancel attached */}
-        <div className="mt-5 -mx-5 -mb-5 px-5 py-4 border-t border-[#E1E6EF] flex items-center justify-end gap-3 bg-white rounded-b-xl">
-          <Button type="button" variant="outline" onClick={() => toast.info("Changes discarded")} className="border-[#E5E7EB] text-[#546478] hover:bg-[#EDF0F5] h-10 px-6">Cancel</Button>
-          <Button type="button" onClick={() => toast.success("Item preferences saved")} className="bg-[#4A6FA5] hover:bg-[#3d5a85] text-white h-10 px-6" style={{ fontWeight: 600 }}>Save changes</Button>
         </div>
       </SectionCard>
+
+      {/* Save changes (page bottom, right-aligned per design) */}
+      <div className="flex justify-end pt-1">
+        <Button
+          type="button"
+          onClick={() => toast.success("Item preferences saved")}
+          className="h-9 bg-[#4A6FA5] hover:bg-[#3d5a85] text-white px-4"
+          style={{ fontWeight: 600 }}
+        >
+          Save changes
+        </Button>
+      </div>
+
+      {/* Add / Edit vendor modal */}
+      {vendorModal && (
+        <div className="fixed inset-0 z-[3000] flex items-center justify-center bg-black/30 p-4" onClick={() => setVendorModal(null)}>
+          <div className="w-full max-w-[440px] rounded-xl bg-white p-5 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-[16px] text-[#1A2332]" style={{ fontWeight: 700 }}>{vendorModal.id ? "Edit vendor" : "Add vendor"}</h3>
+              <button onClick={() => setVendorModal(null)} aria-label="Close" className="flex h-7 w-7 items-center justify-center rounded text-[#6B7280] hover:bg-[#F3F4F6]">
+                <span className="material-icons" style={{ fontSize: "18px" }}>close</span>
+              </button>
+            </div>
+            <div className="space-y-3.5">
+              <div>
+                <label className="mb-1.5 block text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>Vendor name *</label>
+                <Input value={vendorModal.name} onChange={e => setVendorModal({ ...vendorModal, name: e.target.value })} placeholder="e.g. HVAC Supply Co." className="h-9 border-[#E5E7EB]" />
+              </div>
+              <div className="grid grid-cols-[120px_1fr] gap-3.5">
+                <div>
+                  <label className="mb-1.5 block text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>Code</label>
+                  <Input value={vendorModal.code} onChange={e => setVendorModal({ ...vendorModal, code: e.target.value.toUpperCase().slice(0, 6) })} placeholder="HVS" className="h-9 border-[#E5E7EB]" />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>Contact</label>
+                  <Input value={vendorModal.contact} onChange={e => setVendorModal({ ...vendorModal, contact: e.target.value })} placeholder="orders@vendor.com" className="h-9 border-[#E5E7EB]" />
+                </div>
+              </div>
+            </div>
+            <div className="mt-5 flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setVendorModal(null)} className="h-9 border-[#E5E7EB] text-[#546478] hover:bg-[#EDF0F5]">Cancel</Button>
+              <Button disabled={!vendorModal.name.trim()} onClick={saveVendor} className="h-9 bg-[#4A6FA5] px-4 text-white hover:bg-[#3d5a85]" style={{ fontWeight: 600 }}>
+                {vendorModal.id ? "Save" : "Add vendor"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
@@ -1726,8 +1789,14 @@ function InvoicesPreferences({ templateCards }: { templateCards: { title: string
 }
 
 // Finance Center — Marek's spec
+type StripeStatus = "disconnected" | "pending" | "connected";
+
 function FinanceCenterSection() {
-  const [stripeConnected, setStripeConnected] = useState(true);
+  const [stripeStatus, setStripeStatus] = useState<StripeStatus>("connected");
+  const [stripeEmail, setStripeEmail] = useState("billing@vision360.com");
+  const [stripeAcctId, setStripeAcctId] = useState("acct_1RkP2mB7xQ9wL3Ce");
+  const [stripeOnboardOpen, setStripeOnboardOpen] = useState(false);
+  const [stripeDisconnectOpen, setStripeDisconnectOpen] = useState(false);
   const [methods, setMethods] = useState({
     creditCard: true,
     ach: false,
@@ -1738,35 +1807,115 @@ function FinanceCenterSection() {
   const [bankName, setBankName] = useState("Bank of America");
   const [bankAcct, setBankAcct] = useState("8821");
   const [routing, setRouting] = useState("026009593");
-  const [routingVisible, setRoutingVisible] = useState(false);
-  const maskedRouting = routing.length > 4
-    ? `${"•".repeat(Math.max(0, routing.length - 4))}${routing.slice(-4)}`
-    : routing;
+
+  // Simulated Stripe verification — a submitted account clears review after a
+  // short delay (as in Stripe test mode); "Refresh status" completes it early.
+  useEffect(() => {
+    if (stripeStatus !== "pending") return;
+    const t = setTimeout(() => {
+      setStripeStatus("connected");
+      toast.success("Stripe verification complete — you can now accept online payments");
+    }, 9000);
+    return () => clearTimeout(t);
+  }, [stripeStatus]);
+
+  const handleOnboardComplete = (email: string) => {
+    setStripeOnboardOpen(false);
+    setStripeEmail(email);
+    setStripeAcctId("acct_1" + Math.random().toString(36).slice(2, 12).toUpperCase());
+    setStripeStatus("pending");
+    toast.success("Details submitted — Stripe is verifying your account");
+  };
+
+  const completeVerification = () => {
+    setStripeStatus("connected");
+    toast.success("Stripe verification complete — you can now accept online payments");
+  };
+
+  const confirmDisconnect = () => {
+    setStripeDisconnectOpen(false);
+    setStripeStatus("disconnected");
+    setMethods(m => ({ ...m, creditCard: false, ach: false }));
+    toast.info("Stripe disconnected — online card and ACH payments are off");
+  };
 
   return (
     <>
-      <SectionHeader title="Finance Center" description="Payment gateways, payout bank, customer payment methods, and expense tracking." />
+      <SectionHeader
+        title="Payments"
+        action={
+          <Button
+            type="button"
+            onClick={() => toast.success("Finance settings saved")}
+            className="h-9 bg-[#4A6FA5] hover:bg-[#3d5a85] text-white px-4"
+            style={{ fontWeight: 600 }}
+          >
+            Save changes
+          </Button>
+        }
+      />
 
       <div className="space-y-4">
         {/* Payments / Gateways */}
         <SectionCard title="Payments" description="Connect a payment processor so customers can pay invoices online.">
           <div>
             {/* Stripe */}
-            <div className="flex items-center justify-between rounded-xl border border-[#E5E7EB] p-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-[#635BFF] text-white" style={{ fontWeight: 800 }}>S</div>
-                <div>
-                  <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 700 }}>Stripe</div>
-                  <div className="text-[12px] text-[#6B7280]">Cards · ACH · Apple Pay · Google Pay</div>
+            <div className="rounded-xl border border-[#E5E7EB]">
+              <div className="flex items-center justify-between p-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-[#635BFF] text-white" style={{ fontWeight: 800 }}>S</div>
+                  <div>
+                    <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 700 }}>Stripe</div>
+                    <div className="text-[12px] text-[#6B7280]">Cards · ACH · Apple Pay · Google Pay</div>
+                  </div>
                 </div>
+                {stripeStatus === "connected" && (
+                  <Button variant="outline" className="h-8 border-[#E5E7EB] text-[#1A2332] hover:bg-[#EDF0F5]" onClick={() => setStripeDisconnectOpen(true)}>Disconnect</Button>
+                )}
+                {stripeStatus === "pending" && (
+                  <Button variant="outline" className="h-8 border-[#E5E7EB] text-[#546478] hover:bg-[#EDF0F5]" onClick={completeVerification}>Refresh status</Button>
+                )}
+                {stripeStatus === "disconnected" && (
+                  <Button className="h-8 bg-[#635BFF] hover:bg-[#5048d8] text-white" onClick={() => setStripeOnboardOpen(true)}>Connect Stripe</Button>
+                )}
               </div>
-              {stripeConnected ? (
-                <div className="flex items-center gap-2">
-                  <span className="rounded-full bg-[#DCFCE7] px-2 py-0.5 text-[11px] text-[#15803D]" style={{ fontWeight: 700 }}>Connected</span>
-                  <Button variant="outline" className="h-9 border-[#E5E7EB] text-[#546478] hover:bg-[#EDF0F5]" onClick={() => { setStripeConnected(false); toast.info("Stripe disconnected"); }}>Disconnect</Button>
+
+              {stripeStatus === "connected" && (
+                <div className="flex items-center justify-between gap-4 border-t border-[#F3F4F6] px-4 py-2.5">
+                  <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[12px] text-[#6B7280]">
+                    <span className="flex items-center gap-1.5">
+                      <span className="h-1.5 w-1.5 rounded-full bg-[#16A34A]" />
+                      Charges &amp; payouts enabled
+                    </span>
+                    <span className="text-[#D1D5DB]">·</span>
+                    <span>{stripeEmail}</span>
+                    <span className="text-[#D1D5DB]">·</span>
+                    <span className="font-mono text-[11px]">{stripeAcctId}</span>
+                    <span className="text-[#D1D5DB]">·</span>
+                    <span>Daily payouts</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => toast.info("Opens dashboard.stripe.com in production")}
+                    className="shrink-0 text-[12px] text-[#4A6FA5] hover:underline"
+                    style={{ fontWeight: 500 }}
+                  >
+                    Open Stripe dashboard
+                  </button>
                 </div>
-              ) : (
-                <Button className="h-9 bg-[#635BFF] hover:bg-[#5048d8] text-white" onClick={() => { setStripeConnected(true); toast.success("Stripe connected"); }}>Connect Stripe</Button>
+              )}
+
+              {stripeStatus === "pending" && (
+                <div className="flex items-center gap-2.5 rounded-b-xl border-t border-[#F3F4F6] bg-[#FFF8EB] px-4 py-2.5 text-[12px] text-[#8A6D3B]">
+                  <span className="material-icons animate-spin text-[#D97706]" style={{ fontSize: 14 }}>autorenew</span>
+                  Stripe is verifying your business details — card and ACH payments stay off until verification completes (usually under a minute in test mode).
+                </div>
+              )}
+
+              {stripeStatus === "disconnected" && (
+                <div className="rounded-b-xl border-t border-[#F3F4F6] px-4 py-2.5 text-[12px] text-[#6B7280]">
+                  No processor connected — customers can't pay invoices online until Stripe onboarding is complete.
+                </div>
               )}
             </div>
           </div>
@@ -1785,22 +1934,7 @@ function FinanceCenterSection() {
             </div>
             <div>
               <label className="block text-[13px] text-[#1A2332] mb-1.5" style={{ fontWeight: 600 }}>Routing</label>
-              <div className="relative">
-                <Input
-                  value={routingVisible ? routing : maskedRouting}
-                  onChange={e => setRouting(e.target.value.replace(/\D/g, "").slice(0, 9))}
-                  readOnly={!routingVisible}
-                  className="h-9 border-[#D8DEE8] pr-9"
-                />
-                <button
-                  type="button"
-                  onClick={() => setRoutingVisible(v => !v)}
-                  aria-label={routingVisible ? "Hide routing number" : "Show routing number"}
-                  className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 flex items-center justify-center rounded text-[#546478] hover:bg-[#F5F7FA]"
-                >
-                  <span className="material-icons" style={{ fontSize: 16 }}>{routingVisible ? "visibility_off" : "visibility"}</span>
-                </button>
-              </div>
+              <Input value={routing} onChange={e => setRouting(e.target.value.replace(/\D/g, "").slice(0, 9))} className="h-9 border-[#D8DEE8]" />
             </div>
           </div>
           <p className="mt-3 text-[12px] text-[#6B7280]">
@@ -1812,20 +1946,30 @@ function FinanceCenterSection() {
         <SectionCard title="Payment Methods" description="Which methods appear when an invoice is sent to a customer.">
           <div className="grid grid-cols-2 gap-2 mt-2">
             {[
-              { id: "creditCard", label: "Credit / Debit cards", desc: "Stripe required."                },
-              { id: "ach",        label: "ACH bank transfer",    desc: "Lower fees, slower clearing."   },
+              { id: "creditCard", label: "Credit / Debit cards", desc: "Stripe required.",              requiresStripe: true },
+              { id: "ach",        label: "ACH bank transfer",    desc: "Lower fees, slower clearing.",  requiresStripe: true },
               { id: "cash",       label: "Cash",                 desc: "Mark paid manually in the app." },
               { id: "check",      label: "Check",                desc: "Track check number on payment." },
               { id: "financing",  label: "Financing",            desc: "Send customer to a lender plan (coming soon)." },
-            ].map(m => (
-              <div key={m.id} className="flex items-center justify-between gap-4 rounded-lg border border-[#E5E7EB] px-4 py-4">
-                <div className="flex-1">
-                  <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>{m.label}</div>
-                  <div className="text-[12px] text-[#6B7280] mt-0.5">{m.desc}</div>
+            ].map(m => {
+              const locked = !!(m as any).requiresStripe && stripeStatus !== "connected";
+              return (
+                <div key={m.id} className={`flex items-center justify-between gap-4 rounded-lg border border-[#E5E7EB] px-4 py-4 ${locked ? "opacity-60" : ""}`}>
+                  <div className="flex-1">
+                    <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>{m.label}</div>
+                    <div className="text-[12px] text-[#6B7280] mt-0.5">{locked ? "Connect Stripe to enable this method." : m.desc}</div>
+                  </div>
+                  <Switch
+                    checked={(methods as any)[m.id]}
+                    disabled={locked}
+                    onCheckedChange={v => {
+                      if (locked) { toast.error("Connect Stripe to enable this method"); return; }
+                      setMethods({ ...methods, [m.id]: v });
+                    }}
+                  />
                 </div>
-                <Switch checked={(methods as any)[m.id]} onCheckedChange={v => setMethods({ ...methods, [m.id]: v })} />
-              </div>
-            ))}
+              );
+            })}
           </div>
         </SectionCard>
 
@@ -1851,19 +1995,286 @@ function FinanceCenterSection() {
               </div>
               <Switch defaultChecked />
             </div>
-            <div className="rounded-lg border border-dashed border-[#D8E3F4] bg-[#F8FBFF] px-4 py-3 text-[13px] text-[#546478]">
-              QuickBooks export of expenses opens up once the QuickBooks integration is enabled in Integrations.
+          </div>
+          <p className="mt-3 text-[12px] text-[#6B7280]">
+            QuickBooks export of expenses opens up once the QuickBooks integration is enabled in Integrations.
+          </p>
+        </SectionCard>
+
+        {/* Save changes */}
+        <div className="flex justify-end pt-1">
+          <Button
+            type="button"
+            onClick={() => toast.success("Finance settings saved")}
+            className="h-9 bg-[#4A6FA5] hover:bg-[#3d5a85] text-white px-4"
+            style={{ fontWeight: 600 }}
+          >
+            Save changes
+          </Button>
+        </div>
+      </div>
+
+      <StripeOnboardingModal
+        open={stripeOnboardOpen}
+        onClose={() => setStripeOnboardOpen(false)}
+        onComplete={handleOnboardComplete}
+        defaultEmail={stripeEmail}
+        defaultRouting={routing}
+      />
+      <StripeDisconnectModal
+        open={stripeDisconnectOpen}
+        onClose={() => setStripeDisconnectOpen(false)}
+        onConfirm={confirmDisconnect}
+      />
+    </>
+  );
+}
+
+/* Simulated Stripe hosted onboarding (connect.stripe.com). Backend is out of
+   scope for the MVP prototype, so the redirect is rendered as an in-app modal
+   with the same three steps Stripe walks a new connected account through. */
+const STRIPE_STEPS = ["Business details", "Payout bank", "Review & submit"];
+
+function StripeOnboardingModal({ open, onClose, onComplete, defaultEmail, defaultRouting }: {
+  open: boolean;
+  onClose: () => void;
+  onComplete: (email: string) => void;
+  defaultEmail: string;
+  defaultRouting: string;
+}) {
+  const [step, setStep] = useState(0);
+  const [email, setEmail] = useState(defaultEmail);
+  const [bizName, setBizName] = useState("Vision360 Field Services LLC");
+  const [bizType, setBizType] = useState("company");
+  const [routingNum, setRoutingNum] = useState(defaultRouting);
+  const [acctNum, setAcctNum] = useState("");
+  const [acctNum2, setAcctNum2] = useState("");
+  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  // Fresh form every time the flow is opened.
+  useEffect(() => {
+    if (open) {
+      setStep(0); setError(""); setSubmitting(false);
+      setEmail(defaultEmail); setRoutingNum(defaultRouting);
+      setAcctNum(""); setAcctNum2("");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  if (!open) return null;
+
+  const inputCls = "h-9 border-[#D8DEE8]";
+  const labelCls = "block text-[13px] text-[#1A2332] mb-1.5";
+
+  const next = () => {
+    setError("");
+    if (step === 0) {
+      if (!email.includes("@")) { setError("Enter a valid business email."); return; }
+      if (!bizName.trim()) { setError("Legal business name is required."); return; }
+      setStep(1);
+    } else if (step === 1) {
+      if (routingNum.replace(/\D/g, "").length !== 9) { setError("Routing number must be 9 digits."); return; }
+      if (acctNum.replace(/\D/g, "").length < 6) { setError("Enter a valid account number."); return; }
+      if (acctNum !== acctNum2) { setError("Account numbers don't match."); return; }
+      setStep(2);
+    } else {
+      setSubmitting(true);
+      setTimeout(() => onComplete(email), 1400);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[3000] flex items-center justify-center bg-black/40 p-4" onClick={submitting ? undefined : onClose}>
+      <div className="w-full max-w-[520px] overflow-hidden rounded-2xl bg-white shadow-2xl" onClick={e => e.stopPropagation()}>
+        {/* Faux hosted-page chrome */}
+        <div className="flex items-center justify-between border-b border-[#E5E7EB] bg-[#F5F7FA] px-4 py-2.5">
+          <div className="flex items-center gap-1.5 text-[12px] text-[#6B7280]">
+            <span className="material-icons" style={{ fontSize: 13 }}>lock</span>
+            connect.stripe.com
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="rounded bg-[#FEF3C7] px-1.5 py-0.5 text-[10px] text-[#B45309]" style={{ fontWeight: 700 }}>TEST MODE</span>
+            <button
+              type="button"
+              aria-label="Close"
+              onClick={submitting ? undefined : onClose}
+              className="flex h-6 w-6 items-center justify-center rounded text-[#6B7280] hover:bg-[#E5E7EB]"
+            >
+              <span className="material-icons" style={{ fontSize: 16 }}>close</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Header */}
+        <div className="px-6 pt-5">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#635BFF] text-white" style={{ fontWeight: 800 }}>S</div>
+            <div>
+              <div className="text-[15px] text-[#1A2332]" style={{ fontWeight: 700 }}>Set up payments with Stripe</div>
+              <div className="text-[12px] text-[#6B7280]">Vision360 partners with Stripe for secure payments and payouts.</div>
             </div>
           </div>
 
-          {/* Footer — Save / Cancel attached */}
-          <div className="mt-5 -mx-5 -mb-5 px-5 py-4 border-t border-[#E1E6EF] flex items-center justify-end gap-3 bg-white rounded-b-xl">
-            <Button type="button" variant="outline" onClick={() => toast.info("Changes discarded")} className="border-[#E5E7EB] text-[#546478] hover:bg-[#EDF0F5] h-10 px-6">Cancel</Button>
-            <Button type="button" onClick={() => toast.success("Finance settings saved")} className="bg-[#4A6FA5] hover:bg-[#3d5a85] text-white h-10 px-6" style={{ fontWeight: 600 }}>Save changes</Button>
+          {/* Step indicator */}
+          <div className="mt-4 flex items-center gap-2">
+            {STRIPE_STEPS.map((s, i) => (
+              <div key={s} className="flex items-center gap-2">
+                <div
+                  className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] ${
+                    i === step ? "bg-[#635BFF] text-white" : i < step ? "bg-[#EEF2FF] text-[#635BFF]" : "bg-[#F3F4F6] text-[#9CA3AF]"
+                  }`}
+                  style={{ fontWeight: 600 }}
+                >
+                  {i < step && <span className="material-icons" style={{ fontSize: 12 }}>check</span>}
+                  {s}
+                </div>
+                {i < STRIPE_STEPS.length - 1 && <div className="h-px w-4 bg-[#E5E7EB]" />}
+              </div>
+            ))}
           </div>
-        </SectionCard>
+        </div>
+
+        {/* Body */}
+        <div className="px-6 py-5">
+          {step === 0 && (
+            <div className="space-y-3.5">
+              <div>
+                <label className={labelCls} style={{ fontWeight: 600 }}>Business email</label>
+                <Input value={email} onChange={e => setEmail(e.target.value)} className={inputCls} placeholder="you@company.com" />
+              </div>
+              <div>
+                <label className={labelCls} style={{ fontWeight: 600 }}>Legal business name</label>
+                <Input value={bizName} onChange={e => setBizName(e.target.value)} className={inputCls} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className={labelCls} style={{ fontWeight: 600 }}>Country</label>
+                  <Input value="United States" readOnly className={`${inputCls} bg-[#F9FAFB] text-[#6B7280]`} />
+                </div>
+                <div>
+                  <label className={labelCls} style={{ fontWeight: 600 }}>Business type</label>
+                  <div className="relative">
+                    <select
+                      value={bizType}
+                      onChange={e => setBizType(e.target.value)}
+                      className="h-9 w-full appearance-none rounded-md border border-[#D8DEE8] bg-white px-3 pr-8 text-[14px] text-[#1A2332] outline-none focus:border-[#635BFF]"
+                    >
+                      <option value="company">Company (LLC)</option>
+                      <option value="sole_prop">Sole proprietor</option>
+                      <option value="nonprofit">Nonprofit</option>
+                    </select>
+                    <span className="material-icons pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[#6B7280]" style={{ fontSize: 18 }}>expand_more</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {step === 1 && (
+            <div className="space-y-3.5">
+              <p className="text-[12px] text-[#6B7280]">Payouts from Stripe will be deposited to this bank account.</p>
+              <div>
+                <label className={labelCls} style={{ fontWeight: 600 }}>Routing number</label>
+                <Input value={routingNum} onChange={e => setRoutingNum(e.target.value.replace(/\D/g, "").slice(0, 9))} className={inputCls} placeholder="9 digits" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className={labelCls} style={{ fontWeight: 600 }}>Account number</label>
+                  <Input value={acctNum} onChange={e => setAcctNum(e.target.value.replace(/\D/g, "").slice(0, 17))} className={inputCls} />
+                </div>
+                <div>
+                  <label className={labelCls} style={{ fontWeight: 600 }}>Confirm account number</label>
+                  <Input value={acctNum2} onChange={e => setAcctNum2(e.target.value.replace(/\D/g, "").slice(0, 17))} className={inputCls} />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {step === 2 && (
+            <div className="space-y-3">
+              {[
+                { k: "Business", v: `${bizName} · ${bizType === "company" ? "Company (LLC)" : bizType === "sole_prop" ? "Sole proprietor" : "Nonprofit"}` },
+                { k: "Email", v: email },
+                { k: "Payout bank", v: `Routing •••••${routingNum.slice(-4)} · Account ending ${acctNum.slice(-4)}` },
+              ].map(row => (
+                <div key={row.k} className="flex items-start justify-between gap-4 rounded-lg border border-[#E5E7EB] px-3.5 py-2.5">
+                  <span className="text-[12px] text-[#6B7280]" style={{ fontWeight: 600 }}>{row.k}</span>
+                  <span className="text-right text-[13px] text-[#1A2332]">{row.v}</span>
+                </div>
+              ))}
+              <p className="pt-1 text-[11px] leading-4 text-[#9CA3AF]">
+                By submitting, you agree to the Stripe Connected Account Agreement and confirm the information above is accurate.
+              </p>
+            </div>
+          )}
+
+          {error && (
+            <p className="mt-3 flex items-center gap-1.5 text-[12px] text-[#DC2626]">
+              <span className="material-icons" style={{ fontSize: 14 }}>error_outline</span>
+              {error}
+            </p>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-between border-t border-[#E5E7EB] px-6 py-4">
+          <div className="text-[11px] text-[#9CA3AF]">
+            Powered by <span style={{ fontWeight: 700 }}>Stripe</span>
+          </div>
+          <div className="flex items-center gap-2">
+            {step > 0 && (
+              <Button variant="outline" disabled={submitting} onClick={() => { setError(""); setStep(step - 1); }} className="h-9 border-[#E5E7EB] text-[#546478] hover:bg-[#EDF0F5]">
+                Back
+              </Button>
+            )}
+            <Button onClick={next} disabled={submitting} className="h-9 bg-[#635BFF] px-4 text-white hover:bg-[#5048d8]" style={{ fontWeight: 600 }}>
+              {submitting ? (
+                <span className="flex items-center gap-2">
+                  <span className="material-icons animate-spin" style={{ fontSize: 14 }}>autorenew</span>
+                  Submitting…
+                </span>
+              ) : step < 2 ? "Continue" : "Agree & submit"}
+            </Button>
+          </div>
+        </div>
       </div>
-    </>
+    </div>
+  );
+}
+
+function StripeDisconnectModal({ open, onClose, onConfirm }: { open: boolean; onClose: () => void; onConfirm: () => void }) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-[3000] flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div className="w-full max-w-[440px] rounded-2xl bg-white p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+        <div className="flex items-start gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#FEE2E2]">
+            <span className="material-icons text-[#DC2626]" style={{ fontSize: 20 }}>warning_amber</span>
+          </div>
+          <div>
+            <div className="text-[16px] text-[#1A2332]" style={{ fontWeight: 700 }}>Disconnect Stripe?</div>
+            <p className="mt-1 text-[13px] leading-5 text-[#6B7280]">Customers will no longer be able to pay invoices online.</p>
+          </div>
+        </div>
+        <ul className="mt-4 space-y-2">
+          {[
+            "Credit / Debit card and ACH payments turn off for new invoices.",
+            "Payouts already on the way still reach your bank account.",
+            "Your Stripe account isn't deleted — you can reconnect anytime.",
+          ].map(line => (
+            <li key={line} className="flex items-start gap-2 text-[13px] leading-5 text-[#374151]">
+              <span className="material-icons mt-0.5 text-[#9CA3AF]" style={{ fontSize: 15 }}>chevron_right</span>
+              {line}
+            </li>
+          ))}
+        </ul>
+        <div className="mt-5 flex justify-end gap-2">
+          <Button variant="outline" onClick={onClose} className="h-9 border-[#E5E7EB] text-[#546478] hover:bg-[#EDF0F5]">Cancel</Button>
+          <Button onClick={onConfirm} className="h-9 bg-[#DC2626] px-4 text-white hover:bg-[#B91C1C]" style={{ fontWeight: 600 }}>Disconnect</Button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -2309,10 +2720,25 @@ export function Settings() {
 
   useEffect(() => {
     if (!location.hash) return;
-
-    window.requestAnimationFrame(() => {
-      document.getElementById(location.hash.slice(1))?.scrollIntoView({ block: "start", behavior: "smooth" });
-    });
+    // setTimeout (not rAF — rAF never fires in throttled/background tabs) and
+    // retry briefly: on cross-page navigation the target card renders a tick
+    // after the section switches.
+    const id = location.hash.slice(1);
+    let attempts = 0;
+    let timer: ReturnType<typeof setTimeout>;
+    const tryScroll = () => {
+      const el = document.getElementById(id);
+      if (el) {
+        // "auto" (instant), not "smooth" — smooth scrolling is rAF-driven and
+        // stalls in throttled/background tabs; for a cross-page deep link the
+        // instant jump is also the expected UX.
+        el.scrollIntoView({ block: "start" });
+      } else if (++attempts < 10) {
+        timer = setTimeout(tryScroll, 50);
+      }
+    };
+    timer = setTimeout(tryScroll, 50);
+    return () => clearTimeout(timer);
   }, [activeSection, location.hash]);
 
   const filteredNavGroups = navGroups.map(group => ({
@@ -3569,9 +3995,9 @@ export function Settings() {
 
           {(activeSection === "jobs" || activeSection === "estimates" || activeSection === "invoices" || activeSection === "items") && (
             <>
-              {activeSection === "jobs" ? (
+              {activeSection === "jobs" || activeSection === "items" ? (
                 <div className="mb-4 flex h-[52px] items-center justify-between">
-                  <h1 className="text-[24px] leading-8 text-[#1A2332]" style={{ fontWeight: 600 }}>Jobs</h1>
+                  <h1 className="text-[24px] leading-8 text-[#1A2332]" style={{ fontWeight: 600 }}>{activeSection === "jobs" ? "Jobs" : "Items"}</h1>
                   <Button type="button" disabled className="h-9 rounded-lg bg-[#4A6FA5] px-4 text-[14px] text-white opacity-50" style={{ fontWeight: 500 }}>
                     Save changes
                   </Button>
@@ -3581,8 +4007,7 @@ export function Settings() {
                   title={{
                     estimates: "Estimate Preferences",
                     invoices: "Invoice Preferences",
-                    items: "Item Preferences",
-                  }[activeSection as "estimates" | "invoices" | "items"]}
+                  }[activeSection as "estimates" | "invoices"]}
                   description="System preference areas are intentionally simple and module-specific. Clients do not get a separate settings area in MVP."
                 />
               )}
