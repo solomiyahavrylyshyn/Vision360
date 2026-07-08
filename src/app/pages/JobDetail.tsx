@@ -202,7 +202,7 @@ const priorityColors: Record<string, { bg: string; text: string }> = {
   High: { bg: "#FEF2F2", text: "#DC2626" },
 };
 
-type TabKey = "details" | "estimates" | "invoices" | "appointments" | "checklist" | "documents" | "items" | "labor" | "expense" | "finance";
+type TabKey = "details" | "estimates" | "invoices" | "appointments" | "checklist" | "documents" | "items" | "labor" | "expense" | "activity" | "finance";
 
 const BASE_TABS: { key: TabKey; label: string }[] = [
   { key: "details",       label: "Details" },
@@ -210,6 +210,7 @@ const BASE_TABS: { key: TabKey; label: string }[] = [
   { key: "invoices",      label: "Invoices" },
   { key: "items",         label: "Items" },
   { key: "expense",       label: "Expenses" },
+  { key: "activity",      label: "Activity" },
 ];
 
 /* 11 placeholder photos for the Attachments panel */
@@ -1330,6 +1331,172 @@ export function JobDetail() {
     </>
   );
 
+  const money = (n: number) => `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const TabEmpty = ({ icon, title, subtitle }: { icon: string; title: string; subtitle: string }) => (
+    <div className="flex min-h-[240px] flex-col items-center justify-center text-center">
+      <span className="material-icons mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[#F5F7FA] text-[#9CA3AF]" style={{ fontSize: "24px" }}>{icon}</span>
+      <div className="text-[16px] text-[#1A2332]" style={{ fontWeight: 600 }}>{title}</div>
+      <div className="mt-1 text-[14px] text-[#6B7280]">{subtitle}</div>
+    </div>
+  );
+
+  const renderFigmaEstimatesTab = () => (
+    <div className="overflow-hidden rounded-xl border border-[#E5E7EB] bg-white">
+      <div className="flex items-center gap-2 border-b border-[#E5E7EB] px-4 py-3">
+        <div className="relative w-[260px]"><span className="material-icons absolute left-2.5 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: "16px" }}>search</span><input placeholder="Search estimates..." className="h-9 w-full rounded-lg border border-[#E5E7EB] pl-8 pr-3 text-[13px] outline-none focus:border-[#4A6FA5]" /></div>
+        <select className="h-9 rounded-lg border border-[#E5E7EB] bg-white px-3 text-[13px]"><option>Status: All</option></select>
+        <select className="h-9 rounded-lg border border-[#E5E7EB] bg-white px-3 text-[13px]"><option>Date: All time</option></select>
+        <button className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[#E5E7EB] px-3 text-[13px] hover:bg-[#F9FAFB]"><span className="material-icons" style={{ fontSize: "16px" }}>filter_alt</span>Filter</button>
+        <button onClick={() => navigate(`/estimates/new?client=${encodeURIComponent(job.client)}&job=${encodeURIComponent(job.jobNumber)}&returnTo=${encodeURIComponent(jobReturnUrl("estimates"))}`)} className="ml-auto inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#4A6FA5] px-3 text-[13px] text-white hover:bg-[#3d5a85]" style={{ fontWeight: 600 }}>Add estimate<span className="material-icons" style={{ fontSize: "15px" }}>keyboard_arrow_down</span></button>
+      </div>
+      {jobEstimates.length === 0 ? <TabEmpty icon="request_quote" title="No estimates yet" subtitle="Add an estimate to outline the scope and cost of this job" /> : (
+        <>
+          <table className="w-full text-[14px]">
+            <thead className="bg-[#F5F7FA]"><tr className="border-b border-[#E5E7EB] text-left text-[#1A2332]"><th className="w-10 px-4 py-3"><input type="checkbox" className="h-4 w-4 accent-[#4A6FA5]" /></th><th className="px-4 py-3">Estimate</th><th className="px-4 py-3">Created by</th><th className="px-4 py-3">Status</th><th className="px-4 py-3 text-right">Amount</th><th className="w-10 px-4 py-3" /></tr></thead>
+            <tbody>{jobEstimates.map((e) => <tr key={e.id} className="border-b border-[#E5E7EB] last:border-0 hover:bg-[#F9FAFB]"><td className="px-4 py-4"><input type="checkbox" className="h-4 w-4 accent-[#4A6FA5]" /></td><td className="px-4 py-4"><button onClick={() => navigate(`/estimates/${e.id}?returnTo=${encodeURIComponent(jobReturnUrl("estimates"))}`)} className="text-left"><div className="text-[#4A6FA5]" style={{ fontWeight: 500 }}>{e.estimateNumber}</div><div className="text-[13px] text-[#6B7280]">{e.estimateName || e.clientName}</div></button></td><td className="px-4 py-4 text-[#6B7280]">{(e as { createdBy?: string }).createdBy || "You"}</td><td className="px-4 py-4"><span className="rounded-lg bg-[#DCFCE7] px-2 py-0.5 text-[12px] text-[#16A34A]" style={{ fontWeight: 500 }}>{e.status}</span></td><td className="px-4 py-4 text-right">{money(e.amount)}</td><td className="px-4 py-4"><KebabMenu><KebabItem icon="visibility">Preview estimate</KebabItem><KebabItem icon="send">Send to client</KebabItem><KebabItem icon="receipt">Make invoice</KebabItem><KebabSeparator /><KebabItem icon="content_copy">Duplicate</KebabItem><KebabItem icon="open_in_new">Open in new tab</KebabItem></KebabMenu></td></tr>)}</tbody>
+          </table>
+          <div className="border-t border-[#E5E7EB] px-4 py-3 text-right text-[13px] text-[#6B7280]">Rows per page: 10 · 1-{jobEstimates.length} of {jobEstimates.length}</div>
+        </>
+      )}
+    </div>
+  );
+
+  const renderFigmaInvoicesTab = () => (
+    <div className="overflow-hidden rounded-xl border border-[#E5E7EB] bg-white">
+      <div className="flex items-center gap-2 border-b border-[#E5E7EB] px-4 py-3">
+        <div className="relative w-[260px]"><span className="material-icons absolute left-2.5 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: "16px" }}>search</span><input placeholder="Search invoices..." className="h-9 w-full rounded-lg border border-[#E5E7EB] pl-8 pr-3 text-[13px] outline-none focus:border-[#4A6FA5]" /></div>
+        <select className="h-9 rounded-lg border border-[#E5E7EB] bg-white px-3 text-[13px]"><option>Status: All</option></select><select className="h-9 rounded-lg border border-[#E5E7EB] bg-white px-3 text-[13px]"><option>Date: All time</option></select><select className="h-9 rounded-lg border border-[#E5E7EB] bg-white px-3 text-[13px]"><option>Invoices: All</option></select>
+        <button className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[#E5E7EB] px-3 text-[13px] hover:bg-[#F9FAFB]"><span className="material-icons" style={{ fontSize: "16px" }}>filter_alt</span>Filter</button>
+        <button onClick={() => navigate(`/invoices/new?fromJob=${storeJob?.id ?? ''}&client=${encodeURIComponent(job.client)}&returnTo=${encodeURIComponent(jobReturnUrl('invoices'))}`)} className="ml-auto h-9 rounded-lg bg-[#4A6FA5] px-3 text-[13px] text-white hover:bg-[#3d5a85]" style={{ fontWeight: 600 }}>Create invoice</button>
+      </div>
+      {jobInvoices.length === 0 ? <TabEmpty icon="receipt_long" title="No invoices yet" subtitle="Create an invoice to bill for this job" /> : (
+        <>
+          <table className="w-full text-[14px]"><thead className="bg-[#F5F7FA]"><tr className="border-b border-[#E5E7EB] text-left text-[#1A2332]"><th className="px-4 py-3">Number</th><th className="px-4 py-3">Status</th><th className="px-4 py-3">Date</th><th className="px-4 py-3">Due date</th><th className="px-4 py-3 text-right">Total</th><th className="px-4 py-3 text-right">Balance</th><th className="px-4 py-3">Note</th><th className="w-10 px-4 py-3" /></tr></thead><tbody>{jobInvoices.map((inv) => <tr key={inv.id} className="border-b border-[#E5E7EB] last:border-0 hover:bg-[#F9FAFB]"><td className="px-4 py-4"><button onClick={() => navigate(`/invoices/${inv.id}`)} className="text-[#4A6FA5]" style={{ fontWeight: 500 }}>{inv.number}</button></td><td className="px-4 py-4"><span className="rounded-lg bg-[#DCFCE7] px-2 py-0.5 text-[12px] text-[#16A34A]" style={{ fontWeight: 500 }}>{inv.status}</span></td><td className="px-4 py-4 text-[#6B7280]">{inv.date}</td><td className="px-4 py-4 text-[#6B7280]">{inv.dueDate}</td><td className="px-4 py-4 text-right">{money(inv.total)}</td><td className={`px-4 py-4 text-right ${inv.balance === 0 ? "text-[#16A34A]" : "text-[#DC2626]"}`}>{money(inv.balance)}</td><td className="px-4 py-4 text-[#6B7280]">{inv.memo || inv.noteToCustomer || "-"}</td><td className="px-4 py-4"><KebabMenu><KebabItem icon="send">Send to client</KebabItem><KebabItem icon="swap_horiz">Change status</KebabItem><KebabSeparator /><KebabItem icon="content_copy">Duplicate</KebabItem><KebabSeparator /><KebabItem icon="block">Void</KebabItem><KebabItem icon="archive">Archive</KebabItem></KebabMenu></td></tr>)}</tbody></table>
+          <div className="border-t border-[#E5E7EB] px-4 py-3 text-right text-[13px] text-[#6B7280]">Rows per page: 10 · 1-{jobInvoices.length} of {jobInvoices.length}</div>
+        </>
+      )}
+    </div>
+  );
+
+  const renderFigmaItemsTab = () => {
+    const subtotal = job.lineItems.reduce((sum: number, li: any) => sum + li.total, 0);
+    const taxableAmount = subtotal;
+    const tax = taxableAmount * 0.075;
+    return (
+      <div className="overflow-hidden rounded-xl border border-[#E5E7EB] bg-white">
+        <div className="flex items-center justify-between border-b border-[#E5E7EB] px-4 py-3">
+          <h3 className="text-[16px] text-[#1A2332]" style={{ fontWeight: 600 }}>Products & Services</h3>
+          <button className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#4A6FA5] px-3 text-[13px] text-white hover:bg-[#3d5a85]" style={{ fontWeight: 600 }}><PlusIcon className="h-4 w-4" />Add Item</button>
+        </div>
+        {job.lineItems.length === 0 ? <TabEmpty icon="inventory_2" title="No items yet" subtitle="Add items to track products and services for this job" /> : (
+          <>
+            <table className="w-full text-[14px]">
+              <thead className="bg-[#F5F7FA]"><tr className="border-b border-[#E5E7EB] text-left text-[#1A2332]"><th className="px-4 py-3">Item</th><th className="px-4 py-3">Quantity</th><th className="px-4 py-3 text-right">Unit price</th><th className="px-4 py-3 text-right">Unit cost</th><th className="px-4 py-3 text-right">Total</th><th className="w-10 px-4 py-3" /></tr></thead>
+              <tbody>{job.lineItems.map((li: any, idx: number) => <tr key={idx} className="border-b border-[#E5E7EB] last:border-0"><td className="px-4 py-4"><div className="text-[#1A2332]" style={{ fontWeight: 500 }}>{li.name}</div><div className="text-[13px] text-[#6B7280]">{li.description}</div></td><td className="px-4 py-4"><input readOnly value={li.quantity} className="h-8 w-[72px] rounded-lg border border-[#E5E7EB] px-2 text-[13px]" /></td><td className="px-4 py-4 text-right">{money(li.unitPrice)}</td><td className="px-4 py-4 text-right text-[#6B7280]">{money(li.unitCost)}</td><td className="px-4 py-4 text-right">{money(li.total)}</td><td className="px-4 py-4 text-right"><button className="h-8 w-8 rounded-lg text-[#9CA3AF] hover:bg-[#FEE2E2] hover:text-[#DC2626]"><span className="material-icons" style={{ fontSize: "16px" }}>delete</span></button></td></tr>)}</tbody>
+            </table>
+            <div className="border-t border-[#E5E7EB] bg-[#F5F7FA] px-4 py-4">
+              <div className="ml-auto w-[280px] space-y-2 text-[13px]">
+                <div className="flex justify-between text-[#6B7280]"><span>Subtotal</span><span className="text-[#1A2332]">{money(subtotal)}</span></div>
+                <div className="flex justify-between text-[#6B7280]"><span>Taxable amount</span><span className="text-[#1A2332]">{money(taxableAmount)}</span></div>
+                <div className="flex justify-between text-[#6B7280]"><span>Tax (7.5%)</span><span className="text-[#1A2332]">{money(tax)}</span></div>
+                <div className="flex justify-between border-t border-[#E5E7EB] pt-2 text-[#1A2332]" style={{ fontWeight: 600 }}><span>Total</span><span>{money(subtotal + tax)}</span></div>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    );
+  };
+
+  const renderFigmaExpenseTab = () => (
+    <div className="overflow-hidden rounded-xl border border-[#E5E7EB] bg-white">
+      <div className="flex items-center justify-between border-b border-[#E5E7EB] px-4 py-3">
+        <h3 className="text-[16px] text-[#1A2332]" style={{ fontWeight: 600 }}>Expenses</h3>
+        <button onClick={() => navigate(`/expenses/new?fromJob=${encodeURIComponent(job.jobNumber)}${job.linkedInvoice ? `&fromInvoice=${encodeURIComponent(job.linkedInvoice.id)}` : ""}&returnTo=${encodeURIComponent(jobReturnUrl("expense"))}`)} className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#4A6FA5] px-3 text-[13px] text-white hover:bg-[#3d5a85]" style={{ fontWeight: 600 }}><PlusIcon className="h-4 w-4" />Create expense</button>
+      </div>
+      {job.expenses.length === 0 ? <TabEmpty icon="receipt_long" title="No expenses yet" subtitle="Create an expense to track job costs" /> : (
+        <table className="w-full text-[14px]">
+          <thead className="bg-[#F5F7FA]"><tr className="border-b border-[#E5E7EB] text-left text-[#1A2332]"><th className="px-4 py-3">Item</th><th className="px-4 py-3">Description</th><th className="px-4 py-3">Date</th><th className="px-4 py-3 text-right">Total</th><th className="w-10 px-4 py-3" /></tr></thead>
+          <tbody>{job.expenses.map((exp: Expense) => <tr key={exp.id} className="border-b border-[#E5E7EB]"><td className="px-4 py-4 text-[#1A2332]" style={{ fontWeight: 500 }}>{exp.item}</td><td className="px-4 py-4 text-[#6B7280]">{exp.description}</td><td className="px-4 py-4 text-[#6B7280]">{exp.date}</td><td className="px-4 py-4 text-right">{money(exp.amount)}</td><td className="px-4 py-4 text-right"><button className="h-8 w-8 rounded-lg text-[#9CA3AF] hover:bg-[#FEE2E2] hover:text-[#DC2626]"><span className="material-icons" style={{ fontSize: "16px" }}>delete</span></button></td></tr>)}<tr className="bg-[#F5F7FA]"><td colSpan={3} className="px-4 py-3 text-right text-[#1A2332]" style={{ fontWeight: 600 }}>Total:</td><td className="px-4 py-3 text-right text-[#1A2332]" style={{ fontWeight: 600 }}>{money(job.expenseTotal)}</td><td /></tr></tbody>
+        </table>
+      )}
+    </div>
+  );
+
+  const renderFigmaActivityTab = () => {
+    const activity = [
+      {
+        id: 1,
+        icon: "edit_note",
+        title: "Job details updated",
+        description: `${job.title} was updated by Peter Novak`,
+        actor: "Peter Novak",
+        date: job.startedOn || "Mar 30, 2026",
+        time: "10:24 AM",
+        tone: "#4A6FA5",
+      },
+      ...(job.linkedEstimate ? [{
+        id: 2,
+        icon: "request_quote",
+        title: "Estimate linked",
+        description: `${job.linkedEstimate.title} was linked to this job`,
+        actor: "Office Admin",
+        date: "Mar 30, 2026",
+        time: "9:42 AM",
+        tone: "#16A34A",
+      }] : []),
+      ...(job.expenses.length ? [{
+        id: 3,
+        icon: "receipt_long",
+        title: "Expense added",
+        description: `${job.expenses[0].item} expense was added`,
+        actor: "Peter Novak",
+        date: job.expenses[0].date,
+        time: "9:18 AM",
+        tone: "#F59E0B",
+      }] : []),
+    ];
+
+    return (
+      <div className="overflow-hidden rounded-xl border border-[#E5E7EB] bg-white">
+        <div className="flex items-center gap-2 border-b border-[#E5E7EB] px-4 py-3">
+          <div className="relative w-[280px]">
+            <span className="material-icons absolute left-2.5 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: "16px" }}>search</span>
+            <input placeholder="Search activity" className="h-9 w-full rounded-lg border border-[#E5E7EB] pl-8 pr-3 text-[13px] outline-none focus:border-[#4A6FA5]" />
+          </div>
+          <select className="h-9 rounded-lg border border-[#E5E7EB] bg-white px-3 text-[13px] text-[#1A2332]"><option>Date: All time</option></select>
+          <select className="h-9 rounded-lg border border-[#E5E7EB] bg-white px-3 text-[13px] text-[#1A2332]"><option>Type: All</option></select>
+          <button className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[#E5E7EB] px-3 text-[13px] text-[#1A2332] hover:bg-[#F9FAFB]">
+            <span className="material-icons" style={{ fontSize: "16px" }}>filter_alt</span>
+            Filter
+          </button>
+        </div>
+        {activity.length === 0 ? (
+          <TabEmpty icon="history" title="No activity yet" subtitle="Activity for this job will appear here" />
+        ) : (
+          <div className="divide-y divide-[#E5E7EB]">
+            {activity.map((item) => (
+              <div key={item.id} className="grid grid-cols-[1fr_160px_120px] items-center gap-4 px-4 py-4 hover:bg-[#F9FAFB]">
+                <div className="flex min-w-0 items-start gap-3">
+                  <span className="material-icons mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full" style={{ fontSize: "18px", color: item.tone, backgroundColor: `${item.tone}1F` }}>{item.icon}</span>
+                  <div className="min-w-0">
+                    <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>{item.title}</div>
+                    <div className="mt-0.5 truncate text-[13px] text-[#6B7280]">{item.description}</div>
+                  </div>
+                </div>
+                <div className="text-[13px] text-[#6B7280]">{item.actor}</div>
+                <div className="text-right text-[13px] text-[#6B7280]">
+                  <div>{item.date}</div>
+                  <div className="text-[#9CA3AF]">{item.time}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const renderLaborTab = () => (
     <div className="text-center py-12">
       <span className="material-icons text-[#D1D5DB] mb-2 block" style={{ fontSize: "40px" }}>engineering</span>
@@ -1605,12 +1772,13 @@ export function JobDetail() {
   const renderContent = () => {
     switch (activeTab) {
       case "details":       return renderDetailsTab();
-      case "estimates":     return renderEstimatesTab();
-      case "invoices":      return renderInvoicesTab();
+      case "estimates":     return renderFigmaEstimatesTab();
+      case "invoices":      return renderFigmaInvoicesTab();
       case "documents":     return renderDocumentsTab();
-      case "items":         return renderItemsTab();
+      case "items":         return renderFigmaItemsTab();
       case "labor":         return renderLaborTab();
-      case "expense":       return renderExpenseTab();
+      case "expense":       return renderFigmaExpenseTab();
+      case "activity":      return renderFigmaActivityTab();
       case "finance":       return renderFinanceTab();
       default: return null;
     }
@@ -1795,7 +1963,22 @@ export function JobDetail() {
               </DropdownMenuContent>
             </DropdownMenu>
             <KebabMenu triggerClassName="h-9 w-9 border border-[#E5E7EB] rounded-lg hover:bg-[#EDF0F5] flex items-center justify-center bg-white">
-              <KebabItem icon="content_copy">Duplicate Job</KebabItem>
+              <KebabItem icon="content_copy" onSelect={() => {
+                const params = new URLSearchParams({
+                  duplicateFrom: String(job.id),
+                  title: job.title || "",
+                  client: job.client || "",
+                  address: [job.address, job.city, job.state, job.zip].filter(Boolean).join(", "),
+                  jobCategory: job.jobType || "",
+                  assignedTo: job.assignedTo || "",
+                  frequency: job.jobFrequency === "Recurring" ? "recurring" : "one-off",
+                  startDate: job.startedOn || "",
+                  endDate: job.endsOn || "",
+                  startTime: job.startTime || "",
+                  endTime: job.endTime || "",
+                });
+                navigate(`/jobs/new?${params.toString()}`);
+              }}>Duplicate Job</KebabItem>
               <KebabSeparator />
               <KebabItem icon="cancel" destructive>Cancel Job</KebabItem>
             </KebabMenu>

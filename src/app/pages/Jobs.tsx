@@ -10,6 +10,7 @@ import { useDraggableColumns, DraggableTh } from "../components/ui/draggable-col
 import { CreateActionButton } from "../components/ui/create-action-button";
 import { StatCard } from "../components/ui/stat-card";
 import { PaginationFooter } from "../components/ui/pagination-footer";
+import { MultiSelect } from "../components/ui/multi-select";
 import { formatRegionalDate, regionalSettingsStore } from "../stores/regionalSettingsStore";
 import { jobsStore } from "../stores/jobsStore";
 import { type JobStatus, JOB_STATUSES, JOB_STATUS_COLOR as statusColors, JOB_STATUS_BG as statusBg } from "../constants/jobStatuses";
@@ -25,22 +26,27 @@ interface Job {
   scheduleDateSort: string;
   status: JobStatus;
   jobType: "One-off" | "Recurring";
+  jobCategory?: string;
+  assignedTo?: string;
+  country?: string;
+  state?: string;
+  city?: string;
   total: number;
 }
 
 const mockJobs: Job[] = [
-  { id: 1,  jobNumber: "10234-J01", title: "AC Estimate",        client: "Travis Jones",   clientId: "10234", address: "854 Maple St, Fort Worth, TX 76107",        schedule: "March 30, 2026", scheduleDateSort: "2026-03-30", status: "Scheduled",  jobType: "One-off",   total: 375.01 },
-  { id: 2,  jobNumber: "10234-J02", title: "AC Estimate",        client: "Travis Jones",   clientId: "10234", address: "854 Maple St, Fort Worth, TX 76107",        schedule: "March 30, 2026", scheduleDateSort: "2026-03-30", status: "Scheduled",  jobType: "One-off",   total: 375.01 },
-  { id: 3,  jobNumber: "10234-J03", title: "AC Estimate",        client: "Travis Jones",   clientId: "10234", address: "854 Maple St, Fort Worth, TX 76107",        schedule: "March 30, 2026", scheduleDateSort: "2026-03-30", status: "In Progress", jobType: "One-off",   total: 375.01 },
-  { id: 4,  jobNumber: "10234-J04", title: "AC Estimate",        client: "Travis Jones",   clientId: "10234", address: "854 Maple St, Fort Worth, TX 76107",        schedule: "March 30, 2026", scheduleDateSort: "2026-03-30", status: "Scheduled",  jobType: "One-off",   total: 375.01 },
-  { id: 5,  jobNumber: "10234-J05", title: "AC Estimate",        client: "Travis Jones",   clientId: "10234", address: "854 Maple St, Fort Worth, TX 76107",        schedule: "March 30, 2026", scheduleDateSort: "2026-03-30", status: "Completed",  jobType: "One-off",   total: 375.01 },
-  { id: 6,  jobNumber: "10234-J06", title: "AC Estimate",        client: "Travis Jones",   clientId: "10234", address: "854 Maple St, Fort Worth, TX 76107",        schedule: "March 30, 2026", scheduleDateSort: "2026-03-30", status: "Scheduled",  jobType: "One-off",   total: 375.01 },
-  { id: 7,  jobNumber: "10234-J07", title: "AC Estimate",        client: "Travis Jones",   clientId: "10234", address: "854 Maple St, Fort Worth, TX 76107",        schedule: "March 30, 2026", scheduleDateSort: "2026-03-30", status: "In Progress", jobType: "Recurring", total: 375.01 },
-  { id: 8,  jobNumber: "10234-J08", title: "AC Estimate",        client: "Travis Jones",   clientId: "10234", address: "854 Maple St, Fort Worth, TX 76107",        schedule: "March 30, 2026", scheduleDateSort: "2026-03-30", status: "Scheduled",  jobType: "One-off",   total: 375.01 },
-  { id: 9,  jobNumber: "10234-J09", title: "AC Estimate",        client: "Travis Jones",   clientId: "10234", address: "854 Maple St, Fort Worth, TX 76107",        schedule: "March 30, 2026", scheduleDateSort: "2026-03-30", status: "Completed",  jobType: "One-off",   total: 375.01 },
-  { id: 10, jobNumber: "10255-J01", title: "Plumbing Repair",    client: "Lisa Brown",     clientId: "10255", address: "567 Pine Road, Jacksonville, FL 32099",     schedule: "April 6, 2026",  scheduleDateSort: "2026-04-06", status: "Completed",  jobType: "One-off",   total: 275.00 },
-  { id: 11, jobNumber: "10246-J01", title: "Tree Removal",       client: "Sarah Johnson",  clientId: "10246", address: "1220 Elm Street, Orlando, FL 32801",        schedule: "April 10, 2026", scheduleDateSort: "2026-04-10", status: "In Progress", jobType: "One-off",   total: 450.00 },
-  { id: 12, jobNumber: "10247-J03", title: "Monthly Lawn Care",  client: "Mike Davis",     clientId: "10247", address: "890 Oak Drive, Miami, FL 33101",            schedule: "April 15, 2026", scheduleDateSort: "2026-04-15", status: "Scheduled",  jobType: "Recurring", total: 120.00 },
+  { id: 1,  jobNumber: "10234-J01", title: "AC Estimate",        client: "Travis Jones",   clientId: "10234", address: "854 Maple St, Fort Worth, TX 76107",        schedule: "March 30, 2026", scheduleDateSort: "2026-03-30", status: "Scheduled",  jobType: "One-off",   jobCategory: "Estimate", assignedTo: "Peter Novak", country: "United States", state: "TX", city: "Fort Worth", total: 375.01 },
+  { id: 2,  jobNumber: "10234-J02", title: "AC Estimate",        client: "Travis Jones",   clientId: "10234", address: "854 Maple St, Fort Worth, TX 76107",        schedule: "March 30, 2026", scheduleDateSort: "2026-03-30", status: "Scheduled",  jobType: "One-off",   jobCategory: "Estimate", assignedTo: "Peter Novak", country: "United States", state: "TX", city: "Fort Worth", total: 375.01 },
+  { id: 3,  jobNumber: "10234-J03", title: "AC Estimate",        client: "Travis Jones",   clientId: "10234", address: "854 Maple St, Fort Worth, TX 76107",        schedule: "March 30, 2026", scheduleDateSort: "2026-03-30", status: "In Progress", jobType: "One-off",   jobCategory: "Estimate", assignedTo: "Maria Garcia", country: "United States", state: "TX", city: "Fort Worth", total: 375.01 },
+  { id: 4,  jobNumber: "10234-J04", title: "AC Estimate",        client: "Travis Jones",   clientId: "10234", address: "854 Maple St, Fort Worth, TX 76107",        schedule: "March 30, 2026", scheduleDateSort: "2026-03-30", status: "Scheduled",  jobType: "One-off",   jobCategory: "Estimate", assignedTo: "Emily Parker", country: "United States", state: "TX", city: "Fort Worth", total: 375.01 },
+  { id: 5,  jobNumber: "10234-J05", title: "AC Estimate",        client: "Travis Jones",   clientId: "10234", address: "854 Maple St, Fort Worth, TX 76107",        schedule: "March 30, 2026", scheduleDateSort: "2026-03-30", status: "Completed",  jobType: "One-off",   jobCategory: "Estimate", assignedTo: "Peter Novak", country: "United States", state: "TX", city: "Fort Worth", total: 375.01 },
+  { id: 6,  jobNumber: "10234-J06", title: "AC Estimate",        client: "Travis Jones",   clientId: "10234", address: "854 Maple St, Fort Worth, TX 76107",        schedule: "March 30, 2026", scheduleDateSort: "2026-03-30", status: "Scheduled",  jobType: "One-off",   jobCategory: "Estimate", assignedTo: "Travis Brown", country: "United States", state: "TX", city: "Fort Worth", total: 375.01 },
+  { id: 7,  jobNumber: "10234-J07", title: "AC Estimate",        client: "Travis Jones",   clientId: "10234", address: "854 Maple St, Fort Worth, TX 76107",        schedule: "March 30, 2026", scheduleDateSort: "2026-03-30", status: "In Progress", jobType: "Recurring", jobCategory: "Maintenance", assignedTo: "Peter Novak", country: "United States", state: "TX", city: "Fort Worth", total: 375.01 },
+  { id: 8,  jobNumber: "10234-J08", title: "AC Estimate",        client: "Travis Jones",   clientId: "10234", address: "854 Maple St, Fort Worth, TX 76107",        schedule: "March 30, 2026", scheduleDateSort: "2026-03-30", status: "Scheduled",  jobType: "One-off",   jobCategory: "Estimate", assignedTo: "Maria Garcia", country: "United States", state: "TX", city: "Fort Worth", total: 375.01 },
+  { id: 9,  jobNumber: "10234-J09", title: "AC Estimate",        client: "Travis Jones",   clientId: "10234", address: "854 Maple St, Fort Worth, TX 76107",        schedule: "March 30, 2026", scheduleDateSort: "2026-03-30", status: "Completed",  jobType: "One-off",   jobCategory: "Estimate", assignedTo: "Emily Parker", country: "United States", state: "TX", city: "Fort Worth", total: 375.01 },
+  { id: 10, jobNumber: "10255-J01", title: "Plumbing Repair",    client: "Lisa Brown",     clientId: "10255", address: "567 Pine Road, Jacksonville, FL 32099",     schedule: "April 6, 2026",  scheduleDateSort: "2026-04-06", status: "Completed",  jobType: "One-off",   jobCategory: "Service", assignedTo: "Travis Brown", country: "United States", state: "FL", city: "Jacksonville", total: 275.00 },
+  { id: 11, jobNumber: "10246-J01", title: "Tree Removal",       client: "Sarah Johnson",  clientId: "10246", address: "1220 Elm Street, Orlando, FL 32801",        schedule: "April 10, 2026", scheduleDateSort: "2026-04-10", status: "In Progress", jobType: "One-off",   jobCategory: "Install", assignedTo: "Maria Garcia", country: "United States", state: "FL", city: "Orlando", total: 450.00 },
+  { id: 12, jobNumber: "10247-J03", title: "Monthly Lawn Care",  client: "Mike Davis",     clientId: "10247", address: "890 Oak Drive, Miami, FL 33101",            schedule: "April 15, 2026", scheduleDateSort: "2026-04-15", status: "Scheduled",  jobType: "Recurring", jobCategory: "Maintenance", assignedTo: "Emily Parker", country: "United States", state: "FL", city: "Miami", total: 120.00 },
 ];
 
 
@@ -122,7 +128,12 @@ const JOBS_COLS = [
   { key: "schedule", label: "Scheduled", sortable: true  },
   { key: "status",   label: "Status",    sortable: true  },
   { key: "total",    label: "Total",     sortable: true  },
+  { key: "jobCategory", label: "Job type", sortable: false },
+  { key: "jobType", label: "Job frequency", sortable: false },
+  { key: "assignedTo", label: "Assigned to", sortable: false },
 ];
+
+const DEFAULT_JOB_COLS = ["id", "client", "address", "schedule", "status", "total"];
 
 export function Jobs() {
   const navigate = useNavigate();
@@ -152,7 +163,12 @@ export function Jobs() {
         schedule: r.startDate,
         scheduleDateSort: r.startDate,
         status: r.status as Job["status"],
-        jobType: r.jobType || "One-off",
+        jobType: (r.frequency || r.jobType || "One-off") as Job["jobType"],
+        jobCategory: r.jobCategory || r.jobType || "Service",
+        assignedTo: r.assignedTo,
+        country: "United States",
+        state: r.state,
+        city: r.city,
         total: r.totalPrice,
       }));
     // Seed rows whose ID or jobNumber collides with a store row are dropped.
@@ -175,9 +191,9 @@ export function Jobs() {
   const [jobCols, moveJobCol] = useDraggableColumns(JOBS_COLS);
 
   // Column visibility (Edit columns modal) — every column on by default.
-  const [visibleCols, setVisibleCols] = useState<Set<string>>(new Set(JOBS_COLS.map(c => c.key)));
+  const [visibleCols, setVisibleCols] = useState<Set<string>>(new Set(DEFAULT_JOB_COLS));
   const [editColsOpen, setEditColsOpen] = useState(false);
-  const [pendingCols, setPendingCols] = useState<Set<string>>(new Set(JOBS_COLS.map(c => c.key)));
+  const [pendingCols, setPendingCols] = useState<Set<string>>(new Set(DEFAULT_JOB_COLS));
   // Change-status modal — holds the ids being updated (null = closed).
   const [statusModalIds, setStatusModalIds] = useState<number[] | null>(null);
   const [statusChoice, setStatusChoice] = useState<Job["status"]>("Scheduled");
@@ -196,10 +212,17 @@ export function Jobs() {
     setSelectedJobs(new Set());
   };
   const duplicateJob = (job: Job) => {
-    const nextId = Math.max(0, ...allJobs.map(j => j.id)) + 1;
-    setJobs(prev => [{ ...job, id: nextId, jobNumber: `${job.jobNumber}-COPY` }, ...prev]);
-    setCurrentPage(1);
-    toast.success(`Duplicated ${job.jobNumber}`);
+    const params = new URLSearchParams({
+      duplicateFrom: String(job.id),
+      title: job.title,
+      client: job.client,
+      address: job.address,
+      jobCategory: job.jobCategory || "",
+      assignedTo: job.assignedTo || "",
+      frequency: job.jobType,
+      startDate: job.scheduleDateSort,
+    });
+    navigate(`/jobs/new?${params.toString()}`);
   };
 
   // Advanced filter panel
@@ -207,16 +230,16 @@ export function Jobs() {
   const [filterState, setFilterState] = useState({
     scheduleFrom: "", scheduleTo: "",
     totalMin: "", totalMax: "",
-    client: "", city: "",
-    jobType: "",
+    client: [] as string[], city: [] as string[],
+    jobType: [] as string[], jobCategory: [] as string[], assignedTo: [] as string[], country: [] as string[], state: [] as string[], statuses: [] as string[],
   });
   const [pendingFilters, setPendingFilters] = useState({ ...filterState });
 
-  const activeFilterCount = Object.values(filterState).filter(v => v !== "").length;
+  const activeFilterCount = Object.values(filterState).filter(v => Array.isArray(v) ? v.length > 0 : v !== "").length;
 
   const handleApplyFilters = () => { setFilterState({ ...pendingFilters }); setFilterPanelOpen(false); setCurrentPage(1); };
   const handleClearFilters = () => {
-    const empty = { scheduleFrom: "", scheduleTo: "", totalMin: "", totalMax: "", client: "", city: "", jobType: "" };
+    const empty = { scheduleFrom: "", scheduleTo: "", totalMin: "", totalMax: "", client: [] as string[], city: [] as string[], jobType: [] as string[], jobCategory: [] as string[], assignedTo: [] as string[], country: [] as string[], state: [] as string[], statuses: [] as string[] };
     setPendingFilters(empty); setFilterState(empty); setFilterPanelOpen(false); setCurrentPage(1);
   };
 
@@ -237,9 +260,14 @@ export function Jobs() {
       if (!j.title.toLowerCase().includes(q) && !j.client.toLowerCase().includes(q) && !j.address.toLowerCase().includes(q) && !j.jobNumber.toLowerCase().includes(q)) return false;
     }
     // Advanced filters
-    if (filterState.jobType && j.jobType !== filterState.jobType) return false;
-    if (filterState.client && !j.client.toLowerCase().includes(filterState.client.toLowerCase())) return false;
-    if (filterState.city && !j.address.toLowerCase().includes(filterState.city.toLowerCase())) return false;
+    if (filterState.statuses.length > 0 && !filterState.statuses.includes(j.status)) return false;
+    if (filterState.jobCategory.length > 0 && !filterState.jobCategory.includes(j.jobCategory || "")) return false;
+    if (filterState.jobType.length > 0 && !filterState.jobType.includes(j.jobType)) return false;
+    if (filterState.assignedTo.length > 0 && !filterState.assignedTo.includes(j.assignedTo || "")) return false;
+    if (filterState.country.length > 0 && !filterState.country.includes(j.country || "")) return false;
+    if (filterState.state.length > 0 && !filterState.state.includes(j.state || "")) return false;
+    if (filterState.client.length > 0 && !filterState.client.includes(j.client)) return false;
+    if (filterState.city.length > 0 && !filterState.city.includes(j.city || "")) return false;
     if (filterState.scheduleFrom && j.scheduleDateSort < filterState.scheduleFrom) return false;
     if (filterState.scheduleTo && j.scheduleDateSort > filterState.scheduleTo) return false;
     if (filterState.totalMin !== "" && j.total < Number(filterState.totalMin)) return false;
@@ -278,6 +306,8 @@ export function Jobs() {
     Completed: allJobs.filter(j => j.status === "Completed").length,
   };
   const revenue = jobs.reduce((sum, j) => sum + (j.total ?? 0), 0);
+  const unique = <K extends keyof Job>(key: K) =>
+    [...new Set(allJobs.map(j => j[key]).filter((v): v is NonNullable<Job[K]> => Boolean(v)))];
 
   // ── Export / Import (kebab menu) ──
   const importInputRef = useRef<HTMLInputElement>(null);
@@ -360,10 +390,10 @@ export function Jobs() {
 
       {/* ── Stats Cards — shared StatCard so every list page is the same height ── */}
       <div className="mb-4 grid grid-cols-4 gap-4">
-        <StatCard value={String(statusCounts["Scheduled"])}                                                                       label="Scheduled"   sub="current" data={[3, 4, 3, 5, 4, 6, 5]}    sparklineColor="#4A6FA5" />
-        <StatCard value={String(statusCounts["In Progress"])}                                                                     label="In progress" sub="current" data={[1, 2, 2, 3, 4, 3, 5]}    sparklineColor="#D97706" />
-        <StatCard value={String(statusCounts["Completed"])}                                                                       label="Completed"   sub="current" data={[5, 6, 7, 8, 9, 10, 12]}  sparklineColor="#16A34A" />
-        <StatCard value={`$${revenue.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}            label="Revenue"     sub="current" data={[3, 4, 4, 5, 6, 6, 7]}    sparklineColor="#4A6FA5" />
+        <StatCard value={String(statusCounts["Scheduled"])}                                                                       label="Scheduled"   sub="" data={[3, 4, 3, 5, 4, 6, 5]}    sparklineColor="#4A6FA5" />
+        <StatCard value={String(statusCounts["In Progress"])}                                                                     label="In progress" sub="" data={[1, 2, 2, 3, 4, 3, 5]}    sparklineColor="#D97706" />
+        <StatCard value={String(statusCounts["Completed"])}                                                                       label="Completed"   sub="" data={[5, 6, 7, 8, 9, 10, 12]}  sparklineColor="#16A34A" />
+        <StatCard value={`$${revenue.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}            label="Revenue"     sub="" data={[3, 4, 4, 5, 6, 6, 7]}    sparklineColor="#4A6FA5" />
       </div>
 
       {/* ── Table ── */}
@@ -374,18 +404,10 @@ export function Jobs() {
             count={selectedJobs.size}
             onDeselect={() => setSelectedJobs(new Set())}
             actions={[
-              {
-                label: "Cancel",
-                icon: "cancel",
-                destructive: true,
-                onClick: () => {
-                  setJobs(prev => prev.map(j => (selectedJobs.has(j.id) ? { ...j, status: "Cancelled" } : j)));
-                  setSelectedJobs(new Set());
-                },
-              },
               { label: "Change status", icon: "swap_horiz", onClick: () => openStatusModal([...selectedJobs]) },
-              { label: "Export selected", icon: "file_download", onClick: () => exportJobs(allJobs.filter(j => selectedJobs.has(j.id))) },
+              { label: "Download", icon: "file_download", onClick: () => exportJobs(allJobs.filter(j => selectedJobs.has(j.id))) },
             ]}
+            dismissAsIcon
           />
         ) : (
           <div className="flex items-center gap-2 px-4 py-3 bg-white border-b border-[#E5E7EB]">
@@ -393,7 +415,7 @@ export function Jobs() {
               <span className="material-icons absolute left-2.5 top-1/2 -translate-y-1/2 text-[#9AA3AF]" style={{ fontSize: "16px" }}>search</span>
               <input type="text" placeholder="Search jobs..." value={searchQuery}
                 onChange={e => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-                className="h-8 pl-8 pr-3 w-[220px] border border-[#E5E7EB] rounded-lg text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5]" />
+                className="h-8 pl-8 pr-3 w-[220px] 2xl:w-[294px] border border-[#E5E7EB] rounded-lg text-[13px] bg-white focus:outline-none focus:border-[#4A6FA5]" />
             </div>
             <div className="w-px h-5 bg-[#E5E7EB] mx-1" />
             <div className="flex items-center gap-2">
@@ -433,13 +455,13 @@ export function Jobs() {
             </div>
             <div className="ml-auto flex items-center gap-2">
               <CreateActionButton onClick={() => navigate("/jobs/new")}>
-                Create Job
+                Create job
               </CreateActionButton>
               <KebabMenu triggerClassName="w-10 h-10 border border-[#D8DEE8] rounded-xl bg-white">
                 <KebabItem icon="view_column" onSelect={() => { setPendingCols(new Set(visibleCols)); setEditColsOpen(true); }}>Edit columns</KebabItem>
                 <KebabSeparator />
-                <KebabItem icon="file_upload" onSelect={() => importInputRef.current?.click()}>Import</KebabItem>
-                <KebabItem icon="file_download" onSelect={() => exportJobs(sorted)}>Export</KebabItem>
+                <KebabItem icon="file_upload" onSelect={() => importInputRef.current?.click()}>Upload</KebabItem>
+                <KebabItem icon="file_download" onSelect={() => exportJobs(sorted)}>Download</KebabItem>
               </KebabMenu>
             </div>
           </div>
@@ -474,7 +496,18 @@ export function Jobs() {
           </thead>
           <tbody>
             {paginated.length === 0 ? (
-              <tr><td colSpan={shownCols.length + 2} className="px-4 py-12 text-center text-[14px] text-[#8899AA]">No jobs found</td></tr>
+              <tr><td colSpan={shownCols.length + 2} className="px-4 py-14 text-center">
+                {allJobs.length === 0 ? (
+                  <div className="flex flex-col items-center">
+                    <span className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[#EEF3FA] text-[#4A6FA5] material-icons" style={{ fontSize: "22px" }}>work</span>
+                    <div className="text-[16px] text-[#1A2332]" style={{ fontWeight: 600 }}>No jobs yet</div>
+                    <div className="mt-1 text-[14px] text-[#6B7280]">Create your first job to get started</div>
+                    <button onClick={() => navigate("/jobs/new")} className="mt-4 h-9 px-4 rounded-lg border border-[#E5E7EB] bg-white text-[14px] text-[#1A2332] hover:bg-[#F9FAFB]" style={{ fontWeight: 500 }}>Create job</button>
+                  </div>
+                ) : (
+                  <span className="text-[14px] text-[#8899AA]">No jobs found</span>
+                )}
+              </td></tr>
             ) : paginated.map(job => (
               <tr key={job.id}
                 className={`border-b border-[#E5E7EB] hover:bg-[#F9FAFB] cursor-pointer ${selectedJobs.has(job.id) ? "bg-[#EDF5FF]" : ""}`}
@@ -487,7 +520,7 @@ export function Jobs() {
                     case "id":
                       return (
                         <td key="id" className="px-4 py-4">
-                          <div className="text-[12px] text-[#6B7280]" style={{ fontFamily: "Geist", fontWeight: 400, lineHeight: "16px" }}>{job.jobNumber}</div>
+                          <div className="text-[14px] text-[#4A6FA5]" style={{ fontFamily: "Geist", fontWeight: 500, lineHeight: "20px" }}>{job.jobNumber}</div>
                           <div className="text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist", fontWeight: 400, lineHeight: "20px" }}>{job.title}</div>
                         </td>
                       );
@@ -515,6 +548,12 @@ export function Jobs() {
                       );
                     case "total":
                       return <td key="total" className="px-4 py-4 text-[14px] text-[#1A2332] text-right" style={{ fontWeight: 400, lineHeight: "20px" }}>${job.total.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>;
+                    case "jobCategory":
+                      return <td key="jobCategory" className="px-4 py-4 text-[14px] text-[#6B7280]">{job.jobCategory || "Service"}</td>;
+                    case "jobType":
+                      return <td key="jobType" className="px-4 py-4 text-[14px] text-[#6B7280]">{job.jobType}</td>;
+                    case "assignedTo":
+                      return <td key="assignedTo" className="px-4 py-4 text-[14px] text-[#6B7280]">{job.assignedTo || "Unassigned"}</td>;
                     default:
                       return null;
                   }
@@ -523,9 +562,9 @@ export function Jobs() {
                   <KebabMenu>
                     <KebabItem icon="content_copy" onSelect={() => duplicateJob(job)}>Duplicate</KebabItem>
                     <KebabItem icon="swap_horiz" onSelect={() => openStatusModal([job.id])}>Change status</KebabItem>
-                    <KebabItem icon="cancel" onSelect={() => setJobs(prev => prev.map(j => j.id === job.id ? { ...j, status: "Cancelled" } : j))}>Cancel</KebabItem>
                     <KebabSeparator />
-                    <KebabItem icon="open_in_new" onSelect={() => window.open(`/jobs/${job.id}`, "_blank")}>Open in New Tab</KebabItem>
+                    <KebabItem icon="cancel" onSelect={() => setJobs(prev => prev.map(j => j.id === job.id ? { ...j, status: "Cancelled" } : j))}>Inactivate</KebabItem>
+                    <KebabItem icon="open_in_new" onSelect={() => window.open(`/jobs/${job.id}`, "_blank")}>Open in new tab</KebabItem>
                   </KebabMenu>
                 </td>
               </tr>
@@ -556,13 +595,43 @@ export function Jobs() {
 
           {/* Body */}
           <div className="flex-1 overflow-y-auto px-4 py-1 flex flex-col gap-2">
+            <div className="flex flex-col gap-4 pb-4 border-b border-[#E5E7EB]">
+              {[
+                { key: "jobCategory", label: "Job type", options: unique("jobCategory") },
+                { key: "client", label: "Client", options: unique("client") },
+                { key: "jobType", label: "Job frequency", options: ["One-off", "Recurring"] },
+                { key: "assignedTo", label: "Assigned to", options: unique("assignedTo") },
+                { key: "country", label: "Country", options: unique("country") },
+                { key: "state", label: "State", options: unique("state") },
+                { key: "city", label: "City", options: unique("city") },
+              ].map(({ key, label, options }) => (
+                <div key={key} className="flex flex-col gap-1">
+                  <label className="text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist, sans-serif", fontWeight: 500, lineHeight: "20px" }}>{label}</label>
+                  <MultiSelect
+                    values={pendingFilters[key as "jobCategory" | "client" | "jobType" | "assignedTo" | "country" | "state" | "city"]}
+                    onChange={values => setPendingFilters(p => ({ ...p, [key]: values }))}
+                    options={options.map(option => ({ value: String(option), label: String(option) }))}
+                    placeholder="All"
+                  />
+                </div>
+              ))}
+              <div className="flex flex-col gap-1">
+                <label className="text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist, sans-serif", fontWeight: 500, lineHeight: "20px" }}>Statuses</label>
+                <MultiSelect
+                  values={pendingFilters.statuses}
+                  onChange={values => setPendingFilters(p => ({ ...p, statuses: values }))}
+                  options={JOB_STATUSES.map(status => ({ value: status, label: status }))}
+                  placeholder="All"
+                />
+              </div>
+            </div>
 
             {/* Section 1: Frequency · Client · City dropdown */}
-            <div className="flex flex-col gap-4 pb-4 border-b border-[#E5E7EB]">
+            <div className="hidden">
               {/* Frequency (One-off / Recurring) */}
               <div className="flex flex-col gap-1">
                 <label className="text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist, sans-serif", fontWeight: 500, lineHeight: "20px" }}>Frequency</label>
-                <select value={pendingFilters.jobType} onChange={e => setPendingFilters(p => ({ ...p, jobType: e.target.value }))}
+                <select value={pendingFilters.jobType[0] || ""} onChange={e => setPendingFilters(p => ({ ...p, jobType: e.target.value ? [e.target.value] : [] }))}
                   className="min-h-[36px] pl-3 pr-8 py-2 border border-[#E5E7EB] rounded-[8px] text-[14px] text-[#1A2332] bg-white focus:outline-none focus:border-[#4A6FA5] shadow-[0px_1px_1px_rgba(0,0,0,0.05)]"
                   style={{ fontFamily: "Geist, sans-serif", fontWeight: 400 }}>
                   <option value="">All</option>
@@ -574,7 +643,7 @@ export function Jobs() {
               {/* Client */}
               <div className="flex flex-col gap-1">
                 <label className="text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist, sans-serif", fontWeight: 500, lineHeight: "20px" }}>Client</label>
-                <select value={pendingFilters.client} onChange={e => setPendingFilters(p => ({ ...p, client: e.target.value }))}
+                <select value={pendingFilters.client[0] || ""} onChange={e => setPendingFilters(p => ({ ...p, client: e.target.value ? [e.target.value] : [] }))}
                   className="min-h-[36px] pl-3 pr-8 py-2 border border-[#E5E7EB] rounded-[8px] text-[14px] text-[#1A2332] bg-white focus:outline-none focus:border-[#4A6FA5] shadow-[0px_1px_1px_rgba(0,0,0,0.05)]"
                   style={{ fontFamily: "Geist, sans-serif", fontWeight: 400 }}>
                   <option value="">All</option>
@@ -585,7 +654,7 @@ export function Jobs() {
               {/* City dropdown */}
               <div className="flex flex-col gap-1">
                 <label className="text-[14px] text-[#1A2332]" style={{ fontFamily: "Geist, sans-serif", fontWeight: 500, lineHeight: "20px" }}>City</label>
-                <select value={pendingFilters.city} onChange={e => setPendingFilters(p => ({ ...p, city: e.target.value }))}
+                <select value={pendingFilters.city[0] || ""} onChange={e => setPendingFilters(p => ({ ...p, city: e.target.value ? [e.target.value] : [] }))}
                   className="min-h-[36px] pl-3 pr-8 py-2 border border-[#E5E7EB] rounded-[8px] text-[14px] text-[#1A2332] bg-white focus:outline-none focus:border-[#4A6FA5] shadow-[0px_1px_1px_rgba(0,0,0,0.05)]"
                   style={{ fontFamily: "Geist, sans-serif", fontWeight: 400 }}>
                   <option value="">All</option>
@@ -661,24 +730,26 @@ export function Jobs() {
     {editColsOpen && (
       <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" onClick={() => setEditColsOpen(false)}>
         <div className="absolute inset-0 bg-black/30 backdrop-blur-[1px]" />
-        <div className="relative bg-white rounded-xl shadow-2xl w-[420px] max-w-[92vw] p-6" onClick={e => e.stopPropagation()}>
+        <div className="relative bg-white rounded-xl shadow-2xl w-[560px] max-w-[92vw] p-6" onClick={e => e.stopPropagation()}>
           <h2 className="text-[18px] text-[#1A2332] mb-4" style={{ fontWeight: 600 }}>Edit columns</h2>
-          <div className="flex flex-col gap-0.5 mb-5">
+          <div className="grid grid-cols-2 gap-3 mb-5">
             {JOBS_COLS.map(col => (
-              <label key={col.key} className="flex items-center gap-2.5 py-1.5 px-1 rounded-md hover:bg-[#F5F7FA] cursor-pointer text-[14px] text-[#1A2332]">
+              <label key={col.key} className={`flex min-h-[48px] items-center gap-3 rounded-lg border px-3 py-2 text-[14px] text-[#1A2332] ${col.key === "id" ? "cursor-not-allowed border-[#E5E7EB] bg-[#F9FAFB]" : "cursor-pointer border-[#E5E7EB] bg-white hover:bg-[#F5F7FA]"}`}>
                 <input
                   type="checkbox"
                   checked={pendingCols.has(col.key)}
+                  disabled={col.key === "id"}
                   onChange={() => setPendingCols(prev => { const n = new Set(prev); if (n.has(col.key)) n.delete(col.key); else n.add(col.key); return n; })}
-                  className="w-4 h-4 rounded border-[#E5E7EB] accent-[#4A6FA5] cursor-pointer"
+                  className="w-4 h-4 rounded border-[#E5E7EB] accent-[#4A6FA5] disabled:cursor-not-allowed"
                 />
-                {col.label}
+                <span className="flex-1">{col.label}</span>
+                {col.key === "id" && <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "16px" }}>lock</span>}
               </label>
             ))}
           </div>
           <div className="flex justify-end gap-2">
             <button onClick={() => setEditColsOpen(false)} className="h-9 px-4 border border-[#E5E7EB] hover:bg-[#F5F7FA] text-[#546478] text-[14px] rounded-lg" style={{ fontWeight: 500 }}>Cancel</button>
-            <button onClick={() => { setVisibleCols(new Set(pendingCols.size ? pendingCols : JOBS_COLS.map(c => c.key))); setEditColsOpen(false); }} className="h-9 px-4 bg-[#4A6FA5] hover:bg-[#3d5a85] text-white text-[14px] rounded-lg" style={{ fontWeight: 500 }}>Done</button>
+            <button onClick={() => { setVisibleCols(new Set(["id", ...pendingCols])); setEditColsOpen(false); }} className="h-9 px-4 bg-[#4A6FA5] hover:bg-[#3d5a85] text-white text-[14px] rounded-lg" style={{ fontWeight: 500 }}>Save</button>
           </div>
         </div>
       </div>
@@ -691,11 +762,12 @@ export function Jobs() {
         <div className="relative bg-white rounded-xl shadow-2xl w-[420px] max-w-[92vw] p-6" onClick={e => e.stopPropagation()}>
           <h2 className="text-[18px] text-[#1A2332] mb-1" style={{ fontWeight: 600 }}>Change status</h2>
           <p className="text-[13px] text-[#6B7280] mb-4">{statusModalIds.length === 1 ? "Update this job's status." : `Update ${statusModalIds.length} jobs.`}</p>
-          <div className="flex flex-col gap-0.5 mb-5">
+          <div className="flex flex-col gap-2 mb-5">
             {JOB_STATUSES.map(s => (
-              <label key={s} className="flex items-center gap-2.5 py-2 px-2 rounded-md hover:bg-[#F5F7FA] cursor-pointer">
+              <label key={s} className={`flex min-h-[48px] items-center gap-3 rounded-lg border px-3 py-2 cursor-pointer transition-colors ${statusChoice === s ? "border-[#4A6FA5] bg-[#EEF3FA]" : "border-[#E5E7EB] bg-white hover:bg-[#F5F7FA]"}`}>
                 <input type="radio" name="job-status" checked={statusChoice === s} onChange={() => setStatusChoice(s)} className="w-4 h-4 accent-[#4A6FA5] cursor-pointer" />
                 <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-[12px]" style={{ fontWeight: 500, lineHeight: "16px", color: statusColors[s], backgroundColor: statusBg[s] }}>{s}</span>
+                <span className="ml-auto material-icons text-[#9CA3AF]" style={{ fontSize: "16px" }}>{statusChoice === s ? "radio_button_checked" : "radio_button_unchecked"}</span>
               </label>
             ))}
           </div>

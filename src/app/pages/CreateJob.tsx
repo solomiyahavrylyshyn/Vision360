@@ -95,12 +95,12 @@ export function CreateJob({ asModal = false, onClose, onCreated, prefill, headin
   const returnTo = sp.get("returnTo");
   // Modal mode closes via callback; page mode navigates back.
   const goBack = () => { if (asModal) { onClose?.(); return; } navigate(returnTo || "/jobs"); };
-  const [title, setTitle] = useState(prefill?.title ?? "");
+  const [title, setTitle] = useState(prefill?.title ?? sp.get("title") ?? "");
   const [client, setClient] = useState(prefill?.client ?? sp.get("client") ?? "");
   const [clientSearch, setClientSearch] = useState("");
   const [clientPickerOpen, setClientPickerOpen] = useState(false);
   const [jobNumber, setJobNumber] = useState("10245-J02");
-  const [jobType, setJobType] = useState<"one-off" | "recurring">("one-off");
+  const [jobType, setJobType] = useState<"one-off" | "recurring">((sp.get("frequency") === "Recurring" || sp.get("frequency") === "recurring") ? "recurring" : "one-off");
   // Recurring wizard (Marek, Jun 8). A recurring job is created as a SERIES of
   // unscheduled + unassigned jobs (Marek, Jun 5) — the dispatcher schedules each.
   const [recFreq, setRecFreq] = useState<RecurrenceFrequency>("weekly");
@@ -117,7 +117,7 @@ export function CreateJob({ asModal = false, onClose, onCreated, prefill, headin
     count: Math.max(1, Number(recCount) || 1),
     endDate: recEndDate || undefined,
   });
-  const [jobCategory, setJobCategory] = useState(prefill?.jobCategory ?? "");
+  const [jobCategory, setJobCategory] = useState(prefill?.jobCategory ?? sp.get("jobCategory") ?? "");
   const availableJobTypes = useSyncExternalStore(jobTypesStore.subscribe, jobTypesStore.getJobTypes);
   // Live clients from the shared store — replaces the old hardcoded mockClients array.
   const liveClients = useSyncExternalStore(clientsStore.subscribe, clientsStore.getSnapshot);
@@ -131,16 +131,16 @@ export function CreateJob({ asModal = false, onClose, onCreated, prefill, headin
   const fieldEmployees = ["Peter Novak", "Travis Brown", "Maria Garcia", "Emily Parker"];
   const [serviceCountry, setServiceCountry] = useState("United States");
   // The calendar slot carries a single address string; seed it into the street line.
-  const [serviceStreet, setServiceStreet] = useState(prefill?.address ?? "");
+  const [serviceStreet, setServiceStreet] = useState(prefill?.address ?? sp.get("address") ?? "");
   const [serviceCity, setServiceCity] = useState("");
   const [serviceState, setServiceState] = useState("");
   const [serviceZip, setServiceZip] = useState("");
   const [serviceCounty, setServiceCounty] = useState("");
   const [gateCode, setGateCode] = useState("");
-  const [startDate, setStartDate] = useState(() => prefill?.startDate ?? new Date().toISOString().split("T")[0]);
-  const [endDate, setEndDate] = useState(() => prefill?.endDate ?? prefill?.startDate ?? new Date().toISOString().split("T")[0]);
-  const [startTime, setStartTime] = useState(prefill?.startTime ?? "");
-  const [endTime, setEndTime] = useState(prefill?.endTime ?? "");
+  const [startDate, setStartDate] = useState(() => prefill?.startDate ?? sp.get("startDate") ?? new Date().toISOString().split("T")[0]);
+  const [endDate, setEndDate] = useState(() => prefill?.endDate ?? sp.get("endDate") ?? prefill?.startDate ?? sp.get("startDate") ?? new Date().toISOString().split("T")[0]);
+  const [startTime, setStartTime] = useState(prefill?.startTime ?? sp.get("startTime") ?? "");
+  const [endTime, setEndTime] = useState(prefill?.endTime ?? sp.get("endTime") ?? "");
   // Figma "Job period": a numeric duration + a "Schedule job" toggle. When the
   // toggle is OFF the job is created UNSCHEDULED (no date) and the date/time
   // fields are hidden (brief: toggle scheduled off → unscheduled).
@@ -154,7 +154,7 @@ export function CreateJob({ asModal = false, onClose, onCreated, prefill, headin
     if (s != null && e != null && e > s) return String((e - s) / 60);
     return String(jobTypesStore.getDuration(prefill?.jobCategory));
   });
-  const [assignedTo, setAssignedTo] = useState(prefill?.assignedTo ?? "");
+  const [assignedTo, setAssignedTo] = useState(prefill?.assignedTo ?? sp.get("assignedTo") ?? "");
   const [industry, setIndustry] = useState("");
   // US-4 out-of-range confirm: holds a pending save while the warning modal is up.
   const [outOfRangeOpen, setOutOfRangeOpen] = useState(false);
@@ -1077,7 +1077,7 @@ function CreateJobShell({
           <span className="material-icons" style={{ fontSize: "18px" }}>arrow_back</span>
           <span>{returnTo ? "Back to client" : "Back to Jobs"}</span>
         </button>
-        <PageHeader title="Create Job" className="mb-6" />
+        <PageHeader title="Create job" className="mb-6" />
         {children}
       </div>
     </div>
