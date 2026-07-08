@@ -1,0 +1,148 @@
+import { useState, useRef, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router";
+import { Checkbox } from "../components/ui/checkbox";
+import { AuthLayout } from "../components/AuthLayout";
+import { trustDevice } from "../utils/trustedDevice";
+
+// Login 2FA — "Check your email" (Figma authorization page, "enter code" frame
+// 960:29994 + FR-1.3 trust-device checkbox 2472:2639). Unlike the sign-up
+// verify screen this has no stepper, shows the masked login email, and offers
+// "Trust this device for 30 days" so trusted browsers skip 2FA on future logins.
+
+// "example@gmail.com" → "e***e@gmail.com" (design copy shows e***l@gmail.com)
+function maskEmail(email: string): string {
+  const [local, domain] = email.split("@");
+  if (!local || !domain) return "your email address";
+  const first = local[0] || "";
+  const last = local.length > 1 ? local[local.length - 1] : "";
+  return `${first}***${last}@${domain}`;
+}
+
+export function LoginVerify() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const email = (location.state as any)?.email || "";
+  const [code, setCode] = useState(["", "", "", "", "", ""]);
+  const [trust, setTrust] = useState(false);
+  const [resendTimer, setResendTimer] = useState(0);
+  const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
+
+  useEffect(() => {
+    if (resendTimer > 0) {
+      const timer = setTimeout(() => setResendTimer(resendTimer - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [resendTimer]);
+
+  const handleInputChange = (index: number, value: string) => {
+    if (!/^\d?$/.test(value)) return;
+    const newCode = [...code];
+    newCode[index] = value;
+    setCode(newCode);
+    if (value && index < 5) inputsRef.current[index + 1]?.focus();
+  };
+
+  const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Backspace" && !code[index] && index > 0) {
+      inputsRef.current[index - 1]?.focus();
+    }
+  };
+
+  const handlePaste = (e: React.ClipboardEvent) => {
+    const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+    if (pasted.length > 0) {
+      e.preventDefault();
+      const newCode = [...code];
+      for (let i = 0; i < 6; i++) newCode[i] = pasted[i] || "";
+      setCode(newCode);
+      inputsRef.current[Math.min(pasted.length, 5)]?.focus();
+    }
+  };
+
+  const codeComplete = code.every((d) => d !== "");
+
+  const handleVerify = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!codeComplete) return;
+    if (trust) trustDevice();
+    navigate("/");
+  };
+
+  return (
+    <AuthLayout>
+      <form onSubmit={handleVerify} className="w-full flex flex-col gap-6">
+        {/* form-top */}
+        <div className="flex flex-col gap-8">
+          {/* copy */}
+          <div className="flex flex-col gap-2">
+            <h1 className="text-[32px] font-medium leading-[1.2] text-[#1A2332]">Check your email</h1>
+            <p className="text-[18px] text-[#374151]">
+              We sent a 6-digit code to {email ? maskEmail(email) : "your email address"}. Enter it below to continue
+              &ndash; this is not your password.
+            </p>
+          </div>
+
+          {/* Verification code */}
+          <div className="flex flex-col gap-2">
+            <label className="text-[14px] font-medium leading-5 text-[#1A2332]">Verification code</label>
+            <div className="flex gap-2" onPaste={handlePaste}>
+              {code.map((digit, i) => (
+                <input
+                  key={i}
+                  ref={(el) => (inputsRef.current[i] = el)}
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={1}
+                  placeholder="•"
+                  value={digit}
+                  onChange={(e) => handleInputChange(i, e.target.value)}
+                  onKeyDown={(e) => handleKeyDown(i, e)}
+                  className="w-10 h-10 text-center rounded-lg border border-[#E5E7EB] bg-white text-[14px] text-[#1A2332] placeholder:text-[#6B7280] shadow-[0_1px_2px_0_rgba(0,0,0,0.05)] outline-none transition-colors focus:border-[#4A6FA5] focus:ring-2 focus:ring-[#4A6FA5]/20"
+                  autoFocus={i === 0}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Trust this device (FR-1.3) — same checkbox pattern as "Keep me signed in" */}
+          <div className="flex items-center gap-3">
+            <Checkbox
+              id="trust-device"
+              checked={trust}
+              onCheckedChange={(checked) => setTrust(checked as boolean)}
+              className="size-4 data-[state=checked]:bg-[#4A6FA5] data-[state=checked]:border-[#4A6FA5]"
+            />
+            <label htmlFor="trust-device" className="text-[14px] cursor-pointer select-none text-[#1A2332]">
+              Trust this device for 30 days
+            </label>
+          </div>
+        </div>
+
+        {/* Verify code */}
+        <button
+          type="submit"
+          disabled={!codeComplete}
+          className="w-full h-10 flex items-center justify-center rounded-lg bg-[#4A6FA5] px-6 text-[14px] font-medium text-white transition-colors hover:bg-[#3d5a85] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#4A6FA5]"
+        >
+          Verify code
+        </button>
+
+        {/* Divider */}
+        <div className="h-px w-full bg-[#E5E7EB]" />
+
+        {/* Resend */}
+        <div className="flex items-center justify-center gap-2 text-[14px]">
+          <span className="text-[#1A2332]">Didn&rsquo;t receive it?</span>
+          <button
+            type="button"
+            onClick={() => setResendTimer(60)}
+            disabled={resendTimer > 0}
+            className="font-medium text-[#4A6FA5] hover:underline disabled:opacity-50 disabled:no-underline disabled:cursor-not-allowed"
+          >
+            {resendTimer > 0 ? `Resend in ${resendTimer}s` : "Resend code"}
+          </button>
+        </div>
+      </form>
+    </AuthLayout>
+  );
+}

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router";
 import { Checkbox } from "../components/ui/checkbox";
 import { AuthLayout } from "../components/AuthLayout";
+import { isDeviceTrusted } from "../utils/trustedDevice";
 
 // ── Demo triggers (prototype only — no real auth) ────────────────────────────
 // Any submit signs in, EXCEPT these documented demo credentials that surface the
@@ -64,7 +65,13 @@ export function Login() {
       setError("credentials");
       return;
     }
-    navigate("/");
+    // FR-1.3 — credentials accepted → 2FA code screen, unless this browser was
+    // marked trusted ("Trust this device for 30 days") on a previous login.
+    if (isDeviceTrusted()) {
+      navigate("/");
+    } else {
+      navigate("/login/verify", { state: { email } });
+    }
   };
 
   const attemptsLeft = MAX_ATTEMPTS - wrongCount;

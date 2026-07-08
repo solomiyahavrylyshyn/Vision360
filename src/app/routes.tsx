@@ -1,6 +1,7 @@
 import { createBrowserRouter, useRouteError } from "react-router-dom";
 import { Layout } from "./components/Layout";
 import { Login } from "./pages/Login";
+import { LoginVerify } from "./pages/LoginVerify";
 import { Register } from "./pages/Register";
 import { Verify2FA } from "./pages/Verify2FA";
 import { ResetPasswordRequest } from "./pages/ResetPasswordRequest";
@@ -80,6 +81,10 @@ export const router = createBrowserRouter([
   {
     path: "/login",
     Component: Login,
+  },
+  {
+    path: "/login/verify",
+    Component: LoginVerify,
   },
   {
     path: "/register",
