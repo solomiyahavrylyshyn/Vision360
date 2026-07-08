@@ -63,14 +63,20 @@ const categoryColors = expenseCategoryColors;
 
 const categoryFilterOptions = ["All", "Materials", "Fuel", "Tools", "Software", "Meals", "Travel"];
 
+// Column order mirrors the Figma expenses table (1139:93081):
+// Number · Category · Vendor · Job · Created date · Amount · Note.
 const EXPENSES_COLS = [
-  { key: "date", label: "Date" },
+  { key: "number", label: "Number" },
   { key: "category", label: "Category" },
   { key: "merchant", label: "Vendor" },
+  { key: "jobId", label: "Job" },
+  { key: "date", label: "Created date" },
   { key: "amount", label: "Amount" },
-  { key: "jobId", label: "Job #" },
-  { key: "notes", label: "Notes" },
+  { key: "notes", label: "Note" },
 ] as const;
+
+// Display number in the design's E-#### format, derived from the record id.
+const expenseNumber = (id: string) => `E-${1233 + Number(id)}`;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function qfClass(active: boolean) {
@@ -100,10 +106,10 @@ export function Expenses() {
   const [cols, moveCol] = useDraggableColumns([...EXPENSES_COLS]);
   const [expenses, setExpenses] = useState(mockExpenses);
 
-  // Quick filters
+  // Quick filters (Figma 1139:93081: Categories + Date; job linkage lives in
+  // the advanced Filter panel)
   const [qfCategory, setQfCategory] = useState("All");
   const [qfDate, setQfDate] = useState("all");
-  const [qfJob, setQfJob] = useState("");
 
   const [searchQuery, setSearchQuery] = useState("");
   const [filterOpen, setFilterOpen] = useState(false);
@@ -132,7 +138,6 @@ export function Expenses() {
     }
     if (qfCategory !== "All" && e.category !== qfCategory) return false;
     if (!matchesDatePreset(e.date, qfDate)) return false;
-    if (qfJob && e.jobId !== qfJob) return false;
     if (dateFrom && dateValue && dateValue < dateFrom) return false;
     if (dateTo && dateValue && dateValue > dateTo) return false;
     if (amountMin && e.amount < Number(amountMin)) return false;
@@ -157,7 +162,6 @@ export function Expenses() {
 
   const paginated = filtered.slice((page - 1) * perPage, page * perPage);
   const totalAmount = filtered.reduce((s, e) => s + e.amount, 0);
-  const uniqueJobs = Array.from(new Set(expenses.filter((e) => e.jobId).map((e) => e.jobId!)));
 
   // ── KPI metrics ───────────────────────────────────────────────────────────
   // Computed off `filtered` so they reflect whatever the user has filtered to.
@@ -222,17 +226,13 @@ export function Expenses() {
           </div>
           <div className="w-px h-5 bg-[#E5E7EB] mx-1" />
           <select value={qfCategory} onChange={e => setQfCategory(e.target.value)} className={qfClass(qfCategory !== "All")}>
-            {categoryFilterOptions.map(c => <option key={c} value={c}>{c === "All" ? "All categories" : c}</option>)}
+            {categoryFilterOptions.map(c => <option key={c} value={c}>{c === "All" ? "Categories: All" : c}</option>)}
           </select>
           <select value={qfDate} onChange={e => setQfDate(e.target.value)} className={qfClass(qfDate !== "all")}>
-            <option value="all">All time</option>
+            <option value="all">Date: All time</option>
             <option value="this_month">This month</option>
             <option value="last_month">Last month</option>
             <option value="last_90">Last 90 days</option>
-          </select>
-          <select value={qfJob} onChange={e => setQfJob(e.target.value)} className={qfClass(qfJob !== "")}>
-            <option value="">All jobs</option>
-            {uniqueJobs.map(j => <option key={j} value={j}>#{j}</option>)}
           </select>
           <div className="w-px h-5 bg-[#E5E7EB] mx-1" />
           <button
@@ -252,7 +252,7 @@ export function Expenses() {
           </button>
           <div className="ml-auto flex items-center gap-2">
             <CreateActionButton onClick={() => navigate("/expenses/new")}>
-              Create Expense
+              Create expense
             </CreateActionButton>
             <KebabMenu triggerClassName="w-10 h-10 border border-[#D8DEE8] rounded-xl bg-white">
               <KebabItem icon="view_column">Edit Columns</KebabItem>
@@ -365,6 +365,11 @@ export function Expenses() {
                     </td>
                     {cols.map(col => {
                       switch (col.key) {
+                        case "number": return (
+                          <td key={col.key} className="px-4 py-4">
+                            <span className="text-[14px] text-[#4A6FA5] hover:underline" style={{ fontFamily: "Geist", fontWeight: 500, lineHeight: "20px" }}>{expenseNumber(expense.id)}</span>
+                          </td>
+                        );
                         case "date": return (
                           <td key={col.key} className="px-4 py-4">
                             <span className="text-[14px] text-[#546478]" style={{ fontFamily: "Geist", fontWeight: 400, lineHeight: "20px" }}>{expense.date}</span>
@@ -372,15 +377,10 @@ export function Expenses() {
                         );
                         case "category": return (
                           <td key={col.key} className="px-4 py-4">
-                            <span
-                              className="inline-flex items-center justify-center min-w-[90px] rounded-md px-2.5 py-1 text-[12px] whitespace-nowrap"
-                              style={{
-                                background: expenseCategoryBg[expense.category] || "#F3F4F6",
-                                color: categoryColors[expense.category] || "#8899AA",
-                                fontWeight: 600,
-                              }}
-                            >
-                              {expense.category}
+                            {/* Colored dot + label (Figma 1139:93081) */}
+                            <span className="inline-flex items-center gap-1 whitespace-nowrap">
+                              <span className="w-1 h-1 rounded-full" style={{ backgroundColor: categoryColors[expense.category] || "#8899AA" }} />
+                              <span className="text-[12px]" style={{ fontWeight: 500, lineHeight: "16px", color: categoryColors[expense.category] || "#8899AA" }}>{expense.category}</span>
                             </span>
                           </td>
                         );
