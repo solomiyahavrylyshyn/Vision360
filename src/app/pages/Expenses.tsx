@@ -1,5 +1,6 @@
 import { useState, useSyncExternalStore } from "react";
 import { useNavigate } from "react-router";
+import { expenseCategoriesStore } from "../stores/expenseCategoriesStore";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { Card } from "../components/ui/card";
@@ -43,7 +44,8 @@ const expenseCategoryBg: Record<string, string> = {
 };
 const categoryColors = expenseCategoryColors;
 
-const categoryFilterOptions = ["All", "Materials", "Fuel", "Tools", "Software", "Meals", "Travel"];
+// Quick-filter options come from the company's expense categories
+// (Settings → Finance center, FR-16.8) with "All" prepended.
 
 // Column order mirrors the Figma expenses table (1139:93081):
 // Number · Category · Vendor · Job · Created date · Amount · Note.
@@ -92,6 +94,7 @@ export function Expenses() {
   // the advanced Filter panel)
   const [qfCategory, setQfCategory] = useState("All");
   const [qfDate, setQfDate] = useState("all");
+  const expenseCategories = useSyncExternalStore(expenseCategoriesStore.subscribe, expenseCategoriesStore.getSnapshot);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [filterOpen, setFilterOpen] = useState(false);
@@ -208,7 +211,7 @@ export function Expenses() {
           </div>
           <div className="w-px h-5 bg-[#E5E7EB] mx-1" />
           <select value={qfCategory} onChange={e => setQfCategory(e.target.value)} className={qfClass(qfCategory !== "All")}>
-            {categoryFilterOptions.map(c => <option key={c} value={c}>{c === "All" ? "Categories: All" : c}</option>)}
+            {["All", ...expenseCategories].map(c => <option key={c} value={c}>{c === "All" ? "Categories: All" : c}</option>)}
           </select>
           <select value={qfDate} onChange={e => setQfDate(e.target.value)} className={qfClass(qfDate !== "all")}>
             <option value="all">Date: All time</option>

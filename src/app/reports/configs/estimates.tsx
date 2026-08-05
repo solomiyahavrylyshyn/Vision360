@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from "react";
+﻿import { useSyncExternalStore } from "react";
 import { estimatesStore, type EstimateRecord } from "../../stores/estimatesStore";
 import type { ReportDef } from "../types";
 
@@ -6,13 +6,13 @@ const money = (n: number) => `$${Math.round(n).toLocaleString("en-US")}`;
 const sum = (rows: EstimateRecord[], pick: (e: EstimateRecord) => number) => rows.reduce((a, e) => a + pick(e), 0);
 
 // Approved / Converted read as "won" (green); Sent / Viewed are in-flight
-// (blue); Rejected / Expired are dead (red); everything else is neutral gray.
+// (blue); Declined / Expired are dead (red); everything else is neutral gray.
 const STATUS_STYLE: Record<string, { c: string; bg: string }> = {
   Approved: { c: "#16A34A", bg: "#DCFCE7" },
   Converted: { c: "#16A34A", bg: "#DCFCE7" },
   Sent: { c: "#2563EB", bg: "#DBEAFE" },
   Viewed: { c: "#2563EB", bg: "#DBEAFE" },
-  Rejected: { c: "#DC2626", bg: "#FEE2E2" },
+  Declined: { c: "#DC2626", bg: "#FEE2E2" },
   Expired: { c: "#DC2626", bg: "#FEE2E2" },
 };
 const StatusBadge = ({ s }: { s: string }) => {
@@ -45,7 +45,7 @@ export const estimatesReport: ReportDef<EstimateRecord> = {
         { value: "Changes Requested", label: "Changes Requested" },
         { value: "Updated", label: "Updated" },
         { value: "Approved", label: "Approved" },
-        { value: "Rejected", label: "Rejected" },
+        { value: "Declined", label: "Declined" },
         { value: "Expired", label: "Expired" },
         { value: "Archived", label: "Archived" },
         { value: "Converted", label: "Converted" },

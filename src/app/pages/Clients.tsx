@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo, useSyncExternalStore, useCallback } from "react";
+﻿import { useState, useRef, useEffect, useMemo, useSyncExternalStore, useCallback } from "react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { useNavigate } from "react-router";
@@ -13,6 +13,7 @@ import { HTML5Backend } from "react-dnd-html5-backend";
 import { useDraggableColumns, DraggableTh } from "../components/ui/draggable-columns";
 import { clientsStore, deriveClientStatus, type NoteEntry } from "../stores/clientsStore";
 import { jobsStore } from "../stores/jobsStore";
+import { SendReminderModal } from "../components/SendReminderModal";
 import { toast } from "sonner";
 import {
   Select,
@@ -449,8 +450,8 @@ export function Clients() {
           <div className="mb-4 grid grid-cols-4 gap-4">
             {[
               { value: String(clients.filter(c => getClientStatus(c) === "Prospect").length), label: "New prospects", sub: "current",     change: "+100%", changeUp: true, period: "vs prev. period", data: [2, 3, 2, 4, 3, 5, 4] },
-              { value: String(clients.filter(c => getClientStatus(c) === "Active").length),   label: "New contacts",  sub: "current",     change: "+25%",  changeUp: true, period: "vs prev. period", data: [0, 1, 0, 1, 1, 0, 1] },
-              { value: String(clients.length),                                                 label: "Total contacts", sub: "all clients", change: "+50%",  changeUp: true, period: "vs prev. year",   data: [3, 4, 4, 5, 5, 6, 6] },
+              { value: String(clients.filter(c => getClientStatus(c) === "Active").length),   label: "New clients",  sub: "current",     change: "+25%",  changeUp: true, period: "vs prev. period", data: [0, 1, 0, 1, 1, 0, 1] },
+              { value: String(clients.length),                                                 label: "Total clients", sub: "all clients", change: "+50%",  changeUp: true, period: "vs prev. year",   data: [3, 4, 4, 5, 5, 6, 6] },
             ].map(c => <StatCard key={c.label} {...c} />)}
 
             {/* What's New — QuickBooks integration tile */}
@@ -989,9 +990,26 @@ export function Clients() {
         </div>
 
         {/* ── Send payment reminder Modal (Figma 2493:19011) ── */}
-        {reminderClient && (
-          <SendReminderModal client={reminderClient} onClose={() => setReminderClient(null)} />
-        )}
+        {reminderClient && (() => {
+          const overdue = (reminderClient.pastDue ?? 0) > 0;
+          return (
+            <SendReminderModal
+              recipient={{
+                name: reminderClient.name,
+                email: reminderClient.email,
+                initials: reminderClient.initials,
+                avatarColor: reminderClient.avatarColor,
+              }}
+              invoice={{
+                number: `INV-${1200 + (Number(reminderClient.id) % 100)}`,
+                amount: overdue ? reminderClient.pastDue! : reminderClient.totalBilled,
+                daysOverdue: reminderClient.daysOverdue,
+                detail: `${reminderClient.totalJobs > 0 ? "Service work" : "Open balance"} · due on receipt`,
+              }}
+              onClose={() => setReminderClient(null)}
+            />
+          );
+        })()}
 
         {/* ── Edit Columns Modal ── */}
         {editColumnsOpen && (
@@ -1152,95 +1170,3 @@ export function Clients() {
   );
 }
 
-// ─── Send payment reminder (Figma 2493:19011) ────────────────────────────────
-// Per-client modal from the row kebab: TO card, outstanding invoice summary,
-// prefilled editable message, "Reminders are sent by email (MVP)" footnote.
-function SendReminderModal({ client, onClose }: { client: Client; onClose: () => void }) {
-  const overdue = (client.pastDue ?? 0) > 0;
-  const amount = overdue ? client.pastDue! : client.totalBilled;
-  const days = client.daysOverdue ?? 0;
-  const invoiceNo = `INV-${1200 + (Number(client.id) % 100)}`;
-  const firstName = client.name.split(" ")[0];
-  const fmt = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  const [message, setMessage] = useState(
-    overdue
-      ? `Hi ${firstName}, this is a friendly reminder that invoice ${invoiceNo} for $${fmt(amount)} is now ${days} day${days === 1 ? "" : "s"} overdue. You can pay securely using the link below. Thank you! — Omega Home Services`
-      : `Hi ${firstName}, this is a friendly reminder about your outstanding balance of $${fmt(amount)} on invoice ${invoiceNo}. You can pay securely using the link below. Thank you! — Omega Home Services`
-  );
-
-  return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/40" />
-      <div className="relative flex w-[640px] max-w-full flex-col overflow-hidden rounded-2xl bg-white shadow-2xl" onClick={e => e.stopPropagation()}>
-        {/* Header */}
-        <div className="flex items-start justify-between px-6 pt-5 pb-4">
-          <div>
-            <h2 className="text-[20px] text-[#1A2332]" style={{ fontWeight: 700 }}>Send payment reminder</h2>
-            <p className="mt-0.5 text-[13px] text-[#6B7280]">Email the client a reminder for their outstanding balance.</p>
-          </div>
-          <button onClick={onClose} aria-label="Close" className="flex h-8 w-8 items-center justify-center rounded-lg text-[#9CA3AF] transition-colors hover:bg-[#F3F4F6] hover:text-[#1A2332]">
-            <span className="material-icons" style={{ fontSize: "20px" }}>close</span>
-          </button>
-        </div>
-
-        {/* TO */}
-        <div className="border-y border-[#EDF0F5] bg-[#F8FAFC] px-6 py-4">
-          <p className="mb-2 text-[11px] uppercase tracking-wider text-[#6B7280]" style={{ fontWeight: 600 }}>To</p>
-          <div className="inline-flex items-center gap-3 rounded-xl border border-[#4A6FA5] bg-[#EEF3FA] px-3.5 py-2.5">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[13px] text-white" style={{ backgroundColor: client.avatarColor || "#1A2332", fontWeight: 600 }}>
-              {client.initials}
-            </div>
-            <div>
-              <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>{client.name}</div>
-              <div className="text-[12px] text-[#6B7280]">{client.email}</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Outstanding invoices + message */}
-        <div className="px-6 py-4">
-          <p className="mb-2 text-[11px] uppercase tracking-wider text-[#6B7280]" style={{ fontWeight: 600 }}>Outstanding invoices</p>
-          <div className="flex items-center justify-between gap-4 rounded-lg border border-[#E5E7EB] px-4 py-3">
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>{invoiceNo}</span>
-                {overdue && (
-                  <span className="rounded-full bg-[#FEE2E2] px-2 py-0.5 text-[11px] text-[#DC2626]" style={{ fontWeight: 600 }}>
-                    Overdue {days} day{days === 1 ? "" : "s"}
-                  </span>
-                )}
-              </div>
-              <div className="mt-0.5 truncate text-[12px] text-[#6B7280]">{client.totalJobs > 0 ? "Service work" : "Open balance"} · due on receipt</div>
-            </div>
-            <span className="shrink-0 text-[15px] text-[#1A2332]" style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>${fmt(amount)}</span>
-          </div>
-
-          <p className="mb-1.5 mt-4 text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Message</p>
-          <textarea
-            value={message}
-            onChange={e => setMessage(e.target.value)}
-            className="min-h-[96px] w-full resize-y rounded-lg border border-[#E5E7EB] px-3.5 py-2.5 text-[13px] leading-5 text-[#1A2332] outline-none focus:border-[#4A6FA5]"
-          />
-        </div>
-
-        {/* Footer */}
-        <div className="flex items-center justify-between gap-4 border-t border-[#EDF0F5] bg-[#F8FAFC] px-6 py-4">
-          <span className="flex items-center gap-2 text-[12px] text-[#6B7280]">
-            <span className="material-icons" style={{ fontSize: "16px" }}>mail_outline</span>
-            Reminders are sent by email (MVP).
-          </span>
-          <div className="flex items-center gap-2">
-            <button onClick={onClose} className="h-9 rounded-lg border border-[#E5E7EB] bg-white px-4 text-[13px] text-[#374151] transition-colors hover:bg-[#F5F7FA]" style={{ fontWeight: 500 }}>Cancel</button>
-            <button
-              onClick={() => { toast.success(`Payment reminder sent to ${client.name}`); onClose(); }}
-              className="h-9 rounded-lg bg-[#4A6FA5] px-4 text-[13px] text-white transition-colors hover:bg-[#3d5a85]"
-              style={{ fontWeight: 600 }}
-            >
-              Send reminder
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}

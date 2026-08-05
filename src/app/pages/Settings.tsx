@@ -16,7 +16,12 @@ import { termsStore } from "../stores/termsStore";
 import { countiesStore } from "../stores/countiesStore";
 import { relationshipsStore } from "../stores/relationshipsStore";
 import { customFieldsStore, type CfEntity, type CfFieldType } from "../stores/customFieldsStore";
-import { ReportAccessPanel, allReportNames } from "../components/ReportAccessPanel";
+import { allReportNames } from "../components/ReportAccessPanel";
+import {
+  PermissionsEditor,
+  employeePreset, adminPreset, loadCustomPresets, saveCustomPresets, ensureItemsPerm,
+  type PermissionsState, type CustomPreset, type PresetId,
+} from "../components/PermissionsEditor";
 import { jobTypesStore } from "../stores/jobTypesStore";
 import { marketingSourcesStore } from "../stores/marketingSourcesStore";
 import { tagsStore } from "../stores/tagsStore";
@@ -25,6 +30,10 @@ import { businessHoursStore, type BusinessHourRow } from "../stores/businessHour
 import { regionalSettingsStore, type RegionalSettings } from "../stores/regionalSettingsStore";
 import { estimateSettingsStore } from "../stores/estimateSettingsStore";
 import { trialStore, isTrialActive, getTrialDaysRemaining } from "../stores/trialStore";
+import { categoriesStore } from "../stores/categoriesStore";
+import { estimateTypesStore } from "../stores/estimateTypesStore";
+import { expenseCategoriesStore } from "../stores/expenseCategoriesStore";
+import { allNotificationEvents } from "../constants/notificationEvents";
 
 type SettingsSection =
   | "home"
@@ -45,7 +54,8 @@ type SettingsSection =
   | "security"
   | "taxes"
   | "localization"
-  | "relationships";
+  | "relationships"
+  | "counties";
 
 const sectionAliases: Partial<Record<SettingsSection, SettingsSection>> = {
   profile: "companyProfile",
@@ -53,6 +63,9 @@ const sectionAliases: Partial<Record<SettingsSection, SettingsSection>> = {
   security: "team",
   taxes: "general",
   home: "companyInfo",
+  // Counties live on the Localization page (Figma 2952:150467); deep links
+  // from CreateClient use ?section=counties.
+  counties: "localization",
 };
 
 const navGroups: Array<{
@@ -673,7 +686,10 @@ function RegionalSettingsCard() {
 
   return (
     <div className="flex flex-col gap-4 rounded-xl border border-[#E5E7EB] bg-white p-4">
-      <span className="text-[16px] leading-6 text-[#1A2332]" style={{ fontWeight: 600 }}>Regional settings</span>
+      <div className="flex flex-col gap-1">
+        <span className="text-[16px] leading-6 text-[#1A2332]" style={{ fontWeight: 600 }}>Regional settings</span>
+        <span className="text-[12px] leading-4 text-[#6B7280]">Country, language, time zone, date / time format, and week start. These apply across the app — calendar, documents, and any timestamp the user sees.</span>
+      </div>
       <div className="flex flex-col gap-4">
         <div className="flex gap-4">
           <div className="flex-1">
@@ -1172,151 +1188,127 @@ function BillingAndPlanSection() {
   );
 }
 
-// Tiny SVG-ish preview of a template — used inside the card thumb
-function TemplatePreview({ kind, className }: { kind: string; className?: string }) {
-  // Each template has a slightly different mini-layout
-  const variants: Record<string, React.ReactNode> = {
-    Classic: (
-      <>
-        <div className="h-3 w-12 rounded bg-[#1A2332]" />
-        <div className="mt-1.5 h-2 w-20 rounded bg-[#9CA3AF]/40" />
-        <div className="mt-2 space-y-1">
-          {[1,2,3].map(i => <div key={i} className="h-1.5 w-full rounded bg-[#E5E7EB]" />)}
-        </div>
-        <div className="mt-2 ml-auto h-2 w-10 rounded bg-[#4A6FA5]" />
-      </>
-    ),
-    Modern: (
-      <>
-        <div className="h-4 w-14 rounded bg-[#4A6FA5]" />
-        <div className="mt-2 h-1.5 w-24 rounded bg-[#9CA3AF]/30" />
-        <div className="mt-3 space-y-1.5">
-          {[1,2].map(i => <div key={i} className="h-2 w-full rounded bg-[#E5E7EB]" />)}
-        </div>
-        <div className="mt-auto pt-2 flex justify-between">
-          <div className="h-2 w-8 rounded bg-[#9CA3AF]/40" />
-          <div className="h-2 w-10 rounded bg-[#4A6FA5]" />
-        </div>
-      </>
-    ),
-    Compact: (
-      <>
-        <div className="flex items-center justify-between">
-          <div className="h-2 w-10 rounded bg-[#1A2332]" />
-          <div className="h-2 w-6 rounded bg-[#9CA3AF]/40" />
-        </div>
-        <div className="mt-1.5 space-y-1">
-          {[1,2,3,4].map(i => <div key={i} className="h-1 w-full rounded bg-[#E5E7EB]" />)}
-        </div>
-        <div className="mt-1.5 ml-auto h-1.5 w-8 rounded bg-[#4A6FA5]" />
-      </>
-    ),
-    Detailed: (
-      <>
-        <div className="h-3 w-10 rounded bg-[#1A2332]" />
-        <div className="mt-1 h-1.5 w-full rounded bg-[#9CA3AF]/30" />
-        <div className="mt-2 space-y-1">
-          {[1,2,3,4,5].map(i => (
-            <div key={i} className="flex gap-1">
-              <div className="h-1.5 w-8 rounded bg-[#E5E7EB]" />
-              <div className="h-1.5 flex-1 rounded bg-[#E5E7EB]" />
-              <div className="h-1.5 w-6 rounded bg-[#9CA3AF]/40" />
-            </div>
-          ))}
-        </div>
-      </>
-    ),
-  };
+// Card thumb — a scaled-down render of the real sample document, matching the
+// Figma template cards (realistic mini page, not grey placeholder bars).
+function TemplatePreview({ kind, className, docType = "Estimate" }: { kind: string; className?: string; docType?: "Estimate" | "Invoice" }) {
   return (
-    <div className={className ?? "mb-2 h-24 rounded-lg bg-[#F5F7FA] border border-[#E5E7EB] p-2 flex flex-col overflow-hidden"}>
-      {variants[kind] ?? variants.Classic}
+    <div className={`${className ?? "mb-2 h-24"} relative rounded-lg bg-[#F5F7FA] border border-[#E5E7EB] overflow-hidden flex items-start justify-center`}>
+      <div className="origin-top shrink-0 pointer-events-none select-none" style={{ transform: "scale(0.19)", marginTop: "8px" }}>
+        <TemplatePreviewLarge kind={kind} docType={docType} />
+      </div>
     </div>
   );
 }
 
-// Larger preview used inside the modal
-function TemplatePreviewLarge({ kind }: { kind: string }) {
-  // Reuses the mini variant but at "letter paper" proportions
-  const lines = (count: number, w = "100%") => (
-    Array.from({ length: count }).map((_, i) => (
-      <div key={i} className="h-2 rounded bg-[#E5E7EB]" style={{ width: w }} />
-    ))
+// Larger preview used inside the modal — a realistic filled-in sample document
+// (Omega seed data) so the user sees what each template actually looks like.
+function TemplatePreviewLarge({ kind, docType = "Estimate" }: { kind: string; docType?: "Estimate" | "Invoice" }) {
+  const isInvoice = docType === "Invoice";
+  const docNo = isInvoice ? "INV-2071" : "EST-1042";
+  const baseItems = [
+    { name: "AC Tune-Up (flat rate)", desc: "Comprehensive AC system tune-up and inspection", qty: 1, rate: 89, total: 89 },
+    { name: "Capacitor Replacement", desc: "Replace run capacitor – includes labor and capacitor", qty: 1, rate: 289, total: 289 },
+    { name: "R-410A Refrigerant (per lb)", desc: "R-410A refrigerant recharge", qty: 2, rate: 24, total: 48 },
+    { name: "Drain Line Clearing", desc: "Clear primary drain line", qty: 1, rate: 159, total: 159 },
+  ];
+  const extraItems = [
+    { name: "Thermostat Installation", desc: "Install new standard thermostat", qty: 1, rate: 149, total: 149 },
+    { name: "Filter Replacement", desc: "Replace air filter – includes filter and labor", qty: 1, rate: 49, total: 49 },
+  ];
+  const items = kind === "Compact" ? baseItems.slice(0, 3) : kind === "Detailed" ? [...baseItems, ...extraItems] : baseItems;
+  const subtotal = items.reduce((s, i) => s + i.total, 0);
+  const tax = Math.round(subtotal * 7) / 100;
+  const money = (n: number) => `$${n.toFixed(2)}`;
+  const showDesc = kind === "Detailed";
+
+  const companyBlock = (light = false) => (
+    <div>
+      <div className={`text-[13px] leading-4 ${light ? "text-white" : "text-[#1A2332]"}`} style={{ fontWeight: 700 }}>Omega Home Services</div>
+      <div className={`mt-1 text-[9px] leading-[13px] ${light ? "text-white/70" : "text-[#6B7280]"}`}>
+        2201 W Azeele St, Tampa, FL 33609<br />(813) 555-0134 · office@omega-home.com
+      </div>
+    </div>
   );
-  const headerVariants: Record<string, React.ReactNode> = {
-    Classic: (
-      <>
-        <div className="flex items-start justify-between">
-          <div>
-            <div className="h-5 w-32 rounded bg-[#1A2332]" />
-            <div className="mt-2 h-2 w-40 rounded bg-[#9CA3AF]/40" />
-            <div className="mt-1 h-2 w-28 rounded bg-[#9CA3AF]/40" />
-          </div>
-          <div className="text-right">
-            <div className="h-4 w-20 rounded bg-[#4A6FA5] ml-auto" />
-            <div className="mt-2 h-2 w-16 rounded bg-[#9CA3AF]/40 ml-auto" />
-            <div className="mt-1 h-2 w-12 rounded bg-[#9CA3AF]/40 ml-auto" />
-          </div>
-        </div>
-      </>
-    ),
+  const docMeta = (right = true, light = false) => (
+    <div className={right ? "text-right" : ""}>
+      <div className={`text-[13px] leading-4 tracking-wide uppercase ${light ? "text-white" : "text-[#4A6FA5]"}`} style={{ fontWeight: 700 }}>{docType}</div>
+      <div className={`mt-1 text-[9px] leading-[13px] ${light ? "text-white/70" : "text-[#6B7280]"}`}>
+        {docNo} · Aug 5, 2026<br />{isInvoice ? "Due: Aug 19, 2026" : "Expires: Sep 4, 2026"}
+      </div>
+    </div>
+  );
+
+  const header: Record<string, React.ReactNode> = {
+    Classic: <div className="flex items-start justify-between">{companyBlock()}{docMeta()}</div>,
     Modern: (
-      <div className="bg-[#4A6FA5] -mx-8 -mt-8 px-8 py-6 mb-6">
-        <div className="h-5 w-32 rounded bg-white/80" />
-        <div className="mt-2 h-2 w-40 rounded bg-white/40" />
+      <div className="bg-[#4A6FA5] -mx-8 -mt-8 px-8 py-5 mb-2 flex items-start justify-between">
+        {companyBlock(true)}{docMeta(true, true)}
       </div>
     ),
     Compact: (
-      <div className="flex items-center justify-between pb-3 border-b border-[#E5E7EB]">
-        <div className="h-4 w-24 rounded bg-[#1A2332]" />
-        <div className="h-3 w-20 rounded bg-[#9CA3AF]/40" />
+      <div className="flex items-center justify-between pb-2 border-b border-[#E5E7EB]">
+        <div className="text-[12px] text-[#1A2332]" style={{ fontWeight: 700 }}>Omega Home Services</div>
+        <div className="text-[10px] text-[#6B7280]">{docType} {docNo} · Aug 5, 2026</div>
       </div>
     ),
     Detailed: (
       <>
-        <div className="h-5 w-40 rounded bg-[#1A2332]" />
-        <div className="mt-2 grid grid-cols-3 gap-2">
-          <div className="h-2 rounded bg-[#9CA3AF]/40" />
-          <div className="h-2 rounded bg-[#9CA3AF]/40" />
-          <div className="h-2 rounded bg-[#9CA3AF]/40" />
+        <div className="flex items-start justify-between">{companyBlock()}{docMeta()}</div>
+        <div className="mt-2 grid grid-cols-3 gap-2 text-[8.5px] leading-3 text-[#6B7280]">
+          <div>License #CAC1817425</div>
+          <div>EIN 59-3204817</div>
+          <div>omega-home.com</div>
         </div>
-        <div className="mt-3 h-px bg-[#E5E7EB]" />
+        <div className="mt-2 h-px bg-[#E5E7EB]" />
       </>
     ),
   };
+
   return (
-    <div className="w-[440px] bg-white border border-[#E5E7EB] shadow-sm rounded-md p-8" style={{ aspectRatio: "8.5 / 11" }}>
-      {headerVariants[kind] ?? headerVariants.Classic}
-      <div className="mt-6 space-y-1.5">
-        {lines(4)}
+    <div className="w-[440px] bg-white border border-[#E5E7EB] shadow-sm rounded-md p-8 flex flex-col" style={{ aspectRatio: "8.5 / 11" }}>
+      {header[kind] ?? header.Classic}
+
+      {/* Bill to */}
+      <div className="mt-4">
+        <div className="text-[8.5px] uppercase tracking-wide text-[#9CA3AF]" style={{ fontWeight: 600 }}>Bill to</div>
+        <div className="mt-0.5 text-[10px] leading-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Travis Jones</div>
+        <div className="text-[9px] leading-[13px] text-[#6B7280]">4405 North Clark Avenue, Tampa, FL 33614</div>
       </div>
-      <div className="mt-6 grid grid-cols-[1fr_60px_60px_60px] gap-2 pb-1 border-b border-[#E5E7EB]">
-        <div className="h-2 rounded bg-[#1A2332]" />
-        <div className="h-2 rounded bg-[#1A2332]" />
-        <div className="h-2 rounded bg-[#1A2332]" />
-        <div className="h-2 rounded bg-[#1A2332]" />
+
+      {/* Line items */}
+      <div className="mt-4 grid grid-cols-[1fr_36px_56px_56px] gap-2 pb-1 border-b border-[#1A2332] text-[8.5px] uppercase tracking-wide text-[#1A2332]" style={{ fontWeight: 700 }}>
+        <div>Item</div><div className="text-right">Qty</div><div className="text-right">Rate</div><div className="text-right">Total</div>
       </div>
-      <div className="mt-2 space-y-2">
-        {Array.from({ length: kind === "Detailed" ? 7 : kind === "Compact" ? 3 : 5 }).map((_, i) => (
-          <div key={i} className="grid grid-cols-[1fr_60px_60px_60px] gap-2">
-            <div className="h-2 rounded bg-[#E5E7EB]" />
-            <div className="h-2 rounded bg-[#E5E7EB]" />
-            <div className="h-2 rounded bg-[#E5E7EB]" />
-            <div className="h-2 rounded bg-[#E5E7EB]" />
+      <div className="divide-y divide-[#F0F2F5]">
+        {items.map((it) => (
+          <div key={it.name} className="py-1.5 grid grid-cols-[1fr_36px_56px_56px] gap-2 text-[9.5px] leading-[13px]">
+            <div>
+              <span className="text-[#1A2332]" style={{ fontWeight: 500 }}>{it.name}</span>
+              {showDesc && <div className="text-[8.5px] text-[#9CA3AF]">{it.desc}</div>}
+            </div>
+            <div className="text-right text-[#6B7280]">{it.qty}</div>
+            <div className="text-right text-[#6B7280]">{money(it.rate)}</div>
+            <div className="text-right text-[#1A2332]" style={{ fontWeight: 500 }}>{money(it.total)}</div>
           </div>
         ))}
       </div>
-      <div className="mt-6 ml-auto w-40 space-y-1.5">
-        <div className="flex justify-between">
-          <div className="h-2 w-16 rounded bg-[#9CA3AF]/40" />
-          <div className="h-2 w-12 rounded bg-[#9CA3AF]/40" />
+
+      {/* Totals */}
+      <div className="mt-3 ml-auto w-44 space-y-1 text-[9.5px]">
+        <div className="flex justify-between text-[#6B7280]"><span>Subtotal</span><span>{money(subtotal)}</span></div>
+        <div className="flex justify-between text-[#6B7280]"><span>Sales tax (7%)</span><span>{money(tax)}</span></div>
+        <div className="flex justify-between border-t border-[#E5E7EB] pt-1 text-[11px] text-[#1A2332]" style={{ fontWeight: 700 }}>
+          <span>Total</span><span className="text-[#4A6FA5]">{money(subtotal + tax)}</span>
         </div>
-        <div className="flex justify-between">
-          <div className="h-2 w-16 rounded bg-[#9CA3AF]/40" />
-          <div className="h-2 w-12 rounded bg-[#9CA3AF]/40" />
-        </div>
-        <div className="flex justify-between border-t border-[#E5E7EB] pt-1.5">
-          <div className="h-3 w-20 rounded bg-[#1A2332]" />
-          <div className="h-3 w-16 rounded bg-[#4A6FA5]" />
+      </div>
+
+      {/* Notes / terms */}
+      <div className="mt-auto pt-4">
+        <div className="text-[8.5px] uppercase tracking-wide text-[#9CA3AF]" style={{ fontWeight: 600 }}>Notes</div>
+        <div className="mt-0.5 text-[9px] leading-[13px] text-[#6B7280]">
+          {isInvoice
+            ? "Payment due within 14 days. We accept card, ACH and check. Thank you for your business!"
+            : "Estimate valid for 30 days. A 50% deposit is required to schedule the work."}
         </div>
       </div>
     </div>
@@ -1354,14 +1346,15 @@ function ItemsPreferences() {
     setItemTypes([...itemTypes, { id: `it${Date.now()}`, label: v, ...c }]);
     setNewItemType("");
   };
-  const [categories, setCategories] = useState<string[]>([
-    "Plumbing", "Electrical", "HVAC", "Maintenance", "Parts",
-  ]);
+  // Categories — ONE company-wide list (FR-16.6: "a single customizable list,
+  // not scoped to item type"), shared with the Create-item form and the
+  // Item-detail edit modal via categoriesStore.
+  const categories = useSyncExternalStore(categoriesStore.subscribe, categoriesStore.getSnapshot);
   const [newCategory, setNewCategory] = useState("");
   const addCategory = () => {
     const v = newCategory.trim();
-    if (!v || categories.includes(v)) return;
-    setCategories([...categories, v]);
+    if (!v) return;
+    categoriesStore.add(v);
     setNewCategory("");
   };
   const [vendors, setVendors] = useState([
@@ -1468,7 +1461,7 @@ function ItemsPreferences() {
 
       {/* Categories (Figma 287:18401: add row on top + editable grid with colored icons).
           id anchors the "Manage categories in Settings > Items > Categories" links. */}
-      <SectionCard id="item-categories" title="Categories" description="Free-form labels used to group items in the catalog (e.g. by trade, by storage location).">
+      <SectionCard id="item-categories" title="Categories" description="One company-wide list used to group items in the catalog — these are the options offered in the Create-item and Edit-item Category dropdowns.">
         <div className="mt-3 flex w-[422px] gap-3">
           <Input
             value={newCategory}
@@ -1486,19 +1479,20 @@ function ItemsPreferences() {
             {categories.map((c, idx) => {
               const clr = LABEL_COLORS[idx % LABEL_COLORS.length];
               return (
-                <div key={c} className={rowBox}>
+                <div key={idx} className={rowBox}>
                   <div className="shrink-0 h-8 w-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: clr.bg }}>
                     <span className="material-icons" style={{ fontSize: "15px", color: clr.color }}>edit</span>
                   </div>
                   <input
                     value={c}
-                    onChange={e => setCategories(categories.map(x => x === c ? e.target.value : x))}
+                    onChange={e => categoriesStore.rename(c, e.target.value)}
+                    onBlur={e => { const v = e.target.value.trim(); if (!v) categoriesStore.remove(e.target.value); else if (v !== e.target.value) categoriesStore.rename(e.target.value, v); }}
                     className="min-w-0 flex-1 rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5 text-[13px] text-[#1A2332] outline-none focus:border-[#4A6FA5]"
                     style={{ fontWeight: 500 }}
                   />
                   <button
                     type="button"
-                    onClick={() => setCategories(categories.filter(x => x !== c))}
+                    onClick={() => categoriesStore.remove(c)}
                     className={trashBtn}
                     title="Remove category"
                   >
@@ -1683,19 +1677,161 @@ function EstimateValidityCard() {
   );
 }
 
+// Expense categories (FR-16.8) — the category dropdown on the expense form and
+// the Categories quick filter on the Expenses list both read this list.
+function ExpenseCategoriesCard() {
+  const cats = useSyncExternalStore(expenseCategoriesStore.subscribe, expenseCategoriesStore.getSnapshot);
+  const [newCat, setNewCat] = useState("");
+  const add = () => {
+    const v = newCat.trim();
+    if (!v) return;
+    if (cats.some(c => c.toLowerCase() === v.toLowerCase())) { toast.error("That category already exists"); return; }
+    expenseCategoriesStore.add(v);
+    setNewCat("");
+  };
+  return (
+    <SectionCard title="Expense categories" description="Used on the expense form and as the Categories filter on the Expenses list.">
+      <div className="mt-1 flex w-[422px] gap-3">
+        <Input
+          value={newCat}
+          onChange={e => setNewCat(e.target.value)}
+          placeholder="Add category (e.g. Permits, Insurance)"
+          className="h-9 flex-1 border-[#E5E7EB] text-[13px] shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
+          onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); add(); } }}
+        />
+        <Button disabled={!newCat.trim()} className="h-9 w-[59px] rounded-lg bg-[#4A6FA5] px-4 text-[13px] text-white hover:bg-[#3d5a85] disabled:opacity-50" onClick={add}>Add</Button>
+      </div>
+      <div className="mt-3 grid grid-cols-3 gap-3">
+        {cats.map((c, idx) => {
+          const clr = LABEL_COLORS[idx % LABEL_COLORS.length];
+          return (
+            <div key={idx} className="flex items-center gap-3 rounded-lg border border-[#E5E7EB] px-3 py-2">
+              <div className="shrink-0 h-8 w-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: clr.bg }}>
+                <span className="material-icons" style={{ fontSize: "15px", color: clr.color }}>receipt_long</span>
+              </div>
+              <input
+                value={c}
+                onChange={e => expenseCategoriesStore.rename(c, e.target.value)}
+                onBlur={e => { const v = e.target.value.trim(); if (!v) expenseCategoriesStore.remove(e.target.value); else if (v !== e.target.value) expenseCategoriesStore.rename(e.target.value, v); }}
+                className="min-w-0 flex-1 rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5 text-[13px] text-[#1A2332] outline-none focus:border-[#4A6FA5]"
+                style={{ fontWeight: 500 }}
+              />
+              <button
+                type="button"
+                onClick={() => { expenseCategoriesStore.remove(c); toast.success("Category removed"); }}
+                className="shrink-0 h-9 w-9 rounded-lg border border-[#E5E7EB] bg-white text-[#9CA3AF] hover:bg-[#FEF2F2] hover:border-[#FECACA] hover:text-[#DC2626] flex items-center justify-center"
+                title="Remove category"
+              >
+                <span className="material-icons" style={{ fontSize: "18px" }}>delete_outline</span>
+              </button>
+            </div>
+          );
+        })}
+        {cats.length === 0 && <div className="col-span-3 text-[13px] text-[#9CA3AF]">No expense categories yet.</div>}
+      </div>
+    </SectionCard>
+  );
+}
+
+// Estimate types (FR-16.5) — managed here like job types (FR-16.4); the list
+// feeds the estimate form's type picker (FR-5.19), list filters and reports.
+function EstimateTypesCard() {
+  const types = useSyncExternalStore(estimateTypesStore.subscribe, estimateTypesStore.getSnapshot);
+  const [newType, setNewType] = useState("");
+  const add = () => {
+    const v = newType.trim();
+    if (!v) return;
+    if (types.some(t => t.toLowerCase() === v.toLowerCase())) { toast.error("That type already exists"); return; }
+    estimateTypesStore.add(v);
+    setNewType("");
+  };
+  return (
+    <SectionCard title="Estimate types" description="Classifies estimates on the create form; also drives the Type filter on the Estimates list and the estimate reports.">
+      <div className="mt-1 flex w-[422px] gap-3">
+        <Input
+          value={newType}
+          onChange={e => setNewType(e.target.value)}
+          placeholder="Add estimate type (e.g. Repair, Installation)"
+          className="h-9 flex-1 border-[#E5E7EB] text-[13px] shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
+          onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); add(); } }}
+        />
+        <Button disabled={!newType.trim()} className="h-9 w-[59px] rounded-lg bg-[#4A6FA5] px-4 text-[13px] text-white hover:bg-[#3d5a85] disabled:opacity-50" onClick={add}>Add</Button>
+      </div>
+      <div className="mt-3 grid grid-cols-3 gap-3">
+        {types.map((t, idx) => {
+          const clr = LABEL_COLORS[idx % LABEL_COLORS.length];
+          return (
+            <div key={idx} className="flex items-center gap-3 rounded-lg border border-[#E5E7EB] px-3 py-2">
+              <div className="shrink-0 h-8 w-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: clr.bg }}>
+                <span className="material-icons" style={{ fontSize: "15px", color: clr.color }}>description</span>
+              </div>
+              <input
+                value={t}
+                onChange={e => estimateTypesStore.rename(t, e.target.value)}
+                onBlur={e => { const v = e.target.value.trim(); if (!v) estimateTypesStore.remove(e.target.value); else if (v !== e.target.value) estimateTypesStore.rename(e.target.value, v); }}
+                className="min-w-0 flex-1 rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5 text-[13px] text-[#1A2332] outline-none focus:border-[#4A6FA5]"
+                style={{ fontWeight: 500 }}
+              />
+              <button
+                type="button"
+                onClick={() => { estimateTypesStore.remove(t); toast.success("Estimate type removed"); }}
+                className="shrink-0 h-9 w-9 rounded-lg border border-[#E5E7EB] bg-white text-[#9CA3AF] hover:bg-[#FEF2F2] hover:border-[#FECACA] hover:text-[#DC2626] flex items-center justify-center"
+                title="Remove type"
+              >
+                <span className="material-icons" style={{ fontSize: "18px" }}>delete_outline</span>
+              </button>
+            </div>
+          );
+        })}
+        {types.length === 0 && <div className="col-span-3 text-[13px] text-[#9CA3AF]">No estimate types yet.</div>}
+      </div>
+    </SectionCard>
+  );
+}
+
+// Estimate rules (Figma 261:15834) — Signature toggle, Payment terms and the
+// Default expiration field. Expiration is the same value as the Estimate
+// validity card (estimateSettingsStore), so the two stay in sync.
+function EstimateRulesCard() {
+  const settings = useSyncExternalStore(estimateSettingsStore.subscribe, estimateSettingsStore.getSnapshot);
+  return (
+    <SectionCard title="Estimate rules">
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-1">
+          <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Signature</div>
+          <div className="flex items-center gap-2 py-2">
+            <Switch defaultChecked />
+            <span className="text-[14px] text-[#1A2332]">Require client signature before proceeding</span>
+          </div>
+        </div>
+        <div className="flex flex-col gap-1">
+          <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Payment terms</div>
+          <Input defaultValue="Payment is due within 15 days of approval." className="h-9 border-[#E5E7EB] shadow-[0_1px_2px_rgba(0,0,0,0.05)]" />
+        </div>
+        <div className="flex flex-col gap-1">
+          <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Default expiration (days)</div>
+          <Input
+            type="number"
+            min={0}
+            max={365}
+            value={String(settings.defaultValidityDays)}
+            onChange={(e) => estimateSettingsStore.setDefaultValidityDays(Number(e.target.value))}
+            className="h-9 w-[420px] border-[#E5E7EB] shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
+          />
+          <p className="text-[12px] leading-4 text-[#6B7280]">Estimates default to this many days after creation (e.g. 30). Editable per estimate.</p>
+        </div>
+      </div>
+    </SectionCard>
+  );
+}
+
 // Invoices Preferences — Marek's spec
 function InvoicesPreferences({ templateCards }: { templateCards: { title: string; description: string }[] }) {
   const [selectedTemplate, setSelectedTemplate] = useState<string>("Classic");
   const [previewTemplate, setPreviewTemplate] = useState<string | null>(null);
-  const [numberingPrefix, setNumberingPrefix] = useState("INV-");
-  const [nextNumber, setNextNumber] = useState("1003");
-  const [zeroPad, setZeroPad] = useState("4");
-  const [requireDeposit, setRequireDeposit] = useState(false);
-  const [depositPercent, setDepositPercent] = useState("25");
-  const [paymentTerms, setPaymentTerms] = useState(["Due on receipt", "Net 15", "Net 30", "Net 45", "Net 60"]);
+  const [requireDeposit, setRequireDeposit] = useState(true);
+  const [paymentTerms, setPaymentTerms] = useState(["Due on receipt", "Net 15", "Net 30", "Net 60"]);
   const [newPaymentTerm, setNewPaymentTerm] = useState("");
-  const [discountTypes, setDiscountTypes] = useState(["Senior", "Veteran", "Promo Code", "Loyalty"]);
-  const [newDiscount, setNewDiscount] = useState("");
   const [requireSig, setRequireSig] = useState(true);
   const [requireSigInvoice, setRequireSigInvoice] = useState(false);
 
@@ -1716,7 +1852,7 @@ function InvoicesPreferences({ templateCards }: { templateCards: { title: string
                     : "border-[#E5E7EB] hover:border-[#C8D5E8] bg-white"
                 }`}
               >
-                <TemplatePreview kind={card.title} className="h-[120px] rounded-lg bg-[#F5F7FA] border border-[#E5E7EB] p-2.5 flex flex-col overflow-hidden" />
+                <TemplatePreview kind={card.title} docType="Invoice" className="h-[120px] rounded-lg bg-[#F5F7FA] border border-[#E5E7EB] p-2.5 flex flex-col overflow-hidden" />
                 <div className="mt-2 text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>{card.title}</div>
                 <p className="mt-0.5 text-[12px] leading-4 text-[#546478]">{card.description}</p>
                 <button
@@ -1746,7 +1882,7 @@ function InvoicesPreferences({ templateCards }: { templateCards: { title: string
                 </button>
               </div>
               <div className="flex-1 overflow-auto bg-[#F5F7FA] p-6 flex items-start justify-center">
-                <TemplatePreviewLarge kind={previewTemplate} />
+                <TemplatePreviewLarge kind={previewTemplate} docType="Invoice" />
               </div>
               <div className="px-6 py-4 border-t border-[#E5E7EB] flex items-center justify-end gap-3 bg-white">
                 <Button type="button" variant="outline" onClick={() => setPreviewTemplate(null)} className="border-[#E5E7EB] text-[#546478] hover:bg-[#EDF0F5] h-10 px-6">Close</Button>
@@ -1757,28 +1893,7 @@ function InvoicesPreferences({ templateCards }: { templateCards: { title: string
         )}
       </SectionCard>
 
-      {/* Numbering (Figma 264:5793) */}
-      <SectionCard title="Numbering" description="How invoice numbers are generated.">
-        <div className="mt-3 grid grid-cols-3 gap-4">
-          <div>
-            <label className="mb-1.5 block text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>Prefix</label>
-            <Input value={numberingPrefix} onChange={e => setNumberingPrefix(e.target.value)} className="h-9 border-[#E5E7EB] shadow-[0_1px_2px_rgba(0,0,0,0.05)]" />
-          </div>
-          <div>
-            <label className="mb-1.5 block text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>Next number</label>
-            <Input value={nextNumber} onChange={e => setNextNumber(e.target.value.replace(/\D/g, "").slice(0, 8))} className="h-9 border-[#E5E7EB] shadow-[0_1px_2px_rgba(0,0,0,0.05)]" />
-          </div>
-          <div>
-            <label className="mb-1.5 block text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>Zero-pad to</label>
-            <select value={zeroPad} onChange={e => setZeroPad(e.target.value)} className="h-9 w-full rounded-lg border border-[#E5E7EB] bg-white px-3 text-[14px] text-[#1A2332] shadow-[0_1px_2px_rgba(0,0,0,0.05)] outline-none focus:border-[#4A6FA5]">
-              {["3", "4", "5", "6"].map(n => <option key={n} value={n}>{n} digits</option>)}
-            </select>
-          </div>
-        </div>
-        <p className="mt-2 text-[12px] text-[#6B7280]">Preview: {numberingPrefix}{nextNumber.padStart(Number(zeroPad), "0")}</p>
-      </SectionCard>
-
-      {/* Deposits */}
+      {/* Deposits (Figma 264:5793) */}
       <SectionCard title="Deposits" description="Collect a deposit when the customer accepts an estimate or signs an invoice.">
         <div className="flex items-center justify-between gap-4 rounded-lg border border-[#E5E7EB] px-4 py-4">
           <div className="flex-1">
@@ -1787,60 +1902,24 @@ function InvoicesPreferences({ templateCards }: { templateCards: { title: string
           </div>
           <Switch checked={requireDeposit} onCheckedChange={setRequireDeposit} />
         </div>
-        {requireDeposit && (
-          <div className="mt-3 pt-3 border-t border-[#E5E7EB] flex items-center gap-3">
-            <span className="text-[13px] text-[#1A2332]">Default deposit:</span>
-            <Input value={depositPercent} onChange={e => setDepositPercent(e.target.value.replace(/\D/g, "").slice(0, 3))} className="h-9 w-20 border-[#D8DEE8]" />
-            <span className="text-[13px] text-[#6B7280]">% of total</span>
-          </div>
-        )}
       </SectionCard>
 
-      {/* Financing */}
-      <SectionCard title="Financing" description="Offer the customer a financing plan instead of paying in full.">
-        <div className="rounded-lg border border-dashed border-[#D8E3F4] bg-[#F8FBFF] px-4 py-5 text-center">
-          <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "28px" }}>credit_score</span>
-          <div className="text-[13px] text-[#1A2332] mt-1" style={{ fontWeight: 600 }}>Lender integration coming soon</div>
-          <div className="text-[12px] text-[#6B7280] mt-1">Wells Fargo, GreenSky and Synchrony brochures will plug in here.</div>
-        </div>
-      </SectionCard>
-
-      {/* Discounts (Figma 264:5793) */}
-      <SectionCard title="Discounts" description="Predefined discount labels available on estimates and invoices.">
-        <div className="mt-3 flex gap-2">
-          <Input value={newDiscount} onChange={e => setNewDiscount(e.target.value)} placeholder="Add discount label" className="h-9 max-w-[320px] border-[#E5E7EB] text-[13px] shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
-            onKeyDown={e => { if (e.key === "Enter") { const v = newDiscount.trim(); if (!v || discountTypes.includes(v)) return; setDiscountTypes([...discountTypes, v]); setNewDiscount(""); }}}
+      {/* Payment Terms (Figma 264:5793): add-input on top, chips below */}
+      <SectionCard title="Payment Terms" description="Selectable terms shown on invoice creation.">
+        <div className="flex gap-2">
+          <Input value={newPaymentTerm} onChange={e => setNewPaymentTerm(e.target.value)} placeholder="Add term (e.g. Net 45)" className="h-9 max-w-[350px] border-[#D8DEE8] text-[13px]"
+            onKeyDown={e => { if (e.key === "Enter") { const v = newPaymentTerm.trim(); if (!v || paymentTerms.includes(v)) return; setPaymentTerms([...paymentTerms, v]); setNewPaymentTerm(""); }}}
           />
-          <Button disabled={!newDiscount.trim()} className="h-9 bg-[#4A6FA5] px-4 text-[13px] hover:bg-[#3d5a85]"
-            onClick={() => { const v = newDiscount.trim(); if (!v || discountTypes.includes(v)) return; setDiscountTypes([...discountTypes, v]); setNewDiscount(""); }}>Add</Button>
+          <Button disabled={!newPaymentTerm.trim()} className="h-9 bg-[#4A6FA5] px-4 text-[13px] hover:bg-[#3d5a85] disabled:opacity-50"
+            onClick={() => { const v = newPaymentTerm.trim(); if (!v || paymentTerms.includes(v)) return; setPaymentTerms([...paymentTerms, v]); setNewPaymentTerm(""); }}>Add</Button>
         </div>
         <div className="mt-3 flex flex-wrap gap-2">
-          {discountTypes.map(d => (
-            <span key={d} className="flex items-center gap-1 rounded-full border border-[#E5E7EB] bg-[#F8FAFC] px-3 py-1.5 text-[13px] text-[#1A2332]">
-              {d}
-              <button onClick={() => setDiscountTypes(discountTypes.filter(x => x !== d))} className="ml-1 text-[#9AA3AF] hover:text-[#DC2626]">×</button>
-            </span>
-          ))}
-          {discountTypes.length === 0 && <span className="text-[13px] text-[#9CA3AF]">No discount labels yet.</span>}
-        </div>
-      </SectionCard>
-
-      {/* Payment Terms */}
-      <SectionCard title="Payment Terms" description="Selectable terms shown on invoice creation.">
-        <div className="flex flex-wrap gap-2">
           {paymentTerms.map(t => (
             <span key={t} className="flex items-center gap-1 rounded-full border border-[#E5E7EB] bg-[#F8FAFC] px-3 py-1.5 text-[13px] text-[#1A2332]">
               {t}
               <button onClick={() => setPaymentTerms(paymentTerms.filter(x => x !== t))} className="ml-1 text-[#9AA3AF] hover:text-[#DC2626]">×</button>
             </span>
           ))}
-        </div>
-        <div className="mt-3 flex gap-2">
-          <Input value={newPaymentTerm} onChange={e => setNewPaymentTerm(e.target.value)} placeholder="Add term (e.g. Net 45)" className="h-9 max-w-[320px] border-[#D8DEE8] text-[13px]"
-            onKeyDown={e => { if (e.key === "Enter") { const v = newPaymentTerm.trim(); if (!v || paymentTerms.includes(v)) return; setPaymentTerms([...paymentTerms, v]); setNewPaymentTerm(""); }}}
-          />
-          <Button className="h-9 bg-[#4A6FA5] px-4 text-[13px] hover:bg-[#3d5a85]"
-            onClick={() => { const v = newPaymentTerm.trim(); if (!v || paymentTerms.includes(v)) return; setPaymentTerms([...paymentTerms, v]); setNewPaymentTerm(""); }}>Add</Button>
         </div>
       </SectionCard>
 
@@ -1876,13 +1955,14 @@ function InvoicesPreferences({ templateCards }: { templateCards: { title: string
             <textarea defaultValue="Paid in full. Thank you for your business." className="min-h-[76px] w-full rounded-lg border border-[#E5E7EB] px-3 py-2 text-[14px] shadow-[0_1px_2px_rgba(0,0,0,0.05)] outline-none focus:border-[#4A6FA5] focus:ring-2 focus:ring-[#4A6FA5]/20 resize-y" />
           </div>
         </div>
-
-        {/* Footer — Save / Cancel attached */}
-        <div className="mt-5 -mx-5 -mb-5 px-5 py-4 border-t border-[#E1E6EF] flex items-center justify-end gap-3 bg-white rounded-b-xl">
-          <Button type="button" variant="outline" onClick={() => toast.info("Changes discarded")} className="border-[#E5E7EB] text-[#546478] hover:bg-[#EDF0F5] h-10 px-6">Cancel</Button>
-          <Button type="button" onClick={() => toast.success("Invoice preferences saved")} className="bg-[#4A6FA5] hover:bg-[#3d5a85] text-white h-10 px-6" style={{ fontWeight: 600 }}>Save changes</Button>
-        </div>
       </SectionCard>
+
+      {/* Page-level save (Figma: bottom-right, mirrors the header button) */}
+      <div className="flex justify-end">
+        <Button type="button" disabled className="h-9 rounded-lg bg-[#4A6FA5] px-4 text-[14px] text-white opacity-50" style={{ fontWeight: 500 }}>
+          Save changes
+        </Button>
+      </div>
     </>
   );
 }
@@ -2099,6 +2179,10 @@ function FinanceCenterSection() {
             QuickBooks export of expenses opens up once the QuickBooks integration is enabled in Integrations.
           </p>
         </SectionCard>
+
+        {/* Expense categories (FR-16.8) — feeds the expense form's category
+            dropdown and the Categories quick filter on the Expenses list. */}
+        <ExpenseCategoriesCard />
 
         {/* Save changes */}
         <div className="flex justify-end pt-1">
@@ -2539,10 +2623,22 @@ export function Settings() {
   const [permissionRoles, setPermissionRoles] = useState<PermissionRole[]>(defaultPermissionRoles);
   const [newPermissionRole, setNewPermissionRole] = useState("");
   const [rbacRows, setRbacRows] = useState<RbacPermission[]>(defaultRbacPermissions);
-  // RPT-2 — per-report access (all granted by default) + which categories are expanded.
+  // RPT-2 — per-report access, edited inside the Invite/Edit-user modal.
+  // `reportAccess` is the modal's working copy; saved grants live in
+  // `memberReportAccess` keyed by the member's email.
   const [reportAccess, setReportAccess] = useState<Record<string, boolean>>(
     () => Object.fromEntries(allReportNames.map(name => [name, true]))
   );
+  const [memberReportAccess, setMemberReportAccess] = useState<Record<string, Record<string, boolean>>>({});
+  // FR-2b — full RBAC in the Invite/Edit-user modal. `editPerms`/`editPreset`
+  // are the modal's working copy; saved states live in `memberPerms` by email.
+  const [editPreset, setEditPreset] = useState<PresetId>("employee");
+  const [editUserPerms, setEditUserPerms] = useState<PermissionsState>(employeePreset);
+  const [memberPerms, setMemberPerms] = useState<Record<string, { preset: PresetId; perms: PermissionsState }>>({});
+  const [modalCustomPresets, setModalCustomPresets] = useState<CustomPreset[]>(() =>
+    loadCustomPresets().map(cp => ({ ...cp, permissions: ensureItemsPerm(cp.permissions) })),
+  );
+  useEffect(() => { saveCustomPresets(modalCustomPresets); }, [modalCustomPresets]);
   const emptyInvite = { name: "", email: "", role: "Employee" as AppRole, rate: "" };
   const [invite, setInvite] = useState(emptyInvite);
   // When set, the invite modal is in "edit existing member" mode (keyed by the
@@ -2570,7 +2666,6 @@ export function Settings() {
   // ── Jobs Preferences ──
   const [requireSigBeforeStart, setRequireSigBeforeStart] = useState(true);
   const [requireSigOnComplete, setRequireSigOnComplete] = useState(true);
-  const [requireParentSig, setRequireParentSig] = useState(false);
   type JobNote = { id: string; title: string; body: string };
   const [jobNotes, setJobNotes] = useState<JobNote[]>([
     { id: "jn1", title: "Authorization to Proceed",
@@ -2579,14 +2674,16 @@ export function Settings() {
   ]);
   // Job statuses — MVP starts with three core; additional ones can be added
   type JobStatus = { id: string; label: string; color: string; bg: string; icon: string; core?: boolean };
+  // Six built-in system statuses (Figma 254:21177); Dispatched ships as a
+  // removable custom status.
   const [jobStatuses, setJobStatuses] = useState<JobStatus[]>([
     { id: "unscheduled", label: "Unscheduled", color: "#6B7280", bg: "#F3F4F6", icon: "event_busy",     core: true },
     { id: "scheduled",  label: "Scheduled",   color: "#4A6FA5", bg: "#EBF0F8", icon: "event_note",   core: true },
-    { id: "dispatched", label: "Dispatched",  color: "#0891B2", bg: "#CFFAFE", icon: "local_shipping", core: true },
     { id: "inProgress", label: "In Progress", color: "#B45309", bg: "#FEF3C7", icon: "play_circle",  core: true },
     { id: "paused",     label: "Paused",      color: "#475569", bg: "#F1F5F9", icon: "pause_circle", core: true },
     { id: "completed",  label: "Completed",   color: "#15803D", bg: "#DCFCE7", icon: "check_circle", core: true },
-    { id: "cancelled",  label: "Cancelled",   color: "#DC2626", bg: "#FEE2E2", icon: "cancel" },
+    { id: "cancelled",  label: "Cancelled",   color: "#DC2626", bg: "#FEE2E2", icon: "cancel",       core: true },
+    { id: "dispatched", label: "Dispatched",  color: "#0891B2", bg: "#CFFAFE", icon: "local_shipping" },
   ]);
   // Palette for custom statuses
   const STATUS_PALETTE: { color: string; bg: string; icon: string }[] = [
@@ -2669,6 +2766,12 @@ export function Settings() {
   const editMember = (member: { name: string; email: string; role: AppRole; rate: string }) => {
     setEditingKey(member.email);
     setInvite({ name: member.name, email: member.email, role: member.role, rate: member.rate });
+    setReportAccess(memberReportAccess[member.email] ?? Object.fromEntries(allReportNames.map(name => [name, true])));
+    // Seed RBAC from the saved per-member state, else default by role.
+    const saved = memberPerms[member.email];
+    if (saved) { setEditPreset(saved.preset); setEditUserPerms(ensureItemsPerm(saved.perms)); }
+    else if (member.role === "Admin") { setEditPreset("admin"); setEditUserPerms(adminPreset); }
+    else { setEditPreset("employee"); setEditUserPerms(employeePreset); }
     setInviteOpen(true);
   };
   const submitInvite = () => {
@@ -2677,6 +2780,20 @@ export function Settings() {
       return;
     }
     const rate = invite.rate.trim() ? (invite.rate.includes("/") ? invite.rate : `$${invite.rate}/hr`) : "$0/hr";
+    // Persist the modal's report-access grants under the member's (new) email.
+    setMemberReportAccess(prev => {
+      const next = { ...prev };
+      if (editingKey && editingKey !== invite.email.trim()) delete next[editingKey];
+      next[invite.email.trim()] = reportAccess;
+      return next;
+    });
+    // Persist the RBAC state the same way (FR-2b).
+    setMemberPerms(prev => {
+      const next = { ...prev };
+      if (editingKey && editingKey !== invite.email.trim()) delete next[editingKey];
+      next[invite.email.trim()] = { preset: editPreset, perms: editUserPerms };
+      return next;
+    });
     if (editingKey) {
       // Edit existing member — update by original email, preserving username/phone/status.
       setTeam(prev => prev.map(m => m.email === editingKey
@@ -3061,8 +3178,7 @@ export function Settings() {
           {activeSection === "companyProfile" && (
             <>
               <SectionHeader
-                title="Company Profile"
-                description="About your business, branding, social links, taxes, and regional settings."
+                title="Company profile"
                 action={
                   <Button
                     className="h-9 bg-[#4A6FA5] hover:bg-[#3d5a85] text-white px-4 text-[13px]"
@@ -3157,7 +3273,7 @@ export function Settings() {
                               Drop your files here, or{" "}
                               <span className="text-[#4A6FA5] underline underline-offset-2" style={{ fontWeight: 600 }}>click to browse</span>
                             </p>
-                            <p className="mt-0.5 text-[11px] text-[#9AA3AF]">PNG or JPG (max. 2MB)</p>
+                            <p className="mt-0.5 text-[11px] text-[#9AA3AF]">SVG, PNG, JPG or GIF (max. 3MB)</p>
                           </>
                         )}
                       </div>
@@ -3208,20 +3324,16 @@ export function Settings() {
                   </div>
                 </SectionCard>
 
-                <SectionCard title="Notifications" description="Control when the app notifies you about client activity.">
+                {/* Company-level notification defaults (FR-13.3/13.5) — users
+                    override these per person in Profile → Notifications. The
+                    event catalog is shared so both lists stay in step. */}
+                <SectionCard title="Notifications" description="Company defaults for job, estimate and payment events. Each user can adjust their own preferences in their profile.">
                   <div className="space-y-3">
-                    {[
-                      { label: "Estimate signed", sub: "Notify when a client signs an estimate" },
-                      { label: "Estimate viewed", sub: "Notify when a client views an estimate" },
-                      { label: "Customer requested change", sub: "Notify when a client requests a change" },
-                      { label: "Invoice signed", sub: "Notify when a client signs an invoice" },
-                      { label: "Payment received", sub: "Notify when a customer payment is received" },
-                      { label: "Invoice overdue", sub: "Notify when an invoice passes its due date" },
-                    ].map(n => (
-                      <div key={n.label} className="flex items-center justify-between rounded-lg border border-[#E5E7EB] px-4 py-3">
+                    {allNotificationEvents.map(n => (
+                      <div key={n.key} className="flex items-center justify-between rounded-lg border border-[#E5E7EB] px-4 py-3">
                         <div>
                           <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>{n.label}</div>
-                          <div className="text-[12px] text-[#7A8799]">{n.sub}</div>
+                          <div className="text-[12px] text-[#7A8799]">{n.description}</div>
                         </div>
                         <Switch defaultChecked />
                       </div>
@@ -3428,9 +3540,6 @@ export function Settings() {
                 </div>
               </div>
 
-              {/* Report access (RPT-2) — shared with the Invite-user form */}
-              <ReportAccessPanel value={reportAccess} onChange={setReportAccess} />
-
               {/* Invite user modal */}
               {inviteOpen && (
                 <div
@@ -3438,10 +3547,10 @@ export function Settings() {
                   onClick={closeInvite}
                 >
                   <div
-                    className="w-[460px] bg-white rounded-xl border border-[#E5E7EB] shadow-2xl overflow-hidden"
+                    className="w-[640px] max-w-[calc(100vw-32px)] bg-white rounded-xl border border-[#E5E7EB] shadow-2xl overflow-hidden flex flex-col max-h-[85vh]"
                     onClick={e => e.stopPropagation()}
                   >
-                    <div className="px-6 py-4 border-b border-[#E5E7EB] flex items-center justify-between">
+                    <div className="px-6 py-4 border-b border-[#E5E7EB] flex items-center justify-between shrink-0">
                       <h3 className="text-[16px] text-[#1A2332]" style={{ fontWeight: 600 }}>{editingKey ? "Edit user" : "Invite user"}</h3>
                       <button
                         onClick={closeInvite}
@@ -3450,7 +3559,7 @@ export function Settings() {
                         <span className="material-icons" style={{ fontSize: "20px" }}>close</span>
                       </button>
                     </div>
-                    <div className="p-6 flex flex-col gap-4">
+                    <div className="p-6 flex flex-col gap-4 overflow-y-auto">
                       <div>
                         <label className="block text-[14px] text-[#1A2332] mb-1" style={{ fontWeight: 500 }}>Name</label>
                         <input
@@ -3497,8 +3606,24 @@ export function Settings() {
                           />
                         </div>
                       </div>
+                      {/* Permissions (FR-2b) — the same full RBAC editor as the
+                          Invite-user page; Report access appears inside it when
+                          the Reports permission is on. */}
+                      <div className="rounded-xl border border-[#E5E7EB] p-4">
+                        <h4 className="text-[15px] text-[#1A2332] mb-4" style={{ fontWeight: 700 }}>Permissions</h4>
+                        <PermissionsEditor
+                          preset={editPreset}
+                          setPreset={setEditPreset}
+                          perms={editUserPerms}
+                          setPerms={setEditUserPerms}
+                          reportAccess={reportAccess}
+                          setReportAccess={setReportAccess}
+                          customPresets={modalCustomPresets}
+                          setCustomPresets={setModalCustomPresets}
+                        />
+                      </div>
                     </div>
-                    <div className="px-6 py-4 border-t border-[#E5E7EB] flex items-center justify-end gap-2">
+                    <div className="px-6 py-4 border-t border-[#E5E7EB] flex items-center justify-end gap-2 shrink-0">
                       <button
                         type="button"
                         onClick={closeInvite}
@@ -3807,7 +3932,7 @@ export function Settings() {
                             className={`h-[29px] rounded-lg px-2 text-[14px] leading-5 transition-colors ${mode === modeOption ? "bg-[#4A6FA5] text-white shadow-[0_1px_3px_rgba(0,0,0,0.1)]" : "text-[#6B7280] hover:bg-[#F5F7FA]"}`}
                             style={{ fontWeight: 500 }}
                           >
-                            {modeOption === "file" ? "File upload" : "Free text"}
+                            {modeOption === "file" ? "File upload" : "Free text & Link"}
                           </button>
                         ))}
                       </div>
@@ -4026,12 +4151,54 @@ export function Settings() {
 
           {activeSection === "localization" && (
             <>
-              <SectionHeader
-                title="Localization"
-                description="Country, language, time zone, date / time format, and week start. These apply across the app — calendar, documents, and any timestamp the user sees."
-              />
+              {/* Figma 2952:150467 — plain title; the description lives inside the card */}
+              <div className="mb-4 flex h-[52px] items-center">
+                <h1 className="text-[24px] leading-8 text-[#1A2332]" style={{ fontWeight: 600 }}>Localization</h1>
+              </div>
               <div className="space-y-4 pb-6">
                 <RegionalSettingsCard />
+
+                {/* Counties (Figma 2952:150467) — served by countiesStore; also the
+                    target of the "Manage counties" deep link on Create Client. */}
+                <SectionCard id="counties" title="Counties" description="Used in the billing address on Create Client and the County filter on the Clients list. Add the counties your company serves.">
+                  <div className="mt-1 flex w-[422px] gap-3">
+                    <Input
+                      value={newCountyName}
+                      onChange={e => setNewCountyName(e.target.value)}
+                      placeholder="Add county (e.g. Sarasota, Collier)"
+                      className="h-9 flex-1 border-[#E5E7EB] text-[13px] shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
+                      onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addCounty(); } }}
+                    />
+                    <Button disabled={!newCountyName.trim()} className="h-9 w-[59px] rounded-lg bg-[#4A6FA5] px-4 text-[13px] text-white hover:bg-[#3d5a85] disabled:opacity-50" onClick={addCounty}>Add</Button>
+                  </div>
+                  <div className="mt-3 grid grid-cols-3 gap-3">
+                    {counties.map(c => (
+                      <div key={c} className="flex items-center gap-3 rounded-lg border border-[#E5E7EB] px-3 py-2">
+                        <input
+                          value={c}
+                          onChange={e => countiesStore.renameCounty(c, e.target.value)}
+                          className="min-w-0 flex-1 rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5 text-[13px] text-[#1A2332] outline-none focus:border-[#4A6FA5]"
+                          style={{ fontWeight: 500 }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => { countiesStore.removeCounty(c); toast.success("County removed"); }}
+                          className="shrink-0 h-9 w-9 rounded-lg border border-[#E5E7EB] bg-white text-[#9CA3AF] hover:bg-[#FEF2F2] hover:border-[#FECACA] hover:text-[#DC2626] flex items-center justify-center"
+                          title="Remove county"
+                        >
+                          <span className="material-icons" style={{ fontSize: "18px" }}>delete_outline</span>
+                        </button>
+                      </div>
+                    ))}
+                    {counties.length === 0 && <div className="col-span-3 text-[13px] text-[#9CA3AF]">No counties yet.</div>}
+                  </div>
+                </SectionCard>
+
+                <div className="flex justify-end">
+                  <Button type="button" disabled className="h-9 rounded-lg bg-[#4A6FA5] px-4 text-[14px] text-white opacity-50" style={{ fontWeight: 500 }}>
+                    Save changes
+                  </Button>
+                </div>
               </div>
             </>
           )}
@@ -4040,6 +4207,9 @@ export function Settings() {
             <>
               <div className="mb-4 flex h-[52px] items-center justify-between">
                 <h1 className="text-[24px] leading-8 text-[#1A2332]" style={{ fontWeight: 600 }}>Relationships</h1>
+                <Button type="button" disabled className="h-9 rounded-lg bg-[#4A6FA5] px-4 text-[14px] text-white opacity-50" style={{ fontWeight: 500 }}>
+                  Save changes
+                </Button>
               </div>
               <div className="space-y-4 pb-6">
                 <SectionCard
@@ -4062,21 +4232,18 @@ export function Settings() {
                       Add
                     </Button>
                   </div>
-                  <div className="mt-3 grid grid-cols-3 gap-2">
+                  <div className="mt-3 grid grid-cols-3 gap-3">
                     {relationships.map(r => (
-                      <div key={r} className="flex items-center gap-3 rounded-lg border border-[#E5E7EB] px-3 py-2.5">
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#EEF3FA]">
-                          <span className="material-icons" style={{ fontSize: 16, color: "#4A6FA5" }}>person</span>
-                        </div>
+                      <div key={r} className="flex items-center gap-3 rounded-lg border border-[#E5E7EB] px-3 py-2">
                         <input
                           value={r}
                           onChange={e => relationshipsStore.renameRelationship(r, e.target.value)}
-                          className="min-w-0 flex-1 bg-transparent text-[13px] text-[#1A2332] outline-none"
+                          className="min-w-0 flex-1 rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5 text-[13px] text-[#1A2332] outline-none focus:border-[#4A6FA5]"
                           style={{ fontWeight: 500 }}
                         />
                         <button
                           onClick={() => { relationshipsStore.removeRelationship(r); toast.success("Relationship removed"); }}
-                          className="shrink-0 text-[#9CA3AF] hover:text-[#DC2626] transition-colors"
+                          className="shrink-0 h-9 w-9 rounded-lg border border-[#E5E7EB] bg-white text-[#9CA3AF] hover:bg-[#FEF2F2] hover:border-[#FECACA] hover:text-[#DC2626] flex items-center justify-center"
                           title="Remove"
                         >
                           <span className="material-icons" style={{ fontSize: 18 }}>delete_outline</span>
@@ -4088,40 +4255,40 @@ export function Settings() {
                     )}
                   </div>
                 </SectionCard>
+
+                <div className="flex justify-end">
+                  <Button type="button" disabled className="h-9 rounded-lg bg-[#4A6FA5] px-4 text-[14px] text-white opacity-50" style={{ fontWeight: 500 }}>
+                    Save changes
+                  </Button>
+                </div>
               </div>
             </>
           )}
 
           {(activeSection === "jobs" || activeSection === "estimates" || activeSection === "invoices" || activeSection === "items") && (
             <>
-              {activeSection === "jobs" || activeSection === "items" ? (
-                <div className="mb-4 flex h-[52px] items-center justify-between">
-                  <h1 className="text-[24px] leading-8 text-[#1A2332]" style={{ fontWeight: 600 }}>{activeSection === "jobs" ? "Jobs" : "Items"}</h1>
-                  <Button type="button" disabled className="h-9 rounded-lg bg-[#4A6FA5] px-4 text-[14px] text-white opacity-50" style={{ fontWeight: 500 }}>
-                    Save changes
-                  </Button>
-                </div>
-              ) : (
-                <SectionHeader
-                  title={{
-                    estimates: "Estimate Preferences",
-                    invoices: "Invoice Preferences",
-                  }[activeSection as "estimates" | "invoices"]}
-                  description="System preference areas are intentionally simple and module-specific. Clients do not get a separate settings area in MVP."
-                />
-              )}
+              {/* Figma settings frames (261:15834, 264:5793 …): every System-preferences
+                  module page uses the same header — module name + top-right Save changes. */}
+              <div className="mb-4 flex h-[52px] items-center justify-between">
+                <h1 className="text-[24px] leading-8 text-[#1A2332]" style={{ fontWeight: 600 }}>
+                  {{ jobs: "Jobs", estimates: "Estimates", invoices: "Invoices", items: "Items" }[activeSection as "jobs" | "estimates" | "invoices" | "items"]}
+                </h1>
+                <Button type="button" disabled className="h-9 rounded-lg bg-[#4A6FA5] px-4 text-[14px] text-white opacity-50" style={{ fontWeight: 500 }}>
+                  Save changes
+                </Button>
+              </div>
               <div className="space-y-4 pb-6">
                 {activeSection === "jobs" && (
                   <>
                     {/* Job Types */}
-                    <SectionCard title="Job Types" description="Types used when creating jobs, each with a default duration (hours) that pre-fills the end time. Installation defaults to 8h, others to 2h.">
+                    <SectionCard title="Job Types" description="Types used when creating jobs. Helps categorize and filter work orders.">
 
 
                       <div className="mt-2 flex w-[422px] gap-3">
                         <Input
                           value={newJobTypeName}
                           onChange={e => setNewJobTypeName(e.target.value)}
-                          placeholder="Add status (e.g. Dispatched, On Route, Cancelled)"
+                          placeholder="Add custom job type"
                           className="h-9 flex-1 border-[#E5E7EB] text-[13px] shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
                           onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addJobType(); } }}
                         />
@@ -4169,23 +4336,18 @@ export function Settings() {
                     </SectionCard>
 
                     {/* Job Statuses */}
-                    <SectionCard title="Job Statuses" description="MVP ships three core statuses. Rename them or add your own (Dispatched, On Route, Cancelled…).">
-                      {/* System statuses */}
+                    <SectionCard title="Job Statuses" description="Statuses track each job through its lifecycle. Six system statuses are built in, but you can add and modify custom statuses to match your workflow (Dispatched, On Route…).">
+                      {/* System statuses — fixed labels, consistent across the app (Figma 254:21177) */}
                       <div className="mt-2">
                         <div className="text-[13px] text-[#1A2332] mb-0.5" style={{ fontWeight: 500 }}>System statuses</div>
-                        <div className="text-[12px] text-[#6B7280] mb-2">The three core statuses (Scheduled / In Progress / Completed) stay in the system but you can rename them.</div>
+                        <div className="text-[12px] text-[#6B7280] mb-2">The six built-in statuses (Unscheduled / Scheduled / In Progress / Paused / Completed / Cancelled) cover the full job lifecycle and stay consistent across the app.</div>
                         <div className="grid grid-cols-3 gap-3">
                           {jobStatuses.filter(s => s.core).map(s => (
                             <div key={s.id} className="flex items-center gap-3 rounded-lg border border-[#E5E7EB] px-3 py-2.5">
                               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg" style={{ background: s.bg }}>
                                 <span className="material-icons" style={{ fontSize: 16, color: s.color }}>{s.icon}</span>
                               </div>
-                              <input
-                                value={s.label}
-                                onChange={e => setJobStatuses(jobStatuses.map(x => x.id === s.id ? { ...x, label: e.target.value } : x))}
-                                className="min-w-0 flex-1 bg-transparent text-[13px] text-[#1A2332] outline-none"
-                                style={{ fontWeight: 500 }}
-                              />
+                              <span className="min-w-0 flex-1 truncate text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{s.label}</span>
                             </div>
                           ))}
                         </div>
@@ -4268,13 +4430,6 @@ export function Settings() {
                           </div>
                           <Switch checked={requireSigOnComplete} onCheckedChange={setRequireSigOnComplete} />
                         </div>
-                        <div className="flex items-center justify-between gap-4 rounded-lg border border-[#E5E7EB] px-4 py-4">
-                          <div className="flex-1">
-                            <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Capture parent / guardian signature when minor present</div>
-                            <div className="text-[12px] text-[#6B7280] mt-0.5">Optional second signature line shown on the customer-facing form.</div>
-                          </div>
-                          <Switch checked={requireParentSig} onCheckedChange={setRequireParentSig} />
-                        </div>
                       </div>
                     </SectionCard>
 
@@ -4341,27 +4496,14 @@ export function Settings() {
                           Manage Custom Fields
                         </Button>
                       </div>
-
-                      {/* Footer — Save / Cancel attached to the last card */}
-                      <div className="mt-5 -mx-5 -mb-5 px-5 py-4 border-t border-[#E1E6EF] flex items-center justify-end gap-3 bg-white rounded-b-xl">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => toast.info("Changes discarded")}
-                          className="border-[#E5E7EB] text-[#546478] hover:bg-[#EDF0F5] h-10 px-6"
-                        >
-                          Cancel
-                        </Button>
-                        <Button
-                          type="button"
-                          onClick={() => toast.success("Jobs preferences saved")}
-                          className="bg-[#4A6FA5] hover:bg-[#3d5a85] text-white h-10 px-6"
-                          style={{ fontWeight: 600 }}
-                        >
-                          Save changes
-                        </Button>
-                      </div>
                     </SectionCard>
+
+                    {/* Page-level save (Figma: bottom-right) */}
+                    <div className="flex justify-end">
+                      <Button type="button" disabled className="h-9 rounded-lg bg-[#4A6FA5] px-4 text-[14px] text-white opacity-50" style={{ fontWeight: 500 }}>
+                        Save changes
+                      </Button>
+                    </div>
                   </>
                 )}
                 {activeSection === "estimates" && (
@@ -4421,31 +4563,13 @@ export function Settings() {
                       )}
                     </SectionCard>
                     <EstimateValidityCard />
-                    <SectionCard title="Estimate rules">
-                      <div className="grid grid-cols-2 gap-x-2 gap-y-4">
-                        <div className="flex flex-col gap-1">
-                          <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Signature</div>
-                          <div className="flex items-center gap-2 py-2">
-                            <Switch defaultChecked />
-                            <span className="text-[14px] text-[#1A2332]">Require client signature before proceeding</span>
-                          </div>
-                        </div>
-                        <div className="flex flex-col gap-1">
-                          <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Payment terms</div>
-                          <Input defaultValue="Payment is due within 15 days of approval." className="h-9 border-[#E5E7EB] shadow-[0_1px_2px_rgba(0,0,0,0.05)]" />
-                        </div>
-                        {/* Document title (Figma 261:15834) — the heading on estimate PDFs */}
-                        <div className="flex flex-col gap-1">
-                          <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Document title</div>
-                          <Input defaultValue="Estimate" className="h-9 border-[#E5E7EB] shadow-[0_1px_2px_rgba(0,0,0,0.05)]" />
-                          <p className="text-[12px] leading-4 text-[#6B7280]">Shown as the heading on estimate PDFs — e.g. Estimate, Quote, or Proposal.</p>
-                        </div>
-                      </div>
-                      <div className="mt-5 -mx-5 -mb-5 px-5 py-4 border-t border-[#E1E6EF] flex items-center justify-end gap-3 bg-white rounded-b-xl">
-                        <Button type="button" variant="outline" onClick={() => toast.info("Changes discarded")} className="border-[#E5E7EB] text-[#546478] hover:bg-[#EDF0F5] h-10 px-6">Cancel</Button>
-                        <Button type="button" onClick={() => toast.success("Estimate preferences saved")} className="bg-[#4A6FA5] hover:bg-[#3d5a85] text-white h-10 px-6" style={{ fontWeight: 600 }}>Save changes</Button>
-                      </div>
-                    </SectionCard>
+                    {/* Estimate types (FR-16.5) — company-editable list feeding
+                        the estimate form's type picker, list filters and reports. */}
+                    <EstimateTypesCard />
+                    {/* Estimate rules (Figma 261:15834): Signature toggle, Payment terms,
+                        Default expiration (days) — no card-level footer, save lives in
+                        the page header. */}
+                    <EstimateRulesCard />
                   </>
                 )}
                 {activeSection === "invoices" && <InvoicesPreferences templateCards={templateCards} />}

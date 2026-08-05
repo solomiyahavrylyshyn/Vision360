@@ -20,6 +20,8 @@ const BASE_SEED: CatalogItem[] = [
   { id: 4, name: "Capacitor 45/5 MFD",      itemDescription: "Dual run capacitor 45/5 MFD 440V",    salesDescription: "Capacitor 45/5 MFD — dual run capacitor replacement", brand: "", modelNumber: "MAT-2002", rate: 25,  cost: 12, taxable: true, category: "Parts", type: "Product",   itemType: "Material",  department: "Materials", vendor: "HVAC Supply Co.", active: true },
   { id: 5, name: "Blower Motor 1/2 HP",     itemDescription: "ECM blower motor 1/2 HP replacement", salesDescription: "Blower motor 1/2 HP — ECM variable speed", brand: "Carrier", modelNumber: "EQU-3001", rate: 225, cost: 98, taxable: true, category: "Motors", type: "Equipment", itemType: "Equipment", department: "Equipment", vendor: "Grainger", active: true },
   { id: 6, name: "Permit Fee",              itemDescription: "Administrative permit processing fee", salesDescription: "Permit fee — municipal permit filing and processing", brand: "", modelNumber: "FEE-4001", rate: 75,  cost: 0,  taxable: true, category: "Permit Fee", type: "Service",   itemType: "Admin", active: true },
+  // FR-4.8 — Callback ships with "Do not show on customer documents" ON.
+  { id: 7, name: "Callback",                itemDescription: "Return visit to address an issue from a previous job", salesDescription: "Callback — follow-up service visit", brand: "", modelNumber: "SVC-1003", rate: 0, cost: 0, taxable: false, category: "Repair", type: "Service", itemType: "Service", department: "Field Service", active: true, hideOnCustomerDocs: true },
 ];
 
 // Price-book seed: [name, category, description, price, cost, taxable].
@@ -86,6 +88,13 @@ try {
     if (Array.isArray(parsed) && parsed.length) items = parsed;
   }
 } catch { /* corrupt cache → keep seed */ }
+
+// FR-4.8 migration: older cached catalogs predate the Callback seed item —
+// append it so the flag showcase exists without wiping user data.
+if (!items.some((i) => i.name === "Callback")) {
+  const callback = SEED.find((i) => i.name === "Callback");
+  if (callback) items = [...items, { ...callback, id: Math.max(0, ...items.map((i) => i.id)) + 1 }];
+}
 
 let listeners: Listener[] = [];
 const notify = () => listeners.forEach((l) => l());

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback, useSyncExternalStore } from "react";
+﻿import { useState, useRef, useEffect, useCallback, useSyncExternalStore } from "react";
 import { getStoredBrandLogo, BRAND_LOGO_EVENT } from "../utils/brandTheme";
 import { termsStore, hasTerms } from "../stores/termsStore";
 import { useNavigate, useParams, useSearchParams } from "react-router";
@@ -12,6 +12,7 @@ import { DocumentPreview } from "../components/DocumentPreview";
 import { DocumentsGallery } from "../components/DocumentsGallery";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "../components/ui/resizable";
 import { estimatesStore, type EstimateRecord } from "../stores/estimatesStore";
+import { estimateTypesStore } from "../stores/estimateTypesStore";
 import { jobsStore } from "../stores/jobsStore";
 import { formatRegionalDate } from "../stores/regionalSettingsStore";
 import installHeatingSystem1Photo from "../../assets/documents/33702-install-heating-system-1.jpg";
@@ -28,7 +29,7 @@ import job44644Photo from "../../assets/documents/44644-img-20241210-123749.png"
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type EstimateStatus =
-  | "Draft" | "Sent" | "Viewed" | "Changes Requested" | "Updated" | "Approved" | "Rejected" | "Expired" | "Archived" | "Converted";
+  | "Draft" | "Sent" | "Viewed" | "Changes Requested" | "Updated" | "Approved" | "Declined" | "Expired" | "Archived" | "Converted";
 
 interface LineItem {
   id: number; name: string; description: string;
@@ -56,23 +57,27 @@ interface EstimateData {
   depositRequired: boolean; depositType: "amount" | "percentage"; depositValue: number;
   photos?: MockPhoto[];
   activity: { id: number; date: string; action: string; detail: string; icon: string }[];
+  /** FR-5.19 — estimate type classification (Repair / Installation / …). */
+  estimateType?: string;
+  /** Good/Better/Best — per-option line-item sets (Figma 2915:26967). */
+  options?: { name: string; items: LineItem[] }[];
 }
 
 // ─── Status colours ───────────────────────────────────────────────────────────
 const statusColors: Record<EstimateStatus, string> = {
   Draft: "#6B7280", Sent: "#1E40AF", Viewed: "#92400E",
   "Changes Requested": "#B45309", Updated: "#4A6FA5",
-  Approved: "#166534", Rejected: "#DC2626", Expired: "#6B7280", Archived: "#4B5563",
+  Approved: "#166534", Declined: "#DC2626", Expired: "#6B7280", Archived: "#4B5563",
   Converted: "#4A6FA5",
 };
 const statusBg: Record<EstimateStatus, string> = {
   Draft: "#F3F4F6", Sent: "#DBEAFE", Viewed: "#FEF3C7",
   "Changes Requested": "#FEF3C7", Updated: "#EBF0F8",
-  Approved: "#DCFCE7", Rejected: "#FEE2E2", Expired: "#F3F4F6", Archived: "#E5E7EB",
+  Approved: "#DCFCE7", Declined: "#FEE2E2", Expired: "#F3F4F6", Archived: "#E5E7EB",
   Converted: "#EBF0F8",
 };
 const primaryStatuses: EstimateStatus[] = [
-  "Draft", "Sent", "Viewed", "Changes Requested", "Updated", "Approved", "Rejected", "Expired",
+  "Draft", "Sent", "Viewed", "Changes Requested", "Updated", "Approved", "Declined", "Expired",
 ];
 const otherStatuses: EstimateStatus[] = ["Archived"];
 // Converted is terminal — it's set automatically and not shown in the picker.
@@ -86,7 +91,7 @@ const mockEstimates: Record<string, EstimateData> = {
     clientAddress: "8377 Standish Bend Dr Unit 1\nTampa, FL 33615",
     serviceAddress: "8377 Standish Bend Dr Unit 1\nTampa, FL 33615",
     dateCreated: "Mar 30, 2026", expirationDate: "Apr 30, 2026", sentDate: "Not Sent",
-    status: "Draft", teamMember: "Marek Stroz", job: "10245-J01: AC Estimate", jobId: 1,
+    status: "Draft", estimateType: "Diagnostic", teamMember: "Marek Stroz", job: "10245-J01: AC Estimate", jobId: 1,
     items: [
       { id: 1, name: "Diagnostic Visit", description: "Standard diagnostic service call", quantity: 1, price: 99, cost: 0, amount: 99, taxable: true },
       { id: 2, name: "AC Tune-Up", description: "Annual AC maintenance and tune-up", quantity: 1, price: 129, cost: 0, amount: 129, taxable: true },
@@ -97,16 +102,35 @@ const mockEstimates: Record<string, EstimateData> = {
     ],
   },
   "5": {
-    id: 5, estimateNumber: "10246-E01", estimateName: "Option A", clientName: "John Doe",
+    id: 5, estimateNumber: "10246-E01", estimateName: "Tree Removal", clientName: "John Doe",
     clientEmail: "john.doe@email.com", clientPhone: "(555) 123-4567",
     clientAddress: "1250 NW 24th St\nMiami, FL 33142",
     serviceAddress: "1250 NW 24th St\nMiami, FL 33142",
     dateCreated: "Mar 02, 2026", expirationDate: "Apr 02, 2026", sentDate: "Mar 03, 2026",
-    status: "Approved", teamMember: "Marek Stroz", job: "10246-J01: Bathroom Remodel", jobId: 4,
+    status: "Approved", estimateType: "Repair", teamMember: "Marek Stroz", job: "10246-J01: Bathroom Remodel", jobId: 4,
+    // Items mirror the estimatesStore seed for this record so the internal
+    // detail and the client-facing review page (/review/estimate/5) agree.
     items: [
-      { id: 1, name: "SEER Heat Pump Condenser Unit", description: "High efficiency outdoor unit", quantity: 1, price: 3200, cost: 1800, amount: 3200, taxable: true },
-      { id: 2, name: "General Labor - Technician", description: "Technician labor (hourly)", quantity: 2, price: 95, cost: 45, amount: 190, taxable: false },
-      { id: 3, name: "Thermostat - Smart WiFi", description: "Smart WiFi Thermostat", quantity: 1, price: 110, cost: 65, amount: 110, taxable: true },
+      { id: 1, name: "Large Tree Removal", description: "Remove oak near structure, sectional", quantity: 1, price: 2200, cost: 950, amount: 2200, taxable: true },
+      { id: 2, name: "Crane Service", description: "Crane-assisted removal (half day)", quantity: 1, price: 900, cost: 500, amount: 900, taxable: true },
+      { id: 3, name: "Cleanup & Hauling", description: "Debris cleanup and haul-away", quantity: 1, price: 400, cost: 150, amount: 400, taxable: false },
+    ],
+    // Good/Better/Best (FR-5.12): the customer approved Option A; B and C stay
+    // on the record so the detail shows Max/Medium/Min pricing and the option
+    // chips on the Items tab.
+    options: [
+      { name: "Option A", items: [
+        { id: 1, name: "Large Tree Removal", description: "Remove oak near structure, sectional", quantity: 1, price: 2200, cost: 950, amount: 2200, taxable: true },
+        { id: 2, name: "Crane Service", description: "Crane-assisted removal (half day)", quantity: 1, price: 900, cost: 500, amount: 900, taxable: true },
+        { id: 3, name: "Cleanup & Hauling", description: "Debris cleanup and haul-away", quantity: 1, price: 400, cost: 150, amount: 400, taxable: false },
+      ] },
+      { name: "Option B", items: [
+        { id: 1, name: "Tree Removal Service", description: "Remove large tree, sectional", quantity: 1, price: 800, cost: 300, amount: 800, taxable: true },
+      ] },
+      { name: "Option C", items: [
+        { id: 1, name: "Tree Removal Service", description: "Remove large tree, sectional", quantity: 1, price: 800, cost: 300, amount: 800, taxable: true },
+        { id: 2, name: "Stump Grinding", description: "Grind stump below grade", quantity: 1, price: 250, cost: 90, amount: 250, taxable: true },
+      ] },
     ],
     notes: "Client prefers morning installation window.", internalNotes: "",
     taxRate: 7.5, depositRequired: true, depositType: "amount", depositValue: 850,
@@ -122,7 +146,7 @@ const mockEstimates: Record<string, EstimateData> = {
     clientAddress: "4521 Pine Grove Ln\nOrlando, FL 32801",
     serviceAddress: "4521 Pine Grove Ln\nOrlando, FL 32801",
     dateCreated: "Feb 28, 2026", expirationDate: "Mar 28, 2026", sentDate: "Mar 01, 2026",
-    status: "Approved", teamMember: "Marek Stroz", job: "10248-J01: HVAC Replacement", jobId: 3,
+    status: "Approved", estimateType: "Replacement", teamMember: "Marek Stroz", job: "10248-J01: HVAC Replacement", jobId: 3,
     items: [
       { id: 1, name: "SEER Heat Pump Condenser Premium", description: "Ultra high efficiency", quantity: 1, price: 4800, cost: 2900, amount: 4800, taxable: true },
       { id: 2, name: "Copper Piping Installation", description: "Per linear foot", quantity: 50, price: 18.50, cost: 6.75, amount: 925, taxable: true },
@@ -154,7 +178,7 @@ const mockEstimates: Record<string, EstimateData> = {
     clientAddress: "1804 W North B St\nTampa, FL 33606",
     serviceAddress: "1804 W North B St\nTampa, FL 33606",
     dateCreated: "Feb 25, 2026", expirationDate: "Mar 27, 2026", sentDate: "Feb 26, 2026",
-    status: "Viewed", teamMember: "Marek Stroz", job: "10247-J01: Plumbing Repair", jobId: 5,
+    status: "Viewed", estimateType: "Repair", teamMember: "Marek Stroz", job: "10247-J01: Plumbing Repair", jobId: 5,
     items: [
       { id: 1, name: "Drain Cleaning Service", description: "Clear main drain line", quantity: 1, price: 175, cost: 40, amount: 175, taxable: false },
       { id: 2, name: "Pipe Repair Labor", description: "Technician labor", quantity: 3, price: 95, cost: 45, amount: 285, taxable: false },
@@ -173,11 +197,13 @@ const mockEstimates: Record<string, EstimateData> = {
   },
 };
 
-type TabKey = "details" | "jobs" | "deposit" | "activity";
+// Tab order per Figma 2915:23919: Details · Jobs · Deposit · Items · Activity.
+type TabKey = "details" | "jobs" | "deposit" | "items" | "activity";
 const TABS: { key: TabKey; label: string }[] = [
   { key: "details", label: "Details" },
   { key: "jobs", label: "Jobs" },
   { key: "deposit", label: "Deposit" },
+  { key: "items", label: "Items" },
   { key: "activity", label: "Activity" },
 ];
 
@@ -222,6 +248,15 @@ function recordToEstimateData(r: EstimateRecord): EstimateData {
     depositRequired: r.depositRequired ?? false,
     depositType: r.depositType ?? "amount",
     depositValue: r.depositValue ?? 0,
+    estimateType: r.estimateType,
+    options: (r as any).options?.map((o: any) => ({
+      name: o.name,
+      items: (o.items ?? []).map((it: any) => ({
+        id: it.id, name: it.name, description: it.description,
+        quantity: it.quantity, price: it.price, cost: it.cost,
+        amount: it.amount, taxable: it.taxable,
+      })),
+    })),
     activity: [{
       id: 1,
       date: `${r.createdDate || "—"} 09:00`,
@@ -272,6 +307,16 @@ export function EstimateDetail() {
   };
   const [statusOpen, setStatusOpen] = useState(false);
   const [addItemOpen, setAddItemOpen] = useState(false);
+  // Jobs tab (Figma 2915:23676)
+  const [jobsSearch, setJobsSearch] = useState("");
+  const [jobsStatusFilter, setJobsStatusFilter] = useState("All");
+  // Items tab (Figma 2915:26967)
+  const [itemsSearch, setItemsSearch] = useState("");
+  const [activeOptionIdx, setActiveOptionIdx] = useState(0);
+  // Type (FR-5.19) inline edit in the header metadata strip; the list is
+  // company-editable in Settings → Estimates (FR-16.5).
+  const [typeMenuOpen, setTypeMenuOpen] = useState(false);
+  const estimateTypes = useSyncExternalStore(estimateTypesStore.subscribe, estimateTypesStore.getSnapshot);
   const [customerPreviewOpen, setCustomerPreviewOpen] = useState(false);
   const [brandLogo, setBrandLogoState] = useState(() => getStoredBrandLogo());
   // Company-default Terms & Conditions (Settings → General). These travel with the
@@ -378,7 +423,7 @@ export function EstimateDetail() {
       "Changes Requested": "Changes requested",
       Updated: "Estimate updated",
       Approved: "Estimate approved",
-      Rejected: "Estimate rejected",
+      Declined: "Estimate declined",
       Expired: "Marked as Expired",
       Archived: "Archived",
     };
@@ -387,7 +432,7 @@ export function EstimateDetail() {
       date: `${now} — today`,
       action: actionLabel[next] ?? `Status → ${next}`,
       detail: `Changed by You`,
-      icon: next === "Sent" ? "send" : next === "Approved" ? "check_circle" : next === "Rejected" ? "cancel" : "swap_horiz",
+      icon: next === "Sent" ? "send" : next === "Approved" ? "check_circle" : next === "Declined" ? "cancel" : "swap_horiz",
     };
     const patch: Partial<typeof estimate> = {
       status: next,
@@ -495,7 +540,9 @@ export function EstimateDetail() {
               </tr>
             </thead>
             <tbody>
-              {estimate.items.map(item => (
+              {/* FR-4.8 — items flagged "Do not show on customer documents" are
+                  excluded from the customer render; totals still include them. */}
+              {estimate.items.filter((item: any) => !item.hideOnCustomerDocs).map(item => (
                 <tr key={item.id} className="border-b border-[#E0E3E7]">
                   <td className="py-3 px-2"><div style={{ fontWeight: 700 }}>{item.name}</div>{item.description && <div>{item.description}</div>}</td>
                   <td className="py-3 px-2 text-[#6F6A93]">{item.quantity}</td>
@@ -566,16 +613,42 @@ export function EstimateDetail() {
       : estimate.jobId
       ? [{ id: estimate.jobId, label: estimate.job || `Job #${estimate.jobId}`, address: estimate.serviceAddress.replace("\n", ", "), scheduled: "—", status: "Scheduled", total }]
       : [];
+    const visibleJobs = jobs.filter(j =>
+      (!jobsSearch.trim() || `${j.label} ${j.address}`.toLowerCase().includes(jobsSearch.trim().toLowerCase())) &&
+      (jobsStatusFilter === "All" || j.status === jobsStatusFilter));
     return (
       <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#E5E7EB]">
-          <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Jobs ({jobs.length})</h3>
-          <button
-            onClick={() => navigate(`/jobs/new?fromEstimate=${estimate.id}&client=${encodeURIComponent(estimate.clientName)}&returnTo=${encodeURIComponent(`/estimates/${estimate.id}`)}`)}
-            aria-label="Add job" title="Add job"
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[#4A6FA5] hover:bg-[#EEF3FA] transition-colors">
-            <PlusIcon className="h-5 w-5" />
-          </button>
+        {/* Toolbar (Figma 2915:23676): search + Status/Date quick filters + Add job */}
+        <div className="flex items-center gap-2 px-4 py-3 border-b border-[#E5E7EB]">
+          <div className="relative">
+            <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: "18px" }}>search</span>
+            <input
+              type="text" placeholder="Search jobs..." value={jobsSearch}
+              onChange={e => setJobsSearch(e.target.value)}
+              className="w-[220px] h-9 pl-10 pr-3 border border-[#E5E7EB] rounded-lg text-[13px] focus:outline-none focus:border-[#4A6FA5] bg-white"
+            />
+          </div>
+          <select
+            value={jobsStatusFilter}
+            onChange={e => setJobsStatusFilter(e.target.value)}
+            className={`h-9 pl-3 pr-7 border rounded-lg text-[13px] bg-white cursor-pointer focus:outline-none ${jobsStatusFilter !== "All" ? "border-[#4A6FA5] text-[#4A6FA5]" : "border-[#E5E7EB] text-[#546478]"}`}
+          >
+            <option value="All">Status: All</option>
+            {["Unscheduled", "Scheduled", "In Progress", "Completed", "Cancelled"].map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+          <select disabled className="h-9 pl-3 pr-7 border border-[#E5E7EB] rounded-lg text-[13px] bg-white text-[#546478]">
+            <option>Date: All time</option>
+          </select>
+          <div className="ml-auto">
+            <button
+              onClick={() => navigate(`/jobs/new?fromEstimate=${estimate.id}&client=${encodeURIComponent(estimate.clientName)}&returnTo=${encodeURIComponent(`/estimates/${estimate.id}`)}`)}
+              className="h-9 px-3.5 rounded-lg border border-[#E5E7EB] bg-white text-[#1A2332] text-[13px] inline-flex items-center gap-1.5 hover:bg-[#F5F7FA] transition-colors"
+              style={{ fontWeight: 600 }}
+            >
+              <span className="material-icons" style={{ fontSize: "16px" }}>add</span>
+              Add job
+            </button>
+          </div>
         </div>
         {jobs.length === 0 ? (
           <div className="px-5 py-16 text-center">
@@ -620,117 +693,8 @@ export function EstimateDetail() {
     <>
     <ResizablePanelGroup direction="horizontal" className="items-stretch min-h-[440px]">
 
-      {/* ── Col 1: Items ── */}
-      <ResizablePanel defaultSize={30} minSize={20} className="min-w-0">
-      <div className="h-full flex flex-col gap-0 bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-3 border-b border-[#E5E7EB]">
-          <h3 className="text-[16px] text-[#1A2332]" style={{ fontWeight: 600 }}>Items</h3>
-          {/* Blue circular "+" — consistent per-section create affordance (Marek). */}
-          <button
-            onClick={() => setAddItemOpen(true)}
-            aria-label="Add item"
-            title="Add item"
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[#4A6FA5] hover:bg-[#EEF3FA] transition-colors"
-          >
-            <PlusIcon className="h-5 w-5" />
-          </button>
-        </div>
-
-        {estimate.items.length === 0 ? (
-          <div className="flex flex-1 flex-col items-center justify-center px-5 py-12 text-center">
-            <div className="w-10 h-10 mb-4 bg-[#F5F7FA] rounded-full flex items-center justify-center">
-              <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "20px" }}>archive</span>
-            </div>
-            <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>No items yet</div>
-            <div className="mt-1 max-w-[200px] text-[12px] text-[#8899AA]">Add items to break down the work and materials for this estimate</div>
-            <button onClick={() => setAddItemOpen(true)} className="mt-4 h-8 px-3 rounded-md bg-[#4A6FA5] hover:bg-[#3d5a85] text-white text-[13px] inline-flex items-center gap-1.5 transition-colors" style={{ fontWeight: 600 }}>
-              <span className="material-icons" style={{ fontSize: "16px" }}>add</span>
-              Add item
-            </button>
-          </div>
-        ) : (
-          <>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="bg-[#F9FAFB] border-b border-[#E5E7EB]">
-                    {["Item", "Unit Price", "QTY", "Amount", "Taxable", ""].map(h => (
-                      <th key={h} className={`px-4 py-3 text-left text-[11px] uppercase tracking-wider text-[#546478] ${h === "" ? "w-[44px]" : ""}`} style={{ fontWeight: 600 }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {estimate.items.map((item) => (
-                    <tr key={item.id} className="border-b border-[#E5E7EB] hover:bg-[#F9FAFB]">
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-md bg-[#F0F4FA] flex items-center justify-center shrink-0">
-                            <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "16px" }}>build</span>
-                          </div>
-                          <div>
-                            <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{item.name}</div>
-                            {item.description && <div className="text-[12px] text-[#8899AA]">{item.description}</div>}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-[13px] text-[#546478]" style={{ fontVariantNumeric: "tabular-nums" }}>${fmt(item.price)}</td>
-                      <td className="px-4 py-3 text-[13px] text-[#546478]">{item.quantity}</td>
-                      <td className="px-4 py-3 text-[13px] text-[#1A2332]" style={{ fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>${fmt(item.amount)}</td>
-                      <td className="px-4 py-3 text-[13px] text-[#546478]">{item.taxable ? "Yes" : "No"}</td>
-                      <td className="px-4 py-3">
-                        <button onClick={() => removeItem(item.id)} className="w-7 h-7 flex items-center justify-center rounded hover:bg-[#FEE2E2]">
-                          <span className="material-icons text-[#DC2626]" style={{ fontSize: "16px" }}>delete</span>
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            {/* Totals */}
-            <div className="border-t border-[#E5E7EB] px-5 py-4 bg-[#FAFBFC]">
-              <div className="flex justify-end">
-                <div className="space-y-1.5 min-w-[260px]">
-                  {[
-                    { label: "Subtotal:", value: fmt(subtotal) },
-                    { label: "Taxable:", value: fmt(taxableAmount) },
-                    { label: `Tax (${estimate.taxRate}%):`, value: fmt(taxAmount) },
-                  ].map(({ label, value }) => (
-                    <div key={label} className="flex items-center justify-between text-[13px]">
-                      <span className="text-[#546478]">{label}</span>
-                      <span className="text-[#1A2332]" style={{ fontVariantNumeric: "tabular-nums" }}>${value}</span>
-                    </div>
-                  ))}
-                  <div className="flex items-center justify-between pt-2 border-t border-[#E5E7EB]">
-                    <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Total:</span>
-                    <span className="text-[18px] text-[#4A6FA5]" style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>${fmt(total)}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-            {/* Deposit Required toggle (quick view) */}
-            <div className="border-t border-[#E5E7EB] px-5 py-3 flex items-center gap-3 bg-white">
-              <button
-                type="button"
-                onClick={() => { setEstimate(prev => ({ ...prev, depositRequired: !prev.depositRequired })); setActiveTab("deposit"); }}
-                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 ${estimate.depositRequired ? "bg-[#22C55E]" : "bg-[#D1D5DB]"}`}
-              >
-                <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow-sm transform transition-transform duration-200 ${estimate.depositRequired ? "translate-x-4" : "translate-x-0.5"}`} />
-              </button>
-              <span className="text-[13px] text-[#546478]">
-                Deposit Required
-                {estimate.depositRequired && <span className="ml-2 text-[#22C55E]" style={{ fontWeight: 500 }}>— ${fmt(depositAmount)}</span>}
-              </span>
-            </div>
-          </>
-        )}
-      </div>
-      </ResizablePanel>
-
-      {panelHandle}
-
-      {/* ── Col 2: Documents ── */}
-      <ResizablePanel defaultSize={40} minSize={24} className="min-w-0">
+      {/* ── Col 1: Documents ── */}
+      <ResizablePanel defaultSize={60} minSize={30} className="min-w-0">
       <div className="h-full bg-white border border-[#E5E7EB] rounded-xl overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-[#E5E7EB] px-4 py-2.5 shrink-0">
@@ -762,8 +726,8 @@ export function EstimateDetail() {
 
       {panelHandle}
 
-      {/* ── Col 3: Notes ── */}
-      <ResizablePanel defaultSize={30} minSize={20} className="min-w-0">
+      {/* ── Col 2: Notes ── */}
+      <ResizablePanel defaultSize={40} minSize={20} className="min-w-0">
       <div className="h-full flex flex-col bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
           <div className="flex items-center gap-2 border-b border-[#E5E7EB] px-4 py-2.5">
             <div className="inline-flex items-center gap-0.5 rounded-lg bg-[#F3F4F6] p-0.5">
@@ -875,6 +839,153 @@ export function EstimateDetail() {
       )}
     </>
   );
+
+  // ── Items tab (Figma 2915:26967) ─────────────────────────────────────────────
+  // Full-width line-items table: toolbar (search + Add item), option chips for
+  // Good/Better/Best estimates, editable quantity, Unit price / Unit cost / Tax /
+  // Total columns, single "Total:" footer row.
+  const renderItemsTab = () => {
+    const hasOptions = (estimate.options?.length ?? 0) > 1;
+    const optionItems = hasOptions ? (estimate.options![activeOptionIdx]?.items ?? []) : estimate.items;
+    const shownItems = optionItems.filter(i =>
+      !itemsSearch.trim() || `${i.name} ${i.description}`.toLowerCase().includes(itemsSearch.trim().toLowerCase()));
+    const lineTax = (i: LineItem) => (i.taxable ? i.amount * (estimate.taxRate / 100) : 0);
+    const tabTotal = optionItems.reduce((a, i) => a + i.amount + lineTax(i), 0);
+    const setQty = (id: number, qty: number) => {
+      const q = Math.max(1, qty || 1);
+      const patch = (items: LineItem[]) => items.map(i => i.id === id ? { ...i, quantity: q, amount: q * i.price } : i);
+      if (hasOptions) {
+        setEstimate(prev => ({
+          ...prev,
+          options: prev.options!.map((o, idx) => idx === activeOptionIdx ? { ...o, items: patch(o.items) } : o),
+        }));
+      } else {
+        setEstimate(prev => ({ ...prev, items: patch(prev.items) }));
+      }
+    };
+    const removeShownItem = (id: number) => {
+      if (hasOptions) {
+        setEstimate(prev => ({
+          ...prev,
+          options: prev.options!.map((o, idx) => idx === activeOptionIdx ? { ...o, items: o.items.filter(i => i.id !== id) } : o),
+        }));
+      } else {
+        removeItem(id);
+      }
+    };
+    return (
+      <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
+        {/* Toolbar */}
+        <div className="flex items-center gap-2 px-4 py-3 border-b border-[#E5E7EB]">
+          <div className="relative">
+            <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: "18px" }}>search</span>
+            <input
+              type="text" placeholder="Search items..." value={itemsSearch}
+              onChange={e => setItemsSearch(e.target.value)}
+              className="w-[240px] h-9 pl-10 pr-3 border border-[#E5E7EB] rounded-lg text-[13px] focus:outline-none focus:border-[#4A6FA5] bg-white"
+            />
+          </div>
+          <div className="ml-auto">
+            <button
+              onClick={() => setAddItemOpen(true)}
+              className="h-9 px-3.5 rounded-lg border border-[#E5E7EB] bg-white text-[#1A2332] text-[13px] inline-flex items-center gap-1.5 hover:bg-[#F5F7FA] transition-colors"
+              style={{ fontWeight: 600 }}
+            >
+              <span className="material-icons" style={{ fontSize: "16px" }}>add</span>
+              Add item
+            </button>
+          </div>
+        </div>
+
+        {/* Option chips (Good/Better/Best) */}
+        {hasOptions && (
+          <div className="flex items-center gap-2 px-4 py-3 border-b border-[#E5E7EB]">
+            {estimate.options!.map((o, idx) => {
+              const active = idx === activeOptionIdx;
+              return (
+                <button
+                  key={idx}
+                  onClick={() => setActiveOptionIdx(idx)}
+                  className={`h-8 px-3 rounded-lg text-[13px] inline-flex items-center gap-1.5 transition-colors ${
+                    active ? "bg-[#4A6FA5] text-white" : "border border-[#E5E7EB] bg-white text-[#546478] hover:bg-[#F5F7FA]"
+                  }`}
+                  style={{ fontWeight: 600 }}
+                >
+                  <span className="material-icons" style={{ fontSize: "14px" }}>edit</span>
+                  {o.name}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Table */}
+        {shownItems.length === 0 ? (
+          <div className="px-5 py-16 text-center">
+            <div className="w-14 h-14 mx-auto mb-3 bg-[#F5F7FA] rounded-full flex items-center justify-center">
+              <span className="material-icons text-[#C8D5E8]" style={{ fontSize: "28px" }}>archive</span>
+            </div>
+            <div className="text-[14px] text-[#546478]" style={{ fontWeight: 500 }}>
+              {optionItems.length === 0 ? "No items yet" : "No items match your search"}
+            </div>
+          </div>
+        ) : (
+          <table className="w-full">
+            <thead>
+              <tr className="bg-[#F9FAFB] border-b border-[#E5E7EB]">
+                <th className="px-4 py-3 text-left text-[13px] text-[#546478]" style={{ fontWeight: 600 }}>Item</th>
+                <th className="px-4 py-3 text-right text-[13px] text-[#546478] w-[110px]" style={{ fontWeight: 600 }}>Quantity</th>
+                <th className="px-4 py-3 text-right text-[13px] text-[#546478] w-[110px]" style={{ fontWeight: 600 }}>Unit price</th>
+                <th className="px-4 py-3 text-right text-[13px] text-[#546478] w-[110px]" style={{ fontWeight: 600 }}>Unit cost</th>
+                <th className="px-4 py-3 text-right text-[13px] text-[#546478] w-[90px]" style={{ fontWeight: 600 }}>Tax</th>
+                <th className="px-4 py-3 text-right text-[13px] text-[#546478] w-[110px]" style={{ fontWeight: 600 }}>Total</th>
+                <th className="w-[52px]" />
+              </tr>
+            </thead>
+            <tbody>
+              {shownItems.map(item => (
+                <tr key={item.id} className="border-b border-[#F1F3F7] last:border-0 hover:bg-[#F9FAFB]">
+                  <td className="px-4 py-3">
+                    <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>{item.name}</div>
+                    {item.description && <div className="text-[12px] text-[#8899AA]">{item.description}</div>}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <input
+                      type="number" min={1} value={item.quantity}
+                      onChange={e => setQty(item.id, Number(e.target.value))}
+                      className="w-[72px] h-9 px-2 border border-[#E5E7EB] rounded-lg text-[13px] text-right focus:outline-none focus:border-[#4A6FA5] bg-white"
+                      style={{ fontVariantNumeric: "tabular-nums" }}
+                    />
+                  </td>
+                  <td className="px-4 py-3 text-right text-[13px] text-[#546478]" style={{ fontVariantNumeric: "tabular-nums" }}>${fmt(item.price)}</td>
+                  <td className="px-4 py-3 text-right text-[13px] text-[#546478]" style={{ fontVariantNumeric: "tabular-nums" }}>${fmt(item.cost)}</td>
+                  <td className="px-4 py-3 text-right text-[13px] text-[#546478]" style={{ fontVariantNumeric: "tabular-nums" }}>${fmt(lineTax(item))}</td>
+                  <td className="px-4 py-3 text-right text-[13px] text-[#1A2332]" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>${fmt(item.amount)}</td>
+                  <td className="px-4 py-3 text-right">
+                    <button
+                      onClick={() => removeShownItem(item.id)}
+                      aria-label="Remove item" title="Remove item"
+                      className="w-8 h-8 inline-flex items-center justify-center rounded-lg text-[#9CA3AF] hover:bg-[#FEF2F2] hover:text-[#DC2626] transition-colors"
+                    >
+                      <span className="material-icons" style={{ fontSize: "18px" }}>delete_outline</span>
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr className="bg-[#F9FAFB] border-t border-[#E5E7EB]">
+                <td colSpan={7} className="px-4 py-3.5 text-right">
+                  <span className="text-[14px] text-[#546478]" style={{ fontWeight: 600 }}>Total:&nbsp;&nbsp;</span>
+                  <span className="text-[16px] text-[#1A2332]" style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>${fmt(tabTotal)}</span>
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        )}
+      </div>
+    );
+  };
 
   // ── Deposit tab ───────────────────────────────────────────────────────────────
   const renderDepositTab = () => (
@@ -1176,9 +1287,41 @@ export function EstimateDetail() {
                   </>
                 )}
               </div>
-              {/* Metadata strip — all estimate metadata + edit pencil at the end */}
+              {/* Metadata strip — Type (FR-5.19, inline edit) then dates */}
               <div className="flex items-center gap-0.5 flex-wrap pt-2 mt-1 border-t border-[#F3F4F6]">
-                <div className="flex items-center gap-1.5 pr-3 text-[13px]">
+                <div className="relative flex items-center gap-1.5 pr-3 text-[13px]">
+                  <span className="material-icons text-[#6B7280]" style={{ fontSize: "14px" }}>layers</span>
+                  <span className="text-[#6B7280]">Type:</span>
+                  <span className="text-[#374151]">{estimate.estimateType || "—"}</span>
+                  <button
+                    aria-label="Edit type" title="Edit estimate type"
+                    onClick={() => setTypeMenuOpen(v => !v)}
+                    className="ml-0.5 inline-flex h-5 w-5 items-center justify-center rounded text-[#9CA3AF] hover:bg-[#F5F7FA] hover:text-[#4A6FA5]"
+                  >
+                    <span className="material-icons" style={{ fontSize: "13px" }}>edit</span>
+                  </button>
+                  {typeMenuOpen && (
+                    <div className="absolute left-0 top-[calc(100%+4px)] w-[180px] bg-white border border-[#E5E7EB] rounded-xl shadow-lg z-40 py-1.5">
+                      {estimateTypes.map(t => (
+                        <button
+                          key={t}
+                          onClick={() => {
+                            setEstimate(prev => ({ ...prev, estimateType: t }));
+                            estimatesStore.update(estimate.id, { estimateType: t });
+                            setTypeMenuOpen(false);
+                          }}
+                          className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-[13px] text-left transition-colors ${t === estimate.estimateType ? "bg-[#EEF3FA] text-[#4A6FA5]" : "text-[#1A2332] hover:bg-[#F5F7FA]"}`}
+                          style={{ fontWeight: t === estimate.estimateType ? 600 : 400 }}
+                        >
+                          {t}
+                          {t === estimate.estimateType && <span className="material-icons ml-auto" style={{ fontSize: "16px" }}>check</span>}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div className="w-px h-4 bg-[#E5E7EB]" />
+                <div className="flex items-center gap-1.5 px-3 text-[13px]">
                   <span className="material-icons text-[#6B7280]" style={{ fontSize: "14px" }}>calendar_today</span>
                   <span className="text-[#6B7280]">Created:</span>
                   <span className="text-[#374151]">{estimate.dateCreated}</span>
@@ -1207,17 +1350,44 @@ export function EstimateDetail() {
               </div>
             </div>
 
-            {/* Right: KPI strip — Client-style (borderless, dark value, tinted icon) */}
+            {/* Right: KPI strip — single Total for one-option estimates; Max /
+                Medium / Min Price for Good/Better/Best (Figma 2915:23919). */}
             <div className="flex items-center gap-4 shrink-0">
-              <div className="flex items-center gap-3">
-                <div className="flex flex-col">
-                  <div className="text-[18px] leading-none tabular-nums text-[#1A2332] whitespace-nowrap" style={{ fontWeight: 600 }}>${fmt(total)}</div>
-                  <div className="text-[14px] leading-[20px] text-[#6B7280] mt-1 whitespace-nowrap">Total (USD)</div>
-                </div>
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: "#4A6FA526" }}>
-                  <span className="material-icons" style={{ fontSize: "20px", color: "#4A6FA5" }}>monetization_on</span>
-                </div>
-              </div>
+              {(() => {
+                const withTax = (items: LineItem[]) =>
+                  items.reduce((a, i) => a + i.amount + (i.taxable ? i.amount * (estimate.taxRate / 100) : 0), 0);
+                const optionTotals = (estimate.options ?? []).map(o => withTax(o.items));
+                if (optionTotals.length > 1) {
+                  const sorted = [...optionTotals].sort((a, b) => b - a);
+                  const kpis = [
+                    { label: "Max Price", value: sorted[0], color: "#D97706", bg: "#FEF3C7" },
+                    { label: "Medium Price", value: sorted[Math.floor(sorted.length / 2)], color: "#A855F7", bg: "#F3E8FF" },
+                    { label: "Min Price", value: sorted[sorted.length - 1], color: "#4A6FA5", bg: "#EBF0F8" },
+                  ];
+                  return kpis.map((k, i) => (
+                    <div key={k.label} className={`flex items-center gap-3 ${i > 0 ? "border-l border-[#E5E7EB] pl-4" : ""}`}>
+                      <div className="flex flex-col">
+                        <div className="text-[18px] leading-none tabular-nums text-[#1A2332] whitespace-nowrap" style={{ fontWeight: 600 }}>${fmt(k.value)}</div>
+                        <div className="text-[14px] leading-[20px] text-[#6B7280] mt-1 whitespace-nowrap">{k.label}</div>
+                      </div>
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: k.bg }}>
+                        <span className="material-icons" style={{ fontSize: "20px", color: k.color }}>monetization_on</span>
+                      </div>
+                    </div>
+                  ));
+                }
+                return (
+                  <div className="flex items-center gap-3">
+                    <div className="flex flex-col">
+                      <div className="text-[18px] leading-none tabular-nums text-[#1A2332] whitespace-nowrap" style={{ fontWeight: 600 }}>${fmt(total)}</div>
+                      <div className="text-[14px] leading-[20px] text-[#6B7280] mt-1 whitespace-nowrap">Total (USD)</div>
+                    </div>
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: "#4A6FA526" }}>
+                      <span className="material-icons" style={{ fontSize: "20px", color: "#4A6FA5" }}>monetization_on</span>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
         </div>
 
@@ -1231,6 +1401,10 @@ export function EstimateDetail() {
               ? jobCount
               : t.key === "deposit"
               ? (estimate.depositRequired ? 1 : undefined)
+              : t.key === "items"
+              ? ((estimate.options?.length ?? 0) > 1
+                  ? estimate.options!.reduce((a, o) => a + o.items.length, 0)
+                  : estimate.items.length) || undefined
               : t.key === "activity"
               ? estimate.activity.length
               : undefined,
@@ -1287,8 +1461,21 @@ export function EstimateDetail() {
             </div>
             <KebabMenu triggerClassName="h-9 w-9 border border-[#E5E7EB] rounded-md bg-white flex items-center justify-center hover:bg-[#F5F7FA]">
               <KebabItem icon="visibility" onClick={() => setCustomerPreviewOpen(true)}>Preview estimate</KebabItem>
-              <KebabItem icon="send">Send to Client</KebabItem>
-              <KebabItem icon="link">Get Link</KebabItem>
+              <KebabItem icon="send" onClick={() => changeStatus("Sent")}>Send to Client</KebabItem>
+              <KebabItem
+                icon="link"
+                onClick={() => {
+                  // FR-6.7 — the customer opens this link without an account.
+                  const url = `${window.location.origin}/review/estimate/${estimate.id}`;
+                  navigator.clipboard?.writeText(url);
+                  toast.success("Client review link copied");
+                }}
+              >
+                Get Link
+              </KebabItem>
+              <KebabItem icon="open_in_new" onClick={() => window.open(`/review/estimate/${estimate.id}`, "_blank")}>
+                Open client view
+              </KebabItem>
               <KebabItem icon="print" onClick={() => setCustomerPreviewOpen(true)}>Print</KebabItem>
               <KebabSeparator />
               <KebabItem icon="content_copy">Duplicate</KebabItem>
@@ -1305,6 +1492,7 @@ export function EstimateDetail() {
           {activeTab === "details" && renderDetailsTab()}
           {activeTab === "jobs" && renderJobsTab()}
           {activeTab === "deposit" && renderDepositTab()}
+          {activeTab === "items" && renderItemsTab()}
           {activeTab === "activity" && renderActivityTab()}
         </div>
       </div>

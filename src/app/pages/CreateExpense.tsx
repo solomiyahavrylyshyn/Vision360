@@ -1,9 +1,10 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, useSyncExternalStore } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { toast } from "sonner";
 import { ItemPicker, catalogItemToLineItem, type CatalogItem, type SelectedLineItem } from "../components/ItemPicker";
 import { PlusIcon } from "../components/ui/plus-icon";
 import { expensesStore } from "../stores/expensesStore";
+import { expenseCategoriesStore } from "../stores/expenseCategoriesStore";
 
 // Mock catalog items
 const mockCatalogItems: CatalogItem[] = [
@@ -13,18 +14,8 @@ const mockCatalogItems: CatalogItem[] = [
   { id: 1005, name: "General Labor - Technician", itemDescription: "Standard technician labor rate per hour", salesDescription: "Technician labor (hourly)", brand: "", modelNumber: "", rate: 95, cost: 45, taxable: false, category: "Labor", type: "Labor" },
 ];
 
-const categories = [
-  "Materials",
-  "Fuel",
-  "Tools",
-  "Software",
-  "Meals",
-  "Travel",
-  "Subcontractor",
-  "Office Supplies",
-  "Equipment Rental",
-  "Other",
-];
+// Categories come from Settings → Finance center (FR-16.8) — see
+// expenseCategoriesStore; no hardcoded list here.
 
 const vendors = [
   "Home Depot",
@@ -103,6 +94,7 @@ export function CreateExpense() {
 
   const [merchant, setMerchant] = useState(searchParams.get("vendor") || "");
   const [category, setCategory] = useState(searchParams.get("category") || "");
+  const categories = useSyncExternalStore(expenseCategoriesStore.subscribe, expenseCategoriesStore.getSnapshot);
   const [expenseDate, setExpenseDate] = useState(
     new Date().toISOString().split("T")[0]
   );

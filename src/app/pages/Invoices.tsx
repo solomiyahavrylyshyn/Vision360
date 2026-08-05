@@ -14,6 +14,7 @@ import { formatRegionalDate, regionalSettingsStore } from "../stores/regionalSet
 import { AdvancedFilterField, AdvancedFilterPanel, advancedInputClass, advancedSelectClass } from "../components/ui/advanced-filters";
 import { clientsStore } from "../stores/clientsStore";
 import { invoicesStore, type Invoice, type InvoiceStatus } from "../stores/invoicesStore";
+import { SendReminderModal } from "../components/SendReminderModal";
 
 const statusColors: Record<InvoiceStatus, { text: string; bg: string }> = {
   "Unpaid":          { text: "#DC2626", bg: "#FEE2E2" },
@@ -89,6 +90,8 @@ export function Invoices() {
   const regionalSettings = useSyncExternalStore(regionalSettingsStore.subscribe, regionalSettingsStore.getSnapshot);
   const [cols, moveCol] = useDraggableColumns([...INVOICES_COLS]);
   const [editColsOpen, setEditColsOpen] = useState(false);
+  // "Send payment reminder" modal (Figma 2866:72710) — per-invoice, row kebab.
+  const [reminderInvoice, setReminderInvoice] = useState<Invoice | null>(null);
   const [colVis, setColVis] = useState<Set<string>>(() => new Set(INVOICES_COLS.map((c) => c.key)));
   const shownCols = cols.filter((c) => colVis.has(c.key));
   const invoices = useSyncExternalStore(invoicesStore.subscribe, invoicesStore.getSnapshot);
@@ -497,6 +500,10 @@ export function Invoices() {
                       <KebabItem icon="edit" onSelect={() => navigate(`/invoices/${inv.id}`)}>Edit</KebabItem>
                       <KebabItem icon="content_copy">Duplicate</KebabItem>
                       <KebabItem icon="send">Send to Client</KebabItem>
+                      {/* Figma 2866:72710 — reminder for an invoice that still owes money */}
+                      {inv.balance > 0 && (
+                        <KebabItem icon="mail" onSelect={e => { e.preventDefault(); setReminderInvoice(inv); }}>Send payment reminder</KebabItem>
+                      )}
                       <KebabSeparator />
                       <KebabItem icon="block">Void</KebabItem>
                       <KebabItem icon="archive" destructive>Archive</KebabItem>
@@ -551,6 +558,25 @@ export function Invoices() {
         {/* Pagination (Figma: "Rows per page: N   X-Y of Z   ‹ ›") */}
         <PaginationFooter page={page} perPage={perPage} total={filtered.length} onPageChange={setPage} onPerPageChange={setPerPage} />
       </div>
+
+      {/* Send payment reminder (Figma 2866:72710) */}
+      {reminderInvoice && (
+        <SendReminderModal
+          recipient={{
+            name: reminderInvoice.clientName,
+            email: reminderInvoice.customerEmail || `${reminderInvoice.clientName.toLowerCase().replace(/\s+/g, ".")}@example.com`,
+            initials: reminderInvoice.clientName.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase(),
+            avatarColor: "#4A6FA5",
+          }}
+          invoice={{
+            number: reminderInvoice.number,
+            amount: reminderInvoice.balance,
+            daysOverdue: reminderInvoice.status === "Overdue" ? daysBetween(reminderInvoice.dueDate, TODAY) : 0,
+            detail: reminderInvoice.dueDate ? `due ${formatRegionalDate(new Date(reminderInvoice.dueDate))}` : undefined,
+          }}
+          onClose={() => setReminderInvoice(null)}
+        />
+      )}
 
       {/* Edit columns — toggle which columns the invoice table shows */}
       {editColsOpen && (

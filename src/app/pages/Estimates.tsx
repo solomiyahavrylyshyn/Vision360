@@ -1,6 +1,7 @@
-import { useState, useMemo, useRef, useEffect, useSyncExternalStore } from "react";
+﻿import { useState, useMemo, useRef, useEffect, useSyncExternalStore } from "react";
 import { toast } from "sonner";
 import { estimatesStore } from "../stores/estimatesStore";
+import { estimateTypesStore } from "../stores/estimateTypesStore";
 import { clientsStore } from "../stores/clientsStore";
 import { useNavigate } from "react-router";
 import { DndProvider } from "react-dnd";
@@ -16,7 +17,7 @@ import { AdvancedFilterField, AdvancedFilterPanel, advancedInputClass, advancedS
 import { PaginationFooter } from "../components/ui/pagination-footer";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
-type EstimateStatus = "Draft" | "Sent" | "Viewed" | "Changes Requested" | "Updated" | "Approved" | "Rejected" | "Expired" | "Archived" | "Converted";
+type EstimateStatus = "Draft" | "Sent" | "Viewed" | "Changes Requested" | "Updated" | "Approved" | "Declined" | "Expired" | "Archived" | "Converted";
 
 interface Estimate {
   id: number;
@@ -47,13 +48,13 @@ interface Client {
   address: string;
 }
 
-const primaryStatuses: EstimateStatus[] = ["Draft", "Sent", "Viewed", "Changes Requested", "Updated", "Approved", "Rejected", "Expired"];
+const primaryStatuses: EstimateStatus[] = ["Draft", "Sent", "Viewed", "Changes Requested", "Updated", "Approved", "Declined", "Expired"];
 const otherStatuses: EstimateStatus[] = ["Archived"];
 
 // Status badge colours aligned to the Figma estimates page (verified node
 // 523:31958): semantic-token text colour + the same colour at 15% as the badge
 // background. Draft = purple, Sent = accent blue, Viewed = warning, Approved =
-// success, Rejected = destructive, Expired = neutral.
+// success, Declined = destructive, Expired = neutral.
 const statusColors: Record<EstimateStatus, string> = {
   Draft: "#9333EA",
   Sent: "#4A6FA5",
@@ -61,7 +62,7 @@ const statusColors: Record<EstimateStatus, string> = {
   "Changes Requested": "#B45309",
   Updated: "#4A6FA5",
   Approved: "#16A34A",
-  Rejected: "#DC2626",
+  Declined: "#DC2626",
   Expired: "#6B7280",
   Archived: "#4B5563",
   Converted: "#4A6FA5",
@@ -74,7 +75,7 @@ const statusBg: Record<EstimateStatus, string> = {
   "Changes Requested": "rgba(180,83,9,0.15)",
   Updated: "rgba(74,111,165,0.15)",
   Approved: "rgba(22,163,74,0.15)",
-  Rejected: "rgba(220,38,38,0.15)",
+  Declined: "rgba(220,38,38,0.15)",
   Expired: "rgba(107,114,128,0.15)",
   Archived: "rgba(75,85,99,0.15)",
   Converted: "rgba(74,111,165,0.15)",
@@ -129,7 +130,7 @@ const initialEstimates: Estimate[] = [
   { id: 6, estimateNumber: "10248-E01", estimateName: "HVAC Replacement", clientName: "Sarah Williams", clientEmail: "sarah.w@gmail.com", createdDate: "Sat Feb 28, 2026", addedBy: "Marek Fie", option: "1", amount: 10502, status: "Approved", job: "10248-J01", jobTitle: "HVAC Installation", sentDate: "Mar 01, 2026", expirationDate: "Mar 31, 2026", teamMember: "Marek Stroz", source: "10248-J01", depositDue: 500 },
   { id: 7, estimateNumber: "10247-E01", estimateName: "Plumbing Repair", clientName: "Mike Rodriguez", clientEmail: "mike.r@outlook.com", createdDate: "Wed Feb 25, 2026", addedBy: "Marek Fie", option: "1", amount: 850, status: "Viewed", job: "10247-J01", jobTitle: "Plumbing Fix", sentDate: "Feb 26, 2026", expirationDate: "Mar 27, 2026", teamMember: "Marek Stroz", source: "10247-J01", depositDue: 0 },
   { id: 8, estimateNumber: "10245-E01", estimateName: "Electrical Upgrade", clientName: "Travis Jones", clientEmail: "cerb04@yahoo.com", createdDate: "Mon Feb 23, 2026", addedBy: "Marek Fie", option: "1", amount: 2200, status: "Approved", job: "10245-J01", jobTitle: "Kitchen Renovation", sentDate: "Feb 24, 2026", expirationDate: "Mar 26, 2026", teamMember: "Marek Stroz", source: "10245-J01", depositDue: 200 },
-  { id: 9, estimateNumber: "10248-E02", estimateName: "Roof Inspection", clientName: "Sarah Williams", clientEmail: "sarah.w@gmail.com", createdDate: "Fri Feb 20, 2026", addedBy: "Marek Ste", option: "1", amount: 350, status: "Rejected", job: "10248-J02", jobTitle: "Drain Service", sentDate: "Feb 21, 2026", expirationDate: "Mar 23, 2026", teamMember: "Marek Stroz", source: "10248-J02", depositDue: 0 },
+  { id: 9, estimateNumber: "10248-E02", estimateName: "Roof Inspection", clientName: "Sarah Williams", clientEmail: "sarah.w@gmail.com", createdDate: "Fri Feb 20, 2026", addedBy: "Marek Ste", option: "1", amount: 350, status: "Declined", job: "10248-J02", jobTitle: "Drain Service", sentDate: "Feb 21, 2026", expirationDate: "Mar 23, 2026", teamMember: "Marek Stroz", source: "10248-J02", depositDue: 0 },
 ];
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -229,6 +230,9 @@ export function Estimates() {
   // Quick filters
   const [qfStatus, setQfStatus] = useState<"All" | EstimateStatus>("All");
   const [qfDate, setQfDate] = useState("All time");
+  // FR-5.11/FR-5.19 — third quick filter: estimate type (company-editable list).
+  const [qfType, setQfType] = useState("All");
+  const estimateTypes = useSyncExternalStore(estimateTypesStore.subscribe, estimateTypesStore.getSnapshot);
   const [filterOpen, setFilterOpen] = useState(false);
   const [createdFrom, setCreatedFrom] = useState("");
   const [createdTo, setCreatedTo] = useState("");
@@ -293,6 +297,7 @@ export function Estimates() {
   const filtered = useMemo(() => {
     let result = [...estimates];
     if (qfStatus !== "All") result = result.filter(e => e.status === qfStatus);
+    if (qfType !== "All") result = result.filter(e => (e as any).estimateType === qfType);
     result = result.filter(e => matchesDatePreset(e.createdDate, qfDate));
     if (createdFrom) result = result.filter(e => toDateInputValue(e.createdDate) >= createdFrom);
     if (createdTo) result = result.filter(e => toDateInputValue(e.createdDate) <= createdTo);
@@ -330,7 +335,7 @@ export function Estimates() {
       );
     }
     return result;
-  }, [estimates, qfStatus, qfDate, createdFrom, createdTo, expiresFrom, expiresTo, amountMin, amountMax, teamFilter, depositFilter, clientFilter, liveClients, search]);
+  }, [estimates, qfStatus, qfType, qfDate, createdFrom, createdTo, expiresFrom, expiresTo, amountMin, amountMax, teamFilter, depositFilter, clientFilter, liveClients, search]);
 
   const teamMembers = useMemo(() => Array.from(new Set(estimates.map(e => e.teamMember).filter(Boolean))), [estimates]);
   const activeFilterCount = [createdFrom, createdTo, expiresFrom, expiresTo, amountMin, amountMax, teamFilter !== "All", depositFilter !== "All", clientFilter].filter(Boolean).length;
@@ -469,6 +474,10 @@ export function Estimates() {
             {primaryStatuses.map(s => <option key={s} value={s}>{s}</option>)}
             <option disabled>── other options ──</option>
             {otherStatuses.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+          <select value={qfType} onChange={e => { setQfType(e.target.value); setPage(1); }} className={qfClass(qfType !== "All")}>
+            <option value="All">Type: All</option>
+            {estimateTypes.map(t => <option key={t} value={t}>{t}</option>)}
           </select>
           <select value={qfDate} onChange={e => { setQfDate(e.target.value); setPage(1); }} className={qfClass(qfDate !== "All time")}>
             {timeFilters.map(t => <option key={t} value={t}>{t === "All time" ? "Date: All time" : t}</option>)}

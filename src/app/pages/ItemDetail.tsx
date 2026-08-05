@@ -5,7 +5,8 @@ import { itemsStore } from "../stores/itemsStore";
 import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
 import { DetailTabs, TabSettingsButton } from "../components/ui/detail-tabs";
 import { PlusIcon } from "../components/ui/plus-icon";
-import { ITEM_TYPES, TYPE_CATEGORIES } from "./Items";
+import { ITEM_TYPES } from "./Items";
+import { categoriesStore } from "../stores/categoriesStore";
 
 // Classification option lists (mirror the Create-item form).
 const MANUFACTURERS = ["Carrier", "Trane", "Lennox", "Goodman", "Rheem", "Ferguson", "Square D", "Ecobee"];
@@ -36,6 +37,8 @@ interface Item {
   notes: string; boldPrint: boolean;
   group: string; defaultQty: number; picture: string;
   inventory: boolean; booking: boolean;
+  /** FR-4.8 — excluded from customer-facing documents; totals unaffected. */
+  hideOnCustomerDocs?: boolean;
 }
 
 const mockItems: Record<string, Item> = {
@@ -160,6 +163,7 @@ function catalogToItem(c: any): Item {
     customField1: c.customField1 || "", customField2: c.customField2 || "",
     notes: c.notes || "", boldPrint: false, group: "", defaultQty: c.defaultQty ?? 1, picture: "",
     inventory: false, booking: false,
+    hideOnCustomerDocs: !!c.hideOnCustomerDocs,
   };
 }
 
@@ -349,6 +353,7 @@ export function ItemDetail() {
             <Field label="Default quantity" value={item.defaultQty} />
             <Field label="Taxable" value={item.taxable ? "Yes" : "No"} />
             <Field label="Tax profile" value={taxProfile} />
+            <Field label="Customer documents" value={item.hideOnCustomerDocs ? "Hidden" : "Shown"} />
           </div>
         </Card>
       </div>
@@ -627,7 +632,8 @@ function EditClassificationModal({ item, onClose, onSave }: { item: any; onClose
   const [brand, setBrand] = useState(item.brand || "");
   const [department, setDepartment] = useState(item.department || "");
   const [vendor, setVendor] = useState(item.vendor || "");
-  const cats = [...(TYPE_CATEGORIES[type] || [])];
+  // FR-16.6 — one company-wide category list, not scoped to item type.
+  const cats = [...useSyncExternalStore(categoriesStore.subscribe, categoriesStore.getSnapshot)];
   if (category && !cats.includes(category)) cats.unshift(category);
   return (
     <ModalShell title="Edit item info" onClose={onClose}
@@ -658,9 +664,10 @@ function EditPricingModal({ item, taxProfile, onClose, onSave }: { item: any; ta
   const [defaultQty, setDefaultQty] = useState(String(item.defaultQty ?? "1"));
   const [taxable, setTaxable] = useState(!!item.taxable);
   const [tp, setTp] = useState(taxProfile);
+  const [hideDocs, setHideDocs] = useState(!!item.hideOnCustomerDocs);
   return (
     <ModalShell title="Edit pricing & tax" onClose={onClose}
-      footer={<><button className={cancelBtn} style={{ fontWeight: 600 }} onClick={onClose}>Cancel</button><button className={saveBtn} style={{ fontWeight: 600 }} onClick={() => onSave({ rate: parseFloat(rate) || 0, cost: parseFloat(cost) || 0, defaultQty: parseInt(defaultQty) || 1, taxable }, tp)}>Save</button></>}>
+      footer={<><button className={cancelBtn} style={{ fontWeight: 600 }} onClick={onClose}>Cancel</button><button className={saveBtn} style={{ fontWeight: 600 }} onClick={() => onSave({ rate: parseFloat(rate) || 0, cost: parseFloat(cost) || 0, defaultQty: parseInt(defaultQty) || 1, taxable, hideOnCustomerDocs: hideDocs }, tp)}>Save</button></>}>
       <div className="flex flex-col gap-4">
         <div className="grid grid-cols-3 gap-4">
           <div><label className={mLabel}>Price</label><div className="relative"><span className="absolute left-3 top-1/2 -translate-y-1/2 text-[14px] text-[#8899AA]">$</span><input type="number" min="0" step="0.01" value={rate} onChange={(e) => setRate(e.target.value)} className={`${mInput} pl-7`} style={{ fontVariantNumeric: "tabular-nums" }} /></div></div>
@@ -672,6 +679,11 @@ function EditPricingModal({ item, taxProfile, onClose, onSave }: { item: any; ta
           {taxable && (
             <div className="mt-3"><label className={mLabel}>Tax profile</label><select value={tp} onChange={(e) => setTp(e.target.value)} className={mInput}>{["No Tax", "Florida Sales Tax 7%", "Texas Sales Tax 8.25%", "Polish Sales Tax 23%"].map((t) => <option key={t} value={t}>{t}</option>)}</select></div>
           )}
+        </div>
+        {/* FR-4.8 — visibility on customer documents */}
+        <div className="rounded-lg border border-[#E5E7EB] p-4">
+          <label className="flex cursor-pointer items-center gap-2.5"><input type="checkbox" checked={hideDocs} onChange={(e) => setHideDocs(e.target.checked)} className="h-4 w-4 rounded border-[#CBD5E1] accent-[#4A6FA5]" /><span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Do not show on customer documents</span></label>
+          <p className="mt-1.5 text-[12px] text-[#8899AA]">Hidden on estimates, invoices, receipts and the customer web view — totals are not affected.</p>
         </div>
       </div>
     </ModalShell>

@@ -190,7 +190,9 @@ describe("Calendar — daily Dispatch board (integration)", () => {
     renderDayBoard();
     const aside = screen.getByRole("complementary") as HTMLElement;
     fireEvent.click(within(aside).getByText("Clark Residence").closest('[data-job-card="true"]') as HTMLElement);
-    expect(screen.getByPlaceholderText("DD-MM-YYYY")).toHaveValue("");
+    // The panel now shows both Start date and End date (Figma 1612:17799), so
+    // target the start field by its accessible name.
+    expect(screen.getByLabelText("Start date")).toHaveValue("");
   });
 
   it("lifecycle (§7.3): a completed job's panel offers 'Reopen job'", () => {

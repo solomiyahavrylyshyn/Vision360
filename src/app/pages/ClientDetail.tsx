@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useSyncExternalStore, useCallback, useRef, type ReactNode } from "react";
+﻿import { useState, useEffect, useMemo, useSyncExternalStore, useCallback, useRef, type ReactNode } from "react";
 import { DocumentPreview } from "../components/DocumentPreview";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
@@ -408,7 +408,7 @@ const EST_STATUS_COLORS: Record<string, { bg: string; color: string }> = {
   "Changes Requested": { bg: "#FEF3C7", color: "#B45309" },
   Updated:   { bg: "#EBF0F8", color: "#4A6FA5"  },
   Approved:  { bg: "#DCFCE7", color: "#166534"  },
-  Rejected:  { bg: "#FEE2E2", color: "#DC2626"  },
+  Declined:  { bg: "#FEE2E2", color: "#DC2626"  },
   Expired:   { bg: "#F3F4F6", color: "#6B7280"  },
   Converted: { bg: "#EBF0F8", color: "#4A6FA5"  },
   Archived:  { bg: "#E5E7EB", color: "#4B5563"  },
@@ -1668,7 +1668,7 @@ export function ClientDetail() {
               { key: "status", label: "Status", options: [
                 { value: "", label: "All" }, { value: "Draft", label: "Draft" }, { value: "Sent", label: "Sent" }, { value: "Viewed", label: "Viewed" },
                 { value: "Changes Requested", label: "Changes Requested" }, { value: "Updated", label: "Updated" },
-                { value: "Approved", label: "Approved" }, { value: "Rejected", label: "Rejected" }, { value: "Expired", label: "Expired" },
+                { value: "Approved", label: "Approved" }, { value: "Declined", label: "Declined" }, { value: "Expired", label: "Expired" },
               ], match: (r, v) => r.status === v },
             ]}
             createLabel="Create estimate"
@@ -3167,43 +3167,43 @@ export function ClientDetail() {
         let running = 0;
         ledger.forEach(row => { running += row.debit - row.credit; row.balance = running; });
 
+        // Figma 2826:44108 — centred modal titled "Account statement": a client
+        // summary strip, the ledger, then Print / Email in the footer.
         return (
-          <div className="fixed inset-0 z-50 flex" onClick={() => setStatementOpen(false)}>
-            <div className="flex-1 bg-black/30 backdrop-blur-[1px]" />
-            <div className="w-[680px] max-w-[96vw] bg-white shadow-2xl flex flex-col h-full" onClick={e => e.stopPropagation()} id="client-statement-print">
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-6" onClick={() => setStatementOpen(false)}>
+            <div className="absolute inset-0 bg-black/30 backdrop-blur-[1px]" />
+            <div className="relative w-[900px] max-w-[96vw] max-h-[86vh] bg-white rounded-2xl shadow-2xl flex flex-col" onClick={e => e.stopPropagation()} id="client-statement-print">
               {/* Header */}
-              <div className="px-6 py-5 border-b border-[#E5E7EB] flex items-start justify-between shrink-0 no-print">
-                <div>
-                  <h2 className="text-[18px] text-[#1A2332]" style={{ fontWeight: 700 }}>Account statement</h2>
-                  <p className="text-[13px] text-[#6B7280] mt-0.5">{client.name} · {formatRegionalDate(new Date())}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button onClick={() => window.print()} className="h-9 px-3.5 border border-[#E5E7EB] rounded-lg text-[13px] text-[#546478] hover:bg-[#F5F7FA] inline-flex items-center gap-1.5" style={{ fontWeight: 500 }}>
-                    <span className="material-icons" style={{ fontSize: "16px" }}>print</span>Print
-                  </button>
-                  <button onClick={() => setStatementOpen(false)} className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-[#F5F7FA] text-[#9CA3AF]">
-                    <span className="material-icons" style={{ fontSize: "20px" }}>close</span>
-                  </button>
-                </div>
+              <div className="px-6 py-5 border-b border-[#E5E7EB] flex items-center justify-between shrink-0">
+                <h2 className="text-[18px] text-[#1A2332]" style={{ fontWeight: 700 }}>Account statement</h2>
+                <button onClick={() => setStatementOpen(false)} className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-[#F5F7FA] text-[#9CA3AF] no-print">
+                  <span className="material-icons" style={{ fontSize: "20px" }}>close</span>
+                </button>
               </div>
 
-              {/* Client + summary */}
-              <div className="px-6 py-4 bg-[#F8FAFC] border-b border-[#E5E7EB] shrink-0">
-                <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <div className="text-[11px] text-[#6B7280] uppercase tracking-wider mb-1" style={{ fontWeight: 600 }}>Client</div>
-                    <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>{client.name}</div>
-                    {client.email && <div className="text-[12px] text-[#6B7280]">{client.email}</div>}
-                    {client.mobilePhone && <div className="text-[12px] text-[#6B7280]">{client.mobilePhone}</div>}
+              {/* Client + summary strip */}
+              <div className="px-6 pt-5 shrink-0">
+                <div className="flex items-center justify-between gap-6 rounded-xl border border-[#E5E7EB] px-5 py-4">
+                  <div className="min-w-0">
+                    <div className="text-[15px] text-[#1A2332]" style={{ fontWeight: 600 }}>{client.name}</div>
+                    <div className="mt-0.5 text-[13px] text-[#6B7280]">
+                      {[client.email, client.mobilePhone].filter(Boolean).join("   ")}
+                    </div>
                   </div>
-                  <div>
-                    <div className="text-[11px] text-[#6B7280] uppercase tracking-wider mb-1" style={{ fontWeight: 600 }}>Total billed</div>
-                    <div className="text-[18px] text-[#1A2332]" style={{ fontWeight: 700 }}>${fmt(client.totalBilled ?? 0)}</div>
-                  </div>
-                  <div>
-                    <div className="text-[11px] text-[#6B7280] uppercase tracking-wider mb-1" style={{ fontWeight: 600 }}>Balance due</div>
-                    <div className={`text-[18px]`} style={{ fontWeight: 700, color: (client.openBalance ?? 0) > 0 ? "#DC2626" : "#16A34A" }}>
-                      ${fmt(client.openBalance ?? 0)}
+                  <div className="flex items-center gap-6 shrink-0">
+                    <div className="flex items-center gap-3">
+                      <div className="text-right">
+                        <div className="text-[18px] text-[#1A2332] tabular-nums" style={{ fontWeight: 700 }}>${fmt(client.totalBilled ?? 0)}</div>
+                        <div className="text-[13px] text-[#6B7280]">Total billed</div>
+                      </div>
+                      <span className="material-icons flex h-9 w-9 items-center justify-center rounded-lg bg-[#EBF0F8] text-[#4A6FA5]" style={{ fontSize: "18px" }}>request_quote</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="text-right">
+                        <div className="text-[18px] tabular-nums" style={{ fontWeight: 700, color: (client.openBalance ?? 0) > 0 ? "#DC2626" : "#16A34A" }}>${fmt(client.openBalance ?? 0)}</div>
+                        <div className="text-[13px] text-[#6B7280]">Balance due</div>
+                      </div>
+                      <span className="material-icons flex h-9 w-9 items-center justify-center rounded-lg bg-[#DCFCE7] text-[#16A34A]" style={{ fontSize: "18px" }}>account_balance_wallet</span>
                     </div>
                   </div>
                 </div>
@@ -3255,17 +3255,32 @@ export function ClientDetail() {
                 )}
               </div>
 
-              {/* Footer CTA */}
-              <div className="px-6 py-4 border-t border-[#E5E7EB] shrink-0 no-print">
+              {/* Footer — Print / Email (FR-3.13: the statement can be sent or
+                  printed); collecting the balance stays available when one is due. */}
+              <div className="px-6 py-4 border-t border-[#E5E7EB] shrink-0 no-print flex items-center justify-end gap-2">
                 {(client.openBalance ?? 0) > 0 && (
                   <button
                     onClick={() => { setStatementOpen(false); navigate(createUrl("/payments/new", "payments", { amount: String(client.openBalance), method: client.paymentMethod || "" })); }}
-                    className="w-full h-10 bg-[#4A6FA5] hover:bg-[#3d5a85] text-white rounded-lg text-[14px] transition-colors"
+                    className="mr-auto h-10 px-4 rounded-lg border border-[#E5E7EB] text-[#1A2332] hover:bg-[#F5F7FA] text-[14px] transition-colors"
                     style={{ fontWeight: 600 }}
                   >
                     Collect payment — ${fmt(client.openBalance ?? 0)}
                   </button>
                 )}
+                <button
+                  onClick={() => window.print()}
+                  className="h-10 px-5 rounded-lg border border-[#E5E7EB] text-[#1A2332] hover:bg-[#F5F7FA] text-[14px] transition-colors"
+                  style={{ fontWeight: 600 }}
+                >
+                  Print
+                </button>
+                <button
+                  onClick={() => { toast.success(`Statement emailed to ${client.email || client.name}`); setStatementOpen(false); }}
+                  className="h-10 px-5 rounded-lg bg-[#4A6FA5] hover:bg-[#3d5a85] text-white text-[14px] transition-colors"
+                  style={{ fontWeight: 600 }}
+                >
+                  Email
+                </button>
               </div>
             </div>
           </div>

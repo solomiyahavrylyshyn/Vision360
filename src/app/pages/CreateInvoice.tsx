@@ -1,4 +1,4 @@
-import { useState, useSyncExternalStore } from "react";
+﻿import { useState, useSyncExternalStore } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { toast } from "sonner";
 import { clientsStore } from "../stores/clientsStore";
@@ -48,7 +48,7 @@ export function CreateInvoice() {
     "10247-J01: Plumbing Fix", "10248-J01: Electrical Work", "10250-J01: HVAC Install",
   ].filter((v, i, a) => a.indexOf(v) === i);
 
-  // Only estimates a customer could act on are linkable — hide Draft/Rejected/
+  // Only estimates a customer could act on are linkable — hide Draft/Declined/
   // Archived; show Sent/Viewed/Approved/Expired (Marek, Jun 5).
   const INVOICE_ESTIMATE_PICKABLE = ["Sent", "Viewed", "Approved", "Expired"];
   const liveEstimates = useSyncExternalStore(estimatesStore.subscribe, estimatesStore.getSnapshot);

@@ -19,6 +19,7 @@ export const toCatalogItem = (i: {
   department?: string; vendor?: string; defaultQty?: number;
   additionalInfo?: string; customField1?: string; customField2?: string; notes?: string;
   images?: string[]; taxProfile?: string; active?: boolean; upc?: string;
+  hideOnCustomerDocs?: boolean;
 }): CatalogItem => ({
   id: i.id, name: i.name, itemDescription: i.description, salesDescription: i.salesDescription,
   brand: i.brand, modelNumber: i.modelNumber, rate: i.rate, cost: i.cost, taxable: i.taxable,
@@ -28,6 +29,7 @@ export const toCatalogItem = (i: {
   defaultQty: i.defaultQty, additionalInfo: i.additionalInfo,
   customField1: i.customField1, customField2: i.customField2, notes: i.notes,
   images: i.images, taxProfile: i.taxProfile, active: i.active, upc: i.upc,
+  hideOnCustomerDocs: i.hideOnCustomerDocs,
 });
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -49,6 +51,8 @@ interface Item {
   rate: number;               // shown as "Price" in UI
   cost: number;
   taxable: boolean;
+  /** FR-4.8 — hidden on customer-facing documents ("Shown on documents" column). */
+  hideOnCustomerDocs?: boolean;
   category: string;
   type: ItemType;
   vendor: string;
@@ -137,6 +141,7 @@ const catalogToRow = (s: any): Item => ({
   vendor: s.vendor || "", department: s.department || "",
   customField1: s.customField1 || "", customField2: s.customField2 || "",
   notes: s.notes || "", defaultQty: s.defaultQty ?? 1,
+  hideOnCustomerDocs: !!s.hideOnCustomerDocs,
   createdAt: mockCreatedAt(s.id),
   // Seed items 1-2 carry usage history so Deactivate (kept) vs Delete
   // (permanent, unused-only) are both demonstrable per ITM-3.
@@ -158,12 +163,15 @@ const ALL_COLS = [
   { key: "rate",      label: "Price",        sortable: true,  locked: false, numeric: true  },
   { key: "cost",      label: "Cost",         sortable: true,  locked: false, numeric: true  },
   { key: "taxable",   label: "Taxable",      sortable: false, locked: false, numeric: true  },
+  // FR-4.8 — surfaces the "Do not show on customer documents" flag.
+  { key: "shownOnDocs", label: "Shown on documents", sortable: false, locked: false, numeric: false },
 ] as const;
 type ColKey = (typeof ALL_COLS)[number]["key"];
 
 const DEFAULT_COL_VIS: Record<string, boolean> = {
   name: true, category: true, type: true, department: false, vendor: false,
   brand: false, status: true, createdAt: false, rate: true, cost: true, taxable: true,
+  shownOnDocs: false,
 };
 
 // ─── Helper Components ───────────────────────────────────────────────────────
@@ -591,6 +599,8 @@ export function Items() {
                           return <td key="cost" className="px-2 py-2 text-[14px] text-[#1A2332] text-right" style={{ ...cellText, fontVariantNumeric: "tabular-nums" }}>{fmtMoney(item.cost)}</td>;
                         case "taxable":
                           return <td key="taxable" className="px-2 py-2 text-[14px] text-[#6B7280] text-right" style={cellText}>{item.taxable ? "Yes" : "No"}</td>;
+                        case "shownOnDocs":
+                          return <td key="shownOnDocs" className="px-2 py-2 text-[14px] text-[#6B7280]" style={cellText}>{(item as any).hideOnCustomerDocs ? "Hidden" : "Shown"}</td>;
                         default:
                           return null;
                       }

@@ -133,7 +133,7 @@ const nextStatus = (status: JobStatus): JobStatus => {
 interface DrawerJob {
   id: number; headerTitle: string; client: string; service: string; address: string;
   status: JobStatus; technicianId: string; jobType?: string; amount: number; unscheduled?: boolean;
-  startLabel: string; endLabel: string; dateLabel: string; durationLabel: string;
+  startLabel: string; endLabel: string; dateLabel: string; endDateLabel?: string; durationLabel: string;
   frequency: "One-off" | "Recurring"; recurrenceSummary?: string;
 }
 function JobInfoDrawer({
@@ -228,7 +228,13 @@ function JobInfoDrawer({
                 </div>
                 <div className="flex items-center gap-2">
                   <span className={labelCls}><span className="material-icons text-[#6B7280]" style={{ fontSize: "16px" }}>event</span>Start date:</span>
-                  <input readOnly value={job.dateLabel} placeholder="DD-MM-YYYY" className={roCls} />
+                  <input readOnly aria-label="Start date" value={job.dateLabel} placeholder="DD-MM-YYYY" className={roCls} />
+                </div>
+                {/* End date (Figma 1612:17799) — a one-off job ends the same day
+                    it starts; a recurring series ends on its recurrence end. */}
+                <div className="flex items-center gap-2">
+                  <span className={labelCls}><span className="material-icons text-[#6B7280]" style={{ fontSize: "16px" }}>event</span>End date:</span>
+                  <input readOnly aria-label="End date" value={job.endDateLabel ?? job.dateLabel} placeholder="DD-MM-YYYY" className={roCls} />
                 </div>
                 <div className="flex items-center gap-2">
                   <span className={labelCls}><span className="material-icons text-[#6B7280]" style={{ fontSize: "16px" }}>schedule</span>Start time:</span>

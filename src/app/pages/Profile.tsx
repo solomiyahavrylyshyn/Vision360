@@ -1,27 +1,15 @@
 import { useState } from "react";
 import { Input } from "../components/ui/input";
+import { jobNotificationEvents, estimateNotificationEvents, paymentNotificationEvents } from "../constants/notificationEvents";
 // Profile page — aligned to Figma node 1122-7158.
 
 type SidebarPreference = "Expanded sidebar" | "Collapsed sidebar";
 
-const jobNotifications = [
-  "New job assigned",
-  "Job rescheduled",
-  "Technician dispatched",
-  "Job completed",
-];
-
-const estimateNotifications = [
-  "Estimate approved",
-  "Estimate declined",
-  "Customer viewed estimate",
-];
-
-const invoiceNotifications = [
-  "Payment received",
-  "Invoice overdue",
-  "Failed payment",
-];
+// Per-user notification preferences (FR-13.5) — the event catalog is shared
+// with the company-level defaults in Settings (FR-13.3).
+const jobNotifications = jobNotificationEvents.map(e => e.label);
+const estimateNotifications = estimateNotificationEvents.map(e => e.label);
+const invoiceNotifications = paymentNotificationEvents.map(e => e.label);
 
 export function Profile() {
   const [firstName, setFirstName] = useState("John");

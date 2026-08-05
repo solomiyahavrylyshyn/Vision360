@@ -2,7 +2,8 @@ import { useState, useSyncExternalStore } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { toast } from "sonner";
 import { itemsStore } from "../stores/itemsStore";
-import { toCatalogItem, ITEM_TYPES, TYPE_CATEGORIES } from "./Items";
+import { categoriesStore } from "../stores/categoriesStore";
+import { toCatalogItem, ITEM_TYPES } from "./Items";
 
 // Create item — full page aligned to Figma node 1494:127168.
 // 2-column section layout (Basic info / Type / Classification / Pricing & tax /
@@ -20,6 +21,7 @@ export function CreateItem() {
   const returnTo = searchParams.get("returnTo") || "/items";
 
   const storeItems = useSyncExternalStore(itemsStore.subscribe, itemsStore.getSnapshot);
+  const categories = useSyncExternalStore(categoriesStore.subscribe, categoriesStore.getSnapshot);
 
   const [name, setName] = useState("");
   const [internalDesc, setInternalDesc] = useState("");
@@ -33,6 +35,8 @@ export function CreateItem() {
   const [cost, setCost] = useState("");
   const [defaultQty, setDefaultQty] = useState("1");
   const [taxable, setTaxable] = useState(true);
+  // FR-4.8 — exclude from customer-facing documents (defaults off)
+  const [hideOnCustomerDocs, setHideOnCustomerDocs] = useState(false);
   const [taxProfile, setTaxProfile] = useState("Florida Sales Tax 7%");
   const [vendor, setVendor] = useState("");
   const [imageUrl, setImageUrl] = useState("");
@@ -78,6 +82,7 @@ export function CreateItem() {
       images: [...images, ...(imageUrl.trim() ? [imageUrl.trim()] : [])],
       active: true,
       type,
+      hideOnCustomerDocs,
     }));
     toast.success("Item created");
     navigate(returnTo);
@@ -164,7 +169,8 @@ export function CreateItem() {
                 <label className={labelClass}>Category</label>
                 <select value={category} onChange={(e) => setCategory(e.target.value)} className={fieldClass}>
                   <option value="">Select category</option>
-                  {(TYPE_CATEGORIES[type] || []).map((c) => <option key={c} value={c}>{c}</option>)}
+                  {/* FR-16.6 — one company-wide category list, not scoped to type */}
+                  {categories.map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
               <div>
@@ -223,6 +229,14 @@ export function CreateItem() {
                 </div>
               )}
               {manageHint(<>Manage tax profiles in <span className="cursor-pointer text-[#4A6FA5] hover:underline" onClick={() => navigate("/settings")}>Settings &gt; Tax profiles</span></>)}
+            </div>
+            {/* FR-4.8 — visibility on customer documents */}
+            <div className="mt-4 rounded-lg border border-[#E5E7EB] p-4">
+              <label className="flex cursor-pointer items-center gap-2.5">
+                <input type="checkbox" checked={hideOnCustomerDocs} onChange={(e) => setHideOnCustomerDocs(e.target.checked)} className="h-4 w-4 rounded border-[#CBD5E1] accent-[#4A6FA5] cursor-pointer" />
+                <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Do not show on customer documents</span>
+              </label>
+              <p className="mt-1.5 text-[12px] text-[#8899AA]">Hidden on estimates, invoices, receipts and the customer web view — totals are not affected. Stays visible internally.</p>
             </div>
           </Section>
 

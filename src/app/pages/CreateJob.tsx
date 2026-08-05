@@ -1,4 +1,4 @@
-import { useState, useEffect, useSyncExternalStore, type ReactNode } from "react";
+﻿import { useState, useEffect, useSyncExternalStore, type ReactNode } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { ItemPicker, catalogItemToLineItem, type CatalogItem, type SelectedLineItem } from "../components/ItemPicker";
 import { jobTypesStore } from "../stores/jobTypesStore";
@@ -13,6 +13,18 @@ import { PlusIcon } from "../components/ui/plus-icon";
 import { itemsStore } from "../stores/itemsStore";
 import { type JobStatus, JOB_STATUSES } from "../constants/jobStatuses";
 import { expandRecurrence, describeRecurrence, type RecurrenceFrequency, type RecurrenceRule } from "../utils/recurrence";
+import { expenseCategoryColors } from "./Expenses";
+
+// Expenses that can be attached to a job on the create form (Figma 1168:74675).
+// Company-level expense records the user has not linked to a job yet.
+interface JobExpense { id: number; number: string; category: string; vendor: string; amount: number }
+const UNLINKED_EXPENSES: JobExpense[] = [
+  { id: 901, number: "E-1250", category: "Materials", vendor: "Home Depot", amount: 285 },
+  { id: 902, number: "E-1251", category: "Materials", vendor: "Ferguson Plumbing", amount: 412.4 },
+  { id: 903, number: "E-1252", category: "Tools", vendor: "Grainger", amount: 96.75 },
+  { id: 904, number: "E-1253", category: "Fuel", vendor: "Shell Gas Station", amount: 64.2 },
+  { id: 905, number: "E-1254", category: "Subcontractor", vendor: "Delta Electric", amount: 750 },
+];
 
 // ── Time helpers (shared by the bidirectional duration ⇄ end-time logic) ──
 const timeToMin = (t: string): number | null => {
@@ -155,7 +167,9 @@ export function CreateJob({ asModal = false, onClose, onCreated, prefill, headin
     return String(jobTypesStore.getDuration(prefill?.jobCategory));
   });
   const [assignedTo, setAssignedTo] = useState(prefill?.assignedTo ?? sp.get("assignedTo") ?? "");
-  const [industry, setIndustry] = useState("");
+  // NOTE: no Industry picker on this form — none of the create-job frames
+  // (1168:74675/74877/75005) show one; the job detail derives it from the
+  // company/client instead (FR-9.6).
   // US-4 out-of-range confirm: holds a pending save while the warning modal is up.
   const [outOfRangeOpen, setOutOfRangeOpen] = useState(false);
   const [lineItems, setLineItems] = useState<SelectedLineItem[]>([]);
@@ -259,7 +273,7 @@ export function CreateJob({ asModal = false, onClose, onCreated, prefill, headin
 
   // Estimate dropdown (Part 7): the SELECTED client's estimates, filtered to the
   // statuses that can still become a job — Sent / Viewed / Approved / Expired.
-  // Draft / Rejected / Archived / Converted are hidden to force finalization.
+  // Draft / Declined / Archived / Converted are hidden to force finalization.
   // Expired is shown on purpose (it's only a timer; a late-accepted estimate can
   // still spawn a job).
   const ESTIMATE_PICKABLE = new Set(["Sent", "Viewed", "Approved", "Expired"]);
@@ -304,6 +318,22 @@ export function CreateJob({ asModal = false, onClose, onCreated, prefill, headin
     setLineItems((prev) => prev.filter((li) => li.sourceEstimateId !== id).map((li, i) => ({ ...li, id: i + 1 })));
   };
   const estimatesTotal = linkedEstimates.reduce((s, l) => s + l.amount, 0);
+
+  // ── Expenses (Figma 1168:74675) — job-related expense records attached while
+  // creating the job. The picker offers the company's unlinked expenses.
+  const [expSearch, setExpSearch] = useState("");
+  const [expPickerOpen, setExpPickerOpen] = useState(false);
+  const [linkedExpenses, setLinkedExpenses] = useState<JobExpense[]>([]);
+  const availableExpenses = UNLINKED_EXPENSES.filter(
+    (x) => !linkedExpenses.some((l) => l.id === x.id) &&
+      (!expSearch.trim() || `${x.number} ${x.vendor} ${x.category}`.toLowerCase().includes(expSearch.trim().toLowerCase())),
+  );
+  const addExpense = (x: JobExpense) => {
+    setLinkedExpenses((prev) => [...prev, x]);
+    setExpPickerOpen(false);
+    setExpSearch("");
+  };
+  const expensesTotal = linkedExpenses.reduce((s, x) => s + x.amount, 0);
 
   const fmt = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -620,21 +650,6 @@ export function CreateJob({ asModal = false, onClose, onCreated, prefill, headin
                 {fieldEmployees.map((name) => <option key={name} value={name}>{name}</option>)}
               </select>
             </div>
-            <div>
-              <label className="block text-[14px] text-[#1A2332] mb-1" style={{ fontWeight: 500 }}>Industry</label>
-              <select value={industry} onChange={(e) => setIndustry(e.target.value)} className={fieldCls}>
-                <option value="">Select industry</option>
-                <option value="hvac">HVAC</option>
-                <option value="plumbing">Plumbing</option>
-                <option value="electrical">Electrical</option>
-                <option value="cleaning">Cleaning</option>
-                <option value="landscaping">Landscaping</option>
-                <option value="roofing">Roofing</option>
-                <option value="pool">Pool Service</option>
-                <option value="general">General Contracting</option>
-                <option value="others">Other</option>
-              </select>
-            </div>
           </div>
         </FormSection>
 
@@ -839,6 +854,91 @@ export function CreateJob({ asModal = false, onClose, onCreated, prefill, headin
               <div className="flex items-center justify-end gap-3 border-t border-[#E5E7EB] px-4 py-3 bg-[#F5F7FA]">
                 <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Total:</span>
                 <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>${fmt(estimatesTotal)}</span>
+              </div>
+            )}
+          </div>
+        </FormSection>
+
+        {/* ── Expenses (Figma 1168:74675 / 75005) — job-related expense records
+            linked while creating the job; company-level expenses stay in the
+            Expenses module (FR-11.5). ── */}
+        <FormSection label="Expenses">
+          <div className="rounded-xl border border-[#E5E7EB] overflow-hidden">
+            <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-[#E5E7EB]">
+              <div className="relative max-w-[300px] flex-1">
+                <span className="material-icons absolute left-2.5 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: "16px" }}>search</span>
+                <input
+                  type="text"
+                  value={expSearch}
+                  onChange={(e) => setExpSearch(e.target.value)}
+                  onFocus={() => setExpPickerOpen(true)}
+                  placeholder="Search expenses..."
+                  className="w-full h-8 pl-8 pr-3 border border-[#E5E7EB] rounded-lg text-[13px] bg-white outline-none focus:border-[#4A6FA5]"
+                />
+              </div>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setExpPickerOpen((o) => !o)}
+                  className="h-8 px-3 bg-[#4A6FA5] text-white rounded-lg text-[13px] inline-flex items-center gap-1.5 hover:bg-[#3d5a85]"
+                  style={{ fontWeight: 500 }}
+                >
+                  <PlusIcon className="h-4 w-4" />
+                  Add expense
+                </button>
+                {expPickerOpen && (
+                  <div className="absolute right-0 top-[calc(100%+4px)] z-50 w-[320px] rounded-lg border border-[#E5E7EB] bg-white shadow-lg max-h-[240px] overflow-y-auto py-1">
+                    {availableExpenses.length === 0 ? (
+                      <div className="px-3 py-3 text-[12px] text-[#8899AA]">No unlinked expenses</div>
+                    ) : availableExpenses.map((x) => (
+                      <button key={x.id} type="button" onClick={() => addExpense(x)} className="w-full text-left px-3 py-2 hover:bg-[#F5F7FA]">
+                        <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{x.number} — {x.vendor}</div>
+                        <div className="text-[11px] text-[#8899AA]">{x.category} · ${fmt(x.amount)}</div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-[#E5E7EB] bg-[#F5F7FA]">
+                  <th className="px-4 py-2 text-left text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Number</th>
+                  <th className="px-4 py-2 text-left text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Category</th>
+                  <th className="px-4 py-2 text-left text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Vendor</th>
+                  <th className="px-4 py-2 text-right text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Amount</th>
+                  <th className="w-12" />
+                </tr>
+              </thead>
+              <tbody>
+                {linkedExpenses.length === 0 ? (
+                  <tr><td colSpan={5} className="px-4 py-8 text-center text-[13px] text-[#8899AA]">No expenses added yet</td></tr>
+                ) : linkedExpenses.map((x) => (
+                  <tr key={x.id} className="border-b border-[#F1F3F7] last:border-0">
+                    <td className="px-4 py-3 text-[13px] text-[#4A6FA5]" style={{ fontWeight: 500 }}>{x.number}</td>
+                    <td className="px-4 py-3">
+                      <span className="inline-flex items-center gap-1.5 text-[13px]" style={{ color: expenseCategoryColors[x.category] ?? "#546478" }}>
+                        <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: expenseCategoryColors[x.category] ?? "#546478" }} />
+                        {x.category}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-[13px] text-[#374151]">{x.vendor}</td>
+                    <td className="px-4 py-3 text-right text-[13px] text-[#1A2332]" style={{ fontVariantNumeric: "tabular-nums" }}>${fmt(x.amount)}</td>
+                    <td className="px-4 py-3 text-right">
+                      <button onClick={() => setLinkedExpenses((prev) => prev.filter((e) => e.id !== x.id))} className="w-7 h-7 inline-flex items-center justify-center rounded hover:bg-[#FEE2E2]" aria-label="Remove expense">
+                        <span className="material-icons text-[#9CA3AF] hover:text-[#DC2626]" style={{ fontSize: "16px" }}>delete</span>
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            {linkedExpenses.length > 0 && (
+              <div className="flex items-center justify-end gap-3 border-t border-[#E5E7EB] px-4 py-3 bg-[#F5F7FA]">
+                <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Total:</span>
+                <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>${fmt(expensesTotal)}</span>
               </div>
             )}
           </div>

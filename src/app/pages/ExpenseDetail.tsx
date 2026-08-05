@@ -8,6 +8,7 @@ import installWaterHeaterPhoto from "../../assets/documents/34285-install-water-
 import tanklessWaterHeaterPhoto from "../../assets/documents/34689-install-water-heater-tankless.jpg";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "../components/ui/resizable";
 import { DocumentsGallery } from "../components/DocumentsGallery";
+import { DetailTabs, TabSettingsButton } from "../components/ui/detail-tabs";
 import { type PreviewableDoc } from "../components/DocumentPreview";
 
 const expenseOverrides: Record<
@@ -26,6 +27,19 @@ const expenseOverrides: Record<
     notes: "Returned 2 unused fittings — credit expected on next statement.",
     documentNumber: "Rcp-72545786",
   },
+};
+
+// Line items bought on an expense (Figma 2377:126565 "expenses - items").
+interface ExpenseLineItem {
+  id: number; name: string; description: string;
+  quantity: number; unitPrice: number; unitCost: number; tax: number; total: number;
+}
+const expenseItemsById: Record<string, ExpenseLineItem[]> = {
+  "1": [
+    { id: 1, name: "Copper Fittings 3/4\"", description: "Assorted fittings pack", quantity: 2, unitPrice: 12.40, unitCost: 8.10, tax: 1.86, total: 24.80 },
+    { id: 2, name: "PVC Primer & Cement", description: "Bonding kit", quantity: 1, unitPrice: 9.75, unitCost: 6.20, tax: 0.73, total: 9.75 },
+    { id: 3, name: "Pipe Insulation", description: "Per linear foot", quantity: 4, unitPrice: 2.67, unitCost: 1.55, tax: 0.80, total: 10.68 },
+  ],
 };
 
 // Documents are scoped per expense id (no cross-entity sharing). Only the demo
@@ -93,6 +107,111 @@ export function ExpenseDetail() {
     vendor: expense?.merchant ?? "",
     description,
   });
+
+  // Tabs — Details · Items (Figma 1141:106446 / 2377:126565). The Items tab
+  // itemises what the expense actually bought; the header Total stays the
+  // expense's own amount (FR-11.9: one total including tax).
+  const [activeTab, setActiveTab] = useState<"details" | "items">("details");
+  const [itemSearch, setItemSearch] = useState("");
+  const [lineItems, setLineItems] = useState<ExpenseLineItem[]>(() =>
+    (id && expenseItemsById[id]) ? expenseItemsById[id] : [],
+  );
+  const setQty = (lineId: number, qty: number) => {
+    const q = Math.max(1, qty || 1);
+    setLineItems(prev => prev.map(li => li.id === lineId ? { ...li, quantity: q, total: q * li.unitPrice } : li));
+  };
+  const renderItemsTab = () => {
+    const rows = lineItems.filter(li =>
+      !itemSearch.trim() || `${li.name} ${li.description}`.toLowerCase().includes(itemSearch.trim().toLowerCase()));
+    const tabTotal = lineItems.reduce((a, li) => a + li.total + li.tax, 0);
+    return (
+      <div className="mt-4 overflow-hidden rounded-xl border border-[#E5E7EB] bg-white">
+        <div className="flex items-center gap-2 border-b border-[#E5E7EB] px-4 py-3">
+          <div className="relative">
+            <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: "18px" }}>search</span>
+            <input
+              type="text" placeholder="Search items..." value={itemSearch}
+              onChange={e => setItemSearch(e.target.value)}
+              className="h-9 w-[240px] rounded-lg border border-[#E5E7EB] pl-10 pr-3 text-[13px] outline-none focus:border-[#4A6FA5]"
+            />
+          </div>
+          <div className="ml-auto">
+            <button
+              onClick={() => toast.info("Item picker opens from the expense form")}
+              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[#E5E7EB] bg-white px-3.5 text-[13px] text-[#1A2332] hover:bg-[#F5F7FA] transition-colors"
+              style={{ fontWeight: 600 }}
+            >
+              <span className="material-icons" style={{ fontSize: "16px" }}>add</span>
+              Add item
+            </button>
+          </div>
+        </div>
+        {rows.length === 0 ? (
+          <div className="px-5 py-16 text-center">
+            <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-[#F5F7FA]">
+              <span className="material-icons text-[#C8D5E8]" style={{ fontSize: "28px" }}>archive</span>
+            </div>
+            <div className="text-[14px] text-[#546478]" style={{ fontWeight: 500 }}>
+              {lineItems.length === 0 ? "No items on this expense" : "No items match your search"}
+            </div>
+          </div>
+        ) : (
+          <table className="w-full">
+            <thead className="bg-[#F9FAFB]">
+              <tr className="border-b border-[#E5E7EB] text-[13px] text-[#546478]">
+                <th className="px-4 py-3 text-left" style={{ fontWeight: 600 }}>Item</th>
+                <th className="px-4 py-3 text-right w-[110px]" style={{ fontWeight: 600 }}>Quantity</th>
+                <th className="px-4 py-3 text-right w-[110px]" style={{ fontWeight: 600 }}>Unit price</th>
+                <th className="px-4 py-3 text-right w-[110px]" style={{ fontWeight: 600 }}>Unit cost</th>
+                <th className="px-4 py-3 text-right w-[90px]" style={{ fontWeight: 600 }}>Tax</th>
+                <th className="px-4 py-3 text-right w-[110px]" style={{ fontWeight: 600 }}>Total</th>
+                <th className="w-[52px]" />
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map(li => (
+                <tr key={li.id} className="border-b border-[#F1F3F7] last:border-0 hover:bg-[#F9FAFB]">
+                  <td className="px-4 py-3">
+                    <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>{li.name}</div>
+                    {li.description && <div className="text-[12px] text-[#8899AA]">{li.description}</div>}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <input
+                      type="number" min={1} value={li.quantity}
+                      onChange={e => setQty(li.id, Number(e.target.value))}
+                      className="h-9 w-[72px] rounded-lg border border-[#E5E7EB] px-2 text-right text-[13px] outline-none focus:border-[#4A6FA5]"
+                      style={{ fontVariantNumeric: "tabular-nums" }}
+                    />
+                  </td>
+                  <td className="px-4 py-3 text-right text-[13px] text-[#546478]" style={{ fontVariantNumeric: "tabular-nums" }}>{money(li.unitPrice)}</td>
+                  <td className="px-4 py-3 text-right text-[13px] text-[#546478]" style={{ fontVariantNumeric: "tabular-nums" }}>{money(li.unitCost)}</td>
+                  <td className="px-4 py-3 text-right text-[13px] text-[#546478]" style={{ fontVariantNumeric: "tabular-nums" }}>{money(li.tax)}</td>
+                  <td className="px-4 py-3 text-right text-[13px] text-[#1A2332]" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{money(li.total)}</td>
+                  <td className="px-4 py-3 text-right">
+                    <button
+                      onClick={() => setLineItems(prev => prev.filter(x => x.id !== li.id))}
+                      aria-label="Remove item" title="Remove item"
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[#9CA3AF] hover:bg-[#FEF2F2] hover:text-[#DC2626] transition-colors"
+                    >
+                      <span className="material-icons" style={{ fontSize: "18px" }}>delete_outline</span>
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr className="border-t border-[#E5E7EB] bg-[#F9FAFB]">
+                <td colSpan={7} className="px-4 py-3.5 text-right">
+                  <span className="text-[14px] text-[#546478]" style={{ fontWeight: 600 }}>Total:&nbsp;&nbsp;</span>
+                  <span className="text-[16px] text-[#1A2332]" style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{money(tabTotal)}</span>
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        )}
+      </div>
+    );
+  };
 
   if (!expense) {
     return (
@@ -186,9 +305,22 @@ export function ExpenseDetail() {
           </div>
         </div>
 
-        {/* 3-column body: Details / Documents / Notes (Figma 1141:106489).
+        {/* Tabs — Details · Items (Figma 1141:106446 / 2377:126565) */}
+        <DetailTabs
+          tabs={[
+            { key: "details", label: "Details" },
+            { key: "items", label: "Items", count: lineItems.length || undefined },
+          ]}
+          activeTab={activeTab}
+          onChange={(k) => setActiveTab(k as "details" | "items")}
+          tabSuffix={<TabSettingsButton />}
+          className="mt-4"
+        />
+
+        {activeTab === "items" ? renderItemsTab() : (
+        /* 3-column body: Details / Documents / Notes (Figma 1141:106489).
             items-stretch → all three cards share the tallest card's height,
-            regardless of how much content each holds. */}
+            regardless of how much content each holds. */
         <ResizablePanelGroup direction="horizontal" className="mt-4 min-h-[360px] items-stretch">
           {/* Col 1 — Details */}
           <ResizablePanel defaultSize={22} minSize={14} className="min-w-0">
@@ -277,6 +409,7 @@ export function ExpenseDetail() {
           </div>
           </ResizablePanel>
         </ResizablePanelGroup>
+        )}
       </section>
 
       {editDetailsOpen && (

@@ -18,6 +18,7 @@ import { CreateClient } from "./pages/CreateClient";
 import { CreateEstimate } from "./pages/CreateEstimate";
 import { Estimates } from "./pages/Estimates";
 import { EstimateDetail } from "./pages/EstimateDetail";
+import { EstimateReview } from "./pages/EstimateReview";
 import { Invoices } from "./pages/Invoices";
 import { InvoiceDetail } from "./pages/InvoiceDetail";
 import { CreateInvoice } from "./pages/CreateInvoice";
@@ -117,6 +118,12 @@ export const router = createBrowserRouter([
   {
     path: "/invite/expired",
     Component: InviteExpired,
+  },
+  // Client-facing estimate review (FR-6) — outside the app Layout: no sidebar,
+  // no auth. This is the link the customer gets when the estimate is Sent.
+  {
+    path: "/review/estimate/:id",
+    Component: EstimateReview,
   },
   {
     path: "/",

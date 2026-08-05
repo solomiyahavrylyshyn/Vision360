@@ -1,8 +1,9 @@
-import { useState, useEffect, useMemo, useSyncExternalStore } from "react";
+﻿import { useState, useEffect, useMemo, useSyncExternalStore } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { toast } from "sonner";
 import { clientsStore } from "../stores/clientsStore";
 import { estimatesStore, type EstimateStatus } from "../stores/estimatesStore";
+import { estimateTypesStore } from "../stores/estimateTypesStore";
 import { formatRegionalDate } from "../stores/regionalSettingsStore";
 import { estimateSettingsStore } from "../stores/estimateSettingsStore";
 import { ItemPicker, catalogItemToLineItem, type CatalogItem, type SelectedLineItem } from "../components/ItemPicker";
@@ -83,6 +84,10 @@ export function CreateEstimate() {
     d.setDate(d.getDate() + estimateSettingsStore.getSnapshot().defaultValidityDays);
     return d.toISOString().split("T")[0];
   });
+  // Estimate type (FR-5.19, Figma 530:43114) — required classification; the
+  // list is company-editable in Settings → Estimates (FR-16.5).
+  const [estimateType, setEstimateType] = useState("");
+  const estimateTypes = useSyncExternalStore(estimateTypesStore.subscribe, estimateTypesStore.getSnapshot);
   // A job is never picked by hand: it arrives (locked) when the estimate is
   // created from a job visit, otherwise the estimate has no job.
   const linkedJob = searchParams.get("job") || "";
@@ -181,9 +186,11 @@ export function CreateEstimate() {
       teamMember: createdBy,
       source: linkedJob || "Manual",
       depositDue: 0,
+      estimateType: estimateType || undefined,
       items: lineItems.map((li) => ({
         id: li.id, name: li.name, description: li.description, quantity: li.quantity,
         price: li.unitPrice, cost: li.unitCost, amount: li.total, taxable: li.taxable,
+        hideOnCustomerDocs: li.hideOnCustomerDocs || undefined,
       })),
       taxRate,
       notes: internalNote,
@@ -196,6 +203,7 @@ export function CreateEstimate() {
           items: o.items.map((li) => ({
             id: li.id, name: li.name, description: li.description, quantity: li.quantity,
             price: li.unitPrice, cost: li.unitCost, amount: li.total, taxable: li.taxable,
+            hideOnCustomerDocs: li.hideOnCustomerDocs || undefined,
           })),
         })),
       } : {}),
@@ -217,6 +225,7 @@ export function CreateEstimate() {
   const handleSaveEstimate = () => {
     if (!client.trim()) { toast.error("Select a client before saving the estimate."); return; }
     if (!serviceAddress.trim()) { toast.error("Select a service address."); return; }
+    if (!estimateType) { toast.error("Select an estimate type."); return; }
     const err = emptyOptionError();
     if (err) { toast.error(err); return; }
     persistEstimate("Draft", "Estimate created");
@@ -307,6 +316,13 @@ export function CreateEstimate() {
               <div>
                 <label className={labelClass}>Expiration date {reqStar}</label>
                 <input type="date" value={expirationDate} onChange={(e) => setExpirationDate(e.target.value)} className={fieldClass} />
+              </div>
+              <div>
+                <label className={labelClass}>Estimate type {reqStar}</label>
+                <select value={estimateType} onChange={(e) => setEstimateType(e.target.value)} className={fieldClass}>
+                  <option value="">Select type</option>
+                  {estimateTypes.map((t) => <option key={t} value={t}>{t}</option>)}
+                </select>
               </div>
             </div>
           </Section>

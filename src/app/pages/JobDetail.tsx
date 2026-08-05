@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useSyncExternalStore } from "react";
+﻿import { useState, useRef, useEffect, useSyncExternalStore } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
 import { type JobStatus, JOB_STATUSES, JOB_STATUS_COLOR } from "../constants/jobStatuses";
@@ -18,16 +18,23 @@ import { jobsStore, type JobRecord } from "../stores/jobsStore";
 import { clientsStore } from "../stores/clientsStore";
 import { estimatesStore } from "../stores/estimatesStore";
 import { invoicesStore } from "../stores/invoicesStore";
+import { expenseCategoriesStore } from "../stores/expenseCategoriesStore";
+import { expenseCategoryColors } from "./Expenses";
 import acServicePhoto from "../../assets/documents/33897-cu.jpg";
 import waterHeaterPhoto from "../../assets/documents/34285-install-water-heater.jpg";
 import installAcPhoto from "../../assets/documents/34689-install-ac.jpg";
 
+// Job expenses (Figma 2909:43755) — the tab lists the expense records linked to
+// this job: Number · Category · Vendor · Created date · Amount · Note.
 interface Expense {
   id: number;
   item: string;
   description: string;
   date: string;
   amount: number;
+  number?: string;
+  category?: string;
+  vendor?: string;
 }
 
 interface Visit {
@@ -107,10 +114,10 @@ const mockJobData: Record<string, any> = {
     lineItems: [{ name: "AC Estimate", description: "System evaluation and replacement estimate.", quantity: 1, unitCost: 7995.82, unitPrice: 45230, total: 45230 }],
     totalCost: 7995.82, totalPrice: 45230,
     expenses: [
-      { id: 1, item: "Site Visit", description: "Technician assessment", date: "Mar 30, 2026", amount: 320.00 },
-      { id: 2, item: "Materials Review", description: "Quote preparation", date: "Mar 30, 2026", amount: 231.70 },
-      { id: 3, item: "Permit Research", description: "Local permit check", date: "Mar 29, 2026", amount: 120.00 },
-      { id: 4, item: "Photo Documentation", description: "Field media capture", date: "Mar 29, 2026", amount: 85.00 },
+      { id: 1, item: "Site Visit", description: "Technician assessment", date: "Mar 30, 2026", amount: 320.00, number: "E-1240", category: "Subcontractor", vendor: "Ferguson Plumbing" },
+      { id: 2, item: "Materials Review", description: "Quote preparation", date: "Mar 30, 2026", amount: 231.70, number: "E-1241", category: "Materials", vendor: "Home Depot" },
+      { id: 3, item: "Permit Research", description: "Local permit check", date: "Mar 29, 2026", amount: 120.00, number: "E-1242", category: "Other", vendor: "City of Tampa" },
+      { id: 4, item: "Photo Documentation", description: "Field media capture", date: "Mar 29, 2026", amount: 85.00, number: "E-1243", category: "Tools", vendor: "Best Buy" },
     ] as Expense[],
     expenseTotal: 756.70,
     visits: [{ id: 1, dateTime: "Mar 30, 2026 - 9:00 AM", title: "Mike Delgado - AC Estimate", status: "Scheduled" }] as Visit[],
@@ -154,10 +161,10 @@ const mockJobData: Record<string, any> = {
     lineItems: [{ name: "Tree Removal", description: "Complete removal of a tree, including cutting it down to ground level, hauling away all wood and debris.", quantity: 1, unitCost: 0, unitPrice: 0, total: 0 }],
     totalCost: 0, totalPrice: 0,
     expenses: [
-      { id: 1, item: "HD Items", description: "Plywood", date: "Mar 31, 2026", amount: 152.00 },
-      { id: 2, item: "Refrigerant", description: "R-410A 25lb cylinder", date: "Mar 30, 2026", amount: 287.50 },
-      { id: 3, item: "Copper Fittings", description: "Assorted fittings pack", date: "Mar 29, 2026", amount: 64.20 },
-      { id: 4, item: "Filter Pack", description: "MERV-11 filters (6-pack)", date: "Mar 28, 2026", amount: 48.00 },
+      { id: 1, item: "HD Items", description: "Plywood", date: "Mar 31, 2026", amount: 152.00, number: "E-1234", category: "Materials", vendor: "Home Depot" },
+      { id: 2, item: "Refrigerant", description: "R-410A 25lb cylinder", date: "Mar 30, 2026", amount: 287.50, number: "E-1235", category: "Materials", vendor: "Ferguson Plumbing" },
+      { id: 3, item: "Copper Fittings", description: "Assorted fittings pack", date: "Mar 29, 2026", amount: 64.20, number: "E-1236", category: "Materials", vendor: "Grainger" },
+      { id: 4, item: "Filter Pack", description: "MERV-11 filters (6-pack)", date: "Mar 28, 2026", amount: 48.00, number: "E-1237", category: "Tools", vendor: "Grainger" },
     ] as Expense[],
     expenseTotal: 551.70,
     visits: [{ id: 1, dateTime: "Mar 30, 2026 — Anytime", title: "Travis Jones - AC Estimate", status: "Scheduled" }] as Visit[],
@@ -208,8 +215,9 @@ const BASE_TABS: { key: TabKey; label: string }[] = [
   { key: "details",       label: "Details" },
   { key: "estimates",     label: "Estimates" },
   { key: "invoices",      label: "Invoices" },
-  { key: "items",         label: "Items" },
+  // Figma 2909:43755 / 2270:146078 — Expenses sits before Items.
   { key: "expense",       label: "Expenses" },
+  { key: "items",         label: "Items" },
   { key: "activity",      label: "Activity" },
 ];
 
@@ -529,10 +537,16 @@ export function JobDetail() {
   const [assignedToOpen, setAssignedToOpen] = useState(false);
 
   // Notes sub-tab + media preview state
+  // Expenses tab filters (Figma 2909:43755)
+  const [expSearch, setExpSearch] = useState("");
+  const [expCategory, setExpCategory] = useState("All");
+  const expenseCategories = useSyncExternalStore(expenseCategoriesStore.subscribe, expenseCategoriesStore.getSnapshot);
   const [noteTab,        setNoteTab]        = useState<"office" | "internal" | "field">("office");
   const [notesAdding,    setNotesAdding]    = useState(false);
   const [notesNewText,   setNotesNewText]   = useState("");
   const [notesExpanded,  setNotesExpanded]  = useState(false);
+  const [notesEditingId,   setNotesEditingId]   = useState<number | null>(null);
+  const [notesEditingText, setNotesEditingText] = useState("");
   // Notes live in local state (seeded from the job) so adding one shows up
   // immediately; re-seed when the job id changes.
   const [noteData, setNoteData] = useState(() => ({
@@ -808,6 +822,20 @@ export function JobDetail() {
       setNotesNewText("");
     };
 
+    const handleSaveNoteEdit = () => {
+      const trimmed = notesEditingText.trim();
+      if (!trimmed) return;
+      setNoteData((prev) => ({
+        ...prev,
+        [noteTab]: prev[noteTab].map((n) => n.id === notesEditingId ? { ...n, text: trimmed } : n),
+      }));
+      setNotesEditingId(null);
+    };
+
+    const handleDeleteNote = (id: number) => {
+      setNoteData((prev) => ({ ...prev, [noteTab]: prev[noteTab].filter((n) => n.id !== id) }));
+    };
+
     const panelHandle = (
       <ResizableHandle
         withHandle
@@ -916,7 +944,7 @@ export function JobDetail() {
                   return (
                     <button
                       key={tab.key}
-                      onClick={() => { setNoteTab(tab.key); setNotesExpanded(false); }}
+                      onClick={() => { setNoteTab(tab.key); setNotesExpanded(false); setNotesEditingId(null); }}
                       className="px-2 py-1 rounded-lg text-[14px] leading-[20px] transition-colors whitespace-nowrap"
                       style={{
                         fontWeight: 500,
@@ -965,8 +993,46 @@ export function JobDetail() {
             <div className="flex-1 overflow-y-auto pt-1">
               {shownNotes.map((note: NoteEntry) => (
                 <div key={note.id} className="py-4 border-b border-[#E5E7EB] group">
-                  <div className="text-[14px] text-[#6B7280] leading-[20px]">Added {note.date}</div>
-                  <p className="text-[14px] text-[#1A2332] leading-[20px]" style={{ fontWeight: 500 }}>{note.text}</p>
+                  {notesEditingId === note.id ? (
+                    <div>
+                      <textarea
+                        autoFocus
+                        value={notesEditingText}
+                        onChange={e => setNotesEditingText(e.target.value)}
+                        rows={3}
+                        className="w-full text-[13px] text-[#1A2332] border border-[#4A6FA5] rounded-lg px-3 py-2 resize-none focus:outline-none bg-white"
+                      />
+                      <div className="flex gap-2 mt-2">
+                        <button onClick={handleSaveNoteEdit} disabled={!notesEditingText.trim()}
+                          className="h-7 px-3 bg-[#4A6FA5] hover:bg-[#3d5a85] disabled:opacity-40 text-white text-[12px] rounded-md" style={{ fontWeight: 500 }}>Save</button>
+                        <button onClick={() => setNotesEditingId(null)}
+                          className="h-7 px-3 text-[#546478] hover:bg-[#EDF0F5] text-[12px] rounded-md" style={{ fontWeight: 500 }}>Cancel</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[14px] text-[#6B7280] leading-[20px]">Added {note.date}</div>
+                        <p className="text-[14px] text-[#1A2332] leading-[20px]" style={{ fontWeight: 500 }}>{note.text}</p>
+                      </div>
+                      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-0.5">
+                        <button
+                          onClick={() => { setNotesEditingId(note.id); setNotesEditingText(note.text); }}
+                          aria-label="Edit note" title="Edit note"
+                          className="w-6 h-6 flex items-center justify-center hover:bg-[#EDF0F5] rounded transition-colors"
+                        >
+                          <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "14px" }}>edit</span>
+                        </button>
+                        <button
+                          onClick={() => handleDeleteNote(note.id)}
+                          aria-label="Delete note" title="Delete note"
+                          className="w-6 h-6 flex items-center justify-center hover:bg-[#FEF2F2] rounded transition-colors"
+                        >
+                          <span className="material-icons text-[#9CA3AF] hover:text-[#DC2626]" style={{ fontSize: "14px" }}>delete</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -1408,20 +1474,102 @@ export function JobDetail() {
     );
   };
 
-  const renderFigmaExpenseTab = () => (
-    <div className="overflow-hidden rounded-xl border border-[#E5E7EB] bg-white">
-      <div className="flex items-center justify-between border-b border-[#E5E7EB] px-4 py-3">
-        <h3 className="text-[16px] text-[#1A2332]" style={{ fontWeight: 600 }}>Expenses</h3>
-        <button onClick={() => navigate(`/expenses/new?fromJob=${encodeURIComponent(job.jobNumber)}${job.linkedInvoice ? `&fromInvoice=${encodeURIComponent(job.linkedInvoice.id)}` : ""}&returnTo=${encodeURIComponent(jobReturnUrl("expense"))}`)} className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#4A6FA5] px-3 text-[13px] text-white hover:bg-[#3d5a85]" style={{ fontWeight: 600 }}><PlusIcon className="h-4 w-4" />Create expense</button>
+  // Expenses tab (Figma 2909:43755) — toolbar with search + Categories/Date
+  // quick filters + Filter, then the expense-record table (Number · Category ·
+  // Vendor · Created date · Amount · Note) with a per-row kebab.
+  const renderFigmaExpenseTab = () => {
+    const rows = (job.expenses as Expense[]).filter(exp => {
+      const q = expSearch.trim().toLowerCase();
+      const matchesQuery = !q || `${exp.item} ${exp.description} ${exp.vendor ?? ""} ${exp.number ?? ""}`.toLowerCase().includes(q);
+      return matchesQuery && (expCategory === "All" || exp.category === expCategory);
+    });
+    const createExpenseUrl = `/expenses/new?fromJob=${encodeURIComponent(job.jobNumber)}${job.linkedInvoice ? `&fromInvoice=${encodeURIComponent(job.linkedInvoice.id)}` : ""}&returnTo=${encodeURIComponent(jobReturnUrl("expense"))}`;
+    return (
+      <div className="overflow-hidden rounded-xl border border-[#E5E7EB] bg-white">
+        <div className="flex items-center gap-2 border-b border-[#E5E7EB] px-4 py-3">
+          <div className="relative">
+            <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: "18px" }}>search</span>
+            <input
+              type="text" placeholder="Search expenses" value={expSearch}
+              onChange={e => setExpSearch(e.target.value)}
+              className="h-9 w-[240px] rounded-lg border border-[#E5E7EB] pl-10 pr-3 text-[13px] outline-none focus:border-[#4A6FA5]"
+            />
+          </div>
+          <select
+            value={expCategory}
+            onChange={e => setExpCategory(e.target.value)}
+            className={`h-9 rounded-lg border pl-3 pr-7 text-[13px] bg-white cursor-pointer focus:outline-none ${expCategory !== "All" ? "border-[#4A6FA5] text-[#4A6FA5]" : "border-[#E5E7EB] text-[#546478]"}`}
+          >
+            <option value="All">Categories: All</option>
+            {expenseCategories.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+          <select disabled className="h-9 rounded-lg border border-[#E5E7EB] pl-3 pr-7 text-[13px] bg-white text-[#546478]">
+            <option>Date: All time</option>
+          </select>
+          <div className="ml-auto">
+            <button
+              onClick={() => navigate(createExpenseUrl)}
+              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[#E5E7EB] bg-white px-3.5 text-[13px] text-[#1A2332] hover:bg-[#F5F7FA] transition-colors"
+              style={{ fontWeight: 600 }}
+            >
+              <PlusIcon className="h-4 w-4" />
+              Create expense
+            </button>
+          </div>
+        </div>
+        {rows.length === 0 ? (
+          <TabEmpty icon="receipt_long" title={job.expenses.length === 0 ? "No expenses yet" : "No expenses match your filters"} subtitle={job.expenses.length === 0 ? "Create an expense to track job costs" : "Try a different search or category"} />
+        ) : (
+          <>
+            <table className="w-full text-[14px]">
+              <thead className="bg-[#F9FAFB]">
+                <tr className="border-b border-[#E5E7EB] text-left text-[13px] text-[#546478]">
+                  <th className="px-4 py-3" style={{ fontWeight: 600 }}>Number</th>
+                  <th className="px-4 py-3" style={{ fontWeight: 600 }}>Category</th>
+                  <th className="px-4 py-3" style={{ fontWeight: 600 }}>Vendor</th>
+                  <th className="px-4 py-3" style={{ fontWeight: 600 }}>Created date</th>
+                  <th className="px-4 py-3 text-right" style={{ fontWeight: 600 }}>Amount</th>
+                  <th className="px-4 py-3" style={{ fontWeight: 600 }}>Note</th>
+                  <th className="w-12 px-4 py-3" />
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((exp) => (
+                  <tr key={exp.id} className="border-b border-[#F1F3F7] last:border-0 hover:bg-[#F9FAFB]">
+                    <td className="px-4 py-3.5 text-[#4A6FA5]" style={{ fontWeight: 500 }}>{exp.number ?? `E-${1000 + exp.id}`}</td>
+                    <td className="px-4 py-3.5">
+                      <span className="inline-flex items-center gap-1.5 text-[13px]" style={{ color: expenseCategoryColors[exp.category ?? ""] ?? "#546478" }}>
+                        <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: expenseCategoryColors[exp.category ?? ""] ?? "#546478" }} />
+                        {exp.category ?? "—"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3.5 text-[#546478]">{exp.vendor ?? "—"}</td>
+                    <td className="px-4 py-3.5 text-[#546478]">{exp.date}</td>
+                    <td className="px-4 py-3.5 text-right text-[#1A2332]" style={{ fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>{money(exp.amount)}</td>
+                    <td className="px-4 py-3.5 text-[#546478]">{exp.description}</td>
+                    <td className="px-4 py-3.5 text-right">
+                      <KebabMenu triggerClassName="h-8 w-8 rounded-lg text-[#9CA3AF] hover:bg-[#F5F7FA] flex items-center justify-center">
+                        <KebabItem icon="visibility" onClick={() => navigate("/expenses")}>View expense</KebabItem>
+                        <KebabItem icon="edit" onClick={() => navigate("/expenses")}>Edit</KebabItem>
+                        <KebabSeparator />
+                        <KebabItem icon="link_off" destructive>Unlink from job</KebabItem>
+                      </KebabMenu>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <div className="flex items-center justify-between border-t border-[#E5E7EB] bg-[#F9FAFB] px-4 py-3">
+              <span className="text-[13px] text-[#6B7280]">{rows.length} of {job.expenses.length} expenses</span>
+              <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>
+                Total: {money(rows.reduce((a, e) => a + e.amount, 0))}
+              </span>
+            </div>
+          </>
+        )}
       </div>
-      {job.expenses.length === 0 ? <TabEmpty icon="receipt_long" title="No expenses yet" subtitle="Create an expense to track job costs" /> : (
-        <table className="w-full text-[14px]">
-          <thead className="bg-[#F5F7FA]"><tr className="border-b border-[#E5E7EB] text-left text-[#1A2332]"><th className="px-4 py-3">Item</th><th className="px-4 py-3">Description</th><th className="px-4 py-3">Date</th><th className="px-4 py-3 text-right">Total</th><th className="w-10 px-4 py-3" /></tr></thead>
-          <tbody>{job.expenses.map((exp: Expense) => <tr key={exp.id} className="border-b border-[#E5E7EB]"><td className="px-4 py-4 text-[#1A2332]" style={{ fontWeight: 500 }}>{exp.item}</td><td className="px-4 py-4 text-[#6B7280]">{exp.description}</td><td className="px-4 py-4 text-[#6B7280]">{exp.date}</td><td className="px-4 py-4 text-right">{money(exp.amount)}</td><td className="px-4 py-4 text-right"><button className="h-8 w-8 rounded-lg text-[#9CA3AF] hover:bg-[#FEE2E2] hover:text-[#DC2626]"><span className="material-icons" style={{ fontSize: "16px" }}>delete</span></button></td></tr>)}<tr className="bg-[#F5F7FA]"><td colSpan={3} className="px-4 py-3 text-right text-[#1A2332]" style={{ fontWeight: 600 }}>Total:</td><td className="px-4 py-3 text-right text-[#1A2332]" style={{ fontWeight: 600 }}>{money(job.expenseTotal)}</td><td /></tr></tbody>
-        </table>
-      )}
-    </div>
-  );
+    );
+  };
 
   const renderFigmaActivityTab = () => {
     const activity = [
@@ -1457,38 +1605,25 @@ export function JobDetail() {
       }] : []),
     ];
 
+    // Figma 2270:146078 — a plain "Activity" card: no toolbar, one row per
+    // event with the timestamp right-aligned.
     return (
-      <div className="overflow-hidden rounded-xl border border-[#E5E7EB] bg-white">
-        <div className="flex items-center gap-2 border-b border-[#E5E7EB] px-4 py-3">
-          <div className="relative w-[280px]">
-            <span className="material-icons absolute left-2.5 top-1/2 -translate-y-1/2 text-[#9CA3AF]" style={{ fontSize: "16px" }}>search</span>
-            <input placeholder="Search activity" className="h-9 w-full rounded-lg border border-[#E5E7EB] pl-8 pr-3 text-[13px] outline-none focus:border-[#4A6FA5]" />
-          </div>
-          <select className="h-9 rounded-lg border border-[#E5E7EB] bg-white px-3 text-[13px] text-[#1A2332]"><option>Date: All time</option></select>
-          <select className="h-9 rounded-lg border border-[#E5E7EB] bg-white px-3 text-[13px] text-[#1A2332]"><option>Type: All</option></select>
-          <button className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[#E5E7EB] px-3 text-[13px] text-[#1A2332] hover:bg-[#F9FAFB]">
-            <span className="material-icons" style={{ fontSize: "16px" }}>filter_alt</span>
-            Filter
-          </button>
-        </div>
+      <div className="overflow-hidden rounded-xl border border-[#E5E7EB] bg-white p-5">
+        <h3 className="text-[16px] text-[#1A2332]" style={{ fontWeight: 600 }}>Activity</h3>
         {activity.length === 0 ? (
           <TabEmpty icon="history" title="No activity yet" subtitle="Activity for this job will appear here" />
         ) : (
-          <div className="divide-y divide-[#E5E7EB]">
+          <div className="mt-2 divide-y divide-[#F1F3F7]">
             {activity.map((item) => (
-              <div key={item.id} className="grid grid-cols-[1fr_160px_120px] items-center gap-4 px-4 py-4 hover:bg-[#F9FAFB]">
+              <div key={item.id} className="flex items-start justify-between gap-4 py-4">
                 <div className="flex min-w-0 items-start gap-3">
-                  <span className="material-icons mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full" style={{ fontSize: "18px", color: item.tone, backgroundColor: `${item.tone}1F` }}>{item.icon}</span>
+                  <span className="material-icons flex h-9 w-9 shrink-0 items-center justify-center rounded-lg" style={{ fontSize: "18px", color: item.tone, backgroundColor: `${item.tone}1F` }}>{item.icon}</span>
                   <div className="min-w-0">
                     <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>{item.title}</div>
-                    <div className="mt-0.5 truncate text-[13px] text-[#6B7280]">{item.description}</div>
+                    <div className="mt-0.5 text-[13px] text-[#6B7280]">{item.description}</div>
                   </div>
                 </div>
-                <div className="text-[13px] text-[#6B7280]">{item.actor}</div>
-                <div className="text-right text-[13px] text-[#6B7280]">
-                  <div>{item.date}</div>
-                  <div className="text-[#9CA3AF]">{item.time}</div>
-                </div>
+                <div className="shrink-0 text-[13px] text-[#6B7280] whitespace-nowrap">{item.date} {item.time}</div>
               </div>
             ))}
           </div>

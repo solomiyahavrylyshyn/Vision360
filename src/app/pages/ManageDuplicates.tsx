@@ -186,18 +186,18 @@ function MergeModal({
 
         {/* Footer */}
         <div className="px-6 py-4 border-t border-[#E5E7EB] bg-[#F8FAFC] flex items-center justify-between shrink-0">
+          {/* Figma 2826:26911 — plain caption, primary-blue confirm button. */}
           <p className="text-[12px] text-[#6B7280]">
-            <span className="material-icons text-[#D97706] align-middle mr-1" style={{ fontSize: "15px" }}>warning</span>
             {others.length} record{others.length > 1 ? "s" : ""} will be marked Merged and hidden from the active client list.
           </p>
           <div className="flex gap-2">
             <button onClick={onCancel} className="h-9 px-5 border border-[#E5E7EB] rounded-lg text-[13px] text-[#546478] hover:bg-[#F5F7FA]" style={{ fontWeight: 500 }}>Cancel</button>
             <button
               onClick={() => onConfirm(primaryId, choices)}
-              className="h-9 px-5 rounded-lg text-[13px] text-white bg-[#1A2332] hover:bg-[#0f1620]"
-              style={{ fontWeight: 500 }}
+              className="h-9 px-5 rounded-lg text-[13px] text-white bg-[#4A6FA5] hover:bg-[#3d5a85]"
+              style={{ fontWeight: 600 }}
             >
-              Confirm Merge
+              Confirm merge
             </button>
           </div>
         </div>

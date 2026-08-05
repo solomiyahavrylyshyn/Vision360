@@ -27,6 +27,10 @@ export interface CatalogItem {
   taxProfile?: string;
   active?: boolean;
   upc?: string;
+  /** FR-4.8 — when true the item is excluded from the estimate, invoice,
+   *  receipt and customer web view (and their PDF/email versions) while
+   *  staying visible internally; totals are NOT affected. Defaults off. */
+  hideOnCustomerDocs?: boolean;
 }
 
 export interface SelectedLineItem {
@@ -46,6 +50,9 @@ export interface SelectedLineItem {
    *  charge once, or don't charge (prepaid → line total $0). Defaults to
    *  per_appointment. */
   chargeMode?: "per_appointment" | "once" | "prepaid";
+  /** Copied from the catalog item (FR-4.8): hidden on customer-facing renders,
+   *  still counted in totals. */
+  hideOnCustomerDocs?: boolean;
 }
 
 interface ItemPickerProps {
@@ -255,5 +262,6 @@ export function catalogItemToLineItem(catalogItem: CatalogItem, lineItemId: numb
     unitCost: catalogItem.cost,
     taxable: catalogItem.taxable,
     total: quantity * catalogItem.rate,
+    hideOnCustomerDocs: catalogItem.hideOnCustomerDocs || undefined,
   };
 }

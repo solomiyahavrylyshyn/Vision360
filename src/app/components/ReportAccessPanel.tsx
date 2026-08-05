@@ -1,36 +1,37 @@
 import { useState } from "react";
 
-// RPT-2 — per-report access, grouped by category. Shared by Settings (role /
-// permissions config) and the Invite-user form so the granular "Report access"
-// list is identical in both places. Mirrors the report catalog on the dashboard
-// Reports tab (14 reports).
+// RPT-2 / FR-12 — per-report access, grouped by category. Shared by the
+// Invite-user form and the Edit-user modal so the granular "Report access"
+// list is identical in both places. The roster is EXACTLY the PRD v2.0 MVP
+// report set (FR-12.7–12.17): three categories, twelve reports; P&L is Pro
+// (FR-12.18) and deliberately absent.
 export const reportAccessCatalog: Array<{ category: string; icon: string; reports: string[] }> = [
   {
-    category: "Financial / Business",
+    category: "Financial Business",
     icon: "account_balance",
     reports: [
-      "Revenue Report",
-      "Profit & Loss Statement",
-      "Invoice Summary (Accounts Receivable)",
+      "Sales Report",
+      "Invoice AR Aging",
       "Expense Report",
+      "Payments Cash Collected",
       "Sales Tax Report",
-      "Payments Report",
     ],
   },
   {
-    category: "Estimates",
-    icon: "description",
-    reports: ["Estimates Report", "Estimate Conversion Report", "Revenue by Technician"],
-  },
-  {
-    category: "Jobs",
+    category: "Clients, Jobs & Estimates",
     icon: "work",
-    reports: ["Jobs Report", "Job Costing Summary"],
+    reports: [
+      "Client Report",
+      "Job Statistics",
+      "Item Usage Report",
+      "Job Profitability",
+      "Estimate Statistics",
+    ],
   },
   {
-    category: "Clients / Team / Items",
+    category: "Team Operations",
     icon: "groups",
-    reports: ["Client Report", "Team Report", "Items Report (Items Usage Report)"],
+    reports: ["Team Sales", "Team Conversion Rate"],
   },
 ];
 

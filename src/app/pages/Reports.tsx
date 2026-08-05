@@ -1,14 +1,9 @@
 import { REPORT_CATEGORIES, type ReportCategory } from "../reports/types";
 import { reportsByCategory } from "../reports/registry";
 
-// Reports Marek listed but that are intentionally deferred (no backing module
-// yet) — shown as disabled "coming soon" cards so the roadmap item is visible
-// rather than looking forgotten. (Sales tax = TBD pending a tax module.)
-const PLANNED_REPORTS: Partial<Record<ReportCategory, { name: string; description: string; icon: string }[]>> = {
-  financial: [
-    { name: "Sales tax report", description: "Taxable sales and tax collected vs. owed — coming with the tax module.", icon: "receipt_long" },
-  ],
-};
+// Deferred "coming soon" cards. Empty since the PRD v2.0 roster (FR-12.7–12.17)
+// is fully implemented — the Sales tax report shipped as a real report.
+const PLANNED_REPORTS: Partial<Record<ReportCategory, { name: string; description: string; icon: string }[]>> = {};
 
 // Reports landing — reports grouped under the three categories (Marek call #21),
 // each a short card. Lives inside the Home "Reports" tab (not a separate

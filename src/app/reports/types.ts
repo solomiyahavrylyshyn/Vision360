@@ -54,7 +54,7 @@ export interface ReportDef<T = Record<string, unknown>> {
 }
 
 export const REPORT_CATEGORIES: { key: ReportCategory; label: string; description: string }[] = [
-  { key: "financial", label: "Financial / Business", description: "Money in and out — sales, receivables, expenses and payments." },
-  { key: "clients_jobs", label: "Clients / Jobs / Estimates", description: "Who you serve and the work you do for them." },
+  { key: "financial", label: "Financial Business", description: "Money in and out — sales, receivables, expenses and payments." },
+  { key: "clients_jobs", label: "Clients, Jobs & Estimates", description: "Who you serve and the work you do for them." },
   { key: "team", label: "Team Operations", description: "Team performance and operations reports." },
 ];
