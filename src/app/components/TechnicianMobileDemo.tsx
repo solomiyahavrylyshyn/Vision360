@@ -135,7 +135,7 @@ function BottomNav({ active, onNav }: { active: string; onNav: (s: Screen) => vo
   const items: { key: Screen; label: string; icon: string }[] = [
     { key: "home", label: "Home", icon: "home" },
     { key: "history", label: "History", icon: "history" },
-    { key: "search" /* stand-in for Chat */, label: "Chat", icon: "chat_bubble_outline" },
+    { key: "history" /* Chat opens the Jobs list, same as History */, label: "Chat", icon: "chat_bubble_outline" },
     { key: "search" /* stand-in for Timesheet */, label: "Timesheet", icon: "schedule" },
     { key: "search" /* stand-in for More */, label: "More", icon: "more_horiz" },
   ];
@@ -145,7 +145,7 @@ function BottomNav({ active, onNav }: { active: string; onNav: (s: Screen) => vo
         <button
           key={it.label}
           onClick={() => {
-            if (it.label === "Home" || it.label === "History") onNav(it.key);
+            if (it.label === "Home" || it.label === "History" || it.label === "Chat") onNav(it.key);
             else window.alert(`"${it.label}" isn't wired up in this quick mockup.`);
           }}
           className="flex flex-1 flex-col items-center gap-0.5 py-1"
