@@ -122,6 +122,13 @@ const articles: Article[] = [
   },
 ];
 
+const sandboxPhases: { key: string; label: string; description: string; from: string; to: string }[] = [
+  { key: "core", label: "Phase I — Core", description: "Clients, Jobs, Items, Estimates, Invoicing, Payments & basic reports.", from: "from-[#4A6FA5]", to: "to-[#3d5a85] hover:from-[#3d5a85] hover:to-[#2f4670]" },
+  { key: "pro", label: "Phase II — Pro", description: "Adds bookkeeping, dashboards, employee management & service agreements.", from: "from-[#16A34A]", to: "to-[#0F7A38] hover:from-[#0F7A38] hover:to-[#0a5c2a]" },
+  { key: "max", label: "Phase III — Max", description: "Adds advanced reporting, payroll-ready time tracking & inventory.", from: "from-[#DB2777]", to: "to-[#9D174D] hover:from-[#9D174D] hover:to-[#7a1139]" },
+  { key: "enterprise", label: "Phase IV — Enterprise", description: "Everything, plus an advanced schedule board built for large teams.", from: "from-[#D97706]", to: "to-[#92400E] hover:from-[#92400E] hover:to-[#78350F]" },
+];
+
 export function HelpCenter() {
   const [activeCat, setActiveCat] = useState<CatKey>("all");
   const [search, setSearch] = useState("");
@@ -203,21 +210,28 @@ export function HelpCenter() {
 
         <div className="px-5 pb-8">
           {/* Sample Company sandbox (spec §8.7) — try every feature with mock
-              data. Hidden while searching so it never competes with results. */}
+              data. Hidden while searching so it never competes with results.
+              One card per pricing phase; all currently open the same full
+              sandbox (cosmetic only — no per-tier feature gating yet). */}
           {!search && (
-            <button
-              onClick={() => { window.location.href = "/?sandbox=sample"; }}
-              className="mb-4 flex w-full items-center gap-3 rounded-xl bg-gradient-to-br from-[#4A6FA5] to-[#3d5a85] p-4 text-left shadow-[0_4px_12px_rgba(74,111,165,0.25)] transition-all hover:from-[#3d5a85] hover:to-[#2f4670] group"
-            >
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-white/15 transition-colors group-hover:bg-white/20">
-                <span className="material-icons text-white" style={{ fontSize: "22px" }}>play_circle</span>
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="text-[14px] text-white" style={{ fontWeight: 600 }}>Play with sample company</div>
-                <div className="mt-0.5 text-[12px] text-white/80">Try every feature with realistic mock data — no impact on your real records.</div>
-              </div>
-              <span className="material-icons shrink-0 text-white/70 transition-transform group-hover:translate-x-0.5" style={{ fontSize: "20px" }}>arrow_forward</span>
-            </button>
+            <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {sandboxPhases.map((phase) => (
+                <button
+                  key={phase.key}
+                  onClick={() => { window.location.href = "/?sandbox=sample"; }}
+                  className={`flex w-full items-center gap-3 rounded-xl bg-gradient-to-br ${phase.from} ${phase.to} p-4 text-left shadow-[0_4px_12px_rgba(0,0,0,0.12)] transition-all group`}
+                >
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-white/15 transition-colors group-hover:bg-white/20">
+                    <span className="material-icons text-white" style={{ fontSize: "22px" }}>play_circle</span>
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[14px] text-white" style={{ fontWeight: 600 }}>Play with {phase.label}</div>
+                    <div className="mt-0.5 text-[12px] text-white/80">{phase.description}</div>
+                  </div>
+                  <span className="material-icons shrink-0 text-white/70 transition-transform group-hover:translate-x-0.5" style={{ fontSize: "20px" }}>arrow_forward</span>
+                </button>
+              ))}
+            </div>
           )}
           {filtered.length === 0 ? (
             <div className="rounded-xl border border-[#E5E7EB] bg-white py-16 text-center">

@@ -106,15 +106,17 @@ export function CreateJob({ asModal = false, onClose, onCreated, prefill, headin
   const [recFreq, setRecFreq] = useState<RecurrenceFrequency>("weekly");
   const [recInterval, setRecInterval] = useState("1");
   const [recWeekdays, setRecWeekdays] = useState<number[]>([new Date().getDay()]);
-  const [recEndMode, setRecEndMode] = useState<"count" | "date">("count");
-  const [recCount, setRecCount] = useState("12");
+  const [recDayOfMonth, setRecDayOfMonth] = useState<number>(new Date().getDate());
   const [recEndDate, setRecEndDate] = useState("");
   const buildRecurrenceRule = (): RecurrenceRule => ({
     frequency: recFreq,
     interval: Math.max(1, Number(recInterval) || 1),
     weekdays: recFreq === "weekly" ? recWeekdays : undefined,
-    endMode: recEndMode,
-    count: Math.max(1, Number(recCount) || 1),
+    dayOfMonth: recFreq === "monthly" ? recDayOfMonth : undefined,
+    // "To" end date drives the series; with no end date, bound it to a sane
+    // default count so a rule can never generate an unbounded list.
+    endMode: recEndDate ? "date" : "count",
+    count: 12,
     endDate: recEndDate || undefined,
   });
   const [jobCategory, setJobCategory] = useState(prefill?.jobCategory ?? sp.get("jobCategory") ?? "");

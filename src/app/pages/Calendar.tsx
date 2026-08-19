@@ -18,6 +18,9 @@ import { jobTypeColor, jobTypeTint, JOB_TYPE_ORDER, JOB_TYPE_COLORS } from "../c
 import { jobsStore, type JobRecord } from "../stores/jobsStore";
 import { CreateJob, type CreateJobPrefill, type CreateJobValues } from "./CreateJob";
 
+// Toast variants drive the pill's icon + colour (success/info/warning).
+type ToastVariant = "success" | "info" | "warning";
+
 interface CalendarEvent {
   id: number;
   title: string;
@@ -1095,7 +1098,10 @@ export function Calendar() {
   const [sidebarTab, setSidebarTab] = useState<SidebarTab>("Details");
   const [jobNotes, setJobNotes] = useState<Record<string, string[]>>({});
   const [noteDraft, setNoteDraft] = useState("");
-  const [toast, setToast] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ msg: string; variant: ToastVariant } | null>(null);
+  // Show a transient toast. Variant drives the icon + colour (success = green,
+  // info = blue, warning = amber) so a warning no longer shows a success check.
+  const showToast = (msg: string, variant: ToastVariant = "success") => setToast({ msg, variant });
   const [collapsedWeekDays, setCollapsedWeekDays] = useState<Set<number>>(() => new Set());
   const weekScrollRef = useRef<HTMLDivElement>(null);
   const weekTodayRef = useRef<HTMLDivElement>(null);
@@ -1182,7 +1188,7 @@ export function Calendar() {
     const entry = `${format(new Date(), "MMM d, yyyy h:mm a")} — ${noteDraft.trim()}`;
     setJobNotes((prev) => ({ ...prev, [activeJobKey]: [entry, ...(prev[activeJobKey] ?? [])] }));
     setNoteDraft("");
-    setToast("Note added");
+    showToast("Note added");
   };
 
   // Job history derived from current state (status + assignment for the selected job)
@@ -1212,7 +1218,7 @@ export function Calendar() {
   const handleChatClick = (e: MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
     window.dispatchEvent(new CustomEvent("vision360:open-messaging"));
-    setToast("Opening messaging…");
+    showToast("Opening messaging…", "info");
   };
 
   const monthDays = useMemo(() => {
@@ -1410,16 +1416,19 @@ export function Calendar() {
   const updateDayStatus = (jobId: number, status: JobStatus) => {
     patchJob(jobId, { status });
     setSelectedDayJob((job) => job?.id === jobId ? { ...job, status } : job);
+    showToast(`Marked as ${status}`);
   };
 
   const updateWeekStatus = (jobId: number, status: JobStatus) => {
     patchJob(jobId, { status });
     setSelectedDispatchJob((job) => job?.id === jobId ? { ...job, status } : job);
+    showToast(`Marked as ${status}`);
   };
 
   const updateEventStatus = (eventId: number, status: JobStatus) => {
     patchJob(eventId, { status });
     setSelectedEvent((ev) => ev?.id === eventId ? { ...ev, status } : ev);
+    showToast(`Marked as ${status}`);
   };
 
   // Creating a job from the board now opens the FULL Create job modal (Figma),
@@ -1427,7 +1436,7 @@ export function Calendar() {
   // lightweight quick modal is reserved for reschedule/edit of existing jobs.
   const openQuickCreate = (_view: "day" | "week", date: Date, startHour: number, technicianId: string, _dayIdx?: number) => {
     if (!isDateOpenForBusiness(date, businessHours)) {
-      setToast("This day is closed in business hours.");
+      showToast("This day is closed in business hours.", "warning");
       return;
     }
     const start = Math.max(GANTT_START_HOUR, Math.min(GANTT_END_HOUR - SLOT_HOURS, startHour));
@@ -1452,7 +1461,7 @@ export function Calendar() {
     const dayIdx = view === "week" ? (job as DispatchJob).dayIdx : undefined;
     const date = view === "week" ? (weekDays[dayIdx ?? 0] ?? weekDays[0]) : currentDate;
     if (!isDateOpenForBusiness(date, businessHours)) {
-      setToast("This day is closed in business hours.");
+      showToast("This day is closed in business hours.", "warning");
       return;
     }
     setConflictMessage(null);
@@ -1517,17 +1526,22 @@ export function Calendar() {
       amount,
     };
     const editId = quickJobDraft.editJobId;
+    // Honour the date picked in the modal (previously ignored — the day came from
+    // the view). This is what lets a Reschedule move a job to another day.
+    const targetDate = quickJobDraft.date;
 
     if (quickJobDraft.view === "day") {
-      if (dayHasConflict(dayJobsView, editId ?? null, common.technicianId, common.start, common.end)) {
+      // Only run the in-view conflict check when the picked date IS the viewed
+      // day — the day board only holds that day's jobs.
+      if (isSameDay(targetDate, currentDate) && dayHasConflict(dayJobsView, editId ?? null, common.technicianId, common.start, common.end)) {
         setConflictMessage("This slot overlaps with another job for the same person.");
         return;
       }
       if (editId != null) {
-        patchJob(editId, { ...common, date: currentDate, unscheduled: false });
+        patchJob(editId, { ...common, date: targetDate, unscheduled: false });
         setSelectedDayJob((j) => (j && j.id === editId ? { ...j, ...common, unscheduled: false } : j));
         setSelectedMapJobId(editId);
-        setToast("Job rescheduled");
+        showToast(`Rescheduled to ${format(targetDate, "EEE")}, ${formatRegionalTime(common.start, regionalSettings)}`);
       } else {
         // Persist through the shared jobsStore (NOT the local board array) so a
         // job created on the schedule survives navigation/refresh and shows up
@@ -1538,7 +1552,7 @@ export function Calendar() {
           address: common.address, city: "", state: "", zip: "", gateCode: "",
           assignedTo: techIdToAssignee(common.technicianId),
           jobType: "Service", jobCategory: "Service", frequency: "One-off",
-          startDate: isoFromDate(currentDate), endDate: isoFromDate(currentDate),
+          startDate: isoFromDate(targetDate), endDate: isoFromDate(targetDate),
           startTime: hourToTimeStr(common.start), endTime: hourToTimeStr(common.end),
           status: "Scheduled", totalPrice: amount,
           notes: "", fieldNotes: "", privateNotes: "", taxRate: 0,
@@ -1548,16 +1562,20 @@ export function Calendar() {
         setSelectedMapJobId(newJob.id);
       }
     } else {
-      const dayIdx = quickJobDraft.dayIdx ?? 0;
-      const storedDate = weekDays[dayIdx] ?? currentDate;   // the real date for that week column
-      if (weekHasConflict(weekJobsView, editId ?? null, dayIdx, common.technicianId, common.start, common.end)) {
+      // Map the picked date to its column in the loaded week (keeps dayIdx +
+      // conflict-check correct); fall back to the draft's original column/date
+      // when the pick is outside this week.
+      const pickedIdx = weekDays.findIndex((d) => isSameDay(d, targetDate));
+      const dayIdx = pickedIdx >= 0 ? pickedIdx : (quickJobDraft.dayIdx ?? 0);
+      const storedDate = pickedIdx >= 0 ? weekDays[pickedIdx] : targetDate;
+      if (pickedIdx >= 0 && weekHasConflict(weekJobsView, editId ?? null, dayIdx, common.technicianId, common.start, common.end)) {
         setConflictMessage("This slot overlaps with another job for the same person.");
         return;
       }
       if (editId != null) {
         patchJob(editId, { ...common, date: storedDate, unscheduled: false });
         setSelectedDispatchJob((j) => (j && j.id === editId ? { ...j, ...common, dayIdx, unscheduled: false } : j));
-        setToast("Job rescheduled");
+        showToast(`Rescheduled to ${format(storedDate, "EEE")}, ${formatRegionalTime(common.start, regionalSettings)}`);
       } else {
         // Same persistence path as the day view: write to jobsStore so the job
         // survives navigation/refresh and appears in the Jobs list.
@@ -1602,8 +1620,10 @@ export function Calendar() {
     // Dropping onto a week (day × tech) cell gives the job that day's real DATE
     // + technician + slot, and clears unscheduled. patchJob routes store jobs
     // back to jobsStore so created jobs are fully draggable.
-    patchJob(jobId, { date: weekDays[dayIdx] ?? targetJob.date, technicianId, start: dropStart, end: dropEnd, unscheduled: false });
-    setToast(`Moved to ${formatRegionalTime(dropStart, regionalSettings)}`);
+    const dropDate = weekDays[dayIdx] ?? targetJob.date;
+    patchJob(jobId, { date: dropDate, technicianId, start: dropStart, end: dropEnd, unscheduled: false });
+    const dayLabel = dropDate ? `${format(dropDate, "EEE")}, ` : "";
+    showToast(`${isPending(targetJob) ? "Scheduled for" : "Rescheduled to"} ${dayLabel}${formatRegionalTime(dropStart, regionalSettings)}`);
   };
 
   const handleWeekDragOver = (event: DragEvent<HTMLDivElement>, dayIdx: number, technicianId: string) => {
@@ -1638,7 +1658,7 @@ export function Calendar() {
     // Placing a job on a day lane gives it TODAY's date + a technician + time.
     // Status follows the backlog rule: pending→Scheduled, else unchanged.
     patchJob(jobId, { date: currentDate, technicianId, start: dropStart, end: dropEnd, unscheduled: false, status: statusAfterAssignToSlot(targetJob.status, fromPending) });
-    setToast(`Moved to ${formatRegionalTime(dropStart, regionalSettings)}`);
+    showToast(`${fromPending ? "Scheduled for" : "Rescheduled to"} ${format(currentDate, "EEE")}, ${formatRegionalTime(dropStart, regionalSettings)}`);
   };
 
   const handleDayDragOver = (event: DragEvent<HTMLDivElement>, technicianId: string) => {
@@ -1664,7 +1684,7 @@ export function Calendar() {
     if (!targetJob || isPending(targetJob) || !isDraggable(targetJob.status)) return;
     setConflictMessage(null);
     patchJob(jobId, { unscheduled: true, date: null });
-    setToast("Moved to Pending — date cleared, technician kept");
+    showToast("Moved to Pending — date cleared, technician kept", "info");
   };
 
   const handleWeekSlotClick = (event: MouseEvent<HTMLDivElement>, date: Date, technicianId: string, dayIdx: number) => {
@@ -1683,7 +1703,7 @@ export function Calendar() {
     if (viewMode === "week") {
       const openDayIndex = weekDays.findIndex(day => isDateOpenForBusiness(day, businessHours));
       if (openDayIndex === -1) {
-        setToast("This week has no open business days.");
+        showToast("This week has no open business days.", "warning");
         return;
       }
       openQuickCreate("week", weekDays[openDayIndex], workStart, TEAM[0].id, openDayIndex);
@@ -2889,18 +2909,26 @@ export function Calendar() {
             setSelectedDayJob((j) => (j && j.id === id ? { ...j, ...patch } as DayJob : j));
             setSelectedDispatchJob((j) => (j && j.id === id ? { ...j, ...patch } as DispatchJob : j));
             setFullEditDraft(null);
+            showToast("Job updated");
           }}
         />
       )}
 
       {selectedEvent && <EventPopover event={selectedEvent} onClose={() => setSelectedEvent(null)} />}
 
-      {toast && (
-        <div role="status" aria-live="polite" className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-lg bg-[#1A2332] text-white text-[13px] shadow-xl flex items-center gap-2" style={{ fontWeight: 500 }}>
-          <span className="material-icons text-[#22C55E]" style={{ fontSize: "18px" }}>check_circle</span>
-          {toast}
-        </div>
-      )}
+      {toast && (() => {
+        const V = {
+          success: { icon: "check_circle", color: "#22C55E" },
+          info: { icon: "info", color: "#60A5FA" },
+          warning: { icon: "warning", color: "#FBBF24" },
+        }[toast.variant];
+        return (
+          <div role="status" aria-live="polite" className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-lg bg-[#1A2332] text-white text-[13px] shadow-xl flex items-center gap-2" style={{ fontWeight: 500 }}>
+            <span className="material-icons" style={{ fontSize: "18px", color: V.color }}>{V.icon}</span>
+            {toast.msg}
+          </div>
+        );
+      })()}
         </div>{/* /main board column */}
         {unassignedPanelOpen && pendingPanel}
       </div>{/* /board + drawer row */}
