@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
+import { TechnicianMobileDemo } from "../components/TechnicianMobileDemo";
 
 // Help Center — full page, aligned to Figma node 1195-79448:
 // 300px category rail (search + topics) + 900px main area with an accordion
@@ -152,6 +153,7 @@ export function HelpCenter() {
   const [expanded, setExpanded] = useState<number | null>(null);
   const [contactOpen, setContactOpen] = useState(false);
   const [activeRole, setActiveRole] = useState(sandboxRoles[0].key);
+  const [technicianDemoOpen, setTechnicianDemoOpen] = useState(false);
   const [contact, setContact] = useState({ name: "", email: "", subject: "", message: "" });
 
   const totalCount = categories.reduce((sum, c) => sum + c.count, 0);
@@ -286,7 +288,10 @@ export function HelpCenter() {
                       <div className="mt-0.5 text-[13px] leading-[1.6] text-[#546478]">{role.description}</div>
                     </div>
                     <button
-                      onClick={() => { window.location.href = "/?sandbox=sample"; }}
+                      onClick={() => {
+                        if (role.key === "technician") { setTechnicianDemoOpen(true); return; }
+                        window.location.href = "/?sandbox=sample";
+                      }}
                       className="flex h-9 shrink-0 items-center gap-2 rounded-md bg-[#4A6FA5] px-4 text-[13px] text-white transition-colors hover:bg-[#3d5a85]"
                       style={{ fontWeight: 600 }}
                     >
@@ -396,6 +401,8 @@ export function HelpCenter() {
           </div>
         </div>
       )}
+
+      {technicianDemoOpen && <TechnicianMobileDemo onClose={() => setTechnicianDemoOpen(false)} />}
     </div>
   );
 }
