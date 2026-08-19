@@ -129,11 +129,29 @@ const sandboxPhases: { key: string; label: string; description: string; from: st
   { key: "enterprise", label: "Phase IV — Enterprise", description: "Everything, plus an advanced schedule board built for large teams.", from: "from-[#D97706]", to: "to-[#92400E] hover:from-[#92400E] hover:to-[#78350F]" },
 ];
 
+// Role-based sandbox tabs — mirrors real field access profiles so anyone can
+// preview what a given role would see. Cosmetic only for now: every tab opens
+// the same full sandbox (?sandbox=sample), there is no per-role gating yet.
+const sandboxRoles: { key: string; label: string; description: string }[] = [
+  { key: "technician", label: "Technician", description: "Sees only their own jobs, with enroute / working / done statuses. Can't close out a job themselves (R5, R6)." },
+  { key: "field-sales", label: "Field Salesperson", description: "Same as Technician, plus estimates, option sheets, and the price catalog." },
+  { key: "installer", label: "Installer", description: "Reads job scope, the parts list, and photos. No pricing is visible." },
+  { key: "dispatcher", label: "Dispatcher", description: "Books the schedule board, adds notes, and records card payments." },
+  { key: "dispatch-manager", label: "Dispatch Manager", description: "Everything a Dispatcher has, plus branch-to-branch transfers, overrides, and reports." },
+  { key: "ssa", label: "SSA", description: "Read-only across all boards — no write access. Sends transfer requests (handled via Google Chat today)." },
+  { key: "coordinator", label: "Coordinator", description: "Warranty / service / compliance / production queues, document verification, job closeout, and client communication." },
+  { key: "permits", label: "Permits", description: "The permits module plus documents, and read access to the install and sales boards." },
+  { key: "warehouse", label: "Warehouse", description: "Parts list, inventory, transfers, and dispatch on its own board." },
+  { key: "accounting", label: "Accounting", description: "Payments, invoices, balances, and refunds. No schedule board visibility." },
+  { key: "branch-manager", label: "Branch Manager", description: "Everything within their branch, plus KPI dashboards." },
+];
+
 export function HelpCenter() {
   const [activeCat, setActiveCat] = useState<CatKey>("all");
   const [search, setSearch] = useState("");
   const [expanded, setExpanded] = useState<number | null>(null);
   const [contactOpen, setContactOpen] = useState(false);
+  const [activeRole, setActiveRole] = useState(sandboxRoles[0].key);
   const [contact, setContact] = useState({ name: "", email: "", subject: "", message: "" });
 
   const totalCount = categories.reduce((sum, c) => sum + c.count, 0);
@@ -231,6 +249,53 @@ export function HelpCenter() {
                   <span className="material-icons shrink-0 text-white/70 transition-transform group-hover:translate-x-0.5" style={{ fontSize: "20px" }}>arrow_forward</span>
                 </button>
               ))}
+            </div>
+          )}
+
+          {/* Role-based sandbox — separate section, tabs mirroring real field
+              access profiles. Cosmetic only, same as the phase cards above:
+              every role opens the same full sandbox, no gating yet. */}
+          {!search && (
+            <div className="mb-6 rounded-xl border border-[#E5E7EB] bg-white p-4">
+              <div className="mb-3">
+                <div className="text-[15px] text-[#1A2332]" style={{ fontWeight: 700 }}>Roles</div>
+                <div className="mt-0.5 text-[12px] text-[#8899AA]">Preview the sandbox as one of these field access profiles.</div>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {sandboxRoles.map((role) => (
+                  <button
+                    key={role.key}
+                    onClick={() => setActiveRole(role.key)}
+                    className={`rounded-full border px-3.5 py-1.5 text-[13px] transition-colors ${
+                      activeRole === role.key
+                        ? "border-[#4A6FA5] bg-[#EBF0F8] text-[#4A6FA5]"
+                        : "border-[#E5E7EB] bg-white text-[#546478] hover:bg-[#F5F7FA]"
+                    }`}
+                    style={{ fontWeight: activeRole === role.key ? 600 : 500 }}
+                  >
+                    {role.label}
+                  </button>
+                ))}
+              </div>
+              {(() => {
+                const role = sandboxRoles.find((r) => r.key === activeRole) ?? sandboxRoles[0];
+                return (
+                  <div className="mt-4 flex flex-col items-start gap-3 rounded-lg bg-[#F5F7FA] p-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0">
+                      <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>{role.label}</div>
+                      <div className="mt-0.5 text-[13px] leading-[1.6] text-[#546478]">{role.description}</div>
+                    </div>
+                    <button
+                      onClick={() => { window.location.href = "/?sandbox=sample"; }}
+                      className="flex h-9 shrink-0 items-center gap-2 rounded-md bg-[#4A6FA5] px-4 text-[13px] text-white transition-colors hover:bg-[#3d5a85]"
+                      style={{ fontWeight: 600 }}
+                    >
+                      <span className="material-icons" style={{ fontSize: "16px" }}>play_circle</span>
+                      Play as {role.label}
+                    </button>
+                  </div>
+                );
+              })()}
             </div>
           )}
           {filtered.length === 0 ? (
