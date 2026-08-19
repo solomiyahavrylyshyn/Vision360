@@ -10,7 +10,10 @@ type Listener = () => void;
 
 // v2: one merged collection — price-book entries live here as items with
 // itemType "Price Book" (Figma items canvas: "Price Book" is an item Type).
-const LS_KEY = "vision360.catalogItems.v2";
+// v3: added the full AND Service Type/Category/Item Name catalog matrix
+// (Service/Material/Equipment/Asset/Admin/Price Book) — bumped so existing
+// browsers pick up the new seed instead of an old cached v2 snapshot.
+const LS_KEY = "vision360.catalogItems.v3";
 
 // Base catalog seed (ids align with the Items module so edits/deletes key correctly).
 const BASE_SEED: CatalogItem[] = [
@@ -69,6 +72,102 @@ const PB_SEED: [string, string, string, number, number, boolean][] = [
   ["System Flush", "Repairs", "Full refrigerant system flush and recharge", 325, 95, true],
 ];
 
+// AND Service item catalog (full Type/Category/Item Name matrix) — [itemType, category, name, priceHint?].
+// priceHint overrides the per-itemType default rate/cost below for a few notably
+// priced items (Package Units, Fleet vehicles, etc.); most rows use the default.
+const AND_SERVICE_SEED: [string, string, string, number?][] = [
+  // Service
+  ["Service", "Diagnostics", "Diagnostic Visit", 89],
+  ["Service", "Diagnostics", "System Inspection", 99],
+  ["Service", "Repair Labor", "Standard Repair", 140],
+  ["Service", "Repair Labor", "Emergency Repair", 225],
+  ["Service", "Installation Labor", "HVAC Install", 95],
+  ["Service", "Installation Labor", "Duct Install", 85],
+  ["Service", "Maintenance", "Tune-Up", 99],
+  ["Service", "Maintenance", "Membership Visit", 0],
+  ["Service", "Maintenance", "Coil Cleaning", 129],
+  ["Service", "IAQ Service", "IAQ Installation", 189],
+  ["Service", "IAQ Service", "IAQ Maintenance", 99],
+  ["Service", "Electrical Service", "Low Voltage", 110],
+  ["Service", "Electrical Service", "High Voltage", 175],
+  ["Service", "Refrigeration Service", "Refrigerant Service", 135],
+  // Material
+  ["Material", "Refrigerant", "R-410A", 20],
+  ["Material", "Refrigerant", "R-454B", 22],
+  ["Material", "Copper", "Line Sets", 15],
+  ["Material", "Copper", "Fittings", 6],
+  ["Material", "Drain", "PVC", 9],
+  ["Material", "Drain", "Condensate Pumps", 65],
+  ["Material", "Electrical", "Breakers", 18],
+  ["Material", "Electrical", "Disconnects", 28],
+  ["Material", "Electrical", "Wire", 12],
+  ["Material", "Ductwork", "Flex Duct", 14],
+  ["Material", "Ductwork", "Sheet Metal", 22],
+  ["Material", "Parts", "Capacitors", 25],
+  ["Material", "Parts", "Contactors", 32],
+  ["Material", "Parts", "Motors", 185],
+  ["Material", "Parts", "Boards", 145],
+  ["Material", "Parts", "Sensors", 28],
+  ["Material", "Consumables", "Tape / Mastic", 8],
+  ["Material", "Consumables", "Screws / Fasteners", 5],
+  ["Material", "Electrical", "Blower Motor 825 RPM", 125.23],
+  // Equipment
+  ["Equipment", "Condensers", "Straight Cool", 1895],
+  ["Equipment", "Condensers", "Heat Pump", 2450],
+  ["Equipment", "Air Handlers", "Standard", 1650],
+  ["Equipment", "Air Handlers", "Variable Speed", 2350],
+  ["Equipment", "Furnaces", "Gas Furnace", 2895],
+  ["Equipment", "Mini Splits", "Single Zone", 2200],
+  ["Equipment", "Mini Splits", "Multi Zone", 3450],
+  ["Equipment", "Thermostats", "Standard", 89],
+  ["Equipment", "Thermostats", "Smart Thermostat", 279],
+  ["Equipment", "IAQ Equipment", "UV Light", 399],
+  ["Equipment", "IAQ Equipment", "Air Purifier", 549],
+  ["Equipment", "Package Units", "Residential Package Unit", 4995],
+  ["Equipment", "Package Units", "Commercial Package Unit", 8995],
+  // Asset (company-owned — not sold; rate 0, cost = acquisition value)
+  ["Asset", "Fleet", "Vans", 38000],
+  ["Asset", "Fleet", "Trucks", 42000],
+  ["Asset", "Fleet", "Trailers", 9500],
+  ["Asset", "IT Equipment", "Laptops", 1400],
+  ["Asset", "IT Equipment", "Desktops", 1100],
+  ["Asset", "IT Equipment", "Tablets", 650],
+  ["Asset", "IT Equipment", "Phones", 800],
+  ["Asset", "Tools", "HVAC Tools", 450],
+  ["Asset", "Tools", "Power Tools", 320],
+  ["Asset", "Tools", "Ladders", 180],
+  ["Asset", "Machines", "Shop Machines", 6500],
+  ["Asset", "Machines", "Warehouse Equipment", 4200],
+  ["Asset", "Office Equipment", "Printers", 350],
+  ["Asset", "Office Equipment", "Furniture", 900],
+  // Admin / Fees
+  ["Admin", "Administrative Fee", "Permit Fee", 75],
+  ["Admin", "Trip Charge", "Trip Charge", 45],
+  ["Admin", "Disposal Fee", "Processing Fee", 35],
+  ["Admin", "Diagnostic Fee", "Diagnostic Fee", 79],
+  ["Admin", "Permit Fee", "After-Hours Fee", 125],
+  ["Admin", "Credit Card Surcharge", "Financing Fee", 0],
+  ["Admin", "Discount", "Coupon", 0],
+  ["Admin", "Finance Charge", "Manager Discount", 0],
+  ["Admin", "Late Fee", "Membership Discount", 0],
+  ["Admin", "Coupon", "Warranty Deductible", 0],
+  ["Admin", "Warranty", "Warranty Processing", 50],
+  ["Admin", "Adjustment", "Adjustment", 0],
+  ["Admin", "Deposit", "Deposit", 0],
+  ["Admin", "Miscellaneous Charge", "Miscellaneous Charge", 0],
+  ["Admin", "Prepaid Service Adjustment", "Prepaid Service Adjustment", 0],
+];
+
+// Default cost ratio + department/vendor per itemType, used when a row above
+// doesn't need a special case.
+const AND_SERVICE_DEFAULTS: Record<string, { costRatio: number; department: string; vendor?: string; taxable: boolean }> = {
+  Service: { costRatio: 0, department: "Field Service", taxable: true },
+  Material: { costRatio: 0.45, department: "Materials", vendor: "HVAC Supply Co.", taxable: true },
+  Equipment: { costRatio: 0.42, department: "Equipment", vendor: "Grainger", taxable: true },
+  Asset: { costRatio: 1, department: "Company Assets", taxable: false },
+  Admin: { costRatio: 0, department: "Admin", taxable: true },
+};
+
 const SEED: CatalogItem[] = [
   ...BASE_SEED,
   ...PB_SEED.map(([name, category, description, price, cost, taxable], i) => ({
@@ -76,6 +175,27 @@ const SEED: CatalogItem[] = [
     brand: "", modelNumber: "", rate: price, cost, taxable, category,
     type: "Service", itemType: "Price Book", active: true,
   } as CatalogItem)),
+  // The one fully-worked Price Book example item (with warranty/marketing copy).
+  {
+    id: 199, name: "Blower Motor Replacement — Premium", category: "Repairs",
+    itemDescription: "Replacing Blower Motor 825 RPM, 1 year warranty, 90 days labor warranty, Comfort guarantee, Christmas Postcard, Chocolate Donuts",
+    salesDescription: "Blower Motor Replacement — includes 1 year warranty, 90 days labor warranty, and Comfort Guarantee",
+    brand: "", modelNumber: "", rate: 1457, cost: 0, taxable: true,
+    type: "Service", itemType: "Price Book", active: true,
+  } as CatalogItem,
+  ...AND_SERVICE_SEED.map(([itemType, category, name, priceHint], i) => {
+    const d = AND_SERVICE_DEFAULTS[itemType];
+    const rate = priceHint ?? 0;
+    const cost = itemType === "Asset" ? rate : Math.round(rate * d.costRatio * 100) / 100;
+    return {
+      id: 200 + i, name, category,
+      itemDescription: `${name} — ${category}`, salesDescription: `${name} — ${category}`,
+      brand: name === "Blower Motor 825 RPM" ? "Electrolux" : "", modelNumber: "",
+      rate: itemType === "Asset" ? 0 : rate, cost, taxable: d.taxable, department: d.department,
+      vendor: name === "Blower Motor 825 RPM" ? "Johnston Supply" : d.vendor,
+      type: mapItemTypeToCatalog(itemType), itemType, active: true,
+    } as CatalogItem;
+  }),
 ];
 
 let items: CatalogItem[] = SEED;
