@@ -6,11 +6,65 @@ import { useEffect, useState } from "react";
 // Illustrative only: no real data, no stores, no persistence beyond this
 // session's local state.
 
-type Screen = "home" | "history" | "filter" | "search" | "job" | "media" | "imageDesc" | "changesHistory" | "photos" | "files" | "equipment" | "assets";
-type JobTab = "general" | "notes" | "report";
+type Screen = "home" | "history" | "filter" | "search" | "job" | "media" | "imageDesc" | "changesHistory" | "photos" | "files" | "equipment" | "assets"
+  | "estimateAddOption" | "estimateAddItem" | "estimateAddCustomItem" | "estimateCustomerView";
+type JobTab = "general" | "notes" | "report" | "estimate";
 type Status = "none" | "enroute" | "working" | "done";
 type FieldKind = "text" | "select3" | "computed";
 interface RCField { label: string; value?: string; kind: FieldKind }
+
+// R-007 — Estimate (options-based)
+interface EstItem { name: string; description: string; price: number; warranty: string; category: string }
+interface OptionItem extends EstItem { qty: number }
+interface EstOption { id: number; name: string; pricingType: "Monthly payment + Total" | "Total Only" | "Monthly Only"; notesOn: boolean; notes: string; items: OptionItem[]; adjustPct: number }
+type EstStatus = "draft" | "inReview" | "readyToPresent" | "approved";
+
+const money = (n: number) => `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const PLAN = { label: "Ally - 7.99% / 1.29%", factor: "1.29%", monthlyRate: 0.046, interest: "9.9%", apr: "7.99%", terms: "12 months" };
+
+const ESTIMATE_CATALOG: Record<string, EstItem[]> = {
+  Repairs: [
+    { name: "AC Tune-Up", description: "Routine inspection and cleaning of air conditioning system", price: 129, warranty: "5 years", category: "Repairs" },
+    { name: "Air Handler Replacement", description: "Replace indoor air handler unit including labor", price: 2800, warranty: "5 years", category: "Repairs" },
+    { name: "Attic Insulation Top-Up", description: "Add insulation to attic to improve efficiency", price: 1800, warranty: "5 years", category: "Repairs" },
+    { name: "Blower Motor Repair", description: "Diagnose and repair blower motor malfunction", price: 350, warranty: "5 years", category: "Repairs" },
+    { name: "Capacitor Replacement", description: "Replace faulty run/start capacitor in AC system", price: 180, warranty: "5 years", category: "Repairs" },
+    { name: "Condenser Coil Cleaning", description: "Deep clean outdoor condenser coils for optimal performance", price: 250, warranty: "5 years", category: "Repairs" },
+    { name: "Drain Pan Replacement", description: "Replace rusted or leaking condensate drain pan", price: 260, warranty: "5 years", category: "Repairs" },
+    { name: "Duct Cleaning", description: "Clean air ducts to improve air quality and efficiency", price: 450, warranty: "5 years", category: "Repairs" },
+    { name: "Emergency HVAC Call", description: "24/7 emergency service visit fee", price: 150, warranty: "5 years", category: "Repairs" },
+    { name: "HVAC Filter Replacement", description: "Replace standard air filter", price: 40, warranty: "5 years", category: "Repairs" },
+    { name: "HVAC System Installation", description: "Install complete HVAC system in residential property", price: 8900, warranty: "5 years", category: "Repairs" },
+    { name: "HVAC Zoning Setup", description: "Install zoning dampers and controls for multi-zone climate", price: 3500, warranty: "5 years", category: "Repairs" },
+    { name: "Mini-Split System Install", description: "Install ductless mini-split system for room or zone", price: 4200, warranty: "5 years", category: "Repairs" },
+    { name: "Refrigerant Recharge", description: "Refill refrigerant and check for leaks", price: 350, warranty: "5 years", category: "Repairs" },
+    { name: "Thermostat Calibration", description: "Adjust and calibrate thermostat for accurate temperature control", price: 90, warranty: "5 years", category: "Repairs" },
+    { name: "Thermostat Replacement", description: "Replace existing thermostat with programmable or smart unit", price: 220, warranty: "5 years", category: "Repairs" },
+  ],
+  Equipment: [
+    { name: "Condenser Unit", description: "Replace outdoor condenser unit", price: 2600, warranty: "10 years", category: "Equipment" },
+    { name: "Air Handler Unit", description: "New indoor air handler unit", price: 2100, warranty: "10 years", category: "Equipment" },
+    { name: "Package Unit", description: "Residential package unit", price: 5200, warranty: "10 years", category: "Equipment" },
+  ],
+  Ductwork: [
+    { name: "Duct Replacement", description: "Replace damaged ductwork section", price: 600, warranty: "5 years", category: "Ductwork" },
+    { name: "Duct Sealing", description: "Seal duct leaks throughout system", price: 349, warranty: "5 years", category: "Ductwork" },
+    { name: "Flex Duct Install", description: "Install flexible ductwork run", price: 220, warranty: "5 years", category: "Ductwork" },
+  ],
+  IAQ: [
+    { name: "UV Light Install", description: "Install UV germicidal light", price: 399, warranty: "5 years", category: "IAQ" },
+    { name: "Air Purifier Install", description: "Install electronic air purifier", price: 549, warranty: "5 years", category: "IAQ" },
+    { name: "Humidifier Install", description: "Whole-home humidifier installation", price: 699, warranty: "5 years", category: "IAQ" },
+  ],
+  Others: [
+    { name: "Custom Consultation", description: "On-site consultation and assessment", price: 0, warranty: "—", category: "Others" },
+    { name: "Miscellaneous Charge", description: "Miscellaneous service charge", price: 0, warranty: "—", category: "Others" },
+  ],
+};
+
+const optionTotal = (o: EstOption) => o.items.reduce((s, it) => s + it.price * it.qty, 0) * (1 + o.adjustPct / 100);
+const optionMonthly = (o: EstOption) => optionTotal(o) * PLAN.monthlyRate;
+const nextOptionName = (n: number) => `Option ${String.fromCharCode(65 + n)}`;
 
 const jobs = [
   { name: "Randy Johnson", date: "Dec 1, 2025", badge: "Estimate", color: "#16A34A", addr: "5010 N Cortez Ave, Tampa, FL 33614", phone: "(813) 456-7890", range: "$79.00 - $3,509.00" },
@@ -150,8 +204,8 @@ function ReportCardFields({ fields, selections, onSelect }: { fields: RCField[];
   );
 }
 
-function SignaturePad({ label, name }: { label: string; name?: string }) {
-  const [signed, setSigned] = useState(false);
+function SignaturePad({ label, name, presigned }: { label: string; name?: string; presigned?: boolean }) {
+  const [signed, setSigned] = useState(!!presigned);
   return (
     <div>
       <div className="mb-1 text-[11px] text-[#8899AA]">{label}{name ? ` — ${name}` : ""}</div>
@@ -176,6 +230,20 @@ export function TechnicianMobileDemo({ onClose }: { onClose: () => void }) {
   const [elapsed, setElapsed] = useState(0);
   const [completedJobs, setCompletedJobs] = useState<string[]>([]);
   const [rcSelections, setRcSelections] = useState<Record<string, string>>({ "Overall Condition": "warning", "Filter Condition": "warning", "Blower Motor": "check", "Blower Wheel": "check", "Evap Coil Condition": "check", "Drain Pan": "check", "Ductwork Condition": "check", "Ductwork Cleanliness": "check", "Thermostat": "check" });
+
+  // Estimate (R-007)
+  const [estOptions, setEstOptions] = useState<EstOption[]>([]);
+  const [estStatus, setEstStatus] = useState<EstStatus>("draft");
+  const [estDraft, setEstDraft] = useState<EstOption | null>(null);
+  const [estItemCategory, setEstItemCategory] = useState("Repairs");
+  const [estItemQuery, setEstItemQuery] = useState("");
+  const [estDownPayment, setEstDownPayment] = useState(false);
+  const [estDownAmount, setEstDownAmount] = useState("");
+  const [estMenuOpenId, setEstMenuOpenId] = useState<number | null>(null);
+  const [estShowAlt, setEstShowAlt] = useState<Record<number, boolean>>({});
+  const [estApprovedId, setEstApprovedId] = useState<number | null>(null);
+  const [estCustomerChoice, setEstCustomerChoice] = useState<string>("");
+  const [estFollowUpDate, setEstFollowUpDate] = useState("Oct 7, 2025");
 
   useEffect(() => {
     if (status === "none" || status === "done") return;
@@ -376,9 +444,9 @@ export function TechnicianMobileDemo({ onClose }: { onClose: () => void }) {
                 }
               />
               <div className="flex border-b border-[#E5E7EB] px-1 text-[11px]">
-                {(["general", "notes", "report"] as JobTab[]).map((t) => (
+                {(["general", "notes", "report", "estimate"] as JobTab[]).map((t) => (
                   <button key={t} onClick={() => setJobTab(t)} className="px-2.5 py-2" style={{ color: jobTab === t ? "#4A6FA5" : "#8899AA", fontWeight: jobTab === t ? 700 : 500, borderBottom: jobTab === t ? "2px solid #4A6FA5" : "2px solid transparent" }}>
-                    {{ general: "General", notes: "Notes", report: "Report Card" }[t]}
+                    {{ general: "General", notes: "Notes", report: "Report Card", estimate: "Estimate" }[t]}
                   </button>
                 ))}
               </div>
@@ -424,7 +492,7 @@ export function TechnicianMobileDemo({ onClose }: { onClose: () => void }) {
                   <div>
                     <div className="mb-1 flex items-center justify-between">
                       <span className="text-[#8899AA]">Items used</span>
-                      <button onClick={() => window.alert("Item picker — mock only (no price shown to Technicians, unlike Field Sales).")} className="text-[11px] text-[#4A6FA5]" style={{ fontWeight: 600 }}>+ Add item</button>
+                      <button onClick={() => window.alert("Item picker — mock only.")} className="text-[11px] text-[#4A6FA5]" style={{ fontWeight: 600 }}>+ Add item</button>
                     </div>
                     <div className="space-y-1 rounded-lg border border-[#E5E7EB] p-2">
                       <div className="flex justify-between text-[12px]"><span className="text-[#1A2332]">R-410A</span><span className="text-[#8899AA]">Qty: 2</span></div>
@@ -506,6 +574,402 @@ export function TechnicianMobileDemo({ onClose }: { onClose: () => void }) {
                   </div>
                 </div>
               )}
+
+              {/* ---- Estimate (R-007) ---- */}
+              {jobTab === "estimate" && (
+                <div className="flex-1 overflow-y-auto p-3">
+                  {estOptions.length === 0 ? (
+                    <div className="flex flex-col items-center pt-16 text-center">
+                      <div className="mb-1 text-[15px] text-[#1A2332]" style={{ fontWeight: 700 }}>No estimate yet!</div>
+                      <div className="mb-5 text-[12px] text-[#8899AA]">Start by adding a new Option.<br />You can create up to 6 options.</div>
+                      <button
+                        onClick={() => { setEstDraft({ id: Date.now(), name: nextOptionName(0), pricingType: "Monthly payment + Total", notesOn: false, notes: "", items: [], adjustPct: 0 }); setScreen("estimateAddOption"); }}
+                        className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#4A6FA5] py-3 text-[13px] text-white"
+                        style={{ fontWeight: 700 }}
+                      >
+                        <span className="material-icons" style={{ fontSize: "16px" }}>add</span>Add new option
+                      </button>
+                    </div>
+                  ) : estStatus === "approved" ? (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="rounded px-2 py-1 text-[10px] text-white" style={{ backgroundColor: "#16A34A", fontWeight: 700 }}>Approved</span>
+                        <span className="text-[10px] text-[#8899AA]">Oct 7, 2025, 9:09 AM</span>
+                      </div>
+                      <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 700 }}>Approved option</div>
+                      {estOptions.filter((o) => o.id === estApprovedId).map((o) => (
+                        <div key={o.id} className="rounded-lg border border-[#E5E7EB] p-3">
+                          <div className="mb-1.5 rounded bg-[#F0FDF4] px-2 py-1 text-center text-[10px] text-[#16A34A]" style={{ fontWeight: 700 }}>✓ Approved (Oct 7, 2025, 9:09 AM)</div>
+                          <div className="mb-1 text-[13px] text-[#1A2332]" style={{ fontWeight: 700 }}>{o.name}</div>
+                          {o.items.map((it) => <div key={it.name} className="text-[12px] text-[#546478]">{it.qty} × {it.name}</div>)}
+                          <div className="mt-2 rounded-md bg-[#EBF0F8] px-2.5 py-1.5 text-[14px] text-[#1A2332]" style={{ fontWeight: 700 }}>{money(optionTotal(o))}</div>
+                        </div>
+                      ))}
+                      <div className="rounded-lg border border-[#E5E7EB] p-3">
+                        <SignaturePad label="Customer signature" name="Johnson" presigned />
+                      </div>
+                      <button onClick={() => setOpenSection(openSection === -1 ? null : -1)} className="flex w-full items-center justify-between text-[12px] text-[#1A2332]" style={{ fontWeight: 700 }}>
+                        Rejected options <span className="material-icons" style={{ fontSize: "16px", transform: openSection === -1 ? "rotate(180deg)" : "none" }}>expand_more</span>
+                      </button>
+                      {openSection === -1 && (
+                        <div className="space-y-1.5">
+                          {estOptions.filter((o) => o.id !== estApprovedId).map((o) => (
+                            <div key={o.id} className="rounded-md bg-[#F5F7FA] px-2.5 py-1.5 text-[11px] text-[#8899AA]">{o.name} — {money(optionTotal(o))}</div>
+                          ))}
+                        </div>
+                      )}
+                      <div className="text-[12px] text-[#1A2332]" style={{ fontWeight: 700 }}>Plan selected</div>
+                      <div className="text-[11px] text-[#546478]">{PLAN.label}<br />Monthly factor: {PLAN.factor} · Interest rate: {PLAN.interest} · APR: {PLAN.apr} · Terms: {PLAN.terms}</div>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="rounded px-2 py-1 text-[10px] text-white" style={{ backgroundColor: { draft: "#8899AA", inReview: "#D97706", readyToPresent: "#4A6FA5" }[estStatus], fontWeight: 700 }}>
+                          {{ draft: "Draft", inReview: "In review", readyToPresent: "Ready to present" }[estStatus]}
+                        </span>
+                        <span className="text-[10px] text-[#8899AA]">Autosaved 2 min ago</span>
+                        <button onClick={() => setScreen("estimateCustomerView")} className="flex items-center gap-1 text-[11px] text-[#4A6FA5]" style={{ fontWeight: 600 }}>
+                          <span className="material-icons" style={{ fontSize: "14px" }}>visibility</span>Preview
+                        </button>
+                      </div>
+                      {estStatus === "inReview" && (
+                        <div className="flex gap-2 rounded-md bg-[#FEF3C7] p-2.5 text-[11px] text-[#92400E]">
+                          <span className="material-icons" style={{ fontSize: "16px" }}>warning</span>
+                          This estimate is currently being reviewed by your manager. You will be notified when it is ready to be presented to the customer or if any changes are required.
+                        </div>
+                      )}
+                      {estStatus === "readyToPresent" && (
+                        <div className="flex gap-2 rounded-md bg-[#F0FDF4] p-2.5 text-[11px] text-[#16A34A]">
+                          <span className="material-icons" style={{ fontSize: "16px" }}>check_circle</span>
+                          This estimate has been approved by the manager and is ready to be shown to the customer.
+                        </div>
+                      )}
+                      <div className="text-[12px] text-[#1A2332]" style={{ fontWeight: 700 }}>Options list</div>
+                      {estOptions.map((o) => (
+                        <div key={o.id} className="rounded-lg border border-[#E5E7EB]">
+                          <div className="flex items-center justify-between px-3 py-2">
+                            <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 700 }}>{o.name}</span>
+                            <div className="relative">
+                              <button onClick={() => setEstMenuOpenId(estMenuOpenId === o.id ? null : o.id)} className="flex h-6 w-6 items-center justify-center rounded-full hover:bg-[#F5F7FA]">
+                                <span className="material-icons text-[#8899AA]" style={{ fontSize: "16px" }}>more_vert</span>
+                              </button>
+                              {estMenuOpenId === o.id && (
+                                <div className="absolute right-0 top-7 z-10 w-36 rounded-lg border border-[#E5E7EB] bg-white py-1 shadow-lg">
+                                  <button onClick={() => { setEstDraft(o); setEstMenuOpenId(null); setScreen("estimateAddOption"); }} className="block w-full px-3 py-2 text-left text-[12px] text-[#1A2332] hover:bg-[#F5F7FA]">Edit</button>
+                                  <button onClick={() => { setEstOptions((os) => [...os, { ...o, id: Date.now(), name: nextOptionName(os.length) }]); setEstMenuOpenId(null); }} className="block w-full px-3 py-2 text-left text-[12px] text-[#1A2332] hover:bg-[#F5F7FA]">Duplicate</button>
+                                  <button onClick={() => { setEstOptions((os) => os.map((x) => x.id === o.id ? { ...x, notesOn: !x.notesOn } : x)); setEstMenuOpenId(null); }} className="block w-full px-3 py-2 text-left text-[12px] text-[#1A2332] hover:bg-[#F5F7FA]">Show/hide note</button>
+                                  <button onClick={() => { setEstOptions((os) => os.filter((x) => x.id !== o.id)); setEstMenuOpenId(null); }} className="block w-full px-3 py-2 text-left text-[12px] text-[#DC2626] hover:bg-[#FEF2F2]">Delete option</button>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <div className="space-y-0.5 px-3 pb-2 text-[12px] text-[#546478]">
+                            {o.items.map((it) => <div key={it.name}>{it.qty} × {it.name}</div>)}
+                          </div>
+                          {(() => {
+                            const showMonthly = o.pricingType === "Monthly Only" || (o.pricingType === "Monthly payment + Total" && !estShowAlt[o.id]);
+                            const canToggle = o.pricingType === "Monthly payment + Total";
+                            return (
+                              <button
+                                disabled={!canToggle}
+                                onClick={() => setEstShowAlt((s) => ({ ...s, [o.id]: !s[o.id] }))}
+                                className="flex w-full items-center justify-between bg-[#EBF0F8] px-3 py-2 text-left"
+                              >
+                                <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 700 }}>{showMonthly ? `${money(optionMonthly(o))}/month` : money(optionTotal(o))}</span>
+                                {canToggle && <span className="text-[10px] text-[#4A6FA5]">Tap for {showMonthly ? "total" : "monthly"}</span>}
+                              </button>
+                            );
+                          })()}
+                          {o.notesOn && o.notes && (
+                            <div className="flex gap-1.5 border-t border-[#EDF0F5] px-3 py-2 text-[10px] text-[#8899AA]">
+                              <span className="material-icons" style={{ fontSize: "13px" }}>description</span>{o.notes}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                      {estOptions.length < 6 && (
+                        <button
+                          onClick={() => { setEstDraft({ id: Date.now(), name: nextOptionName(estOptions.length), pricingType: "Monthly payment + Total", notesOn: false, notes: "", items: [], adjustPct: 0 }); setScreen("estimateAddOption"); }}
+                          className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#4A6FA5] py-2.5 text-[13px] text-white"
+                          style={{ fontWeight: 700 }}
+                        >
+                          <span className="material-icons" style={{ fontSize: "16px" }}>add</span>Add new option
+                        </button>
+                      )}
+
+                      <div className="text-[12px] text-[#1A2332]" style={{ fontWeight: 700 }}>Plan selection</div>
+                      <div className="rounded-lg border border-[#E5E7EB] p-2.5">
+                        <div className="mb-0.5 text-[10px] text-[#8899AA]">Pick a plan</div>
+                        <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>{PLAN.label}</div>
+                      </div>
+                      <div className="text-[10px] text-[#8899AA]">Monthly factor: {PLAN.factor} • Interest rate: {PLAN.interest} • APR: {PLAN.apr} • Terms: {PLAN.terms}</div>
+                      <label className="flex items-center gap-2 text-[12px] text-[#546478]">
+                        <span className="flex h-5 w-9 items-center rounded-full px-0.5" style={{ backgroundColor: estDownPayment ? "#4A6FA5" : "#D1D5DB" }} onClick={() => setEstDownPayment((v) => !v)}>
+                          <span className="h-4 w-4 rounded-full bg-white transition-transform" style={{ transform: estDownPayment ? "translateX(16px)" : "none" }} />
+                        </span>
+                        Add down payment
+                      </label>
+                      {estDownPayment && (
+                        <input value={estDownAmount} onChange={(e) => setEstDownAmount(e.target.value)} placeholder="Down payment amount" className="w-full rounded-lg border border-[#E5E7EB] px-3 py-2 text-[13px] outline-none" />
+                      )}
+                      <div className="flex items-center justify-between text-[11px] text-[#8899AA]">
+                        <span>Options: {estOptions.length}/6</span>
+                        <span>Price range: {money(Math.min(...estOptions.map(optionTotal)))} - {money(Math.max(...estOptions.map(optionTotal)))}</span>
+                      </div>
+                      {estStatus === "draft" && (
+                        <button onClick={() => setEstStatus("inReview")} className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#16A34A] py-3 text-[13px] text-white" style={{ fontWeight: 700 }}>
+                          <span className="material-icons" style={{ fontSize: "16px" }}>send</span>Send to review
+                        </button>
+                      )}
+                      {estStatus === "inReview" && (
+                        <button onClick={() => setEstStatus("readyToPresent")} className="w-full py-1 text-center text-[11px] text-[#4A6FA5] underline">Simulate manager approval (demo)</button>
+                      )}
+                      {estStatus === "readyToPresent" && (
+                        <button onClick={() => setScreen("estimateCustomerView")} className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#16A34A] py-3 text-[13px] text-white" style={{ fontWeight: 700 }}>
+                          <span className="material-icons" style={{ fontSize: "16px" }}>visibility</span>Present to customer
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+              <BottomNav active="history" onNav={setScreen} />
+            </>
+          )}
+
+          {/* ---- Add new option (R-007.3) ---- */}
+          {screen === "estimateAddOption" && estDraft && (
+            <>
+              <Header
+                title="Add new option"
+                onBack={() => { setEstDraft(null); setScreen("job"); setJobTab("estimate"); }}
+                right={
+                  <button
+                    onClick={() => {
+                      setEstOptions((os) => {
+                        const exists = os.some((o) => o.id === estDraft.id);
+                        return exists ? os.map((o) => (o.id === estDraft.id ? estDraft : o)) : [...os, estDraft];
+                      });
+                      setEstDraft(null);
+                      setScreen("job");
+                      setJobTab("estimate");
+                    }}
+                    className="rounded-md bg-[#4A6FA5] px-3 py-1.5 text-[12px] text-white"
+                    style={{ fontWeight: 700 }}
+                  >
+                    Save
+                  </button>
+                }
+              />
+              <div className="flex-1 space-y-4 overflow-y-auto p-3">
+                <div>
+                  <div className="mb-1 text-[10px] text-[#8899AA]">Option name</div>
+                  <input value={estDraft.name} onChange={(e) => setEstDraft({ ...estDraft, name: e.target.value })} className="w-full border-b border-[#1A2332] px-1 py-1.5 text-[14px] text-[#1A2332] outline-none" />
+                </div>
+                <div>
+                  <div className="mb-1 text-[10px] text-[#8899AA]">Pricing preview type</div>
+                  <select value={estDraft.pricingType} onChange={(e) => setEstDraft({ ...estDraft, pricingType: e.target.value as EstOption["pricingType"] })} className="w-full border-b border-[#E5E7EB] px-1 py-1.5 text-[13px] text-[#1A2332] outline-none">
+                    <option>Monthly payment + Total</option>
+                    <option>Total Only</option>
+                    <option>Monthly Only</option>
+                  </select>
+                </div>
+                <label className="flex items-center gap-2 text-[12px] text-[#546478]">
+                  <span className="flex h-5 w-9 items-center rounded-full px-0.5" style={{ backgroundColor: estDraft.notesOn ? "#4A6FA5" : "#D1D5DB" }} onClick={() => setEstDraft({ ...estDraft, notesOn: !estDraft.notesOn })}>
+                    <span className="h-4 w-4 rounded-full bg-white transition-transform" style={{ transform: estDraft.notesOn ? "translateX(16px)" : "none" }} />
+                  </span>
+                  Add extra notes
+                </label>
+                {estDraft.notesOn && (
+                  <textarea value={estDraft.notes} onChange={(e) => setEstDraft({ ...estDraft, notes: e.target.value })} placeholder="Write your note here" className="h-16 w-full rounded-lg border border-[#E5E7EB] px-3 py-2 text-[12px] outline-none" />
+                )}
+
+                <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 700 }}>Option items</div>
+                {estDraft.items.length === 0 ? (
+                  <div className="text-[12px] text-[#8899AA]">There is no items added yet. Click on the button below to add a new item to the list.</div>
+                ) : (
+                  <div className="space-y-2">
+                    {estDraft.items.map((it) => (
+                      <div key={it.name} className="rounded-lg border border-[#E5E7EB] p-2.5">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <div className="text-[12px] text-[#1A2332]" style={{ fontWeight: 600 }}>{it.qty} × {it.name}</div>
+                            <div className="text-[10px] text-[#8899AA]">{it.description}</div>
+                            <div className="text-[10px] text-[#8899AA]">Warranty: {it.warranty}</div>
+                          </div>
+                          <button onClick={() => setEstDraft({ ...estDraft, items: estDraft.items.filter((x) => x.name !== it.name) })} className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-[#FEF2F2] text-[#DC2626]">
+                            <span className="material-icons" style={{ fontSize: "16px" }}>delete_outline</span>
+                          </button>
+                        </div>
+                        <div className="mt-1.5 flex items-center justify-between">
+                          <div className="flex items-center gap-1.5">
+                            <button onClick={() => setEstDraft({ ...estDraft, items: estDraft.items.map((x) => x.name === it.name ? { ...x, qty: Math.max(1, x.qty - 1) } : x) })} className="flex h-6 w-6 items-center justify-center rounded border border-[#E5E7EB]">−</button>
+                            <span className="w-5 text-center text-[12px]">{it.qty}</span>
+                            <button onClick={() => setEstDraft({ ...estDraft, items: estDraft.items.map((x) => x.name === it.name ? { ...x, qty: x.qty + 1 } : x) })} className="flex h-6 w-6 items-center justify-center rounded border border-[#E5E7EB]">+</button>
+                          </div>
+                          <span className="text-[12px] text-[#1A2332]" style={{ fontWeight: 700 }}>Subtotal: {money(it.price * it.qty)}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <button onClick={() => setScreen("estimateAddItem")} className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#4A6FA5] py-2.5 text-[13px] text-white" style={{ fontWeight: 700 }}>
+                  <span className="material-icons" style={{ fontSize: "16px" }}>add</span>Add new items
+                </button>
+
+                <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 700 }}>Summary</div>
+                <div className="flex justify-between text-[12px]"><span className="text-[#546478]"># of items:</span><span style={{ fontWeight: 700 }}>{estDraft.items.length}</span></div>
+                <div className="flex justify-between text-[12px]"><span className="text-[#546478]">Monthly payment:</span><span style={{ fontWeight: 700 }}>{money(optionMonthly(estDraft))}</span></div>
+                <div className="flex justify-between text-[12px]"><span className="text-[#546478]">Total:</span><span style={{ fontWeight: 700 }}>{money(optionTotal(estDraft))}</span></div>
+                <label className="flex items-center gap-2 text-[12px] text-[#546478]">
+                  <span className="flex h-5 w-9 items-center rounded-full px-0.5" style={{ backgroundColor: estDraft.adjustPct !== 0 ? "#4A6FA5" : "#D1D5DB" }} onClick={() => setEstDraft({ ...estDraft, adjustPct: estDraft.adjustPct !== 0 ? 0 : 1 })}>
+                    <span className="h-4 w-4 rounded-full bg-white transition-transform" style={{ transform: estDraft.adjustPct !== 0 ? "translateX(16px)" : "none" }} />
+                  </span>
+                  Adjust the price
+                </label>
+                {estDraft.adjustPct !== 0 && (
+                  <div>
+                    <div className="mb-1.5 text-[11px] text-[#8899AA]">Price adjustments</div>
+                    <input type="range" min={-20} max={20} value={estDraft.adjustPct} onChange={(e) => setEstDraft({ ...estDraft, adjustPct: Number(e.target.value) })} className="w-full" />
+                    <div className="flex justify-between text-[10px] text-[#8899AA]"><span>-20%</span><span>{estDraft.adjustPct > 0 ? "+" : ""}{estDraft.adjustPct}%</span><span>+20%</span></div>
+                  </div>
+                )}
+              </div>
+              <BottomNav active="history" onNav={setScreen} />
+            </>
+          )}
+
+          {/* ---- Add new item (R-006.1) ---- */}
+          {screen === "estimateAddItem" && estDraft && (
+            <>
+              <Header title="Add new item" onBack={() => setScreen("estimateAddOption")} />
+              <div className="border-b border-[#E5E7EB] p-3">
+                <div className="flex items-center gap-2 rounded-lg border border-[#E5E7EB] px-3 py-2">
+                  <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "16px" }}>search</span>
+                  <input value={estItemQuery} onChange={(e) => setEstItemQuery(e.target.value)} placeholder="Search for item" className="w-full text-[13px] outline-none" />
+                </div>
+              </div>
+              <div className="flex gap-3 overflow-x-auto border-b border-[#E5E7EB] px-3 text-[12px]">
+                {Object.keys(ESTIMATE_CATALOG).map((cat) => (
+                  <button key={cat} onClick={() => setEstItemCategory(cat)} className="whitespace-nowrap py-2" style={{ color: estItemCategory === cat ? "#4A6FA5" : "#8899AA", fontWeight: estItemCategory === cat ? 700 : 500, borderBottom: estItemCategory === cat ? "2px solid #4A6FA5" : "2px solid transparent" }}>
+                    {cat}
+                  </button>
+                ))}
+              </div>
+              <div className="flex-1 space-y-2 overflow-y-auto p-3">
+                {ESTIMATE_CATALOG[estItemCategory].filter((it) => it.name.toLowerCase().includes(estItemQuery.toLowerCase())).map((it) => {
+                  const added = estDraft.items.some((x) => x.name === it.name);
+                  return (
+                    <div key={it.name} className="flex items-start justify-between gap-2 rounded-lg border border-[#E5E7EB] p-2.5">
+                      <div className="min-w-0">
+                        <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 700 }}>{it.name}</div>
+                        <div className="text-[10px] text-[#8899AA]">{it.description}</div>
+                        <div className="text-[10px] text-[#8899AA]">Warranty: {it.warranty}</div>
+                      </div>
+                      <div className="flex shrink-0 flex-col items-end gap-1">
+                        <span className="text-[12px] text-[#1A2332]" style={{ fontWeight: 700 }}>{money(it.price)}</span>
+                        <button
+                          onClick={() => setEstDraft({
+                            ...estDraft,
+                            items: added ? estDraft.items.filter((x) => x.name !== it.name) : [...estDraft.items, { ...it, qty: 1 }],
+                          })}
+                          className="rounded-md px-2.5 py-1 text-[11px] text-white"
+                          style={{ backgroundColor: added ? "#16A34A" : "#4A6FA5", fontWeight: 700 }}
+                        >
+                          {added ? "✓ Added" : "+ Add"}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+                <button onClick={() => setScreen("estimateAddCustomItem")} className="flex w-full items-center justify-center gap-2 rounded-lg border border-[#E5E7EB] py-2.5 text-[13px] text-[#1A2332]" style={{ fontWeight: 700 }}>
+                  <span className="material-icons" style={{ fontSize: "16px" }}>add</span>Add custom item
+                </button>
+              </div>
+              <BottomNav active="history" onNav={setScreen} />
+            </>
+          )}
+
+          {/* ---- Add custom item (R-006.2) ---- */}
+          {screen === "estimateAddCustomItem" && estDraft && (
+            <EstimateCustomItemForm
+              onBack={() => setScreen("estimateAddItem")}
+              onSave={(item) => { setEstDraft({ ...estDraft, items: [...estDraft.items, item] }); setScreen("estimateAddItem"); }}
+              onNav={setScreen}
+            />
+          )}
+
+          {/* ---- Customer options — signing view (R-007.5) ---- */}
+          {screen === "estimateCustomerView" && (
+            <>
+              <Header title="Customer options" onBack={() => setScreen("job")} right={
+                <button onClick={() => window.alert("Send by email / SMS / Print — mock only.")} className="flex h-7 w-7 items-center justify-center rounded-full hover:bg-[#F5F7FA]">
+                  <span className="material-icons text-[#1A2332]" style={{ fontSize: "18px" }}>more_vert</span>
+                </button>
+              } />
+              <div className="flex-1 space-y-3 overflow-y-auto p-3 text-[12px]">
+                <Field label="Customer" value="Johnson, Randy" />
+                <Field label="Address" value="5010 N Cortez Ave, Tampa, FL 33614" />
+                <Field label="Number of options" value={String(estOptions.length)} />
+                <Field label="Price range" value={`${money(Math.min(...estOptions.map(optionTotal)))} - ${money(Math.max(...estOptions.map(optionTotal)))}`} />
+                <div>
+                  <div className="text-[#8899AA]">Plan selection</div>
+                  <div className="text-[#1A2332]" style={{ fontWeight: 600 }}>{PLAN.label}</div>
+                  <div className="text-[10px] text-[#8899AA]">Monthly factor: {PLAN.factor} • Interest rate: {PLAN.interest} • APR: {PLAN.apr} • Terms: {PLAN.terms}</div>
+                </div>
+                <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 700 }}>Options list</div>
+                {estOptions.map((o) => (
+                  <div key={o.id} className={`rounded-lg border p-2.5 ${estCustomerChoice === String(o.id) ? "border-[#4A6FA5] bg-[#EBF0F8]" : "border-[#E5E7EB]"}`}>
+                    <div className="mb-1 flex items-center justify-between">
+                      <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 700 }}>{o.name}</span>
+                    </div>
+                    {o.items.map((it) => <div key={it.name} className="text-[11px] text-[#546478]">{it.qty} × {it.name}</div>)}
+                    <div className="mt-1.5 rounded-md bg-[#F5F7FA] px-2 py-1 text-[13px] text-[#1A2332]" style={{ fontWeight: 700 }}>{money(optionTotal(o))}</div>
+                  </div>
+                ))}
+
+                <div>
+                  <div className="mb-1 text-[10px] text-[#8899AA]">Select option</div>
+                  <select value={estCustomerChoice} onChange={(e) => setEstCustomerChoice(e.target.value)} className="w-full rounded-lg border border-[#E5E7EB] px-3 py-2 text-[13px] outline-none">
+                    <option value="">Select option</option>
+                    {estOptions.map((o) => <option key={o.id} value={String(o.id)}>{o.name}</option>)}
+                    <option value="pending">Pending — customer hasn't decided</option>
+                  </select>
+                </div>
+
+                {estCustomerChoice === "pending" ? (
+                  <>
+                    <div>
+                      <div className="mb-1 text-[10px] text-[#8899AA]">Follow-up date</div>
+                      <input value={estFollowUpDate} onChange={(e) => setEstFollowUpDate(e.target.value)} className="w-full rounded-lg border border-[#E5E7EB] px-3 py-2 text-[13px] outline-none" />
+                    </div>
+                    <button onClick={() => { setScreen("job"); setJobTab("estimate"); }} className="w-full rounded-lg bg-[#4A6FA5] py-3 text-[13px] text-white" style={{ fontWeight: 700 }}>Complete estimate</button>
+                  </>
+                ) : estCustomerChoice ? (
+                  <>
+                    <label className="flex items-center gap-2 text-[12px] text-[#546478]">
+                      <span className="flex h-5 w-9 items-center rounded-full bg-[#4A6FA5] px-0.5"><span className="h-4 w-4 rounded-full bg-white" /></span>
+                      Add special notes
+                    </label>
+                    <textarea placeholder="Write additional special notes" className="h-16 w-full rounded-lg border border-[#E5E7EB] px-3 py-2 text-[12px] outline-none" />
+                    <div className="rounded-lg border border-[#E5E7EB] p-2.5">
+                      <SignaturePad label="Customer signature" name="Johnson" />
+                    </div>
+                    <button
+                      onClick={() => {
+                        setEstApprovedId(Number(estCustomerChoice));
+                        setEstStatus("approved");
+                        setScreen("job");
+                        setJobTab("estimate");
+                      }}
+                      className="w-full rounded-lg bg-[#4A6FA5] py-3 text-[13px] text-white"
+                      style={{ fontWeight: 700 }}
+                    >
+                      I confirm and order
+                    </button>
+                  </>
+                ) : null}
+              </div>
               <BottomNav active="history" onNav={setScreen} />
             </>
           )}
@@ -643,9 +1107,49 @@ export function TechnicianMobileDemo({ onClose }: { onClose: () => void }) {
         </div>
       </div>
       <div className="mt-4 max-w-[340px] text-center text-[11px] text-white/60">
-        Click-through mockup built from the actual PRD work packages (R-003–R-010) — statuses, Report Card field counts, media & changes history match spec; pricing/estimate tabs are intentionally hidden (Field Salesperson scope, not Technician).
+        Click-through mockup built from the actual PRD work packages (R-003–R-010) — statuses, Report Card field counts, options-based Estimate, media & changes history all match spec.
       </div>
     </div>
+  );
+}
+
+// R-006.2 — custom estimate line item. Per PRD assumption #4, custom items are
+// stored separately with no sync to the Aptora catalog — kept local to the
+// option being edited, not written back to the shared item catalog.
+function EstimateCustomItemForm({ onBack, onSave, onNav }: { onBack: () => void; onSave: (item: OptionItem) => void; onNav: (s: Screen) => void }) {
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [price, setPrice] = useState("");
+  const [qty, setQty] = useState("1");
+  const [warranty, setWarranty] = useState("");
+  return (
+    <>
+      <Header
+        title="Add custom item"
+        onBack={onBack}
+        right={
+          <button
+            onClick={() => {
+              if (!name.trim()) return;
+              onSave({ name: name.trim(), description, price: Number(price) || 0, qty: Number(qty) || 1, warranty: warranty ? `${warranty} years` : "—", category: "Custom" });
+            }}
+            className="rounded-md bg-[#4A6FA5] px-3 py-1.5 text-[12px] text-white"
+            style={{ fontWeight: 700 }}
+          >
+            Save
+          </button>
+        }
+      />
+      <div className="flex-1 space-y-3 overflow-y-auto p-3">
+        <div className="text-[12px] text-[#546478]">You can add a custom service item by filling up the form below. Custom items aren't synced back to the shared catalog.</div>
+        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Item name" className="w-full rounded-lg border border-[#E5E7EB] px-3 py-2.5 text-[13px] outline-none" />
+        <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Item description" className="w-full rounded-lg border border-[#E5E7EB] px-3 py-2.5 text-[13px] outline-none" />
+        <input value={price} onChange={(e) => setPrice(e.target.value)} placeholder="Unit price" inputMode="decimal" className="w-full rounded-lg border border-[#E5E7EB] px-3 py-2.5 text-[13px] outline-none" />
+        <input value={qty} onChange={(e) => setQty(e.target.value)} placeholder="Default quantity" inputMode="numeric" className="w-full rounded-lg border border-[#E5E7EB] px-3 py-2.5 text-[13px] outline-none" />
+        <input value={warranty} onChange={(e) => setWarranty(e.target.value)} placeholder="Warranty (in years)" inputMode="numeric" className="w-full rounded-lg border border-[#E5E7EB] px-3 py-2.5 text-[13px] outline-none" />
+      </div>
+      <BottomNav active="history" onNav={onNav} />
+    </>
   );
 }
 
