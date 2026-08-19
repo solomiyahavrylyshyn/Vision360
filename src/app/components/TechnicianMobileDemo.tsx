@@ -131,29 +131,37 @@ function StatusBar() {
   );
 }
 
-function BottomNav({ active, onNav }: { active: string; onNav: (s: Screen) => void }) {
-  const items: { key: Screen; label: string; icon: string }[] = [
-    { key: "home", label: "Home", icon: "home" },
-    { key: "history", label: "History", icon: "history" },
-    { key: "history" /* Chat opens the Jobs list, same as History */, label: "Chat", icon: "chat_bubble_outline" },
-    { key: "search" /* stand-in for Timesheet */, label: "Timesheet", icon: "schedule" },
-    { key: "search" /* stand-in for More */, label: "More", icon: "more_horiz" },
+// `active` tracks which bottom-nav tab was last tapped (a nav identity),
+// independent of `screen` — Chat and History both open the same Jobs list
+// screen, but each must keep its own tab highlighted while you're there or
+// drilled into a Job from it.
+type NavId = "home" | "history" | "chat";
+function BottomNav({ active, onNavigate }: { active: NavId; onNavigate: (s: Screen, navId: NavId) => void }) {
+  const items: { navId: NavId | null; screen: Screen; label: string; icon: string }[] = [
+    { navId: "home", screen: "home", label: "Home", icon: "home" },
+    { navId: "history", screen: "history", label: "History", icon: "history" },
+    { navId: "chat", screen: "history" /* Chat opens the Jobs list */, label: "Chat", icon: "chat_bubble_outline" },
+    { navId: null, screen: "search" /* stand-in for Timesheet */, label: "Timesheet", icon: "schedule" },
+    { navId: null, screen: "search" /* stand-in for More */, label: "More", icon: "more_horiz" },
   ];
   return (
     <div className="flex border-t border-[#E5E7EB] bg-white px-1 pb-2 pt-1.5">
-      {items.map((it) => (
-        <button
-          key={it.label}
-          onClick={() => {
-            if (it.label === "Home" || it.label === "History" || it.label === "Chat") onNav(it.key);
-            else window.alert(`"${it.label}" isn't wired up in this quick mockup.`);
-          }}
-          className="flex flex-1 flex-col items-center gap-0.5 py-1"
-        >
-          <span className="material-icons" style={{ fontSize: "18px", color: it.label.toLowerCase() === active ? "#4A6FA5" : "#9CA3AF" }}>{it.icon}</span>
-          <span className="text-[9px]" style={{ color: it.label.toLowerCase() === active ? "#4A6FA5" : "#9CA3AF", fontWeight: it.label.toLowerCase() === active ? 600 : 500 }}>{it.label}</span>
-        </button>
-      ))}
+      {items.map((it) => {
+        const isActive = it.navId !== null && it.navId === active;
+        return (
+          <button
+            key={it.label}
+            onClick={() => {
+              if (it.navId) onNavigate(it.screen, it.navId);
+              else window.alert(`"${it.label}" isn't wired up in this quick mockup.`);
+            }}
+            className="flex flex-1 flex-col items-center gap-0.5 py-1"
+          >
+            <span className="material-icons" style={{ fontSize: "18px", color: isActive ? "#4A6FA5" : "#9CA3AF" }}>{it.icon}</span>
+            <span className="text-[9px]" style={{ color: isActive ? "#4A6FA5" : "#9CA3AF", fontWeight: isActive ? 600 : 500 }}>{it.label}</span>
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -221,6 +229,8 @@ function SignaturePad({ label, name, presigned }: { label: string; name?: string
 
 export function TechnicianMobileDemo({ onClose }: { onClose: () => void }) {
   const [screen, setScreen] = useState<Screen>("history");
+  const [navActive, setNavActive] = useState<NavId>("history");
+  const nav = (s: Screen, navId: NavId) => { setScreen(s); setNavActive(navId); };
   const [jobTab, setJobTab] = useState<JobTab>("general");
   const [status, setStatus] = useState<Status>("none");
   const [startMenuOpen, setStartMenuOpen] = useState(false);
@@ -307,7 +317,7 @@ export function TechnicianMobileDemo({ onClose }: { onClose: () => void }) {
                   </div>
                 </div>
               </div>
-              <BottomNav active="home" onNav={setScreen} />
+              <BottomNav active={navActive} onNavigate={nav} />
             </>
           )}
 
@@ -352,7 +362,7 @@ export function TechnicianMobileDemo({ onClose }: { onClose: () => void }) {
                   </div>
                 ))}
               </div>
-              <BottomNav active="history" onNav={setScreen} />
+              <BottomNav active={navActive} onNavigate={nav} />
             </>
           )}
 
@@ -383,7 +393,7 @@ export function TechnicianMobileDemo({ onClose }: { onClose: () => void }) {
                   ))}
                 </div>
               </div>
-              <BottomNav active="history" onNav={setScreen} />
+              <BottomNav active={navActive} onNavigate={nav} />
             </>
           )}
 
@@ -401,7 +411,7 @@ export function TechnicianMobileDemo({ onClose }: { onClose: () => void }) {
                   </div>
                 ))}
               </div>
-              <BottomNav active="history" onNav={setScreen} />
+              <BottomNav active={navActive} onNavigate={nav} />
             </>
           )}
 
@@ -733,7 +743,7 @@ export function TechnicianMobileDemo({ onClose }: { onClose: () => void }) {
                   )}
                 </div>
               )}
-              <BottomNav active="history" onNav={setScreen} />
+              <BottomNav active={navActive} onNavigate={nav} />
             </>
           )}
 
@@ -835,7 +845,7 @@ export function TechnicianMobileDemo({ onClose }: { onClose: () => void }) {
                   </div>
                 )}
               </div>
-              <BottomNav active="history" onNav={setScreen} />
+              <BottomNav active={navActive} onNavigate={nav} />
             </>
           )}
 
@@ -886,7 +896,7 @@ export function TechnicianMobileDemo({ onClose }: { onClose: () => void }) {
                   <span className="material-icons" style={{ fontSize: "16px" }}>add</span>Add custom item
                 </button>
               </div>
-              <BottomNav active="history" onNav={setScreen} />
+              <BottomNav active={navActive} onNavigate={nav} />
             </>
           )}
 
@@ -895,7 +905,8 @@ export function TechnicianMobileDemo({ onClose }: { onClose: () => void }) {
             <EstimateCustomItemForm
               onBack={() => setScreen("estimateAddItem")}
               onSave={(item) => { setEstDraft({ ...estDraft, items: [...estDraft.items, item] }); setScreen("estimateAddItem"); }}
-              onNav={setScreen}
+              nav={nav}
+              navActive={navActive}
             />
           )}
 
@@ -970,7 +981,7 @@ export function TechnicianMobileDemo({ onClose }: { onClose: () => void }) {
                   </>
                 ) : null}
               </div>
-              <BottomNav active="history" onNav={setScreen} />
+              <BottomNav active={navActive} onNavigate={nav} />
             </>
           )}
 
@@ -987,7 +998,7 @@ export function TechnicianMobileDemo({ onClose }: { onClose: () => void }) {
                 ))}
                 <button onClick={() => window.alert("Add equipment — mock only.")} className="w-full rounded-lg border border-dashed border-[#C8D5E8] py-2 text-[12px] text-[#4A6FA5]" style={{ fontWeight: 600 }}>+ Add equipment</button>
               </div>
-              <BottomNav active="history" onNav={setScreen} />
+              <BottomNav active={navActive} onNavigate={nav} />
             </>
           )}
 
@@ -1004,7 +1015,7 @@ export function TechnicianMobileDemo({ onClose }: { onClose: () => void }) {
                 ))}
                 <div className="rounded-md bg-[#F5F7FA] px-2.5 py-2 text-[10px] text-[#8899AA]">Read-only for Technicians — asset records are managed by Warehouse.</div>
               </div>
-              <BottomNav active="history" onNav={setScreen} />
+              <BottomNav active={navActive} onNavigate={nav} />
             </>
           )}
 
@@ -1019,7 +1030,7 @@ export function TechnicianMobileDemo({ onClose }: { onClose: () => void }) {
                   ))}
                 </div>
               </div>
-              <BottomNav active="history" onNav={setScreen} />
+              <BottomNav active={navActive} onNavigate={nav} />
             </>
           )}
 
@@ -1036,7 +1047,7 @@ export function TechnicianMobileDemo({ onClose }: { onClose: () => void }) {
                   </div>
                 ))}
               </div>
-              <BottomNav active="history" onNav={setScreen} />
+              <BottomNav active={navActive} onNavigate={nav} />
             </>
           )}
 
@@ -1060,7 +1071,7 @@ export function TechnicianMobileDemo({ onClose }: { onClose: () => void }) {
                 </div>
                 <div className="mt-1 text-[11px] text-[#9CA3AF]">1 / 2</div>
               </div>
-              <BottomNav active="history" onNav={setScreen} />
+              <BottomNav active={navActive} onNavigate={nav} />
             </>
           )}
 
@@ -1078,7 +1089,7 @@ export function TechnicianMobileDemo({ onClose }: { onClose: () => void }) {
                   <div className="rounded-lg border border-[#E5E7EB] px-3 py-2 text-[13px] text-[#8899AA]">Image description goes here</div>
                 </div>
               </div>
-              <BottomNav active="history" onNav={setScreen} />
+              <BottomNav active={navActive} onNavigate={nav} />
             </>
           )}
 
@@ -1101,7 +1112,7 @@ export function TechnicianMobileDemo({ onClose }: { onClose: () => void }) {
                   </div>
                 ))}
               </div>
-              <BottomNav active="history" onNav={setScreen} />
+              <BottomNav active={navActive} onNavigate={nav} />
             </>
           )}
         </div>
@@ -1116,7 +1127,7 @@ export function TechnicianMobileDemo({ onClose }: { onClose: () => void }) {
 // R-006.2 — custom estimate line item. Per PRD assumption #4, custom items are
 // stored separately with no sync to the Aptora catalog — kept local to the
 // option being edited, not written back to the shared item catalog.
-function EstimateCustomItemForm({ onBack, onSave, onNav }: { onBack: () => void; onSave: (item: OptionItem) => void; onNav: (s: Screen) => void }) {
+function EstimateCustomItemForm({ onBack, onSave, nav, navActive }: { onBack: () => void; onSave: (item: OptionItem) => void; nav: (s: Screen, navId: NavId) => void; navActive: NavId }) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
@@ -1148,7 +1159,7 @@ function EstimateCustomItemForm({ onBack, onSave, onNav }: { onBack: () => void;
         <input value={qty} onChange={(e) => setQty(e.target.value)} placeholder="Default quantity" inputMode="numeric" className="w-full rounded-lg border border-[#E5E7EB] px-3 py-2.5 text-[13px] outline-none" />
         <input value={warranty} onChange={(e) => setWarranty(e.target.value)} placeholder="Warranty (in years)" inputMode="numeric" className="w-full rounded-lg border border-[#E5E7EB] px-3 py-2.5 text-[13px] outline-none" />
       </div>
-      <BottomNav active="history" onNav={onNav} />
+      <BottomNav active={navActive} onNavigate={nav} />
     </>
   );
 }
