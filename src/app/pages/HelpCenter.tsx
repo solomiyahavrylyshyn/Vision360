@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { TechnicianMobileDemo } from "../components/TechnicianMobileDemo";
-import { DispatcherCallConsole } from "../components/DispatcherCallConsole";
 
 // Help Center — full page, aligned to Figma node 1195-79448:
 // 300px category rail (search + topics) + 900px main area with an accordion
@@ -155,7 +154,6 @@ export function HelpCenter() {
   const [contactOpen, setContactOpen] = useState(false);
   const [activeRole, setActiveRole] = useState(sandboxRoles[0].key);
   const [technicianDemoOpen, setTechnicianDemoOpen] = useState(false);
-  const [dispatcherDemoOpen, setDispatcherDemoOpen] = useState(false);
   const [contact, setContact] = useState({ name: "", email: "", subject: "", message: "" });
 
   const totalCount = categories.reduce((sum, c) => sum + c.count, 0);
@@ -292,7 +290,13 @@ export function HelpCenter() {
                     <button
                       onClick={() => {
                         if (role.key === "technician") { setTechnicianDemoOpen(true); return; }
-                        if (role.key === "dispatcher") { setDispatcherDemoOpen(true); return; }
+                        if (role.key === "dispatcher") {
+                          // Real Create Client flow — duplicate detection + county
+                          // auto-fill while typing — then straight into the real
+                          // Create Job flow's symptom questionnaire for that client.
+                          window.location.href = "/clients/new?csr=1&sandbox=sample";
+                          return;
+                        }
                         if (role.key === "field-sales") {
                           // Land straight in the real Create Estimate flow, client
                           // already attached — not a mockup, the app's own page.
@@ -412,7 +416,6 @@ export function HelpCenter() {
       )}
 
       {technicianDemoOpen && <TechnicianMobileDemo onClose={() => setTechnicianDemoOpen(false)} />}
-      {dispatcherDemoOpen && <DispatcherCallConsole onClose={() => setDispatcherDemoOpen(false)} />}
     </div>
   );
 }
