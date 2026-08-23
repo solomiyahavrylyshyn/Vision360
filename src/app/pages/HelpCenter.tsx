@@ -293,6 +293,12 @@ export function HelpCenter() {
                       onClick={() => {
                         if (role.key === "technician") { setTechnicianDemoOpen(true); return; }
                         if (role.key === "dispatcher") { setDispatcherDemoOpen(true); return; }
+                        if (role.key === "field-sales") {
+                          // Land straight in the real Create Estimate flow, client
+                          // already attached — not a mockup, the app's own page.
+                          window.location.href = "/estimates/new?client=John%20Smith&clientId=10245&job=10245-J05&returnTo=%2Fjobs%2F105%3Ftab%3Destimates&sandbox=sample";
+                          return;
+                        }
                         window.location.href = "/?sandbox=sample";
                       }}
                       className="flex h-9 shrink-0 items-center gap-2 rounded-md bg-[#4A6FA5] px-4 text-[13px] text-white transition-colors hover:bg-[#3d5a85]"
