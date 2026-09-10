@@ -2,6 +2,8 @@ import { useState, useSyncExternalStore } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { toast } from "sonner";
 import { itemsStore } from "../stores/itemsStore";
+import { CostField, CostSplitBlock } from "../components/CostBreakdownPanel";
+import { retotalBreakdown, type CostBreakdown } from "../utils/itemCost";
 import { categoriesStore } from "../stores/categoriesStore";
 import { toCatalogItem, ITEM_TYPES } from "./Items";
 
@@ -33,6 +35,9 @@ export function CreateItem() {
   const [department, setDepartment] = useState("");
   const [retailPrice, setRetailPrice] = useState("");
   const [cost, setCost] = useState("");
+  // Optional cost split (Marek, Sep 10 call) — undefined until the company
+  // turns it on, in which case `cost` is its sum.
+  const [costBreakdown, setCostBreakdown] = useState<CostBreakdown | undefined>(undefined);
   const [defaultQty, setDefaultQty] = useState("1");
   const [taxable, setTaxable] = useState(true);
   // FR-4.8 — exclude from customer-facing documents (defaults off)
@@ -70,6 +75,7 @@ export function CreateItem() {
       modelNumber: "",
       rate: parseFloat(retailPrice) || 0,
       cost: parseFloat(cost) || 0,
+      costBreakdown,
       taxable,
       taxProfile: taxable ? taxProfile : "",
       category,
@@ -147,7 +153,13 @@ export function CreateItem() {
                   <button
                     key={t}
                     type="button"
-                    onClick={() => { setType(t); setCategory(""); }}
+                    onClick={() => {
+                      setType(t);
+                      setCategory("");
+                      // An un-split cost is allocated by type, so re-bucket the
+                      // split (when there is one) to the new type's default.
+                      if (costBreakdown) setCostBreakdown(retotalBreakdown(undefined, parseFloat(cost) || 0, t));
+                    }}
                     className={`flex h-11 items-center gap-2.5 rounded-lg border bg-white px-3.5 text-left transition-colors ${selected ? "border-[#4A6FA5]" : "border-[#E5E7EB] hover:border-[#C5CEDD]"}`}
                   >
                     <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border ${selected ? "border-[#4A6FA5]" : "border-[#C5CEDD]"}`}>
@@ -203,17 +215,20 @@ export function CreateItem() {
                   <input type="number" min="0" step="0.01" value={retailPrice} onChange={(e) => setRetailPrice(e.target.value)} placeholder="0" className={`${fieldClass} pl-7`} style={{ fontVariantNumeric: "tabular-nums" }} />
                 </div>
               </div>
-              <div>
-                <label className={labelClass}>Cost {reqStar}</label>
-                <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[14px] text-[#8899AA]">$</span>
-                  <input type="number" min="0" step="0.01" value={cost} onChange={(e) => setCost(e.target.value)} placeholder="0" className={`${fieldClass} pl-7`} style={{ fontVariantNumeric: "tabular-nums" }} />
-                </div>
-              </div>
+              <CostField
+                cost={cost} onCostChange={setCost}
+                breakdown={costBreakdown} onBreakdownChange={setCostBreakdown}
+                itemType={type} fieldClass={fieldClass} labelClass={labelClass} required={reqStar} />
               <div>
                 <label className={labelClass}>Default quantity</label>
                 <input type="number" min="0" step="1" value={defaultQty} onChange={(e) => setDefaultQty(e.target.value)} className={fieldClass} style={{ fontVariantNumeric: "tabular-nums" }} />
               </div>
+            </div>
+            <div className="mt-4">
+              <CostSplitBlock
+                cost={cost} onCostChange={setCost}
+                breakdown={costBreakdown} onBreakdownChange={setCostBreakdown}
+                itemType={type} fieldClass={fieldClass} labelClass={labelClass} />
             </div>
             <div className="mt-4 rounded-lg border border-[#E5E7EB] p-4">
               <label className="flex cursor-pointer items-center gap-2.5">

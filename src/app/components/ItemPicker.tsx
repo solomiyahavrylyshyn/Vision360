@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
+import { breakdownForItem, type CostBreakdown, type ItemGroupMember } from "../utils/itemCost";
+
 export interface CatalogItem {
   id: number;
   name: string;
@@ -31,6 +33,16 @@ export interface CatalogItem {
    *  receipt and customer web view (and their PDF/email versions) while
    *  staying visible internally; totals are NOT affected. Defaults off. */
   hideOnCustomerDocs?: boolean;
+  /** Cost split into labor / commission / materials (Marek, Sep 10 call) —
+   *  workers' comp is priced off compensation and the rate differs by kind of
+   *  work, so the two have to be recorded apart. Absent → the item type decides
+   *  the bucket; see utils/itemCost. */
+  costBreakdown?: CostBreakdown;
+  /** Item group (a Price Book entry): the items this package is made of. */
+  groupItems?: ItemGroupMember[];
+  /** How a group is priced: roll up the members' prices, or charge a flat rate
+   *  of its own regardless of what it contains. Flat rate is the default. */
+  groupPricing?: "sum" | "flat";
 }
 
 export interface SelectedLineItem {
@@ -53,6 +65,15 @@ export interface SelectedLineItem {
   /** Copied from the catalog item (FR-4.8): hidden on customer-facing renders,
    *  still counted in totals. */
   hideOnCustomerDocs?: boolean;
+  /** Item type of the catalog item behind this line, so the job's KPI split
+   *  knows whether the cost is technician pay or a supplier price. */
+  itemType?: string;
+  /** Per-unit cost split carried over from the catalog item, so an estimate or
+   *  a job keeps the labor / commission / materials shares of what it sold. */
+  costBreakdown?: CostBreakdown;
+  /** Members of the item group this line came from, kept so the group can be
+   *  shown expanded on the document without losing the single-line price. */
+  groupItems?: ItemGroupMember[];
 }
 
 interface ItemPickerProps {
@@ -263,5 +284,8 @@ export function catalogItemToLineItem(catalogItem: CatalogItem, lineItemId: numb
     taxable: catalogItem.taxable,
     total: quantity * catalogItem.rate,
     hideOnCustomerDocs: catalogItem.hideOnCustomerDocs || undefined,
+    itemType: catalogItem.itemType || catalogItem.type,
+    costBreakdown: breakdownForItem(catalogItem),
+    groupItems: catalogItem.groupItems?.length ? catalogItem.groupItems : undefined,
   };
 }

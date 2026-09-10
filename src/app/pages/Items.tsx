@@ -9,6 +9,7 @@ import { PaginationFooter } from "../components/ui/pagination-footer";
 import { itemsStore, mapItemTypeToCatalog } from "../stores/itemsStore";
 import { toast } from "sonner";
 import type { CatalogItem } from "../components/ItemPicker";
+import { breakdownForItem, type CostBreakdown, type ItemGroupMember } from "../utils/itemCost";
 
 // Project the rich Items-module record onto the catalog shape the
 // Estimate / Job pickers consume, so created items flow straight through.
@@ -20,6 +21,8 @@ export const toCatalogItem = (i: {
   additionalInfo?: string; customField1?: string; customField2?: string; notes?: string;
   images?: string[]; taxProfile?: string; active?: boolean; upc?: string;
   hideOnCustomerDocs?: boolean;
+  costBreakdown?: CostBreakdown;
+  groupItems?: ItemGroupMember[]; groupPricing?: "sum" | "flat";
 }): CatalogItem => ({
   id: i.id, name: i.name, itemDescription: i.description, salesDescription: i.salesDescription,
   brand: i.brand, modelNumber: i.modelNumber, rate: i.rate, cost: i.cost, taxable: i.taxable,
@@ -30,6 +33,9 @@ export const toCatalogItem = (i: {
   customField1: i.customField1, customField2: i.customField2, notes: i.notes,
   images: i.images, taxProfile: i.taxProfile, active: i.active, upc: i.upc,
   hideOnCustomerDocs: i.hideOnCustomerDocs,
+  costBreakdown: i.costBreakdown,
+  groupItems: i.groupItems?.length ? i.groupItems : undefined,
+  groupPricing: i.groupItems?.length ? (i.groupPricing ?? "flat") : undefined,
 });
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -63,6 +69,12 @@ interface Item {
   defaultQty: number;
   createdAt: string;          // "Mar 10, 2026" — Created date column
   usageCount?: number;        // how many jobs/estimates have used this item (drives Delete vs Deactivate)
+  /** Cost split into labor / commission / materials, when the company set one. */
+  costBreakdown?: CostBreakdown;
+  /** Item group members — a Price Book entry is a group of items (Marek, Sep 10
+   *  call): the package that gets sold as one line but costs labor + parts. */
+  groupItems?: ItemGroupMember[];
+  groupPricing?: "sum" | "flat";
 }
 
 type TabKey = "all" | "pricebook" | "services" | "materials" | "equipment" | "asset" | "admin";
@@ -142,6 +154,9 @@ const catalogToRow = (s: any): Item => ({
   customField1: s.customField1 || "", customField2: s.customField2 || "",
   notes: s.notes || "", defaultQty: s.defaultQty ?? 1,
   hideOnCustomerDocs: !!s.hideOnCustomerDocs,
+  costBreakdown: s.costBreakdown,
+  groupItems: s.groupItems?.length ? s.groupItems : undefined,
+  groupPricing: s.groupPricing,
   createdAt: mockCreatedAt(s.id),
   // Seed items 1-2 carry usage history so Deactivate (kept) vs Delete
   // (permanent, unused-only) are both demonstrable per ITM-3.
@@ -459,10 +474,17 @@ export function Items() {
             )}
           </button>
           <div className="ml-auto flex items-center gap-3">
-            <CreateActionButton onClick={() => navigate("/items/new")}>
-              Create item
+            {/* A price book entry IS a group of items (Marek, Sep 10 call), so on
+                that tab the primary action creates a group and the plain item
+                moves into the kebab. */}
+            <CreateActionButton onClick={() => navigate(activeTab === "pricebook" ? "/items/groups/new" : "/items/new")}>
+              {activeTab === "pricebook" ? "Create item group" : "Create item"}
             </CreateActionButton>
             <KebabMenu triggerClassName="w-9 h-9 border border-[#E5E7EB] rounded-lg bg-white">
+              {activeTab === "pricebook"
+                ? <KebabItem icon="inventory_2" onClick={() => navigate("/items/new")}>Create item</KebabItem>
+                : <KebabItem icon="layers" onClick={() => navigate("/items/groups/new")}>Create item group</KebabItem>}
+              <KebabSeparator />
               <KebabItem icon="view_column" onClick={openEditColumns}>Edit columns</KebabItem>
               <KebabSeparator />
               <KebabItem icon="file_upload" onClick={() => setUploadOpen(true)}>Upload</KebabItem>
@@ -556,7 +578,21 @@ export function Items() {
                         case "name":
                           return (
                             <td key="name" className="px-2 py-2">
-                              <div className="truncate max-w-[200px] text-[14px] text-[#4A6FA5] hover:underline" style={{ fontFamily: "Geist", fontWeight: 500, lineHeight: "20px" }}>{item.name}</div>
+                              <div className="flex items-center gap-1.5">
+                                <div className="truncate max-w-[200px] text-[14px] text-[#4A6FA5] hover:underline" style={{ fontFamily: "Geist", fontWeight: 500, lineHeight: "20px" }}>{item.name}</div>
+                                {/* An item group sells as one line but is made of
+                                    several items — say so on the row. */}
+                                {!!item.groupItems?.length && (
+                                  <span
+                                    className="inline-flex shrink-0 items-center gap-1 rounded-[8px] bg-[#F1F5F9] px-1.5 py-0.5 text-[11px] text-[#546478] whitespace-nowrap"
+                                    style={{ fontWeight: 600 }}
+                                    title={`Item group — ${item.groupItems.length} items`}
+                                  >
+                                    <span className="material-icons" style={{ fontSize: "12px" }}>layers</span>
+                                    {item.groupItems.length}
+                                  </span>
+                                )}
+                              </div>
                             </td>
                           );
                         case "category":

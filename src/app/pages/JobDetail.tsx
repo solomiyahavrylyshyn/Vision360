@@ -596,7 +596,12 @@ export function JobDetail() {
     ...((job.expenses ?? []) as Expense[]),
   ];
   const expenseTotal = jobExpenses.reduce((sum, e) => sum + e.amount, 0);
-  const jobLineItems = (job.lineItems ?? []) as { quantity: number; unitCost: number; unitPrice: number; itemType?: string }[];
+  const jobLineItems = (job.lineItems ?? []) as {
+    quantity: number; unitCost: number; unitPrice: number; itemType?: string;
+    // Present on items that came from a catalog item or an estimate with a cost
+    // split; it decides how the cost lands in the tiles.
+    costBreakdown?: { labor: number; commission: number; materials: number };
+  }[];
   const totalCost = jobLineItems.reduce((sum, li) => sum + li.quantity * li.unitCost, 0);
   const approvedEstimateTotal = jobEstimates
     .filter((e) => e.status === "Approved")
@@ -2130,7 +2135,7 @@ export function JobDetail() {
           <div className="flex items-center gap-4 shrink-0">
             {[
               { label: "Total price",   value: `$${Math.round(financials.totalPrice).toLocaleString("en-US")}`,   icon: "paid",                   iconColor: "#16A34A", hint: financials.fromApprovedEstimate ? "From the approved estimate" : "Sum of the line items at price" },
-              { label: "Compensation",  value: `$${Math.round(financials.compensation).toLocaleString("en-US")}`, icon: "payments",               iconColor: "#DC2626", hint: "Technician pay on service items + commission and labor expenses" },
+              { label: "Compensation",  value: `$${Math.round(financials.compensation).toLocaleString("en-US")}`, icon: "payments",               iconColor: "#DC2626", hint: `Labor $${Math.round(financials.laborTotal).toLocaleString("en-US")} · Commission $${Math.round(financials.commissionTotal).toLocaleString("en-US")} — item cost plus the Labor and Commission expenses` },
               { label: "All expenses",  value: `$${Math.round(financials.allExpenses).toLocaleString("en-US")}`,  icon: "account_balance_wallet", iconColor: "#F59E0B", hint: "Material and equipment cost + every other job expense" },
               { label: "Profit margin", value: `${Math.round(financials.margin)}%`,                               icon: "pie_chart",              iconColor: "#A856F7", hint: `Gross profit $${financials.grossProfit.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
             ].map(({ label, value, icon, iconColor, hint }, i) => (

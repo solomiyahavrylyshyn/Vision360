@@ -177,13 +177,25 @@ const SEED: CatalogItem[] = [
     brand: "", modelNumber: "", rate: price, cost, taxable, category,
     type: "Service", itemType: "Price Book", active: true,
   } as CatalogItem)),
-  // The one fully-worked Price Book example item (with warranty/marketing copy).
+  // The one fully-worked Price Book example — and the worked item group (Marek,
+  // Sep 10 call): a flat-rate package whose cost comes from its members, split
+  // into labor / commission / materials. Labor 180 + commission 145 sit on the
+  // labor member's own cost split; the parts and the motor are materials.
   {
     id: 199, name: "Blower Motor Replacement — Premium", category: "Repairs",
     itemDescription: "Replacing Blower Motor 825 RPM, 1 year warranty, 90 days labor warranty, Comfort guarantee, Christmas Postcard, Chocolate Donuts",
     salesDescription: "Blower Motor Replacement — includes 1 year warranty, 90 days labor warranty, and Comfort Guarantee",
-    brand: "", modelNumber: "", rate: 1457, cost: 0, taxable: true,
+    brand: "", modelNumber: "", rate: 1457, cost: 435, taxable: true,
     type: "Service", itemType: "Price Book", active: true,
+    groupPricing: "flat",
+    costBreakdown: { labor: 180, commission: 145, materials: 110 },
+    groupItems: [
+      { itemId: 0, name: "Blower motor replacement — labor", itemType: "Service", quantity: 1, unitPrice: 480, unitCost: 325,
+        costBreakdown: { labor: 180, commission: 145, materials: 0 } },
+      { itemId: 5, name: "Blower Motor 1/2 HP", itemType: "Equipment", quantity: 1, unitPrice: 225, unitCost: 98 },
+      { itemId: 4, name: "Capacitor 45/5 MFD", itemType: "Material", quantity: 1, unitPrice: 25, unitCost: 12 },
+      { itemId: 6, name: "Permit Fee", itemType: "Admin", quantity: 1, unitPrice: 75, unitCost: 0 },
+    ],
   } as CatalogItem,
   ...AND_SERVICE_SEED.map(([itemType, category, name, priceHint], i) => {
     const d = AND_SERVICE_DEFAULTS[itemType];
@@ -214,6 +226,22 @@ try {
 if (!items.some((i) => i.name === "Callback")) {
   const callback = SEED.find((i) => i.name === "Callback");
   if (callback) items = [...items, { ...callback, id: Math.max(0, ...items.map((i) => i.id)) + 1 }];
+}
+
+// Item-group migration: browsers cached before price book entries carried their
+// members get the worked example's group back. Keyed to that one seed row, not
+// to "no groups anywhere" — a group the user created themselves must not stop
+// the seed from catching up.
+const seededGroup = SEED.find((i) => i.groupItems?.length);
+if (seededGroup) {
+  const cached = items.find((i) => i.id === seededGroup.id);
+  if (!cached) {
+    items = [...items, seededGroup];
+  } else if (!cached.groupItems?.length) {
+    items = items.map((i) => (i.id === seededGroup.id
+      ? { ...i, cost: seededGroup.cost, costBreakdown: seededGroup.costBreakdown, groupItems: seededGroup.groupItems, groupPricing: seededGroup.groupPricing }
+      : i));
+  }
 }
 
 let listeners: Listener[] = [];

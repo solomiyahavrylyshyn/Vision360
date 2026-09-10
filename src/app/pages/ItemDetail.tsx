@@ -7,6 +7,8 @@ import { DetailTabs, TabSettingsButton } from "../components/ui/detail-tabs";
 import { PlusIcon } from "../components/ui/plus-icon";
 import { ITEM_TYPES } from "./Items";
 import { categoriesStore } from "../stores/categoriesStore";
+import { CostField, CostSplitBlock } from "../components/CostBreakdownPanel";
+import { COST_COMPONENTS, breakdownForItem, type CostBreakdown, type ItemGroupMember } from "../utils/itemCost";
 
 // Classification option lists (mirror the Create-item form).
 const MANUFACTURERS = ["Carrier", "Trane", "Lennox", "Goodman", "Rheem", "Ferguson", "Square D", "Ecobee"];
@@ -39,6 +41,11 @@ interface Item {
   inventory: boolean; booking: boolean;
   /** FR-4.8 — excluded from customer-facing documents; totals unaffected. */
   hideOnCustomerDocs?: boolean;
+  /** Cost split into labor / commission / materials, when one was entered. */
+  costBreakdown?: CostBreakdown;
+  /** Members, when this item is an item group (a price book entry). */
+  groupItems?: ItemGroupMember[];
+  groupPricing?: "sum" | "flat";
 }
 
 const mockItems: Record<string, Item> = {
@@ -164,6 +171,9 @@ function catalogToItem(c: any): Item {
     notes: c.notes || "", boldPrint: false, group: "", defaultQty: c.defaultQty ?? 1, picture: "",
     inventory: false, booking: false,
     hideOnCustomerDocs: !!c.hideOnCustomerDocs,
+    costBreakdown: c.costBreakdown,
+    groupItems: c.groupItems?.length ? c.groupItems : undefined,
+    groupPricing: c.groupPricing,
   };
 }
 
@@ -241,6 +251,9 @@ export function ItemDetail() {
 
   const [activeTab, setActiveTab] = useState<TabKey>("details");
   const margin = item.rate > 0 ? ((item.rate - item.cost) / item.rate * 100) : 0;
+  // The cost split as entered, or the one the item type implies.
+  const costSplit = breakdownForItem({ cost: item.cost, itemType: item.type, costBreakdown: item.costBreakdown, groupItems: item.groupItems });
+  const isGroup = !!item.groupItems?.length;
 
   // Edit modals (Edit item info / Edit pricing & tax / Edit classification / Edit note).
   const [editModal, setEditModal] = useState<null | "info" | "pricing" | "classification">(null);
@@ -292,10 +305,61 @@ export function ItemDetail() {
   };
   const removeImage = (idx: number) => setImages((prev) => prev.filter((_, i) => i !== idx));
 
+  // Members of an item group — the services, materials, equipment and fees the
+  // package is made of, and where its cost comes from.
+  const renderGroupCard = () => (
+    <div className="rounded-lg border border-[#E5E7EB] bg-white p-5">
+      <div className="mb-3 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="material-icons text-[#0D9488]" style={{ fontSize: "18px" }}>layers</span>
+          <h3 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Items in this group</h3>
+          <span className="rounded-full bg-[#F1F5F9] px-2 py-0.5 text-[11px] text-[#546478]" style={{ fontWeight: 600 }}>{item.groupItems?.length}</span>
+        </div>
+        <button onClick={() => navigate(`/items/groups/${item.id}`)} className="text-[#9CA3AF] hover:text-[#4A6FA5]" aria-label="Edit item group">
+          <span className="material-icons" style={{ fontSize: "18px" }}>edit</span>
+        </button>
+      </div>
+      <table className="w-full text-[13px]">
+        <thead className="text-left text-[11px] text-[#9CA3AF]">
+          <tr>
+            <th className="pb-2 pr-3" style={{ fontWeight: 500 }}>Item</th>
+            <th className="pb-2 pr-3 w-[110px]" style={{ fontWeight: 500 }}>Type</th>
+            <th className="pb-2 pr-3 w-[70px]" style={{ fontWeight: 500 }}>Qty</th>
+            <th className="pb-2 pr-3 w-[110px] text-right" style={{ fontWeight: 500 }}>Price</th>
+            <th className="pb-2 pr-4 w-[110px] text-right" style={{ fontWeight: 500 }}>Cost</th>
+            <th className="pb-2 w-[190px]" style={{ fontWeight: 500 }}>Cost counts as</th>
+          </tr>
+        </thead>
+        <tbody>
+          {(item.groupItems ?? []).map((m, idx) => {
+            const b = breakdownForItem({ cost: m.unitCost, itemType: m.itemType, costBreakdown: m.costBreakdown });
+            const parts = COST_COMPONENTS.filter(({ key }) => b[key] > 0).map(({ key, label }) => `${label} $${money(b[key] * (m.quantity || 0))}`);
+            return (
+              <tr key={`${m.itemId}-${idx}`} className="border-t border-[#EDF0F5]">
+                <td className="py-2.5 pr-3 text-[#1A2332]" style={{ fontWeight: 500 }}>{m.name}</td>
+                <td className="py-2.5 pr-3 text-[#546478]">{m.itemType || "—"}</td>
+                <td className="py-2.5 pr-3 text-[#546478]" style={{ fontVariantNumeric: "tabular-nums" }}>{m.quantity}</td>
+                <td className="py-2.5 pr-3 text-right text-[#546478]" style={{ fontVariantNumeric: "tabular-nums" }}>${money((m.quantity || 0) * m.unitPrice)}</td>
+                <td className="py-2.5 pr-4 text-right text-[#546478]" style={{ fontVariantNumeric: "tabular-nums" }}>${money((m.quantity || 0) * m.unitCost)}</td>
+                <td className="py-2.5 text-[11px] text-[#8899AA]">{parts.length ? parts.join(" · ") : "—"}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+      <p className="mt-3 text-[11px] text-[#9CA3AF]">
+        {item.groupPricing === "sum"
+          ? "Priced as the sum of the items above."
+          : "Priced as a flat rate — the items above set the cost, not the price."}
+      </p>
+    </div>
+  );
+
   const renderDetailsTab = () => {
     const visibleNotes = showAllNotes ? notes : notes.slice(0, 2);
     return (
-    // items-stretch → the three columns share the tallest column's height
+    <div className="flex flex-col gap-4">
+    {/* items-stretch → the three columns share the tallest column's height */}
     <div className="grid grid-cols-3 gap-4 items-stretch">
       {/* ── Col 1: Item overview (Figma 1500:51443) ── */}
       <Card title="Item overview" onEdit={() => setEditModal("info")}>
@@ -349,6 +413,13 @@ export function ItemDetail() {
             <div className="flex flex-col gap-1">
               <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Cost</div>
               <div className="text-[15px] text-[#374151] leading-[22px]" style={{ fontWeight: 500 }}>${money(item.cost)}</div>
+              {/* What the cost pays for. Labor and commission are compensation
+                  (and priced by workers' comp); materials are an expense. */}
+              <div className="mt-0.5 text-[11px] text-[#8899AA] leading-[16px]">
+                {COST_COMPONENTS.filter(({ key }) => costSplit[key] > 0).length
+                  ? COST_COMPONENTS.filter(({ key }) => costSplit[key] > 0).map(({ key, label }) => `${label} $${money(costSplit[key])}`).join(" · ")
+                  : "No cost recorded"}
+              </div>
             </div>
             <Field label="Default quantity" value={item.defaultQty} />
             <Field label="Taxable" value={item.taxable ? "Yes" : "No"} />
@@ -402,6 +473,8 @@ export function ItemDetail() {
           <button onClick={() => navigate("/settings?section=general")} className="text-[11px] text-[#4A6FA5] hover:underline" style={{ fontWeight: 500 }}>Settings &gt; Custom Fields</button>
         </div>
       </div>
+    </div>
+    {isGroup && renderGroupCard()}
     </div>
     );
   };
@@ -547,7 +620,15 @@ export function ItemDetail() {
       )}
       {editModal === "pricing" && (
         <EditPricingModal item={item} taxProfile={taxProfile} onClose={() => setEditModal(null)}
-          onSave={(patch, tp) => { setItem(patch); setTaxProfile(tp); setEditModal(null); toast.success("Pricing & tax saved"); }} />
+          onSave={(patch, tp) => {
+            setItem(patch);
+            setTaxProfile(tp);
+            // A real catalog item persists, so a cost split entered here is
+            // still there after a refresh and reaches the job KPI math.
+            if (stored) itemsStore.upsert({ ...stored, ...patch, taxProfile: tp });
+            setEditModal(null);
+            toast.success("Pricing & tax saved");
+          }} />
       )}
       {editingNote && (
         <EditNoteModal note={editingNote} onClose={() => setEditingNote(null)}
@@ -661,19 +742,29 @@ function EditClassificationModal({ item, onClose, onSave }: { item: any; onClose
 function EditPricingModal({ item, taxProfile, onClose, onSave }: { item: any; taxProfile: string; onClose: () => void; onSave: (p: any, tp: string) => void }) {
   const [rate, setRate] = useState(String(item.rate ?? ""));
   const [cost, setCost] = useState(String(item.cost ?? ""));
+  const [costBreakdown, setCostBreakdown] = useState<CostBreakdown | undefined>(item.costBreakdown);
   const [defaultQty, setDefaultQty] = useState(String(item.defaultQty ?? "1"));
   const [taxable, setTaxable] = useState(!!item.taxable);
   const [tp, setTp] = useState(taxProfile);
   const [hideDocs, setHideDocs] = useState(!!item.hideOnCustomerDocs);
   return (
     <ModalShell title="Edit pricing & tax" onClose={onClose}
-      footer={<><button className={cancelBtn} style={{ fontWeight: 600 }} onClick={onClose}>Cancel</button><button className={saveBtn} style={{ fontWeight: 600 }} onClick={() => onSave({ rate: parseFloat(rate) || 0, cost: parseFloat(cost) || 0, defaultQty: parseInt(defaultQty) || 1, taxable, hideOnCustomerDocs: hideDocs }, tp)}>Save</button></>}>
+      footer={<><button className={cancelBtn} style={{ fontWeight: 600 }} onClick={onClose}>Cancel</button><button className={saveBtn} style={{ fontWeight: 600 }} onClick={() => onSave({ rate: parseFloat(rate) || 0, cost: parseFloat(cost) || 0, costBreakdown, defaultQty: parseInt(defaultQty) || 1, taxable, hideOnCustomerDocs: hideDocs }, tp)}>Save</button></>}>
       <div className="flex flex-col gap-4">
         <div className="grid grid-cols-3 gap-4">
           <div><label className={mLabel}>Price</label><div className="relative"><span className="absolute left-3 top-1/2 -translate-y-1/2 text-[14px] text-[#8899AA]">$</span><input type="number" min="0" step="0.01" value={rate} onChange={(e) => setRate(e.target.value)} className={`${mInput} pl-7`} style={{ fontVariantNumeric: "tabular-nums" }} /></div></div>
-          <div><label className={mLabel}>Cost</label><div className="relative"><span className="absolute left-3 top-1/2 -translate-y-1/2 text-[14px] text-[#8899AA]">$</span><input type="number" min="0" step="0.01" value={cost} onChange={(e) => setCost(e.target.value)} className={`${mInput} pl-7`} style={{ fontVariantNumeric: "tabular-nums" }} /></div></div>
+          <CostField
+            cost={cost} onCostChange={setCost}
+            breakdown={costBreakdown} onBreakdownChange={setCostBreakdown}
+            itemType={item.type} fieldClass={mInput} labelClass={mLabel}
+          />
           <div><label className={mLabel}>Default quantity</label><input type="number" min="0" step="1" value={defaultQty} onChange={(e) => setDefaultQty(e.target.value)} className={mInput} style={{ fontVariantNumeric: "tabular-nums" }} /></div>
         </div>
+        <CostSplitBlock
+          cost={cost} onCostChange={setCost}
+          breakdown={costBreakdown} onBreakdownChange={setCostBreakdown}
+          itemType={item.type} fieldClass={mInput} labelClass={mLabel}
+        />
         <div className="rounded-lg border border-[#E5E7EB] p-4">
           <label className="flex cursor-pointer items-center gap-2.5"><input type="checkbox" checked={taxable} onChange={(e) => setTaxable(e.target.checked)} className="h-4 w-4 rounded border-[#CBD5E1] accent-[#4A6FA5]" /><span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Taxable</span></label>
           {taxable && (

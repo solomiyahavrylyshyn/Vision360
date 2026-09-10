@@ -92,6 +92,48 @@ describe("computeJobFinancials", () => {
     expect(f.margin).toBe(0);
   });
 
+  // The reason the cost split exists: a package sold as one line whose cost is
+  // partly technician pay, partly a commission and partly parts.
+  it("allocates a split item cost across compensation and expenses", () => {
+    const f = computeJobFinancials({
+      lineItems: [{
+        quantity: 1, unitPrice: 1000, unitCost: 400, itemType: "Price Book",
+        costBreakdown: { labor: 100, commission: 100, materials: 200 },
+      }],
+    });
+    expect(f.totalPrice).toBe(1000);
+    expect(f.compensation).toBe(200);
+    expect(f.allExpenses).toBe(200);
+    expect(f.grossProfit).toBe(600);
+  });
+
+  it("reports labor and commission apart, for the workers' comp renewal", () => {
+    const f = computeJobFinancials({
+      lineItems: [{
+        quantity: 2, unitPrice: 500, unitCost: 100, itemType: "Price Book",
+        costBreakdown: { labor: 50, commission: 50, materials: 0 },
+      }],
+      expenses: [
+        { category: "Labor", amount: 48 },
+        { category: "Commission", amount: 30 },
+        { category: "Fuel", amount: 20 },
+      ],
+    });
+    expect(f.laborTotal).toBe(148); // 2 × 50 of item labor + the 48 expense
+    expect(f.commissionTotal).toBe(130); // 2 × 50 of item commission + the 30
+    expect(f.laborTotal + f.commissionTotal).toBe(f.compensation);
+  });
+
+  it("counts a price book cost as materials when nobody split it", () => {
+    // A flat-rate package with no members and no split says nothing about who
+    // was paid, so it is not allowed to inflate compensation.
+    const f = computeJobFinancials({
+      lineItems: [{ quantity: 1, unitPrice: 1457, unitCost: 435, itemType: "Price Book" }],
+    });
+    expect(f.compensation).toBe(0);
+    expect(f.allExpenses).toBe(435);
+  });
+
   it("goes negative when the job cost more than it sold for", () => {
     const f = computeJobFinancials({
       lineItems: [{ quantity: 1, unitPrice: 100, unitCost: 90, itemType: "Service" }],

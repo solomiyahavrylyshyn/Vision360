@@ -26,6 +26,14 @@ export interface EstimateLineItem {
   cost: number;
   amount: number;
   taxable: boolean;
+  /** FR-4.8 — kept off the customer's copy; totals still include it. */
+  hideOnCustomerDocs?: boolean;
+  /** Carried from the catalog item so the job the estimate turns into knows
+   *  whether the cost is technician pay or a supplier price. */
+  itemType?: string;
+  /** Per-unit labor / commission / materials split, carried so the job keeps
+   *  the shares of what was actually sold — see utils/itemCost. */
+  costBreakdown?: { labor: number; commission: number; materials: number };
 }
 
 // Good / better / best. An estimate carries up to four options; the client picks

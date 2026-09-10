@@ -32,7 +32,7 @@ import { estimateSettingsStore } from "../stores/estimateSettingsStore";
 import { trialStore, isTrialActive, getTrialDaysRemaining } from "../stores/trialStore";
 import { categoriesStore } from "../stores/categoriesStore";
 import { estimateTypesStore } from "../stores/estimateTypesStore";
-import { expenseCategoriesStore } from "../stores/expenseCategoriesStore";
+import { expenseCategoriesStore, isPreCodedCategory } from "../stores/expenseCategoriesStore";
 import { allNotificationEvents } from "../constants/notificationEvents";
 
 type SettingsSection =
@@ -1690,7 +1690,7 @@ function ExpenseCategoriesCard() {
     setNewCat("");
   };
   return (
-    <SectionCard title="Expense categories" description="Used on the expense form and as the Categories filter on the Expenses list.">
+    <SectionCard title="Expense categories" description="Used on the expense form and as the Categories filter on the Expenses list. Labor and Commission are built in — they are what the job's Compensation figure is made of, so they cannot be renamed or removed.">
       <div className="mt-1 flex w-[422px] gap-3">
         <Input
           value={newCat}
@@ -1704,26 +1704,39 @@ function ExpenseCategoriesCard() {
       <div className="mt-3 grid grid-cols-3 gap-3">
         {cats.map((c, idx) => {
           const clr = LABEL_COLORS[idx % LABEL_COLORS.length];
+          const builtIn = isPreCodedCategory(c);
           return (
             <div key={idx} className="flex items-center gap-3 rounded-lg border border-[#E5E7EB] px-3 py-2">
               <div className="shrink-0 h-8 w-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: clr.bg }}>
                 <span className="material-icons" style={{ fontSize: "15px", color: clr.color }}>receipt_long</span>
               </div>
-              <input
-                value={c}
-                onChange={e => expenseCategoriesStore.rename(c, e.target.value)}
-                onBlur={e => { const v = e.target.value.trim(); if (!v) expenseCategoriesStore.remove(e.target.value); else if (v !== e.target.value) expenseCategoriesStore.rename(e.target.value, v); }}
-                className="min-w-0 flex-1 rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5 text-[13px] text-[#1A2332] outline-none focus:border-[#4A6FA5]"
-                style={{ fontWeight: 500 }}
-              />
-              <button
-                type="button"
-                onClick={() => { expenseCategoriesStore.remove(c); toast.success("Category removed"); }}
-                className="shrink-0 h-9 w-9 rounded-lg border border-[#E5E7EB] bg-white text-[#9CA3AF] hover:bg-[#FEF2F2] hover:border-[#FECACA] hover:text-[#DC2626] flex items-center justify-center"
-                title="Remove category"
-              >
-                <span className="material-icons" style={{ fontSize: "18px" }}>delete_outline</span>
-              </button>
+              {builtIn ? (
+                <>
+                  <div className="min-w-0 flex-1 text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>
+                    {c}
+                    <div className="text-[11px] text-[#8899AA]" style={{ fontWeight: 400 }}>Counts as compensation</div>
+                  </div>
+                  <span className="shrink-0 rounded-full bg-[#F1F5F9] px-2 py-0.5 text-[11px] text-[#546478]" style={{ fontWeight: 600 }}>Built-in</span>
+                </>
+              ) : (
+                <>
+                  <input
+                    value={c}
+                    onChange={e => expenseCategoriesStore.rename(c, e.target.value)}
+                    onBlur={e => { const v = e.target.value.trim(); if (!v) expenseCategoriesStore.remove(e.target.value); else if (v !== e.target.value) expenseCategoriesStore.rename(e.target.value, v); }}
+                    className="min-w-0 flex-1 rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5 text-[13px] text-[#1A2332] outline-none focus:border-[#4A6FA5]"
+                    style={{ fontWeight: 500 }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => { expenseCategoriesStore.remove(c); toast.success("Category removed"); }}
+                    className="shrink-0 h-9 w-9 rounded-lg border border-[#E5E7EB] bg-white text-[#9CA3AF] hover:bg-[#FEF2F2] hover:border-[#FECACA] hover:text-[#DC2626] flex items-center justify-center"
+                    title="Remove category"
+                  >
+                    <span className="material-icons" style={{ fontSize: "18px" }}>delete_outline</span>
+                  </button>
+                </>
+              )}
             </div>
           );
         })}

@@ -204,11 +204,19 @@ export function CreateJob({ asModal = false, onClose, onCreated, prefill, headin
   const allEstimates = useSyncExternalStore(estimatesStore.subscribe, estimatesStore.getSnapshot);
   const fromEstimateId = Number(sp.get("fromEstimate") || 0);
   // Pre-populate line items from the source estimate (Convert → Job flow).
+  // Marek, Sep 10 call: when the client approves an estimate its items become
+  // the job's items. On a good/better/best estimate that means the items of the
+  // option the client actually picked — not all three options' items.
   useState(() => {
     if (!fromEstimateId) return;
     const est = estimatesStore.getById(fromEstimateId);
-    if (!est?.items?.length) return;
-    const preloaded = est.items.map((it, idx) => ({
+    if (!est) return;
+    const chosenOption = est.options?.length
+      ? (est.options.find((o) => o.name === est.selectedOptionName) ?? (est.options.length === 1 ? est.options[0] : undefined))
+      : undefined;
+    const sourceItems = chosenOption?.items?.length ? chosenOption.items : est.items;
+    if (!sourceItems?.length) return;
+    const preloaded = sourceItems.map((it, idx) => ({
       id: idx + 1,
       catalogItemId: 0,
       name: it.name,
@@ -218,6 +226,11 @@ export function CreateJob({ asModal = false, onClose, onCreated, prefill, headin
       unitCost: it.cost,
       taxable: it.taxable,
       total: it.amount,
+      hideOnCustomerDocs: it.hideOnCustomerDocs,
+      // The cost split rides along, so the job's Compensation and Expenses
+      // tiles read the same labor / commission / materials that were sold.
+      itemType: it.itemType,
+      costBreakdown: it.costBreakdown,
     }));
     setLineItems(preloaded);
     // Seed the Estimates table with the source estimate (Convert → Job flow).
