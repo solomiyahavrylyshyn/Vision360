@@ -160,8 +160,15 @@ export function CreateClient() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const returnTo = searchParams.get("returnTo");
+  // CSR sandbox only (Help Center → Roles → Dispatcher): live duplicate
+  // detection + ZIP→county auto-fill. Gated behind this flag so every other
+  // entry point into client creation is untouched.
+  const csrMode = searchParams.get("csr") === "1";
   const [formData, setFormData] =
     useState<ClientFormData>(makeInitialFormData);
+  const [dupeMatch, setDupeMatch] = useState<ReturnType<typeof clientsStore.getSnapshot>[number] | null>(null);
+  const [dupeDismissed, setDupeDismissed] = useState(false);
+  const [countyAutoFilled, setCountyAutoFilled] = useState(false);
   const counties = useSyncExternalStore(
     countiesStore.subscribe,
     countiesStore.getCounties,
@@ -272,6 +279,14 @@ export function CreateClient() {
     }
     const newClientId = persistClient();
     toast.success("Client created");
+    // CSR sandbox: continue the call flow straight into job creation (with
+    // the symptom questionnaire) for the client just created, instead of
+    // dropping onto their detail page.
+    if (csrMode && !returnTo) {
+      const clientName = `${formData.firstName} ${formData.lastName}`.trim();
+      navigate(`/jobs/new?client=${encodeURIComponent(clientName)}&csr=1&sandbox=sample`);
+      return;
+    }
     navigate(returnTo || `/clients/${newClientId}`);
   };
 
@@ -286,11 +301,53 @@ export function CreateClient() {
     setFormData(makeInitialFormData());
   };
 
+  // CSR sandbox: a handful of FL ZIPs seen in the demo data, mapped to their
+  // real county — stand-in for a county property-appraiser lookup.
+  const ZIP_TO_COUNTY: Record<string, string> = {
+    "33614": "Hillsborough", "33615": "Hillsborough", "33613": "Hillsborough",
+    "33594": "Hillsborough", "33602": "Hillsborough",
+    "34205": "Manatee", "34201": "Manatee",
+    "33701": "Pinellas", "33755": "Pinellas",
+    "34236": "Sarasota", "34231": "Sarasota",
+  };
+
+  const normalize = (s: string) => s.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+
+  const checkDuplicate = (nextLastName: string, nextAddress: string) => {
+    if (!csrMode || dupeDismissed) return;
+    const lastName = normalize(nextLastName);
+    const address = normalize(nextAddress);
+    if (lastName.length < 3 && address.length < 5) { setDupeMatch(null); return; }
+    const candidates = clientsStore.getSnapshot();
+    const hit = candidates.find((c) => {
+      const cLast = normalize(c.lastName || c.name.split(" ").slice(-1).join(""));
+      const cAddr = normalize(c.address || "");
+      return (lastName.length >= 3 && cLast === lastName) || (address.length >= 5 && cAddr.includes(address));
+    });
+    setDupeMatch(hit || null);
+  };
+
   const handleChange = (
     field: keyof ClientFormData,
     value: string | boolean,
   ) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    setFormData((prev) => {
+      const next = { ...prev, [field]: value };
+      if (csrMode && field === "zip" && typeof value === "string") {
+        const county = ZIP_TO_COUNTY[value.trim()];
+        if (county && (!prev.county || countyAutoFilled)) {
+          next.county = county;
+          setCountyAutoFilled(true);
+        }
+      }
+      if (csrMode && field === "county") setCountyAutoFilled(false);
+      return next;
+    });
+    if (csrMode && (field === "lastName" || field === "address") && typeof value === "string") {
+      const nextLastName = field === "lastName" ? value : formData.lastName;
+      const nextAddress = field === "address" ? value : formData.address;
+      checkDuplicate(nextLastName, nextAddress);
+    }
   };
 
   const handleCancel = () => {
@@ -594,10 +651,35 @@ export function CreateClient() {
                 </div>
               </div>
 
+              {/* CSR sandbox: live duplicate warning — fires while typing,
+                  before anything is saved. */}
+              {csrMode && dupeMatch && (
+                <div className="flex items-start gap-3 rounded-lg border border-[#E3C77C] bg-[#FCF0D9] px-4 py-3">
+                  <span style={{ fontSize: "18px" }}>⚠️</span>
+                  <div className="flex-1">
+                    <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 700 }}>Possible match: {dupeMatch.name}</div>
+                    <div className="text-[12px] text-[#8899AA]">{dupeMatch.address}{dupeMatch.mobilePhone ? ` · ${dupeMatch.mobilePhone}` : ""}</div>
+                    <div className="mt-2 flex gap-2">
+                      <button type="button" onClick={() => navigate(`/clients/${dupeMatch.id}`)} className="rounded-md bg-[#4A6FA5] px-3 py-1.5 text-[12px] text-white" style={{ fontWeight: 600 }}>
+                        View existing client
+                      </button>
+                      <button type="button" onClick={() => { setDupeDismissed(true); setDupeMatch(null); }} className="rounded-md border border-[#E5E7EB] bg-white px-3 py-1.5 text-[12px] text-[#1A2332]" style={{ fontWeight: 600 }}>
+                        Not the same — continue
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* County + ZIP Code */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className={labelCls} style={{ fontWeight: 500 }}>County {req}</Label>
+                  <Label className={labelCls} style={{ fontWeight: 500 }}>
+                    County {req}
+                    {csrMode && countyAutoFilled && formData.county && (
+                      <span className="ml-2 text-[11px] text-[#4A6FA5]" style={{ fontWeight: 600 }}>filled from ZIP</span>
+                    )}
+                  </Label>
                   {/* Florida gets a dropdown of known counties; every other state
                       gets a free-text input so the field is usable regardless. */}
                   {formData.state === "FL" ? (

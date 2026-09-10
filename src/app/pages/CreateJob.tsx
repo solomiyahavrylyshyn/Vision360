@@ -93,6 +93,18 @@ export function CreateJob({ asModal = false, onClose, onCreated, prefill, headin
   // When opened from a client's Jobs tab, the URL carries the client + a return path.
   const [sp] = useSearchParams();
   const returnTo = sp.get("returnTo");
+  // CSR sandbox only (Help Center → Roles → Dispatcher): a branching symptom
+  // questionnaire that suggests a trade + urgency instead of a blank
+  // description. Gated behind this flag so the regular Create Job form for
+  // every other role/entry point is untouched.
+  const csrMode = sp.get("csr") === "1";
+  const [csrRoot, setCsrRoot] = useState<string | null>(null);
+  const [csrLeakWhere, setCsrLeakWhere] = useState<string | null>(null);
+  const [csrLeakAttic, setCsrLeakAttic] = useState<boolean | null>(null);
+  const [csrLeakBill, setCsrLeakBill] = useState<boolean | null>(null);
+  const [csrBreaker, setCsrBreaker] = useState<string | null>(null);
+  const [csrMods, setCsrMods] = useState<Record<string, boolean>>({});
+  const [csrApplied, setCsrApplied] = useState(false);
   // Modal mode closes via callback; page mode navigates back.
   const goBack = () => { if (asModal) { onClose?.(); return; } navigate(returnTo || "/jobs"); };
   const [title, setTitle] = useState(prefill?.title ?? sp.get("title") ?? "");
@@ -518,6 +530,45 @@ export function CreateJob({ asModal = false, onClose, onCreated, prefill, headin
   const fieldCls = "w-full h-9 px-3 border border-[#E5E7EB] rounded-lg text-[14px] text-[#1A2332] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.05)] outline-none focus:border-[#4A6FA5] disabled:bg-[#F5F7FA] disabled:text-[#9CA3AF]";
   const reqStar = <span className="text-[#DC2626]">*</span>;
 
+  // CSR sandbox — symptom tree suggestion (trade + confidence + reason).
+  let csrSuggestion: { trade: string; label: string; conf: number; reason: string } | null = null;
+  if (csrRoot === "leak") {
+    if (csrLeakWhere === "ceiling" && csrLeakAttic === true) csrSuggestion = { trade: "hvac", label: "HVAC", conf: 82, reason: "leaking from the ceiling + indoor unit in the attic." };
+    else if (csrLeakBill === true) csrSuggestion = { trade: "plumbing", label: "Plumbing", conf: 75, reason: "the water bill jumped recently." };
+    else if (csrLeakWhere === "sink") csrSuggestion = { trade: "plumbing", label: "Plumbing", conf: 88, reason: "leak located under a sink or appliance." };
+    else if (csrLeakWhere === "outside") csrSuggestion = { trade: "hvac", label: "HVAC", conf: 70, reason: "exterior leak — likely a condensate line, not urgent." };
+  } else if (csrRoot === "breaker") {
+    if (csrBreaker === "ac") csrSuggestion = { trade: "hvac", label: "HVAC", conf: 85, reason: "the AC breaker is the one tripping." };
+    else if (csrBreaker === "wh") csrSuggestion = { trade: "plumbing", label: "Plumbing", conf: 85, reason: "the water heater breaker is the one tripping." };
+    else if (csrBreaker === "unsure") csrSuggestion = { trade: "electrical", label: "Electrical", conf: 60, reason: "customer isn't sure which circuit — needs an electrician to trace it." };
+  } else if (csrRoot === "nocool") csrSuggestion = { trade: "hvac", label: "HVAC", conf: 95, reason: "always: not cooling/heating points straight to HVAC." };
+  else if (csrRoot === "nowater") csrSuggestion = { trade: "plumbing", label: "Plumbing", conf: 95, reason: "always: no water points straight to plumbing." };
+  else if (csrRoot === "nopower") csrSuggestion = { trade: "electrical", label: "Electrical", conf: 95, reason: "always: dead power points straight to electrical." };
+
+  let csrBase = 0, csrUrgencyLabel = "";
+  if (csrRoot === "leak" && csrLeakWhere === "ceiling") { csrBase = 4; csrUrgencyLabel = "water reaching the ceiling"; }
+  else if (csrRoot === "nowater") { csrBase = 3; csrUrgencyLabel = "no hot water"; }
+  else if (csrRoot === "nocool") { csrBase = 3; csrUrgencyLabel = "no cooling/heating"; }
+  else if (csrRoot === "nopower") { csrBase = 3; csrUrgencyLabel = "no power"; }
+  else if (csrRoot === "breaker") { csrBase = 2; csrUrgencyLabel = "breaker trips"; }
+  else if (csrRoot === "leak") { csrBase = 2; csrUrgencyLabel = "contained leak"; }
+  const csrModLabels: Record<string, string> = { age: "customer 65+", infant: "infant in home", heat: "32°C+ today", old: "equipment 15+ yrs" };
+  const csrActiveMods = Object.keys(csrMods).filter((k) => csrMods[k]);
+  const csrUrgency = csrBase === 0 ? 0 : Math.min(csrBase + csrActiveMods.length, 4);
+
+  const applyCsrSuggestion = () => {
+    if (!csrSuggestion) return;
+    setIndustry(csrSuggestion.trade);
+    const lines = [
+      `Symptom intake: ${csrSuggestion.reason}`,
+      `Suggested trade: ${csrSuggestion.label} (confidence ${csrSuggestion.conf}%)`,
+      csrUrgency > 0 ? `Urgency: ${csrUrgency}/4 — ${csrUrgencyLabel}${csrActiveMods.length ? " + " + csrActiveMods.map((k) => csrModLabels[k]).join(" + ") : ""}` : "",
+    ].filter(Boolean).join("\n");
+    setNotes((prev) => (prev.trim() ? `${prev.trim()}\n\n${lines}` : lines));
+    setCsrApplied(true);
+    toast.success("Applied to Industry + Job Notes below.");
+  };
+
   return (
     <CreateJobShell asModal={asModal} goBack={goBack} returnTo={returnTo} heading={heading}>
       <div className="bg-white border border-[#E5E7EB] rounded-xl p-4 md:p-6 flex flex-col gap-6">
@@ -639,6 +690,107 @@ export function CreateJob({ asModal = false, onClose, onCreated, prefill, headin
             </div>
           </div>
         </FormSection>
+
+        {/* ── CSR sandbox: symptom questionnaire (Help Center → Roles → Dispatcher) ── */}
+        {csrMode && (
+          <FormSection label="What's going on?">
+            <div className="text-[12px] text-[#8899AA] -mt-2">A tree, not a blank field — mirrors how a CSR already talks through a call.</div>
+            <div className="flex flex-wrap gap-2">
+              {([["leak", "Leaking water"], ["breaker", "Breaker trips"], ["nocool", "Not cooling / heating"], ["nowater", "No water / hot water"], ["nopower", "No power / dead outlet"]] as const).map(([k, label]) => (
+                <button
+                  key={k}
+                  type="button"
+                  onClick={() => { setCsrRoot(k); setCsrLeakWhere(null); setCsrLeakAttic(null); setCsrLeakBill(null); setCsrBreaker(null); setCsrApplied(false); }}
+                  className={`rounded-lg border px-3 py-1.5 text-[13px] ${csrRoot === k ? "border-[#4A6FA5] bg-[#4A6FA5] text-white" : "border-[#E5E7EB] bg-white text-[#1A2332]"}`}
+                  style={{ fontWeight: 600 }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {csrRoot === "leak" && (
+              <div className="space-y-3 border-l-2 border-[#EDF0F5] pl-3">
+                <div>
+                  <div className="mb-1 text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>Where is it leaking from?</div>
+                  <div className="flex flex-wrap gap-2">
+                    {([["ceiling", "From the ceiling"], ["sink", "Under a sink / appliance"], ["outside", "Outside the house"], ["unsure", "Not sure"]] as const).map(([k, label]) => (
+                      <button key={k} type="button" onClick={() => { setCsrLeakWhere(k); setCsrApplied(false); }} className={`rounded-lg border px-3 py-1.5 text-[13px] ${csrLeakWhere === k ? "border-[#4A6FA5] bg-[#4A6FA5] text-white" : "border-[#E5E7EB] bg-white"}`} style={{ fontWeight: 600 }}>{label}</button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <div className="mb-1 text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>Is the AC's indoor unit in the attic or a ceiling closet?</div>
+                  <div className="flex gap-2">
+                    {([[true, "Yes"], [false, "No"]] as const).map(([v, label]) => (
+                      <button key={String(v)} type="button" onClick={() => { setCsrLeakAttic(v); setCsrApplied(false); }} className={`rounded-lg border px-3 py-1.5 text-[13px] ${csrLeakAttic === v ? "border-[#4A6FA5] bg-[#4A6FA5] text-white" : "border-[#E5E7EB] bg-white"}`} style={{ fontWeight: 600 }}>{label}</button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <div className="mb-1 text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>Has the water bill jumped recently?</div>
+                  <div className="flex gap-2">
+                    {([[true, "Yes"], [false, "No"]] as const).map(([v, label]) => (
+                      <button key={String(v)} type="button" onClick={() => { setCsrLeakBill(v); setCsrApplied(false); }} className={`rounded-lg border px-3 py-1.5 text-[13px] ${csrLeakBill === v ? "border-[#4A6FA5] bg-[#4A6FA5] text-white" : "border-[#E5E7EB] bg-white"}`} style={{ fontWeight: 600 }}>{label}</button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {csrRoot === "breaker" && (
+              <div className="border-l-2 border-[#EDF0F5] pl-3">
+                <div className="mb-1 text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>Which breaker?</div>
+                <div className="flex flex-wrap gap-2">
+                  {([["ac", "AC"], ["wh", "Water heater"], ["unsure", "Not sure / unlabeled"]] as const).map(([k, label]) => (
+                    <button key={k} type="button" onClick={() => { setCsrBreaker(k); setCsrApplied(false); }} className={`rounded-lg border px-3 py-1.5 text-[13px] ${csrBreaker === k ? "border-[#4A6FA5] bg-[#4A6FA5] text-white" : "border-[#E5E7EB] bg-white"}`} style={{ fontWeight: 600 }}>{label}</button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {csrSuggestion && (
+              <div className="rounded-lg border border-[#E5E7EB] bg-[#F5F7FA] p-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] uppercase tracking-wide text-[#8899AA]" style={{ fontWeight: 700 }}>System suggestion</span>
+                  <span className="font-mono text-[11px] text-[#8899AA]">confidence {csrSuggestion.conf}%</span>
+                </div>
+                <div className="mt-1 text-[14px] text-[#1A2332]" style={{ fontWeight: 700 }}>{csrSuggestion.label}</div>
+                <div className="mt-0.5 text-[12px] text-[#546478]">Because: {csrSuggestion.reason}</div>
+                {csrUrgency > 0 && (
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <span
+                      className="rounded-full px-2.5 py-1 text-[11px] text-white"
+                      style={{ fontWeight: 700, backgroundColor: csrUrgency >= 4 ? "#DC2626" : csrUrgency === 3 ? "#D97706" : "#4A6FA5" }}
+                    >
+                      Urgency {csrUrgency}/4 — {csrUrgencyLabel}
+                    </span>
+                    {(["age", "infant", "heat", "old"] as const).map((k) => (
+                      <button
+                        key={k}
+                        type="button"
+                        onClick={() => setCsrMods((m) => ({ ...m, [k]: !m[k] }))}
+                        className={`rounded-full border px-2.5 py-1 text-[11px] ${csrMods[k] ? "border-[#DC2626] bg-[#FBE7E7] text-[#DC2626]" : "border-[#E5E7EB] bg-white text-[#546478]"}`}
+                        style={{ fontWeight: 600 }}
+                      >
+                        {csrModLabels[k]}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={applyCsrSuggestion}
+                  className="mt-3 rounded-md bg-[#4A6FA5] px-3 py-1.5 text-[12px] text-white disabled:opacity-50"
+                  disabled={csrApplied}
+                  style={{ fontWeight: 600 }}
+                >
+                  {csrApplied ? "✓ Applied to Industry + Job Notes" : "Apply to Industry + Job Notes"}
+                </button>
+              </div>
+            )}
+          </FormSection>
+        )}
 
         {/* ── Job period ── */}
         <FormSection label="Job period">
