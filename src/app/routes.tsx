@@ -10,6 +10,7 @@ import { ResetPasswordVerify } from "./pages/ResetPasswordVerify";
 import { Welcome } from "./pages/Welcome";
 import { CompanySetup } from "./pages/CompanySetup";
 import { InviteExpired } from "./pages/InviteExpired";
+import { ClientEstimateView } from "./pages/ClientEstimateView";
 import { Dashboard } from "./pages/Dashboard";
 import { Home } from "./pages/Home";
 import { Clients } from "./pages/Clients";
@@ -117,6 +118,12 @@ export const router = createBrowserRouter([
   {
     path: "/invite/expired",
     Component: InviteExpired,
+  },
+  // The client's own view of an estimate — outside the app layout because it is
+  // opened from an email by someone who has no account.
+  {
+    path: "/e/:token",
+    Component: ClientEstimateView,
   },
   {
     path: "/",
