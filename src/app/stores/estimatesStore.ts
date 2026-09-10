@@ -28,6 +28,16 @@ export interface EstimateLineItem {
   taxable: boolean;
 }
 
+// Good / better / best. An estimate carries up to four options; the client picks
+// one. The count decides which document layout the estimate prints as — one
+// option is a plain sheet, two to four is the side-by-side comparison sheet.
+export interface EstimateOption {
+  name: string;
+  /** One line under the option name on the comparison sheet. */
+  summary?: string;
+  items: EstimateLineItem[];
+}
+
 export interface EstimateRecord {
   id: number;
   estimateNumber: string;
@@ -59,6 +69,13 @@ export interface EstimateRecord {
   options?: { name: string; items: EstimateLineItem[] }[];
   // Optional payload so detail pages can rebuild the document.
   items?: EstimateLineItem[];
+  options?: EstimateOption[];
+  /** Set once the client accepts — the document then shows only this option. */
+  selectedOptionName?: string;
+  /** Note the client left with "Request changes". */
+  changeRequest?: string;
+  /** Link token minted when the estimate is sent; the client page reads it. */
+  publicToken?: string;
   taxRate?: number;
   notes?: string;
   internalNotes?: string;
@@ -109,6 +126,35 @@ const SEED: EstimateRecord[] = [
     { id: 2, name: "Copper Piping Installation", description: "Professional copper piping installation (per ft)", quantity: 40, price: 18.5, cost: 6.75, amount: 740, taxable: true },
     { id: 3, name: "General Labor - Technician", description: "Technician labor (hourly)", quantity: 30, price: 95, cost: 45, amount: 2850, taxable: false },
   ] },
+  // Good / better / best — the estimate that prints as the comparison sheet and
+  // is the one to open from the client link. Tax-free so the option totals read
+  // as the round numbers the options were quoted at.
+  { id: 8, estimateNumber: "10245-E10", estimateName: "AC Repair or Replace", clientName: "John Smith", clientId: "10245", clientEmail: "john.smith@email.com", clientPhone: "(512) 555-0142", clientAddress: "123 Main St\nAustin, TX 78701", serviceAddress: "123 Main St\nAustin, TX 78701", createdDate: "Mon Sep 07, 2026", addedBy: "Peter Novak", amount: 309, status: "Sent", job: "", jobTitle: "", sentDate: "Sep 07, 2026", expirationDate: "Oct 07, 2026", teamMember: "Peter Novak", source: "Manual", depositDue: 0, estimateType: "Replacement", taxRate: 0, depositRequired: true, depositType: "percentage", depositValue: 10, publicToken: "ZTNiMGM0NDItOThmYy00YTNhLTgzMGEtNzMxMWI0NDI5Y2M2",
+    items: [
+      { id: 1, name: "Capacitor 45/5 MFD", description: "Dual run capacitor replacement", quantity: 1, price: 120, cost: 40, amount: 120, taxable: true },
+      { id: 2, name: "R-410A Refrigerant", description: "Refrigerant recharge (per lb)", quantity: 2, price: 50, cost: 20, amount: 100, taxable: true },
+      { id: 3, name: "Diagnostic & Repair", description: "Diagnose the fault and complete the repair", quantity: 1, price: 89, cost: 45, amount: 89, taxable: false },
+    ],
+    options: [
+      { name: "Repair", summary: "Fix the system you have now.", items: [
+        { id: 1, name: "Capacitor 45/5 MFD", description: "Dual run capacitor replacement", quantity: 1, price: 120, cost: 40, amount: 120, taxable: true },
+        { id: 2, name: "R-410A Refrigerant", description: "Refrigerant recharge (per lb)", quantity: 2, price: 50, cost: 20, amount: 100, taxable: true },
+        { id: 3, name: "Diagnostic & Repair", description: "Diagnose the fault and complete the repair", quantity: 1, price: 89, cost: 45, amount: 89, taxable: false },
+      ] },
+      { name: "Replace, standard unit", summary: "New 3-ton system, standard efficiency, 5-year parts warranty.", items: [
+        { id: 1, name: "3 Ton Condensing Unit", description: "Standard-efficiency outdoor unit", quantity: 1, price: 2600, cost: 1450, amount: 2600, taxable: true },
+        { id: 2, name: "Standard Air Handler", description: "Matched indoor air handler", quantity: 1, price: 1500, cost: 820, amount: 1500, taxable: true },
+        { id: 3, name: "Line Set & Materials", description: "Line set, pad, disconnect and fittings", quantity: 1, price: 400, cost: 180, amount: 400, taxable: true },
+        { id: 4, name: "System Installation Labor", description: "Removal of the old system and full install", quantity: 1, price: 1300, cost: 900, amount: 1300, taxable: false },
+      ] },
+      { name: "Replace, high-efficiency unit", summary: "New 3-ton high-SEER system with a smart thermostat, 10-year parts warranty.", items: [
+        { id: 1, name: "High-Efficiency Condensing Unit", description: "High-SEER outdoor unit", quantity: 1, price: 4200, cost: 2350, amount: 4200, taxable: true },
+        { id: 2, name: "Variable Speed Air Handler", description: "Variable-speed indoor air handler", quantity: 1, price: 2350, cost: 1290, amount: 2350, taxable: true },
+        { id: 3, name: "Smart WiFi Thermostat", description: "Smart thermostat, installed and configured", quantity: 1, price: 250, cost: 110, amount: 250, taxable: true },
+        { id: 4, name: "Line Set & Materials", description: "Line set, pad, disconnect and fittings", quantity: 1, price: 400, cost: 180, amount: 400, taxable: true },
+        { id: 5, name: "System Installation Labor", description: "Removal of the old system and full install", quantity: 1, price: 1200, cost: 830, amount: 1200, taxable: false },
+      ] },
+    ] },
   { id: 7, estimateNumber: "10247-E01", estimateName: "Plumbing Repair", clientName: "Mike Rodriguez", clientEmail: "mike.r@outlook.com", createdDate: "Wed Feb 25, 2026", addedBy: "Marek Fie", option: "1", amount: 850, status: "Viewed", job: "10247-J01", jobTitle: "Plumbing Fix", sentDate: "Feb 26, 2026", expirationDate: "Mar 27, 2026", teamMember: "Marek Stroz", source: "10247-J01", depositDue: 0, estimateType: "Repair", taxRate: 7.5, items: [
     { id: 1, name: "Drain Cleaning Service", description: "Clear main drain line", quantity: 1, price: 175, cost: 40, amount: 175, taxable: false },
     { id: 2, name: "Pipe Repair Labor", description: "Technician labor", quantity: 3, price: 95, cost: 45, amount: 285, taxable: false },
@@ -148,6 +194,12 @@ try {
             ? { ...e, estimateName: mergedSeed.estimateName, options: mergedSeed.options }
             : e);
       }
+      // Seed rows added since this browser last cached (the multi-option demo
+      // estimate, for one) still need to appear, without dropping estimates the
+      // user created themselves.
+      const cachedIds = new Set(estimates.map((e) => e?.id));
+      const missing = SEED.filter((s) => !cachedIds.has(s.id));
+      if (missing.length) estimates = [...missing, ...estimates];
     }
   }
 } catch {
@@ -176,11 +228,22 @@ const nextEstimateNumber = (base?: string) => {
   return `${prefix}${String(next).padStart(2, "0")}`;
 };
 
+// Link token for the client-facing page. Minted when the estimate is sent, then
+// stored on the estimate — the client page is anonymous and the token is all
+// that identifies which estimate the visitor is looking at. Base64url so it
+// survives being pasted into a URL.
+export const makePublicToken = (): string => {
+  const uuid = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
+  return btoa(uuid).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+};
+
 const api = createApiSync<EstimateRecord>("estimates", (e) => e.id);
 
 export const estimatesStore = {
   getSnapshot: (): EstimateRecord[] => estimates,
   getById: (id: number): EstimateRecord | undefined => estimates.find((e) => e.id === id),
+  getByPublicToken: (token: string | undefined): EstimateRecord | undefined =>
+    token ? estimates.find((e) => e.publicToken === token) : undefined,
   subscribe: (listener: Listener) => {
     listeners.push(listener);
     api.hydrate(estimates, (rows) => { estimates = rows; saveLS(); notify(); });
@@ -212,8 +275,10 @@ export const estimatesStore = {
       depositDue: partial.depositDue ?? 0,
       updatedDate: partial.updatedDate,
       estimateType: partial.estimateType,
-      options: partial.options,
       items: partial.items,
+      options: partial.options,
+      selectedOptionName: partial.selectedOptionName,
+      publicToken: partial.publicToken,
       taxRate: partial.taxRate,
       notes: partial.notes,
       internalNotes: partial.internalNotes,

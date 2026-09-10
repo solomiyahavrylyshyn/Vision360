@@ -195,8 +195,9 @@ export function CreateEstimate() {
       taxRate,
       notes: internalNote,
       // Good/Better/Best — persist every option's line items so the client can
-      // pick one when accepting (Figma 2509:12598). Single-option estimates
-      // keep the flat items list above as the canonical shape.
+      // pick one when accepting (Figma 2509:12598), and so the document prints
+      // as the comparison sheet. Single-option estimates keep the flat items
+      // list above as the canonical shape.
       ...(options.length > 1 ? {
         options: options.map((o) => ({
           name: o.name,
@@ -207,7 +208,7 @@ export function CreateEstimate() {
           })),
         })),
       } : {}),
-    } as any);
+    });
     toast.success(successMessage);
     navigate(returnTo || "/estimates");
   };

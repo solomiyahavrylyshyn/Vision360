@@ -20,6 +20,8 @@ export type { Expense } from "../stores/expensesStore";
 
 export const expenseCategoryColors: Record<string, string> = {
   Materials: "#4A6FA5",
+  Labor: "#DB2777",
+  Commission: "#C026D3",
   Fuel: "#059669",
   Tools: "#D97706",
   Software: "#7C3AED",
@@ -32,6 +34,8 @@ export const expenseCategoryColors: Record<string, string> = {
 };
 const expenseCategoryBg: Record<string, string> = {
   Materials: "#EBF0F8",
+  Labor: "#FCE7F3",
+  Commission: "#FAE8FF",
   Fuel: "#DCFCE7",
   Tools: "#FEF3C7",
   Software: "#EDE9FE",

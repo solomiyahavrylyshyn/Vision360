@@ -11,7 +11,8 @@ import { PlusIcon } from "../components/ui/plus-icon";
 import { DocumentPreview } from "../components/DocumentPreview";
 import { DocumentsGallery } from "../components/DocumentsGallery";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "../components/ui/resizable";
-import { estimatesStore, type EstimateRecord } from "../stores/estimatesStore";
+import { toast } from "sonner";
+import { estimatesStore, makePublicToken, type EstimateRecord } from "../stores/estimatesStore";
 import { estimateTypesStore } from "../stores/estimateTypesStore";
 import { jobsStore } from "../stores/jobsStore";
 import { formatRegionalDate } from "../stores/regionalSettingsStore";
@@ -46,7 +47,16 @@ interface NoteEntry {
   kind: "client" | "internal";
 }
 
+interface EstimateOptionData {
+  name: string;
+  summary?: string;
+  items: LineItem[];
+}
+
 interface EstimateData {
+  options?: EstimateOptionData[];
+  /** Set once the client accepts — the document narrows to this one option. */
+  selectedOptionName?: string;
   id: number; estimateNumber: string; estimateName: string;
   clientName: string; clientEmail: string; clientPhone: string;
   clientAddress: string; serviceAddress: string;
@@ -221,6 +231,12 @@ const catalogItems = [
 // page uses. Missing fields fall back to empty/sane defaults so the page renders
 // even for minimally-created drafts.
 function recordToEstimateData(r: EstimateRecord): EstimateData {
+  // Once the client has picked an option, that option's line items are the
+  // estimate — the flat items list still holds whatever was quoted first.
+  const picked = r.selectedOptionName
+    ? r.options?.find((o) => o.name === r.selectedOptionName)
+    : undefined;
+  const items = picked?.items ?? r.items ?? [];
   return {
     id: r.id,
     estimateNumber: r.estimateNumber,
@@ -237,11 +253,21 @@ function recordToEstimateData(r: EstimateRecord): EstimateData {
     teamMember: r.teamMember ?? "",
     job: r.jobTitle || r.job || "",
     jobId: r.jobId ?? null,
-    items: (r.items ?? []).map((it) => ({
+    items: items.map((it) => ({
       id: it.id, name: it.name, description: it.description,
       quantity: it.quantity, price: it.price, cost: it.cost,
       amount: it.amount, taxable: it.taxable,
     })),
+    options: r.options?.map((o) => ({
+      name: o.name,
+      summary: o.summary,
+      items: o.items.map((it) => ({
+        id: it.id, name: it.name, description: it.description,
+        quantity: it.quantity, price: it.price, cost: it.cost,
+        amount: it.amount, taxable: it.taxable,
+      })),
+    })),
+    selectedOptionName: r.selectedOptionName,
     notes: r.notes ?? "",
     internalNotes: r.internalNotes ?? "",
     taxRate: r.taxRate ?? 0,
@@ -290,13 +316,26 @@ export function EstimateDetail() {
   // Keep in sync with the store for fields that can be changed elsewhere
   // (e.g. status changed from the Estimates list page). Only re-sync the
   // status so the user's in-page edits (items, notes) aren't blown away.
-  const latestRecord = estimatesStore.getById(estimate.id);
+  const storedEstimates = useSyncExternalStore(estimatesStore.subscribe, estimatesStore.getSnapshot);
+  const latestRecord = storedEstimates.find((e) => e.id === estimate.id);
   useEffect(() => {
-    if (latestRecord && latestRecord.status !== estimate.status) {
-      setEstimate(prev => ({ ...prev, status: latestRecord.status }));
+    if (!latestRecord) return;
+    if (latestRecord.status !== estimate.status || latestRecord.selectedOptionName !== estimate.selectedOptionName) {
+      // The client answering on their own page is the other writer here, so the
+      // option they picked has to come back with the status — and once they have
+      // picked, that option's line items are the estimate.
+      const picked = latestRecord.selectedOptionName
+        ? latestRecord.options?.find((o) => o.name === latestRecord.selectedOptionName)
+        : undefined;
+      setEstimate(prev => ({
+        ...prev,
+        status: latestRecord.status,
+        selectedOptionName: latestRecord.selectedOptionName,
+        items: picked ? picked.items : prev.items,
+      }));
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [latestRecord?.status]);
+  }, [latestRecord?.status, latestRecord?.selectedOptionName]);
   const initialTabKey = (searchParams.get("tab") as TabKey) || "details";
   const [activeTab, setActiveTabState] = useState<TabKey>(initialTabKey);
   const setActiveTab = (key: TabKey) => {
@@ -446,6 +485,29 @@ export function EstimateDetail() {
     });
     setStatusOpen(false);
   };
+  // The client's link. The token is minted the moment the estimate is sent and
+  // then stays put, so the same link keeps working every time the client opens
+  // it — and the page it opens decides for itself whether to show the estimate,
+  // the answer already given, or an expiry notice.
+  const clientLinkFor = (token: string) => `${window.location.origin}/e/${token}`;
+  const ensurePublicToken = (): string => {
+    const existing = estimatesStore.getById(estimate.id)?.publicToken;
+    if (existing) return existing;
+    const token = makePublicToken();
+    estimatesStore.update(estimate.id, { publicToken: token });
+    return token;
+  };
+  const copyClientLink = () => {
+    const link = clientLinkFor(ensurePublicToken());
+    navigator.clipboard?.writeText(link).catch(() => { /* clipboard blocked — the toast still shows the link */ });
+    toast.success("Client link copied", { description: link });
+  };
+  const sendToClient = () => {
+    const link = clientLinkFor(ensurePublicToken());
+    if (estimate.status === "Draft" || estimate.status === "Updated") changeStatus("Sent");
+    toast.success(`Estimate sent to ${estimate.clientEmail || "the client"}`, { description: link });
+  };
+
   const toggleDocSelected = (docId: string) => setSelectedDocs(prev => { const n = new Set(prev); n.has(docId) ? n.delete(docId) : n.add(docId); return n; });
   const handleFilesAdded = (files: FileList | null) => {
     if (!files) return;
@@ -481,91 +543,201 @@ export function EstimateDetail() {
   const totalDocCount = photos.length;
 
   // ── Customer preview ─────────────────────────────────────────────────────────
+  // The document picks its own layout by the number of options: one option
+  // prints as a plain sheet, two to four print side by side so the client can
+  // compare them on one screen instead of scrolling three totals apart. Nobody
+  // switches layouts by hand, and the rule is the same for the preview, print,
+  // PDF, the emailed copy and the client's own page.
+  // Once the client picks an option the estimate is single-option again, so an
+  // approved estimate prints only what they chose.
+  const allOptions = estimate.options ?? [];
+  const chosenOption = estimate.selectedOptionName
+    ? allOptions.find((o) => o.name === estimate.selectedOptionName)
+    : undefined;
+  const documentOptions = chosenOption ? [chosenOption] : allOptions;
+  const isComparisonSheet = documentOptions.length > 1;
+  const documentItems = documentOptions.length === 1 ? documentOptions[0].items : estimate.items;
+
+  const totalsFor = (items: LineItem[]) => {
+    const sub = items.reduce((s, i) => s + i.amount, 0);
+    const taxed = items.filter((i) => i.taxable).reduce((s, i) => s + i.amount, 0) * (estimate.taxRate / 100);
+    return { subtotal: sub, tax: taxed, total: sub + taxed };
+  };
+  const depositFor = (optionTotal: number) =>
+    estimate.depositType === "percentage" ? optionTotal * (estimate.depositValue / 100) : estimate.depositValue;
+  const docTotals = totalsFor(documentItems);
+  const sheetWidth = 760;
+
+  // Shared masthead. The header total is a single number on a plain sheet and a
+  // "from" price when the client still has options to choose between.
+  const sheetHeader = () => (
+    <>
+      <div className="flex items-start justify-between mb-9">
+        <div className="text-[12px] leading-[18px]">
+          {brandLogo
+            ? <img src={brandLogo} alt="Company logo" className="max-h-[48px] max-w-[160px] object-contain mb-1" />
+            : <div style={{ fontWeight: 700 }}>Service Vision</div>
+          }
+          <div>8377 Standish Bend Dr Tampa FL 33615</div>
+          <div style={{ color: "var(--brand-primary, #4A6FA5)" }}>jaamsflying@gmail.com</div>
+          <div>(813) 263-0691</div>
+        </div>
+        <div className="text-right">
+          <div className="text-[31px] leading-none tracking-wide text-[#4F5660]" style={{ fontWeight: 800 }}>ESTIMATE</div>
+          <div className="grid grid-cols-[100px_120px] gap-x-6 gap-y-1 text-[12px] mt-11">
+            <div className="text-right" style={{ fontWeight: 700 }}>Estimate #</div>
+            <div className="text-right text-[#7C6A9D]">{estimate.estimateNumber}</div>
+            <div className="text-right" style={{ fontWeight: 700 }}>Date</div>
+            <div className="text-right text-[#7C6A9D]">{estimate.dateCreated}</div>
+            <div className="text-right" style={{ fontWeight: 700 }}>{isComparisonSheet ? "From" : "Total"}</div>
+            <div className="text-right text-[#7C6A9D]">
+              ${fmt(isComparisonSheet ? Math.min(...documentOptions.map((o) => totalsFor(o.items).total)) : docTotals.total)}
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-14 text-[12px] leading-[18px] mb-6">
+        <div>
+          <div className="mb-1" style={{ fontWeight: 700 }}>Prepared For:</div>
+          <div>{estimate.clientName}</div>
+          <div className="whitespace-pre-line">{estimate.clientAddress}</div>
+          <div>{estimate.clientPhone}</div>
+          <div style={{ color: "var(--brand-primary, #4A6FA5)" }}>{estimate.clientEmail}</div>
+        </div>
+        <div>
+          <div className="mb-1" style={{ fontWeight: 700 }}>Service Location:</div>
+          <div className="whitespace-pre-line">{estimate.serviceAddress}</div>
+        </div>
+      </div>
+    </>
+  );
+
+  const sheetFooter = () => (
+    <>
+      {estimate.notes && <div className="text-[12px]"><div style={{ fontWeight: 700 }}>Notes:</div><div>{estimate.notes}</div></div>}
+      {/* Page-1 disclaimer is a US legal requirement ("form of delivery"):
+          without an explicit pointer to the T&C pages the client can claim
+          they never saw them. Final wording to be reviewed by the attorney. */}
+      <div className="mt-4 text-[11px] text-[#6B7280]" style={{ fontWeight: 600 }}>See terms and conditions on the next page.</div>
+      <div className="mt-12 text-center text-[23px] text-[#111827]" style={{ fontWeight: 800 }}>Thank you for your business</div>
+    </>
+  );
+
+  // One option — the plain sheet: a single column of line items and one total.
+  const renderSimpleSheet = () => (
+    <div className="bg-white text-[#5F6670] shadow-2xl border border-[#D7DCE3]" style={{ width: sheetWidth, minHeight: 980, padding: "32px 28px 44px", fontFamily: "Arial, sans-serif" }}>
+      {sheetHeader()}
+      {chosenOption && (
+        <div className="mb-4 border border-[#BBF7D0] bg-[#F0FDF4] px-3 py-2 text-[12px] text-[#166534]">
+          <span style={{ fontWeight: 700 }}>Approved option: {chosenOption.name}.</span>{" "}
+          {allOptions.length > 1 && `The other ${allOptions.length - 1} option${allOptions.length > 2 ? "s" : ""} the client reviewed are no longer part of this estimate.`}
+        </div>
+      )}
+      <table className="w-full border-collapse text-[12px]">
+        <thead>
+          <tr className="border-y-[3px] border-[#4F5660]">
+            <th className="text-left py-3 px-2" style={{ fontWeight: 700 }}>Description</th>
+            <th className="text-left py-3 px-2 w-[84px]" style={{ fontWeight: 700 }}>QTY</th>
+            <th className="text-left py-3 px-2 w-[102px]" style={{ fontWeight: 700 }}>Price</th>
+            <th className="text-left py-3 px-2 w-[102px]" style={{ fontWeight: 700 }}>Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          {documentItems.map(item => (
+            <tr key={item.id} className="border-b border-[#E0E3E7]">
+              <td className="py-3 px-2"><div style={{ fontWeight: 700 }}>{item.name}</div>{item.description && <div>{item.description}</div>}</td>
+              <td className="py-3 px-2 text-[#6F6A93]">{item.quantity}</td>
+              <td className="py-3 px-2 text-[#6F6A93]">${fmt(item.price)}</td>
+              <td className="py-3 px-2 text-[#6F6A93]">${fmt(item.amount)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div className="flex justify-end border-t border-[#E0E3E7] mb-16">
+        <div className="grid grid-cols-[90px_110px] text-[12px]">
+          <div className="py-2 px-2" style={{ fontWeight: 700 }}>Subtotal</div><div className="py-2 px-2 text-right text-[#6F6A93]">${fmt(docTotals.subtotal)}</div>
+          {docTotals.tax > 0 && <><div className="py-1 px-2" style={{ fontWeight: 700 }}>Tax</div><div className="py-1 px-2 text-right text-[#6F6A93]">${fmt(docTotals.tax)}</div></>}
+          <div className="py-2 px-2" style={{ fontWeight: 700 }}>Total</div><div className="py-2 px-2 text-right text-[#6F6A93]">${fmt(docTotals.total)}</div>
+          {estimate.depositRequired && <><div className="py-1 px-2" style={{ fontWeight: 700 }}>Deposit</div><div className="py-1 px-2 text-right text-[#6F6A93]">${fmt(depositFor(docTotals.total))}</div></>}
+        </div>
+      </div>
+      {sheetFooter()}
+    </div>
+  );
+
+  // Two to four options — the comparison sheet: the options stand next to each
+  // other so the totals can be read against one another at a glance.
+  const renderComparisonSheet = () => (
+    <div className="bg-white text-[#5F6670] shadow-2xl border border-[#D7DCE3]" style={{ width: sheetWidth, minHeight: 980, padding: "32px 28px 44px", fontFamily: "Arial, sans-serif" }}>
+      {sheetHeader()}
+      <div className="border-t-[3px] border-[#4F5660] pt-3 mb-3 text-[12px] text-[#4F5660]" style={{ fontWeight: 700 }}>
+        Choose the option that suits you best
+      </div>
+      <div className="grid gap-3 mb-8" style={{ gridTemplateColumns: `repeat(${documentOptions.length}, minmax(0, 1fr))` }}>
+        {documentOptions.map((option) => {
+          const t = totalsFor(option.items);
+          return (
+            <div key={option.name} className="flex flex-col border border-[#D7DCE3]">
+              <div className="border-b-[3px] border-[#4F5660] px-3 py-2">
+                <div className="text-[13px] leading-[17px] text-[#1A2332]" style={{ fontWeight: 700 }}>{option.name}</div>
+                {option.summary && <div className="mt-1 text-[11px] leading-[15px]">{option.summary}</div>}
+              </div>
+              <div className="flex-1 px-3 py-2">
+                <div className="mb-1.5 text-[10px] uppercase tracking-wide text-[#9CA3AF]" style={{ fontWeight: 700 }}>What&rsquo;s included</div>
+                <ul className="space-y-1 text-[11px] leading-[15px]">
+                  {option.items.map((item) => (
+                    <li key={item.id} className="flex items-start justify-between gap-2">
+                      <span>{item.name}{item.quantity > 1 ? ` ×${item.quantity}` : ""}</span>
+                      <span className="whitespace-nowrap text-[#6F6A93]">${fmt(item.amount)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className="border-t border-[#E0E3E7] px-3 py-2">
+                {t.tax > 0 && (
+                  <div className="flex justify-between text-[11px]"><span>Tax</span><span className="text-[#6F6A93]">${fmt(t.tax)}</span></div>
+                )}
+                <div className="flex items-baseline justify-between text-[#111827]">
+                  <span className="text-[11px]" style={{ fontWeight: 700 }}>Total</span>
+                  <span className="text-[15px]" style={{ fontWeight: 800 }}>${fmt(t.total)}</span>
+                </div>
+                {estimate.depositRequired && (
+                  <div className="mt-1 text-[10px] text-[#6B7280]">Deposit due ${fmt(depositFor(t.total))}</div>
+                )}
+              </div>
+              <div className="border-t border-dashed border-[#C9CFD8] px-3 py-2 text-center text-[10px] leading-[14px] text-[#6B7280]">
+                Select online, or initial here to choose this option
+                <div className="mt-3 border-b border-[#9CA3AF]" />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      {sheetFooter()}
+    </div>
+  );
+
   const renderCustomerPreview = () => (
     <div className="fixed inset-0 z-50 bg-black/45 backdrop-blur-[2px] flex items-start justify-center overflow-y-auto px-6 py-8" onClick={() => setCustomerPreviewOpen(false)}>
       <div className="relative" onClick={(e) => e.stopPropagation()}>
-        <div className="mb-3 flex items-center justify-end gap-2">
-          <button type="button" onClick={() => window.print()}
-            className="h-9 px-3 rounded-md bg-white border border-[#D8DEE8] text-[13px] text-[#1A2332] hover:bg-[#F5F7FA] inline-flex items-center gap-1.5" style={{ fontWeight: 600 }}>
-            <span className="material-icons" style={{ fontSize: "16px" }}>print</span> Print
-          </button>
-          <button type="button" onClick={() => setCustomerPreviewOpen(false)}
-            className="h-9 w-9 rounded-md bg-white border border-[#D8DEE8] text-[#546478] hover:bg-[#F5F7FA] inline-flex items-center justify-center">
-            <span className="material-icons" style={{ fontSize: "18px" }}>close</span>
-          </button>
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <div className="rounded-md bg-white/90 px-2.5 py-1 text-[12px] text-[#546478]">
+            {isComparisonSheet
+              ? `Comparison sheet — ${documentOptions.length} options`
+              : chosenOption ? `Single sheet — approved option "${chosenOption.name}"` : "Single sheet — one option"}
+          </div>
+          <div className="flex items-center gap-2">
+            <button type="button" onClick={() => window.print()}
+              className="h-9 px-3 rounded-md bg-white border border-[#D8DEE8] text-[13px] text-[#1A2332] hover:bg-[#F5F7FA] inline-flex items-center gap-1.5" style={{ fontWeight: 600 }}>
+              <span className="material-icons" style={{ fontSize: "16px" }}>print</span> Print
+            </button>
+            <button type="button" onClick={() => setCustomerPreviewOpen(false)}
+              className="h-9 w-9 rounded-md bg-white border border-[#D8DEE8] text-[#546478] hover:bg-[#F5F7FA] inline-flex items-center justify-center">
+              <span className="material-icons" style={{ fontSize: "18px" }}>close</span>
+            </button>
+          </div>
         </div>
-        <div className="bg-white text-[#5F6670] shadow-2xl border border-[#D7DCE3]" style={{ width: 760, minHeight: 980, padding: "32px 28px 44px", fontFamily: "Arial, sans-serif" }}>
-          <div className="flex items-start justify-between mb-9">
-            <div className="text-[12px] leading-[18px]">
-              {brandLogo
-                ? <img src={brandLogo} alt="Company logo" className="max-h-[48px] max-w-[160px] object-contain mb-1" />
-                : <div style={{ fontWeight: 700 }}>Service Vision</div>
-              }
-              <div>8377 Standish Bend Dr Tampa FL 33615</div>
-              <div style={{ color: "var(--brand-primary, #4A6FA5)" }}>jaamsflying@gmail.com</div>
-              <div>(813) 263-0691</div>
-            </div>
-            <div className="text-right">
-              <div className="text-[31px] leading-none tracking-wide text-[#4F5660]" style={{ fontWeight: 800 }}>ESTIMATE</div>
-              <div className="grid grid-cols-[100px_120px] gap-x-6 gap-y-1 text-[12px] mt-11">
-                <div className="text-right" style={{ fontWeight: 700 }}>Estimate #</div>
-                <div className="text-right text-[#7C6A9D]">{estimate.estimateNumber}</div>
-                <div className="text-right" style={{ fontWeight: 700 }}>Date</div>
-                <div className="text-right text-[#7C6A9D]">{estimate.dateCreated}</div>
-                <div className="text-right" style={{ fontWeight: 700 }}>Total</div>
-                <div className="text-right text-[#7C6A9D]">${fmt(total)}</div>
-              </div>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-14 text-[12px] leading-[18px] mb-6">
-            <div>
-              <div className="mb-1" style={{ fontWeight: 700 }}>Prepared For:</div>
-              <div>{estimate.clientName}</div>
-              <div className="whitespace-pre-line">{estimate.clientAddress}</div>
-              <div>{estimate.clientPhone}</div>
-              <div style={{ color: "var(--brand-primary, #4A6FA5)" }}>{estimate.clientEmail}</div>
-            </div>
-            <div>
-              <div className="mb-1" style={{ fontWeight: 700 }}>Service Location:</div>
-              <div className="whitespace-pre-line">{estimate.serviceAddress}</div>
-            </div>
-          </div>
-          <table className="w-full border-collapse text-[12px]">
-            <thead>
-              <tr className="border-y-[3px] border-[#4F5660]">
-                <th className="text-left py-3 px-2" style={{ fontWeight: 700 }}>Description</th>
-                <th className="text-left py-3 px-2 w-[84px]" style={{ fontWeight: 700 }}>QTY</th>
-                <th className="text-left py-3 px-2 w-[102px]" style={{ fontWeight: 700 }}>Price</th>
-                <th className="text-left py-3 px-2 w-[102px]" style={{ fontWeight: 700 }}>Amount</th>
-              </tr>
-            </thead>
-            <tbody>
-              {/* FR-4.8 — items flagged "Do not show on customer documents" are
-                  excluded from the customer render; totals still include them. */}
-              {estimate.items.filter((item: any) => !item.hideOnCustomerDocs).map(item => (
-                <tr key={item.id} className="border-b border-[#E0E3E7]">
-                  <td className="py-3 px-2"><div style={{ fontWeight: 700 }}>{item.name}</div>{item.description && <div>{item.description}</div>}</td>
-                  <td className="py-3 px-2 text-[#6F6A93]">{item.quantity}</td>
-                  <td className="py-3 px-2 text-[#6F6A93]">${fmt(item.price)}</td>
-                  <td className="py-3 px-2 text-[#6F6A93]">${fmt(item.amount)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <div className="flex justify-end border-t border-[#E0E3E7] mb-16">
-            <div className="grid grid-cols-[90px_110px] text-[12px]">
-              <div className="py-2 px-2" style={{ fontWeight: 700 }}>Subtotal</div><div className="py-2 px-2 text-right text-[#6F6A93]">${fmt(subtotal)}</div>
-              {taxAmount > 0 && <><div className="py-1 px-2" style={{ fontWeight: 700 }}>Tax</div><div className="py-1 px-2 text-right text-[#6F6A93]">${fmt(taxAmount)}</div></>}
-              <div className="py-2 px-2" style={{ fontWeight: 700 }}>Total</div><div className="py-2 px-2 text-right text-[#6F6A93]">${fmt(total)}</div>
-            </div>
-          </div>
-          {estimate.notes && <div className="text-[12px]"><div style={{ fontWeight: 700 }}>Notes:</div><div>{estimate.notes}</div></div>}
-          {/* Page-1 disclaimer is a US legal requirement ("form of delivery"):
-              without an explicit pointer to the T&C pages the client can claim
-              they never saw them. Final wording to be reviewed by the attorney. */}
-          <div className="mt-4 text-[11px] text-[#6B7280]" style={{ fontWeight: 600 }}>See terms and conditions on the next page.</div>
-          <div className="mt-12 text-center text-[23px] text-[#111827]" style={{ fontWeight: 800 }}>Thank you for your business</div>
-        </div>
+        {isComparisonSheet ? renderComparisonSheet() : renderSimpleSheet()}
         {/* Page 2 — Terms & Conditions travel with the estimate as the following
             page(s) of the PDF. Placeholder copy; the attorney finalizes the text. */}
         <div className="bg-white text-[#5F6670] shadow-2xl border border-[#D7DCE3] mt-6" style={{ width: 760, minHeight: 980, padding: "32px 28px 44px", fontFamily: "Arial, sans-serif", pageBreakBefore: "always" }}>
@@ -1461,21 +1633,8 @@ export function EstimateDetail() {
             </div>
             <KebabMenu triggerClassName="h-9 w-9 border border-[#E5E7EB] rounded-md bg-white flex items-center justify-center hover:bg-[#F5F7FA]">
               <KebabItem icon="visibility" onClick={() => setCustomerPreviewOpen(true)}>Preview estimate</KebabItem>
-              <KebabItem icon="send" onClick={() => changeStatus("Sent")}>Send to Client</KebabItem>
-              <KebabItem
-                icon="link"
-                onClick={() => {
-                  // FR-6.7 — the customer opens this link without an account.
-                  const url = `${window.location.origin}/review/estimate/${estimate.id}`;
-                  navigator.clipboard?.writeText(url);
-                  toast.success("Client review link copied");
-                }}
-              >
-                Get Link
-              </KebabItem>
-              <KebabItem icon="open_in_new" onClick={() => window.open(`/review/estimate/${estimate.id}`, "_blank")}>
-                Open client view
-              </KebabItem>
+              <KebabItem icon="send" onClick={sendToClient}>Send to Client</KebabItem>
+              <KebabItem icon="link" onClick={copyClientLink}>Get Link</KebabItem>
               <KebabItem icon="print" onClick={() => setCustomerPreviewOpen(true)}>Print</KebabItem>
               <KebabSeparator />
               <KebabItem icon="content_copy">Duplicate</KebabItem>
