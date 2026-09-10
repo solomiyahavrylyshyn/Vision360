@@ -18,16 +18,22 @@ import { jobsStore, type JobRecord } from "../stores/jobsStore";
 import { clientsStore } from "../stores/clientsStore";
 import { estimatesStore } from "../stores/estimatesStore";
 import { invoicesStore } from "../stores/invoicesStore";
+import { expensesStore } from "../stores/expensesStore";
+import { computeJobFinancials, isCompensationCategory, isCompensationItemType } from "../utils/jobFinancials";
+import { expenseCategoryColors } from "./Expenses";
 import acServicePhoto from "../../assets/documents/33897-cu.jpg";
 import waterHeaterPhoto from "../../assets/documents/34285-install-water-heater.jpg";
 import installAcPhoto from "../../assets/documents/34689-install-ac.jpg";
 
 interface Expense {
-  id: number;
+  id: number | string;
   item: string;
   description: string;
   date: string;
   amount: number;
+  // Decides which KPI tile the expense lands in: Commission and Labor pay
+  // people and count as compensation, everything else is an expense.
+  category: string;
 }
 
 interface Visit {
@@ -67,6 +73,22 @@ const INITIAL_DOCS: DocFile[] = [
   { id: "7", name: "Permit_Application.pdf", size: "320 KB", date: "Mar 22, 2026", icon: "picture_as_pdf", iconColor: "#DC2626", uploadedBy: "Office Admin", category: "Documents" },
 ];
 
+// Line items for the two AC-replacement demo jobs. Every row carries the type
+// that decides where its cost goes: on a Service item the cost is what the
+// technician is paid, Equipment and Material rows carry the supplier price.
+// Priced so the strip reproduces the reference mock — sold 45,230, technician
+// pay 10,003.75, supplier cost 7,995.82.
+const AC_REPLACEMENT_ITEMS = [
+  { name: "SEER Heat Pump Condenser Unit", description: "High-efficiency outdoor condensing unit", itemType: "Equipment", quantity: 1,  unitCost: 4120,   unitPrice: 18400, total: 18400 },
+  { name: "Variable Speed Air Handler",    description: "Indoor air handler, variable speed",      itemType: "Equipment", quantity: 1,  unitCost: 2650,   unitPrice: 12150, total: 12150 },
+  { name: "Copper Line Set & Fittings",    description: "Refrigerant line set (per ft)",           itemType: "Material",  quantity: 40, unitCost: 6.75,   unitPrice: 18.50, total: 740 },
+  { name: "R-410A Refrigerant",            description: "Refrigerant charge (per lb)",             itemType: "Material",  quantity: 12, unitCost: 9,      unitPrice: 20,    total: 240 },
+  { name: "Smart WiFi Thermostat",         description: "Smart thermostat, installed",             itemType: "Equipment", quantity: 1,  unitCost: 279,    unitPrice: 700,   total: 700 },
+  { name: "Duct & Sheet Metal Materials",  description: "Plenum, boots and sheet metal",           itemType: "Material",  quantity: 1,  unitCost: 568.82, unitPrice: 1000,  total: 1000 },
+  { name: "HVAC Installation Labor",       description: "Removal and installation of the system",  itemType: "Service",   quantity: 1,  unitCost: 8150,   unitPrice: 9600,  total: 9600 },
+  { name: "Duct Modification",             description: "Rework supply plenum and returns",        itemType: "Service",   quantity: 1,  unitCost: 1853.75, unitPrice: 2400, total: 2400 },
+];
+
 const mockJobData: Record<string, any> = {
   "5": {
     id: 5, title: "AC Estimate", client: "Mike Delgado", clientId: "10245", clientInitials: "MD",
@@ -104,17 +126,15 @@ const mockJobData: Record<string, any> = {
       { id: 3, text: "Previous service history imported from legacy account.", date: "Mar 10, 2026" },
       { id: 4, text: "Coordinate quote review with Peter Novak.", date: "Mar 10, 2026" },
     ] as NoteEntry[],
-    lineItems: [{ name: "AC Estimate", description: "System evaluation and replacement estimate.", quantity: 1, unitCost: 7995.82, unitPrice: 45230, total: 45230 }],
-    totalCost: 7995.82, totalPrice: 45230,
+    lineItems: AC_REPLACEMENT_ITEMS,
     expenses: [
-      { id: 1, item: "Site Visit", description: "Technician assessment", date: "Mar 30, 2026", amount: 320.00 },
-      { id: 2, item: "Materials Review", description: "Quote preparation", date: "Mar 30, 2026", amount: 231.70 },
-      { id: 3, item: "Permit Research", description: "Local permit check", date: "Mar 29, 2026", amount: 120.00 },
-      { id: 4, item: "Photo Documentation", description: "Field media capture", date: "Mar 29, 2026", amount: 85.00 },
+      { id: 1, item: "Site Visit", description: "Technician assessment", date: "Mar 30, 2026", category: "Labor", amount: 320.00 },
+      { id: 2, item: "Materials Review", description: "Quote preparation", date: "Mar 30, 2026", category: "Materials", amount: 231.70 },
+      { id: 3, item: "Permit Research", description: "Local permit check", date: "Mar 29, 2026", category: "Other", amount: 120.00 },
+      { id: 4, item: "Photo Documentation", description: "Field media capture", date: "Mar 29, 2026", category: "Other", amount: 85.00 },
+      { id: 5, item: "Sales commission", description: "10% of the sale to the salesperson", date: "Mar 30, 2026", category: "Commission", amount: 4523.00 },
     ] as Expense[],
-    expenseTotal: 756.70,
     visits: [{ id: 1, dateTime: "Mar 30, 2026 - 9:00 AM", title: "Mike Delgado - AC Estimate", status: "Scheduled" }] as Visit[],
-    profitability: { totalPrice: 45230, lineItemCost: 7995.82, labor: 14526.75, expenses: 551.70, profit: 23407.93, margin: 51.75 },
     linkedEstimate: { id: 1, title: "Estimate #10245-E02", status: "Draft" },
     linkedInvoice: null,
   },
@@ -151,18 +171,18 @@ const mockJobData: Record<string, any> = {
       { id: 2, text: "Requested annual maintenance plan.", date: "Jan 10, 2026" },
       { id: 3, text: "Internal note: check warranty status.", date: "Dec 20, 2025" },
     ] as NoteEntry[],
-    lineItems: [{ name: "Tree Removal", description: "Complete removal of a tree, including cutting it down to ground level, hauling away all wood and debris.", quantity: 1, unitCost: 0, unitPrice: 0, total: 0 }],
-    totalCost: 0, totalPrice: 0,
+    // The reference job behind the KPI strip mock: sold 45,230 · compensation
+    // 14,526.75 (technician pay 10,003.75 + 4,523 commission) · all expenses
+    // 8,547.52 (supplier cost 7,995.82 + 551.70 of receipts).
+    lineItems: AC_REPLACEMENT_ITEMS,
     expenses: [
-      { id: 1, item: "HD Items", description: "Plywood", date: "Mar 31, 2026", amount: 152.00 },
-      { id: 2, item: "Refrigerant", description: "R-410A 25lb cylinder", date: "Mar 30, 2026", amount: 287.50 },
-      { id: 3, item: "Copper Fittings", description: "Assorted fittings pack", date: "Mar 29, 2026", amount: 64.20 },
-      { id: 4, item: "Filter Pack", description: "MERV-11 filters (6-pack)", date: "Mar 28, 2026", amount: 48.00 },
+      { id: 1, item: "HD Items", description: "Plywood", date: "Mar 31, 2026", category: "Materials", amount: 152.00 },
+      { id: 2, item: "Refrigerant", description: "R-410A 25lb cylinder", date: "Mar 30, 2026", category: "Materials", amount: 287.50 },
+      { id: 3, item: "Copper Fittings", description: "Assorted fittings pack", date: "Mar 29, 2026", category: "Materials", amount: 64.20 },
+      { id: 4, item: "Filter Pack", description: "MERV-11 filters (6-pack)", date: "Mar 28, 2026", category: "Materials", amount: 48.00 },
+      { id: 5, item: "Sales commission", description: "10% of the sale to the salesperson", date: "Mar 30, 2026", category: "Commission", amount: 4523.00 },
     ] as Expense[],
-    expenseTotal: 551.70,
     visits: [{ id: 1, dateTime: "Mar 30, 2026 — Anytime", title: "Travis Jones - AC Estimate", status: "Scheduled" }] as Visit[],
-    // Per Marek's mock: Total Price 45,230 · Compensation 14,526.75 · All Expenses 8,547.52 · Margin 51.75%
-    profitability: { totalPrice: 45230, lineItemCost: 7995.82, labor: 14526.75, expenses: 551.70, profit: 23407.93, margin: 51.75 },
     linkedEstimate: { id: 1, title: "Estimate #10245-E02", status: "Draft" },
     linkedInvoice: null,
   },
@@ -184,13 +204,45 @@ const mockJobData: Record<string, any> = {
     notes: [] as NoteEntry[],
     fieldNotes: [] as NoteEntry[],
     internalNotes: [] as NoteEntry[],
-    lineItems: [{ name: "Tree Removal", description: "Full tree removal service", quantity: 1, unitCost: 200, unitPrice: 450, total: 450 }],
-    totalCost: 200, totalPrice: 450,
-    expenses: [] as Expense[], expenseTotal: 0,
+    lineItems: [{ name: "Tree Removal", description: "Full tree removal service", itemType: "Service", quantity: 1, unitCost: 200, unitPrice: 450, total: 450 }],
+    expenses: [] as Expense[],
     visits: [{ id: 1, dateTime: "Apr 10, 2026 — 9:00 AM", title: "Sarah Johnson - Tree Removal", status: "In Progress" }] as Visit[],
-    profitability: { totalPrice: 450, lineItemCost: 200, labor: 0, expenses: 0, profit: 250, margin: 55.6 },
     linkedEstimate: null,
     linkedInvoice: { id: 1, title: "Invoice #10246-I01", status: "Draft" },
+  },
+  // The maintenance visit the cost model was argued over: a tune-up sold at 89
+  // whose cost of 15 is what the technician is paid, plus a 48 Labor expense for
+  // the extra time on site. Reads as sold 89 · compensation 63 · expenses 0.
+  "7": {
+    id: 7, title: "AC Tune-Up", client: "Travis Jones", clientId: "10234", clientInitials: "TJ",
+    address: "854 Maple St", city: "Fort Worth", state: "TX", zip: "76107",
+    gateCode: "",
+    phone: "(813) 612-5487", email: "ccj924@yahoo.com",
+    jobNumber: "10234-J07", jobType: "Maintenance", jobFrequency: "Recurring",
+    frequencyDetail: "Every 6 months",
+    assignedTo: "Peter Novak",
+    startedOn: "Mar 30, 2026", endsOn: "Mar 30, 2026",
+    startTime: "1:00 PM", endTime: "2:30 PM",
+    status: "In Progress" as const,
+    priority: "Low" as const,
+    customerSince: "Jul - 2021",
+    membership: "Silver - Exp. Dec 2027",
+    lastService: "Sep-25",
+    tags: ["Maintenance"],
+    notes: [] as NoteEntry[],
+    fieldNotes: [
+      { id: 1, text: "Second unit in the attic took another hour — logged as extra labor.", date: "Mar 30, 2026" },
+    ] as NoteEntry[],
+    internalNotes: [] as NoteEntry[],
+    lineItems: [
+      { name: "AC Tune-Up", description: "Annual maintenance — cleaning, inspection and performance check", itemType: "Service", quantity: 1, unitCost: 15, unitPrice: 89, total: 89 },
+    ],
+    expenses: [
+      { id: 1, item: "Extra hours on site", description: "Second unit in the attic", date: "Mar 30, 2026", category: "Labor", amount: 48.00 },
+    ] as Expense[],
+    visits: [{ id: 1, dateTime: "Mar 30, 2026 — 1:00 PM", title: "Travis Jones - AC Tune-Up", status: "In Progress" }] as Visit[],
+    linkedEstimate: null,
+    linkedInvoice: null,
   },
 };
 
@@ -411,6 +463,21 @@ function NoteColumn({ title, initialNotes }: { title: string; initialNotes: Note
   );
 }
 
+// Category chip on a job expense, with a note on the two categories that pay
+// people — those are the ones the Compensation tile picks up.
+function ExpenseCategoryTag({ category }: { category: string }) {
+  const color = expenseCategoryColors[category] ?? "#8899AA";
+  return (
+    <span
+      className="inline-flex items-center rounded-lg px-2 py-0.5 text-[12px] whitespace-nowrap"
+      style={{ color, backgroundColor: `${color}1F`, fontWeight: 500 }}
+      title={isCompensationCategory(category) ? "Paid to a person — counts as compensation" : "Counts as an expense"}
+    >
+      {category}
+    </span>
+  );
+}
+
 /* ──────────────────────────────────────────
    MAIN COMPONENT
 ────────────────────────────────────────── */
@@ -463,18 +530,8 @@ export function JobDetail() {
       internalNotes: [] as NoteEntry[],
       lineItems: [],
       totalPrice: r.totalPrice,
-      totalCost: 0,
       expenses: [],
-      expenseTotal: 0,
       visits: [],
-      profitability: {
-        totalPrice: r.totalPrice,
-        lineItemCost: 0,
-        labor: 0,
-        expenses: 0,
-        profit: r.totalPrice,
-        margin: 100,
-      },
       linkedEstimate: r.estimateId
         ? { id: r.estimateId, title: `Estimate #${r.estimateNumber ?? r.estimateId}`, status: "Approved" }
         : null,
@@ -514,6 +571,40 @@ export function JobDetail() {
   // created invoice shows up on the Invoices tab on return.
   const allInvoices = useSyncExternalStore(invoicesStore.subscribe, invoicesStore.getSnapshot);
   const jobInvoices = allInvoices.filter((inv) => !!job.jobNumber && inv.jobNumber === job.jobNumber);
+
+  // Expenses filed against this job from the Expenses module, shown alongside
+  // the job's own rows so a receipt created here lands on the tab and in the
+  // KPI strip rather than only in the Expenses list.
+  const allExpenseRecords = useSyncExternalStore(expensesStore.subscribe, expensesStore.getSnapshot);
+  const jobExpenses: Expense[] = [
+    ...allExpenseRecords
+      .filter((e) => !!job.jobNumber && e.jobId === job.jobNumber)
+      .map((e) => ({
+        id: `store-${e.id}`,
+        item: e.merchant || e.category,
+        description: e.notes ?? "",
+        date: e.date,
+        amount: e.amount,
+        category: e.category,
+      })),
+    ...((job.expenses ?? []) as Expense[]),
+  ];
+  const expenseTotal = jobExpenses.reduce((sum, e) => sum + e.amount, 0);
+  const jobLineItems = (job.lineItems ?? []) as { quantity: number; unitCost: number; unitPrice: number; itemType?: string }[];
+  const totalCost = jobLineItems.reduce((sum, li) => sum + li.quantity * li.unitCost, 0);
+  const approvedEstimateTotal = jobEstimates
+    .filter((e) => e.status === "Approved")
+    .reduce((sum, e) => sum + e.amount, 0);
+  // An approved estimate is what the job sold for; without one the line items
+  // set the price. Jobs created from the form carry a price but no items yet,
+  // so their own total stands in until items are added.
+  const financials = computeJobFinancials({
+    lineItems: jobLineItems,
+    expenses: jobExpenses,
+    approvedEstimateTotal: approvedEstimateTotal > 0
+      ? approvedEstimateTotal
+      : jobLineItems.length ? null : job.totalPrice ?? null,
+  });
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
   const [currentStatus, setCurrentStatus] = useState<string>(job.status);
   const [editingSection, setEditingSection] = useState<null | "address" | "schedule" | "overview">(null);
@@ -1241,7 +1332,7 @@ export function JobDetail() {
           <tr className="border-b border-[#E5E7EB]">
             <th className="text-left py-2 text-[11px] uppercase tracking-wide text-[#9CA3AF]" style={{ fontWeight: 600 }}>Line Item</th>
             <th className="text-center py-2 text-[11px] uppercase tracking-wide text-[#9CA3AF]" style={{ fontWeight: 600 }}>Qty</th>
-            <th className="text-center py-2 text-[11px] uppercase tracking-wide text-[#9CA3AF]" style={{ fontWeight: 600 }}>Unit Cost</th>
+            <th className="text-center py-2 text-[11px] uppercase tracking-wide text-[#9CA3AF]" style={{ fontWeight: 600 }} title="What the item costs us: technician pay on a service, the supplier price on materials and equipment">Unit Cost</th>
             <th className="text-center py-2 text-[11px] uppercase tracking-wide text-[#9CA3AF]" style={{ fontWeight: 600 }}>Unit Price</th>
             <th className="text-right py-2 text-[11px] uppercase tracking-wide text-[#9CA3AF]" style={{ fontWeight: 600 }}>Total</th>
           </tr>
@@ -1264,11 +1355,11 @@ export function JobDetail() {
       <div className="flex justify-end gap-8 pt-4 mt-2 border-t border-[#E5E7EB]">
         <div className="flex flex-col items-end gap-1">
           <div className="text-[11px] text-[#9CA3AF] uppercase tracking-wide" style={{ fontWeight: 600 }}>Total Cost</div>
-          <div className="text-[14px] text-[#374151]" style={{ fontWeight: 500 }}>${job.totalCost.toFixed(2)}</div>
+          <div className="text-[14px] text-[#374151]" style={{ fontWeight: 500 }}>${totalCost.toFixed(2)}</div>
         </div>
         <div className="flex flex-col items-end gap-1">
           <div className="text-[11px] text-[#9CA3AF] uppercase tracking-wide" style={{ fontWeight: 600 }}>Total Price</div>
-          <div className="text-[16px] text-[#1A2332]" style={{ fontWeight: 600 }}>${job.totalPrice.toFixed(2)}</div>
+          <div className="text-[16px] text-[#1A2332]" style={{ fontWeight: 600 }}>${financials.totalPrice.toFixed(2)}</div>
         </div>
       </div>
     </>
@@ -1280,7 +1371,7 @@ export function JobDetail() {
         <h3 className="text-[15px] text-[#1A2332]" style={{ fontWeight: 600 }}>Expenses</h3>
         <button
           type="button"
-          onClick={() => navigate(`/expenses/new?fromJob=${encodeURIComponent(job.jobNumber)}${job.linkedInvoice ? `&fromInvoice=${encodeURIComponent(job.linkedInvoice.id)}` : ""}&returnTo=${encodeURIComponent(jobReturnUrl("expense"))}`)}
+          onClick={() => navigate(`/expenses/new?fromJob=${encodeURIComponent(job.jobNumber)}&jobTitle=${encodeURIComponent(job.title)}${job.linkedInvoice ? `&fromInvoice=${encodeURIComponent(job.linkedInvoice.id)}` : ""}&returnTo=${encodeURIComponent(jobReturnUrl("expense"))}`)}
           aria-label="Add expense"
           title="Add expense"
           className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[#4A6FA5] hover:bg-[#EEF3FA] transition-colors"
@@ -1288,19 +1379,20 @@ export function JobDetail() {
           <PlusIcon className="h-5 w-5" />
         </button>
       </div>
-      {job.expenses.length > 0 ? (
+      {jobExpenses.length > 0 ? (
         <>
           <table className="w-full text-[13px]">
             <thead>
               <tr className="border-b border-[#E5E7EB]">
                 <th className="text-left py-2 text-[11px] uppercase tracking-wide text-[#9CA3AF]" style={{ fontWeight: 600 }}>Item</th>
+                <th className="text-left py-2 text-[11px] uppercase tracking-wide text-[#9CA3AF]" style={{ fontWeight: 600 }}>Category</th>
                 <th className="text-left py-2 text-[11px] uppercase tracking-wide text-[#9CA3AF]" style={{ fontWeight: 600 }}>Description</th>
                 <th className="text-left py-2 text-[11px] uppercase tracking-wide text-[#9CA3AF]" style={{ fontWeight: 600 }}>Date</th>
                 <th className="text-right py-2 text-[11px] uppercase tracking-wide text-[#9CA3AF]" style={{ fontWeight: 600 }}>Amount</th>
               </tr>
             </thead>
             <tbody>
-              {job.expenses.map((exp: Expense) => (
+              {jobExpenses.map((exp) => (
                 <tr key={exp.id} className="border-b border-[#F3F4F6]">
                   <td className="py-3">
                     <div className="flex items-center gap-2">
@@ -1308,6 +1400,7 @@ export function JobDetail() {
                       <span className="text-[#1A2332]" style={{ fontWeight: 500 }}>{exp.item}</span>
                     </div>
                   </td>
+                  <td className="py-3"><ExpenseCategoryTag category={exp.category} /></td>
                   <td className="py-3 text-[#374151]">{exp.description}</td>
                   <td className="py-3 text-[#374151]">{exp.date}</td>
                   <td className="py-3 text-right text-[#1A2332]" style={{ fontWeight: 500 }}>${exp.amount.toFixed(2)}</td>
@@ -1318,7 +1411,7 @@ export function JobDetail() {
           <div className="flex justify-end pt-3 mt-2 border-t border-[#E5E7EB]">
             <div className="flex flex-col items-end gap-1">
               <div className="text-[11px] text-[#9CA3AF] uppercase tracking-wide" style={{ fontWeight: 600 }}>Total</div>
-              <div className="text-[16px] text-[#1A2332]" style={{ fontWeight: 600 }}>${job.expenseTotal.toFixed(2)}</div>
+              <div className="text-[16px] text-[#1A2332]" style={{ fontWeight: 600 }}>${expenseTotal.toFixed(2)}</div>
             </div>
           </div>
         </>
@@ -1391,8 +1484,8 @@ export function JobDetail() {
         {job.lineItems.length === 0 ? <TabEmpty icon="inventory_2" title="No items yet" subtitle="Add items to track products and services for this job" /> : (
           <>
             <table className="w-full text-[14px]">
-              <thead className="bg-[#F5F7FA]"><tr className="border-b border-[#E5E7EB] text-left text-[#1A2332]"><th className="px-4 py-3">Item</th><th className="px-4 py-3">Quantity</th><th className="px-4 py-3 text-right">Unit price</th><th className="px-4 py-3 text-right">Unit cost</th><th className="px-4 py-3 text-right">Total</th><th className="w-10 px-4 py-3" /></tr></thead>
-              <tbody>{job.lineItems.map((li: any, idx: number) => <tr key={idx} className="border-b border-[#E5E7EB] last:border-0"><td className="px-4 py-4"><div className="text-[#1A2332]" style={{ fontWeight: 500 }}>{li.name}</div><div className="text-[13px] text-[#6B7280]">{li.description}</div></td><td className="px-4 py-4"><input readOnly value={li.quantity} className="h-8 w-[72px] rounded-lg border border-[#E5E7EB] px-2 text-[13px]" /></td><td className="px-4 py-4 text-right">{money(li.unitPrice)}</td><td className="px-4 py-4 text-right text-[#6B7280]">{money(li.unitCost)}</td><td className="px-4 py-4 text-right">{money(li.total)}</td><td className="px-4 py-4 text-right"><button className="h-8 w-8 rounded-lg text-[#9CA3AF] hover:bg-[#FEE2E2] hover:text-[#DC2626]"><span className="material-icons" style={{ fontSize: "16px" }}>delete</span></button></td></tr>)}</tbody>
+              <thead className="bg-[#F5F7FA]"><tr className="border-b border-[#E5E7EB] text-left text-[#1A2332]"><th className="px-4 py-3">Item</th><th className="px-4 py-3">Type</th><th className="px-4 py-3">Quantity</th><th className="px-4 py-3 text-right">Unit price</th><th className="px-4 py-3 text-right">Unit cost</th><th className="px-4 py-3 text-right">Total</th><th className="w-10 px-4 py-3" /></tr></thead>
+              <tbody>{job.lineItems.map((li: any, idx: number) => <tr key={idx} className="border-b border-[#E5E7EB] last:border-0"><td className="px-4 py-4"><div className="text-[#1A2332]" style={{ fontWeight: 500 }}>{li.name}</div><div className="text-[13px] text-[#6B7280]">{li.description}</div></td><td className="px-4 py-4 text-[#6B7280]">{li.itemType || "—"}</td><td className="px-4 py-4"><input readOnly value={li.quantity} className="h-8 w-[72px] rounded-lg border border-[#E5E7EB] px-2 text-[13px]" /></td><td className="px-4 py-4 text-right">{money(li.unitPrice)}</td><td className="px-4 py-4 text-right text-[#6B7280]">{money(li.unitCost)}{isCompensationItemType(li.itemType) && <div className="text-[11px] text-[#9CA3AF]">technician pay</div>}</td><td className="px-4 py-4 text-right">{money(li.total)}</td><td className="px-4 py-4 text-right"><button className="h-8 w-8 rounded-lg text-[#9CA3AF] hover:bg-[#FEE2E2] hover:text-[#DC2626]"><span className="material-icons" style={{ fontSize: "16px" }}>delete</span></button></td></tr>)}</tbody>
             </table>
             <div className="border-t border-[#E5E7EB] bg-[#F5F7FA] px-4 py-4">
               <div className="ml-auto w-[280px] space-y-2 text-[13px]">
@@ -1412,12 +1505,12 @@ export function JobDetail() {
     <div className="overflow-hidden rounded-xl border border-[#E5E7EB] bg-white">
       <div className="flex items-center justify-between border-b border-[#E5E7EB] px-4 py-3">
         <h3 className="text-[16px] text-[#1A2332]" style={{ fontWeight: 600 }}>Expenses</h3>
-        <button onClick={() => navigate(`/expenses/new?fromJob=${encodeURIComponent(job.jobNumber)}${job.linkedInvoice ? `&fromInvoice=${encodeURIComponent(job.linkedInvoice.id)}` : ""}&returnTo=${encodeURIComponent(jobReturnUrl("expense"))}`)} className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#4A6FA5] px-3 text-[13px] text-white hover:bg-[#3d5a85]" style={{ fontWeight: 600 }}><PlusIcon className="h-4 w-4" />Create expense</button>
+        <button onClick={() => navigate(`/expenses/new?fromJob=${encodeURIComponent(job.jobNumber)}&jobTitle=${encodeURIComponent(job.title)}${job.linkedInvoice ? `&fromInvoice=${encodeURIComponent(job.linkedInvoice.id)}` : ""}&returnTo=${encodeURIComponent(jobReturnUrl("expense"))}`)} className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#4A6FA5] px-3 text-[13px] text-white hover:bg-[#3d5a85]" style={{ fontWeight: 600 }}><PlusIcon className="h-4 w-4" />Create expense</button>
       </div>
-      {job.expenses.length === 0 ? <TabEmpty icon="receipt_long" title="No expenses yet" subtitle="Create an expense to track job costs" /> : (
+      {jobExpenses.length === 0 ? <TabEmpty icon="receipt_long" title="No expenses yet" subtitle="Create an expense to track job costs" /> : (
         <table className="w-full text-[14px]">
-          <thead className="bg-[#F5F7FA]"><tr className="border-b border-[#E5E7EB] text-left text-[#1A2332]"><th className="px-4 py-3">Item</th><th className="px-4 py-3">Description</th><th className="px-4 py-3">Date</th><th className="px-4 py-3 text-right">Total</th><th className="w-10 px-4 py-3" /></tr></thead>
-          <tbody>{job.expenses.map((exp: Expense) => <tr key={exp.id} className="border-b border-[#E5E7EB]"><td className="px-4 py-4 text-[#1A2332]" style={{ fontWeight: 500 }}>{exp.item}</td><td className="px-4 py-4 text-[#6B7280]">{exp.description}</td><td className="px-4 py-4 text-[#6B7280]">{exp.date}</td><td className="px-4 py-4 text-right">{money(exp.amount)}</td><td className="px-4 py-4 text-right"><button className="h-8 w-8 rounded-lg text-[#9CA3AF] hover:bg-[#FEE2E2] hover:text-[#DC2626]"><span className="material-icons" style={{ fontSize: "16px" }}>delete</span></button></td></tr>)}<tr className="bg-[#F5F7FA]"><td colSpan={3} className="px-4 py-3 text-right text-[#1A2332]" style={{ fontWeight: 600 }}>Total:</td><td className="px-4 py-3 text-right text-[#1A2332]" style={{ fontWeight: 600 }}>{money(job.expenseTotal)}</td><td /></tr></tbody>
+          <thead className="bg-[#F5F7FA]"><tr className="border-b border-[#E5E7EB] text-left text-[#1A2332]"><th className="px-4 py-3">Item</th><th className="px-4 py-3">Category</th><th className="px-4 py-3">Description</th><th className="px-4 py-3">Date</th><th className="px-4 py-3 text-right">Total</th><th className="w-10 px-4 py-3" /></tr></thead>
+          <tbody>{jobExpenses.map((exp) => <tr key={exp.id} className="border-b border-[#E5E7EB]"><td className="px-4 py-4 text-[#1A2332]" style={{ fontWeight: 500 }}>{exp.item}</td><td className="px-4 py-4"><ExpenseCategoryTag category={exp.category} /></td><td className="px-4 py-4 text-[#6B7280]">{exp.description}</td><td className="px-4 py-4 text-[#6B7280]">{exp.date}</td><td className="px-4 py-4 text-right">{money(exp.amount)}</td><td className="px-4 py-4 text-right"><button className="h-8 w-8 rounded-lg text-[#9CA3AF] hover:bg-[#FEE2E2] hover:text-[#DC2626]"><span className="material-icons" style={{ fontSize: "16px" }}>delete</span></button></td></tr>)}<tr className="bg-[#F5F7FA]"><td colSpan={4} className="px-4 py-3 text-right text-[#1A2332]" style={{ fontWeight: 600 }}>Total:</td><td className="px-4 py-3 text-right text-[#1A2332]" style={{ fontWeight: 600 }}>{money(expenseTotal)}</td><td /></tr></tbody>
         </table>
       )}
     </div>
@@ -1903,14 +1996,14 @@ export function JobDetail() {
               case labels, green/red/amber/purple tinted icons. */}
           <div className="flex items-center gap-4 shrink-0">
             {[
-              { label: "Total price",   value: `$${Math.round(job.profitability.totalPrice).toLocaleString("en-US")}`,                                          icon: "paid",                   iconColor: "#16A34A" },
-              { label: "Compensation",  value: `$${Math.round(job.profitability.labor).toLocaleString("en-US")}`,                                               icon: "payments",               iconColor: "#DC2626" },
-              { label: "All expenses",  value: `$${Math.round(job.profitability.lineItemCost + job.profitability.expenses).toLocaleString("en-US")}`,           icon: "account_balance_wallet", iconColor: "#F59E0B" },
-              { label: "Profit margin", value: `${Math.round(job.profitability.margin)}%`,                                                                      icon: "pie_chart",              iconColor: "#A856F7" },
-            ].map(({ label, value, icon, iconColor }, i) => (
+              { label: "Total price",   value: `$${Math.round(financials.totalPrice).toLocaleString("en-US")}`,   icon: "paid",                   iconColor: "#16A34A", hint: financials.fromApprovedEstimate ? "From the approved estimate" : "Sum of the line items at price" },
+              { label: "Compensation",  value: `$${Math.round(financials.compensation).toLocaleString("en-US")}`, icon: "payments",               iconColor: "#DC2626", hint: "Technician pay on service items + commission and labor expenses" },
+              { label: "All expenses",  value: `$${Math.round(financials.allExpenses).toLocaleString("en-US")}`,  icon: "account_balance_wallet", iconColor: "#F59E0B", hint: "Material and equipment cost + every other job expense" },
+              { label: "Profit margin", value: `${Math.round(financials.margin)}%`,                               icon: "pie_chart",              iconColor: "#A856F7", hint: `Gross profit $${financials.grossProfit.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
+            ].map(({ label, value, icon, iconColor, hint }, i) => (
               <div key={label} className="flex items-center gap-4">
                 {i > 0 && <div className="w-px h-6 bg-[#E5E7EB] shrink-0" />}
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3" title={hint}>
                   <div className="flex flex-col">
                     <div className="text-[18px] leading-none tabular-nums text-[#1A2332] whitespace-nowrap" style={{ fontWeight: 600 }}>{value}</div>
                     <div className="text-[14px] leading-[20px] text-[#6B7280] mt-1 whitespace-nowrap">{label}</div>

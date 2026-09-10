@@ -1,9 +1,10 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, useSyncExternalStore } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { toast } from "sonner";
 import { ItemPicker, catalogItemToLineItem, type CatalogItem, type SelectedLineItem } from "../components/ItemPicker";
 import { PlusIcon } from "../components/ui/plus-icon";
 import { expensesStore } from "../stores/expensesStore";
+import { jobsStore } from "../stores/jobsStore";
 
 // Mock catalog items
 const mockCatalogItems: CatalogItem[] = [
@@ -13,8 +14,13 @@ const mockCatalogItems: CatalogItem[] = [
   { id: 1005, name: "General Labor - Technician", itemDescription: "Standard technician labor rate per hour", salesDescription: "Technician labor (hourly)", brand: "", modelNumber: "", rate: 95, cost: 45, taxable: false, category: "Labor", type: "Labor" },
 ];
 
+// Labor and Commission are what the job pays people, and the job's Compensation
+// tile is built from them — see utils/jobFinancials. Labor covers work that does
+// not fit inside a line item: overtime, a second visit, a subcontractor.
 const categories = [
   "Materials",
+  "Labor",
+  "Commission",
   "Fuel",
   "Tools",
   "Software",
@@ -112,6 +118,21 @@ export function CreateExpense() {
   const [notes, setNotes] = useState(searchParams.get("notes") || "");
   const [jobId, setJobId] = useState(initialJobId);
   const [invoiceId, setInvoiceId] = useState(initialInvoiceId);
+  // Real jobs first, then the standing demo rows. A job reached from its own
+  // page (?fromJob=10245-J01) is prepended when it lives outside the store, so
+  // the picker shows the job the expense is being filed against instead of
+  // silently falling back to a blank selection.
+  const storeJobs = useSyncExternalStore(jobsStore.subscribe, jobsStore.getSnapshot);
+  const jobOptions = (() => {
+    const rows = [
+      ...storeJobs.map((j) => ({ id: j.jobNumber, title: j.title })),
+      ...mockJobs,
+    ];
+    if (initialJobId && !rows.some((r) => r.id === initialJobId)) {
+      rows.unshift({ id: initialJobId, title: searchParams.get("jobTitle") || "" });
+    }
+    return rows.filter((r, i) => r.id && rows.findIndex((o) => o.id === r.id) === i);
+  })();
   const [receipts, setReceipts] = useState<ReceiptFile[]>([]);
   const [saving, setSaving] = useState(false);
   const [dragOver, setDragOver] = useState(false);
@@ -190,7 +211,7 @@ export function CreateExpense() {
   // Persist through expensesStore so the new expense shows up in the Expenses
   // list / detail / report and survives a page refresh.
   const persistExpense = () => {
-    const job = mockJobs.find((j) => j.id === jobId);
+    const job = jobOptions.find((j) => j.id === jobId);
     return expensesStore.add({
       id: expensesStore.nextId(),
       date: new Date(`${expenseDate} 12:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
@@ -198,7 +219,7 @@ export function CreateExpense() {
       merchant,
       amount: lineItems.length > 0 ? calculatedTotal : parseFloat(total) || 0,
       jobId: jobId || undefined,
-      jobTitle: job ? job.title.split(" — ")[0] : undefined,
+      jobTitle: job?.title ? job.title.split(" — ")[0] : undefined,
       invoiceId: invoiceId || undefined,
       notes: [description.trim(), notes.trim()].filter(Boolean).join(" — ") || undefined,
       receipts: receipts.length,
@@ -327,7 +348,7 @@ export function CreateExpense() {
               <div className="relative">
                 <select value={jobId} onChange={(e) => { setJobId(e.target.value); setInvoiceId(""); }} className={`${selectCls} ${jobId ? "text-[#1A2332]" : "text-[#B0BEC5]"}`}>
                   <option value="">Select job</option>
-                  {mockJobs.map((j) => <option key={j.id} value={j.id}>#{j.id} — {j.title}</option>)}
+                  {jobOptions.map((j) => <option key={j.id} value={j.id}>{j.title ? `#${j.id} — ${j.title}` : `#${j.id}`}</option>)}
                 </select>
                 <span className="material-icons absolute right-3 top-1/2 -translate-y-1/2 text-[#8899AA] pointer-events-none" style={{ fontSize: "18px" }}>expand_more</span>
               </div>
