@@ -293,22 +293,27 @@ export function Layout() {
         }`}
         style={{ overflowX: "hidden" }}
       >
-        {/* Logo area */}
+        {/* Logo area — the company's own logo, sized to the full rail so it
+            reads as branding rather than a favicon. Width is the rail minus its
+            padding (208px open, 80px collapsed); the height cap is half the
+            width, so a typical 2:1 wordmark fills the rail edge to edge while a
+            square mark stops at 104px instead of towering over the nav.
+            `contain` means no logo is ever cropped. */}
         <div className={`flex flex-shrink-0 ${collapsed ? "justify-center items-center" : "items-center"}`}>
           <button
             type="button"
             aria-label="Open branding settings"
-            className="rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+            className="w-full rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-white/70"
             onClick={() => navigate("/settings?section=companyProfile")}
           >
             <img
               src={companyLogoSrc}
               alt="Company Logo"
-              className="pointer-events-none select-none mix-blend-hard-light"
+              className="pointer-events-none block w-full select-none mix-blend-hard-light"
               style={{
-                height: collapsed ? "20px" : "24px",
-                width: collapsed ? "44px" : "120px",
-                objectFit: companyLogoSrc === wordmarkLogo && !collapsed ? "cover" : "contain",
+                height: "auto",
+                maxHeight: collapsed ? "80px" : "104px",
+                objectFit: "contain",
                 objectPosition: collapsed ? "center" : "left center",
               }}
             />
