@@ -245,11 +245,10 @@ function pbGroupItems(name: string, price: number, cost: number): ItemGroupMembe
   const parts: PbPart[] = PB_PARTS[name] ?? [["Parts & materials", "Material", 1, r2(price * 0.25), r2(cost * 0.4)]];
   const partsPrice = parts.reduce((s, [, , q, p]) => s + q * p, 0);
   const partsCost = parts.reduce((s, [, , q, , c]) => s + q * c, 0);
+  // Whatever the parts do not account for is what the technician is paid.
+  // The commission on the sale is not in here — it is a job expense.
   const laborCost = r2(cost - partsCost);
   if (laborCost <= 0) return undefined;
-  // Commission is the cut of the sale a salesperson earns — capped so it never
-  // swallows the technician's pay on a small job.
-  const commission = r2(Math.min(price * 0.1, laborCost * 0.4));
   const members: ItemGroupMember[] = [{
     itemId: 0,
     name: `${name} — labor`,
@@ -257,7 +256,7 @@ function pbGroupItems(name: string, price: number, cost: number): ItemGroupMembe
     quantity: 1,
     unitPrice: r2(price - partsPrice),
     unitCost: laborCost,
-    costBreakdown: { labor: r2(laborCost - commission), commission, materials: 0 },
+    costBreakdown: { labor: laborCost, materials: 0 },
   }];
   parts.forEach(([partName, itemType, quantity, unitPrice, unitCost]) => {
     members.push({ itemId: BASE_ID_BY_NAME.get(partName) ?? 0, name: partName, itemType, quantity, unitPrice, unitCost });
@@ -278,8 +277,8 @@ const SEED: CatalogItem[] = [
   }),
   // The one fully-worked Price Book example — and the worked item group (Marek,
   // Sep 10 call): a flat-rate package whose cost comes from its members, split
-  // into labor / commission / materials. Labor 180 + commission 145 sit on the
-  // labor member's own cost split; the parts and the motor are materials.
+  // into labor and materials. The commission on this sale is not part of the
+  // package; it is recorded as a Commission expense on the job.
   {
     id: 199, name: "Blower Motor Replacement — Premium", category: "Repairs",
     itemDescription: "Replacing Blower Motor 825 RPM, 1 year warranty, 90 days labor warranty, Comfort guarantee, Christmas Postcard, Chocolate Donuts",
@@ -287,10 +286,10 @@ const SEED: CatalogItem[] = [
     brand: "", modelNumber: "", rate: 1457, cost: 435, taxable: true,
     type: "Service", itemType: "Price Book", active: true,
     groupPricing: "flat",
-    costBreakdown: { labor: 180, commission: 145, materials: 110 },
+    costBreakdown: { labor: 325, materials: 110 },
     groupItems: [
       { itemId: 0, name: "Blower motor replacement — labor", itemType: "Service", quantity: 1, unitPrice: 480, unitCost: 325,
-        costBreakdown: { labor: 180, commission: 145, materials: 0 } },
+        costBreakdown: { labor: 325, materials: 0 } },
       { itemId: 5, name: "Blower Motor 1/2 HP", itemType: "Equipment", quantity: 1, unitPrice: 225, unitCost: 98 },
       { itemId: 4, name: "Capacitor 45/5 MFD", itemType: "Material", quantity: 1, unitPrice: 25, unitCost: 12 },
       { itemId: 6, name: "Permit Fee", itemType: "Admin", quantity: 1, unitPrice: 75, unitCost: 0 },
@@ -333,9 +332,14 @@ if (!items.some((i) => i.name === "Callback")) {
 const seededGroups = SEED.filter((i) => i.groupItems?.length);
 if (seededGroups.length) {
   const cachedById = new Map(items.map((i) => [i.id, i]));
+  // A cached row is re-seeded when it has no members yet, or when its members
+  // still carry the commission share from before commission became a job
+  // expense of its own rather than part of an item's cost.
+  const hasLegacyCommission = (row: CatalogItem) =>
+    !!row.groupItems?.some((m) => (m.costBreakdown as { commission?: number } | undefined)?.commission != null);
   items = items.map((i) => {
     const seed = seededGroups.find((s) => s.id === i.id);
-    return seed && !i.groupItems?.length
+    return seed && (!i.groupItems?.length || hasLegacyCommission(i))
       ? { ...i, cost: seed.cost, costBreakdown: seed.costBreakdown, groupItems: seed.groupItems, groupPricing: seed.groupPricing }
       : i;
   });

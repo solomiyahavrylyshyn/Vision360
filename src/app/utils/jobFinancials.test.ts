@@ -93,12 +93,12 @@ describe("computeJobFinancials", () => {
   });
 
   // The reason the cost split exists: a package sold as one line whose cost is
-  // partly technician pay, partly a commission and partly parts.
+  // partly technician pay and partly parts.
   it("allocates a split item cost across compensation and expenses", () => {
     const f = computeJobFinancials({
       lineItems: [{
         quantity: 1, unitPrice: 1000, unitCost: 400, itemType: "Price Book",
-        costBreakdown: { labor: 100, commission: 100, materials: 200 },
+        costBreakdown: { labor: 200, materials: 200 },
       }],
     });
     expect(f.totalPrice).toBe(1000);
@@ -111,7 +111,7 @@ describe("computeJobFinancials", () => {
     const f = computeJobFinancials({
       lineItems: [{
         quantity: 2, unitPrice: 500, unitCost: 100, itemType: "Price Book",
-        costBreakdown: { labor: 50, commission: 50, materials: 0 },
+        costBreakdown: { labor: 100, materials: 0 },
       }],
       expenses: [
         { category: "Labor", amount: 48 },
@@ -119,9 +119,19 @@ describe("computeJobFinancials", () => {
         { category: "Fuel", amount: 20 },
       ],
     });
-    expect(f.laborTotal).toBe(148); // 2 × 50 of item labor + the 48 expense
-    expect(f.commissionTotal).toBe(130); // 2 × 50 of item commission + the 30
+    expect(f.laborTotal).toBe(248); // 2 × 100 of item labor + the 48 expense
+    expect(f.commissionTotal).toBe(30); // commission is only ever an expense
     expect(f.laborTotal + f.commissionTotal).toBe(f.compensation);
+  });
+
+  // Commission is earned on the sale, not on the item, so an item cannot put
+  // any into compensation on its own.
+  it("takes commission only from expenses, never from an item", () => {
+    const f = computeJobFinancials({
+      lineItems: [{ quantity: 1, unitPrice: 1000, unitCost: 400, itemType: "Service" }],
+    });
+    expect(f.commissionTotal).toBe(0);
+    expect(f.laborTotal).toBe(400);
   });
 
   it("counts a price book cost as materials when nobody split it", () => {

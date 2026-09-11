@@ -228,7 +228,7 @@ export function CreateJob({ asModal = false, onClose, onCreated, prefill, headin
       total: it.amount,
       hideOnCustomerDocs: it.hideOnCustomerDocs,
       // The cost split rides along, so the job's Compensation and Expenses
-      // tiles read the same labor / commission / materials that were sold.
+      // tiles read the same labor and materials that were sold.
       itemType: it.itemType,
       costBreakdown: it.costBreakdown,
     }));

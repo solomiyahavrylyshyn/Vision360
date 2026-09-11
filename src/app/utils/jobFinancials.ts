@@ -2,13 +2,16 @@
 // job page: Total price · Compensation · All expenses · Profit margin.
 //
 // The rule every tile follows: an item's cost is allocated by what it pays for.
-// A cost split into labor / commission / materials is used as entered — that is
-// the only way a package that mixes technician pay, a sales commission and
-// parts lands in the right tiles. Without a split the item type decides: a
-// Service cost is what we pay the technician, so compensation; Material,
-// Equipment, Asset and Admin costs are paid out to someone else, so an expense.
-// Job expenses split the same way — the categories that pay people (Commission
-// and Labor) count as compensation, everything else is an expense.
+// A cost split into labor and materials is used as entered — that is the only
+// way a package that mixes technician pay with parts lands in the right tiles.
+// Without a split the item type decides: a Service cost is what we pay the
+// technician, so compensation; Material, Equipment, Asset and Admin costs are
+// paid out to someone else, so an expense. Job expenses split the same way —
+// the categories that pay people (Commission and Labor) count as compensation,
+// everything else is an expense.
+//
+// Commission is never part of an item's cost: it is earned on the sale, not on
+// the item, so it reaches a job only as an expense in the Commission category.
 //
 // The tiles are kept disjoint on purpose: Total price − Compensation − All
 // expenses = gross profit, so the strip reads left to right and adds up.
@@ -23,8 +26,8 @@ export interface FinancialLineItem {
   unitCost: number;
   itemType?: string;
   /** Per-unit cost split. When present it decides how the cost is allocated,
-   *  which is the only way a package that mixes labor, commission and parts
-   *  can land in the right tiles — see utils/itemCost. */
+   *  which is the only way a package that mixes labor and parts can land in the
+   *  right tiles — see utils/itemCost. */
   costBreakdown?: CostBreakdown;
 }
 
@@ -53,8 +56,9 @@ export interface JobFinancials {
   compensationExpenses: number;
   otherExpenses: number;
   /** Compensation split by kind of pay — what a workers' comp renewal asks for
-   *  ("how much did you spend on labor?"). Both include the item cost shares
-   *  and the matching job expenses, and together they are `compensation`. */
+   *  ("how much did you spend on labor?"). Labor is the item labor cost plus
+   *  Labor expenses; commission only ever comes from Commission expenses.
+   *  Together they are `compensation`. */
   laborTotal: number;
   commissionTotal: number;
   /** True when the total came from an approved estimate rather than the items. */
@@ -97,7 +101,6 @@ export function computeJobFinancials({
   approvedEstimateTotal = null,
 }: JobFinancialsInput): JobFinancials {
   let itemLabor = 0;
-  let itemCommission = 0;
   let materialCost = 0;
   let itemRevenue = 0;
 
@@ -112,7 +115,6 @@ export function computeJobFinancials({
       costBreakdown: item.costBreakdown,
     });
     itemLabor += quantity * split.labor;
-    itemCommission += quantity * split.commission;
     materialCost += quantity * split.materials;
   }
 
@@ -127,7 +129,7 @@ export function computeJobFinancials({
     else otherExpenses += amount;
   }
 
-  const serviceCost = itemLabor + itemCommission;
+  const serviceCost = itemLabor;
   const compensationExpenses = expenseLabor + expenseCommission;
 
   const fromApprovedEstimate =
@@ -148,7 +150,7 @@ export function computeJobFinancials({
     compensationExpenses: round2(compensationExpenses),
     otherExpenses: round2(otherExpenses),
     laborTotal: round2(itemLabor + expenseLabor),
-    commissionTotal: round2(itemCommission + expenseCommission),
+    commissionTotal: round2(expenseCommission),
     fromApprovedEstimate,
   };
 }

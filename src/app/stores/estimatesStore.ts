@@ -31,9 +31,9 @@ export interface EstimateLineItem {
   /** Carried from the catalog item so the job the estimate turns into knows
    *  whether the cost is technician pay or a supplier price. */
   itemType?: string;
-  /** Per-unit labor / commission / materials split, carried so the job keeps
-   *  the shares of what was actually sold — see utils/itemCost. */
-  costBreakdown?: { labor: number; commission: number; materials: number };
+  /** Per-unit labor / materials split, carried so the job keeps the shares of
+   *  what was actually sold — see utils/itemCost. */
+  costBreakdown?: { labor: number; materials: number };
 }
 
 // Good / better / best. An estimate carries up to four options; the client picks

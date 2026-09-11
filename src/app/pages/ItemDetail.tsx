@@ -41,7 +41,7 @@ interface Item {
   inventory: boolean; booking: boolean;
   /** FR-4.8 — excluded from customer-facing documents; totals unaffected. */
   hideOnCustomerDocs?: boolean;
-  /** Cost split into labor / commission / materials, when one was entered. */
+  /** Cost split into labor / materials, when one was entered. */
   costBreakdown?: CostBreakdown;
   /** Members, when this item is an item group (a price book entry). */
   groupItems?: ItemGroupMember[];
@@ -364,8 +364,8 @@ export function ItemDetail() {
       </div>
       <p className="mt-3 text-[11px] text-[#9CA3AF]">
         {item.groupPricing === "sum"
-          ? "Priced as the sum of the items above. Labor and commission are compensation; materials are an expense."
-          : "Priced as a flat rate — the items above set the cost, not the price. Labor and commission are compensation; materials are an expense."}
+          ? "Priced as the sum of the items above. Labor is compensation; materials are an expense. The commission on the sale is recorded as a job expense, not here."
+          : "Priced as a flat rate — the items above set the cost, not the price. Labor is compensation; materials are an expense. The commission on the sale is recorded as a job expense, not here."}
       </p>
     </div>
   );
@@ -431,8 +431,8 @@ export function ItemDetail() {
             <div className="flex flex-col gap-1">
               <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Cost</div>
               <div className="text-[15px] text-[#374151] leading-[22px]" style={{ fontWeight: 500 }}>${money(item.cost)}</div>
-              {/* What the cost pays for. Labor and commission are compensation
-                  (and priced by workers' comp); materials are an expense. On a
+              {/* What the cost pays for. Labor is compensation (and what
+                  workers' comp is priced off); materials are an expense. On a
                   group the same split is spelled out under its members. */}
               {!isGroup && (
                 <div className="mt-0.5 text-[11px] text-[#8899AA] leading-[16px]">

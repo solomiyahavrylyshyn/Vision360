@@ -17,8 +17,9 @@ import {
 // plus several materials plus equipment plus a permit fee, and sometimes an
 // asset (the crane) for an hour. Rather than overloading one small item with
 // every kind of cost, the group carries the components and rolls their costs up
-// into labor / commission / materials — which is what the job KPI tiles and the
-// labor-vs-commission reporting read.
+// into labor and materials — which is what the job KPI tiles and the labor
+// reporting read. The commission on a sale is not part of a package: it is a job
+// expense in the pre-coded Commission category.
 //
 // A group is stored in the same collection as every other item, with item type
 // "Price Book" and a groupItems array, so it appears in the Items list and in
@@ -61,8 +62,9 @@ export function CreateItemGroup() {
   );
 
   // The group's cost is exactly its members' costs — anything else the package
-  // pays for (a commission, an extra hour) is an item in the group, which keeps
-  // one place to look and one place to edit.
+  // pays for (an extra hour of labor, a second part) is an item in the group,
+  // which keeps one place to look and one place to edit. The commission on the
+  // sale is not part of a package: it is recorded as a job expense.
   const totalBreakdown: CostBreakdown = rollUpBreakdown(members);
   const totalCost = breakdownTotal(totalBreakdown);
   const summedPrice = rollUpPrice(members);
@@ -268,35 +270,45 @@ export function CreateItemGroup() {
                 </button>
               ))}
             </div>
-            <div className="mt-4 grid grid-cols-3 gap-5">
-              <div>
-                <label className={labelClass}>Price {groupPricing === "flat" && reqStar}</label>
-                <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[14px] text-[#8899AA]">$</span>
-                  <input
-                    type="number" min="0" step="0.01"
-                    value={groupPricing === "sum" ? String(summedPrice) : flatPrice}
-                    readOnly={groupPricing === "sum"}
-                    onChange={(e) => setFlatPrice(e.target.value)}
-                    placeholder="0"
-                    className={`${fieldClass} pl-7 ${groupPricing === "sum" ? "bg-[#F9FAFB] text-[#546478]" : ""}`}
-                    style={{ fontVariantNumeric: "tabular-nums" }}
-                  />
+            {groupPricing === "flat" ? (
+              <div className="mt-4 grid grid-cols-3 gap-5">
+                <div>
+                  <label className={labelClass}>Price {reqStar}</label>
+                  <div className="relative">
+                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[14px] text-[#8899AA]">$</span>
+                    <input
+                      type="number" min="0" step="0.01"
+                      value={flatPrice}
+                      onChange={(e) => setFlatPrice(e.target.value)}
+                      placeholder="0"
+                      className={`${fieldClass} pl-7`}
+                      style={{ fontVariantNumeric: "tabular-nums" }}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className={labelClass}>Cost</label>
+                  <div className="relative">
+                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[14px] text-[#8899AA]">$</span>
+                    <input type="number" readOnly value={String(totalCost)} className={`${fieldClass} pl-7 bg-[#F9FAFB] text-[#546478]`} style={{ fontVariantNumeric: "tabular-nums" }} />
+                  </div>
+                  <p className="mt-1.5 text-[12px] text-[#8899AA]">Rolled up from the items</p>
+                </div>
+                <div>
+                  <label className={labelClass}>Margin</label>
+                  <div className={`${fieldClass} flex items-center bg-[#F9FAFB] text-[#546478]`} style={{ fontVariantNumeric: "tabular-nums" }}>{margin.toFixed(1)}%</div>
                 </div>
               </div>
-              <div>
-                <label className={labelClass}>Cost</label>
-                <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[14px] text-[#8899AA]">$</span>
-                  <input type="number" readOnly value={String(totalCost)} className={`${fieldClass} pl-7 bg-[#F9FAFB] text-[#546478]`} style={{ fontVariantNumeric: "tabular-nums" }} />
-                </div>
-                <p className="mt-1.5 text-[12px] text-[#8899AA]">Rolled up from the items</p>
-              </div>
-              <div>
-                <label className={labelClass}>Margin</label>
-                <div className={`${fieldClass} flex items-center bg-[#F9FAFB] text-[#546478]`} style={{ fontVariantNumeric: "tabular-nums" }}>{margin.toFixed(1)}%</div>
-              </div>
-            </div>
+            ) : (
+              <p className="mt-4 text-[13px] text-[#546478]">
+                Price <span className="text-[#1A2332]" style={{ fontWeight: 600 }}>{money(summedPrice)}</span>
+                <span className="mx-2 text-[#D8DEE8]">·</span>
+                Cost <span className="text-[#1A2332]" style={{ fontWeight: 600 }}>{money(totalCost)}</span>
+                <span className="mx-2 text-[#D8DEE8]">·</span>
+                Margin <span className="text-[#1A2332]" style={{ fontWeight: 600 }}>{margin.toFixed(1)}%</span>
+                <span className="ml-2 text-[#8899AA]">— all rolled up from the items</span>
+              </p>
+            )}
             <div className="mt-4 rounded-lg border border-[#E5E7EB] p-4">
               <label className="flex cursor-pointer items-center gap-2.5">
                 <input type="checkbox" checked={taxable} onChange={(e) => setTaxable(e.target.checked)} className="h-4 w-4 cursor-pointer rounded border-[#CBD5E1] accent-[#4A6FA5]" />
