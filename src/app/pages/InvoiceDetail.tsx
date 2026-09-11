@@ -7,6 +7,8 @@ import { PlusIcon } from "../components/ui/plus-icon";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "../components/ui/resizable";
 import { RecordTab, type RecordColumn, type RecordAction } from "../components/ui/record-tab";
 import { formatRegionalDate } from "../stores/regionalSettingsStore";
+import { documentTemplateStore } from "../stores/documentTemplateStore";
+import { InvoiceSheet, PrintPageRule, useDocCompany, type InvoiceSheetData } from "../components/DocumentSheets";
 import { jobsStore } from "../stores/jobsStore";
 import { itemsStore } from "../stores/itemsStore";
 import { ItemPicker, type CatalogItem } from "../components/ItemPicker";
@@ -369,6 +371,12 @@ export function InvoiceDetail() {
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
   const [payments, setPayments] = useState<Payment[]>(data.payments);
   const [activity, setActivity] = useState<ActivityEntry[]>(data.activity);
+  // Customer-facing document (FR-7.6 preview, FR-7.8/7.9 PDF and print) — the
+  // sheet from components/DocumentSheets on the paper chosen in Settings →
+  // Invoices → templates.
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const paper = useSyncExternalStore(documentTemplateStore.subscribe, documentTemplateStore.getSnapshot).invoice;
+  const docCompany = useDocCompany();
 
   // Line items live in state so "Add item" (catalog picker) and per-row remove
   // actually work on this mock-backed page (Figma 1432:107806).
@@ -1026,7 +1034,7 @@ export function InvoiceDetail() {
             </button>
             )}
             <KebabMenu triggerClassName="h-9 w-9 border border-[#E5E7EB] rounded-md bg-white flex items-center justify-center hover:bg-[#F5F7FA]">
-              <KebabItem icon="visibility">Preview</KebabItem>
+              <KebabItem icon="visibility" onClick={() => setPreviewOpen(true)}>Preview</KebabItem>
               <KebabItem icon="send">Send</KebabItem>
               <KebabItem icon="file_download">Download</KebabItem>
               <KebabSeparator />
@@ -1069,6 +1077,54 @@ export function InvoiceDetail() {
           </div>
         </div>
       )}
+
+      {previewOpen && (() => {
+        const addr = (a: any) => [a?.line, [a?.city, a?.state].filter(Boolean).join(", "), a?.zip].filter(Boolean).join(a?.city ? ", " : " ");
+        const job = data.jobs?.[0];
+        const sheet: InvoiceSheetData = {
+          number: data.number,
+          issued: fmtDate(data.date),
+          billTo: { name: data.client.name, address: addr(data.billingAddress), email: data.client.email, phone: data.client.phone },
+          job: job ? { title: `${job.jobNumber} · ${job.jobName}`, line: `Service at ${addr(job.serviceAddress)}`, sub: data.salesRep ? `Sales rep ${data.salesRep}` : undefined } : undefined,
+          fromEstimate: data.linkedEstimate ? { title: data.linkedEstimate, line: data.estimateStatus ? `Estimate ${data.estimateStatus.toLowerCase()}` : "" } : undefined,
+          lines: items.map((i: any) => {
+            const base = i.qty * i.unitPrice;
+            const tax = i.taxable ? base * (data.taxRate / 100) : 0;
+            return { name: i.name, description: i.description || undefined, qty: i.qty, unitPrice: i.unitPrice, tax: i.taxable ? tax : null, amount: base + tax };
+          }),
+          total,
+          payments: payments.map((pm) => ({ label: `${pm.method}${pm.checkNumber ? ` #${pm.checkNumber}` : ""} · ${fmtDate(pm.date)}`, amount: pm.amount })),
+          // A settled invoice reads "paid in full" rather than a negative balance
+          // when the recorded payments run past the total.
+          balance: Math.max(0, balance),
+          dueLine: balance <= 0 ? "paid in full" : `due ${fmtDate(data.dueDate)}${data.paymentTerms ? ` · ${data.paymentTerms}` : ""}`,
+          payNote: "We take card, check and cash — the link to pay online is in your email.",
+          notes: data.noteToCustomer ? <p>{data.noteToCustomer}</p> : undefined,
+          terms: data.terms ? <p>{data.terms}</p> : undefined,
+          createdBy: data.createdBy,
+        };
+        return (
+          <div className="fixed inset-0 z-50 bg-black/45 backdrop-blur-[2px] flex items-start justify-center overflow-y-auto px-6 py-8" onClick={() => setPreviewOpen(false)}>
+            <PrintPageRule paper={paper} />
+            <div className="relative flex flex-col items-center gap-4" onClick={(e) => e.stopPropagation()}>
+              <div className="w-full flex items-center justify-between gap-2">
+                <div className="rounded-md bg-white/90 px-2.5 py-1 text-[12px] text-[#546478]">Invoice · {paper === "legal" ? "Legal" : "Letter"}</div>
+                <div className="flex items-center gap-2">
+                  <button type="button" onClick={() => window.print()}
+                    className="h-9 px-3 rounded-md bg-white border border-[#D8DEE8] text-[13px] text-[#1A2332] hover:bg-[#F5F7FA] inline-flex items-center gap-1.5" style={{ fontWeight: 600 }}>
+                    <span className="material-icons" style={{ fontSize: "16px" }}>print</span> Print
+                  </button>
+                  <button type="button" onClick={() => setPreviewOpen(false)}
+                    className="h-9 w-9 rounded-md bg-white border border-[#D8DEE8] text-[#546478] hover:bg-[#F5F7FA] inline-flex items-center justify-center">
+                    <span className="material-icons" style={{ fontSize: "18px" }}>close</span>
+                  </button>
+                </div>
+              </div>
+              <InvoiceSheet data={sheet} company={docCompany} paper={paper} />
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Add item — catalog picker */}
       {itemPickerOpen && (

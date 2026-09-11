@@ -1,0 +1,146 @@
+/* Estimate and invoice sheets — ported from the Sep 10 layouts reviewed with
+   Jean (Estimate layouts/build_v2.py). Everything is scoped under .doc-sheet so
+   the document keeps its own type scale regardless of the page around it. The
+   mockups were drawn in AND Services red; here the accent and its tint follow
+   the brand colour from Company profile, so the same sheet prints in any
+   company's colours (FR-5.15: colour varies, fields stay). */
+
+.doc-sheet {
+  --doc-ink: #1B2437;
+  --doc-muted: #6E7684;
+  --doc-panel: #F4F4F6;
+  --doc-zebra: #F7F7F9;
+  --doc-rule: #D9DCE3;
+  --doc-accent: var(--brand-primary, #4A6FA5);
+  --doc-tint: color-mix(in srgb, var(--doc-accent) 12%, white);
+
+  position: relative;
+  box-sizing: border-box;
+  overflow: hidden;
+  background: #fff;
+  color: var(--doc-ink);
+  font-family: Geist, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  font-size: 11px;
+  line-height: 1.38;
+  padding: 40px 48px 38px;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+.doc-sheet.landscape { font-size: 10.5px; padding: 36px 40px 35px; }
+.doc-sheet *, .doc-sheet *::before, .doc-sheet *::after { box-sizing: border-box; }
+.doc-sheet p { margin: 0; }
+.doc-sheet b, .doc-sheet strong { font-weight: 600; }
+.doc-sheet .muted { color: var(--doc-muted); }
+.doc-sheet .label { font-size: 8.5px; letter-spacing: .09em; text-transform: uppercase; color: var(--doc-muted); font-weight: 500; }
+
+/* header: logo · company line · stacked meta, brand rule under it */
+.doc-sheet .hdr { display: grid; grid-template-columns: 1fr 1.4fr 1fr; align-items: center; padding-bottom: 10px; border-bottom: 2px solid var(--doc-accent); }
+.doc-sheet .hdr img { height: 42px; max-width: 170px; object-fit: contain; object-position: left; display: block; }
+.doc-sheet .hdr .wordmark { font-size: 17px; font-weight: 700; letter-spacing: -.01em; }
+.doc-sheet .hdr .mid { text-align: center; line-height: 1.45; }
+.doc-sheet .hdr .mid .phone { font-weight: 600; font-size: 12px; }
+.doc-sheet .hdr .mid .lic { color: #9AA1AE; font-size: 9.5px; }
+.doc-sheet .hdr .right { text-align: right; line-height: 1.4; }
+.doc-sheet .hdr .right .label { color: var(--doc-accent); }
+.doc-sheet .hdr .right .num { font-size: 17px; font-weight: 600; margin: 1px 0 2px; }
+.doc-sheet .hdr .right .dt { color: var(--doc-muted); font-size: 9.5px; }
+
+/* info panel */
+.doc-sheet .info { display: grid; gap: 20px; background: var(--doc-panel); border-radius: 4px; padding: 11px 16px; margin: 12px 0; }
+.doc-sheet .info .row { margin: 2px 0; }
+.doc-sheet .info .k { font-size: 8.5px; letter-spacing: .09em; text-transform: uppercase; color: var(--doc-muted); font-weight: 500; margin-right: 8px; }
+.doc-sheet .info .v { font-weight: 600; }
+.doc-sheet .info .s { margin-top: 1px; }
+
+/* line table with alternating rows */
+.doc-sheet table.lines { width: 100%; border-collapse: collapse; }
+.doc-sheet .lines thead th { text-align: left; font-size: 8.5px; letter-spacing: .09em; text-transform: uppercase; color: var(--doc-muted); font-weight: 500; padding: 8px 10px 6px; border-bottom: 1px solid var(--doc-ink); }
+.doc-sheet .lines tbody td { padding: 8px 10px; vertical-align: top; }
+.doc-sheet .lines tbody tr:nth-child(odd) td { background: var(--doc-zebra); }
+.doc-sheet .lines .n { font-weight: 500; }
+.doc-sheet .lines .dd { font-size: 9.5px; color: var(--doc-muted); margin-top: 1px; }
+.doc-sheet .lines .r, .doc-sheet .lines th.r { text-align: right; white-space: nowrap; }
+.doc-sheet .lines tr.inc td { color: var(--doc-muted); }
+
+/* totals */
+.doc-sheet .sums { margin-left: auto; width: 56%; }
+.doc-sheet .sums .tr { display: flex; justify-content: space-between; padding: 5px 10px; }
+.doc-sheet .sums .tr.muted { color: var(--doc-muted); }
+.doc-sheet .sums .tr.total { border-top: 1px solid var(--doc-ink); margin-top: 3px; padding-top: 8px; font-size: 14px; font-weight: 600; }
+.doc-sheet .sums .tr.total .was { font-size: 10.5px; font-weight: 400; color: #8A9098; text-decoration: line-through; margin-left: 8px; }
+.doc-sheet .sums .tr.due { background: var(--doc-tint); margin-top: 8px; padding: 11px 12px; border-radius: 4px; font-size: 16px; font-weight: 600; border-left: 3px solid var(--doc-accent); }
+.doc-sheet .sums .tr.due .sm { font-size: 9.5px; font-weight: 400; color: var(--doc-muted); display: block; margin-top: 2px; }
+
+/* sections */
+.doc-sheet .sec { margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--doc-rule); }
+.doc-sheet .sec h3 { font-size: 8.5px; letter-spacing: .09em; text-transform: uppercase; color: var(--doc-muted); font-weight: 500; margin: 0 0 6px; }
+.doc-sheet .sec p { margin: 0 0 5px; }
+.doc-sheet .two { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+.doc-sheet .two h4 { margin: 0 0 4px; font-size: 12px; font-weight: 600; }
+.doc-sheet .four { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+.doc-sheet .four .k { color: var(--doc-muted); font-size: 9.5px; }
+.doc-sheet .four .v { font-size: 12.5px; font-weight: 600; margin-top: 2px; }
+.doc-sheet .terms p { margin: 0 0 9px; }
+.doc-sheet .foot { position: absolute; left: 48px; right: 48px; bottom: 16px; display: flex; justify-content: space-between; font-size: 8.5px; color: #8A9098; }
+.doc-sheet.landscape .foot { left: 40px; right: 40px; }
+.doc-sheet .p2hdr { display: flex; justify-content: space-between; padding-bottom: 8px; border-bottom: 2px solid var(--doc-accent); }
+.doc-sheet .confirm { border: 2px solid var(--doc-ink); border-radius: 6px; padding: 12px 16px 10px; margin-top: 26px; }
+.doc-sheet .confirm .t { font-weight: 600; font-size: 11.5px; margin-bottom: 22px; }
+.doc-sheet .siglines { display: grid; grid-template-columns: 3.5fr .8fr 1fr; gap: 20px; }
+.doc-sheet .siglines .sl { border-bottom: 1px solid var(--doc-ink); height: 14px; font-size: 10px; }
+.doc-sheet .siglines .sc { font-size: 8.5px; color: var(--doc-muted); margin-top: 4px; }
+.doc-sheet .notes { margin-top: 10px; font-size: 10px; }
+.doc-sheet .notes p { margin: 0 0 4px; }
+.doc-sheet .notes .fine { color: var(--doc-muted); font-size: 9.5px; }
+.doc-sheet .notes .fine b { color: var(--doc-ink); }
+.doc-sheet .star { display: inline-block; width: 12px; height: 12px; vertical-align: -2px; margin-right: 6px; }
+
+/* option grid — two to four columns side by side */
+.doc-sheet .opts { width: 100%; border: 1px solid var(--doc-ink); border-collapse: collapse; table-layout: fixed; }
+.doc-sheet .opts td { border-left: 1px solid var(--doc-ink); vertical-align: top; padding: 0; }
+.doc-sheet .opts td:first-child { border-left: none; }
+.doc-sheet .ohead { background: var(--doc-tint); padding: 10px 12px 8px; border-bottom: 1px solid var(--doc-ink); min-height: 96px; }
+.doc-sheet .ohead .label { color: var(--doc-accent); }
+.doc-sheet .price { font-size: 26px; font-weight: 600; letter-spacing: -.01em; line-height: 1.05; margin: 4px 0 2px; }
+.doc-sheet .price .was { font-size: 11px; font-weight: 400; color: #8A9098; text-decoration: line-through; margin-left: 6px; }
+.doc-sheet .desc { font-size: 10px; }
+.doc-sheet .tax { font-size: 9px; color: var(--doc-muted); }
+.doc-sheet .items { padding: 10px 12px 6px; min-height: 226px; }
+.doc-sheet .items ul { margin: 0; padding: 0; }
+.doc-sheet .items li { list-style: none; position: relative; padding-left: 12px; margin: 0 0 7px; }
+.doc-sheet .items li::before { content: ""; position: absolute; left: 0; top: 6px; width: 4px; height: 4px; border-radius: 50%; background: var(--doc-ink); }
+.doc-sheet .items .d { display: block; font-size: 9px; color: var(--doc-muted); margin-top: 1px; }
+.doc-sheet .sign { padding: 18px 12px 7px; border-top: 1px solid var(--doc-rule); }
+.doc-sheet .sign .line { border-bottom: 1px solid var(--doc-ink); height: 12px; }
+.doc-sheet .sign .cap { font-size: 9px; color: var(--doc-muted); margin-top: 4px; }
+.doc-sheet .monthly { border-top: 1px solid var(--doc-ink); text-align: center; padding: 6px 0; font-size: 10px; color: var(--doc-muted); }
+.doc-sheet .monthly b { color: var(--doc-ink); font-size: 13px; margin-right: 4px; }
+.doc-sheet .warr { background: var(--doc-tint); border-top: 1px solid var(--doc-ink); text-align: center; padding: 6px 0 7px; }
+.doc-sheet .warr .l { font-size: 8.5px; letter-spacing: .09em; text-transform: uppercase; color: var(--doc-muted); font-weight: 500; }
+.doc-sheet .warr .big { font-size: 13px; font-weight: 600; margin: 2px 0 1px; }
+.doc-sheet .warr .sm { font-size: 10px; }
+
+/* single-option card (portrait) */
+.doc-sheet .card { border: 1px solid var(--doc-ink); }
+.doc-sheet .card .top { display: grid; grid-template-columns: 1fr 2.1fr; background: var(--doc-tint); border-bottom: 1px solid var(--doc-ink); }
+.doc-sheet .card .top .pr { padding: 12px 16px 10px; border-right: 1px solid var(--doc-ink); }
+.doc-sheet .card .top .pr .label { color: var(--doc-accent); }
+.doc-sheet .card .top .why { padding: 12px 16px 10px; }
+.doc-sheet .card .top .why .d { margin-top: 4px; }
+.doc-sheet .card .lines thead th { padding-left: 16px; padding-right: 16px; }
+.doc-sheet .card .lines tbody td { padding-left: 16px; padding-right: 16px; }
+.doc-sheet .band { display: flex; justify-content: space-between; align-items: center; background: var(--doc-tint); border-top: 1px solid var(--doc-ink); border-bottom: 1px solid var(--doc-ink); padding: 11px 16px; }
+.doc-sheet .band .bt { font-size: 14px; font-weight: 600; }
+.doc-sheet .band .bs { font-size: 9.5px; color: var(--doc-muted); margin-top: 2px; }
+.doc-sheet .band .bs b { color: var(--doc-ink); }
+.doc-sheet .band .bv { font-size: 20px; font-weight: 600; }
+.doc-sheet .sign.wide { display: grid; grid-template-columns: 2.4fr 1fr; gap: 28px; padding: 30px 16px 12px; border-top: none; }
+
+/* invoice */
+.doc-sheet .sums.full { width: 100%; margin-top: 14px; }
+.doc-sheet .sums.full .tr.total { border-top: none; margin-top: 0; padding-top: 6px; }
+
+@media print {
+  .doc-sheet { box-shadow: none !important; border: none !important; page-break-after: always; }
+  .doc-sheet:last-child { page-break-after: auto; }
+}

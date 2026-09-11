@@ -30,6 +30,8 @@ import type { BrandTheme } from "../utils/brandTheme";
 import { businessHoursStore, type BusinessHourRow } from "../stores/businessHoursStore";
 import { regionalSettingsStore, type RegionalSettings } from "../stores/regionalSettingsStore";
 import { estimateSettingsStore } from "../stores/estimateSettingsStore";
+import { documentTemplateStore, PAPER_SIZES, type DocumentKind, type PaperSize } from "../stores/documentTemplateStore";
+import { EstimateOptionsSheet, EstimateSingleSheet, EstimateTermsPage, InvoiceSheet, sheetPixels, useDocCompany, SAMPLE_ESTIMATE_OPTIONS, SAMPLE_ESTIMATE_SINGLE, SAMPLE_INVOICE, SAMPLE_TERMS_SECTIONS } from "../components/DocumentSheets";
 import { trialStore, isTrialActive, getTrialDaysRemaining } from "../stores/trialStore";
 import { categoriesStore } from "../stores/categoriesStore";
 import { estimateTypesStore } from "../stores/estimateTypesStore";
@@ -178,13 +180,6 @@ const defaultRbacPermissions: RbacPermission[] = [
 
 // Report-access catalog (RPT-2) now lives in components/ReportAccessPanel so the
 // Settings role config and the Invite-user form share one source of truth.
-
-const templateCards = [
-  { title: "Classic", description: "Simple layout with logo, totals, and notes." },
-  { title: "Modern", description: "More whitespace and a stronger header." },
-  { title: "Compact", description: "Good for short estimates and invoices." },
-  { title: "Detailed", description: "Best for item-heavy proposals." },
-];
 
 const generalIndustryOptions = [
   "Home services",
@@ -1189,130 +1184,141 @@ function BillingAndPlanSection() {
   );
 }
 
-// Card thumb — a scaled-down render of the real sample document, matching the
-// Figma template cards (realistic mini page, not grey placeholder bars).
-function TemplatePreview({ kind, className, docType = "Estimate" }: { kind: string; className?: string; docType?: "Estimate" | "Invoice" }) {
-  return (
-    <div className={`${className ?? "mb-2 h-24"} relative rounded-lg bg-[#F5F7FA] border border-[#E5E7EB] overflow-hidden flex items-start justify-center`}>
-      <div className="origin-top shrink-0 pointer-events-none select-none" style={{ transform: "scale(0.19)", marginTop: "8px" }}>
-        <TemplatePreviewLarge kind={kind} docType={docType} />
-      </div>
-    </div>
-  );
-}
+// Document templates (FR-5.15): the estimate and invoice PDFs come in Letter and
+// Legal. Colours follow Brand assets and the fields never move, so the choice is
+// the paper — the cards show the real sheet at thumbnail size, and Preview opens
+// it at reading size. For estimates the preview carries both layouts the document
+// can take: one option on a portrait card, two to four options side by side.
+function DocumentTemplatesCard({ kind }: { kind: DocumentKind }) {
+  const chosen = useSyncExternalStore(documentTemplateStore.subscribe, documentTemplateStore.getSnapshot)[kind];
+  const company = useDocCompany();
+  const [previewPaper, setPreviewPaper] = useState<PaperSize | null>(null);
+  const [previewLayout, setPreviewLayout] = useState<"single" | "options">("single");
+  const isEstimate = kind === "estimate";
+  const docLabel = isEstimate ? "estimate" : "invoice";
 
-// Larger preview used inside the modal — a realistic filled-in sample document
-// (Omega seed data) so the user sees what each template actually looks like.
-function TemplatePreviewLarge({ kind, docType = "Estimate" }: { kind: string; docType?: "Estimate" | "Invoice" }) {
-  const isInvoice = docType === "Invoice";
-  const docNo = isInvoice ? "INV-2071" : "EST-1042";
-  const baseItems = [
-    { name: "AC Tune-Up (flat rate)", desc: "Comprehensive AC system tune-up and inspection", qty: 1, rate: 89, total: 89 },
-    { name: "Capacitor Replacement", desc: "Replace run capacitor – includes labor and capacitor", qty: 1, rate: 289, total: 289 },
-    { name: "R-410A Refrigerant (per lb)", desc: "R-410A refrigerant recharge", qty: 2, rate: 24, total: 48 },
-    { name: "Drain Line Clearing", desc: "Clear primary drain line", qty: 1, rate: 159, total: 159 },
-  ];
-  const extraItems = [
-    { name: "Thermostat Installation", desc: "Install new standard thermostat", qty: 1, rate: 149, total: 149 },
-    { name: "Filter Replacement", desc: "Replace air filter – includes filter and labor", qty: 1, rate: 49, total: 49 },
-  ];
-  const items = kind === "Compact" ? baseItems.slice(0, 3) : kind === "Detailed" ? [...baseItems, ...extraItems] : baseItems;
-  const subtotal = items.reduce((s, i) => s + i.total, 0);
-  const tax = Math.round(subtotal * 7) / 100;
-  const money = (n: number) => `$${n.toFixed(2)}`;
-  const showDesc = kind === "Detailed";
-
-  const companyBlock = (light = false) => (
-    <div>
-      <div className={`text-[13px] leading-4 ${light ? "text-white" : "text-[#1A2332]"}`} style={{ fontWeight: 700 }}>Omega Home Services</div>
-      <div className={`mt-1 text-[9px] leading-[13px] ${light ? "text-white/70" : "text-[#6B7280]"}`}>
-        2201 W Azeele St, Tampa, FL 33609<br />(813) 555-0134 · office@omega-home.com
-      </div>
-    </div>
-  );
-  const docMeta = (right = true, light = false) => (
-    <div className={right ? "text-right" : ""}>
-      <div className={`text-[13px] leading-4 tracking-wide uppercase ${light ? "text-white" : "text-[#4A6FA5]"}`} style={{ fontWeight: 700 }}>{docType}</div>
-      <div className={`mt-1 text-[9px] leading-[13px] ${light ? "text-white/70" : "text-[#6B7280]"}`}>
-        {docNo} · Aug 5, 2026<br />{isInvoice ? "Due: Aug 19, 2026" : "Expires: Sep 4, 2026"}
-      </div>
-    </div>
-  );
-
-  const header: Record<string, React.ReactNode> = {
-    Classic: <div className="flex items-start justify-between">{companyBlock()}{docMeta()}</div>,
-    Modern: (
-      <div className="bg-[#4A6FA5] -mx-8 -mt-8 px-8 py-5 mb-2 flex items-start justify-between">
-        {companyBlock(true)}{docMeta(true, true)}
-      </div>
-    ),
-    Compact: (
-      <div className="flex items-center justify-between pb-2 border-b border-[#E5E7EB]">
-        <div className="text-[12px] text-[#1A2332]" style={{ fontWeight: 700 }}>Omega Home Services</div>
-        <div className="text-[10px] text-[#6B7280]">{docType} {docNo} · Aug 5, 2026</div>
-      </div>
-    ),
-    Detailed: (
-      <>
-        <div className="flex items-start justify-between">{companyBlock()}{docMeta()}</div>
-        <div className="mt-2 grid grid-cols-3 gap-2 text-[8.5px] leading-3 text-[#6B7280]">
-          <div>License #CAC1817425</div>
-          <div>EIN 59-3204817</div>
-          <div>omega-home.com</div>
-        </div>
-        <div className="mt-2 h-px bg-[#E5E7EB]" />
-      </>
-    ),
+  const choose = (size: PaperSize) => {
+    documentTemplateStore.setPaperSize(kind, size);
+    toast.success(`${PAPER_SIZES.find((p) => p.id === size)?.name} selected for ${docLabel}s`);
   };
 
+  // Thumbnails share one scale so Legal reads as the taller sheet next to Letter.
+  const THUMB_H = 168;
+
+  const renderSheet = (paper: PaperSize, layout: "single" | "options", scale: number) => {
+    const px = sheetPixels(paper, layout === "options" ? "landscape" : "portrait");
+    const body = !isEstimate
+      ? <InvoiceSheet data={SAMPLE_INVOICE} company={company} paper={paper} />
+      : layout === "options"
+        ? <EstimateOptionsSheet data={SAMPLE_ESTIMATE_OPTIONS} company={company} paper={paper} />
+        : <EstimateSingleSheet data={SAMPLE_ESTIMATE_SINGLE} company={company} paper={paper} />;
+    return (
+      <div style={{ width: px.width * scale, height: px.height * scale, position: "relative", flexShrink: 0 }}>
+        <div style={{ transform: `scale(${scale})`, transformOrigin: "top left", position: "absolute", top: 0, left: 0 }}>{body}</div>
+      </div>
+    );
+  };
+
+  const modalWidth = 920;
+  const previewScale = (paper: PaperSize, layout: "single" | "options") =>
+    Math.min(1, (modalWidth - 48) / sheetPixels(paper, layout === "options" ? "landscape" : "portrait").width);
+
   return (
-    <div className="w-[440px] bg-white border border-[#E5E7EB] shadow-sm rounded-md p-8 flex flex-col" style={{ aspectRatio: "8.5 / 11" }}>
-      {header[kind] ?? header.Classic}
-
-      {/* Bill to */}
-      <div className="mt-4">
-        <div className="text-[8.5px] uppercase tracking-wide text-[#9CA3AF]" style={{ fontWeight: 600 }}>Bill to</div>
-        <div className="mt-0.5 text-[10px] leading-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Travis Jones</div>
-        <div className="text-[9px] leading-[13px] text-[#6B7280]">4405 North Clark Avenue, Tampa, FL 33614</div>
-      </div>
-
-      {/* Line items */}
-      <div className="mt-4 grid grid-cols-[1fr_36px_56px_56px] gap-2 pb-1 border-b border-[#1A2332] text-[8.5px] uppercase tracking-wide text-[#1A2332]" style={{ fontWeight: 700 }}>
-        <div>Item</div><div className="text-right">Qty</div><div className="text-right">Rate</div><div className="text-right">Total</div>
-      </div>
-      <div className="divide-y divide-[#F0F2F5]">
-        {items.map((it) => (
-          <div key={it.name} className="py-1.5 grid grid-cols-[1fr_36px_56px_56px] gap-2 text-[9.5px] leading-[13px]">
-            <div>
-              <span className="text-[#1A2332]" style={{ fontWeight: 500 }}>{it.name}</span>
-              {showDesc && <div className="text-[8.5px] text-[#9CA3AF]">{it.desc}</div>}
+    <SectionCard
+      title={isEstimate ? "Estimate templates" : "Invoice templates"}
+      description={`Paper size for every ${docLabel} PDF. Colours and logo come from Company profile → Brand assets; the fields stay the same on both sizes.`}
+    >
+      <div className="grid grid-cols-2 gap-3 max-w-[560px]">
+        {PAPER_SIZES.map((size) => {
+          const selected = chosen === size.id;
+          const scale = THUMB_H / sheetPixels("legal", "portrait").height;
+          return (
+            <div
+              key={size.id}
+              onClick={() => choose(size.id)}
+              className={`rounded-xl border p-3 flex flex-col transition-all cursor-pointer ${
+                selected ? "border-[#4A6FA5] ring-2 ring-[#4A6FA5]/30 bg-white" : "border-[#E5E7EB] hover:border-[#C8D5E8] bg-white"
+              }`}
+            >
+              <div className="rounded-lg bg-[#F5F7FA] border border-[#E5E7EB] flex items-end justify-center overflow-hidden pointer-events-none select-none" style={{ height: THUMB_H + 20, paddingTop: 10 }}>
+                {renderSheet(size.id, "single", scale)}
+              </div>
+              <div className="mt-2 flex items-center justify-between">
+                <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>{size.name}</div>
+                {selected && <span className="text-[11px] text-[#4A6FA5]" style={{ fontWeight: 600 }}>In use</span>}
+              </div>
+              <p className="mt-0.5 text-[12px] leading-4 text-[#546478]">{size.description}</p>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); setPreviewLayout("single"); setPreviewPaper(size.id); }}
+                className="mt-2 w-full rounded-lg border border-[#E5E7EB] py-2 text-[13px] text-[#1A2332] bg-white hover:bg-[#F9FAFB] transition-colors"
+                style={{ fontWeight: 600 }}
+              >
+                Preview
+              </button>
             </div>
-            <div className="text-right text-[#6B7280]">{it.qty}</div>
-            <div className="text-right text-[#6B7280]">{money(it.rate)}</div>
-            <div className="text-right text-[#1A2332]" style={{ fontWeight: 500 }}>{money(it.total)}</div>
+          );
+        })}
+      </div>
+
+      {previewPaper && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setPreviewPaper(null)}>
+          <div className="bg-white rounded-xl border border-[#E5E7EB] shadow-2xl overflow-hidden flex flex-col" style={{ width: modalWidth, maxWidth: "94vw", maxHeight: "88vh" }} onClick={(e) => e.stopPropagation()}>
+            <div className="px-6 py-4 border-b border-[#E5E7EB] flex items-center justify-between gap-4">
+              <div>
+                <h3 className="text-[16px] text-[#1A2332]" style={{ fontWeight: 700 }}>{PAPER_SIZES.find((p) => p.id === previewPaper)?.name} · {isEstimate ? "estimate" : "invoice"}</h3>
+                <p className="text-[12px] text-[#6B7280]">{PAPER_SIZES.find((p) => p.id === previewPaper)?.description}</p>
+              </div>
+              {isEstimate && (
+                <div className="flex rounded-lg border border-[#E5E7EB] p-0.5 text-[13px]" role="tablist">
+                  {([["single", "One option"], ["options", "Four options"]] as const).map(([id, label]) => (
+                    <button
+                      key={id}
+                      type="button"
+                      role="tab"
+                      aria-selected={previewLayout === id}
+                      onClick={() => setPreviewLayout(id)}
+                      className={`rounded-md px-3 py-1.5 transition-colors ${previewLayout === id ? "bg-[#4A6FA5] text-white" : "text-[#546478] hover:bg-[#F5F7FA]"}`}
+                      style={{ fontWeight: 600 }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              )}
+              <button onClick={() => setPreviewPaper(null)} className="text-[#9CA3AF] hover:text-[#1A2332]">
+                <span className="material-icons" style={{ fontSize: "20px" }}>close</span>
+              </button>
+            </div>
+            <div className="flex-1 overflow-auto bg-[#F5F7FA] p-6 flex flex-col items-center gap-6">
+              {renderSheet(previewPaper, previewLayout, previewScale(previewPaper, previewLayout))}
+              {isEstimate && (
+                <div style={{ width: sheetPixels(previewPaper, "portrait").width * previewScale(previewPaper, "single"), height: sheetPixels(previewPaper, "portrait").height * previewScale(previewPaper, "single"), position: "relative", flexShrink: 0 }}>
+                  <div style={{ transform: `scale(${previewScale(previewPaper, "single")})`, transformOrigin: "top left", position: "absolute", top: 0, left: 0 }}>
+                    <EstimateTermsPage
+                      data={{
+                        number: previewLayout === "options" ? SAMPLE_ESTIMATE_OPTIONS.number : SAMPLE_ESTIMATE_SINGLE.number,
+                        customerLine: `${SAMPLE_ESTIMATE_SINGLE.customer.name} · ${SAMPLE_ESTIMATE_SINGLE.customer.address}`,
+                        optionCount: previewLayout === "options" ? SAMPLE_ESTIMATE_OPTIONS.options.length : 1,
+                        sections: SAMPLE_TERMS_SECTIONS,
+                        preparedBy: "Gary W.",
+                        issued: SAMPLE_ESTIMATE_SINGLE.issued,
+                      }}
+                      company={company}
+                      paper={previewPaper}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="px-6 py-4 border-t border-[#E5E7EB] flex items-center justify-end gap-3 bg-white">
+              <Button type="button" variant="outline" onClick={() => setPreviewPaper(null)} className="border-[#E5E7EB] text-[#546478] hover:bg-[#EDF0F5] h-10 px-6">Close</Button>
+              <Button type="button" onClick={() => { choose(previewPaper); setPreviewPaper(null); }} className="bg-[#4A6FA5] hover:bg-[#3d5a85] text-white h-10 px-6" style={{ fontWeight: 600 }}>Use this template</Button>
+            </div>
           </div>
-        ))}
-      </div>
-
-      {/* Totals */}
-      <div className="mt-3 ml-auto w-44 space-y-1 text-[9.5px]">
-        <div className="flex justify-between text-[#6B7280]"><span>Subtotal</span><span>{money(subtotal)}</span></div>
-        <div className="flex justify-between text-[#6B7280]"><span>Sales tax (7%)</span><span>{money(tax)}</span></div>
-        <div className="flex justify-between border-t border-[#E5E7EB] pt-1 text-[11px] text-[#1A2332]" style={{ fontWeight: 700 }}>
-          <span>Total</span><span className="text-[#4A6FA5]">{money(subtotal + tax)}</span>
         </div>
-      </div>
-
-      {/* Notes / terms */}
-      <div className="mt-auto pt-4">
-        <div className="text-[8.5px] uppercase tracking-wide text-[#9CA3AF]" style={{ fontWeight: 600 }}>Notes</div>
-        <div className="mt-0.5 text-[9px] leading-[13px] text-[#6B7280]">
-          {isInvoice
-            ? "Payment due within 14 days. We accept card, ACH and check. Thank you for your business!"
-            : "Estimate valid for 30 days. A 50% deposit is required to schedule the work."}
-        </div>
-      </div>
-    </div>
+      )}
+    </SectionCard>
   );
 }
 
@@ -1840,9 +1846,7 @@ function EstimateRulesCard() {
 }
 
 // Invoices Preferences — Marek's spec
-function InvoicesPreferences({ templateCards }: { templateCards: { title: string; description: string }[] }) {
-  const [selectedTemplate, setSelectedTemplate] = useState<string>("Classic");
-  const [previewTemplate, setPreviewTemplate] = useState<string | null>(null);
+function InvoicesPreferences() {
   const [requireDeposit, setRequireDeposit] = useState(true);
   const [paymentTerms, setPaymentTerms] = useState(["Due on receipt", "Net 15", "Net 30", "Net 60"]);
   const [newPaymentTerm, setNewPaymentTerm] = useState("");
@@ -1851,61 +1855,7 @@ function InvoicesPreferences({ templateCards }: { templateCards: { title: string
 
   return (
     <>
-      {/* Templates */}
-      <SectionCard title="Invoice Templates" description="Pick the layout used on every invoice and receipt PDF.">
-        <div className="grid grid-cols-4 gap-3">
-          {templateCards.map(card => {
-            const selected = selectedTemplate === card.title;
-            return (
-              <div
-                key={card.title}
-                onClick={() => { setSelectedTemplate(card.title); toast.success(`${card.title} template selected`); }}
-                className={`rounded-xl border p-3 flex flex-col transition-all cursor-pointer ${
-                  selected
-                    ? "border-[#4A6FA5] ring-2 ring-[#4A6FA5]/30 bg-white"
-                    : "border-[#E5E7EB] hover:border-[#C8D5E8] bg-white"
-                }`}
-              >
-                <TemplatePreview kind={card.title} docType="Invoice" className="h-[120px] rounded-lg bg-[#F5F7FA] border border-[#E5E7EB] p-2.5 flex flex-col overflow-hidden" />
-                <div className="mt-2 text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>{card.title}</div>
-                <p className="mt-0.5 text-[12px] leading-4 text-[#546478]">{card.description}</p>
-                <button
-                  type="button"
-                  onClick={e => { e.stopPropagation(); setPreviewTemplate(card.title); }}
-                  className="mt-2 w-full rounded-lg border border-[#E5E7EB] py-2 text-[13px] text-[#1A2332] bg-white hover:bg-[#F9FAFB] transition-colors"
-                  style={{ fontWeight: 600 }}
-                >
-                  Preview
-                </button>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Preview modal */}
-        {previewTemplate && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setPreviewTemplate(null)}>
-            <div className="w-[640px] max-h-[80vh] bg-white rounded-xl border border-[#E5E7EB] shadow-2xl overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
-              <div className="px-6 py-4 border-b border-[#E5E7EB] flex items-center justify-between">
-                <div>
-                  <h3 className="text-[16px] text-[#1A2332]" style={{ fontWeight: 700 }}>{previewTemplate} template</h3>
-                  <p className="text-[12px] text-[#6B7280]">{templateCards.find(c => c.title === previewTemplate)?.description}</p>
-                </div>
-                <button onClick={() => setPreviewTemplate(null)} className="text-[#9CA3AF] hover:text-[#1A2332]">
-                  <span className="material-icons" style={{ fontSize: "20px" }}>close</span>
-                </button>
-              </div>
-              <div className="flex-1 overflow-auto bg-[#F5F7FA] p-6 flex items-start justify-center">
-                <TemplatePreviewLarge kind={previewTemplate} docType="Invoice" />
-              </div>
-              <div className="px-6 py-4 border-t border-[#E5E7EB] flex items-center justify-end gap-3 bg-white">
-                <Button type="button" variant="outline" onClick={() => setPreviewTemplate(null)} className="border-[#E5E7EB] text-[#546478] hover:bg-[#EDF0F5] h-10 px-6">Close</Button>
-                <Button type="button" onClick={() => { setSelectedTemplate(previewTemplate); setPreviewTemplate(null); toast.success(`${previewTemplate} template selected`); }} className="bg-[#4A6FA5] hover:bg-[#3d5a85] text-white h-10 px-6" style={{ fontWeight: 600 }}>Use this template</Button>
-              </div>
-            </div>
-          </div>
-        )}
-      </SectionCard>
+      <DocumentTemplatesCard kind="invoice" />
 
       {/* Deposits (Figma 264:5793) */}
       <SectionCard title="Deposits" description="Collect a deposit when the customer accepts an estimate or signs an invoice.">
@@ -2658,9 +2608,6 @@ export function Settings() {
   // When set, the invite modal is in "edit existing member" mode (keyed by the
   // member's original email). Null = inviting a brand-new user.
   const [editingKey, setEditingKey] = useState<string | null>(null);
-  // ── Estimate templates ──
-  const [selectedEstimateTemplate, setSelectedEstimateTemplate] = useState<string>("Classic");
-  const [previewEstimateTemplate, setPreviewEstimateTemplate] = useState<string | null>(null);
   // ── Login security & 2FA ──
   const [tempPasswordLink, setTempPasswordLink] = useState(true);
   const [forceChangeOnLogin, setForceChangeOnLogin] = useState(false);
@@ -4610,60 +4557,7 @@ export function Settings() {
                 )}
                 {activeSection === "estimates" && (
                   <>
-                    <SectionCard title="Estimate templates" description="Offer four pre-built templates instead of advanced document customization.">
-                      <div className="grid grid-cols-4 gap-3">
-                        {templateCards.map(card => {
-                          const selected = selectedEstimateTemplate === card.title;
-                          return (
-                            <div
-                              key={card.title}
-                              onClick={() => { setSelectedEstimateTemplate(card.title); toast.success(`${card.title} template selected`); }}
-                              className={`rounded-xl border p-3 flex flex-col transition-all cursor-pointer ${
-                                selected
-                                  ? "border-[#4A6FA5] ring-2 ring-[#4A6FA5]/30 bg-white"
-                                  : "border-[#E5E7EB] hover:border-[#C8D5E8] bg-white"
-                              }`}
-                            >
-                              <TemplatePreview kind={card.title} className="h-[120px] rounded-lg bg-[#F5F7FA] border border-[#E5E7EB] p-2.5 flex flex-col overflow-hidden" />
-                              <div className="mt-2 text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>{card.title}</div>
-                              <p className="mt-0.5 text-[12px] leading-4 text-[#546478]">{card.description}</p>
-                              <button
-                                type="button"
-                                onClick={e => { e.stopPropagation(); setPreviewEstimateTemplate(card.title); }}
-                                className="mt-2 w-full rounded-lg border border-[#E5E7EB] py-2 text-[13px] text-[#1A2332] bg-white hover:bg-[#F9FAFB] transition-colors"
-                                style={{ fontWeight: 600 }}
-                              >
-                                Preview
-                              </button>
-                            </div>
-                          );
-                        })}
-                      </div>
-
-                      {/* Preview modal */}
-                      {previewEstimateTemplate && (
-                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setPreviewEstimateTemplate(null)}>
-                          <div className="w-[640px] max-h-[80vh] bg-white rounded-xl border border-[#E5E7EB] shadow-2xl overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
-                            <div className="px-6 py-4 border-b border-[#E5E7EB] flex items-center justify-between">
-                              <div>
-                                <h3 className="text-[16px] text-[#1A2332]" style={{ fontWeight: 700 }}>{previewEstimateTemplate} template</h3>
-                                <p className="text-[12px] text-[#6B7280]">{templateCards.find(c => c.title === previewEstimateTemplate)?.description}</p>
-                              </div>
-                              <button onClick={() => setPreviewEstimateTemplate(null)} className="text-[#9CA3AF] hover:text-[#1A2332]">
-                                <span className="material-icons" style={{ fontSize: "20px" }}>close</span>
-                              </button>
-                            </div>
-                            <div className="flex-1 overflow-auto bg-[#F5F7FA] p-6 flex items-start justify-center">
-                              <TemplatePreviewLarge kind={previewEstimateTemplate} />
-                            </div>
-                            <div className="px-6 py-4 border-t border-[#E5E7EB] flex items-center justify-end gap-3 bg-white">
-                              <Button type="button" variant="outline" onClick={() => setPreviewEstimateTemplate(null)} className="border-[#E5E7EB] text-[#546478] hover:bg-[#EDF0F5] h-10 px-6">Close</Button>
-                              <Button type="button" onClick={() => { setSelectedEstimateTemplate(previewEstimateTemplate); setPreviewEstimateTemplate(null); toast.success(`${previewEstimateTemplate} template selected`); }} className="bg-[#4A6FA5] hover:bg-[#3d5a85] text-white h-10 px-6" style={{ fontWeight: 600 }}>Use this template</Button>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </SectionCard>
+                    <DocumentTemplatesCard kind="estimate" />
                     <EstimateValidityCard />
                     {/* Estimate types (FR-16.5) — company-editable list feeding
                         the estimate form's type picker, list filters and reports. */}
@@ -4674,7 +4568,7 @@ export function Settings() {
                     <EstimateRulesCard />
                   </>
                 )}
-                {activeSection === "invoices" && <InvoicesPreferences templateCards={templateCards} />}
+                {activeSection === "invoices" && <InvoicesPreferences />}
                 {activeSection === "items" && <ItemsPreferences />}
               </div>
             </>

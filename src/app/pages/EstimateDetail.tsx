@@ -1,5 +1,4 @@
 ﻿import { useState, useRef, useEffect, useCallback, useSyncExternalStore } from "react";
-import { getStoredBrandLogo, BRAND_LOGO_EVENT } from "../utils/brandTheme";
 import { termsStore, hasTerms } from "../stores/termsStore";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
@@ -16,6 +15,8 @@ import { estimatesStore, makePublicToken, type EstimateRecord } from "../stores/
 import { estimateTypesStore } from "../stores/estimateTypesStore";
 import { jobsStore } from "../stores/jobsStore";
 import { formatRegionalDate } from "../stores/regionalSettingsStore";
+import { documentTemplateStore } from "../stores/documentTemplateStore";
+import { EstimateOptionsSheet, EstimateSingleSheet, EstimateTermsPage, PrintPageRule, money, useDocCompany, type EstimateOptionsData, type EstimateSingleData, type EstimateTermsData } from "../components/DocumentSheets";
 import installHeatingSystem1Photo from "../../assets/documents/33702-install-heating-system-1.jpg";
 import installHeatingSystemPhoto from "../../assets/documents/33702-install-heating-system.jpg";
 import installDuctsVentsPhoto from "../../assets/documents/33805-install-ducts-vents.jpg";
@@ -357,12 +358,15 @@ export function EstimateDetail() {
   const [typeMenuOpen, setTypeMenuOpen] = useState(false);
   const estimateTypes = useSyncExternalStore(estimateTypesStore.subscribe, estimateTypesStore.getSnapshot);
   const [customerPreviewOpen, setCustomerPreviewOpen] = useState(false);
-  const [brandLogo, setBrandLogoState] = useState(() => getStoredBrandLogo());
   // Company-default Terms & Conditions (Settings → General). These travel with the
   // estimate as the trailing page(s) of the customer preview / PDF, so the document
   // a client receives always reflects what the business configured.
   const legalDocs = useSyncExternalStore(termsStore.subscribe, termsStore.getSnapshot);
   const termsDoc = legalDocs.terms;
+  // Paper size from Settings → Estimates → templates (FR-5.15) and the company
+  // masthead — the same sheet the client gets by email and on the review page.
+  const paper = useSyncExternalStore(documentTemplateStore.subscribe, documentTemplateStore.getSnapshot).estimate;
+  const docCompany = useDocCompany({ phone: "(813) 263-0691", contactLine: "8377 Standish Bend Dr Tampa FL 33615 · jaamsflying@gmail.com" });
   // An estimate can spawn multiple jobs (phased work, change orders). The real
   // link lives on each job (estimateId / estimateNumber), so derive the list
   // from the jobs store; fall back to the legacy single jobId for seed estimates.
@@ -371,13 +375,6 @@ export function EstimateDetail() {
     (!!j.estimateNumber && !!estimate.estimateNumber && j.estimateNumber === estimate.estimateNumber)
   );
   const jobCount = linkedJobs.length || (estimate.jobId ? 1 : 0);
-  const handleBrandLogoChange = useCallback((e: Event) => {
-    setBrandLogoState((e as CustomEvent<string>).detail ?? "");
-  }, []);
-  useEffect(() => {
-    window.addEventListener(BRAND_LOGO_EVENT, handleBrandLogoChange);
-    return () => window.removeEventListener(BRAND_LOGO_EVENT, handleBrandLogoChange);
-  }, [handleBrandLogoChange]);
   interface DocFile { id: string; name: string; size: string; date: string; icon: string; iconColor: string; isImage?: boolean; previewUrl?: string; previewGradient?: string; uploadedBy?: string; category?: string; }
   // Documents are scoped PER estimate id — each demo estimate gets its OWN
   // subset, so estimates 5 / 6 / 7 never share the same documents (and the
@@ -566,165 +563,84 @@ export function EstimateDetail() {
   const depositFor = (optionTotal: number) =>
     estimate.depositType === "percentage" ? optionTotal * (estimate.depositValue / 100) : estimate.depositValue;
   const docTotals = totalsFor(documentItems);
-  const sheetWidth = 760;
+  // The document's data, shaped for the sheets in components/DocumentSheets.
+  // Line amounts on the sheet are tax-inclusive, so the "Your price" band and
+  // the column of amounts add up in front of the client.
+  const lineTax = (i: LineItem) => (i.taxable ? i.amount * (estimate.taxRate / 100) : 0);
+  const customerLine = `${estimate.clientName} · ${estimate.clientAddress.replace(/\n/g, ", ")}`;
+  const docCustomer = { name: estimate.clientName, address: estimate.clientAddress.replace(/\n/g, ", "), technician: estimate.teamMember };
+  const depositNote = estimate.depositRequired
+    ? `A deposit of ${money(depositFor(docTotals.total))} is due on approval; the balance is invoiced when the work is done.`
+    : null;
 
-  // Shared masthead. The header total is a single number on a plain sheet and a
-  // "from" price when the client still has options to choose between.
-  const sheetHeader = () => (
-    <>
-      <div className="flex items-start justify-between mb-9">
-        <div className="text-[12px] leading-[18px]">
-          {brandLogo
-            ? <img src={brandLogo} alt="Company logo" className="max-h-[48px] max-w-[160px] object-contain mb-1" />
-            : <div style={{ fontWeight: 700 }}>Service Vision</div>
-          }
-          <div>8377 Standish Bend Dr Tampa FL 33615</div>
-          <div style={{ color: "var(--brand-primary, #4A6FA5)" }}>jaamsflying@gmail.com</div>
-          <div>(813) 263-0691</div>
-        </div>
-        <div className="text-right">
-          <div className="text-[31px] leading-none tracking-wide text-[#4F5660]" style={{ fontWeight: 800 }}>ESTIMATE</div>
-          <div className="grid grid-cols-[100px_120px] gap-x-6 gap-y-1 text-[12px] mt-11">
-            <div className="text-right" style={{ fontWeight: 700 }}>Estimate #</div>
-            <div className="text-right text-[#7C6A9D]">{estimate.estimateNumber}</div>
-            <div className="text-right" style={{ fontWeight: 700 }}>Date</div>
-            <div className="text-right text-[#7C6A9D]">{estimate.dateCreated}</div>
-            <div className="text-right" style={{ fontWeight: 700 }}>{isComparisonSheet ? "From" : "Total"}</div>
-            <div className="text-right text-[#7C6A9D]">
-              ${fmt(isComparisonSheet ? Math.min(...documentOptions.map((o) => totalsFor(o.items).total)) : docTotals.total)}
-            </div>
-          </div>
-        </div>
-      </div>
-      <div className="grid grid-cols-2 gap-14 text-[12px] leading-[18px] mb-6">
-        <div>
-          <div className="mb-1" style={{ fontWeight: 700 }}>Prepared For:</div>
-          <div>{estimate.clientName}</div>
-          <div className="whitespace-pre-line">{estimate.clientAddress}</div>
-          <div>{estimate.clientPhone}</div>
-          <div style={{ color: "var(--brand-primary, #4A6FA5)" }}>{estimate.clientEmail}</div>
-        </div>
-        <div>
-          <div className="mb-1" style={{ fontWeight: 700 }}>Service Location:</div>
-          <div className="whitespace-pre-line">{estimate.serviceAddress}</div>
-        </div>
-      </div>
-    </>
-  );
+  const singleData: EstimateSingleData = {
+    number: estimate.estimateNumber,
+    issued: estimate.dateCreated,
+    validUntil: estimate.expirationDate,
+    customer: docCustomer,
+    headline: {
+      price: docTotals.total,
+      description: [estimate.estimateType, estimate.estimateName].filter(Boolean).join(" · ") || "Estimate · tax included",
+    },
+    scope: estimate.notes || undefined,
+    lines: documentItems.map((i) => ({
+      name: i.name, description: i.description || undefined, qty: i.quantity,
+      unitPrice: i.price, tax: i.taxable ? lineTax(i) : null, amount: i.amount + lineTax(i),
+    })),
+    total: docTotals.total,
+    notes: [
+      chosenOption && allOptions.length > 1
+        ? <><b>Approved option: {chosenOption.name}.</b> The other {allOptions.length - 1} option{allOptions.length > 2 ? "s" : ""} the client reviewed are no longer part of this estimate.</>
+        : <>Tax is shown per line; lines without a tax amount are not taxable.{depositNote ? ` ${depositNote}` : ""}</>,
+      <>Terms on page 2. <b>Sign to accept.</b></>,
+    ],
+    preparedBy: estimate.teamMember,
+  };
 
-  const sheetFooter = () => (
-    <>
-      {estimate.notes && <div className="text-[12px]"><div style={{ fontWeight: 700 }}>Notes:</div><div>{estimate.notes}</div></div>}
-      {/* Page-1 disclaimer is a US legal requirement ("form of delivery"):
-          without an explicit pointer to the T&C pages the client can claim
-          they never saw them. Final wording to be reviewed by the attorney. */}
-      <div className="mt-4 text-[11px] text-[#6B7280]" style={{ fontWeight: 600 }}>See terms and conditions on the next page.</div>
-      <div className="mt-12 text-center text-[23px] text-[#111827]" style={{ fontWeight: 800 }}>Thank you for your business</div>
-    </>
-  );
+  const optionsData: EstimateOptionsData = {
+    number: estimate.estimateNumber,
+    issued: estimate.dateCreated,
+    validUntil: estimate.expirationDate,
+    customer: docCustomer,
+    options: documentOptions.map((o) => {
+      const t = totalsFor(o.items);
+      return {
+        label: o.name, price: t.total, tax: t.tax, description: o.summary ?? "",
+        items: o.items.map((i) => ({ name: i.quantity > 1 ? `${i.name} ×${i.quantity}` : i.name, detail: i.description || undefined })),
+      };
+    }),
+    fine: <>{depositNote ? `${depositNote} ` : ""}Terms on page 2. <b>Sign the column you choose.</b> All {documentOptions.length} options were offered to you.</>,
+    preparedBy: estimate.teamMember,
+  };
 
-  // One option — the plain sheet: a single column of line items and one total.
-  const renderSimpleSheet = () => (
-    <div className="bg-white text-[#5F6670] shadow-2xl border border-[#D7DCE3]" style={{ width: sheetWidth, minHeight: 980, padding: "32px 28px 44px", fontFamily: "Arial, sans-serif" }}>
-      {sheetHeader()}
-      {chosenOption && (
-        <div className="mb-4 border border-[#BBF7D0] bg-[#F0FDF4] px-3 py-2 text-[12px] text-[#166534]">
-          <span style={{ fontWeight: 700 }}>Approved option: {chosenOption.name}.</span>{" "}
-          {allOptions.length > 1 && `The other ${allOptions.length - 1} option${allOptions.length > 2 ? "s" : ""} the client reviewed are no longer part of this estimate.`}
-        </div>
-      )}
-      <table className="w-full border-collapse text-[12px]">
-        <thead>
-          <tr className="border-y-[3px] border-[#4F5660]">
-            <th className="text-left py-3 px-2" style={{ fontWeight: 700 }}>Description</th>
-            <th className="text-left py-3 px-2 w-[84px]" style={{ fontWeight: 700 }}>QTY</th>
-            <th className="text-left py-3 px-2 w-[102px]" style={{ fontWeight: 700 }}>Price</th>
-            <th className="text-left py-3 px-2 w-[102px]" style={{ fontWeight: 700 }}>Amount</th>
-          </tr>
-        </thead>
-        <tbody>
-          {documentItems.map(item => (
-            <tr key={item.id} className="border-b border-[#E0E3E7]">
-              <td className="py-3 px-2"><div style={{ fontWeight: 700 }}>{item.name}</div>{item.description && <div>{item.description}</div>}</td>
-              <td className="py-3 px-2 text-[#6F6A93]">{item.quantity}</td>
-              <td className="py-3 px-2 text-[#6F6A93]">${fmt(item.price)}</td>
-              <td className="py-3 px-2 text-[#6F6A93]">${fmt(item.amount)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <div className="flex justify-end border-t border-[#E0E3E7] mb-16">
-        <div className="grid grid-cols-[90px_110px] text-[12px]">
-          <div className="py-2 px-2" style={{ fontWeight: 700 }}>Subtotal</div><div className="py-2 px-2 text-right text-[#6F6A93]">${fmt(docTotals.subtotal)}</div>
-          {docTotals.tax > 0 && <><div className="py-1 px-2" style={{ fontWeight: 700 }}>Tax</div><div className="py-1 px-2 text-right text-[#6F6A93]">${fmt(docTotals.tax)}</div></>}
-          <div className="py-2 px-2" style={{ fontWeight: 700 }}>Total</div><div className="py-2 px-2 text-right text-[#6F6A93]">${fmt(docTotals.total)}</div>
-          {estimate.depositRequired && <><div className="py-1 px-2" style={{ fontWeight: 700 }}>Deposit</div><div className="py-1 px-2 text-right text-[#6F6A93]">${fmt(depositFor(docTotals.total))}</div></>}
-        </div>
-      </div>
-      {sheetFooter()}
-    </div>
-  );
-
-  // Two to four options — the comparison sheet: the options stand next to each
-  // other so the totals can be read against one another at a glance.
-  const renderComparisonSheet = () => (
-    <div className="bg-white text-[#5F6670] shadow-2xl border border-[#D7DCE3]" style={{ width: sheetWidth, minHeight: 980, padding: "32px 28px 44px", fontFamily: "Arial, sans-serif" }}>
-      {sheetHeader()}
-      <div className="border-t-[3px] border-[#4F5660] pt-3 mb-3 text-[12px] text-[#4F5660]" style={{ fontWeight: 700 }}>
-        Choose the option that suits you best
-      </div>
-      <div className="grid gap-3 mb-8" style={{ gridTemplateColumns: `repeat(${documentOptions.length}, minmax(0, 1fr))` }}>
-        {documentOptions.map((option) => {
-          const t = totalsFor(option.items);
-          return (
-            <div key={option.name} className="flex flex-col border border-[#D7DCE3]">
-              <div className="border-b-[3px] border-[#4F5660] px-3 py-2">
-                <div className="text-[13px] leading-[17px] text-[#1A2332]" style={{ fontWeight: 700 }}>{option.name}</div>
-                {option.summary && <div className="mt-1 text-[11px] leading-[15px]">{option.summary}</div>}
-              </div>
-              <div className="flex-1 px-3 py-2">
-                <div className="mb-1.5 text-[10px] uppercase tracking-wide text-[#9CA3AF]" style={{ fontWeight: 700 }}>What&rsquo;s included</div>
-                <ul className="space-y-1 text-[11px] leading-[15px]">
-                  {option.items.map((item) => (
-                    <li key={item.id} className="flex items-start justify-between gap-2">
-                      <span>{item.name}{item.quantity > 1 ? ` ×${item.quantity}` : ""}</span>
-                      <span className="whitespace-nowrap text-[#6F6A93]">${fmt(item.amount)}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <div className="border-t border-[#E0E3E7] px-3 py-2">
-                {t.tax > 0 && (
-                  <div className="flex justify-between text-[11px]"><span>Tax</span><span className="text-[#6F6A93]">${fmt(t.tax)}</span></div>
-                )}
-                <div className="flex items-baseline justify-between text-[#111827]">
-                  <span className="text-[11px]" style={{ fontWeight: 700 }}>Total</span>
-                  <span className="text-[15px]" style={{ fontWeight: 800 }}>${fmt(t.total)}</span>
-                </div>
-                {estimate.depositRequired && (
-                  <div className="mt-1 text-[10px] text-[#6B7280]">Deposit due ${fmt(depositFor(t.total))}</div>
-                )}
-              </div>
-              <div className="border-t border-dashed border-[#C9CFD8] px-3 py-2 text-center text-[10px] leading-[14px] text-[#6B7280]">
-                Select online, or initial here to choose this option
-                <div className="mt-3 border-b border-[#9CA3AF]" />
-              </div>
-            </div>
-          );
-        })}
-      </div>
-      {sheetFooter()}
-    </div>
-  );
+  // Company terms from Settings → General travel as page 2. Blocks are separated
+  // by a blank line; the first line of each block is the clause heading.
+  const termsBlocks = termsDoc.mode === "file" && termsDoc.fileName
+    ? [{ heading: "", body: `Refer to the attached terms & conditions document: ${termsDoc.fileName}.` }]
+    : hasTerms(termsDoc)
+      ? termsDoc.text.trim().split(/\n\s*\n/).map((block) => {
+          const lines = block.split("\n");
+          return { heading: lines[0], body: lines.slice(1).join(" ").trim() };
+        })
+      : undefined;
+  const termsData: EstimateTermsData = {
+    number: estimate.estimateNumber,
+    customerLine,
+    optionCount: documentOptions.length,
+    termsBlocks,
+    preparedBy: estimate.teamMember,
+    issued: estimate.dateCreated,
+  };
 
   const renderCustomerPreview = () => (
     <div className="fixed inset-0 z-50 bg-black/45 backdrop-blur-[2px] flex items-start justify-center overflow-y-auto px-6 py-8" onClick={() => setCustomerPreviewOpen(false)}>
-      <div className="relative" onClick={(e) => e.stopPropagation()}>
-        <div className="mb-3 flex items-center justify-between gap-2">
+      <PrintPageRule paper={paper} orientation={isComparisonSheet ? "landscape" : "portrait"} />
+      <div className="relative flex flex-col items-center gap-6" onClick={(e) => e.stopPropagation()}>
+        <div className="w-full flex items-center justify-between gap-2">
           <div className="rounded-md bg-white/90 px-2.5 py-1 text-[12px] text-[#546478]">
             {isComparisonSheet
-              ? `Comparison sheet — ${documentOptions.length} options`
-              : chosenOption ? `Single sheet — approved option "${chosenOption.name}"` : "Single sheet — one option"}
+              ? `Comparison sheet — ${documentOptions.length} options · ${paper === "legal" ? "Legal" : "Letter"}`
+              : chosenOption ? `Single sheet — approved option "${chosenOption.name}" · ${paper === "legal" ? "Legal" : "Letter"}` : `Single sheet — one option · ${paper === "legal" ? "Legal" : "Letter"}`}
           </div>
           <div className="flex items-center gap-2">
             <button type="button" onClick={() => window.print()}
@@ -737,36 +653,12 @@ export function EstimateDetail() {
             </button>
           </div>
         </div>
-        {isComparisonSheet ? renderComparisonSheet() : renderSimpleSheet()}
+        {isComparisonSheet
+          ? <EstimateOptionsSheet data={optionsData} company={docCompany} paper={paper} />
+          : <EstimateSingleSheet data={singleData} company={docCompany} paper={paper} />}
         {/* Page 2 — Terms & Conditions travel with the estimate as the following
-            page(s) of the PDF. Placeholder copy; the attorney finalizes the text. */}
-        <div className="bg-white text-[#5F6670] shadow-2xl border border-[#D7DCE3] mt-6" style={{ width: 760, minHeight: 980, padding: "32px 28px 44px", fontFamily: "Arial, sans-serif", pageBreakBefore: "always" }}>
-          <div className="text-[18px] text-[#4F5660] mb-6" style={{ fontWeight: 800 }}>Terms &amp; Conditions</div>
-          <div className="text-[12px] leading-[19px] space-y-4">
-            {termsDoc.mode === "file" && termsDoc.fileName ? (
-              <div>
-                Refer to the attached terms &amp; conditions document:{" "}
-                <span style={{ fontWeight: 700 }}>{termsDoc.fileName}</span>.
-              </div>
-            ) : hasTerms(termsDoc) ? (
-              // Render the company-configured terms text. Blocks are separated by a
-              // blank line; the first line of each block is the clause heading.
-              termsDoc.text.trim().split(/\n\s*\n/).map((block, i) => {
-                const lines = block.split("\n");
-                const heading = lines[0];
-                const body = lines.slice(1).join(" ").trim();
-                return (
-                  <div key={i}>
-                    <div style={{ fontWeight: 700 }}>{heading}</div>
-                    {body && <div>{body}</div>}
-                  </div>
-                );
-              })
-            ) : (
-              <div>Standard terms and conditions apply. Configure them in Settings &rarr; General.</div>
-            )}
-          </div>
-        </div>
+            page of the PDF. Placeholder clauses until the attorney's text is set. */}
+        <EstimateTermsPage data={termsData} company={docCompany} paper={paper} />
       </div>
     </div>
   );
