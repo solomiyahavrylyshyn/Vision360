@@ -319,15 +319,16 @@ export function ItemDetail() {
           <span className="material-icons" style={{ fontSize: "18px" }}>edit</span>
         </button>
       </div>
-      <table className="w-full text-[13px]">
+      <div className="overflow-x-auto">
+      <table className="w-full min-w-[720px] text-[13px]">
         <thead className="text-left text-[11px] text-[#9CA3AF]">
           <tr>
-            <th className="pb-2 pr-3" style={{ fontWeight: 500 }}>Item</th>
-            <th className="pb-2 pr-3 w-[110px]" style={{ fontWeight: 500 }}>Type</th>
-            <th className="pb-2 pr-3 w-[70px]" style={{ fontWeight: 500 }}>Qty</th>
-            <th className="pb-2 pr-3 w-[110px] text-right" style={{ fontWeight: 500 }}>Price</th>
-            <th className="pb-2 pr-4 w-[110px] text-right" style={{ fontWeight: 500 }}>Cost</th>
-            <th className="pb-2 w-[190px]" style={{ fontWeight: 500 }}>Cost counts as</th>
+            <th className="pb-2 pr-3 w-full" style={{ fontWeight: 500 }}>Item</th>
+            <th className="pb-2 pr-3 w-[104px] min-w-[104px]" style={{ fontWeight: 500 }}>Type</th>
+            <th className="pb-2 pr-3 w-[60px] min-w-[60px]" style={{ fontWeight: 500 }}>Qty</th>
+            <th className="pb-2 pr-3 w-[104px] min-w-[104px] text-right" style={{ fontWeight: 500 }}>Price</th>
+            <th className="pb-2 pr-4 w-[104px] min-w-[104px] text-right" style={{ fontWeight: 500 }}>Cost</th>
+            <th className="pb-2 w-[210px] min-w-[210px]" style={{ fontWeight: 500 }}>Cost counts as</th>
           </tr>
         </thead>
         <tbody>
@@ -347,10 +348,24 @@ export function ItemDetail() {
           })}
         </tbody>
       </table>
+      </div>
+      <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-[#EDF0F5] pt-4">
+        {COST_COMPONENTS.map(({ key, label }) => (
+          <span key={key} className="inline-flex items-center gap-1.5 rounded-lg bg-[#F9FAFB] px-2.5 py-1.5 text-[12px] text-[#546478]">
+            {label}
+            <span className="text-[#1A2332]" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>${money(costSplit[key])}</span>
+          </span>
+        ))}
+        <span className="ml-auto text-[12px] text-[#546478]">
+          Cost <span className="text-[#1A2332]" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>${money(item.cost)}</span>
+          <span className="mx-2 text-[#D8DEE8]">|</span>
+          Price <span className="text-[#1A2332]" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>${money(item.rate)}</span>
+        </span>
+      </div>
       <p className="mt-3 text-[11px] text-[#9CA3AF]">
         {item.groupPricing === "sum"
-          ? "Priced as the sum of the items above."
-          : "Priced as a flat rate — the items above set the cost, not the price."}
+          ? "Priced as the sum of the items above. Labor and commission are compensation; materials are an expense."
+          : "Priced as a flat rate — the items above set the cost, not the price. Labor and commission are compensation; materials are an expense."}
       </p>
     </div>
   );
@@ -359,6 +374,7 @@ export function ItemDetail() {
     const visibleNotes = showAllNotes ? notes : notes.slice(0, 2);
     return (
     <div className="flex flex-col gap-4">
+    {isGroup && renderGroupCard()}
     {/* items-stretch → the three columns share the tallest column's height */}
     <div className="grid grid-cols-3 gap-4 items-stretch">
       {/* ── Col 1: Item overview (Figma 1500:51443) ── */}
@@ -398,13 +414,15 @@ export function ItemDetail() {
               </div>
             </div>
             <Field label="Category" value={item.category} />
-            <Field label="Manufacturer" value={item.brand} />
             <Field label="Department" value={item.department} />
-            <Field label="Vendor" value={item.vendor} />
+            {!isGroup && <Field label="Manufacturer" value={item.brand} />}
+            {!isGroup && <Field label="Vendor" value={item.vendor} />}
+            {isGroup && <Field label="Items in group" value={item.groupItems?.length} />}
+            {isGroup && <Field label="Pricing" value={item.groupPricing === "sum" ? "Sum of the items" : "Flat rate"} />}
           </div>
         </Card>
 
-        <Card title="Pricing & tax" onEdit={() => setEditModal("pricing")}>
+        <Card title="Pricing & tax" onEdit={() => (isGroup ? navigate(`/items/groups/${item.id}`) : setEditModal("pricing"))}>
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-1">
               <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Price</div>
@@ -414,12 +432,15 @@ export function ItemDetail() {
               <div className="text-[11px] text-[#9CA3AF] leading-[16px]">Cost</div>
               <div className="text-[15px] text-[#374151] leading-[22px]" style={{ fontWeight: 500 }}>${money(item.cost)}</div>
               {/* What the cost pays for. Labor and commission are compensation
-                  (and priced by workers' comp); materials are an expense. */}
-              <div className="mt-0.5 text-[11px] text-[#8899AA] leading-[16px]">
-                {COST_COMPONENTS.filter(({ key }) => costSplit[key] > 0).length
-                  ? COST_COMPONENTS.filter(({ key }) => costSplit[key] > 0).map(({ key, label }) => `${label} $${money(costSplit[key])}`).join(" · ")
-                  : "No cost recorded"}
-              </div>
+                  (and priced by workers' comp); materials are an expense. On a
+                  group the same split is spelled out under its members. */}
+              {!isGroup && (
+                <div className="mt-0.5 text-[11px] text-[#8899AA] leading-[16px]">
+                  {COST_COMPONENTS.filter(({ key }) => costSplit[key] > 0).length
+                    ? COST_COMPONENTS.filter(({ key }) => costSplit[key] > 0).map(({ key, label }) => `${label} $${money(costSplit[key])}`).join(" · ")
+                    : "No cost recorded"}
+                </div>
+              )}
             </div>
             <Field label="Default quantity" value={item.defaultQty} />
             <Field label="Taxable" value={item.taxable ? "Yes" : "No"} />
@@ -474,7 +495,6 @@ export function ItemDetail() {
         </div>
       </div>
     </div>
-    {isGroup && renderGroupCard()}
     </div>
     );
   };

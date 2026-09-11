@@ -7,7 +7,7 @@ import { ItemPicker, type CatalogItem } from "../components/ItemPicker";
 import { PlusIcon } from "../components/ui/plus-icon";
 import { toCatalogItem } from "./Items";
 import {
-  COST_COMPONENTS, breakdownForItem, breakdownTotal, rollUpBreakdown, rollUpPrice,
+  breakdownForItem, breakdownTotal, rollUpBreakdown, rollUpPrice,
   type CostBreakdown, type ItemGroupMember,
 } from "../utils/itemCost";
 
@@ -114,7 +114,9 @@ export function CreateItemGroup() {
       type: "Price Book",
     }));
     toast.success(editId ? "Item group updated" : "Item group created");
-    navigate(editId ? `/items/${id}` : returnTo);
+    // Land on the group itself, not back in a paginated list where a new row is
+    // invisible on page 1 — the detail page shows the members that were saved.
+    navigate(`/items/${id}`);
   };
 
   const fieldClass = "w-full h-11 px-3.5 border border-[#E5E7EB] rounded-lg text-[14px] text-[#1A2332] focus:outline-none focus:border-[#4A6FA5] bg-white";
@@ -189,25 +191,22 @@ export function CreateItemGroup() {
                 <div className="mt-1 text-[12px] text-[#8899AA]">Add the labor, materials, equipment and fees this package is made of.</div>
               </div>
             ) : (
-              <div className="overflow-hidden rounded-lg border border-[#E5E7EB]">
-                <table className="w-full text-[13px]">
+              // Scrolls rather than clipping: the form column is ~480px wide on
+              // a narrow window and the row does not fit.
+              <div className="overflow-x-auto rounded-lg border border-[#E5E7EB]">
+                <table className="w-full min-w-[520px] text-[13px]">
                   <thead className="bg-[#F9FAFB] text-left text-[#546478]">
                     <tr>
-                      <th className="px-3 py-2.5" style={{ fontWeight: 600 }}>Item</th>
-                      <th className="px-3 py-2.5 w-[110px]" style={{ fontWeight: 600 }}>Type</th>
-                      <th className="px-3 py-2.5 w-[80px]" style={{ fontWeight: 600 }}>Qty</th>
-                      <th className="px-3 py-2.5 w-[110px] text-right" style={{ fontWeight: 600 }}>Price</th>
-                      <th className="px-3 py-2.5 w-[110px] text-right" style={{ fontWeight: 600 }}>Cost</th>
-                      <th className="px-3 py-2.5 w-[170px]" style={{ fontWeight: 600 }}>Cost counts as</th>
+                      <th className="px-3 py-2.5 w-full" style={{ fontWeight: 600 }}>Item</th>
+                      <th className="px-3 py-2.5 w-[104px] min-w-[104px]" style={{ fontWeight: 600 }}>Type</th>
+                      <th className="px-3 py-2.5 w-[84px] min-w-[84px]" style={{ fontWeight: 600 }}>Qty</th>
+                      <th className="px-3 py-2.5 w-[96px] min-w-[96px] text-right" style={{ fontWeight: 600 }}>Price</th>
+                      <th className="px-3 py-2.5 w-[96px] min-w-[96px] text-right" style={{ fontWeight: 600 }}>Cost</th>
                       <th className="w-10 px-3 py-2.5" />
                     </tr>
                   </thead>
                   <tbody>
                     {members.map((m, idx) => {
-                      const b = breakdownForItem({ cost: m.unitCost, itemType: m.itemType, costBreakdown: m.costBreakdown });
-                      const parts = COST_COMPONENTS
-                        .filter(({ key }) => b[key] > 0)
-                        .map(({ key, label }) => `${label} ${money(b[key] * (m.quantity || 0))}`);
                       return (
                         <tr key={`${m.itemId}-${idx}`} className="border-t border-[#F1F3F7]">
                           <td className="px-3 py-2.5 text-[#1A2332]" style={{ fontWeight: 500 }}>{m.name}</td>
@@ -222,7 +221,6 @@ export function CreateItemGroup() {
                           </td>
                           <td className="px-3 py-2.5 text-right text-[#546478]" style={{ fontVariantNumeric: "tabular-nums" }}>{money((m.quantity || 0) * m.unitPrice)}</td>
                           <td className="px-3 py-2.5 text-right text-[#546478]" style={{ fontVariantNumeric: "tabular-nums" }}>{money((m.quantity || 0) * m.unitCost)}</td>
-                          <td className="px-3 py-2.5 text-[12px] text-[#8899AA]">{parts.length ? parts.join(" · ") : "—"}</td>
                           <td className="px-3 py-2.5 text-right">
                             <button
                               type="button" onClick={() => setMembers((prev) => prev.filter((_, i) => i !== idx))}
@@ -313,25 +311,6 @@ export function CreateItemGroup() {
                 </div>
               )}
             </div>
-          </Section>
-
-          <div className="border-t border-[#E5E7EB]" />
-
-          {/* The reason the group exists: one price, a cost that is correctly split. */}
-          <Section label="Cost breakdown">
-            <div className="grid grid-cols-3 gap-4">
-              {COST_COMPONENTS.map(({ key, label }) => (
-                <div key={key} className="rounded-lg border border-[#E5E7EB] px-3.5 py-3">
-                  <div className="text-[11px] text-[#9CA3AF]">{label}</div>
-                  <div className="mt-0.5 text-[18px] text-[#1A2332]" style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{money(totalBreakdown[key])}</div>
-                  <div className="mt-0.5 text-[11px] text-[#8899AA]">{key === "materials" ? "Counts as an expense" : "Counts as compensation"}</div>
-                </div>
-              ))}
-            </div>
-            <p className="mt-3 text-[12px] text-[#8899AA]">
-              Rolled up from the items above. Anything else the package pays for — the commission on the sale, an extra
-              hour of labor — is added as an item in the group.
-            </p>
           </Section>
 
           <div className="flex items-center justify-end gap-3 border-t border-[#E5E7EB] px-6 py-4">

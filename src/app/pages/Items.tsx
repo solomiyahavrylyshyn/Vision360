@@ -210,14 +210,21 @@ export function Items() {
   // price-book entries + user-created items).
   const storeItems = useSyncExternalStore(itemsStore.subscribe, itemsStore.getSnapshot);
   const [items, setItems] = useState<Item[]>(() => storeItems.map(catalogToRow));
-  // Items created on the /items/new page write to itemsStore; merge any store
-  // items not already in this list (matched by id) so they appear here too.
+  // Items created or edited elsewhere (the /items/new page, the item group form,
+  // the detail page) write to itemsStore: add the rows this list has not seen
+  // and refresh the ones it has, so an edited group does not show stale numbers.
   useEffect(() => {
     setItems((prev) => {
-      const ids = new Set(prev.map((i) => i.id));
-      const additions = storeItems.filter((s: any) => s.name && !ids.has(s.id)).map(catalogToRow)
-        .map((r) => ({ ...r, usageCount: 0 }));
-      return additions.length ? [...prev, ...additions] : prev;
+      const byId = new Map(storeItems.filter((s: any) => s.name).map((s: any) => [s.id, s]));
+      const seen = new Set(prev.map((i) => i.id));
+      const refreshed = prev.map((row) => {
+        const s = byId.get(row.id);
+        // Local-only bookkeeping (usage history, row-level activation) stays.
+        return s ? { ...catalogToRow(s), usageCount: row.usageCount, active: row.active } : row;
+      });
+      const additions = [...byId.values()].filter((s: any) => !seen.has(s.id))
+        .map(catalogToRow).map((r) => ({ ...r, usageCount: 0 }));
+      return additions.length ? [...refreshed, ...additions] : refreshed;
     });
   }, [storeItems]);
 
@@ -584,12 +591,12 @@ export function Items() {
                                     several items — say so on the row. */}
                                 {!!item.groupItems?.length && (
                                   <span
-                                    className="inline-flex shrink-0 items-center gap-1 rounded-[8px] bg-[#F1F5F9] px-1.5 py-0.5 text-[11px] text-[#546478] whitespace-nowrap"
+                                    className="inline-flex shrink-0 items-center gap-1 rounded-[8px] bg-[#E6F5F3] px-1.5 py-0.5 text-[11px] text-[#0D9488] whitespace-nowrap"
                                     style={{ fontWeight: 600 }}
                                     title={`Item group — ${item.groupItems.length} items`}
                                   >
                                     <span className="material-icons" style={{ fontSize: "12px" }}>layers</span>
-                                    {item.groupItems.length}
+                                    Group · {item.groupItems.length}
                                   </span>
                                 )}
                               </div>

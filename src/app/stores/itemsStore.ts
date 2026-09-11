@@ -4,6 +4,7 @@
 // immediately in those pickers. localStorage-backed so it survives refresh.
 
 import type { CatalogItem } from "../components/ItemPicker";
+import { rollUpBreakdown, type ItemGroupMember } from "../utils/itemCost";
 import { createApiSync } from "./apiSync";
 
 type Listener = () => void;
@@ -170,13 +171,111 @@ const AND_SERVICE_DEFAULTS: Record<string, { costRatio: number; department: stri
   Admin: { costRatio: 0, department: "Admin", taxable: true },
 };
 
+// A price book entry is an item group (Marek, Sep 10 call): a package of the
+// labor that gets done plus the parts it consumes. The members below are what
+// each entry is made of; the labor line absorbs whatever the parts do not, so a
+// group's rolled-up price and cost still match the flat rate it was quoted at.
+//
+// Parts per entry: [name, itemType, quantity, unitPrice, unitCost]. An entry
+// with no parts listed and a cost of its own gets one generic materials line;
+// fees, memberships and bare materials are not packages and stay plain items.
+type PbPart = [string, string, number, number, number];
+
+const PB_PARTS: Record<string, PbPart[]> = {
+  "Capacitor Replacement": [["Capacitor 45/5 MFD", "Material", 1, 25, 12]],
+  "Capacitor – Dual Run": [["Capacitor 45/5 MFD", "Material", 1, 25, 12]],
+  "Blower Motor Replacement": [["Blower Motor 1/2 HP", "Equipment", 1, 225, 98]],
+  "Condenser Fan Motor": [["Blower Motor 1/2 HP", "Equipment", 1, 225, 98]],
+  "Contactor Replacement": [["Contactors", "Material", 1, 32, 14]],
+  "Thermostat Installation": [["Standard Thermostat", "Equipment", 1, 89, 37]],
+  "Smart Thermostat Install": [["Smart Thermostat", "Equipment", 1, 279, 117]],
+  "Refrigerant Recharge": [["R-410A Refrigerant (lb)", "Material", 2, 18, 9]],
+  "System Flush": [["R-410A Refrigerant (lb)", "Material", 4, 18, 9]],
+  "Filter Replacement": [["Air Filter MERV-11", "Material", 1, 18, 6]],
+  "UV Light Installation": [["UV Light", "Equipment", 1, 399, 168]],
+  "Air Purifier Install": [["Air Purifier", "Equipment", 1, 549, 231]],
+  "Heat Strip Replacement": [["Heat Strip", "Material", 1, 140, 62]],
+  "Expansion Valve Replacement": [["TXV Expansion Valve", "Material", 1, 165, 74]],
+  "Condenser Coil Replacement": [["Condenser Coil", "Equipment", 1, 420, 189]],
+  "Humidifier Installation": [["Whole-Home Humidifier", "Equipment", 1, 320, 148]],
+  "Float Switch Install": [["Safety Float Switch", "Material", 1, 22, 9]],
+  "Zone Damper Installation": [["Motorized Zone Damper", "Material", 1, 110, 48]],
+  "Drain Pan Treatment": [["Algaecide Tablets", "Material", 1, 12, 4]],
+  "Duct Sealing": [["Tape / Mastic", "Material", 4, 8, 3.5]],
+  "System Installation – 3 Ton": [
+    ["Straight Cool Condenser", "Equipment", 1, 1895, 1150],
+    ["Standard Air Handler", "Equipment", 1, 1650, 980],
+    ["Line Sets", "Material", 25, 15, 6.75],
+    ["Permit Fee", "Admin", 1, 75, 0],
+  ],
+  "System Installation – 4 Ton": [
+    ["Straight Cool Condenser", "Equipment", 1, 2350, 1420],
+    ["Variable Speed Air Handler", "Equipment", 1, 2350, 1290],
+    ["Line Sets", "Material", 30, 15, 6.75],
+    ["Permit Fee", "Admin", 1, 75, 0],
+  ],
+  "System Replacement – 2 Ton": [
+    ["Straight Cool Condenser", "Equipment", 1, 1650, 980],
+    ["Standard Air Handler", "Equipment", 1, 1450, 850],
+    ["Line Sets", "Material", 20, 15, 6.75],
+    ["Permit Fee", "Admin", 1, 75, 0],
+  ],
+  "Ductless Mini-Split Install": [
+    ["Single Zone Mini Split", "Equipment", 1, 2200, 1210],
+    ["Line Sets", "Material", 15, 15, 6.75],
+  ],
+};
+
+// Not packages: a fee is a fee, a membership is a subscription and a bare
+// material is already an item of its own.
+const PB_PLAIN = new Set([
+  "Diagnostic Fee", "Permit Fee (flat rate)", "After-Hours Service", "Emergency Service Call",
+  "Annual Maintenance Plan", "Membership – Silver", "Membership – Gold", "Service Agreement – 2 Year",
+  "R-410A Refrigerant (per lb)", "Pipe Insulation", "Attic Insulation – per sqft",
+]);
+
+const r2 = (n: number) => Math.round(n * 100) / 100;
+
+// Ids of the base catalog items, so a member points at the real item where one
+// exists and the group is not just a copy of its name.
+const BASE_ID_BY_NAME = new Map(BASE_SEED.map((i) => [i.name, i.id]));
+
+function pbGroupItems(name: string, price: number, cost: number): ItemGroupMember[] | undefined {
+  if (PB_PLAIN.has(name) || cost <= 0) return undefined;
+  const parts: PbPart[] = PB_PARTS[name] ?? [["Parts & materials", "Material", 1, r2(price * 0.25), r2(cost * 0.4)]];
+  const partsPrice = parts.reduce((s, [, , q, p]) => s + q * p, 0);
+  const partsCost = parts.reduce((s, [, , q, , c]) => s + q * c, 0);
+  const laborCost = r2(cost - partsCost);
+  if (laborCost <= 0) return undefined;
+  // Commission is the cut of the sale a salesperson earns — capped so it never
+  // swallows the technician's pay on a small job.
+  const commission = r2(Math.min(price * 0.1, laborCost * 0.4));
+  const members: ItemGroupMember[] = [{
+    itemId: 0,
+    name: `${name} — labor`,
+    itemType: "Service",
+    quantity: 1,
+    unitPrice: r2(price - partsPrice),
+    unitCost: laborCost,
+    costBreakdown: { labor: r2(laborCost - commission), commission, materials: 0 },
+  }];
+  parts.forEach(([partName, itemType, quantity, unitPrice, unitCost]) => {
+    members.push({ itemId: BASE_ID_BY_NAME.get(partName) ?? 0, name: partName, itemType, quantity, unitPrice, unitCost });
+  });
+  return members;
+}
+
 const SEED: CatalogItem[] = [
   ...BASE_SEED,
-  ...PB_SEED.map(([name, category, description, price, cost, taxable], i) => ({
-    id: 101 + i, name, itemDescription: description, salesDescription: description,
-    brand: "", modelNumber: "", rate: price, cost, taxable, category,
-    type: "Service", itemType: "Price Book", active: true,
-  } as CatalogItem)),
+  ...PB_SEED.map(([name, category, description, price, cost, taxable], i) => {
+    const groupItems = pbGroupItems(name, price, cost);
+    return {
+      id: 101 + i, name, itemDescription: description, salesDescription: description,
+      brand: "", modelNumber: "", rate: price, cost, taxable, category,
+      type: "Service", itemType: "Price Book", active: true,
+      ...(groupItems ? { groupItems, groupPricing: "flat", costBreakdown: rollUpBreakdown(groupItems) } : {}),
+    } as CatalogItem;
+  }),
   // The one fully-worked Price Book example — and the worked item group (Marek,
   // Sep 10 call): a flat-rate package whose cost comes from its members, split
   // into labor / commission / materials. Labor 180 + commission 145 sit on the
@@ -229,19 +328,19 @@ if (!items.some((i) => i.name === "Callback")) {
 }
 
 // Item-group migration: browsers cached before price book entries carried their
-// members get the worked example's group back. Keyed to that one seed row, not
-// to "no groups anywhere" — a group the user created themselves must not stop
-// the seed from catching up.
-const seededGroup = SEED.find((i) => i.groupItems?.length);
-if (seededGroup) {
-  const cached = items.find((i) => i.id === seededGroup.id);
-  if (!cached) {
-    items = [...items, seededGroup];
-  } else if (!cached.groupItems?.length) {
-    items = items.map((i) => (i.id === seededGroup.id
-      ? { ...i, cost: seededGroup.cost, costBreakdown: seededGroup.costBreakdown, groupItems: seededGroup.groupItems, groupPricing: seededGroup.groupPricing }
-      : i));
-  }
+// members catch up seed row by seed row, so a group the user built themselves is
+// left alone and their own items are never wiped.
+const seededGroups = SEED.filter((i) => i.groupItems?.length);
+if (seededGroups.length) {
+  const cachedById = new Map(items.map((i) => [i.id, i]));
+  items = items.map((i) => {
+    const seed = seededGroups.find((s) => s.id === i.id);
+    return seed && !i.groupItems?.length
+      ? { ...i, cost: seed.cost, costBreakdown: seed.costBreakdown, groupItems: seed.groupItems, groupPricing: seed.groupPricing }
+      : i;
+  });
+  const missing = seededGroups.filter((s) => !cachedById.has(s.id));
+  if (missing.length) items = [...items, ...missing];
 }
 
 let listeners: Listener[] = [];
