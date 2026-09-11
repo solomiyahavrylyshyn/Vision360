@@ -175,6 +175,7 @@ export function applyBrandTheme(theme: BrandTheme, persist = true) {
     .hover\\:bg-\\[\\#EBF0F8\\]:hover, .hover\\:bg-\\[\\#EBF2FC\\]:hover, .hover\\:bg-\\[\\#EEF3FA\\]:hover { background-color: var(--brand-primary-light) !important; }
     .text-\\[\\#4A6FA5\\] { color: var(--brand-primary) !important; }
     .text-\\[\\#81B4F3\\] { color: var(--brand-sidebar-active-text) !important; }
+    .text-\\[\\#C8D5E8\\] { color: var(--brand-primary-border) !important; }
     .bg-\\[rgba\\(74\\2c 111\\2c 165\\2c 0\\.3\\)\\] { background-color: color-mix(in srgb, var(--brand-sidebar-active) 72%, white 0%) !important; }
     .hover\\:text-\\[\\#4A6FA5\\]:hover { color: var(--brand-primary) !important; }
     .hover\\:text-\\[\\#3d5a85\\]:hover, .hover\\:text-\\[\\#3D5F8F\\]:hover { color: var(--brand-primary-hover) !important; }
@@ -182,7 +183,8 @@ export function applyBrandTheme(theme: BrandTheme, persist = true) {
     [class~="border-[#4A6FA5]/40"] { border-color: color-mix(in srgb, var(--brand-primary) 40%, transparent) !important; }
     .hover\\:border-\\[\\#4A6FA5\\]:hover { border-color: var(--brand-primary) !important; }
     [class~="hover:border-[#4A6FA5]/40"]:hover { border-color: color-mix(in srgb, var(--brand-primary) 40%, transparent) !important; }
-    .border-\\[\\#C8D5E8\\], .border-\\[\\#BDD4F5\\] { border-color: var(--brand-primary-border) !important; }
+    .border-\\[\\#C8D5E8\\], .border-\\[\\#BDD4F5\\], .border-\\[\\#C5D5EC\\] { border-color: var(--brand-primary-border) !important; }
+    .hover\\:border-\\[\\#C5D5EC\\]:hover { border-color: var(--brand-primary-border) !important; }
     .ring-\\[\\#4A6FA5\\] { --tw-ring-color: color-mix(in srgb, var(--brand-primary) 30%, transparent) !important; }
     .focus\\:border-\\[\\#4A6FA5\\]:focus { border-color: var(--brand-primary) !important; }
     .focus\\:ring-\\[\\#4A6FA5\\]:focus { --tw-ring-color: color-mix(in srgb, var(--brand-primary) 30%, transparent) !important; }
@@ -194,6 +196,27 @@ export function applyBrandTheme(theme: BrandTheme, persist = true) {
     /* Charts paint with SVG fill/stroke attributes rather than classes, so the
        class overrides above never reach them — without these the dashboard
        bars keep the old blue while their legend swatches turn brand-coloured. */
+    /* Inline styles. Hundreds of elements set the stock blue straight on
+       style={{...}} (dashboard tabs, schedule badges, status chips), which no
+       class selector can reach. The browser serialises those to rgb(), so the
+       attribute itself is the hook — an author !important rule outranks an
+       inline declaration that has none. The :not() guards stop "color:" from
+       matching inside "background-color:" / "border-color:". */
+    [style*="background: rgb(74, 111, 165)"],
+    [style*="background-color: rgb(74, 111, 165)"] { background-color: var(--brand-primary) !important; }
+    [style*="color: rgb(74, 111, 165)"]:not([style*="background-color: rgb(74, 111, 165)"]):not([style*="border-color: rgb(74, 111, 165)"]) { color: var(--brand-primary) !important; }
+    [style*="border-color: rgb(74, 111, 165)"] { border-color: var(--brand-primary) !important; }
+    [style*="background: rgb(28, 43, 58)"],
+    [style*="background-color: rgb(28, 43, 58)"] { background-color: var(--brand-sidebar) !important; }
+    [style*="background: rgb(249, 115, 22)"],
+    [style*="background-color: rgb(249, 115, 22)"] { background-color: var(--brand-accent) !important; }
+    [style*="color: rgb(249, 115, 22)"]:not([style*="background-color: rgb(249, 115, 22)"]):not([style*="border-color: rgb(249, 115, 22)"]) { color: var(--brand-accent) !important; }
+    [style*="background: rgba(74, 111, 165, 0.15)"],
+    [style*="background-color: rgba(74, 111, 165, 0.15)"] { background-color: color-mix(in srgb, var(--brand-primary) 15%, transparent) !important; }
+    [style*="background: rgba(74, 111, 165, 0.12)"],
+    [style*="background-color: rgba(74, 111, 165, 0.12)"] { background-color: color-mix(in srgb, var(--brand-primary) 12%, transparent) !important; }
+    [style*="background: rgb(235, 240, 248)"],
+    [style*="background-color: rgb(235, 240, 248)"] { background-color: var(--brand-primary-light) !important; }
     [fill="#4A6FA5"] { fill: var(--brand-primary) !important; }
     [stroke="#4A6FA5"] { stroke: var(--brand-primary) !important; }
     [fill="#F97316"] { fill: var(--brand-accent) !important; }
