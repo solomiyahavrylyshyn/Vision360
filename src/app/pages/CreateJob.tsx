@@ -39,6 +39,99 @@ const minToTime = (mins: number): string => {
 
 // Note: mockClients is replaced by live clientsStore data — removed.
 
+// ── CSR sandbox only (Help Center → Roles → Dispatcher, ?csr=1) ──
+// Warranty lives in two places, on purpose:
+//   1. On the CATALOG ITEM — terms (how many years, same every time this SKU
+//      sells): manufacturerWarrantyYears (parts) + labourWarrantyYears (our
+//      work), plus requiresRegistration on the manufacturer (Rheem
+//      self-registers; Goodman/Bryant/Trane need manual registration).
+//   2. On the CLIENT'S EQUIPMENT — dates (this specific unit, this specific
+//      yard): installedDate, installedByUs, serial, registeredAt/By.
+// Status is never stored — it's always computed as installedDate + years vs.
+// today. This is hardcoded demo data for the sandbox only; no store, no API.
+interface CsrEquipmentMock {
+  clientName: string;
+  address: string;
+  brand: string;
+  model: string;
+  tonnage?: string;
+  serial: string;
+  installedDate: string; // ISO
+  installedByUs: boolean;
+  manufacturerWarrantyYears: number;
+  labourWarrantyYears: number;
+  requiresRegistration: boolean;
+  registeredAt: string | null;
+}
+
+const CSR_EQUIPMENT_MOCKS: CsrEquipmentMock[] = [
+  // Labor (1y) already lapsed, manufacturer (10y) still active, registered.
+  {
+    clientName: "Maria Sanchez", address: "12 Oak St",
+    brand: "Goodman", model: "GSX140361", tonnage: "3 Ton", serial: "1809284512",
+    installedDate: "2018-03-14", installedByUs: true,
+    manufacturerWarrantyYears: 10, labourWarrantyYears: 1,
+    requiresRegistration: true, registeredAt: "2018-03-20",
+  },
+  // Both manufacturer (10y) and labor (1y) long expired → goes to Sales.
+  {
+    clientName: "Robert Kingston", address: "88 Palmetto Ave",
+    brand: "Trane", model: "XR13", tonnage: "2.5 Ton", serial: "TRN-2014-7743",
+    installedDate: "2014-05-02", installedByUs: true,
+    manufacturerWarrantyYears: 10, labourWarrantyYears: 1,
+    requiresRegistration: true, registeredAt: "2014-05-10",
+  },
+  // We didn't install it — no warranty tracked on our side at all.
+  {
+    clientName: "Diane Whitfield", address: "245 Bayshore Rd",
+    brand: "Carrier", model: "24ABC636", tonnage: "3 Ton", serial: "CAR-UNK-0091",
+    installedDate: "2016-01-01", installedByUs: false,
+    manufacturerWarrantyYears: 10, labourWarrantyYears: 1,
+    requiresRegistration: false, registeredAt: null,
+  },
+  // Installed under a year ago — both still active — but never registered.
+  {
+    clientName: "James Whitaker", address: "501 Palm Dr",
+    brand: "Bryant", model: "128BNA036", tonnage: "3 Ton", serial: "BRY-2025-1002",
+    installedDate: "2025-10-01", installedByUs: true,
+    manufacturerWarrantyYears: 10, labourWarrantyYears: 1,
+    requiresRegistration: true, registeredAt: null,
+  },
+];
+
+type CsrWarrantyColor = "green" | "yellow" | "red" | "gray";
+interface CsrWarrantyStatus {
+  color: CsrWarrantyColor;
+  label: string;
+  detail: string;
+  manufacturerEnd: Date | null;
+  notRegistered: boolean;
+}
+
+function addYears(date: Date, years: number): Date {
+  const d = new Date(date);
+  d.setFullYear(d.getFullYear() + years);
+  return d;
+}
+
+function getCsrWarrantyStatus(eq: CsrEquipmentMock): CsrWarrantyStatus {
+  const notRegistered = eq.requiresRegistration && !eq.registeredAt;
+  if (!eq.installedByUs) {
+    return { color: "gray", label: "Not our install", detail: "This unit wasn't installed by us — no warranty tracked on our side.", manufacturerEnd: null, notRegistered };
+  }
+  const installed = new Date(eq.installedDate);
+  const manufacturerEnd = addYears(installed, eq.manufacturerWarrantyYears);
+  const labourEnd = addYears(installed, eq.labourWarrantyYears);
+  const now = new Date();
+  if (now <= labourEnd) {
+    return { color: "green", label: "Full warranty active", detail: `Parts + labor both active — manufacturer warranty until ${formatRegionalDate(manufacturerEnd)}`, manufacturerEnd, notRegistered };
+  }
+  if (now <= manufacturerEnd) {
+    return { color: "yellow", label: "Parts only", detail: `Labor warranty has lapsed — manufacturer (parts) warranty still active until ${formatRegionalDate(manufacturerEnd)}`, manufacturerEnd, notRegistered };
+  }
+  return { color: "red", label: "Expired — goes to Sales", detail: `Manufacturer warranty ended ${formatRegionalDate(manufacturerEnd)} — this is now a paid/Sales conversation.`, manufacturerEnd, notRegistered };
+}
+
 // Legacy HVAC/plumbing options kept available alongside the live Items catalog.
 const legacyCatalogItems: CatalogItem[] = [
   { id: 1000, name: "Heat Pump Repair or Service", itemDescription: "Standard heat pump repair service call", salesDescription: "Heat pump diagnostic, repair and service", brand: "Carrier", modelNumber: "HP-2500", rate: 285, cost: 120, taxable: false, category: "HVAC", type: "Service" },
@@ -573,6 +666,11 @@ export function CreateJob({ asModal = false, onClose, onCreated, prefill, headin
   const fieldCls = "w-full h-9 px-3 border border-[#E5E7EB] rounded-lg text-[14px] text-[#1A2332] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.05)] outline-none focus:border-[#4A6FA5] disabled:bg-[#F5F7FA] disabled:text-[#9CA3AF]";
   const reqStar = <span className="text-[#DC2626]">*</span>;
 
+  // CSR sandbox — equipment-on-file card, matched by the typed client name
+  // against the hardcoded demo roster (no store, no API).
+  const csrEquipment = csrMode ? CSR_EQUIPMENT_MOCKS.find((m) => m.clientName.toLowerCase() === client.trim().toLowerCase()) : undefined;
+  const csrWarranty = csrEquipment ? getCsrWarrantyStatus(csrEquipment) : null;
+
   // CSR sandbox — symptom tree suggestion (trade + confidence + reason).
   let csrSuggestion: { trade: string; label: string; conf: number; reason: string } | null = null;
   if (csrRoot === "leak") {
@@ -718,6 +816,48 @@ export function CreateJob({ asModal = false, onClose, onCreated, prefill, headin
             </div>
           </div>
         </FormSection>
+
+        {/* ── CSR sandbox: equipment on file (Help Center → Roles → Dispatcher) ── */}
+        {csrMode && csrEquipment && csrWarranty && (
+          <FormSection label="Equipment on file">
+            {(() => {
+              const tone: Record<CsrWarrantyColor, { bg: string; fg: string; border: string }> = {
+                green: { bg: "#E4F1E7", fg: "#16A34A", border: "#BBE5C8" },
+                yellow: { bg: "#FCF0D9", fg: "#B45309", border: "#F0D9A6" },
+                red: { bg: "#FBE7E7", fg: "#DC2626", border: "#F3C6C6" },
+                gray: { bg: "#F5F7FA", fg: "#8899AA", border: "#E5E7EB" },
+              }[csrWarranty.color];
+              return (
+                <div className="rounded-xl border p-4" style={{ borderColor: tone.border, backgroundColor: tone.bg }}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>
+                        {csrEquipment.brand} {csrEquipment.model}{csrEquipment.tonnage ? ` · ${csrEquipment.tonnage}` : ""}
+                      </div>
+                      <div className="text-[12px] text-[#546478]">SN {csrEquipment.serial} · {csrEquipment.address}</div>
+                      <div className="text-[12px] text-[#546478]">
+                        Installed {formatRegionalDate(csrEquipment.installedDate)}{csrEquipment.installedByUs ? " · by us" : " · not by us"}
+                      </div>
+                    </div>
+                    <span
+                      className="shrink-0 whitespace-nowrap rounded-full px-3 py-1 text-[11px]"
+                      style={{ backgroundColor: tone.fg, color: "#fff", fontWeight: 700 }}
+                    >
+                      {csrWarranty.label}
+                    </span>
+                  </div>
+                  <div className="mt-2 text-[12px]" style={{ color: tone.fg }}>{csrWarranty.detail}</div>
+                  {csrWarranty.notRegistered && (
+                    <div className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-white/70 px-2.5 py-1 text-[11px] text-[#B45309]" style={{ fontWeight: 600 }}>
+                      <span className="material-icons" style={{ fontSize: "14px" }}>warning</span>
+                      Warranty not registered
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+          </FormSection>
+        )}
 
         {/* ── CSR sandbox: symptom questionnaire (Help Center → Roles → Dispatcher) ── */}
         {csrMode && (
