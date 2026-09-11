@@ -1,6 +1,8 @@
 export type DateFormatOption = "MM-DD-YYYY" | "DD-MM-YYYY" | "YYYY-MM-DD" | "MMM D, YYYY";
 export type TimeFormatOption = "12h" | "24h";
 
+import { createSettingsSync } from "./settingsSync";
+
 export interface RegionalSettings {
   country: string;
   language: string;
@@ -55,9 +57,16 @@ const readSettings = (): RegionalSettings => {
 
 let currentSettings = readSettings();
 
-const persist = () => {
+const sync = createSettingsSync<RegionalSettings>("regionalSettings");
+const cache = () => {
   if (typeof localStorage === "undefined") return;
   localStorage.setItem(STORAGE_KEY, JSON.stringify(currentSettings));
+};
+// Cache locally, then write through, so the setting belongs to the company
+// rather than to whichever browser last changed it.
+const persist = () => {
+  cache();
+  sync.persist(currentSettings);
 };
 
 const updateSettings = (patch: Partial<RegionalSettings>) => {
@@ -81,6 +90,7 @@ const parseDateInput = (value: string | Date) => {
 export const regionalSettingsStore = {
   subscribe(listener: () => void) {
     listeners.add(listener);
+    sync.hydrate(currentSettings, (value) => { currentSettings = { ...currentSettings, ...value }; cache(); notify(); });
     return () => listeners.delete(listener);
   },
   getSnapshot() {

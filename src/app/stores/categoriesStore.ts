@@ -9,6 +9,7 @@
 import { TYPE_CATEGORIES } from "../pages/Items";
 
 type Listener = () => void;
+import { createSettingsSync } from "./settingsSync";
 
 const LS_KEY = "vision360.itemCategories.v2";
 const LS_KEY_V1 = "vision360.itemCategories.v1";
@@ -43,15 +44,23 @@ try {
 
 let listeners: Listener[] = [];
 const notify = () => listeners.forEach((l) => l());
-const saveLS = () => {
+const sync = createSettingsSync<string[]>("itemCategories");
+const cacheLS = () => {
   if (typeof localStorage === "undefined") return;
   try { localStorage.setItem(LS_KEY, JSON.stringify(categories)); } catch { /* quota */ }
+};
+// Every mutation caches locally AND writes through, so the value is shared
+// across devices instead of living in one browser.
+const saveLS = () => {
+  cacheLS();
+  sync.persist(categories);
 };
 
 export const categoriesStore = {
   getSnapshot: (): string[] => categories,
   subscribe: (listener: Listener) => {
     listeners.push(listener);
+    sync.hydrate(categories, (value) => { categories = value; cacheLS(); notify(); });
     return () => { listeners = listeners.filter((l) => l !== listener); };
   },
   add: (name: string) => {

@@ -34,4 +34,11 @@ create table if not exists expenses (
   id text primary key, data jsonb not null,
   created_at timestamptz not null default now(), updated_at timestamptz not null default now()
 );
+-- Company settings: one row per settings store (item categories, job types, tax
+-- and regional settings, terms…), keyed by the store's name. Same document
+-- shape as every other module, so the generic routes serve it unchanged.
+create table if not exists settings (
+  id text primary key, data jsonb not null,
+  created_at timestamptz not null default now(), updated_at timestamptz not null default now()
+);
 `;

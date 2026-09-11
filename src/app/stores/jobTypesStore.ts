@@ -1,6 +1,8 @@
 // In-memory store for job types — managed in Settings → Job Types.
 // Each type carries a DEFAULT DURATION (hours) used to pre-fill a job's end time
 // on create (Marek, Jun 8: "Job duration would be from the selected job type").
+import { createSettingsSync } from "./settingsSync";
+
 type Listener = () => void;
 
 const defaultJobTypes = ["Estimate", "Installation", "Maintenance", "Inspection"];
@@ -22,6 +24,14 @@ function notify() {
   listeners.forEach((l) => l());
 }
 
+// The list and its durations are one setting — they are edited together in
+// Settings → Job Types and only make sense together.
+const sync = createSettingsSync<{ jobTypes: string[]; durations: Record<string, number> }>("jobTypes");
+const save = () => {
+  sync.persist({ jobTypes, durations });
+  notify();
+};
+
 export const jobTypesStore = {
   getJobTypes: () => jobTypes,
   /** Default duration (hours) for a job type — falls back to 2h for unknown/custom types. */
@@ -30,6 +40,11 @@ export const jobTypesStore = {
   getDurations: () => durations,
   subscribe: (listener: Listener) => {
     listeners.push(listener);
+    sync.hydrate({ jobTypes, durations }, (value) => {
+      if (Array.isArray(value?.jobTypes)) jobTypes = value.jobTypes;
+      if (value?.durations) durations = { ...durations, ...value.durations };
+      notify();
+    });
     return () => {
       listeners = listeners.filter((l) => l !== listener);
     };
@@ -39,12 +54,12 @@ export const jobTypesStore = {
     if (trimmed && !jobTypes.includes(trimmed)) {
       jobTypes = [...jobTypes, trimmed];
       if (durations[trimmed] == null) durations = { ...durations, [trimmed]: DEFAULT_TYPE_DURATION };
-      notify();
+      save();
     }
   },
   removeJobType: (name: string) => {
     jobTypes = jobTypes.filter((t) => t !== name);
-    notify();
+    save();
   },
   renameJobType: (oldName: string, newName: string) => {
     const trimmed = newName.trim();
@@ -54,13 +69,13 @@ export const jobTypesStore = {
         durations = { ...durations, [trimmed]: durations[oldName] };
         delete durations[oldName];
       }
-      notify();
+      save();
     }
   },
   /** Set the default duration (hours) for a job type (Settings → Job Types). */
   setDuration: (name: string, hours: number) => {
     const h = Number.isFinite(hours) && hours >= 0 ? hours : DEFAULT_TYPE_DURATION;
     durations = { ...durations, [name]: h };
-    notify();
+    save();
   },
 };

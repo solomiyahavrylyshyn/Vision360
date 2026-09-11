@@ -1,3 +1,5 @@
+import { createSettingsSync } from "./settingsSync";
+
 export interface ScheduleSettings {
   startHour: number;
   endHour: number;
@@ -51,9 +53,16 @@ const readSettings = (): ScheduleSettings => {
 
 let currentSettings = readSettings();
 
-const persist = () => {
+const sync = createSettingsSync<ScheduleSettings>("scheduleSettings");
+const cache = () => {
   if (typeof localStorage === "undefined") return;
   localStorage.setItem(STORAGE_KEY, JSON.stringify(currentSettings));
+};
+// Cache locally, then write through, so the setting belongs to the company
+// rather than to whichever browser last changed it.
+const persist = () => {
+  cache();
+  sync.persist(currentSettings);
 };
 
 const notify = () => listeners.forEach((listener) => listener());
@@ -84,6 +93,7 @@ export const formatScheduleHour = (hour: number): string => {
 export const scheduleSettingsStore = {
   subscribe(listener: () => void) {
     listeners.add(listener);
+    sync.hydrate(currentSettings, (value) => { currentSettings = { ...currentSettings, ...value }; cache(); notify(); });
     return () => listeners.delete(listener);
   },
   getSnapshot() {

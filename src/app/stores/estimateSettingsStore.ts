@@ -1,3 +1,5 @@
+import { createSettingsSync } from "./settingsSync";
+
 // Company-level estimate preferences. MVP holds the default validity window used
 // to pre-fill an estimate's expiration date (Marek, Jun 11 call: "by default 30
 // days... configurable in settings; our salespeople will change this to 3 days").
@@ -33,9 +35,14 @@ const read = (): EstimateSettings => {
 
 let current = read();
 
-const persist = () => {
+const cache = () => {
   if (typeof localStorage === "undefined") return;
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(current)); } catch { /* quota */ }
+};
+const sync = createSettingsSync<EstimateSettings>("estimateSettings");
+const persist = () => {
+  cache();
+  sync.persist(current);
 };
 
 const notify = () => listeners.forEach((l) => l());
@@ -43,6 +50,7 @@ const notify = () => listeners.forEach((l) => l());
 export const estimateSettingsStore = {
   subscribe(listener: () => void) {
     listeners.add(listener);
+    sync.hydrate(current, (value) => { current = normalize(value); cache(); notify(); });
     return () => listeners.delete(listener);
   },
   getSnapshot() {

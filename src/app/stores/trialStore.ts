@@ -4,6 +4,8 @@ type TrialState = {
   activatedAt: string | null;
 };
 
+import { createSettingsSync } from "./settingsSync";
+
 const TRIAL_STORAGE_KEY = "vision360_trial_state";
 const TRIAL_DAYS = 7;
 
@@ -42,12 +44,21 @@ const readStoredTrial = (): TrialState | null => {
   }
 };
 
-const writeStoredTrial = (state: TrialState) => {
+const sync = createSettingsSync<TrialState>("trial");
+
+const cacheTrial = (state: TrialState) => {
   cachedTrial = state;
   if (canUseStorage()) {
     window.localStorage.setItem(TRIAL_STORAGE_KEY, JSON.stringify(state));
   }
   listeners.forEach((listener) => listener());
+};
+
+// When the trial started is an account fact, so it follows the account rather
+// than restarting on every new browser.
+const writeStoredTrial = (state: TrialState) => {
+  cacheTrial(state);
+  sync.persist(state);
 };
 
 const createTrialState = (signupDate = new Date()): TrialState => ({
@@ -59,6 +70,8 @@ const createTrialState = (signupDate = new Date()): TrialState => ({
 export const trialStore = {
   subscribe(listener: () => void) {
     listeners.add(listener);
+    const current = readStoredTrial();
+    if (current) sync.hydrate(current, (value) => { if (value?.signupAt) cacheTrial(value); });
     return () => listeners.delete(listener);
   },
   getSnapshot(): TrialState | null {

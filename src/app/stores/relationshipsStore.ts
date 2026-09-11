@@ -1,6 +1,8 @@
 // Simple in-memory store for relationship types shared across the app
 // In production this would be backed by a database
 
+import { createSettingsSync } from "./settingsSync";
+
 type Listener = () => void;
 
 const defaultRelationships = [
@@ -32,10 +34,19 @@ function notify() {
   listeners.forEach((l) => l());
 }
 
+const sync = createSettingsSync<string[]>("relationships");
+// Every mutation writes through, so the list survives a refresh and is shared
+// with everyone else on the company account.
+const save = () => {
+  sync.persist(relationships);
+  notify();
+};
+
 export const relationshipsStore = {
   getRelationships: () => relationships,
   subscribe: (listener: Listener) => {
     listeners.push(listener);
+    sync.hydrate(relationships, (value) => { relationships = value; notify(); });
     return () => {
       listeners = listeners.filter((l) => l !== listener);
     };
@@ -44,18 +55,18 @@ export const relationshipsStore = {
     const trimmed = name.trim();
     if (trimmed && !relationships.includes(trimmed)) {
       relationships = [...relationships, trimmed];
-      notify();
+      save();
     }
   },
   removeRelationship: (name: string) => {
     relationships = relationships.filter((r) => r !== name);
-    notify();
+    save();
   },
   renameRelationship: (oldName: string, newName: string) => {
     const trimmed = newName.trim();
     if (trimmed && !relationships.includes(trimmed)) {
       relationships = relationships.map((r) => (r === oldName ? trimmed : r));
-      notify();
+      save();
     }
   },
 };

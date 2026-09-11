@@ -1,3 +1,5 @@
+import { createSettingsSync } from "./settingsSync";
+
 export interface BusinessHourRow {
   day: string;
   open: boolean;
@@ -44,9 +46,16 @@ const readRows = (): BusinessHourRow[] => {
 
 let currentRows = readRows();
 
-const persist = () => {
+const cache = () => {
   if (typeof localStorage === "undefined") return;
   localStorage.setItem(STORAGE_KEY, JSON.stringify(currentRows));
+};
+// Cache locally, then write through so the hours are the company's, not this
+// browser's.
+const sync = createSettingsSync<BusinessHourRow[]>("businessHours");
+const persist = () => {
+  cache();
+  sync.persist(currentRows);
 };
 
 const notify = () => listeners.forEach((listener) => listener());
@@ -54,6 +63,7 @@ const notify = () => listeners.forEach((listener) => listener());
 export const businessHoursStore = {
   subscribe(listener: () => void) {
     listeners.add(listener);
+    sync.hydrate(currentRows, (value) => { currentRows = normalizeRows(value); cache(); notify(); });
     return () => listeners.delete(listener);
   },
   getSnapshot() {

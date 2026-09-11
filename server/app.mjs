@@ -9,7 +9,7 @@ import express from "express";
 import cors from "cors";
 import { query, isConfigured, ensureSchema } from "./db.mjs";
 
-const MODULES = new Set(["clients", "jobs", "estimates", "invoices", "payments", "items", "expenses"]);
+const MODULES = new Set(["clients", "jobs", "estimates", "invoices", "payments", "items", "expenses", "settings"]);
 
 export function createApp() {
   const app = express();

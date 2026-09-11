@@ -4,6 +4,8 @@
 // the configuration survives a refresh. Each doc is either a typed free-text
 // block or an uploaded file (name + optional data URL for download/preview).
 
+import { createSettingsSync } from "./settingsSync";
+
 type Listener = () => void;
 
 export type LegalMode = "file" | "text";
@@ -62,15 +64,23 @@ try {
 
 let listeners: Listener[] = [];
 const notify = () => listeners.forEach((l) => l());
-const persist = () => {
+const sync = createSettingsSync<LegalDocsState>("legalDocs");
+const cache = () => {
   if (typeof localStorage === "undefined") return;
   try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch { /* quota */ }
+};
+// The T&C text travels with every estimate, so it belongs to the company, not
+// to whichever browser last edited it.
+const persist = () => {
+  cache();
+  sync.persist(state);
 };
 
 export const termsStore = {
   getSnapshot: (): LegalDocsState => state,
   subscribe: (listener: Listener) => {
     listeners.push(listener);
+    sync.hydrate(state, (value) => { state = { ...state, ...value }; cache(); notify(); });
     return () => { listeners = listeners.filter((l) => l !== listener); };
   },
   /** Replace the whole legal-docs state (Settings persists all three together). */

@@ -3,6 +3,7 @@
 // Keyed by a canonical pair key "minId_maxId".
 
 type Listener = () => void;
+import { createSettingsSync } from "./settingsSync";
 
 export type DismissalReason = "not_duplicate" | "keep_both";
 
@@ -28,9 +29,16 @@ try {
 
 let listeners: Listener[] = [];
 const notify = () => listeners.forEach(l => l());
-const saveLS = () => {
+const sync = createSettingsSync<Dismissal[]>("dismissals");
+const cacheLS = () => {
   if (typeof localStorage === "undefined") return;
   try { localStorage.setItem(LS_KEY, JSON.stringify(dismissals)); } catch { /* quota */ }
+};
+// Every mutation caches locally AND writes through, so the value is shared
+// across devices instead of living in one browser.
+const saveLS = () => {
+  cacheLS();
+  sync.persist(dismissals);
 };
 
 export const pairKey = (a: string, b: string) => {
@@ -42,6 +50,7 @@ export const dismissalsStore = {
   getSnapshot: (): Dismissal[] => dismissals,
   subscribe: (listener: Listener) => {
     listeners.push(listener);
+    sync.hydrate(dismissals, (value) => { dismissals = value; cacheLS(); notify(); });
     return () => { listeners = listeners.filter(l => l !== listener); };
   },
   isDismissed: (a: string, b: string): boolean =>

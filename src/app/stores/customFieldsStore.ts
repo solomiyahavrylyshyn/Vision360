@@ -1,5 +1,6 @@
-// Shared store for custom field configuration across the app.
-// In production this would be backed by a database / user settings API.
+// Shared store for custom field configuration across the app — backed by the
+// settings collection so a field defined on one device exists on all of them.
+import { createSettingsSync } from "./settingsSync";
 
 type Listener = () => void;
 
@@ -24,18 +25,26 @@ let fields: Record<CfEntity, CfField[]> = {
 let listeners: Listener[] = [];
 function notify() { listeners.forEach(l => l()); }
 
+const sync = createSettingsSync<Record<CfEntity, CfField[]>>("customFields");
+// Custom fields had no persistence at all — an edit vanished on refresh.
+const save = () => {
+  sync.persist(fields);
+  notify();
+};
+
 export const customFieldsStore = {
   getFields: () => fields,
   getEntityFields: (entity: CfEntity) => fields[entity],
   subscribe: (listener: Listener) => {
     listeners.push(listener);
+    sync.hydrate(fields, (value) => { fields = { ...fields, ...value }; notify(); });
     return () => { listeners = listeners.filter(l => l !== listener); };
   },
   updateField: (entity: CfEntity, idx: number, patch: Partial<CfField>) => {
     const updated = [...fields[entity]];
     updated[idx] = { ...updated[idx], ...patch };
     fields = { ...fields, [entity]: updated };
-    notify();
+    save();
   },
   addOption: (entity: CfEntity, idx: number, option: string) => {
     const trimmed = option.trim();
@@ -44,12 +53,12 @@ export const customFieldsStore = {
     if (updated[idx].options.includes(trimmed)) return;
     updated[idx] = { ...updated[idx], options: [...updated[idx].options, trimmed] };
     fields = { ...fields, [entity]: updated };
-    notify();
+    save();
   },
   removeOption: (entity: CfEntity, idx: number, option: string) => {
     const updated = [...fields[entity]];
     updated[idx] = { ...updated[idx], options: updated[idx].options.filter(o => o !== option) };
     fields = { ...fields, [entity]: updated };
-    notify();
+    save();
   },
 };

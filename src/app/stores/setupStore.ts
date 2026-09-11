@@ -6,6 +6,8 @@
 // Default is "complete": a fresh/seeded session is NOT nagged. The reminders
 // only switch on once the user explicitly skips setup.
 
+import { createSettingsSync } from "./settingsSync";
+
 type SetupState = { complete: boolean; bannerDismissed: boolean };
 
 const INCOMPLETE_KEY = "vision360_setup_incomplete";
@@ -38,17 +40,34 @@ const rebuild = () => {
   listeners.forEach((l) => l());
 };
 
+const sync = createSettingsSync<{ incomplete: boolean; bannerDismissed: boolean }>("setupFlags");
+
 const writeFlag = (key: string, on: boolean) => {
   if (canUseStorage()) {
     if (on) window.localStorage.setItem(key, "1");
     else window.localStorage.removeItem(key);
   }
   rebuild();
+  sync.persist({ incomplete: readFlag(INCOMPLETE_KEY), bannerDismissed: readFlag(BANNER_KEY) });
+};
+
+const applyFlag = (key: string, on: boolean) => {
+  if (!canUseStorage()) return;
+  if (on) window.localStorage.setItem(key, "1");
+  else window.localStorage.removeItem(key);
 };
 
 export const setupStore = {
   subscribe(listener: () => void) {
     listeners.add(listener);
+    sync.hydrate(
+      { incomplete: readFlag(INCOMPLETE_KEY), bannerDismissed: readFlag(BANNER_KEY) },
+      (value) => {
+        applyFlag(INCOMPLETE_KEY, !!value?.incomplete);
+        applyFlag(BANNER_KEY, !!value?.bannerDismissed);
+        rebuild();
+      },
+    );
     return () => listeners.delete(listener);
   },
   getSnapshot(): SetupState {
