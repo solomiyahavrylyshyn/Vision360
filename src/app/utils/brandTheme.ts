@@ -113,6 +113,9 @@ export function applyBrandTheme(theme: BrandTheme, persist = true) {
   const sidebarOverride = theme.sidebar ? normalizeHex(theme.sidebar, "") : "";
   const primaryHover = mix(primary, "#000000", 0.18);
   const primaryLight = mix(primary, "#FFFFFF", 0.88);
+  // Selected rows and the active settings menu item sit on a fainter tint than
+  // primaryLight — light enough to read as "current" without becoming a chip.
+  const primarySubtle = mix(primary, "#FFFFFF", 0.94);
   const primaryBorder = mix(primary, "#FFFFFF", 0.62);
   const pageBg = mix(primary, "#FFFFFF", 0.94);
   const pageBgSoft = mix(primary, "#FFFFFF", 0.91);
@@ -144,6 +147,7 @@ export function applyBrandTheme(theme: BrandTheme, persist = true) {
   root.style.setProperty("--brand-primary", primary);
   root.style.setProperty("--brand-primary-hover", primaryHover);
   root.style.setProperty("--brand-primary-light", primaryLight);
+  root.style.setProperty("--brand-primary-subtle", primarySubtle);
   root.style.setProperty("--brand-primary-border", primaryBorder);
   root.style.setProperty("--brand-page-bg", pageBg);
   root.style.setProperty("--brand-page-bg-soft", pageBgSoft);
@@ -172,6 +176,9 @@ export function applyBrandTheme(theme: BrandTheme, persist = true) {
     [class~="hover:bg-[#4A6FA5]/10"]:hover { background-color: color-mix(in srgb, var(--brand-primary) 10%, transparent) !important; }
     [class~="hover:bg-[#4A6FA5]/40"]:hover { background-color: color-mix(in srgb, var(--brand-primary) 40%, transparent) !important; }
     .bg-\\[\\#EBF0F8\\], .bg-\\[\\#EBF2FC\\], .bg-\\[\\#EEF3FA\\] { background-color: var(--brand-primary-light) !important; }
+    .bg-\\[\\#F0F4FB\\] { background-color: var(--brand-primary-subtle) !important; }
+    [style*="background: rgb(240, 244, 251)"],
+    [style*="background-color: rgb(240, 244, 251)"] { background-color: var(--brand-primary-subtle) !important; }
     .hover\\:bg-\\[\\#EBF0F8\\]:hover, .hover\\:bg-\\[\\#EBF2FC\\]:hover, .hover\\:bg-\\[\\#EEF3FA\\]:hover { background-color: var(--brand-primary-light) !important; }
     .text-\\[\\#4A6FA5\\] { color: var(--brand-primary) !important; }
     .text-\\[\\#81B4F3\\] { color: var(--brand-sidebar-active-text) !important; }
