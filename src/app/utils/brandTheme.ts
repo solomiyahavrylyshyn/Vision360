@@ -1,6 +1,22 @@
 export type BrandTheme = {
   primary: string;
   accent: string;
+  /**
+   * Navigation surface (sidebar). Optional on purpose: when it is left out the
+   * sidebar is derived from `primary` exactly the way it always was, so the
+   * Vision360 default and every theme saved before this field existed keep the
+   * same look. Set it when the brand colour is too warm or too light to be
+   * darkened into a navigation bar — an orange brand needs a neutral charcoal
+   * sidebar, not a brown one.
+   */
+  sidebar?: string;
+};
+
+export type BrandPreset = {
+  id: string;
+  name: string;
+  description: string;
+  theme: BrandTheme;
 };
 
 export const BRAND_THEME_STORAGE_KEY = "vision360.brandTheme";
@@ -11,6 +27,26 @@ export const DEFAULT_BRAND_THEME: BrandTheme = {
   primary: "#4A6FA5",
   accent: "#F97316",
 };
+
+/**
+ * One-click palettes offered in Settings -> Company profile -> Brand assets.
+ * AND Services is taken from andservices.com: the brand orange, a charcoal
+ * navigation bar, and the same orange kept as the chart accent.
+ */
+export const BRAND_PRESETS: BrandPreset[] = [
+  {
+    id: "vision360",
+    name: "Vision360",
+    description: "Default blue",
+    theme: DEFAULT_BRAND_THEME,
+  },
+  {
+    id: "and-services",
+    name: "AND Services",
+    description: "Brand orange on charcoal",
+    theme: { primary: "#E55135", accent: "#25252A", sidebar: "#25252A" },
+  },
+];
 
 function normalizeHex(value: string, fallback: string) {
   const trimmed = value.trim();
@@ -41,6 +77,16 @@ function mix(hex: string, target: string, amount: number) {
   });
 }
 
+function deriveSidebarColor(primary: string) {
+  return mix(primary, "#000000", 0.68);
+}
+
+/** The colour the navigation bar ends up with — the custom one, or the shade derived from the brand colour. */
+export function getSidebarColor(theme: BrandTheme): string {
+  const sidebar = theme.sidebar ? normalizeHex(theme.sidebar, "") : "";
+  return sidebar || deriveSidebarColor(normalizeHex(theme.primary, DEFAULT_BRAND_THEME.primary));
+}
+
 export function getStoredBrandTheme(): BrandTheme {
   if (typeof window === "undefined") return DEFAULT_BRAND_THEME;
 
@@ -48,9 +94,11 @@ export function getStoredBrandTheme(): BrandTheme {
     const stored = window.localStorage.getItem(BRAND_THEME_STORAGE_KEY);
     if (!stored) return DEFAULT_BRAND_THEME;
     const parsed = JSON.parse(stored) as Partial<BrandTheme>;
+    const sidebar = parsed.sidebar ? normalizeHex(parsed.sidebar, "") : "";
     return {
       primary: normalizeHex(parsed.primary ?? "", DEFAULT_BRAND_THEME.primary),
       accent: normalizeHex(parsed.accent ?? "", DEFAULT_BRAND_THEME.accent),
+      ...(sidebar ? { sidebar } : {}),
     };
   } catch {
     return DEFAULT_BRAND_THEME;
@@ -62,14 +110,22 @@ export function applyBrandTheme(theme: BrandTheme, persist = true) {
 
   const primary = normalizeHex(theme.primary, DEFAULT_BRAND_THEME.primary);
   const accent = normalizeHex(theme.accent, DEFAULT_BRAND_THEME.accent);
+  const sidebarOverride = theme.sidebar ? normalizeHex(theme.sidebar, "") : "";
   const primaryHover = mix(primary, "#000000", 0.18);
   const primaryLight = mix(primary, "#FFFFFF", 0.88);
   const primaryBorder = mix(primary, "#FFFFFF", 0.62);
   const pageBg = mix(primary, "#FFFFFF", 0.94);
   const pageBgSoft = mix(primary, "#FFFFFF", 0.91);
-  const sidebarBg = mix(primary, "#000000", 0.68);
-  const sidebarActiveBg = mix(primary, "#000000", 0.32);
-  const sidebarActiveText = mix(primary, "#FFFFFF", 0.72);
+  // With no sidebar colour of its own the navigation keeps the original
+  // derived-from-primary shades; with one, the active row is tinted with the
+  // brand colour so the selection still reads as branded on a neutral bar.
+  const sidebarBg = sidebarOverride || deriveSidebarColor(primary);
+  const sidebarActiveBg = sidebarOverride
+    ? mix(sidebarOverride, primary, 0.34)
+    : mix(primary, "#000000", 0.32);
+  const sidebarActiveText = sidebarOverride
+    ? mix(primary, "#FFFFFF", 0.55)
+    : mix(primary, "#FFFFFF", 0.72);
 
   const root = document.documentElement;
   root.style.setProperty("--primary", primary);
@@ -135,10 +191,20 @@ export function applyBrandTheme(theme: BrandTheme, persist = true) {
     .text-\\[\\#F97316\\] { color: var(--brand-accent) !important; }
     .border-\\[\\#F97316\\] { border-color: var(--brand-accent) !important; }
     .hover\\:text-white:hover { color: #FFFFFF !important; }
+    /* Charts paint with SVG fill/stroke attributes rather than classes, so the
+       class overrides above never reach them — without these the dashboard
+       bars keep the old blue while their legend swatches turn brand-coloured. */
+    [fill="#4A6FA5"] { fill: var(--brand-primary) !important; }
+    [stroke="#4A6FA5"] { stroke: var(--brand-primary) !important; }
+    [fill="#F97316"] { fill: var(--brand-accent) !important; }
+    [stroke="#F97316"] { stroke: var(--brand-accent) !important; }
   `;
 
   if (persist && typeof window !== "undefined") {
-    window.localStorage.setItem(BRAND_THEME_STORAGE_KEY, JSON.stringify({ primary, accent }));
+    window.localStorage.setItem(
+      BRAND_THEME_STORAGE_KEY,
+      JSON.stringify(sidebarOverride ? { primary, accent, sidebar: sidebarOverride } : { primary, accent }),
+    );
   }
 }
 

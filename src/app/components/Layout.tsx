@@ -12,7 +12,7 @@ import {
   InvoicesIcon, PaymentsIcon, ExpensesIcon, ItemsIcon,
   CollapseIcon, BellIcon, HelpIcon, SettingsGearIcon, SearchIcon,
 } from "./ui/nav-icons";
-import { applyStoredBrandTheme, BRAND_LOGO_EVENT, getStoredBrandLogo } from "../utils/brandTheme";
+import { BRAND_LOGO_EVENT, getStoredBrandLogo } from "../utils/brandTheme";
 import { formatTrialDate, getTrialDaysRemaining, isTrialActive, trialStore } from "../stores/trialStore";
 import { clientsStore } from "../stores/clientsStore";
 import { setupStore } from "../stores/setupStore";
@@ -97,7 +97,7 @@ export function Layout() {
   };
 
   useEffect(() => {
-    applyStoredBrandTheme();
+    // The theme itself is applied in main.tsx, before the app mounts.
     setCompanyLogoSrc(getStoredBrandLogo() || wordmarkLogo);
 
     const handleLogoChange = (event: Event) => {

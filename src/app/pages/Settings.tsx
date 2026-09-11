@@ -25,7 +25,8 @@ import {
 import { jobTypesStore } from "../stores/jobTypesStore";
 import { marketingSourcesStore } from "../stores/marketingSourcesStore";
 import { tagsStore } from "../stores/tagsStore";
-import { applyBrandTheme, DEFAULT_BRAND_THEME, getStoredBrandLogo, getStoredBrandTheme, resetBrandLogo, resetBrandTheme, setBrandLogo } from "../utils/brandTheme";
+import { applyBrandTheme, BRAND_PRESETS, DEFAULT_BRAND_THEME, getSidebarColor, getStoredBrandLogo, getStoredBrandTheme, resetBrandLogo, resetBrandTheme, setBrandLogo } from "../utils/brandTheme";
+import type { BrandTheme } from "../utils/brandTheme";
 import { businessHoursStore, type BusinessHourRow } from "../stores/businessHoursStore";
 import { regionalSettingsStore, type RegionalSettings } from "../stores/regionalSettingsStore";
 import { estimateSettingsStore } from "../stores/estimateSettingsStore";
@@ -2868,8 +2869,37 @@ export function Settings() {
   };
   const [brandPrimary, setBrandPrimary] = useState(() => getStoredBrandTheme().primary);
   const [brandAccent, setBrandAccent] = useState(() => getStoredBrandTheme().accent);
+  // Empty string = no custom navigation colour, so it follows the brand colour.
+  const [brandSidebar, setBrandSidebar] = useState(() => getStoredBrandTheme().sidebar ?? "");
   const [brandLogoPreview, setBrandLogoPreview] = useState(() => getStoredBrandLogo());
   const [resetBrandDialogOpen, setResetBrandDialogOpen] = useState(false);
+
+  // Brand colours repaint the whole app (buttons, links, page background,
+  // navigation), so every edit applies live — there is nothing to "save".
+  const brandTheme: BrandTheme = {
+    primary: brandPrimary,
+    accent: brandAccent,
+    ...(brandSidebar ? { sidebar: brandSidebar } : {}),
+  };
+  const brandSidebarColor = getSidebarColor(brandTheme);
+  const updateBrandTheme = (patch: Partial<BrandTheme>) => {
+    const next: BrandTheme = { ...brandTheme, ...patch };
+    if (patch.primary !== undefined) setBrandPrimary(patch.primary);
+    if (patch.accent !== undefined) setBrandAccent(patch.accent);
+    if (patch.sidebar !== undefined) setBrandSidebar(patch.sidebar ?? "");
+    applyBrandTheme(next);
+  };
+  const applyBrandPreset = (preset: (typeof BRAND_PRESETS)[number]) => {
+    setBrandPrimary(preset.theme.primary);
+    setBrandAccent(preset.theme.accent);
+    setBrandSidebar(preset.theme.sidebar ?? "");
+    applyBrandTheme(preset.theme);
+    toast.success(`${preset.name} colors applied`);
+  };
+  const isPresetActive = (preset: (typeof BRAND_PRESETS)[number]) =>
+    preset.theme.primary.toUpperCase() === brandPrimary.toUpperCase() &&
+    preset.theme.accent.toUpperCase() === brandAccent.toUpperCase() &&
+    getSidebarColor(preset.theme).toUpperCase() === brandSidebarColor.toUpperCase();
   const [companyAbout, setCompanyAbout] = useState(() => readStoredText(COMPANY_ABOUT_STORAGE_KEY, DEFAULT_COMPANY_ABOUT));
   const [socialLinks, setSocialLinks] = useState(() => readStoredSocialLinks());
   // Legal docs (Terms / Policies / Privacy) are persisted in termsStore so the
@@ -3219,6 +3249,36 @@ export function Settings() {
                     </Button>
                   }
                 >
+                  {/* Ready-made palettes. Picking one repaints the app straight
+                      away so the choice can be judged on the real screens. */}
+                  <div className="mb-5">
+                    <div className="mb-2.5 text-[13px] text-[#7A8799]" style={{ fontWeight: 600 }}>Color theme</div>
+                    <div className="flex flex-wrap gap-2">
+                      {BRAND_PRESETS.map(preset => {
+                        const active = isPresetActive(preset);
+                        return (
+                          <button
+                            key={preset.id}
+                            type="button"
+                            aria-pressed={active}
+                            onClick={() => applyBrandPreset(preset)}
+                            className={`flex items-center gap-2.5 rounded-xl border px-3 py-2 text-left transition-colors ${active ? "border-[#4A6FA5] bg-[#EBF0F8]" : "border-[#E5E7EB] hover:border-[#C8D5E8]"}`}
+                          >
+                            <span className="flex h-8 w-8 shrink-0 overflow-hidden rounded-lg border border-black/10">
+                              <span className="h-full w-1/2" style={{ backgroundColor: preset.theme.primary }} />
+                              <span className="h-full w-1/2" style={{ backgroundColor: getSidebarColor(preset.theme) }} />
+                            </span>
+                            <span className="min-w-0">
+                              <span className="block text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>{preset.name}</span>
+                              <span className="block text-[11px] text-[#9AA3AF]">{preset.description}</span>
+                            </span>
+                            {active && <span className="material-icons ml-1 text-[#4A6FA5]" style={{ fontSize: "18px" }}>check_circle</span>}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-2 divide-x divide-[#E1E6EF]">
 
                     {/* Brand Colors */}
@@ -3230,7 +3290,7 @@ export function Settings() {
                             <input
                               type="color"
                               value={/^#[0-9a-f]{6}$/i.test(brandPrimary) ? brandPrimary : "#4A6FA5"}
-                              onChange={e => { setBrandPrimary(e.target.value); applyBrandTheme({ primary: e.target.value, accent: brandAccent }); }}
+                              onChange={e => updateBrandTheme({ primary: e.target.value })}
                               className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
                             />
                           </div>
@@ -3245,7 +3305,7 @@ export function Settings() {
                             <input
                               type="color"
                               value={/^#[0-9a-f]{6}$/i.test(brandAccent) ? brandAccent : "#F97316"}
-                              onChange={e => { setBrandAccent(e.target.value); applyBrandTheme({ primary: brandPrimary, accent: e.target.value }); }}
+                              onChange={e => updateBrandTheme({ accent: e.target.value })}
                               className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
                             />
                           </div>
@@ -3254,6 +3314,35 @@ export function Settings() {
                             <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 700 }}>{brandAccent.toUpperCase()}</div>
                           </div>
                           <span className="material-icons ml-auto text-[#C8D5E8] hover:text-[#546478]" style={{ fontSize: "16px" }}>edit</span>
+                        </label>
+                        {/* A warm or light brand colour cannot simply be darkened
+                            into a navigation bar, so it can be set on its own. */}
+                        <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-[#E5E7EB] px-3 py-2.5 hover:border-[#C8D5E8]">
+                          <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-lg" style={{ backgroundColor: brandSidebarColor }}>
+                            <input
+                              type="color"
+                              value={brandSidebarColor}
+                              onChange={e => updateBrandTheme({ sidebar: e.target.value })}
+                              className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                            />
+                          </div>
+                          <div>
+                            <div className="text-[11px] text-[#9AA3AF]" style={{ fontWeight: 600 }}>Navigation bar</div>
+                            <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 700 }}>{brandSidebarColor.toUpperCase()}</div>
+                          </div>
+                          {brandSidebar ? (
+                            <button
+                              type="button"
+                              title="Match brand color"
+                              aria-label="Match brand color"
+                              className="ml-auto shrink-0 text-[#C8D5E8] hover:text-[#546478]"
+                              onClick={e => { e.preventDefault(); updateBrandTheme({ sidebar: "" }); }}
+                            >
+                              <span className="material-icons" style={{ fontSize: "16px" }}>undo</span>
+                            </button>
+                          ) : (
+                            <span className="material-icons ml-auto text-[#C8D5E8] hover:text-[#546478]" style={{ fontSize: "16px" }}>edit</span>
+                          )}
                         </label>
                       </div>
                     </div>
@@ -4660,6 +4749,7 @@ export function Settings() {
                   resetBrandLogo();
                   setBrandPrimary(DEFAULT_BRAND_THEME.primary);
                   setBrandAccent(DEFAULT_BRAND_THEME.accent);
+                  setBrandSidebar("");
                   setBrandLogoPreview("");
                   if (logoInputRef.current) logoInputRef.current.value = "";
                   setResetBrandDialogOpen(false);
