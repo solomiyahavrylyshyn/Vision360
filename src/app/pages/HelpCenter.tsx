@@ -1,168 +1,144 @@
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { TechnicianMobileDemo } from "../components/TechnicianMobileDemo";
 
 // Help Center — full page, aligned to Figma node 1195-79448:
 // 300px category rail (search + topics) + 900px main area with an accordion
 // article list, a "Contact us" button, and a centered Contact-us modal.
+//
+// Content rules (PRD v2.0 §Help Center, FR-1.10, FR-15.7; tasks 8905/8906):
+// - category counts are derived from the article list, never typed in;
+// - read time is derived from the article length;
+// - one sample company, one CTA (no per-phase / per-role sandboxes).
 
 type CatKey =
   | "all" | "getting-started" | "clients" | "jobs"
   | "estimates" | "payments" | "items" | "reports" | "settings";
 
-const categories: { key: CatKey; label: string; icon: string; count: number }[] = [
-  { key: "getting-started", label: "Getting started", icon: "rocket_launch", count: 8 },
-  { key: "clients", label: "Clients & contacts", icon: "people", count: 12 },
-  { key: "jobs", label: "Jobs & scheduling", icon: "work", count: 15 },
-  { key: "estimates", label: "Estimates & invoices", icon: "description", count: 18 },
-  { key: "payments", label: "Payments & billing", icon: "payments", count: 10 },
-  { key: "items", label: "Items & catalog", icon: "inventory_2", count: 6 },
-  { key: "reports", label: "Reports & analytics", icon: "bar_chart", count: 9 },
-  { key: "settings", label: "Settings & account", icon: "settings", count: 7 },
+const categories: { key: CatKey; label: string; icon: string }[] = [
+  { key: "getting-started", label: "Getting started", icon: "rocket_launch" },
+  { key: "clients", label: "Clients & contacts", icon: "people" },
+  { key: "jobs", label: "Jobs & scheduling", icon: "work" },
+  { key: "estimates", label: "Estimates & invoices", icon: "description" },
+  { key: "payments", label: "Payments & billing", icon: "payments" },
+  { key: "items", label: "Items catalog", icon: "inventory_2" },
+  // Reports & analytics has no articles until the module ships — shows 0.
+  { key: "reports", label: "Reports & analytics", icon: "bar_chart" },
+  { key: "settings", label: "Settings & account", icon: "settings" },
 ];
+
+const categoryLabel = (key: CatKey) => categories.find(c => c.key === key)?.label ?? "";
 
 interface Article {
   id: number;
   title: string;
   categoryKey: CatKey;
-  category: string;
-  readTime: string;
   body: string[];
 }
 
+// Article copy is written against the real screens and labels (en locale).
+// Articles 7 and 8 follow the PRD because the Invoices and Payments modules
+// are not built yet — re-check them against the screens once they exist.
 const articles: Article[] = [
   {
     id: 1,
-    title: "How to create your first invoice?",
-    categoryKey: "estimates",
-    category: "Estimates & invoices",
-    readTime: "3 min read",
+    title: "Setting up your company profile",
+    categoryKey: "getting-started",
     body: [
-      "Creating an invoice in Vision360 is straightforward. Navigate to Invoices from the sidebar and click the \"Add New\" button in the top right.",
-      "Start by selecting the client from the dropdown. The invoice number will be auto-generated. Set the invoice date and due date according to your payment terms.",
-      "If the invoice is related to a specific job or estimate, link it using the respective dropdowns. This helps maintain a clear audit trail across your workflow.",
-      "Add line items by clicking \"Add Item\" to open the Item Picker. Search and select items from your catalog — the price, cost, and tax settings will auto-populate. Adjust quantities as needed.",
-      "The totals section will automatically calculate subtotal, taxable amount, tax, and grand total. Add any notes or terms, then click \"Save Invoice\" to create it.",
-    ],
-  },
-  {
-    id: 7,
-    title: "Setting up Terms & Conditions",
-    categoryKey: "estimates",
-    category: "Estimates & invoices",
-    readTime: "2 min read",
-    body: [
-      "Your default Terms & Conditions travel with every estimate and invoice you send to clients. You configure them once and they apply everywhere — there is no separate publish step.",
-      "Open Settings from the sidebar or user menu, then go to System preferences → General. The \"Terms & Conditions\" card is where you set the content.",
-      "Use the Free text / File upload toggle to choose the format. \"Free text\" lets you type or paste your terms directly into the editor. \"File upload\" lets you attach a PDF or DOCX document — drop it on the upload area or click to browse. Need something to try the upload with? Download the sample at /sample-terms-and-conditions.txt and use it as an example vendor document.",
-      "Whatever you enter is saved automatically and becomes your company default. The next estimate or invoice you create picks it up immediately — no need to re-attach it each time.",
-      "On a new estimate, look for the \"Terms & Conditions apply to this estimate\" banner near the bottom of the form. It shows a one-line summary of your configured terms; click \"View terms and conditions\" to read the full text or see the attached document's name before sending.",
-      "If you have not set any terms yet, that banner shows an \"Add in Settings\" link instead — clicking it jumps you straight to the Terms & Conditions card. Always replace the seeded sample copy with your own attorney-reviewed terms before sending documents to real clients.",
+      "Open Settings from the gear icon in the top bar. Under Business management there are two screens for your company. Company info holds the business name, address, phone and email that appear on your documents. Company profile holds the About text, branding, taxes and regional settings, and Business hours — set the days and hours you are open, they become your default availability across the app. Click Save changes when you are done. Your logo, uploaded under branding, prints on every estimate and invoice you send.",
     ],
   },
   {
     id: 2,
-    title: "Setting up your company profile",
-    categoryKey: "getting-started",
-    category: "Getting started",
-    readTime: "3 min read",
+    title: "Adding and managing clients",
+    categoryKey: "clients",
     body: [
-      "Go to Settings from the sidebar or the user menu. Under the Company tab, you can update your business name, address, phone, and email.",
-      "Upload your company logo — it will appear on invoices, estimates, and other client-facing documents.",
-      "Set your default tax rate, payment terms, and currency preferences. These defaults will auto-apply when creating new documents.",
+      "Open Clients in the left menu and click Create Client. Fill in the contact information and the billing address; if the work happens somewhere else, add a separate service address. Additional contacts — a spouse, a property manager — can be added to the same client. Click Save client, or Save and Create Another to keep going. Each client profile has tabs for Details, Properties, Jobs, Estimates, Invoices, Payments and Documents, so the whole history lives in one place. Use search and the filters on the Clients list to find people quickly.",
     ],
   },
   {
     id: 3,
-    title: "Adding and managing clients",
-    categoryKey: "clients",
-    category: "Clients & contacts",
-    readTime: "3 min read",
+    title: "Scheduling jobs on the calendar",
+    categoryKey: "jobs",
     body: [
-      "Navigate to Clients from the sidebar. Click \"Create Client\" to add a new contact. Fill in their name, phone, and address details.",
-      "Each client profile shows their complete history — jobs, estimates, invoices, and payments all linked in one place.",
-      "Use the search and filter options on the Clients list to quickly find existing clients by name, email, or phone number.",
+      "Open Schedule in the left menu and switch between Day, Week and Month. Click Create job: give it a title and a job type, pick the client and the service address, choose who it is assigned to, and set the start date and time — the job duration fills in the end time. A job with a date and a technician sits on the board; a job missing one or the other waits in Pending jobs on the right, where you can drag it onto a time slot. Cards are colour-coded by status. Drag a card to reschedule it, or open it to change the status, add notes or attach files.",
     ],
   },
   {
     id: 4,
-    title: "Recording payments on invoices",
-    categoryKey: "payments",
-    category: "Payments & billing",
-    readTime: "5 min read",
+    title: "Using the items catalog for line items",
+    categoryKey: "items",
     body: [
-      "Open the invoice you want to record a payment for. Click the \"Collect Payment\" button in the top toolbar.",
-      "Enter the payment amount, date, and method (Cash, Check, Credit Card, Bank Transfer, etc.). Add an optional note for reference.",
-      "The invoice balance will automatically recalculate. If the full amount is paid, the status changes to \"Paid\". Partial payments update the status to \"Partially Paid\".",
-      "All payment activity is logged in the Activity section, providing a complete audit trail.",
+      "Items in the left menu is your catalog. The tabs split it by type: Price book for what customers see on documents, then Services, Materials, Equipment, Asset and Admin for internal items. Create item asks for basic info, type, classification — category, manufacturer, department — pricing and tax, vendor, images and notes. When you build an estimate or a job, add line items by searching the catalog: the description and price fill in and you adjust the quantity. Items that carry a cost feed the job's profit figures; the customer never sees cost.",
     ],
   },
   {
     id: 5,
-    title: "Using the item catalog for line items",
-    categoryKey: "items",
-    category: "Items & catalog",
-    readTime: "5 min read",
+    title: "Creating and sending an estimate",
+    categoryKey: "estimates",
     body: [
-      "The Items module lets you maintain a catalog of products, services, labor, and equipment with preset pricing.",
-      "When creating estimates, invoices, or jobs, use the \"Add Item\" button to open the Item Picker. Search by name, brand, or category.",
-      "Selecting an item auto-fills the price, cost, and tax settings. You can adjust the quantity and, in some cases, override the unit price.",
+      "Open Estimates and click Create estimate, or start from a client profile or a job. Pick the client and the address, then add line items from the catalog. To offer choices, click Add option: each option is a tab with its own items and total, and the customer picks one. Your Terms & Conditions from Settings apply automatically — View terms and conditions shows what the customer will read. Save as draft to keep working, or Send estimate to email the customer a link where they can accept the estimate or request changes. The status on the list follows along: Draft, Sent, Viewed, Approved, Changes requested, Expired.",
     ],
   },
   {
     id: 6,
-    title: "Scheduling jobs on calendar",
-    categoryKey: "jobs",
-    category: "Jobs & scheduling",
-    readTime: "5 min read",
+    title: "Setting up Terms & Conditions",
+    categoryKey: "estimates",
     body: [
-      "Navigate to Schedule from the sidebar. You can view your schedule in Day, Week, or Month view.",
-      "Create a new job directly from the calendar or go to Jobs → Create Job. Assign a client, set the date/time, and add relevant details.",
-      "Jobs appear color-coded on the calendar based on their status. Drag and drop to reschedule.",
+      "Open Settings, then System preferences, then Estimates. The terms you enter there travel with every estimate you send; there is no separate publish step. Type or paste your text and click Save changes. The next estimate you create picks it up: the banner \"Terms & Conditions apply to this estimate\" near the bottom of the form confirms it, and View terms and conditions opens the full text. Replace any sample wording with your own reviewed terms before you send documents to real customers.",
+    ],
+  },
+  {
+    // Written from the PRD — verify against the Invoices module when it ships.
+    id: 7,
+    title: "How to create your first invoice",
+    categoryKey: "estimates",
+    body: [
+      "An invoice starts from a completed job or an approved estimate, or from the Invoices list. The client, the service address and the line items come across; the invoice number is assigned for you — the customer's number plus a sequence, for example 10247-I01. Check the due date and payment terms, add a note if you need one, and send. The customer receives the invoice by email with a link to pay by card. Tax is shown on each line and the total is simply the sum of the lines. The status follows the balance: Unpaid, Partially paid, Paid.",
+    ],
+  },
+  {
+    // Written from the PRD — verify against the Payments module when it ships.
+    id: 8,
+    title: "Recording payments on invoices",
+    categoryKey: "payments",
+    body: [
+      "A payment always belongs to an invoice. Open the invoice, or the client's Payments tab, and choose New payment. Enter the amount, the date and the method — card, check, cash or bank transfer — and a note if you like. The invoice balance updates at once: a partial payment sets the invoice to Partially paid, a full one to Paid. Card payments the customer makes through the link in their email are recorded for you.",
+    ],
+  },
+  {
+    id: 9,
+    title: "Inviting your team",
+    categoryKey: "settings",
+    body: [
+      "Open Settings, then Business management, then Manage team. Invite user asks for the person's name, email and role; the invitation arrives by email as a one-time link, and the person sets their own password. The role decides what they see and do — a technician sees their own jobs, an owner sees everything. From the same screen you can change a role, deactivate someone who left, and see who has not accepted their invitation yet.",
     ],
   },
 ];
 
-const sandboxPhases: { key: string; label: string; description: string; from: string; to: string }[] = [
-  { key: "core", label: "Phase I — Core", description: "Clients, Jobs, Items, Estimates, Invoicing, Payments & basic reports.", from: "from-[#4A6FA5]", to: "to-[#3d5a85] hover:from-[#3d5a85] hover:to-[#2f4670]" },
-  { key: "pro", label: "Phase II — Pro", description: "Adds bookkeeping, dashboards, employee management & service agreements.", from: "from-[#16A34A]", to: "to-[#0F7A38] hover:from-[#0F7A38] hover:to-[#0a5c2a]" },
-  { key: "max", label: "Phase III — Max", description: "Adds advanced reporting, payroll-ready time tracking & inventory.", from: "from-[#DB2777]", to: "to-[#9D174D] hover:from-[#9D174D] hover:to-[#7a1139]" },
-  { key: "enterprise", label: "Phase IV — Enterprise", description: "Everything, plus an advanced schedule board built for large teams.", from: "from-[#D97706]", to: "to-[#92400E] hover:from-[#92400E] hover:to-[#78350F]" },
-];
+// Read time from the text itself: ~200 words per minute, never below 1 min.
+const WORDS_PER_MINUTE = 200;
+const readTime = (body: string[]) => {
+  const words = body.join(" ").trim().split(/\s+/).filter(Boolean).length;
+  return `${Math.max(1, Math.ceil(words / WORDS_PER_MINUTE))} min read`;
+};
 
-// Role-based sandbox tabs — mirrors real field access profiles so anyone can
-// preview what a given role would see. Cosmetic only for now: every tab opens
-// the same full sandbox (?sandbox=sample), there is no per-role gating yet.
-const sandboxRoles: { key: string; label: string; description: string }[] = [
-  { key: "technician", label: "Technician", description: "Sees only their own jobs, with enroute / working / done statuses. Can't close out a job themselves (R5, R6)." },
-  { key: "field-sales", label: "Field Salesperson", description: "Same as Technician, plus estimates, option sheets, and the price catalog." },
-  { key: "installer", label: "Installer", description: "Reads job scope, the parts list, and photos. No pricing is visible." },
-  { key: "dispatcher", label: "Dispatcher", description: "Books the schedule board, adds notes, and records card payments." },
-  { key: "dispatch-manager", label: "Dispatch Manager", description: "Everything a Dispatcher has, plus branch-to-branch transfers, overrides, and reports." },
-  { key: "ssa", label: "SSA", description: "Read-only across all boards — no write access. Sends transfer requests (handled via Google Chat today)." },
-  { key: "coordinator", label: "Coordinator", description: "Warranty / service / compliance / production queues, document verification, job closeout, and client communication." },
-  { key: "permits", label: "Permits", description: "The permits module plus documents, and read access to the install and sales boards." },
-  { key: "warehouse", label: "Warehouse", description: "Parts list, inventory, transfers, and dispatch on its own board." },
-  { key: "accounting", label: "Accounting", description: "Payments, invoices, balances, and refunds. No schedule board visibility." },
-  { key: "branch-manager", label: "Branch Manager", description: "Everything within their branch, plus KPI dashboards." },
-];
+const articleCount = (key: CatKey) => articles.filter(a => a.categoryKey === key).length;
 
 export function HelpCenter() {
   const [activeCat, setActiveCat] = useState<CatKey>("all");
   const [search, setSearch] = useState("");
   const [expanded, setExpanded] = useState<number | null>(null);
   const [contactOpen, setContactOpen] = useState(false);
-  const [activeRole, setActiveRole] = useState(sandboxRoles[0].key);
-  const [technicianDemoOpen, setTechnicianDemoOpen] = useState(false);
   const [contact, setContact] = useState({ name: "", email: "", subject: "", message: "" });
-
-  const totalCount = categories.reduce((sum, c) => sum + c.count, 0);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return articles.filter(a =>
       (activeCat === "all" || a.categoryKey === activeCat) &&
-      (!q || a.title.toLowerCase().includes(q) || a.category.toLowerCase().includes(q))
+      (!q ||
+        a.title.toLowerCase().includes(q) ||
+        categoryLabel(a.categoryKey).toLowerCase().includes(q) ||
+        a.body.some(p => p.toLowerCase().includes(q)))
     );
   }, [activeCat, search]);
 
@@ -197,7 +173,7 @@ export function HelpCenter() {
           >
             <span className="material-icons" style={{ fontSize: "18px", color: activeCat === "all" ? "#4A6FA5" : "#8899AA" }}>menu_book</span>
             <span className="flex-1 text-[13px] text-[#1A2332]" style={{ fontWeight: activeCat === "all" ? 600 : 500 }}>All articles</span>
-            <span className="text-[12px] text-[#8899AA]">{totalCount}</span>
+            <span className="text-[12px] text-[#8899AA]">{articles.length}</span>
           </button>
           {categories.map(cat => (
             <button
@@ -209,7 +185,7 @@ export function HelpCenter() {
             >
               <span className="material-icons" style={{ fontSize: "18px", color: activeCat === cat.key ? "#4A6FA5" : "#8899AA" }}>{cat.icon}</span>
               <span className="flex-1 text-[13px] text-[#1A2332]" style={{ fontWeight: activeCat === cat.key ? 600 : 500 }}>{cat.label}</span>
-              <span className="text-[12px] text-[#8899AA]">{cat.count}</span>
+              <span className="text-[12px] text-[#8899AA]">{articleCount(cat.key)}</span>
             </button>
           ))}
         </nav>
@@ -229,97 +205,44 @@ export function HelpCenter() {
         </div>
 
         <div className="px-5 pb-8">
-          {/* Sample Company sandbox (spec §8.7) — try every feature with mock
-              data. Hidden while searching so it never competes with results.
-              One card per pricing phase; all currently open the same full
-              sandbox (cosmetic only — no per-tier feature gating yet). */}
+          {/* Sample company (PRD FR-1.10, FR-15.7): one demo company per
+              account, shared by all its users. Hidden while searching so it
+              never competes with results. */}
           {!search && (
-            <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {sandboxPhases.map((phase) => (
-                <button
-                  key={phase.key}
-                  onClick={() => { window.location.href = "/?sandbox=sample"; }}
-                  className={`flex w-full items-center gap-3 rounded-xl bg-gradient-to-br ${phase.from} ${phase.to} p-4 text-left shadow-[0_4px_12px_rgba(0,0,0,0.12)] transition-all group`}
-                >
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-white/15 transition-colors group-hover:bg-white/20">
-                    <span className="material-icons text-white" style={{ fontSize: "22px" }}>play_circle</span>
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-[14px] text-white" style={{ fontWeight: 600 }}>Play with {phase.label}</div>
-                    <div className="mt-0.5 text-[12px] text-white/80">{phase.description}</div>
-                  </div>
-                  <span className="material-icons shrink-0 text-white/70 transition-transform group-hover:translate-x-0.5" style={{ fontSize: "20px" }}>arrow_forward</span>
-                </button>
-              ))}
-            </div>
+            <button
+              onClick={() => { window.location.href = "/?sandbox=sample"; }}
+              className="group mb-6 flex w-full items-center gap-3 rounded-xl bg-gradient-to-br from-[#4A6FA5] to-[#3d5a85] p-4 text-left shadow-[0_4px_12px_rgba(0,0,0,0.12)] transition-all hover:from-[#3d5a85] hover:to-[#2f4670]"
+            >
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-white/15 transition-colors group-hover:bg-white/20">
+                <span className="material-icons text-white" style={{ fontSize: "22px" }}>science</span>
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-[14px] text-white" style={{ fontWeight: 600 }}>Explore the sample company</div>
+                <div className="mt-0.5 text-[12px] text-white/80">A demo company with realistic data. Nothing you do there touches your real records.</div>
+              </div>
+              <span className="material-icons shrink-0 text-white/70 transition-transform group-hover:translate-x-0.5" style={{ fontSize: "20px" }}>arrow_forward</span>
+            </button>
           )}
 
-          {/* Role-based sandbox — separate section, tabs mirroring real field
-              access profiles. Cosmetic only, same as the phase cards above:
-              every role opens the same full sandbox, no gating yet. */}
-          {!search && (
-            <div className="mb-6 rounded-xl border border-[#E5E7EB] bg-white p-4">
-              <div className="mb-3">
-                <div className="text-[15px] text-[#1A2332]" style={{ fontWeight: 700 }}>Roles</div>
-                <div className="mt-0.5 text-[12px] text-[#8899AA]">Preview the sandbox as one of these field access profiles.</div>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {sandboxRoles.map((role) => (
-                  <button
-                    key={role.key}
-                    onClick={() => setActiveRole(role.key)}
-                    className={`rounded-full border px-3.5 py-1.5 text-[13px] transition-colors ${
-                      activeRole === role.key
-                        ? "border-[#4A6FA5] bg-[#EBF0F8] text-[#4A6FA5]"
-                        : "border-[#E5E7EB] bg-white text-[#546478] hover:bg-[#F5F7FA]"
-                    }`}
-                    style={{ fontWeight: activeRole === role.key ? 600 : 500 }}
-                  >
-                    {role.label}
-                  </button>
-                ))}
-              </div>
-              {(() => {
-                const role = sandboxRoles.find((r) => r.key === activeRole) ?? sandboxRoles[0];
-                return (
-                  <div className="mt-4 flex flex-col items-start gap-3 rounded-lg bg-[#F5F7FA] p-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="min-w-0">
-                      <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>{role.label}</div>
-                      <div className="mt-0.5 text-[13px] leading-[1.6] text-[#546478]">{role.description}</div>
-                    </div>
-                    <button
-                      onClick={() => {
-                        if (role.key === "technician") { setTechnicianDemoOpen(true); return; }
-                        if (role.key === "dispatcher") {
-                          // Real Create Client flow — duplicate detection + county
-                          // auto-fill while typing — then straight into the real
-                          // Create Job flow's symptom questionnaire for that client.
-                          window.location.href = "/clients/new?csr=1&sandbox=sample";
-                          return;
-                        }
-                        if (role.key === "field-sales") {
-                          // Land straight in the real Create Estimate flow, client
-                          // already attached — not a mockup, the app's own page.
-                          window.location.href = "/estimates/new?client=John%20Smith&clientId=10245&job=10245-J05&returnTo=%2Fjobs%2F105%3Ftab%3Destimates&sandbox=sample";
-                          return;
-                        }
-                        window.location.href = "/?sandbox=sample";
-                      }}
-                      className="flex h-9 shrink-0 items-center gap-2 rounded-md bg-[#4A6FA5] px-4 text-[13px] text-white transition-colors hover:bg-[#3d5a85]"
-                      style={{ fontWeight: 600 }}
-                    >
-                      <span className="material-icons" style={{ fontSize: "16px" }}>play_circle</span>
-                      Play as {role.label}
-                    </button>
-                  </div>
-                );
-              })()}
-            </div>
-          )}
           {filtered.length === 0 ? (
             <div className="rounded-xl border border-[#E5E7EB] bg-white py-16 text-center">
               <span className="material-icons text-[#C8D5E8]" style={{ fontSize: "40px" }}>search_off</span>
-              <div className="mt-2 text-[14px] text-[#8899AA]">No articles found</div>
+              <div className="mt-2 text-[14px] text-[#8899AA]">
+                {search.trim()
+                  ? <>No articles found for &lsquo;{search.trim()}&rsquo;</>
+                  : <>No articles in {activeCat === "all" ? "the help center" : categoryLabel(activeCat)} yet</>}
+              </div>
+              <div className="mt-1 text-[13px] text-[#8899AA]">
+                Can&rsquo;t find what you need?{" "}
+                <button
+                  type="button"
+                  onClick={() => setContactOpen(true)}
+                  className="text-[#4A6FA5] underline-offset-2 hover:underline"
+                  style={{ fontWeight: 600 }}
+                >
+                  Contact us
+                </button>
+              </div>
             </div>
           ) : (
             <div className="space-y-2">
@@ -333,7 +256,7 @@ export function HelpCenter() {
                     >
                       <div className="flex-1 min-w-0">
                         <span className="text-[15px] text-[#1A2332]" style={{ fontWeight: 600 }}>{article.title}</span>
-                        <span className="ml-2 text-[13px] text-[#8899AA]">{article.category} • {article.readTime}</span>
+                        <span className="ml-2 text-[13px] text-[#8899AA]">{categoryLabel(article.categoryKey)} • {readTime(article.body)}</span>
                       </div>
                       <span className="material-icons shrink-0 text-[#8899AA] transition-transform" style={{ fontSize: "22px", transform: open ? "rotate(180deg)" : "none" }}>expand_more</span>
                     </button>
@@ -385,6 +308,8 @@ export function HelpCenter() {
                 <textarea value={contact.message} onChange={e => setContact({ ...contact, message: e.target.value })} className="min-h-[76px] rounded-lg border border-[#E5E7EB] px-3 py-2 text-[13px] text-[#1A2332] outline-none focus:border-[#4A6FA5] resize-y" placeholder="Describe your issue in detail..." />
               </label>
 
+              {/* PLACEHOLDER contacts — real values and the decision whose
+                  support this is are pending (task 8906). */}
               <div className="border-t border-[#EDF0F5] pt-4">
                 <h3 className="mb-3 text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Other ways to reach us</h3>
                 <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[13px] text-[#546478]">
@@ -414,8 +339,6 @@ export function HelpCenter() {
           </div>
         </div>
       )}
-
-      {technicianDemoOpen && <TechnicianMobileDemo onClose={() => setTechnicianDemoOpen(false)} />}
     </div>
   );
 }
