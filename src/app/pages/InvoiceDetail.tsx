@@ -1,4 +1,4 @@
-import { Fragment, useState, useSyncExternalStore } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 import { toast } from "sonner";
 import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
@@ -12,7 +12,6 @@ import { InvoiceSheet, PrintPageRule, useDocCompany, type InvoiceSheetData } fro
 import { jobsStore } from "../stores/jobsStore";
 import { itemsStore } from "../stores/itemsStore";
 import { ItemPicker, type CatalogItem } from "../components/ItemPicker";
-import { GroupMemberRows, GroupToggle, useExpandedGroups } from "../components/GroupMembersAccordion";
 
 // A job linked to the invoice, rendered as one accordion section in the
 // Job Details card.
@@ -383,7 +382,6 @@ export function InvoiceDetail() {
   // actually work on this mock-backed page (Figma 1432:107806).
   const [items, setItems] = useState<any[]>(data.items);
   const [itemPickerOpen, setItemPickerOpen] = useState(false);
-  const itemGroups = useExpandedGroups();
   const catalogItems = useSyncExternalStore(itemsStore.subscribe, itemsStore.getSnapshot);
   const handleSelectItem = (c: CatalogItem) => {
     setItems(prev => [...prev, {
@@ -393,9 +391,6 @@ export function InvoiceDetail() {
       unitPrice: c.rate,
       taxable: !!c.taxable,
       itemType: c.itemType || c.type,
-      // A price book group stays one line at its flat price; the members ride
-      // along so the line can be expanded internally.
-      groupItems: c.groupItems?.length ? c.groupItems : undefined,
     }]);
     setItemPickerOpen(false);
     toast.success(`"${c.name}" added to invoice`);
@@ -665,12 +660,10 @@ export function InvoiceDetail() {
             </thead>
             <tbody>
               {items.map((item: any, idx: number) => (
-                <Fragment key={idx}>
-                <tr className="border-b border-[#F3F4F6] last:border-b-0 hover:bg-[#FAFBFC]">
+                <tr key={idx} className="border-b border-[#F3F4F6] last:border-b-0 hover:bg-[#FAFBFC]">
                   <td className="px-5 py-3">
                     <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{item.name}</div>
                     <div className="text-[12px] text-[#9CA3AF] mt-0.5">{item.description}</div>
-                    {!!item.groupItems?.length && <GroupToggle count={item.groupItems.length} open={itemGroups.isOpen(idx)} onToggle={() => itemGroups.toggle(idx)} />}
                     {item.taxable && (
                       <span className="text-[11px] px-1.5 py-0.5 rounded bg-[#D1FAE5] text-[#16A34A] mt-1 inline-block" style={{ fontWeight: 600 }}>
                         Taxable
@@ -690,8 +683,6 @@ export function InvoiceDetail() {
                     )}
                   </td>
                 </tr>
-                {!!item.groupItems?.length && <GroupMemberRows members={item.groupItems} open={itemGroups.isOpen(idx)} colSpan={5} lineQuantity={item.qty} />}
-                </Fragment>
               ))}
             </tbody>
           </table>

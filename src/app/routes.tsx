@@ -35,7 +35,6 @@ import { ExpenseDetail } from "./pages/ExpenseDetail";
 import { CreateExpense } from "./pages/CreateExpense";
 import { Items } from "./pages/Items";
 import { CreateItem } from "./pages/CreateItem";
-import { CreateItemGroup } from "./pages/CreateItemGroup";
 import { ItemDetail } from "./pages/ItemDetail";
 import { Accounting } from "./pages/Accounting";
 import { Marketing } from "./pages/Marketing";
@@ -168,10 +167,6 @@ export const router = createBrowserRouter([
       { path: "service-agreements/new", Component: CreateServiceAgreement },
       { path: "items", Component: Items },
       { path: "items/new", Component: CreateItem },
-      // Item groups (price book entries) — created and edited on their own form
-      // because they are made of other items; listed with everything else.
-      { path: "items/groups/new", Component: CreateItemGroup },
-      { path: "items/groups/:id", Component: CreateItemGroup },
       { path: "items/:id", Component: ItemDetail },
       { path: "accounting", Component: Accounting },
       { path: "marketing", Component: Marketing },

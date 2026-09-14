@@ -1,4 +1,4 @@
-﻿import { Fragment, useState, useRef, useEffect, useCallback, useSyncExternalStore } from "react";
+﻿import { useState, useRef, useEffect, useCallback, useSyncExternalStore } from "react";
 import { termsStore, hasTerms } from "../stores/termsStore";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
@@ -19,8 +19,7 @@ import { documentTemplateStore } from "../stores/documentTemplateStore";
 import { EstimateOptionsSheet, EstimateSingleSheet, EstimateTermsPage, PrintPageRule, money, useDocCompany, type EstimateOptionsData, type EstimateSingleData, type EstimateTermsData } from "../components/DocumentSheets";
 import { ItemPicker, type CatalogItem } from "../components/ItemPicker";
 import { itemsStore } from "../stores/itemsStore";
-import { breakdownForItem, type ItemGroupMember } from "../utils/itemCost";
-import { GroupMemberRows, GroupToggle, useExpandedGroups } from "../components/GroupMembersAccordion";
+import { breakdownForItem } from "../utils/itemCost";
 import installHeatingSystem1Photo from "../../assets/documents/33702-install-heating-system-1.jpg";
 import installHeatingSystemPhoto from "../../assets/documents/33702-install-heating-system.jpg";
 import installDuctsVentsPhoto from "../../assets/documents/33805-install-ducts-vents.jpg";
@@ -42,9 +41,7 @@ interface LineItem {
   quantity: number; price: number; cost: number; amount: number;
   taxable: boolean; optional?: boolean;
   itemType?: string;
-  costBreakdown?: { labor: number; materials: number };
-  /** Members of the item group (price book entry) this line came from. */
-  groupItems?: ItemGroupMember[];
+  costBreakdown?: { labor: number; commission?: number; materials: number };
 }
 
 interface MockPhoto { id: number; tag: "Before" | "After"; group: "A" | "B"; color: string; }
@@ -257,7 +254,7 @@ function recordToEstimateData(r: EstimateRecord): EstimateData {
       id: it.id, name: it.name, description: it.description,
       quantity: it.quantity, price: it.price, cost: it.cost,
       amount: it.amount, taxable: it.taxable,
-        itemType: it.itemType, costBreakdown: it.costBreakdown, groupItems: it.groupItems?.length ? it.groupItems : undefined,
+        itemType: it.itemType, costBreakdown: it.costBreakdown,
     })),
     options: r.options?.map((o) => ({
       name: o.name,
@@ -266,7 +263,7 @@ function recordToEstimateData(r: EstimateRecord): EstimateData {
         id: it.id, name: it.name, description: it.description,
         quantity: it.quantity, price: it.price, cost: it.cost,
         amount: it.amount, taxable: it.taxable,
-        itemType: it.itemType, costBreakdown: it.costBreakdown, groupItems: it.groupItems?.length ? it.groupItems : undefined,
+        itemType: it.itemType, costBreakdown: it.costBreakdown,
       })),
     })),
     selectedOptionName: r.selectedOptionName,
@@ -283,7 +280,7 @@ function recordToEstimateData(r: EstimateRecord): EstimateData {
         id: it.id, name: it.name, description: it.description,
         quantity: it.quantity, price: it.price, cost: it.cost,
         amount: it.amount, taxable: it.taxable,
-        itemType: it.itemType, costBreakdown: it.costBreakdown, groupItems: it.groupItems?.length ? it.groupItems : undefined,
+        itemType: it.itemType, costBreakdown: it.costBreakdown,
       })),
     })),
     activity: [{
@@ -349,7 +346,6 @@ export function EstimateDetail() {
   };
   const [statusOpen, setStatusOpen] = useState(false);
   const [addItemOpen, setAddItemOpen] = useState(false);
-  const itemGroups = useExpandedGroups();
   // "Add item" opens the shared catalog picker (single items and price book
   // groups, with the same type tabs as the Items page). The pick lands on the
   // option being viewed, or on the flat list of a single-option estimate.
@@ -360,7 +356,6 @@ export function EstimateDetail() {
       name: item.name, description: item.salesDescription || "", quantity: 1,
       price: item.rate, cost: item.cost, amount: item.rate, taxable: item.taxable,
       itemType: item.itemType || item.type, costBreakdown: breakdownForItem(item),
-      groupItems: item.groupItems?.length ? item.groupItems : undefined,
     });
     setEstimate(prev => (prev.options?.length ?? 0) > 1
       ? { ...prev, options: prev.options!.map((o, idx) => idx === activeOptionIdx ? { ...o, items: [...o.items, toLine(o.items)] } : o) }
@@ -1028,12 +1023,10 @@ export function EstimateDetail() {
             </thead>
             <tbody>
               {shownItems.map(item => (
-                <Fragment key={item.id}>
-                <tr className="border-b border-[#F1F3F7] last:border-0 hover:bg-[#F9FAFB]">
+                <tr key={item.id} className="border-b border-[#F1F3F7] last:border-0 hover:bg-[#F9FAFB]">
                   <td className="px-4 py-3">
                     <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>{item.name}</div>
                     {item.description && <div className="text-[12px] text-[#8899AA]">{item.description}</div>}
-                    {!!item.groupItems?.length && <GroupToggle count={item.groupItems.length} open={itemGroups.isOpen(item.id)} onToggle={() => itemGroups.toggle(item.id)} />}
                   </td>
                   <td className="px-4 py-3 text-right">
                     <input
@@ -1057,8 +1050,6 @@ export function EstimateDetail() {
                     </button>
                   </td>
                 </tr>
-                {!!item.groupItems?.length && <GroupMemberRows members={item.groupItems} open={itemGroups.isOpen(item.id)} colSpan={7} lineQuantity={item.quantity} />}
-                </Fragment>
               ))}
             </tbody>
             <tfoot>

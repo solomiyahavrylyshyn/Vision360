@@ -1,50 +1,57 @@
 // Item cost breakdown — an item's internal cost split by what it actually pays
-// for: labor or materials.
+// for: labor, commission or materials.
 //
-// Why the split exists (Marek, Sep 10 call): workers' comp insurance is priced
-// off compensation, and the rate differs wildly by kind of work — HVAC or
-// roofing labor is expensive, a salesperson's commission is cheap. A shop that
-// reports one lump "compensation" number pays the expensive rate on all of it,
-// so labor has to be recordable on its own.
-//
-// Commission is deliberately NOT a component of an item's cost: it is earned on
-// the sale, not on the item, and it is recorded as a job expense in the
-// pre-coded Commission category (expenseCategoriesStore). An item only knows
-// what the work costs to perform — labor — and what the parts cost — materials.
+// Why the split exists (Marek, Sep 10 and Sep 14 calls): the job page has four
+// tiles — Total price · Compensation · Expenses · Gross margin — and every
+// service item pays for three things at once: the technician's labor, the
+// commission on the sale, and the parts. One item, three buckets. Labor and
+// commission are compensation; materials are an expense. Recording them apart
+// is what lets the company report labor on its own (workers' comp insurance is
+// priced off it) without creating a separate "labor" or "commission" item for
+// every service.
 //
 // A single item is deliberately kept simple: one cost with an optional split.
-// A package that mixes labor and parts is an item group (a Price Book entry)
-// whose components each carry their own split — see rollUpBreakdown.
+// Packages of several items (item groups) were considered and dropped — the
+// split does the same job for costing and keeps the catalog flat.
 
 export interface CostBreakdown {
   labor: number;
+  commission: number;
   materials: number;
 }
 
-export const ZERO_BREAKDOWN: CostBreakdown = { labor: 0, materials: 0 };
+export const ZERO_BREAKDOWN: CostBreakdown = { labor: 0, commission: 0, materials: 0 };
 
 export const COST_COMPONENTS = [
   { key: "labor", label: "Labor" },
+  { key: "commission", label: "Commission" },
   { key: "materials", label: "Materials" },
 ] as const;
 
 const num = (n: unknown) => (typeof n === "number" && Number.isFinite(n) ? n : 0);
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
-// Records written before commission moved to the expense side still carry it;
-// it was compensation, so it folds into labor rather than disappearing.
-const laborOf = (b: CostBreakdown | undefined): number =>
-  b ? num(b.labor) + num((b as { commission?: number }).commission) : 0;
+/** Records written before commission was a component of its own carry only
+ *  labor and materials; they read back with a zero commission. */
+const normalize = (b: Partial<CostBreakdown> | undefined): CostBreakdown => ({
+  labor: round2(num(b?.labor)),
+  commission: round2(num(b?.commission)),
+  materials: round2(num(b?.materials)),
+});
 
-export const breakdownTotal = (b: CostBreakdown | undefined): number =>
-  b ? round2(laborOf(b) + num(b.materials)) : 0;
+export const breakdownTotal = (b: Partial<CostBreakdown> | undefined): number => {
+  const n = normalize(b);
+  return round2(n.labor + n.commission + n.materials);
+};
 
-/** The part of a cost that pays a person — on an item, that is labor. */
-export const breakdownCompensation = (b: CostBreakdown | undefined): number =>
-  b ? round2(laborOf(b)) : 0;
+/** The part of a cost that pays a person — labor plus commission. */
+export const breakdownCompensation = (b: Partial<CostBreakdown> | undefined): number => {
+  const n = normalize(b);
+  return round2(n.labor + n.commission);
+};
 
-export const isEmptyBreakdown = (b: CostBreakdown | undefined): boolean =>
-  !b || (laborOf(b) === 0 && num(b.materials) === 0);
+export const isEmptyBreakdown = (b: Partial<CostBreakdown> | undefined): boolean =>
+  breakdownTotal(b) === 0;
 
 /**
  * Which bucket an item's cost falls into when nobody has split it by hand.
@@ -52,6 +59,7 @@ export const isEmptyBreakdown = (b: CostBreakdown | undefined): boolean =>
  * work, so it is labor. Material, Equipment and Asset costs are the supplier
  * price, and an Admin fee (a permit, a disposal charge) is money paid out to a
  * third party — both are materials, i.e. an expense rather than compensation.
+ * Commission is never implied: it only exists when the company types it in.
  */
 export function defaultCostComponent(itemType: string | undefined): keyof CostBreakdown {
   const t = (itemType ?? "").trim();
@@ -61,71 +69,40 @@ export function defaultCostComponent(itemType: string | undefined): keyof CostBr
 
 /**
  * The breakdown to use for an item: the explicit one when the company filled it
- * in, otherwise the whole cost in the bucket its type implies. A Price Book
- * group with no explicit split rolls up from its members.
+ * in, otherwise the whole cost in the bucket its type implies.
  */
 export function breakdownForItem(item: {
   cost?: number;
   itemType?: string;
   type?: string;
-  costBreakdown?: CostBreakdown;
-  groupItems?: ItemGroupMember[];
+  costBreakdown?: Partial<CostBreakdown>;
 }): CostBreakdown {
   if (item.costBreakdown && !isEmptyBreakdown(item.costBreakdown)) {
-    return { labor: round2(laborOf(item.costBreakdown)), materials: round2(num(item.costBreakdown.materials)) };
+    return normalize(item.costBreakdown);
   }
-  if (item.groupItems?.length) return rollUpBreakdown(item.groupItems);
   const bucket = defaultCostComponent(item.itemType ?? item.type);
   return { ...ZERO_BREAKDOWN, [bucket]: round2(num(item.cost)) };
 }
 
-/** A member line of an item group (Price Book entry). */
-export interface ItemGroupMember {
-  /** Catalog id of the member item, 0 for a line typed in by hand. */
-  itemId: number;
-  name: string;
-  /** Member's own item type, so the rollup knows which bucket its cost is. */
-  itemType?: string;
-  quantity: number;
-  unitPrice: number;
-  unitCost: number;
-  costBreakdown?: CostBreakdown;
-}
-
-/** Sum the members' costs into one breakdown, quantity included. */
-export function rollUpBreakdown(members: ItemGroupMember[]): CostBreakdown {
-  const out = { ...ZERO_BREAKDOWN };
-  for (const m of members) {
-    const qty = num(m.quantity) || 0;
-    const b = breakdownForItem({ cost: m.unitCost, itemType: m.itemType, costBreakdown: m.costBreakdown });
-    out.labor += qty * b.labor;
-    out.materials += qty * b.materials;
-  }
-  return { labor: round2(out.labor), materials: round2(out.materials) };
-}
-
-/** Sum the members' retail prices — the group's price when it is not flat-rate. */
-export function rollUpPrice(members: ItemGroupMember[]): number {
-  return round2(members.reduce((s, m) => s + num(m.quantity) * num(m.unitPrice), 0));
-}
-
 /**
  * Move a new total into an existing split. Editing the single "Cost" field on
- * an item that was never broken down should not force the form open: the delta
+ * an item that was never broken down should not force the form open: the total
  * goes to the bucket the item type implies, and an existing split is scaled so
  * the ratio the company entered survives.
  */
 export function retotalBreakdown(
-  current: CostBreakdown | undefined,
+  current: Partial<CostBreakdown> | undefined,
   nextTotal: number,
   itemType: string | undefined,
 ): CostBreakdown {
   const total = round2(num(nextTotal));
   const prev = breakdownTotal(current);
-  if (!current || isEmptyBreakdown(current) || prev === 0) {
+  if (!current || prev === 0) {
     return { ...ZERO_BREAKDOWN, [defaultCostComponent(itemType)]: total };
   }
-  const labor = round2((laborOf(current) / prev) * total);
+  const cur = normalize(current);
+  const labor = round2((cur.labor / prev) * total);
+  const commission = round2((cur.commission / prev) * total);
   // Materials absorbs the rounding so the split always adds up to the total.
-  return { labor, materials: round2(total - labor) };
+  return { labor, commission, materials: round2(total - labor - commission) };
 }

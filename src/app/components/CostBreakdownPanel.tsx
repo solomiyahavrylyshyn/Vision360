@@ -1,14 +1,14 @@
-import { COST_COMPONENTS, breakdownTotal, defaultCostComponent, retotalBreakdown, type CostBreakdown } from "../utils/itemCost";
+import { COST_COMPONENTS, ZERO_BREAKDOWN, breakdownTotal, defaultCostComponent, retotalBreakdown, type CostBreakdown } from "../utils/itemCost";
 
 // Cost split fields, shared by the Create-item form and the Item-detail pricing
-// modal (Marek, Sep 10 call): an item's cost can be recorded as labor and
-// materials instead of one lump number. Commission is not here — it is earned
-// on the sale, not on the item, and is recorded as a job expense.
+// modal (Marek, Sep 10 and Sep 14 calls): an item's cost can be recorded as
+// labor, commission and materials instead of one lump number. Labor and
+// commission are compensation, materials are an expense — that is what the
+// job's Compensation / Expenses tiles are built from.
 //
-// Off by default so a plain part or a plain service stays a single number — the
-// point of the split is packages and anything that pays a person, not every
-// little item. With the split on, Cost is the sum and is no longer typed
-// directly; with it off, the item type decides which bucket the cost lands in.
+// Off by default so a plain part or a plain service stays a single number.
+// With the split on, Cost is the sum and is no longer typed directly; with it
+// off, the item type decides which bucket the cost lands in.
 //
 // Two components because they sit in different places on the form: CostField
 // takes the Cost cell inside the price row, CostSplitBlock is the full-width
@@ -28,7 +28,7 @@ export interface CostBreakdownProps {
   required?: React.ReactNode;
 }
 
-const BUCKET_LABEL: Record<string, string> = { labor: "labor", materials: "materials" };
+const BUCKET_LABEL: Record<keyof CostBreakdown, string> = { labor: "labor", commission: "commission", materials: "materials" };
 
 export function CostField({ cost, onCostChange, breakdown, itemType, fieldClass, labelClass, required }: CostBreakdownProps) {
   const split = !!breakdown;
@@ -70,7 +70,7 @@ export function CostSplitBlock({ cost, onCostChange, breakdown, onBreakdownChang
   };
 
   const setComponent = (key: keyof CostBreakdown, value: string) => {
-    const next = { ...(breakdown ?? { labor: 0, materials: 0 }), [key]: parseFloat(value) || 0 };
+    const next = { ...ZERO_BREAKDOWN, ...(breakdown ?? {}), [key]: parseFloat(value) || 0 };
     onBreakdownChange(next);
     onCostChange(String(breakdownTotal(next)));
   };
@@ -82,14 +82,14 @@ export function CostSplitBlock({ cost, onCostChange, breakdown, onBreakdownChang
           type="checkbox" checked={split} onChange={(e) => toggle(e.target.checked)}
           className="h-4 w-4 cursor-pointer rounded border-[#CBD5E1] accent-[#4A6FA5]"
         />
-        <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Split cost into labor and materials</span>
+        <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Split cost</span>
       </label>
       <p className="mt-1.5 text-[12px] text-[#8899AA]">
-        Labor is compensation; materials are an expense. Recording them apart is what lets the company report labor on
-        its own — workers&rsquo; comp insurance is priced off it. Commission belongs on the job as an expense, not here.
+        One cost, three buckets: labor and commission are compensation, materials are an expense. That is how the
+        job&rsquo;s Compensation and Expenses tiles are filled &mdash; no separate labor or commission item needed.
       </p>
       {split && (
-        <div className="mt-3 grid grid-cols-2 gap-5">
+        <div className="mt-3 grid grid-cols-3 gap-5">
           {COST_COMPONENTS.map(({ key, label }) => (
             <div key={key}>
               <label className={labelClass}>{label}</label>

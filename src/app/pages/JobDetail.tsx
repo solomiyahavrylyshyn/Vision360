@@ -1,4 +1,4 @@
-﻿import { Fragment, useState, useRef, useEffect, useSyncExternalStore } from "react";
+﻿import { useState, useRef, useEffect, useSyncExternalStore } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
 import { type JobStatus, JOB_STATUSES, JOB_STATUS_COLOR } from "../constants/jobStatuses";
@@ -17,7 +17,6 @@ import { formatRegionalDate } from "../stores/regionalSettingsStore";
 import { jobsStore, type JobRecord, type JobLineItem } from "../stores/jobsStore";
 import { itemsStore } from "../stores/itemsStore";
 import { ItemPicker, catalogItemToLineItem, type CatalogItem } from "../components/ItemPicker";
-import { GroupMemberRows, GroupToggle, useExpandedGroups } from "../components/GroupMembersAccordion";
 import { clientsStore } from "../stores/clientsStore";
 import { estimatesStore } from "../stores/estimatesStore";
 import { invoicesStore } from "../stores/invoicesStore";
@@ -607,7 +606,6 @@ export function JobDetail() {
   // from the Items tab in component state for the session.
   const [addedLineItems, setAddedLineItems] = useState<JobLineItem[]>([]);
   const [itemPickerOpen, setItemPickerOpen] = useState(false);
-  const itemGroups = useExpandedGroups();
   const catalogItems = useSyncExternalStore(itemsStore.subscribe, itemsStore.getSnapshot);
   const jobLineItems: JobLineItem[] = [
     ...((job.lineItems ?? []) as JobLineItem[]),
@@ -621,7 +619,7 @@ export function JobDetail() {
     const line: JobLineItem = {
       name: li.name, description: li.description, itemType: li.itemType,
       quantity: li.quantity, unitCost: li.unitCost, unitPrice: li.unitPrice, total: li.total,
-      costBreakdown: li.costBreakdown, groupItems: li.groupItems,
+      costBreakdown: li.costBreakdown,
     };
     if (storeJob) jobsStore.update(storeJob.id, { lineItems: [...(storeJob.lineItems ?? []), line] });
     else setAddedLineItems((prev) => [...prev, line]);
@@ -1433,22 +1431,18 @@ export function JobDetail() {
           </tr>
         </thead>
         <tbody>
-          {jobLineItems.map((li, idx) => { const key = `overview-${idx}`; const members = li.groupItems ?? []; return (
-            <Fragment key={key}>
-            <tr className="border-b border-[#F3F4F6]">
+          {jobLineItems.map((li, idx) => (
+            <tr key={idx} className="border-b border-[#F3F4F6]">
               <td className="py-3">
                 <div className="text-[#1A2332]" style={{ fontWeight: 500 }}>{li.name}</div>
                 <div className="text-[12px] text-[#9CA3AF] mt-0.5">{li.description}</div>
-                {members.length > 0 && <GroupToggle count={members.length} open={itemGroups.isOpen(key)} onToggle={() => itemGroups.toggle(key)} />}
               </td>
               <td className="text-center py-3 text-[#374151]">{li.quantity}</td>
               <td className="text-center py-3 text-[#374151]">${li.unitCost.toFixed(2)}</td>
               <td className="text-center py-3 text-[#374151]">${li.unitPrice.toFixed(2)}</td>
               <td className="text-right py-3 text-[#1A2332]" style={{ fontWeight: 500 }}>${li.total.toFixed(2)}</td>
             </tr>
-            {members.length > 0 && <GroupMemberRows members={members} open={itemGroups.isOpen(key)} colSpan={5} lineQuantity={li.quantity} />}
-            </Fragment>
-          ); })}
+          ))}
         </tbody>
       </table>
       <div className="flex justify-end gap-8 pt-4 mt-2 border-t border-[#E5E7EB]">
@@ -1584,7 +1578,7 @@ export function JobDetail() {
           <>
             <table className="w-full text-[14px]">
               <thead className="bg-[#F5F7FA]"><tr className="border-b border-[#E5E7EB] text-left text-[#1A2332]"><th className="px-4 py-3">Item</th><th className="px-4 py-3">Type</th><th className="px-4 py-3">Quantity</th><th className="px-4 py-3 text-right">Unit price</th><th className="px-4 py-3 text-right">Unit cost</th><th className="px-4 py-3 text-right">Total</th><th className="w-10 px-4 py-3" /></tr></thead>
-              <tbody>{jobLineItems.map((li, idx) => { const key = `items-${idx}`; const members = li.groupItems ?? []; return (<Fragment key={key}><tr className="border-b border-[#E5E7EB] last:border-0"><td className="px-4 py-4"><div className="text-[#1A2332]" style={{ fontWeight: 500 }}>{li.name}</div><div className="text-[13px] text-[#6B7280]">{li.description}</div>{members.length > 0 && <GroupToggle count={members.length} open={itemGroups.isOpen(key)} onToggle={() => itemGroups.toggle(key)} />}</td><td className="px-4 py-4 text-[#6B7280]">{li.itemType || "—"}</td><td className="px-4 py-4"><input readOnly value={li.quantity} className="h-8 w-[72px] rounded-lg border border-[#E5E7EB] px-2 text-[13px]" /></td><td className="px-4 py-4 text-right">{money(li.unitPrice)}</td><td className="px-4 py-4 text-right text-[#6B7280]">{money(li.unitCost)}</td><td className="px-4 py-4 text-right">{money(li.total)}</td><td className="px-4 py-4 text-right"><button className="h-8 w-8 rounded-lg text-[#9CA3AF] hover:bg-[#FEE2E2] hover:text-[#DC2626]"><span className="material-icons" style={{ fontSize: "16px" }}>delete</span></button></td></tr>{members.length > 0 && <GroupMemberRows members={members} open={itemGroups.isOpen(key)} colSpan={7} lineQuantity={li.quantity} />}</Fragment>); })}</tbody>
+              <tbody>{jobLineItems.map((li, idx) => <tr key={idx} className="border-b border-[#E5E7EB] last:border-0"><td className="px-4 py-4"><div className="text-[#1A2332]" style={{ fontWeight: 500 }}>{li.name}</div><div className="text-[13px] text-[#6B7280]">{li.description}</div></td><td className="px-4 py-4 text-[#6B7280]">{li.itemType || "—"}</td><td className="px-4 py-4"><input readOnly value={li.quantity} className="h-8 w-[72px] rounded-lg border border-[#E5E7EB] px-2 text-[13px]" /></td><td className="px-4 py-4 text-right">{money(li.unitPrice)}</td><td className="px-4 py-4 text-right text-[#6B7280]">{money(li.unitCost)}</td><td className="px-4 py-4 text-right">{money(li.total)}</td><td className="px-4 py-4 text-right"><button className="h-8 w-8 rounded-lg text-[#9CA3AF] hover:bg-[#FEE2E2] hover:text-[#DC2626]"><span className="material-icons" style={{ fontSize: "16px" }}>delete</span></button></td></tr>)}</tbody>
             </table>
             <div className="border-t border-[#E5E7EB] bg-[#F5F7FA] px-4 py-4">
               <div className="ml-auto w-[280px] space-y-2 text-[13px]">
@@ -2166,8 +2160,8 @@ export function JobDetail() {
             {[
               { label: "Total price",   value: `$${Math.round(financials.totalPrice).toLocaleString("en-US")}`,   icon: "paid",                   iconColor: "#16A34A", hint: financials.fromApprovedEstimate ? "From the approved estimate" : "Sum of the line items at price" },
               { label: "Compensation",  value: `$${Math.round(financials.compensation).toLocaleString("en-US")}`, icon: "payments",               iconColor: "#DC2626", hint: `Labor $${Math.round(financials.laborTotal).toLocaleString("en-US")} · Commission $${Math.round(financials.commissionTotal).toLocaleString("en-US")} — item labor cost plus the Labor and Commission expenses` },
-              { label: "All expenses",  value: `$${Math.round(financials.allExpenses).toLocaleString("en-US")}`,  icon: "account_balance_wallet", iconColor: "#F59E0B", hint: "Material and equipment cost + every other job expense" },
-              { label: "Profit margin", value: `${Math.round(financials.margin)}%`,                               icon: "pie_chart",              iconColor: "#A856F7", hint: `Gross profit $${financials.grossProfit.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
+              { label: "Expenses",      value: `${Math.round(financials.expenses).toLocaleString("en-US")}`,  icon: "account_balance_wallet", iconColor: "#F59E0B", hint: "Material and equipment cost + every other job expense" },
+              { label: "Gross margin",  value: `${Math.round(financials.margin)}%`,                               icon: "pie_chart",              iconColor: "#A856F7", hint: `Gross profit $${financials.grossProfit.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
             ].map(({ label, value, icon, iconColor, hint }, i) => (
               <div key={label} className="flex items-center gap-4">
                 {i > 0 && <div className="w-px h-6 bg-[#E5E7EB] shrink-0" />}

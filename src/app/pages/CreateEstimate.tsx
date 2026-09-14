@@ -192,8 +192,7 @@ export function CreateEstimate() {
         price: li.unitPrice, cost: li.unitCost, amount: li.total, taxable: li.taxable,
         hideOnCustomerDocs: li.hideOnCustomerDocs || undefined,
         itemType: li.itemType, costBreakdown: li.costBreakdown,
-        groupItems: li.groupItems?.length ? li.groupItems : undefined,
-      })),
+              })),
       taxRate,
       notes: internalNote,
       // Good/Better/Best — persist every option's line items so the client can
@@ -208,8 +207,7 @@ export function CreateEstimate() {
             price: li.unitPrice, cost: li.unitCost, amount: li.total, taxable: li.taxable,
             hideOnCustomerDocs: li.hideOnCustomerDocs || undefined,
             itemType: li.itemType, costBreakdown: li.costBreakdown,
-            groupItems: li.groupItems?.length ? li.groupItems : undefined,
-          })),
+                      })),
         })),
       } : {}),
     });

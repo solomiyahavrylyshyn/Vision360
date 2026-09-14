@@ -7,7 +7,6 @@ import { estimatesStore } from "../stores/estimatesStore";
 import { invoicesStore } from "../stores/invoicesStore";
 import { itemsStore } from "../stores/itemsStore";
 import { ItemPicker, catalogItemToLineItem, type CatalogItem, type SelectedLineItem } from "../components/ItemPicker";
-import type { ItemGroupMember } from "../utils/itemCost";
 import { PlusIcon } from "../components/ui/plus-icon";
 
 // Legacy HVAC/plumbing options kept alongside the live Items catalog.
@@ -103,10 +102,7 @@ export function CreateInvoice() {
       quantity: it.quantity, unitPrice: it.price,
       unitCost: it.cost ?? 0, taxable: it.taxable, total: it.amount,
       sourceJob: sourceJob ? sourceJob.jobNumber : undefined,
-      // A price book line keeps its members so the invoice can expand it
-      // internally; the customer's copy still shows one line.
       itemType: (it as { itemType?: string }).itemType,
-      groupItems: (it as { groupItems?: ItemGroupMember[] }).groupItems,
     }));
   });
 

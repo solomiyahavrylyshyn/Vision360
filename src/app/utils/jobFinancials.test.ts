@@ -23,7 +23,7 @@ describe("computeJobFinancials", () => {
     });
     expect(f.totalPrice).toBe(600);
     expect(f.compensation).toBe(75); // service cost 45 + commission 30
-    expect(f.allExpenses).toBe(200); // materials 80 + lift 100 + fuel 20
+    expect(f.expenses).toBe(200); // materials 80 + lift 100 + fuel 20
     expect(f.grossProfit).toBe(325);
     expect(Math.round(f.margin)).toBe(54);
   });
@@ -34,7 +34,7 @@ describe("computeJobFinancials", () => {
       expenses: smithExpenses,
       approvedEstimateTotal: 600,
     });
-    expect(f.totalPrice - f.compensation - f.allExpenses).toBe(f.grossProfit);
+    expect(f.totalPrice - f.compensation - f.expenses).toBe(f.grossProfit);
   });
 
   it("falls back to the sum of item prices without an approved estimate", () => {
@@ -58,7 +58,7 @@ describe("computeJobFinancials", () => {
     });
     expect(f.totalPrice).toBe(89);
     expect(f.compensation).toBe(63);
-    expect(f.allExpenses).toBe(0);
+    expect(f.expenses).toBe(0);
     expect(Math.round(f.margin)).toBe(29);
   });
 
@@ -70,14 +70,14 @@ describe("computeJobFinancials", () => {
       ],
     });
     expect(f.compensation).toBe(80);
-    expect(f.allExpenses).toBe(80);
+    expect(f.expenses).toBe(80);
   });
 
   it("treats an unknown or missing item type as a material cost", () => {
     const f = computeJobFinancials({
       lineItems: [{ quantity: 1, unitPrice: 100, unitCost: 30 }],
     });
-    expect(f.allExpenses).toBe(30);
+    expect(f.expenses).toBe(30);
     expect(f.compensation).toBe(0);
   });
 
@@ -103,7 +103,7 @@ describe("computeJobFinancials", () => {
     });
     expect(f.totalPrice).toBe(1000);
     expect(f.compensation).toBe(200);
-    expect(f.allExpenses).toBe(200);
+    expect(f.expenses).toBe(200);
     expect(f.grossProfit).toBe(600);
   });
 
@@ -120,13 +120,13 @@ describe("computeJobFinancials", () => {
       ],
     });
     expect(f.laborTotal).toBe(248); // 2 × 100 of item labor + the 48 expense
-    expect(f.commissionTotal).toBe(30); // commission is only ever an expense
+    expect(f.commissionTotal).toBe(30); // no item commission here, only the expense
     expect(f.laborTotal + f.commissionTotal).toBe(f.compensation);
   });
 
-  // Commission is earned on the sale, not on the item, so an item cannot put
-  // any into compensation on its own.
-  it("takes commission only from expenses, never from an item", () => {
+  // Commission is never implied by an item type; it only exists when the
+  // company typed it into the split.
+  it("does not invent commission for an item with no split", () => {
     const f = computeJobFinancials({
       lineItems: [{ quantity: 1, unitPrice: 1000, unitCost: 400, itemType: "Service" }],
     });
@@ -141,7 +141,7 @@ describe("computeJobFinancials", () => {
       lineItems: [{ quantity: 1, unitPrice: 1457, unitCost: 435, itemType: "Price Book" }],
     });
     expect(f.compensation).toBe(0);
-    expect(f.allExpenses).toBe(435);
+    expect(f.expenses).toBe(435);
   });
 
   it("goes negative when the job cost more than it sold for", () => {

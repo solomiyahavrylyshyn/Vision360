@@ -1,7 +1,7 @@
 // Jobs store — localStorage-backed so newly created jobs survive refresh, with
 // optional Postgres write-through. Mirrors clientsStore / estimatesStore.
 import { createApiSync } from "./apiSync";
-import type { CostBreakdown, ItemGroupMember } from "../utils/itemCost";
+import type { CostBreakdown } from "../utils/itemCost";
 
 // A product or service sold on the job. Added from the job's Items tab (or
 // copied from an approved estimate); the shape matches what JobDetail renders.
@@ -14,8 +14,6 @@ export interface JobLineItem {
   unitPrice: number;
   total: number;
   costBreakdown?: CostBreakdown;
-  /** Members of the item group this line came from (a price book entry). */
-  groupItems?: ItemGroupMember[];
 }
 
 type Listener = () => void;

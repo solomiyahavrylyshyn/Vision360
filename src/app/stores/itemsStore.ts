@@ -4,7 +4,6 @@
 // immediately in those pickers. localStorage-backed so it survives refresh.
 
 import type { CatalogItem } from "../components/ItemPicker";
-import { rollUpBreakdown, type ItemGroupMember } from "../utils/itemCost";
 import { createApiSync } from "./apiSync";
 
 type Listener = () => void;
@@ -171,129 +170,25 @@ const AND_SERVICE_DEFAULTS: Record<string, { costRatio: number; department: stri
   Admin: { costRatio: 0, department: "Admin", taxable: true },
 };
 
-// A price book entry is an item group (Marek, Sep 10 call): a package of the
-// labor that gets done plus the parts it consumes. The members below are what
-// each entry is made of; the labor line absorbs whatever the parts do not, so a
-// group's rolled-up price and cost still match the flat rate it was quoted at.
-//
-// Parts per entry: [name, itemType, quantity, unitPrice, unitCost]. An entry
-// with no parts listed and a cost of its own gets one generic materials line;
-// fees, memberships and bare materials are not packages and stay plain items.
-type PbPart = [string, string, number, number, number];
-
-const PB_PARTS: Record<string, PbPart[]> = {
-  "Capacitor Replacement": [["Capacitor 45/5 MFD", "Material", 1, 25, 12]],
-  "Capacitor – Dual Run": [["Capacitor 45/5 MFD", "Material", 1, 25, 12]],
-  "Blower Motor Replacement": [["Blower Motor 1/2 HP", "Equipment", 1, 225, 98]],
-  "Condenser Fan Motor": [["Blower Motor 1/2 HP", "Equipment", 1, 225, 98]],
-  "Contactor Replacement": [["Contactors", "Material", 1, 32, 14]],
-  "Thermostat Installation": [["Standard Thermostat", "Equipment", 1, 89, 37]],
-  "Smart Thermostat Install": [["Smart Thermostat", "Equipment", 1, 279, 117]],
-  "Refrigerant Recharge": [["R-410A Refrigerant (lb)", "Material", 2, 18, 9]],
-  "System Flush": [["R-410A Refrigerant (lb)", "Material", 4, 18, 9]],
-  "Filter Replacement": [["Air Filter MERV-11", "Material", 1, 18, 6]],
-  "UV Light Installation": [["UV Light", "Equipment", 1, 399, 168]],
-  "Air Purifier Install": [["Air Purifier", "Equipment", 1, 549, 231]],
-  "Heat Strip Replacement": [["Heat Strip", "Material", 1, 140, 62]],
-  "Expansion Valve Replacement": [["TXV Expansion Valve", "Material", 1, 165, 74]],
-  "Condenser Coil Replacement": [["Condenser Coil", "Equipment", 1, 420, 189]],
-  "Humidifier Installation": [["Whole-Home Humidifier", "Equipment", 1, 320, 148]],
-  "Float Switch Install": [["Safety Float Switch", "Material", 1, 22, 9]],
-  "Zone Damper Installation": [["Motorized Zone Damper", "Material", 1, 110, 48]],
-  "Drain Pan Treatment": [["Algaecide Tablets", "Material", 1, 12, 4]],
-  "Duct Sealing": [["Tape / Mastic", "Material", 4, 8, 3.5]],
-  "System Installation – 3 Ton": [
-    ["Straight Cool Condenser", "Equipment", 1, 1895, 1150],
-    ["Standard Air Handler", "Equipment", 1, 1650, 980],
-    ["Line Sets", "Material", 25, 15, 6.75],
-    ["Permit Fee", "Admin", 1, 75, 0],
-  ],
-  "System Installation – 4 Ton": [
-    ["Straight Cool Condenser", "Equipment", 1, 2350, 1420],
-    ["Variable Speed Air Handler", "Equipment", 1, 2350, 1290],
-    ["Line Sets", "Material", 30, 15, 6.75],
-    ["Permit Fee", "Admin", 1, 75, 0],
-  ],
-  "System Replacement – 2 Ton": [
-    ["Straight Cool Condenser", "Equipment", 1, 1650, 980],
-    ["Standard Air Handler", "Equipment", 1, 1450, 850],
-    ["Line Sets", "Material", 20, 15, 6.75],
-    ["Permit Fee", "Admin", 1, 75, 0],
-  ],
-  "Ductless Mini-Split Install": [
-    ["Single Zone Mini Split", "Equipment", 1, 2200, 1210],
-    ["Line Sets", "Material", 15, 15, 6.75],
-  ],
-};
-
-// Not packages: a fee is a fee, a membership is a subscription and a bare
-// material is already an item of its own.
-const PB_PLAIN = new Set([
-  "Diagnostic Fee", "Permit Fee (flat rate)", "After-Hours Service", "Emergency Service Call",
-  "Annual Maintenance Plan", "Membership – Silver", "Membership – Gold", "Service Agreement – 2 Year",
-  "R-410A Refrigerant (per lb)", "Pipe Insulation", "Attic Insulation – per sqft",
-]);
-
-const r2 = (n: number) => Math.round(n * 100) / 100;
-
-// Ids of the base catalog items, so a member points at the real item where one
-// exists and the group is not just a copy of its name.
-const BASE_ID_BY_NAME = new Map(BASE_SEED.map((i) => [i.name, i.id]));
-
-function pbGroupItems(name: string, price: number, cost: number): ItemGroupMember[] | undefined {
-  if (PB_PLAIN.has(name) || cost <= 0) return undefined;
-  const parts: PbPart[] = PB_PARTS[name] ?? [["Parts & materials", "Material", 1, r2(price * 0.25), r2(cost * 0.4)]];
-  const partsPrice = parts.reduce((s, [, , q, p]) => s + q * p, 0);
-  const partsCost = parts.reduce((s, [, , q, , c]) => s + q * c, 0);
-  // Whatever the parts do not account for is what the technician is paid.
-  // The commission on the sale is not in here — it is a job expense.
-  const laborCost = r2(cost - partsCost);
-  if (laborCost <= 0) return undefined;
-  const members: ItemGroupMember[] = [{
-    itemId: 0,
-    name: `${name} — labor`,
-    itemType: "Service",
-    quantity: 1,
-    unitPrice: r2(price - partsPrice),
-    unitCost: laborCost,
-    costBreakdown: { labor: laborCost, materials: 0 },
-  }];
-  parts.forEach(([partName, itemType, quantity, unitPrice, unitCost]) => {
-    members.push({ itemId: BASE_ID_BY_NAME.get(partName) ?? 0, name: partName, itemType, quantity, unitPrice, unitCost });
-  });
-  return members;
-}
-
 const SEED: CatalogItem[] = [
   ...BASE_SEED,
   ...PB_SEED.map(([name, category, description, price, cost, taxable], i) => {
-    const groupItems = pbGroupItems(name, price, cost);
     return {
       id: 101 + i, name, itemDescription: description, salesDescription: description,
       brand: "", modelNumber: "", rate: price, cost, taxable, category,
       type: "Service", itemType: "Price Book", active: true,
-      ...(groupItems ? { groupItems, groupPricing: "flat", costBreakdown: rollUpBreakdown(groupItems) } : {}),
     } as CatalogItem;
   }),
-  // The one fully-worked Price Book example — and the worked item group (Marek,
-  // Sep 10 call): a flat-rate package whose cost comes from its members, split
-  // into labor and materials. The commission on this sale is not part of the
-  // package; it is recorded as a Commission expense on the job.
+  // The one fully-worked Price Book example (Marek, Sep 10 / Sep 14 calls): a
+  // flat-rate service whose cost is split into labor, commission and materials
+  // — one item, three buckets — instead of a package of separate items.
   {
     id: 199, name: "Blower Motor Replacement — Premium", category: "Repairs",
     itemDescription: "Replacing Blower Motor 825 RPM, 1 year warranty, 90 days labor warranty, Comfort guarantee, Christmas Postcard, Chocolate Donuts",
     salesDescription: "Blower Motor Replacement — includes 1 year warranty, 90 days labor warranty, and Comfort Guarantee",
     brand: "", modelNumber: "", rate: 1457, cost: 435, taxable: true,
     type: "Service", itemType: "Price Book", active: true,
-    groupPricing: "flat",
-    costBreakdown: { labor: 325, materials: 110 },
-    groupItems: [
-      { itemId: 0, name: "Blower motor replacement — labor", itemType: "Service", quantity: 1, unitPrice: 480, unitCost: 325,
-        costBreakdown: { labor: 325, materials: 0 } },
-      { itemId: 5, name: "Blower Motor 1/2 HP", itemType: "Equipment", quantity: 1, unitPrice: 225, unitCost: 98 },
-      { itemId: 4, name: "Capacitor 45/5 MFD", itemType: "Material", quantity: 1, unitPrice: 25, unitCost: 12 },
-      { itemId: 6, name: "Permit Fee", itemType: "Admin", quantity: 1, unitPrice: 75, unitCost: 0 },
-    ],
+    costBreakdown: { labor: 275, commission: 50, materials: 110 },
   } as CatalogItem,
   ...AND_SERVICE_SEED.map(([itemType, category, name, priceHint], i) => {
     const d = AND_SERVICE_DEFAULTS[itemType];
@@ -321,9 +216,8 @@ try {
 
 // Catalog migration — applied to whatever snapshot we start from: the
 // localStorage cache on load, and the server rows when the API hydrates the
-// store. A database seeded from an older build (before price book entries
-// carried their members, before the v3 catalog matrix) would otherwise win
-// over the seed and every group would come back empty. Rows the user made
+// store. A database seeded from an older build (before the v3 catalog matrix,
+// or while item groups still existed) would otherwise win over the seed. Rows the user made
 // are never touched; only seed rows are re-seeded, and seed rows that are
 // missing are added. Returns the rows that changed so they can be written
 // back to the server.
@@ -342,18 +236,16 @@ function migrateCatalog(rows: CatalogItem[]): { rows: CatalogItem[]; changed: Ca
     }
   }
 
-  // Item groups: a seed group with no members yet, or whose members still carry
-  // the commission share from before commission became a job expense of its
-  // own, takes the seed's members again.
-  const seededGroups = SEED.filter((i) => i.groupItems?.length);
-  const hasLegacyCommission = (row: CatalogItem) =>
-    !!row.groupItems?.some((m) => (m.costBreakdown as { commission?: number } | undefined)?.commission != null);
+  // Item groups were dropped (Marek, Sep 14 call): the cost split does the
+  // costing job on a single item. Rows written while groups existed still
+  // carry members — strip them so the catalog is flat again.
   out = out.map((i) => {
-    const seed = seededGroups.find((s) => s.id === i.id && s.name === i.name);
-    if (!seed || (i.groupItems?.length && !hasLegacyCommission(i))) return i;
-    const row = { ...i, cost: seed.cost, costBreakdown: seed.costBreakdown, groupItems: seed.groupItems, groupPricing: seed.groupPricing };
-    changed.push(row);
-    return row;
+    const row = i as CatalogItem & { groupItems?: unknown; groupPricing?: unknown };
+    if (row.groupItems === undefined && row.groupPricing === undefined) return i;
+    const { groupItems: _members, groupPricing: _pricing, ...rest } = row;
+    void _members; void _pricing;
+    changed.push(rest as CatalogItem);
+    return rest as CatalogItem;
   });
 
   // Seed rows the snapshot never had (the v3 catalog matrix, new groups) are

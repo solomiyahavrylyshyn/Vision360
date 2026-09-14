@@ -1,20 +1,16 @@
 // Job financials — the allocation rule (FR-9.19) behind the four KPI tiles on a
-// job page: Total price · Compensation · All expenses · Profit margin.
+// job page: Total price · Compensation · Expenses · Gross margin.
 //
 // The rule every tile follows: an item's cost is allocated by what it pays for.
-// A cost split into labor and materials is used as entered — that is the only
-// way a package that mixes technician pay with parts lands in the right tiles.
-// Without a split the item type decides: a Service cost is what we pay the
-// technician, so compensation; Material, Equipment, Asset and Admin costs are
-// paid out to someone else, so an expense. Job expenses split the same way —
-// the categories that pay people (Commission and Labor) count as compensation,
-// everything else is an expense.
+// A cost split into labor, commission and materials is used as entered (Marek,
+// Sep 14 call: "one item, three buckets"). Without a split the item type
+// decides: a Service cost is what we pay the technician, so compensation;
+// Material, Equipment, Asset and Admin costs are paid out to someone else, so
+// an expense. Job expenses split the same way — the categories that pay people
+// (Commission and Labor) count as compensation, everything else is an expense.
 //
-// Commission is never part of an item's cost: it is earned on the sale, not on
-// the item, so it reaches a job only as an expense in the Commission category.
-//
-// The tiles are kept disjoint on purpose: Total price − Compensation − All
-// expenses = gross profit, so the strip reads left to right and adds up.
+// The tiles are kept disjoint on purpose: Total price − Compensation −
+// Expenses = gross profit, so the strip reads left to right and adds up.
 // Compensation also comes back split as laborTotal / commissionTotal, because
 // workers' comp insurance is priced off labor and asks for that number alone.
 
@@ -25,10 +21,9 @@ export interface FinancialLineItem {
   unitPrice: number;
   unitCost: number;
   itemType?: string;
-  /** Per-unit cost split. When present it decides how the cost is allocated,
-   *  which is the only way a package that mixes labor and parts can land in the
-   *  right tiles — see utils/itemCost. */
-  costBreakdown?: CostBreakdown;
+  /** Per-unit cost split. When present it decides how the cost is allocated —
+   *  see utils/itemCost. */
+  costBreakdown?: Partial<CostBreakdown>;
 }
 
 export interface FinancialExpense {
@@ -46,9 +41,9 @@ export interface JobFinancialsInput {
 export interface JobFinancials {
   totalPrice: number;
   compensation: number;
-  allExpenses: number;
+  expenses: number;
   grossProfit: number;
-  /** Percentage, 0 when nothing has been sold yet. */
+  /** Gross margin as a percentage, 0 when nothing has been sold yet. */
   margin: number;
   /** Breakdown, for tooltips and the finance tab. */
   serviceCost: number;
@@ -57,8 +52,8 @@ export interface JobFinancials {
   otherExpenses: number;
   /** Compensation split by kind of pay — what a workers' comp renewal asks for
    *  ("how much did you spend on labor?"). Labor is the item labor cost plus
-   *  Labor expenses; commission only ever comes from Commission expenses.
-   *  Together they are `compensation`. */
+   *  Labor expenses; commission is the item commission plus Commission
+   *  expenses. Together they are `compensation`. */
   laborTotal: number;
   commissionTotal: number;
   /** True when the total came from an approved estimate rather than the items. */
@@ -66,9 +61,7 @@ export interface JobFinancials {
 }
 
 // Item types whose cost is technician pay rather than a supplier price, used
-// only for items with no cost split of their own. A Price Book entry is an item
-// group (Marek, Sep 10 call): its cost is rolled up from its members, so it
-// comes in already split and never falls back to this set.
+// only for items with no cost split of their own.
 const COMPENSATION_ITEM_TYPES = new Set(["Service", "Labor"]);
 
 // Expense categories that pay people. Commission is the percentage a salesperson
@@ -101,6 +94,7 @@ export function computeJobFinancials({
   approvedEstimateTotal = null,
 }: JobFinancialsInput): JobFinancials {
   let itemLabor = 0;
+  let itemCommission = 0;
   let materialCost = 0;
   let itemRevenue = 0;
 
@@ -115,6 +109,7 @@ export function computeJobFinancials({
       costBreakdown: item.costBreakdown,
     });
     itemLabor += quantity * split.labor;
+    itemCommission += quantity * split.commission;
     materialCost += quantity * split.materials;
   }
 
@@ -129,20 +124,20 @@ export function computeJobFinancials({
     else otherExpenses += amount;
   }
 
-  const serviceCost = itemLabor;
+  const serviceCost = itemLabor + itemCommission;
   const compensationExpenses = expenseLabor + expenseCommission;
 
   const fromApprovedEstimate =
     approvedEstimateTotal != null && Number.isFinite(approvedEstimateTotal);
   const totalPrice = round2(fromApprovedEstimate ? (approvedEstimateTotal as number) : itemRevenue);
   const compensation = round2(serviceCost + compensationExpenses);
-  const allExpenses = round2(materialCost + otherExpenses);
-  const grossProfit = round2(totalPrice - compensation - allExpenses);
+  const expensesTotal = round2(materialCost + otherExpenses);
+  const grossProfit = round2(totalPrice - compensation - expensesTotal);
 
   return {
     totalPrice,
     compensation,
-    allExpenses,
+    expenses: expensesTotal,
     grossProfit,
     margin: totalPrice > 0 ? round2((grossProfit / totalPrice) * 100) : 0,
     serviceCost: round2(serviceCost),
@@ -150,7 +145,7 @@ export function computeJobFinancials({
     compensationExpenses: round2(compensationExpenses),
     otherExpenses: round2(otherExpenses),
     laborTotal: round2(itemLabor + expenseLabor),
-    commissionTotal: round2(expenseCommission),
+    commissionTotal: round2(itemCommission + expenseCommission),
     fromApprovedEstimate,
   };
 }

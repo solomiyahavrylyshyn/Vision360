@@ -281,11 +281,11 @@ export function CreateJob({ asModal = false, onClose, onCreated, prefill, headin
   const [outOfRangeOpen, setOutOfRangeOpen] = useState(false);
   const [lineItems, setLineItems] = useState<SelectedLineItem[]>([]);
   // What the job record keeps of each line: enough for the Items tab and the
-  // Compensation / All expenses split (type, cost split, group members).
+  // Compensation / Expenses split (type and cost split).
   const toJobLineItems = () => lineItems.map((li) => ({
     name: li.name, description: li.description, itemType: li.itemType,
     quantity: li.quantity, unitCost: li.unitCost, unitPrice: li.unitPrice, total: li.total,
-    costBreakdown: li.costBreakdown, groupItems: li.groupItems?.length ? li.groupItems : undefined,
+    costBreakdown: li.costBreakdown,
   }));
   const [notes, setNotes] = useState("");
   const [fieldNotes, setFieldNotes] = useState("");
@@ -433,10 +433,8 @@ export function CreateJob({ asModal = false, onClose, onCreated, prefill, headin
           quantity: it.quantity, unitPrice: it.price, unitCost: it.cost ?? 0,
           taxable: it.taxable, total: it.amount, sourceEstimateId: e.id,
           // Keep what the estimate knew about the line: its type and cost split
-          // feed the job's Compensation / All expenses tiles, the group members
-          // let the Items tab expand a price book line.
+          // feed the job's Compensation / Expenses tiles.
           itemType: it.itemType, costBreakdown: it.costBreakdown,
-          groupItems: it.groupItems?.length ? it.groupItems : undefined,
         }))];
         return next.map((li, i) => ({ ...li, id: i + 1 }));
       });

@@ -25,9 +25,8 @@ export function getItemCategory(type: string): ItemBucket {
 }
 
 /** Bucket of a catalog row: the fine itemType when the Items module set one,
- *  otherwise the picker's coarse type. A row with members is always a group. */
-export function bucketOfCatalogItem(item: { type: string; itemType?: string; groupItems?: unknown[] }): ItemBucket {
-  if (item.groupItems?.length) return "Price Book";
+ *  otherwise the picker's coarse type. */
+export function bucketOfCatalogItem(item: { type: string; itemType?: string }): ItemBucket {
   if (item.itemType) return getItemCategory(item.itemType);
   if (item.type === "Product") return "Material";
   if (item.type === "Labor") return "Service";

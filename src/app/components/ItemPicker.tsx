@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
-import { breakdownForItem, type CostBreakdown, type ItemGroupMember } from "../utils/itemCost";
+import { breakdownForItem, type CostBreakdown } from "../utils/itemCost";
 import { bucketOfCatalogItem, PICKER_TABS, type ItemBucket } from "../utils/itemTypes";
 
 export interface CatalogItem {
@@ -39,11 +39,6 @@ export interface CatalogItem {
    *  from what the parts cost. Absent → the item type decides the bucket; see
    *  utils/itemCost. Commission is not an item cost: it is a job expense. */
   costBreakdown?: CostBreakdown;
-  /** Item group (a Price Book entry): the items this package is made of. */
-  groupItems?: ItemGroupMember[];
-  /** How a group is priced: roll up the members' prices, or charge a flat rate
-   *  of its own regardless of what it contains. Flat rate is the default. */
-  groupPricing?: "sum" | "flat";
 }
 
 export interface SelectedLineItem {
@@ -72,9 +67,6 @@ export interface SelectedLineItem {
   /** Per-unit cost split carried over from the catalog item, so an estimate or
    *  a job keeps the labor / materials shares of what it sold. */
   costBreakdown?: CostBreakdown;
-  /** Members of the item group this line came from, kept so the group can be
-   *  shown expanded on the document without losing the single-line price. */
-  groupItems?: ItemGroupMember[];
 }
 
 interface ItemPickerProps {
@@ -89,7 +81,7 @@ export function ItemPicker({ catalogItems, onSelect, onClose, placeholder = "Sea
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   // Type tabs mirror the Items page (All · Price book · Services · …) so an
-  // item group is one click away in a job or an estimate, not buried under
+  // price book entry is one click away in a job or an estimate, not buried under
   // a hundred services. Tabs with nothing behind them are not shown.
   const [tab, setTab] = useState<ItemBucket | "all">("all");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -206,12 +198,7 @@ export function ItemPicker({ catalogItems, onSelect, onClose, placeholder = "Sea
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
                       <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>{item.name}</div>
-                      {item.groupItems?.length ? (
-                        <span className="text-[11px] px-2 py-0.5 rounded bg-[#FCE7F3] text-[#BE185D]" style={{ fontWeight: 600 }}>
-                          Price book · {item.groupItems.length} {item.groupItems.length === 1 ? "item" : "items"}
-                        </span>
-                      ) : (
-                        <span className={`text-[11px] px-2 py-0.5 rounded ${
+                                              <span className={`text-[11px] px-2 py-0.5 rounded ${
                           item.type === "Service" ? "bg-[#DBEAFE] text-[#1E40AF]" :
                           item.type === "Product" ? "bg-[#FEF3C7] text-[#B45309]" :
                           item.type === "Labor" ? "bg-[#E0E7FF] text-[#4338CA]" :
@@ -219,7 +206,6 @@ export function ItemPicker({ catalogItems, onSelect, onClose, placeholder = "Sea
                         }`} style={{ fontWeight: 600 }}>
                           {item.itemType && item.itemType !== item.type ? item.itemType : item.type}
                         </span>
-                      )}
                       {item.taxable && (
                         <span className="text-[11px] px-2 py-0.5 rounded bg-[#DCFCE7] text-[#15803D]" style={{ fontWeight: 600 }}>Taxable</span>
                       )}
@@ -333,6 +319,5 @@ export function catalogItemToLineItem(catalogItem: CatalogItem, lineItemId: numb
     hideOnCustomerDocs: catalogItem.hideOnCustomerDocs || undefined,
     itemType: catalogItem.itemType || catalogItem.type,
     costBreakdown: breakdownForItem(catalogItem),
-    groupItems: catalogItem.groupItems?.length ? catalogItem.groupItems : undefined,
   };
 }
