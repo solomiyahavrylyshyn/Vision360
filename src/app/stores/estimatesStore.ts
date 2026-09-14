@@ -3,6 +3,7 @@
 // cache + localStorage persistence so newly created estimates survive a
 // refresh / route change, with optional Postgres write-through via /api/estimates.
 import { createApiSync } from "./apiSync";
+import type { ItemGroupMember } from "../utils/itemCost";
 
 type Listener = () => void;
 
@@ -34,6 +35,9 @@ export interface EstimateLineItem {
   /** Per-unit labor / materials split, carried so the job keeps the shares of
    *  what was actually sold — see utils/itemCost. */
   costBreakdown?: { labor: number; materials: number };
+  /** Members of the item group (price book entry) this line came from, so the
+   *  document can show the package expanded under its single-line price. */
+  groupItems?: ItemGroupMember[];
 }
 
 // Good / better / best. An estimate carries up to four options; the client picks

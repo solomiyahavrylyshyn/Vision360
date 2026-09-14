@@ -10,6 +10,7 @@ import { itemsStore, mapItemTypeToCatalog } from "../stores/itemsStore";
 import { toast } from "sonner";
 import type { CatalogItem } from "../components/ItemPicker";
 import { breakdownForItem, type CostBreakdown, type ItemGroupMember } from "../utils/itemCost";
+import { getItemCategory, type ItemBucket } from "../utils/itemTypes";
 
 // Project the rich Items-module record onto the catalog shape the
 // Estimate / Job pickers consume, so created items flow straight through.
@@ -100,24 +101,8 @@ export const TYPE_CATEGORY_PAIRS: { type: string; category: string }[] =
   ITEM_TYPES.flatMap((t) => TYPE_CATEGORIES[t].map((c) => ({ type: t, category: c })));
 
 // ─── Type helpers ────────────────────────────────────────────────────────────
-type ItemBucket = "Service" | "Material" | "Equipment" | "Asset" | "Admin" | "Price Book" | "Other";
-
-function getItemCategory(type: string): ItemBucket {
-  // Canonical 6 types map straight to their bucket.
-  if (type === "Service") return "Service";
-  if (type === "Material") return "Material";
-  if (type === "Equipment") return "Equipment";
-  if (type === "Assets" || type === "Asset") return "Asset";
-  if (type === "Admin" || type === "Fees") return "Admin";
-  if (type === "Price Book") return "Price Book";
-  // Legacy fine sub-types on older records → their bucket.
-  if (["Labor", "Maintenance", "Diagnostics", "Installation", "Repair"].includes(type)) return "Service";
-  if (["Inventory Item", "Non-Inventory Item", "Serialized Item"].includes(type)) return "Material";
-  if (["Fee / Admin Code", "Discount", "Other Charge", "Material Markup", "Labor Markup", "Other Markup",
-    "Material Discount", "Labor Discount", "Other Discount"].includes(type)) return "Admin";
-  if (["Bundle / Kit"].includes(type)) return "Price Book";
-  return "Other";
-}
+// getItemCategory / ItemBucket live in utils/itemTypes so the catalog picker
+// buckets rows exactly the way the tabs on this page do.
 
 // Colored-dot type badge (Figma row 904:76078: 4px dot + 12px medium label).
 function getTypeDot(type: ItemType): { label: string; color: string } {

@@ -14,7 +14,9 @@ import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "../compone
 import { DocumentPreview } from "../components/DocumentPreview";
 import { toast } from "sonner";
 import { formatRegionalDate } from "../stores/regionalSettingsStore";
-import { jobsStore, type JobRecord } from "../stores/jobsStore";
+import { jobsStore, type JobRecord, type JobLineItem } from "../stores/jobsStore";
+import { itemsStore } from "../stores/itemsStore";
+import { ItemPicker, catalogItemToLineItem, type CatalogItem } from "../components/ItemPicker";
 import { clientsStore } from "../stores/clientsStore";
 import { estimatesStore } from "../stores/estimatesStore";
 import { invoicesStore } from "../stores/invoicesStore";
@@ -494,6 +496,9 @@ export function JobDetail() {
 
   // Resolve the job: check jobsStore first (user-created jobs), then fall back
   // to the hardcoded mockJobData so existing demo links still work.
+  // Subscribed so an edit to the record (a line item added on the Items tab,
+  // a status change) re-renders the page.
+  useSyncExternalStore(jobsStore.subscribe, jobsStore.getSnapshot);
   const storeJob = jobsStore.getById(Number(id));
   const mockFallback = mockJobData[id || "1"] || mockJobData["1"];
 
@@ -534,7 +539,7 @@ export function JobDetail() {
       notes: [] as NoteEntry[],
       fieldNotes: [] as NoteEntry[],
       internalNotes: [] as NoteEntry[],
-      lineItems: [],
+      lineItems: r.lineItems ?? [],
       totalPrice: r.totalPrice,
       expenses: [],
       visits: [],
@@ -596,12 +601,31 @@ export function JobDetail() {
     ...((job.expenses ?? []) as Expense[]),
   ];
   const expenseTotal = jobExpenses.reduce((sum, e) => sum + e.amount, 0);
-  const jobLineItems = (job.lineItems ?? []) as {
-    quantity: number; unitCost: number; unitPrice: number; itemType?: string;
-    // Present on items that came from a catalog item or an estimate with a cost
-    // split; it decides how the cost lands in the tiles.
-    costBreakdown?: { labor: number; materials: number };
-  }[];
+  // Products & services on the job. A store-backed job keeps them on its
+  // record; a demo job (hardcoded mock, not in jobsStore) keeps anything added
+  // from the Items tab in component state for the session.
+  const [addedLineItems, setAddedLineItems] = useState<JobLineItem[]>([]);
+  const [itemPickerOpen, setItemPickerOpen] = useState(false);
+  const catalogItems = useSyncExternalStore(itemsStore.subscribe, itemsStore.getSnapshot);
+  const jobLineItems: JobLineItem[] = [
+    ...((job.lineItems ?? []) as JobLineItem[]),
+    ...(storeJob ? [] : addedLineItems),
+  ];
+  // "Add Item" on the Items tab: a single catalog item or a price book group.
+  // The group lands as one line at the group's price, its members kept on the
+  // line so the document can show the package expanded.
+  const addLineItemFromCatalog = (item: CatalogItem) => {
+    const li = catalogItemToLineItem(item, Date.now());
+    const line: JobLineItem = {
+      name: li.name, description: li.description, itemType: li.itemType,
+      quantity: li.quantity, unitCost: li.unitCost, unitPrice: li.unitPrice, total: li.total,
+      costBreakdown: li.costBreakdown, groupItems: li.groupItems,
+    };
+    if (storeJob) jobsStore.update(storeJob.id, { lineItems: [...(storeJob.lineItems ?? []), line] });
+    else setAddedLineItems((prev) => [...prev, line]);
+    setItemPickerOpen(false);
+    toast.success(`${item.name} added to the job`);
+  };
   const totalCost = jobLineItems.reduce((sum, li) => sum + li.quantity * li.unitCost, 0);
   const approvedEstimateTotal = jobEstimates
     .filter((e) => e.status === "Approved")
@@ -1407,7 +1431,7 @@ export function JobDetail() {
           </tr>
         </thead>
         <tbody>
-          {job.lineItems.map((li: any, idx: number) => (
+          {jobLineItems.map((li: any, idx: number) => (
             <tr key={idx} className="border-b border-[#F3F4F6]">
               <td className="py-3">
                 <div className="text-[#1A2332]" style={{ fontWeight: 500 }}>{li.name}</div>
@@ -1541,20 +1565,20 @@ export function JobDetail() {
   );
 
   const renderFigmaItemsTab = () => {
-    const subtotal = job.lineItems.reduce((sum: number, li: any) => sum + li.total, 0);
+    const subtotal = jobLineItems.reduce((sum: number, li: any) => sum + li.total, 0);
     const taxableAmount = subtotal;
     const tax = taxableAmount * 0.075;
     return (
       <div className="overflow-hidden rounded-xl border border-[#E5E7EB] bg-white">
         <div className="flex items-center justify-between border-b border-[#E5E7EB] px-4 py-3">
           <h3 className="text-[16px] text-[#1A2332]" style={{ fontWeight: 600 }}>Products & Services</h3>
-          <button className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#4A6FA5] px-3 text-[13px] text-white hover:bg-[#3d5a85]" style={{ fontWeight: 600 }}><PlusIcon className="h-4 w-4" />Add Item</button>
+          <button onClick={() => setItemPickerOpen(true)} className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#4A6FA5] px-3 text-[13px] text-white hover:bg-[#3d5a85]" style={{ fontWeight: 600 }}><PlusIcon className="h-4 w-4" />Add Item</button>
         </div>
-        {job.lineItems.length === 0 ? <TabEmpty icon="inventory_2" title="No items yet" subtitle="Add items to track products and services for this job" /> : (
+        {jobLineItems.length === 0 ? <TabEmpty icon="inventory_2" title="No items yet" subtitle="Add items to track products and services for this job" /> : (
           <>
             <table className="w-full text-[14px]">
               <thead className="bg-[#F5F7FA]"><tr className="border-b border-[#E5E7EB] text-left text-[#1A2332]"><th className="px-4 py-3">Item</th><th className="px-4 py-3">Type</th><th className="px-4 py-3">Quantity</th><th className="px-4 py-3 text-right">Unit price</th><th className="px-4 py-3 text-right">Unit cost</th><th className="px-4 py-3 text-right">Total</th><th className="w-10 px-4 py-3" /></tr></thead>
-              <tbody>{job.lineItems.map((li: any, idx: number) => <tr key={idx} className="border-b border-[#E5E7EB] last:border-0"><td className="px-4 py-4"><div className="text-[#1A2332]" style={{ fontWeight: 500 }}>{li.name}</div><div className="text-[13px] text-[#6B7280]">{li.description}</div></td><td className="px-4 py-4 text-[#6B7280]">{li.itemType || "—"}</td><td className="px-4 py-4"><input readOnly value={li.quantity} className="h-8 w-[72px] rounded-lg border border-[#E5E7EB] px-2 text-[13px]" /></td><td className="px-4 py-4 text-right">{money(li.unitPrice)}</td><td className="px-4 py-4 text-right text-[#6B7280]">{money(li.unitCost)}{isCompensationItemType(li.itemType) && <div className="text-[11px] text-[#9CA3AF]">technician pay</div>}</td><td className="px-4 py-4 text-right">{money(li.total)}</td><td className="px-4 py-4 text-right"><button className="h-8 w-8 rounded-lg text-[#9CA3AF] hover:bg-[#FEE2E2] hover:text-[#DC2626]"><span className="material-icons" style={{ fontSize: "16px" }}>delete</span></button></td></tr>)}</tbody>
+              <tbody>{jobLineItems.map((li: any, idx: number) => <tr key={idx} className="border-b border-[#E5E7EB] last:border-0"><td className="px-4 py-4"><div className="text-[#1A2332]" style={{ fontWeight: 500 }}>{li.name}</div><div className="text-[13px] text-[#6B7280]">{li.description}</div></td><td className="px-4 py-4 text-[#6B7280]">{li.itemType || "—"}</td><td className="px-4 py-4"><input readOnly value={li.quantity} className="h-8 w-[72px] rounded-lg border border-[#E5E7EB] px-2 text-[13px]" /></td><td className="px-4 py-4 text-right">{money(li.unitPrice)}</td><td className="px-4 py-4 text-right text-[#6B7280]">{money(li.unitCost)}{isCompensationItemType(li.itemType) && <div className="text-[11px] text-[#9CA3AF]">technician pay</div>}</td><td className="px-4 py-4 text-right">{money(li.total)}</td><td className="px-4 py-4 text-right"><button className="h-8 w-8 rounded-lg text-[#9CA3AF] hover:bg-[#FEE2E2] hover:text-[#DC2626]"><span className="material-icons" style={{ fontSize: "16px" }}>delete</span></button></td></tr>)}</tbody>
             </table>
             <div className="border-t border-[#E5E7EB] bg-[#F5F7FA] px-4 py-4">
               <div className="ml-auto w-[280px] space-y-2 text-[13px]">
@@ -2482,6 +2506,14 @@ export function JobDetail() {
             </div>
           </div>
         </>
+      )}
+
+      {itemPickerOpen && (
+        <ItemPicker
+          catalogItems={catalogItems.filter((i) => i.active !== false)}
+          onSelect={addLineItemFromCatalog}
+          onClose={() => setItemPickerOpen(false)}
+        />
       )}
     </div>
   );

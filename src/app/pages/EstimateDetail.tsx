@@ -17,6 +17,9 @@ import { jobsStore } from "../stores/jobsStore";
 import { formatRegionalDate } from "../stores/regionalSettingsStore";
 import { documentTemplateStore } from "../stores/documentTemplateStore";
 import { EstimateOptionsSheet, EstimateSingleSheet, EstimateTermsPage, PrintPageRule, money, useDocCompany, type EstimateOptionsData, type EstimateSingleData, type EstimateTermsData } from "../components/DocumentSheets";
+import { ItemPicker, type CatalogItem } from "../components/ItemPicker";
+import { itemsStore } from "../stores/itemsStore";
+import { breakdownForItem, type ItemGroupMember } from "../utils/itemCost";
 import installHeatingSystem1Photo from "../../assets/documents/33702-install-heating-system-1.jpg";
 import installHeatingSystemPhoto from "../../assets/documents/33702-install-heating-system.jpg";
 import installDuctsVentsPhoto from "../../assets/documents/33805-install-ducts-vents.jpg";
@@ -37,6 +40,10 @@ interface LineItem {
   id: number; name: string; description: string;
   quantity: number; price: number; cost: number; amount: number;
   taxable: boolean; optional?: boolean;
+  itemType?: string;
+  costBreakdown?: { labor: number; materials: number };
+  /** Members of the item group (price book entry) this line came from. */
+  groupItems?: ItemGroupMember[];
 }
 
 interface MockPhoto { id: number; tag: "Before" | "After"; group: "A" | "B"; color: string; }
@@ -218,15 +225,6 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: "activity", label: "Activity" },
 ];
 
-const catalogItems = [
-  { id: 101, name: "Heat Pump Repair or Service", price: 285, cost: 120 },
-  { id: 102, name: "SEER Heat Pump Condenser Unit", price: 3200, cost: 1800 },
-  { id: 103, name: "Copper Piping Installation", price: 18.50, cost: 6.75 },
-  { id: 104, name: "General Labor - Technician", price: 95, cost: 45 },
-  { id: 105, name: "Thermostat - Smart WiFi", price: 450, cost: 180 },
-  { id: 106, name: "Drain Cleaning Service", price: 175, cost: 40 },
-  { id: 107, name: "Electrical Panel Upgrade 200A", price: 2800, cost: 1100 },
-];
 
 // Bridges the store's EstimateRecord into the richer EstimateData shape this
 // page uses. Missing fields fall back to empty/sane defaults so the page renders
@@ -347,6 +345,23 @@ export function EstimateDetail() {
   };
   const [statusOpen, setStatusOpen] = useState(false);
   const [addItemOpen, setAddItemOpen] = useState(false);
+  // "Add item" opens the shared catalog picker (single items and price book
+  // groups, with the same type tabs as the Items page). The pick lands on the
+  // option being viewed, or on the flat list of a single-option estimate.
+  const pickerCatalog = useSyncExternalStore(itemsStore.subscribe, itemsStore.getSnapshot);
+  const addCatalogItem = (item: CatalogItem) => {
+    const toLine = (items: LineItem[]): LineItem => ({
+      id: Math.max(0, ...items.map(i => i.id)) + 1,
+      name: item.name, description: item.salesDescription || "", quantity: 1,
+      price: item.rate, cost: item.cost, amount: item.rate, taxable: item.taxable,
+      itemType: item.itemType || item.type, costBreakdown: breakdownForItem(item),
+      groupItems: item.groupItems?.length ? item.groupItems : undefined,
+    });
+    setEstimate(prev => (prev.options?.length ?? 0) > 1
+      ? { ...prev, options: prev.options!.map((o, idx) => idx === activeOptionIdx ? { ...o, items: [...o.items, toLine(o.items)] } : o) }
+      : { ...prev, items: [...prev.items, toLine(prev.items)] });
+    setAddItemOpen(false);
+  };
   // Jobs tab (Figma 2915:23676)
   const [jobsSearch, setJobsSearch] = useState("");
   const [jobsStatusFilter, setJobsStatusFilter] = useState("All");
@@ -1552,31 +1567,11 @@ export function EstimateDetail() {
 
       {/* Add Item Modal */}
       {addItemOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={() => setAddItemOpen(false)}>
-          <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" />
-          <div className="relative bg-white rounded-2xl shadow-2xl w-[520px] max-h-[80vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-6 py-5 border-b border-[#E5E7EB]">
-              <h2 className="text-[18px] text-[#1A2332]" style={{ fontWeight: 700 }}>Add Item</h2>
-              <button onClick={() => setAddItemOpen(false)} className="w-8 h-8 rounded-lg hover:bg-[#F5F7FA] flex items-center justify-center">
-                <span className="material-icons text-[#546478]" style={{ fontSize: "20px" }}>close</span>
-              </button>
-            </div>
-            <div className="flex-1 overflow-y-auto divide-y divide-[#F3F4F6]">
-              {catalogItems.map(item => (
-                <button key={item.id}
-                  onClick={() => {
-                    const newItem: LineItem = { id: Math.max(...estimate.items.map(i => i.id), 0) + 1, name: item.name, description: "", quantity: 1, price: item.price, cost: item.cost, amount: item.price, taxable: true };
-                    setEstimate(prev => ({ ...prev, items: [...prev.items, newItem] }));
-                    setAddItemOpen(false);
-                  }}
-                  className="w-full flex items-center justify-between px-6 py-4 hover:bg-[#F9FAFB] text-left">
-                  <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{item.name}</div>
-                  <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>${fmt(item.price)}</div>
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
+        <ItemPicker
+          catalogItems={pickerCatalog.filter((i) => i.active !== false)}
+          onSelect={addCatalogItem}
+          onClose={() => setAddItemOpen(false)}
+        />
       )}
     </div>
   );

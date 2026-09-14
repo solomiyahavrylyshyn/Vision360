@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 import { breakdownForItem, type CostBreakdown, type ItemGroupMember } from "../utils/itemCost";
+import { bucketOfCatalogItem, PICKER_TABS, type ItemBucket } from "../utils/itemTypes";
 
 export interface CatalogItem {
   id: number;
@@ -87,7 +88,19 @@ interface ItemPickerProps {
 export function ItemPicker({ catalogItems, onSelect, onClose, placeholder = "Search items by name, brand, or category..." }: ItemPickerProps) {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  // Type tabs mirror the Items page (All · Price book · Services · …) so an
+  // item group is one click away in a job or an estimate, not buried under
+  // a hundred services. Tabs with nothing behind them are not shown.
+  const [tab, setTab] = useState<ItemBucket | "all">("all");
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const bucketCounts = catalogItems.reduce<Record<string, number>>((acc, item) => {
+    const b = bucketOfCatalogItem(item);
+    acc[b] = (acc[b] ?? 0) + 1;
+    return acc;
+  }, {});
+  const tabs = PICKER_TABS.filter((t) => t.key === "all" || (bucketCounts[t.key] ?? 0) > 0);
+  const showTabs = tabs.length > 2;
 
   // Debounce search
   useEffect(() => {
@@ -104,13 +117,15 @@ export function ItemPicker({ catalogItems, onSelect, onClose, placeholder = "Sea
 
   // Filter items
   const filtered = catalogItems.filter(item => {
+    if (tab !== "all" && bucketOfCatalogItem(item) !== tab) return false;
     if (debouncedSearch.length < 2) return true;
     const q = debouncedSearch.toLowerCase();
     return (
       item.name.toLowerCase().includes(q) ||
       item.brand.toLowerCase().includes(q) ||
       item.category.toLowerCase().includes(q) ||
-      item.modelNumber.toLowerCase().includes(q)
+      item.modelNumber.toLowerCase().includes(q) ||
+      (item.itemType ?? "").toLowerCase().includes(q)
     );
   });
 
@@ -144,6 +159,32 @@ export function ItemPicker({ catalogItems, onSelect, onClose, placeholder = "Sea
           {search.length > 0 && search.length < 2 && (
             <div className="text-[12px] text-[#8899AA] mt-2">Type at least 2 characters to search</div>
           )}
+          {showTabs && (
+            <div className="mt-4 flex flex-wrap gap-2" role="tablist" aria-label="Item type">
+              {tabs.map((t) => {
+                const active = tab === t.key;
+                const count = t.key === "all" ? catalogItems.length : bucketCounts[t.key] ?? 0;
+                return (
+                  <button
+                    key={t.key}
+                    type="button"
+                    role="tab"
+                    aria-selected={active}
+                    onClick={() => setTab(t.key)}
+                    className={`inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-[13px] transition-colors ${
+                      active
+                        ? "border-[#4A6FA5] bg-[#EBF0F8] text-[#4A6FA5]"
+                        : "border-[#E5E7EB] bg-white text-[#546478] hover:bg-[#F5F7FA]"
+                    }`}
+                    style={{ fontWeight: active ? 600 : 500 }}
+                  >
+                    {t.label}
+                    <span className={`text-[11px] ${active ? "text-[#4A6FA5]" : "text-[#8899AA]"}`} style={{ fontVariantNumeric: "tabular-nums" }}>{count}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Results */}
@@ -165,14 +206,20 @@ export function ItemPicker({ catalogItems, onSelect, onClose, placeholder = "Sea
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
                       <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>{item.name}</div>
-                      <span className={`text-[11px] px-2 py-0.5 rounded ${
-                        item.type === "Service" ? "bg-[#DBEAFE] text-[#1E40AF]" :
-                        item.type === "Product" ? "bg-[#FEF3C7] text-[#B45309]" :
-                        item.type === "Labor" ? "bg-[#E0E7FF] text-[#4338CA]" :
-                        "bg-[#F3E8FF] text-[#7C3AED]"
-                      }`} style={{ fontWeight: 600 }}>
-                        {item.type}
-                      </span>
+                      {item.groupItems?.length ? (
+                        <span className="text-[11px] px-2 py-0.5 rounded bg-[#FCE7F3] text-[#BE185D]" style={{ fontWeight: 600 }}>
+                          Price book · {item.groupItems.length} {item.groupItems.length === 1 ? "item" : "items"}
+                        </span>
+                      ) : (
+                        <span className={`text-[11px] px-2 py-0.5 rounded ${
+                          item.type === "Service" ? "bg-[#DBEAFE] text-[#1E40AF]" :
+                          item.type === "Product" ? "bg-[#FEF3C7] text-[#B45309]" :
+                          item.type === "Labor" ? "bg-[#E0E7FF] text-[#4338CA]" :
+                          "bg-[#F3E8FF] text-[#7C3AED]"
+                        }`} style={{ fontWeight: 600 }}>
+                          {item.itemType && item.itemType !== item.type ? item.itemType : item.type}
+                        </span>
+                      )}
                       {item.taxable && (
                         <span className="text-[11px] px-2 py-0.5 rounded bg-[#DCFCE7] text-[#15803D]" style={{ fontWeight: 600 }}>Taxable</span>
                       )}

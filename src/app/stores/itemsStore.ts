@@ -319,33 +319,56 @@ try {
   }
 } catch { /* corrupt cache → keep seed */ }
 
-// FR-4.8 migration: older cached catalogs predate the Callback seed item —
-// append it so the flag showcase exists without wiping user data.
-if (!items.some((i) => i.name === "Callback")) {
-  const callback = SEED.find((i) => i.name === "Callback");
-  if (callback) items = [...items, { ...callback, id: Math.max(0, ...items.map((i) => i.id)) + 1 }];
-}
+// Catalog migration — applied to whatever snapshot we start from: the
+// localStorage cache on load, and the server rows when the API hydrates the
+// store. A database seeded from an older build (before price book entries
+// carried their members, before the v3 catalog matrix) would otherwise win
+// over the seed and every group would come back empty. Rows the user made
+// are never touched; only seed rows are re-seeded, and seed rows that are
+// missing are added. Returns the rows that changed so they can be written
+// back to the server.
+function migrateCatalog(rows: CatalogItem[]): { rows: CatalogItem[]; changed: CatalogItem[] } {
+  const changed: CatalogItem[] = [];
+  let out = rows;
 
-// Item-group migration: browsers cached before price book entries carried their
-// members catch up seed row by seed row, so a group the user built themselves is
-// left alone and their own items are never wiped.
-const seededGroups = SEED.filter((i) => i.groupItems?.length);
-if (seededGroups.length) {
-  const cachedById = new Map(items.map((i) => [i.id, i]));
-  // A cached row is re-seeded when it has no members yet, or when its members
-  // still carry the commission share from before commission became a job
-  // expense of its own rather than part of an item's cost.
+  // FR-4.8: older snapshots predate the Callback seed item — append it so the
+  // flag showcase exists without wiping user data.
+  if (!out.some((i) => i.name === "Callback")) {
+    const callback = SEED.find((i) => i.name === "Callback");
+    if (callback) {
+      const row = { ...callback, id: Math.max(0, ...out.map((i) => i.id)) + 1 };
+      out = [...out, row];
+      changed.push(row);
+    }
+  }
+
+  // Item groups: a seed group with no members yet, or whose members still carry
+  // the commission share from before commission became a job expense of its
+  // own, takes the seed's members again.
+  const seededGroups = SEED.filter((i) => i.groupItems?.length);
   const hasLegacyCommission = (row: CatalogItem) =>
     !!row.groupItems?.some((m) => (m.costBreakdown as { commission?: number } | undefined)?.commission != null);
-  items = items.map((i) => {
-    const seed = seededGroups.find((s) => s.id === i.id);
-    return seed && (!i.groupItems?.length || hasLegacyCommission(i))
-      ? { ...i, cost: seed.cost, costBreakdown: seed.costBreakdown, groupItems: seed.groupItems, groupPricing: seed.groupPricing }
-      : i;
+  out = out.map((i) => {
+    const seed = seededGroups.find((s) => s.id === i.id && s.name === i.name);
+    if (!seed || (i.groupItems?.length && !hasLegacyCommission(i))) return i;
+    const row = { ...i, cost: seed.cost, costBreakdown: seed.costBreakdown, groupItems: seed.groupItems, groupPricing: seed.groupPricing };
+    changed.push(row);
+    return row;
   });
-  const missing = seededGroups.filter((s) => !cachedById.has(s.id));
-  if (missing.length) items = [...items, ...missing];
+
+  // Seed rows the snapshot never had (the v3 catalog matrix, new groups) are
+  // added — by id, so a row the user edited under that id is left alone.
+  const byId = new Set(out.map((i) => i.id));
+  const missing = SEED.filter((s) => !byId.has(s.id));
+  if (missing.length) {
+    out = [...out, ...missing];
+    changed.push(...missing);
+  }
+
+  return { rows: out, changed };
 }
+
+items = migrateCatalog(items).rows;
 
 let listeners: Listener[] = [];
 const notify = () => listeners.forEach((l) => l());
@@ -371,7 +394,16 @@ export const itemsStore = {
   getSnapshot: (): CatalogItem[] => items,
   subscribe: (listener: Listener) => {
     listeners.push(listener);
-    api.hydrate(items, (rows) => { items = rows; saveLS(); notify(); });
+    api.hydrate(items, (rows) => {
+      // Server rows win, but they go through the same migration as the local
+      // cache, and whatever the migration had to fix is written back so the
+      // database catches up with the seed (empty groups, missing catalog rows).
+      const migrated = migrateCatalog(rows);
+      items = migrated.rows;
+      saveLS();
+      notify();
+      migrated.changed.forEach((row) => api.persistNew(row));
+    });
     return () => { listeners = listeners.filter((l) => l !== listener); };
   },
   // Insert or replace by id (used by the Items module on add / edit).
