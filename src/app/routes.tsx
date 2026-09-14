@@ -41,6 +41,7 @@ import { Marketing } from "./pages/Marketing";
 import { Settings } from "./pages/Settings";
 import { NewUser } from "./pages/NewUser";
 import { ManageDuplicates } from "./pages/ManageDuplicates";
+import { ManageExpenseDuplicates } from "./pages/ManageExpenseDuplicates";
 import { CreateEvent } from "./pages/CreateEvent";
 import { Properties } from "./pages/Properties";
 import { CreateProperty } from "./pages/CreateProperty";
@@ -154,6 +155,8 @@ export const router = createBrowserRouter([
       { path: "estimates/:id", Component: EstimateDetail },
       { path: "expenses", Component: Expenses },
       { path: "expenses/new", Component: CreateExpense },
+      // Double entries of the same expense (Marek, Sep 14): keep the first, delete the rest.
+      { path: "expenses/duplicates", Component: ManageExpenseDuplicates },
       { path: "expenses/:id", Component: ExpenseDetail },
       { path: "invoices", Component: Invoices },
       { path: "invoices/new", Component: CreateInvoice },

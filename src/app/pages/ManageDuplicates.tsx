@@ -226,7 +226,10 @@ export function ManageDuplicates() {
   const [bulkConfirmOpen, setBulkConfirmOpen] = useState(false);
 
   const clients = useSyncExternalStore(clientsStore.subscribe, clientsStore.getSnapshot);
-  const dismissed = useSyncExternalStore(dismissalsStore.subscribe, dismissalsStore.getSnapshot);
+  // Expense dismissals live in the same store under an "exp-" prefix; only
+  // customer pairs belong on this page.
+  const dismissed = useSyncExternalStore(dismissalsStore.subscribe, dismissalsStore.getSnapshot)
+    .filter((d) => !d.id.startsWith("exp-"));
 
   const groups = buildGroups(clients, matchOn, dismissed);
   // Paginate the duplicate groups (the rows-per-page control drives this).

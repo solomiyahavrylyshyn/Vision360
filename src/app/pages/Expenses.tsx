@@ -246,7 +246,7 @@ export function Expenses() {
             <KebabMenu triggerClassName="w-10 h-10 border border-[#D8DEE8] rounded-xl bg-white">
               <KebabItem icon="view_column">Edit Columns</KebabItem>
               <KebabItem icon="swap_horiz">Change Status</KebabItem>
-              <KebabItem icon="content_copy">Manage Duplicates</KebabItem>
+              <KebabItem icon="content_copy" onClick={() => navigate("/expenses/duplicates")}>Manage Duplicates</KebabItem>
               <KebabSeparator />
               <KebabItem icon="file_upload">Import</KebabItem>
               <KebabItem icon="file_download">Export</KebabItem>

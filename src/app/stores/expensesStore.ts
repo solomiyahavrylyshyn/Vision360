@@ -30,6 +30,10 @@ const SEED: Expense[] = [
   { id: "5", date: "Apr 2, 2026", category: "Meals", merchant: "Starbucks", amount: 42.15, jobId: "J-1237", jobTitle: "Client Meeting", invoiceId: "INV-0045", notes: "Coffee with prospective client", receipts: 1 },
   { id: "6", date: "Apr 1, 2026", category: "Travel", merchant: "Delta Airlines", amount: 389.0, notes: "Flight to vendor conference", receipts: 1 },
   { id: "7", date: "Mar 31, 2026", category: "Materials", merchant: "Ferguson Plumbing", amount: 723.45, jobId: "J-1235", jobTitle: "Service Call", invoiceId: "INV-0043", notes: "PVC pipes and fittings", receipts: 2 },
+  // Marek's double-entry example (Sep 14 call): the same permit fee keyed in
+  // before lunch and again after it — what Expenses → Manage duplicates catches.
+  { id: "8", date: "Apr 6, 2026", category: "Other", merchant: "City of Tampa", amount: 200, jobId: "J-1234", jobTitle: "HVAC Installation", notes: "Mechanical permit", receipts: 1 },
+  { id: "9", date: "Apr 6, 2026", category: "Other", merchant: "City of Tampa", amount: 200, jobId: "J-1234", jobTitle: "HVAC Installation", notes: "Permit fee", receipts: 0 },
 ];
 
 const LS_KEY = "vision360.expenses.v1";
@@ -57,7 +61,19 @@ export const expensesStore = {
   getExpense: (id: string | undefined): Expense | undefined => expenses.find((e) => e.id === id),
   subscribe: (listener: Listener) => {
     listeners.push(listener);
-    api.hydrate(expenses, (rows) => { expenses = rows; saveLS(); notify(); });
+    api.hydrate(expenses, (rows) => {
+      // Server rows win. The double-entry demo pair (ids 8–9) was added after
+      // the database was seeded, so it is appended and written back — but only
+      // while the database has neither row: once the office has resolved the
+      // pair by deleting one entry, it must not come back.
+      const have = new Set(rows.map((r) => r.id));
+      const demoPair = SEED.filter((s) => s.id === "8" || s.id === "9");
+      const missing = demoPair.some((s) => have.has(s.id)) ? [] : demoPair.filter((s) => !have.has(s.id));
+      expenses = missing.length ? [...rows, ...missing] : rows;
+      saveLS();
+      notify();
+      missing.forEach((r) => api.persistNew(r));
+    });
     return () => { listeners = listeners.filter((l) => l !== listener); };
   },
   nextId: (): string => String(expenses.reduce((max, e) => Math.max(max, Number(e.id) || 0), 0) + 1),
