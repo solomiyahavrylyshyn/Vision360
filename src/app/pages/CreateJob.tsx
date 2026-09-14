@@ -280,6 +280,13 @@ export function CreateJob({ asModal = false, onClose, onCreated, prefill, headin
   // US-4 out-of-range confirm: holds a pending save while the warning modal is up.
   const [outOfRangeOpen, setOutOfRangeOpen] = useState(false);
   const [lineItems, setLineItems] = useState<SelectedLineItem[]>([]);
+  // What the job record keeps of each line: enough for the Items tab and the
+  // Compensation / All expenses split (type, cost split, group members).
+  const toJobLineItems = () => lineItems.map((li) => ({
+    name: li.name, description: li.description, itemType: li.itemType,
+    quantity: li.quantity, unitCost: li.unitCost, unitPrice: li.unitPrice, total: li.total,
+    costBreakdown: li.costBreakdown, groupItems: li.groupItems?.length ? li.groupItems : undefined,
+  }));
   const [notes, setNotes] = useState("");
   const [fieldNotes, setFieldNotes] = useState("");
   const [privateNotes, setPrivateNotes] = useState("");
@@ -418,13 +425,18 @@ export function CreateJob({ asModal = false, onClose, onCreated, prefill, headin
     }]);
     // Auto-copy ALL of the estimate's line items into the job (snapshot), tagged
     // with the estimate id so they can be removed if the estimate is un-linked.
-    const items = (e as { items?: { name: string; description: string; quantity: number; price: number; cost: number; amount: number; taxable: boolean }[] }).items;
+    const items = e.items;
     if (items?.length) {
       setLineItems((prev) => {
         const next = [...prev, ...items.map((it) => ({
           id: 0, catalogItemId: 0, name: it.name, description: it.description,
           quantity: it.quantity, unitPrice: it.price, unitCost: it.cost ?? 0,
           taxable: it.taxable, total: it.amount, sourceEstimateId: e.id,
+          // Keep what the estimate knew about the line: its type and cost split
+          // feed the job's Compensation / All expenses tiles, the group members
+          // let the Items tab expand a price book line.
+          itemType: it.itemType, costBreakdown: it.costBreakdown,
+          groupItems: it.groupItems?.length ? it.groupItems : undefined,
         }))];
         return next.map((li, i) => ({ ...li, id: i + 1 }));
       });
@@ -570,6 +582,7 @@ export function CreateJob({ asModal = false, onClose, onCreated, prefill, headin
           status: "Unscheduled",
           totalPrice: Math.round(computedTotal * 100) / 100,
           notes, fieldNotes, privateNotes, taxRate,
+          lineItems: toJobLineItems(),
         });
         if (i === 0) firstRecord = rec;
       });
@@ -616,6 +629,7 @@ export function CreateJob({ asModal = false, onClose, onCreated, prefill, headin
       fieldNotes,
       privateNotes,
       taxRate,
+      lineItems: toJobLineItems(),
       // The first linked estimate is the primary back-compat link; the rest are
       // listed in the Estimates table (MVP keeps one structural link on the job).
       estimateId: fromEstimateId || linkedEstimates[0]?.id || undefined,

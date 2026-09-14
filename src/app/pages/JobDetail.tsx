@@ -1,4 +1,4 @@
-﻿import { useState, useRef, useEffect, useSyncExternalStore } from "react";
+﻿import { Fragment, useState, useRef, useEffect, useSyncExternalStore } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
 import { type JobStatus, JOB_STATUSES, JOB_STATUS_COLOR } from "../constants/jobStatuses";
@@ -17,12 +17,13 @@ import { formatRegionalDate } from "../stores/regionalSettingsStore";
 import { jobsStore, type JobRecord, type JobLineItem } from "../stores/jobsStore";
 import { itemsStore } from "../stores/itemsStore";
 import { ItemPicker, catalogItemToLineItem, type CatalogItem } from "../components/ItemPicker";
+import { GroupMemberRows, GroupToggle, useExpandedGroups } from "../components/GroupMembersAccordion";
 import { clientsStore } from "../stores/clientsStore";
 import { estimatesStore } from "../stores/estimatesStore";
 import { invoicesStore } from "../stores/invoicesStore";
 import { expenseCategoriesStore } from "../stores/expenseCategoriesStore";
 import { expensesStore } from "../stores/expensesStore";
-import { computeJobFinancials, isCompensationCategory, isCompensationItemType } from "../utils/jobFinancials";
+import { computeJobFinancials, isCompensationCategory } from "../utils/jobFinancials";
 import { expenseCategoryColors } from "./Expenses";
 import acServicePhoto from "../../assets/documents/33897-cu.jpg";
 import waterHeaterPhoto from "../../assets/documents/34285-install-water-heater.jpg";
@@ -606,6 +607,7 @@ export function JobDetail() {
   // from the Items tab in component state for the session.
   const [addedLineItems, setAddedLineItems] = useState<JobLineItem[]>([]);
   const [itemPickerOpen, setItemPickerOpen] = useState(false);
+  const itemGroups = useExpandedGroups();
   const catalogItems = useSyncExternalStore(itemsStore.subscribe, itemsStore.getSnapshot);
   const jobLineItems: JobLineItem[] = [
     ...((job.lineItems ?? []) as JobLineItem[]),
@@ -1431,18 +1433,22 @@ export function JobDetail() {
           </tr>
         </thead>
         <tbody>
-          {jobLineItems.map((li: any, idx: number) => (
-            <tr key={idx} className="border-b border-[#F3F4F6]">
+          {jobLineItems.map((li, idx) => { const key = `overview-${idx}`; const members = li.groupItems ?? []; return (
+            <Fragment key={key}>
+            <tr className="border-b border-[#F3F4F6]">
               <td className="py-3">
                 <div className="text-[#1A2332]" style={{ fontWeight: 500 }}>{li.name}</div>
                 <div className="text-[12px] text-[#9CA3AF] mt-0.5">{li.description}</div>
+                {members.length > 0 && <GroupToggle count={members.length} open={itemGroups.isOpen(key)} onToggle={() => itemGroups.toggle(key)} />}
               </td>
               <td className="text-center py-3 text-[#374151]">{li.quantity}</td>
               <td className="text-center py-3 text-[#374151]">${li.unitCost.toFixed(2)}</td>
               <td className="text-center py-3 text-[#374151]">${li.unitPrice.toFixed(2)}</td>
               <td className="text-right py-3 text-[#1A2332]" style={{ fontWeight: 500 }}>${li.total.toFixed(2)}</td>
             </tr>
-          ))}
+            {members.length > 0 && <GroupMemberRows members={members} open={itemGroups.isOpen(key)} colSpan={5} lineQuantity={li.quantity} />}
+            </Fragment>
+          ); })}
         </tbody>
       </table>
       <div className="flex justify-end gap-8 pt-4 mt-2 border-t border-[#E5E7EB]">
@@ -1578,7 +1584,7 @@ export function JobDetail() {
           <>
             <table className="w-full text-[14px]">
               <thead className="bg-[#F5F7FA]"><tr className="border-b border-[#E5E7EB] text-left text-[#1A2332]"><th className="px-4 py-3">Item</th><th className="px-4 py-3">Type</th><th className="px-4 py-3">Quantity</th><th className="px-4 py-3 text-right">Unit price</th><th className="px-4 py-3 text-right">Unit cost</th><th className="px-4 py-3 text-right">Total</th><th className="w-10 px-4 py-3" /></tr></thead>
-              <tbody>{jobLineItems.map((li: any, idx: number) => <tr key={idx} className="border-b border-[#E5E7EB] last:border-0"><td className="px-4 py-4"><div className="text-[#1A2332]" style={{ fontWeight: 500 }}>{li.name}</div><div className="text-[13px] text-[#6B7280]">{li.description}</div></td><td className="px-4 py-4 text-[#6B7280]">{li.itemType || "—"}</td><td className="px-4 py-4"><input readOnly value={li.quantity} className="h-8 w-[72px] rounded-lg border border-[#E5E7EB] px-2 text-[13px]" /></td><td className="px-4 py-4 text-right">{money(li.unitPrice)}</td><td className="px-4 py-4 text-right text-[#6B7280]">{money(li.unitCost)}{isCompensationItemType(li.itemType) && <div className="text-[11px] text-[#9CA3AF]">technician pay</div>}</td><td className="px-4 py-4 text-right">{money(li.total)}</td><td className="px-4 py-4 text-right"><button className="h-8 w-8 rounded-lg text-[#9CA3AF] hover:bg-[#FEE2E2] hover:text-[#DC2626]"><span className="material-icons" style={{ fontSize: "16px" }}>delete</span></button></td></tr>)}</tbody>
+              <tbody>{jobLineItems.map((li, idx) => { const key = `items-${idx}`; const members = li.groupItems ?? []; return (<Fragment key={key}><tr className="border-b border-[#E5E7EB] last:border-0"><td className="px-4 py-4"><div className="text-[#1A2332]" style={{ fontWeight: 500 }}>{li.name}</div><div className="text-[13px] text-[#6B7280]">{li.description}</div>{members.length > 0 && <GroupToggle count={members.length} open={itemGroups.isOpen(key)} onToggle={() => itemGroups.toggle(key)} />}</td><td className="px-4 py-4 text-[#6B7280]">{li.itemType || "—"}</td><td className="px-4 py-4"><input readOnly value={li.quantity} className="h-8 w-[72px] rounded-lg border border-[#E5E7EB] px-2 text-[13px]" /></td><td className="px-4 py-4 text-right">{money(li.unitPrice)}</td><td className="px-4 py-4 text-right text-[#6B7280]">{money(li.unitCost)}</td><td className="px-4 py-4 text-right">{money(li.total)}</td><td className="px-4 py-4 text-right"><button className="h-8 w-8 rounded-lg text-[#9CA3AF] hover:bg-[#FEE2E2] hover:text-[#DC2626]"><span className="material-icons" style={{ fontSize: "16px" }}>delete</span></button></td></tr>{members.length > 0 && <GroupMemberRows members={members} open={itemGroups.isOpen(key)} colSpan={7} lineQuantity={li.quantity} />}</Fragment>); })}</tbody>
             </table>
             <div className="border-t border-[#E5E7EB] bg-[#F5F7FA] px-4 py-4">
               <div className="ml-auto w-[280px] space-y-2 text-[13px]">
