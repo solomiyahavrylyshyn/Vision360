@@ -6,11 +6,16 @@ import { createSettingsSync } from "./settingsSync";
 export interface EstimateSettings {
   /** Days added to the creation date to pre-fill the expiration date. */
   defaultValidityDays: number;
+  /** Whether this company asks for deposits on estimates (Figma 261:15834,
+   *  "Use deposits"). Off stops new deposits; estimates that already carry
+   *  one keep it. */
+  usesDeposits: boolean;
 }
 
 const STORAGE_KEY = "vision360.estimateSettings";
 const DEFAULT_SETTINGS: EstimateSettings = {
   defaultValidityDays: 30,
+  usesDeposits: true,
 };
 
 const listeners = new Set<() => void>();
@@ -19,6 +24,7 @@ const normalize = (s: Partial<EstimateSettings>): EstimateSettings => {
   const n = Number(s.defaultValidityDays);
   return {
     defaultValidityDays: Number.isFinite(n) && n >= 0 && n <= 365 ? Math.round(n) : DEFAULT_SETTINGS.defaultValidityDays,
+    usesDeposits: typeof s.usesDeposits === "boolean" ? s.usesDeposits : DEFAULT_SETTINGS.usesDeposits,
   };
 };
 
@@ -57,7 +63,12 @@ export const estimateSettingsStore = {
     return current;
   },
   setDefaultValidityDays(days: number) {
-    current = normalize({ defaultValidityDays: days });
+    current = normalize({ ...current, defaultValidityDays: days });
+    persist();
+    notify();
+  },
+  setUsesDeposits(on: boolean) {
+    current = normalize({ ...current, usesDeposits: on });
     persist();
     notify();
   },

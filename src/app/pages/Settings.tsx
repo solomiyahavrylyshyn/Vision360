@@ -34,7 +34,6 @@ import { documentTemplateStore, PAPER_SIZES, type DocumentKind, type PaperSize }
 import { EstimateOptionsSheet, EstimateSingleSheet, EstimateTermsPage, InvoiceSheet, sheetPixels, useDocCompany, SAMPLE_ESTIMATE_OPTIONS, SAMPLE_ESTIMATE_SINGLE, SAMPLE_INVOICE, SAMPLE_TERMS_SECTIONS } from "../components/DocumentSheets";
 import { trialStore, isTrialActive, getTrialDaysRemaining } from "../stores/trialStore";
 import { categoriesStore } from "../stores/categoriesStore";
-import { estimateTypesStore } from "../stores/estimateTypesStore";
 import { expenseCategoriesStore, isPreCodedCategory } from "../stores/expenseCategoriesStore";
 import { allNotificationEvents } from "../constants/notificationEvents";
 
@@ -1202,8 +1201,9 @@ function DocumentTemplatesCard({ kind }: { kind: DocumentKind }) {
     toast.success(`${PAPER_SIZES.find((p) => p.id === size)?.name} selected for ${docLabel}s`);
   };
 
-  // Thumbnails share one scale so Legal reads as the taller sheet next to Letter.
-  const THUMB_H = 168;
+  // Thumbnails share one scale so Legal reads as the taller sheet next to Letter
+  // (Figma: the Legal page is 165px tall inside the 190px frame).
+  const THUMB_H = 165;
 
   const renderSheet = (paper: PaperSize, layout: "single" | "options", scale: number) => {
     const px = sheetPixels(paper, layout === "options" ? "landscape" : "portrait");
@@ -1226,9 +1226,10 @@ function DocumentTemplatesCard({ kind }: { kind: DocumentKind }) {
   return (
     <SectionCard
       title={isEstimate ? "Estimate templates" : "Invoice templates"}
-      description={`Paper size for every ${docLabel} PDF. Colours and logo come from Company profile → Brand assets; the fields stay the same on both sizes.`}
+      className="gap-4"
+      description={`Paper size for every ${docLabel} PDF. Colors and logo come from Company profile → Brand assets; the fields stay the same on both sizes.`}
     >
-      <div className="grid grid-cols-2 gap-3 max-w-[560px]">
+      <div className="flex flex-wrap gap-3">
         {PAPER_SIZES.map((size) => {
           const selected = chosen === size.id;
           const scale = THUMB_H / sheetPixels("legal", "portrait").height;
@@ -1236,23 +1237,23 @@ function DocumentTemplatesCard({ kind }: { kind: DocumentKind }) {
             <div
               key={size.id}
               onClick={() => choose(size.id)}
-              className={`rounded-xl border p-3 flex flex-col transition-all cursor-pointer ${
-                selected ? "border-[#4A6FA5] ring-2 ring-[#4A6FA5]/30 bg-white" : "border-[#E5E7EB] hover:border-[#C8D5E8] bg-white"
+              className={`flex w-[260px] flex-col rounded-lg border bg-white p-4 transition-colors cursor-pointer ${
+                selected ? "border-[#4A6FA5]" : "border-[#E5E7EB] hover:border-[#C8D5E8]"
               }`}
             >
-              <div className="rounded-lg bg-[#F5F7FA] border border-[#E5E7EB] flex items-end justify-center overflow-hidden pointer-events-none select-none" style={{ height: THUMB_H + 20, paddingTop: 10 }}>
-                {renderSheet(size.id, "single", scale)}
+              <div className="flex h-[190px] items-center justify-center overflow-hidden rounded-lg bg-[#F5F7FA] shadow-[0_1px_2px_rgba(0,0,0,0.06)] pointer-events-none select-none">
+                <div className="shadow-[0_1px_3px_rgba(0,0,0,0.08)]">{renderSheet(size.id, "single", scale)}</div>
               </div>
-              <div className="mt-2 flex items-center justify-between">
-                <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>{size.name}</div>
-                {selected && <span className="text-[11px] text-[#4A6FA5]" style={{ fontWeight: 600 }}>In use</span>}
+              <div className="mt-3 flex items-center justify-between">
+                <div className="text-[14px] leading-5 text-[#1A2332]" style={{ fontWeight: 500 }}>{size.name}</div>
+                {selected && <span className="text-[12px] leading-4 text-[#4A6FA5]">In use</span>}
               </div>
-              <p className="mt-0.5 text-[12px] leading-4 text-[#546478]">{size.description}</p>
+              <p className="mt-1 text-[12px] leading-4 text-[#546478]">{size.description}</p>
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); setPreviewLayout("single"); setPreviewPaper(size.id); }}
-                className="mt-2 w-full rounded-lg border border-[#E5E7EB] py-2 text-[13px] text-[#1A2332] bg-white hover:bg-[#F9FAFB] transition-colors"
-                style={{ fontWeight: 600 }}
+                className="mt-3 h-8 w-full rounded-lg border border-[#E5E7EB] bg-white text-[14px] text-[#1A2332] shadow-[0_1px_2px_rgba(0,0,0,0.05)] transition-colors hover:bg-[#F9FAFB]"
+                style={{ fontWeight: 500 }}
               >
                 Preview
               </button>
@@ -1667,7 +1668,7 @@ function ItemsPreferences() {
 function EstimateValidityCard() {
   const settings = useSyncExternalStore(estimateSettingsStore.subscribe, estimateSettingsStore.getSnapshot);
   return (
-    <SectionCard title="Estimate validity" description="How long a new estimate stays valid. The expiration date on Create Estimate defaults to the creation date plus this many days.">
+    <SectionCard className="gap-4" title="Estimate validity" description="How long a new estimate stays valid. The expiration date on Create Estimate defaults to the creation date plus this many days.">
       <div className="flex items-center gap-3">
         <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Default validity</span>
         <Input
@@ -1676,7 +1677,7 @@ function EstimateValidityCard() {
           max={365}
           value={String(settings.defaultValidityDays)}
           onChange={(e) => estimateSettingsStore.setDefaultValidityDays(Number(e.target.value))}
-          className="h-9 w-24 border-[#D8DEE8] text-[13px]"
+          className="h-9 w-[75px] border-[#E5E7EB] text-[14px] shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
         />
         <span className="text-[14px] text-[#6B7280]">days after creation</span>
       </div>
@@ -1753,57 +1754,25 @@ function ExpenseCategoriesCard() {
   );
 }
 
-// Estimate types (FR-16.5) — managed here like job types (FR-16.4); the list
-// feeds the estimate form's type picker (FR-5.19), list filters and reports.
-function EstimateTypesCard() {
-  const types = useSyncExternalStore(estimateTypesStore.subscribe, estimateTypesStore.getSnapshot);
-  const [newType, setNewType] = useState("");
-  const add = () => {
-    const v = newType.trim();
-    if (!v) return;
-    if (types.some(t => t.toLowerCase() === v.toLowerCase())) { toast.error("That type already exists"); return; }
-    estimateTypesStore.add(v);
-    setNewType("");
-  };
+// Deposits (Figma 261:15834, section 287:17468) — whether this company asks for
+// a deposit on an estimate. Off hides the deposit switch on estimates that have
+// none; estimates that already carry a deposit keep it.
+function EstimateDepositsCard() {
+  const settings = useSyncExternalStore(estimateSettingsStore.subscribe, estimateSettingsStore.getSnapshot);
   return (
-    <SectionCard title="Estimate types" description="Classifies estimates on the create form; also drives the Type filter on the Estimates list and the estimate reports.">
-      <div className="mt-1 flex w-[422px] gap-3">
-        <Input
-          value={newType}
-          onChange={e => setNewType(e.target.value)}
-          placeholder="Add estimate type (e.g. Repair, Installation)"
-          className="h-9 flex-1 border-[#E5E7EB] text-[13px] shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
-          onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); add(); } }}
+    <SectionCard className="gap-4" title="Deposits" description="Whether this company asks for a deposit on an estimate.">
+      <div className="flex items-center justify-between gap-4 rounded-lg border border-[#E5E7EB] p-4">
+        <div className="min-w-0 flex-1">
+          <div className="text-[14px] leading-5 text-[#1A2332]" style={{ fontWeight: 500 }}>Use deposits</div>
+          <div className="mt-1 text-[12px] leading-4 text-[#6B7280]">Turning this off stops new deposits on estimates. Estimates that already have a deposit keep it.</div>
+        </div>
+        <Switch
+          checked={settings.usesDeposits}
+          onCheckedChange={(on) => {
+            estimateSettingsStore.setUsesDeposits(on);
+            toast.success(on ? "Deposits turned on for estimates" : "Deposits turned off for new estimates");
+          }}
         />
-        <Button disabled={!newType.trim()} className="h-9 w-[59px] rounded-lg bg-[#4A6FA5] px-4 text-[13px] text-white hover:bg-[#3d5a85] disabled:opacity-50" onClick={add}>Add</Button>
-      </div>
-      <div className="mt-3 grid grid-cols-3 gap-3">
-        {types.map((t, idx) => {
-          const clr = LABEL_COLORS[idx % LABEL_COLORS.length];
-          return (
-            <div key={idx} className="flex items-center gap-3 rounded-lg border border-[#E5E7EB] px-3 py-2">
-              <div className="shrink-0 h-8 w-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: clr.bg }}>
-                <span className="material-icons" style={{ fontSize: "15px", color: clr.color }}>description</span>
-              </div>
-              <input
-                value={t}
-                onChange={e => estimateTypesStore.rename(t, e.target.value)}
-                onBlur={e => { const v = e.target.value.trim(); if (!v) estimateTypesStore.remove(e.target.value); else if (v !== e.target.value) estimateTypesStore.rename(e.target.value, v); }}
-                className="min-w-0 flex-1 rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5 text-[13px] text-[#1A2332] outline-none focus:border-[#4A6FA5]"
-                style={{ fontWeight: 500 }}
-              />
-              <button
-                type="button"
-                onClick={() => { estimateTypesStore.remove(t); toast.success("Estimate type removed"); }}
-                className="shrink-0 h-9 w-9 rounded-lg border border-[#E5E7EB] bg-white text-[#9CA3AF] hover:bg-[#FEF2F2] hover:border-[#FECACA] hover:text-[#DC2626] flex items-center justify-center"
-                title="Remove type"
-              >
-                <span className="material-icons" style={{ fontSize: "18px" }}>delete_outline</span>
-              </button>
-            </div>
-          );
-        })}
-        {types.length === 0 && <div className="col-span-3 text-[13px] text-[#9CA3AF]">No estimate types yet.</div>}
       </div>
     </SectionCard>
   );
@@ -1815,30 +1784,30 @@ function EstimateTypesCard() {
 function EstimateRulesCard() {
   const settings = useSyncExternalStore(estimateSettingsStore.subscribe, estimateSettingsStore.getSnapshot);
   return (
-    <SectionCard title="Estimate rules">
+    <SectionCard className="gap-4" title="Estimate rules">
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-1">
-          <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Signature</div>
-          <div className="flex items-center gap-2 py-2">
+          <div className="text-[14px] leading-5 text-[#1A2332]" style={{ fontWeight: 500 }}>Signature</div>
+          <div className="flex h-9 items-center gap-2">
             <Switch defaultChecked />
             <span className="text-[14px] text-[#1A2332]">Require client signature before proceeding</span>
           </div>
         </div>
         <div className="flex flex-col gap-1">
-          <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Payment terms</div>
-          <Input defaultValue="Payment is due within 15 days of approval." className="h-9 border-[#E5E7EB] shadow-[0_1px_2px_rgba(0,0,0,0.05)]" />
+          <div className="text-[14px] leading-5 text-[#1A2332]" style={{ fontWeight: 500 }}>Payment terms</div>
+          <Input defaultValue="Payment is due within 15 days of approval." className="h-9 border-[#E5E7EB] text-[14px] shadow-[0_1px_2px_rgba(0,0,0,0.05)]" />
         </div>
         <div className="flex flex-col gap-1">
-          <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Default expiration (days)</div>
+          <div className="text-[14px] leading-5 text-[#1A2332]" style={{ fontWeight: 500 }}>Default expiration (days)</div>
           <Input
             type="number"
             min={0}
             max={365}
             value={String(settings.defaultValidityDays)}
             onChange={(e) => estimateSettingsStore.setDefaultValidityDays(Number(e.target.value))}
-            className="h-9 w-[420px] border-[#E5E7EB] shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
+            className="h-9 w-[414px] max-w-full border-[#E5E7EB] text-[14px] shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
           />
-          <p className="text-[12px] leading-4 text-[#6B7280]">Estimates default to this many days after creation (e.g. 30). Editable per estimate.</p>
+          <p className="mt-5 text-[12px] leading-4 text-[#6B7280]">Estimates default to this many days after creation (e.g. 30). Editable per estimate.</p>
         </div>
       </div>
     </SectionCard>
@@ -4557,11 +4526,11 @@ export function Settings() {
                 )}
                 {activeSection === "estimates" && (
                   <>
+                    {/* Figma 261:15834: Estimate templates · Estimate validity ·
+                        Deposits · Estimate rules. */}
                     <DocumentTemplatesCard kind="estimate" />
                     <EstimateValidityCard />
-                    {/* Estimate types (FR-16.5) — company-editable list feeding
-                        the estimate form's type picker, list filters and reports. */}
-                    <EstimateTypesCard />
+                    <EstimateDepositsCard />
                     {/* Estimate rules (Figma 261:15834): Signature toggle, Payment terms,
                         Default expiration (days) — no card-level footer, save lives in
                         the page header. */}

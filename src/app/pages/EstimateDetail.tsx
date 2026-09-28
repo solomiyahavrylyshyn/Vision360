@@ -16,6 +16,7 @@ import { estimateTypesStore } from "../stores/estimateTypesStore";
 import { jobsStore } from "../stores/jobsStore";
 import { formatRegionalDate } from "../stores/regionalSettingsStore";
 import { documentTemplateStore } from "../stores/documentTemplateStore";
+import { estimateSettingsStore } from "../stores/estimateSettingsStore";
 import { EstimateOptionsSheet, EstimateSingleSheet, EstimateTermsPage, PrintPageRule, money, useDocCompany, type EstimateOptionsData, type EstimateSingleData, type EstimateTermsData } from "../components/DocumentSheets";
 import { ItemPicker, type CatalogItem } from "../components/ItemPicker";
 import { itemsStore } from "../stores/itemsStore";
@@ -346,6 +347,7 @@ export function EstimateDetail() {
   };
   const [statusOpen, setStatusOpen] = useState(false);
   const [addItemOpen, setAddItemOpen] = useState(false);
+  const estimateSettings = useSyncExternalStore(estimateSettingsStore.subscribe, estimateSettingsStore.getSnapshot);
   // "Add item" opens the shared catalog picker (single items and price book
   // groups, with the same type tabs as the Items page). The pick lands on the
   // option being viewed, or on the flat list of a single-option estimate.
@@ -1067,6 +1069,9 @@ export function EstimateDetail() {
   };
 
   // ── Deposit tab ───────────────────────────────────────────────────────────────
+  // Settings → Estimates → "Use deposits" off: no new deposits. An estimate
+  // that already carries one keeps it (and can still switch it off).
+  const canAddDeposit = estimateSettings.usesDeposits || estimate.depositRequired;
   const renderDepositTab = () => (
     <div className="flex gap-4 items-start">
       <div className="flex-1 min-w-0 flex flex-col gap-4">
@@ -1076,8 +1081,10 @@ export function EstimateDetail() {
             <div className="flex items-center gap-2.5">
               <span className="text-[13px] text-[#546478]">Deposit Required</span>
               <button type="button"
+                disabled={!canAddDeposit}
+                title={canAddDeposit ? undefined : "Deposits are turned off in Settings → Estimates"}
                 onClick={() => setEstimate(prev => ({ ...prev, depositRequired: !prev.depositRequired }))}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ${estimate.depositRequired ? "bg-[#22C55E]" : "bg-[#D1D5DB]"}`}>
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 disabled:cursor-not-allowed disabled:opacity-50 ${estimate.depositRequired ? "bg-[#22C55E]" : "bg-[#D1D5DB]"}`}>
                 <span className={`inline-block h-4 w-4 rounded-full bg-white shadow-sm transform transition-transform duration-200 ${estimate.depositRequired ? "translate-x-6" : "translate-x-1"}`} />
               </button>
             </div>
