@@ -1819,8 +1819,6 @@ function InvoicesPreferences() {
   const [requireDeposit, setRequireDeposit] = useState(true);
   const [paymentTerms, setPaymentTerms] = useState(["Due on receipt", "Net 15", "Net 30", "Net 60"]);
   const [newPaymentTerm, setNewPaymentTerm] = useState("");
-  const [requireSig, setRequireSig] = useState(true);
-  const [requireSigInvoice, setRequireSigInvoice] = useState(false);
 
   return (
     <>
@@ -1856,25 +1854,6 @@ function InvoicesPreferences() {
         </div>
       </SectionCard>
 
-      {/* Signature Settings */}
-      <SectionCard title="Signature Settings" description="Capture customer authorization on invoices.">
-        <div className="space-y-2 mt-2">
-          <div className="flex items-center justify-between gap-4 rounded-lg border border-[#E5E7EB] px-4 py-4">
-            <div className="flex-1">
-              <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Require client signature on estimates</div>
-              <div className="text-[12px] text-[#6B7280] mt-0.5">Customer signs the estimate before work begins.</div>
-            </div>
-            <Switch checked={requireSig} onCheckedChange={setRequireSig} />
-          </div>
-          <div className="flex items-center justify-between gap-4 rounded-lg border border-[#E5E7EB] px-4 py-4">
-            <div className="flex-1">
-              <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Require client signature on invoices</div>
-              <div className="text-[12px] text-[#6B7280] mt-0.5">Signature captured at delivery confirms receipt of services rendered.</div>
-            </div>
-            <Switch checked={requireSigInvoice} onCheckedChange={setRequireSigInvoice} />
-          </div>
-        </div>
-      </SectionCard>
 
       {/* Notes on invoice */}
       <SectionCard title="Notes on invoice" description="Default fine print printed at the bottom of every invoice and receipt.">
