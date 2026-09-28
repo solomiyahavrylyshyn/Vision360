@@ -1816,24 +1816,12 @@ function EstimateRulesCard() {
 
 // Invoices Preferences — Marek's spec
 function InvoicesPreferences() {
-  const [requireDeposit, setRequireDeposit] = useState(true);
   const [paymentTerms, setPaymentTerms] = useState(["Due on receipt", "Net 15", "Net 30", "Net 60"]);
   const [newPaymentTerm, setNewPaymentTerm] = useState("");
 
   return (
     <>
       <DocumentTemplatesCard kind="invoice" />
-
-      {/* Deposits (Figma 264:5793) */}
-      <SectionCard title="Deposits" description="Collect a deposit when the customer accepts an estimate or signs an invoice.">
-        <div className="flex items-center justify-between gap-4 rounded-lg border border-[#E5E7EB] px-4 py-4">
-          <div className="flex-1">
-            <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Require deposit before scheduling</div>
-            <div className="text-[12px] text-[#6B7280] mt-0.5">Customer pays a percentage upfront; rest is invoiced when the job is done.</div>
-          </div>
-          <Switch checked={requireDeposit} onCheckedChange={setRequireDeposit} />
-        </div>
-      </SectionCard>
 
       {/* Payment Terms (Figma 264:5793): add-input on top, chips below */}
       <SectionCard title="Payment Terms" description="Selectable terms shown on invoice creation.">
