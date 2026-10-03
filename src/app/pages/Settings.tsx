@@ -288,7 +288,6 @@ function CustomFieldConfigCard({ entity, idx, field }: { entity: CfEntity; idx: 
           </select>
         </Field>
       </div>
-      {off && <p className="mt-2 text-[12px] text-[#8899AA]">No label — this field is off and does not appear on any form.</p>}
 
       {field.type === "dropdown" && (
         <div className="mt-3">

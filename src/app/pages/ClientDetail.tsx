@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useMemo, useSyncExternalStore, useCallback, useRef, type ReactNode } from "react";
+﻿import { useState, useEffect, useMemo, useSyncExternalStore, useRef, type ReactNode } from "react";
 import { DocumentPreview } from "../components/DocumentPreview";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
@@ -38,7 +38,7 @@ import { paymentsStore } from "../stores/paymentsStore";
 import { JOB_STATUS_STYLES as JOB_STATUS_COLORS, JOB_STATUSES as JOB_STATUS_OPTIONS } from "../constants/jobStatuses";
 import { PAYMENT_METHODS } from "../constants/paymentMethods";
 import { tagsStore } from "../stores/tagsStore";
-import { customFieldsStore } from "../stores/customFieldsStore";
+import { CustomFieldInputs } from "../components/CustomFields";
 import { relationshipsStore } from "../stores/relationshipsStore";
 import { ConfirmDialog } from "../components/ui/confirm-dialog";
 import installHeatingSystem1Photo from "../../assets/documents/33702-install-heating-system-1.jpg";
@@ -691,10 +691,6 @@ export function ClientDetail() {
   //   active   → on-hold  when an invoice is past due
   //   on-hold  → active   when past-due balance is settled
   const daysOverdue = 18;
-  const cfClientFields = useSyncExternalStore(
-    customFieldsStore.subscribe,
-    useCallback(() => customFieldsStore.getEntityFields("clients"), [])
-  );
   const availableTags = useSyncExternalStore(
     tagsStore.subscribe,
     tagsStore.getTags
@@ -1243,69 +1239,14 @@ export function ClientDetail() {
           {/* Custom Fields — Figma places this at the bottom of the Notes column */}
           <div className="pt-3 mt-2 border-t border-[#E5E7EB]">
             <div className="text-[14px] text-[#1A2332] mb-2" style={{ fontWeight: 600 }}>Custom Fields</div>
-            {(() => {
-              // Named slots only; each keeps its own slot index as the value key.
-              const configured = cfClientFields.slice(0, 2)
-                .map((f, slot) => ({ ...f, slot }))
-                .filter(f => f.label.trim() !== "");
-              if (configured.length === 0) {
-                return (
-                  <div className="flex items-center gap-1 text-[11px] text-[#6B7280]">
-                    <span>Configure in</span>
-                    <button
-                      onClick={() => navigate("/settings?section=general")}
-                      className="text-[11px] text-[#4A6FA5] hover:underline"
-                      style={{ fontWeight: 500 }}
-                    >
-                      Settings &gt; Custom Fields
-                    </button>
-                  </div>
-                );
-              }
-              return (
-                <div className="space-y-3">
-                  {configured.map((field, idx) => {
-                    const key = String(field.slot);
-                    const cfValue = client.customFields?.[key] ?? "";
-                    const save = (v: string) =>
-                      clientsStore.updateClient(client.id, { customFields: { ...(client.customFields ?? {}), [key]: v } });
-                    return (
-                      <div key={idx}>
-                        <div className="text-[12px] text-[#6B7280] mb-0.5">{field.label}</div>
-                        {field.type === "dropdown" ? (
-                          <select
-                            value={cfValue}
-                            onChange={(e) => save(e.target.value)}
-                            className="w-full h-9 px-2 text-[13px] text-[#1A2332] border border-[#E5E7EB] rounded-md bg-white"
-                          >
-                            <option value="">—</option>
-                            {field.options.map((o) => <option key={o} value={o}>{o}</option>)}
-                          </select>
-                        ) : field.type === "checkbox" ? (
-                          <label className="flex items-center gap-2 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={cfValue === "true"}
-                              onChange={(e) => save(e.target.checked ? "true" : "false")}
-                              className="w-4 h-4 accent-[#4A6FA5]"
-                            />
-                            <span className="text-[13px] text-[#1A2332]">{cfValue === "true" ? "Yes" : "No"}</span>
-                          </label>
-                        ) : (
-                          <input
-                            type={field.type === "number" ? "number" : field.type === "date" ? "date" : "text"}
-                            value={cfValue}
-                            onChange={(e) => save(e.target.value)}
-                            placeholder="—"
-                            className="w-full h-9 px-2 text-[13px] text-[#1A2332] border border-[#E5E7EB] rounded-md bg-white placeholder:text-[#9CA3AF]"
-                          />
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              );
-            })()}
+            {/* Custom fields (Settings → General → Custom fields → Clients), edited in place. */}
+            <CustomFieldInputs
+              entity="clients"
+              columns={1}
+              idPrefix={`client-${client.id}`}
+              values={client.customFields}
+              onChange={(next) => clientsStore.updateClient(client.id, { customFields: next })}
+            />
           </div>
         </div>
       </div>
