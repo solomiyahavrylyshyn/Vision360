@@ -12,6 +12,8 @@ import { InvoiceSheet, PrintPageRule, useDocCompany, type InvoiceSheetData } fro
 import { jobsStore } from "../stores/jobsStore";
 import { itemsStore } from "../stores/itemsStore";
 import { ItemPicker, type CatalogItem } from "../components/ItemPicker";
+import { invoicesStore } from "../stores/invoicesStore";
+import { CustomFieldChips } from "../components/CustomFields";
 
 // A job linked to the invoice, rendered as one accordion section in the
 // Job Details card.
@@ -981,6 +983,13 @@ export function InvoiceDetail() {
                   <span className="material-icons" style={{ fontSize: "14px" }}>mail</span>
                   Sent {fmtDate(data.dateSent)}
                 </div>
+                {/* Custom fields (Settings → General → Custom fields → Invoices). */}
+                {(() => {
+                  const rec = invoicesStore.getById(Number(id));
+                  const cf1 = rec?.customField1 ?? data.customField1 ?? "";
+                  const cf2 = rec?.customField2 ?? data.customField2 ?? "";
+                  return <CustomFieldChips entity="invoices" values={{ "0": cf1, "1": cf2 }} />;
+                })()}
               </div>
             </div>
 

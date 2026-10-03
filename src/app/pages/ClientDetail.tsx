@@ -1244,7 +1244,10 @@ export function ClientDetail() {
           <div className="pt-3 mt-2 border-t border-[#E5E7EB]">
             <div className="text-[14px] text-[#1A2332] mb-2" style={{ fontWeight: 600 }}>Custom Fields</div>
             {(() => {
-              const configured = cfClientFields.slice(0, 2).filter(f => f.label.trim() !== "");
+              // Named, visible slots only; each keeps its own slot index as the value key.
+              const configured = cfClientFields.slice(0, 2)
+                .map((f, slot) => ({ ...f, slot }))
+                .filter(f => f.label.trim() !== "" && f.visible !== false);
               if (configured.length === 0) {
                 return (
                   <div className="flex items-center gap-1 text-[11px] text-[#6B7280]">
@@ -1262,7 +1265,7 @@ export function ClientDetail() {
               return (
                 <div className="space-y-3">
                   {configured.map((field, idx) => {
-                    const key = String(idx);
+                    const key = String(field.slot);
                     const cfValue = client.customFields?.[key] ?? "";
                     const save = (v: string) =>
                       clientsStore.updateClient(client.id, { customFields: { ...(client.customFields ?? {}), [key]: v } });

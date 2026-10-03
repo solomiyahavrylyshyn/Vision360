@@ -90,6 +90,8 @@ export interface EstimateRecord {
   depositRequired?: boolean;
   depositType?: "amount" | "percentage";
   depositValue?: number;
+  /** Custom field values by slot ("0", "1") — Settings → General → Custom fields. */
+  customFields?: Record<string, string>;
 }
 
 const LS_KEY = "vision360.estimates.v1";

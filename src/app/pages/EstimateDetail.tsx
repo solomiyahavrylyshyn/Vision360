@@ -17,6 +17,7 @@ import { jobsStore } from "../stores/jobsStore";
 import { formatRegionalDate } from "../stores/regionalSettingsStore";
 import { documentTemplateStore } from "../stores/documentTemplateStore";
 import { estimateSettingsStore } from "../stores/estimateSettingsStore";
+import { CustomFieldChips } from "../components/CustomFields";
 import { EstimateOptionsSheet, EstimateSingleSheet, EstimateTermsPage, PrintPageRule, money, useDocCompany, type EstimateOptionsData, type EstimateSingleData, type EstimateTermsData } from "../components/DocumentSheets";
 import { ItemPicker, type CatalogItem } from "../components/ItemPicker";
 import { itemsStore } from "../stores/itemsStore";
@@ -1433,6 +1434,8 @@ export function EstimateDetail() {
                   <span className="text-[#6B7280]">Sent:</span>
                   <span className="text-[#374151]">{estimate.sentDate && estimate.sentDate !== "Not Sent" ? estimate.sentDate : "Not sent"}</span>
                 </div>
+                {/* Custom fields (Settings → General → Custom fields → Estimates). */}
+                <CustomFieldChips entity="estimates" values={estimatesStore.getById(estimate.id)?.customFields} />
               </div>
             </div>
 

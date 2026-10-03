@@ -8,6 +8,7 @@ import { invoicesStore } from "../stores/invoicesStore";
 import { itemsStore } from "../stores/itemsStore";
 import { ItemPicker, catalogItemToLineItem, type CatalogItem, type SelectedLineItem } from "../components/ItemPicker";
 import { PlusIcon } from "../components/ui/plus-icon";
+import { CustomFieldInputs, customFieldsError, type CfValues } from "../components/CustomFields";
 
 // Legacy HVAC/plumbing options kept alongside the live Items catalog.
 const legacyCatalogItems: CatalogItem[] = [
@@ -107,6 +108,10 @@ export function CreateInvoice() {
   });
 
   const [notes, setNotes] = useState("");
+  // Custom fields (Settings → General → Custom fields → Invoices), stored in
+  // the invoice's customField1 / customField2.
+  const [cfValues, setCfValues] = useState<CfValues>({});
+  const [showCfErrors, setShowCfErrors] = useState(false);
   const [itemPickerOpen, setItemPickerOpen] = useState(false);
   const [taxRate] = useState(() => {
     const sourceJob = fromJobId ? liveJobs.find(j => j.id === fromJobId) : null;
@@ -218,6 +223,8 @@ export function CreateInvoice() {
     if (!invoiceDate) { toast.error("Invoice date is required."); return; }
     if (!dueDate) { toast.error("Due date is required."); return; }
     if (lineItems.length === 0) { toast.error("Add at least one line item before saving."); return; }
+    const cfErr = customFieldsError("invoices", cfValues);
+    if (cfErr) { setShowCfErrors(true); toast.error(cfErr); return; }
 
     const clientRec = liveClients.find((c) => c.name === client.trim());
     const base = clientRec?.id || "10250";
@@ -240,6 +247,8 @@ export function CreateInvoice() {
       balance: grand,
       linkedEstimate: linkedEstimate ? linkedEstimate.split(":")[0].trim() : "",
       memo: notes,
+      customField1: cfValues["0"] ?? "",
+      customField2: cfValues["1"] ?? "",
       billingAddress: clientRec?.address || "", billingCity: clientRec?.city || "", billingState: clientRec?.state || "", billingZip: clientRec?.zip || "",
       serviceAddress: clientRec?.address || "", serviceCity: clientRec?.city || "", serviceState: clientRec?.state || "", serviceZip: clientRec?.zip || "",
       paymentTerms: "Net 30",
@@ -482,6 +491,13 @@ export function CreateInvoice() {
                 </>
               )}
             </div>
+          </Section>
+
+          <div className="border-t border-[#E5E7EB]" />
+
+          {/* Custom fields */}
+          <Section label="Custom fields">
+            <CustomFieldInputs entity="invoices" values={cfValues} onChange={setCfValues} showErrors={showCfErrors} />
           </Section>
 
           <div className="border-t border-[#E5E7EB]" />

@@ -47,6 +47,8 @@ export interface JobRecord {
   /** Products and services on the job. Optional so records persisted before
    *  the Items tab could add lines still load. */
   lineItems?: JobLineItem[];
+  /** Custom field values by slot ("0", "1") — Settings → General → Custom fields. */
+  customFields?: Record<string, string>;
   privateNotes: string;
   taxRate: number;
   estimateId?: number;

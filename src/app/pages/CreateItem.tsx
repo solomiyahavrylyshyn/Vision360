@@ -2,6 +2,7 @@ import { useState, useSyncExternalStore } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { toast } from "sonner";
 import { itemsStore } from "../stores/itemsStore";
+import { CustomFieldInputs, customFieldsError } from "../components/CustomFields";
 import { CostField, CostSplitBlock } from "../components/CostBreakdownPanel";
 import { retotalBreakdown, type CostBreakdown } from "../utils/itemCost";
 import { categoriesStore } from "../stores/categoriesStore";
@@ -48,6 +49,7 @@ export function CreateItem() {
   const [images, setImages] = useState<string[]>([]);
   const [customField1, setCustomField1] = useState("");
   const [customField2, setCustomField2] = useState("");
+  const [showCfErrors, setShowCfErrors] = useState(false);
   const [notes, setNotes] = useState("");
 
   const handleAddImages = (files: FileList | null) => {
@@ -64,6 +66,8 @@ export function CreateItem() {
     if (!name.trim()) { toast.error("Item name is required."); return; }
     if (retailPrice === "") { toast.error("Price is required."); return; }
     if (cost === "") { toast.error("Cost is required."); return; }
+    const cfErr = customFieldsError("items", { "0": customField1, "1": customField2 });
+    if (cfErr) { setShowCfErrors(true); toast.error(cfErr); return; }
     const nextId = storeItems.length ? Math.max(...storeItems.map((i: any) => i.id)) + 1 : 1;
     itemsStore.upsert(toCatalogItem({
       id: nextId,
@@ -298,16 +302,12 @@ export function CreateItem() {
 
           {/* Custom fields */}
           <Section label="Custom fields">
-            <div className="grid grid-cols-2 gap-5">
-              <div>
-                <label className={labelClass}>Custom field 1</label>
-                <input type="text" value={customField1} onChange={(e) => setCustomField1(e.target.value)} placeholder="Custom field 1" className={fieldClass} />
-              </div>
-              <div>
-                <label className={labelClass}>Custom field 2</label>
-                <input type="text" value={customField2} onChange={(e) => setCustomField2(e.target.value)} placeholder="Custom field 2" className={fieldClass} />
-              </div>
-            </div>
+            <CustomFieldInputs
+              entity="items"
+              values={{ "0": customField1, "1": customField2 }}
+              onChange={(v) => { setCustomField1(v["0"] ?? ""); setCustomField2(v["1"] ?? ""); }}
+              showErrors={showCfErrors}
+            />
             {manageHint(<>Manage custom fields in <span className="cursor-pointer text-[#4A6FA5] hover:underline" onClick={() => navigate("/settings")}>Settings &gt; Custom fields</span></>)}
           </Section>
 

@@ -18,6 +18,7 @@ import { clientsStore } from "../stores/clientsStore";
 import { useSyncExternalStore } from "react";
 import { formatRegionalDate } from "../stores/regionalSettingsStore";
 import { PAYMENT_METHODS } from "../constants/paymentMethods";
+import { CustomFieldInputs, customFieldsError, type CfValues } from "../components/CustomFields";
 
 interface AdditionalContact {
   id: string;
@@ -178,6 +179,10 @@ export function CreateClient() {
     relationshipsStore.getRelationships,
   );
 
+  // Custom fields (Settings → General → Custom fields → Clients).
+  const [cfValues, setCfValues] = useState<CfValues>({});
+  const [showCfErrors, setShowCfErrors] = useState(false);
+
   const validate = (): string | null => {
     const digitCount = (s: string) => (s.match(/\d/g) || []).length;
 
@@ -208,6 +213,8 @@ export function CreateClient() {
     if (!/^\d{5}(-\d{4})?$/.test(formData.zip.trim())) return "Enter a valid ZIP code (e.g. 78701)";
     // Billing — payment terms are mandatory (defaults to "Due on receipt").
     if (!formData.paymentTerms.trim()) return "Payment terms are required";
+    const cfErr = customFieldsError("clients", cfValues);
+    if (cfErr) { setShowCfErrors(true); return cfErr; }
     return null;
   };
 
@@ -265,6 +272,7 @@ export function CreateClient() {
         billingState: formData.state,
         billingZip: formData.zip,
         billingCounty: formData.county,
+        customFields: cfValues,
       }),
     );
     return id;
@@ -791,6 +799,16 @@ export function CreateClient() {
                   </p>
                 </div>
               </div>
+            </div>
+          </section>
+
+          {/* ── Custom fields ── */}
+          <section className="grid grid-cols-[280px_minmax(0,1fr)] gap-8 pb-6 border-b border-[#E5E7EB]">
+            <div>
+              <h2 className="text-[16px] text-[#1A2332]" style={{ fontWeight: 600 }}>Custom fields</h2>
+            </div>
+            <div className="max-w-[780px]">
+              <CustomFieldInputs entity="clients" values={cfValues} onChange={setCfValues} showErrors={showCfErrors} />
             </div>
           </section>
 

@@ -9,6 +9,7 @@ import { ITEM_TYPES } from "./Items";
 import { categoriesStore } from "../stores/categoriesStore";
 import { CostField, CostSplitBlock } from "../components/CostBreakdownPanel";
 import { COST_COMPONENTS, breakdownForItem, type CostBreakdown } from "../utils/itemCost";
+import { CustomFieldValues } from "../components/CustomFields";
 
 // Classification option lists (mirror the Create-item form).
 const MANUFACTURERS = ["Carrier", "Trane", "Lennox", "Goodman", "Rheem", "Ferguson", "Square D", "Ecobee"];
@@ -410,8 +411,13 @@ export function ItemDetail() {
         <h3 className="mb-3 text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Custom Fields</h3>
         {/* Only show a custom field when it actually has a value — otherwise just
             the configure link (Marek: empty custom fields shouldn't render). */}
-        {item.customField1 && <Field label="Custom Field 1" value={item.customField1} />}
-        {item.customField2 && <div className={item.customField1 ? "mt-3" : ""}><Field label="Custom Field 2" value={item.customField2} /></div>}
+        {/* Custom fields (Settings → General → Custom fields → Items). */}
+        <CustomFieldValues
+          entity="items"
+          values={{ "0": item.customField1, "1": item.customField2 }}
+          labelClassName="text-[11px] text-[#9CA3AF] leading-[16px]"
+          valueClassName="text-[14px] text-[#374151] leading-[22px]"
+        />
         <div className="mt-3 text-[11px] text-[#9CA3AF]">
           Configure in{" "}
           <button onClick={() => navigate("/settings?section=general")} className="text-[11px] text-[#4A6FA5] hover:underline" style={{ fontWeight: 500 }}>Settings &gt; Custom Fields</button>

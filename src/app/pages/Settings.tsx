@@ -15,7 +15,7 @@ import { setupStore } from "../stores/setupStore";
 import { termsStore } from "../stores/termsStore";
 import { countiesStore } from "../stores/countiesStore";
 import { relationshipsStore } from "../stores/relationshipsStore";
-import { customFieldsStore, type CfEntity, type CfFieldType } from "../stores/customFieldsStore";
+import { customFieldsStore, type CfEntity, type CfField, type CfFieldType } from "../stores/customFieldsStore";
 import { allReportNames } from "../components/ReportAccessPanel";
 import {
   PermissionsEditor,
@@ -246,6 +246,98 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     <div>
       <Label className="mb-1.5 block text-[13px] text-[#374151]" style={{ fontWeight: 500 }}>{label}</Label>
       {children}
+    </div>
+  );
+}
+
+// One custom-field slot in Settings → General → Custom fields (spec "Vision360
+// Custom Fields"): label (empty = off), type, dropdown options, Required, Visible.
+function CustomFieldConfigCard({ entity, idx, field }: { entity: CfEntity; idx: number; field: CfField }) {
+  const [optionDraft, setOptionDraft] = useState("");
+  const off = field.label.trim() === "";
+  const addOption = () => {
+    const v = optionDraft.trim();
+    if (!v) return;
+    if (field.options.includes(v)) { toast.error("That option is already in the list"); return; }
+    customFieldsStore.addOption(entity, idx, v);
+    setOptionDraft("");
+  };
+  return (
+    <div className={`rounded-lg border border-[#E5E7EB] p-4 ${off ? "bg-[#F9FAFB]" : "bg-white"}`}>
+      <div className="grid grid-cols-[1fr_237px] items-end gap-4">
+        <Field label={`Field ${idx + 1}`}>
+          <Input
+            value={field.label}
+            onChange={e => customFieldsStore.updateField(entity, idx, { label: e.target.value })}
+            placeholder="Field label, e.g. Job category"
+            maxLength={40}
+            className="h-9 border-[#E5E7EB] text-[14px] shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
+          />
+        </Field>
+        <Field label="Type">
+          <select
+            value={field.type}
+            onChange={e => customFieldsStore.updateField(entity, idx, { type: e.target.value as CfFieldType })}
+            className="h-9 w-full rounded-lg border border-[#E5E7EB] bg-white px-3 text-[14px] text-[#1A2332] shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
+          >
+            <option value="text">Text</option>
+            <option value="number">Number</option>
+            <option value="date">Date</option>
+            <option value="checkbox">Checkbox</option>
+            <option value="dropdown">Dropdown</option>
+          </select>
+        </Field>
+      </div>
+      {off && <p className="mt-2 text-[12px] text-[#8899AA]">No label — this field is off and does not appear on any form.</p>}
+
+      {field.type === "dropdown" && (
+        <div className="mt-3">
+          <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Options</div>
+          {field.options.length > 0 ? (
+            <div className="mt-1.5 flex flex-wrap gap-2">
+              {field.options.map(o => (
+                <span key={o} className="inline-flex items-center gap-1 rounded-full border border-[#E5E7EB] bg-[#F8FAFC] py-1 pl-3 pr-1.5 text-[13px] text-[#1A2332]">
+                  {o}
+                  <button type="button" onClick={() => customFieldsStore.removeOption(entity, idx, o)} className="flex h-5 w-5 items-center justify-center rounded-full text-[#9AA3AF] hover:bg-[#FEE2E2] hover:text-[#DC2626]" aria-label={`Remove ${o}`}>×</button>
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p className="mt-1 text-[12px] text-[#8899AA]">No options yet. The dropdown stays empty until you add some.</p>
+          )}
+          <div className="mt-2 flex max-w-[420px] gap-2">
+            <Input
+              value={optionDraft}
+              onChange={e => setOptionDraft(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addOption(); } }}
+              placeholder="Add an option, e.g. Metal roof"
+              className="h-9 flex-1 border-[#E5E7EB] text-[13px] shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
+            />
+            <Button type="button" disabled={!optionDraft.trim()} onClick={addOption} className="h-9 bg-[#4A6FA5] px-4 text-[13px] text-white hover:bg-[#3d5a85] disabled:opacity-50">Add</Button>
+          </div>
+        </div>
+      )}
+
+      <div className="mt-3 flex flex-wrap items-center gap-6">
+        <label className="flex items-center gap-2 text-[14px] text-[#1A2332] cursor-pointer">
+          <Switch
+            checked={field.required}
+            disabled={!field.visible}
+            onCheckedChange={v => customFieldsStore.updateField(entity, idx, { required: v })}
+          />
+          Required
+        </label>
+        <label className="flex items-center gap-2 text-[14px] text-[#1A2332] cursor-pointer">
+          <Switch
+            checked={field.visible}
+            onCheckedChange={v => customFieldsStore.updateField(entity, idx, { visible: v })}
+          />
+          Visible
+        </label>
+      </div>
+      {!field.visible && !off && (
+        <p className="mt-2 text-[12px] text-[#8899AA]">Hidden on forms and details. Values already entered are kept.</p>
+      )}
     </div>
   );
 }
@@ -3852,7 +3944,7 @@ export function Settings() {
                   </div>
                 </SectionCard>
 
-                <SectionCard title="Custom Fields" description="Configure 2 custom fields per entity - clients, jobs, estimates, invoices, items, and team. Team custom fields show up as extra columns on the Users table." className="min-h-[367px]">
+                <SectionCard title="Custom Fields" description="Two fields per form. Name a field to turn it on; it then appears on that form and on the details page. Hidden fields keep their values." className="min-h-[367px]">
                   <div className="mt-4 flex w-fit items-center rounded-[10px] p-[3px]">
                     {customFieldEntities.map(entity => (
                       <button
@@ -3869,31 +3961,7 @@ export function Settings() {
 
                   <div className="mt-3 space-y-3">
                     {customFields[cfEntity].map((field, idx) => (
-                      <div key={idx} className="rounded-lg border border-[#E5E7EB] p-4">
-                        <div className="grid grid-cols-[1fr_237px] items-end gap-4">
-                          <Field label="Field 1">
-                            <Input
-                              value={field.label}
-                              onChange={e => customFieldsStore.updateField(cfEntity, idx, { label: e.target.value })}
-                              placeholder="Field label"
-                              className="h-9 border-[#E5E7EB] text-[14px] shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
-                            />
-                          </Field>
-                          <Field label="Type">
-                            <select
-                              value={field.type}
-                              onChange={e => customFieldsStore.updateField(cfEntity, idx, { type: e.target.value as CfFieldType })}
-                              className="h-9 w-full rounded-lg border border-[#E5E7EB] bg-white px-3 text-[14px] text-[#1A2332] shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
-                            >
-                              <option value="checkbox">Checkbox</option>
-                              <option value="text">Text</option>
-                              <option value="number">Number</option>
-                              <option value="date">Date</option>
-                              <option value="dropdown">Dropdown</option>
-                            </select>
-                          </Field>
-                        </div>
-                      </div>
+                      <CustomFieldConfigCard key={`${cfEntity}-${idx}`} entity={cfEntity} idx={idx} field={field} />
                     ))}
                   </div>
                 </SectionCard>

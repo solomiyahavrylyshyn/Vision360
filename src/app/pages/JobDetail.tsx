@@ -17,6 +17,7 @@ import { formatRegionalDate } from "../stores/regionalSettingsStore";
 import { jobsStore, type JobRecord, type JobLineItem } from "../stores/jobsStore";
 import { itemsStore } from "../stores/itemsStore";
 import { ItemPicker, catalogItemToLineItem, type CatalogItem } from "../components/ItemPicker";
+import { CustomFieldValues } from "../components/CustomFields";
 import { clientsStore } from "../stores/clientsStore";
 import { estimatesStore } from "../stores/estimatesStore";
 import { invoicesStore } from "../stores/invoicesStore";
@@ -998,6 +999,13 @@ export function JobDetail() {
                 <div className="text-[14px] text-[#6B7280] leading-[20px]">Assigned to</div>
                 <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>{assignedTo || "Unassigned"}{assignedTo ? " • Technician" : ""}</div>
               </div>
+              {/* Custom fields (Settings → General → Custom fields → Jobs). */}
+              <CustomFieldValues
+                entity="jobs"
+                values={storeJob?.customFields}
+                labelClassName="text-[14px] text-[#6B7280] leading-[20px]"
+                valueClassName="text-[14px] text-[#1A2332]"
+              />
               <div>
                 <div className="text-[14px] text-[#6B7280] leading-[20px]">Service Address</div>
                 <div className="text-[14px] text-[#1A2332] leading-[20px]" style={{ fontWeight: 500 }}>
