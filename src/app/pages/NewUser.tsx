@@ -5,6 +5,8 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { allReportNames } from "../components/ReportAccessPanel";
+import { teamStore } from "../stores/teamStore";
+import { CustomFieldInputs, type CfValues } from "../components/CustomFields";
 // Full RBAC editor (FR-2b) — shared with the Edit-user modal on Settings →
 // Manage team so both forms present identical permissions + report access.
 import {
@@ -47,12 +49,29 @@ export function NewUser() {
   // Communications
   const [language, setLanguage] = useState<"english" | "spanish">("english");
 
+  // Custom fields (Settings → General → Custom fields → Team).
+  const [cfValues, setCfValues] = useState<CfValues>({});
+
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     if (!fullName.trim() || !email.trim()) {
       toast.error("Full name and email are required");
       return;
     }
+    // The invited person shows up in Manage team right away, with their custom fields.
+    const roleLabel = preset === "admin" ? "Admin" : preset === "employee" ? "Employee"
+      : customPresets.find((cp) => cp.id === preset)?.name ?? "Employee";
+    const rate = Number(laborCost) > 0 ? `$${Number(laborCost)}/hr` : "$0/hr";
+    teamStore.add({
+      name: fullName.trim(),
+      username: email.trim().split("@")[0] || fullName.trim().toLowerCase().replace(/\s+/g, "."),
+      phone: mobile.trim(),
+      email: email.trim(),
+      role: roleLabel,
+      rate,
+      status: "Invited",
+      customFields: cfValues,
+    });
     toast.success(`Invitation sent to ${email}`);
     navigate("/settings?section=team");
   };
@@ -192,6 +211,12 @@ export function NewUser() {
                     </div>
                   </div>
                 </div>
+              </section>
+
+              {/* ── Custom fields ─────────────────────────────────── */}
+              <section className="border border-[#E5E7EB] rounded-xl p-6">
+                <h2 className="text-[18px] text-[#1A2332] mb-5" style={{ fontWeight: 700 }}>Custom fields</h2>
+                <CustomFieldInputs entity="team" idPrefix="new-user" values={cfValues} onChange={setCfValues} />
               </section>
 
               {/* ── Permissions ───────────────────────────────────── */}

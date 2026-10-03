@@ -15,7 +15,9 @@ import { setupStore } from "../stores/setupStore";
 import { termsStore } from "../stores/termsStore";
 import { countiesStore } from "../stores/countiesStore";
 import { relationshipsStore } from "../stores/relationshipsStore";
-import { customFieldsStore, type CfEntity, type CfField, type CfFieldType } from "../stores/customFieldsStore";
+import { customFieldsStore, isFieldOn, type CfEntity, type CfField, type CfFieldType } from "../stores/customFieldsStore";
+import { teamStore } from "../stores/teamStore";
+import { CustomFieldInputs, formatCustomValue, type CfValues } from "../components/CustomFields";
 import { allReportNames } from "../components/ReportAccessPanel";
 import {
   PermissionsEditor,
@@ -129,12 +131,6 @@ type AppRole = string;
 type PermissionAction = "view" | "create" | "edit" | "delete";
 type PermissionRole = { id: string; label: AppRole; locked?: boolean };
 type RbacPermission = { area: string; module: string; access: Record<string, PermissionAction[]> };
-
-const teamMembers: Array<{ name: string; username: string; phone: string; email: string; role: AppRole; rate: string; status: string }> = [
-  { name: "Peter Novak", username: "novak.peter", phone: "+1-813-555-0184", email: "peter@omega-home.com", role: "Admin", rate: "$0/hr", status: "Active" },
-  { name: "Emily Parker", username: "parker.emily", phone: "+1-234-234-5555", email: "parker.emily@email.com", role: "Employee", rate: "$28/hr", status: "Active" },
-  { name: "Elliot Harper", username: "harper.elliot", phone: "+1-813-555-0198", email: "elliot@omega-home.com", role: "Dispatcher", rate: "$32/hr", status: "Active" },
-];
 
 const defaultPermissionRoles: PermissionRole[] = [
   { id: "admin", label: "Admin", locked: true },
@@ -2587,7 +2583,11 @@ export function Settings() {
   const [editingJobTypeValue, setEditingJobTypeValue] = useState("");
 
   // ── Team / Invite user ──
-  const [team, setTeam] = useState(teamMembers);
+  // Team list lives in teamStore so the Invite-user page and this table share it.
+  const team = useSyncExternalStore(teamStore.subscribe, teamStore.getSnapshot);
+  const setTeam = teamStore.set;
+  // Team custom fields (Settings → General → Custom fields → Team): extra columns.
+  const teamCfColumns = customFields.team.map((f, i) => ({ f, i })).filter(({ f }) => isFieldOn(f));
   const [teamSearch, setTeamSearch] = useState("");
   const [inviteOpen, setInviteOpen] = useState(false);
   const [teamRowMenu, setTeamRowMenu] = useState<string | null>(null);
@@ -2610,7 +2610,7 @@ export function Settings() {
     loadCustomPresets().map(cp => ({ ...cp, permissions: ensureItemsPerm(cp.permissions) })),
   );
   useEffect(() => { saveCustomPresets(modalCustomPresets); }, [modalCustomPresets]);
-  const emptyInvite = { name: "", email: "", role: "Employee" as AppRole, rate: "" };
+  const emptyInvite = { name: "", email: "", role: "Employee" as AppRole, rate: "", customFields: {} as CfValues };
   const [invite, setInvite] = useState(emptyInvite);
   // When set, the invite modal is in "edit existing member" mode (keyed by the
   // member's original email). Null = inviting a brand-new user.
@@ -2623,13 +2623,6 @@ export function Settings() {
   // ── Pay rate type per company default ──
   const [defaultPayType, setDefaultPayType] = useState<"hourly" | "daily" | "salary">("hourly");
   const [payRatesOpen, setPayRatesOpen] = useState(false);
-  // ── User custom fields ──
-  type UserCF = { id: string; label: string; type: "Text" | "Dropdown"; options?: string };
-  const [userCustomFields, setUserCustomFields] = useState<UserCF[]>([
-    { id: "ucf1", label: "Office / Field user", type: "Dropdown", options: "Office, Field" },
-    { id: "ucf2", label: "Reports to",           type: "Text" },
-  ]);
-  const [newUserCfLabel, setNewUserCfLabel] = useState("");
 
   // ── Jobs Preferences ──
   const [requireSigBeforeStart, setRequireSigBeforeStart] = useState(true);
@@ -2731,9 +2724,9 @@ export function Settings() {
     return groups;
   }, {});
   const closeInvite = () => { setInvite(emptyInvite); setEditingKey(null); setInviteOpen(false); };
-  const editMember = (member: { name: string; email: string; role: AppRole; rate: string }) => {
+  const editMember = (member: { name: string; email: string; role: AppRole; rate: string; customFields?: CfValues }) => {
     setEditingKey(member.email);
-    setInvite({ name: member.name, email: member.email, role: member.role, rate: member.rate });
+    setInvite({ name: member.name, email: member.email, role: member.role, rate: member.rate, customFields: member.customFields ?? {} });
     setReportAccess(memberReportAccess[member.email] ?? Object.fromEntries(allReportNames.map(name => [name, true])));
     // Seed RBAC from the saved per-member state, else default by role.
     const saved = memberPerms[member.email];
@@ -2765,7 +2758,7 @@ export function Settings() {
     if (editingKey) {
       // Edit existing member — update by original email, preserving username/phone/status.
       setTeam(prev => prev.map(m => m.email === editingKey
-        ? { ...m, name: invite.name.trim(), email: invite.email.trim(), role: invite.role, rate }
+        ? { ...m, name: invite.name.trim(), email: invite.email.trim(), role: invite.role, rate, customFields: invite.customFields }
         : m));
       toast.success(`${invite.name.trim()} updated`);
     } else {
@@ -2779,6 +2772,7 @@ export function Settings() {
           role: invite.role,
           rate,
           status: "Invited",
+          customFields: invite.customFields,
         },
       ]);
       toast.success(`Invitation sent to ${invite.email}`);
@@ -3485,7 +3479,7 @@ export function Settings() {
                 <table className="w-full">
                   <thead>
                     <tr className="bg-[#F5F7FA] border-b border-[#E5E7EB]">
-                      {["Full Name", "User Name", "Phone", "Email", "Role"].map((h, i) => (
+                      {["Full Name", "User Name", "Phone", "Email", "Role", ...teamCfColumns.map(({ f }) => f.label)].map((h, i) => (
                         <th
                           key={i}
                           className="px-2 text-left text-[14px] text-[#1A2332]"
@@ -3500,7 +3494,7 @@ export function Settings() {
                   <tbody>
                     {filteredTeam.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="px-4 py-8 text-center text-[13px] text-[#9CA3AF]">
+                        <td colSpan={6 + teamCfColumns.length} className="px-4 py-8 text-center text-[13px] text-[#9CA3AF]">
                           No users match "{teamSearch}".
                         </td>
                       </tr>
@@ -3513,6 +3507,14 @@ export function Settings() {
                           <td className="px-2 text-[14px] text-[#1A2332]" style={{ height: 36 }}>{member.phone}</td>
                           <td className="px-2 text-[14px] text-[#1A2332]" style={{ height: 36 }}>{member.email}</td>
                           <td className="px-2 text-[14px] text-[#1A2332]" style={{ height: 36 }}>{member.role}</td>
+                          {teamCfColumns.map(({ f, i }) => {
+                            const { text, hint } = formatCustomValue(f, member.customFields?.[String(i)]);
+                            return (
+                              <td key={`cf-${i}`} className="px-2 text-[14px] text-[#1A2332]" style={{ height: 36 }} title={hint}>
+                                {text ?? <span className="text-[#9CA3AF]">—</span>}
+                              </td>
+                            );
+                          })}
                           <td className="px-2 relative" style={{ height: 36, width: 52 }}>
                             <button
                               type="button"
@@ -3582,7 +3584,7 @@ export function Settings() {
                   <div className="flex items-center justify-between gap-4 rounded-lg border border-[#E5E7EB] p-4">
                     <div className="flex flex-col gap-1">
                       <span className="text-[14px] leading-5 text-[#1A2332]" style={{ fontWeight: 500 }}>Manage Custom Fields in General &gt; Custom Fields</span>
-                      <span className="text-[12px] leading-4 text-[#6B7280]" style={{ fontWeight: 500 }}>All custom fields are configured in one place across Clients, Jobs, Estimates, Invoices, Items.</span>
+                      <span className="text-[12px] leading-4 text-[#6B7280]" style={{ fontWeight: 500 }}>All custom fields are configured in one place across Clients, Jobs, Estimates, Invoices, Items and Team.</span>
                     </div>
                     <button
                       type="button"
@@ -3662,6 +3664,15 @@ export function Settings() {
                           />
                         </div>
                       </div>
+                      {/* Team custom fields (Settings → General → Custom fields → Team). */}
+                      {teamCfColumns.length > 0 && (
+                        <CustomFieldInputs
+                          entity="team"
+                          idPrefix="edit-user"
+                          values={invite.customFields}
+                          onChange={(next) => setInvite({ ...invite, customFields: next })}
+                        />
+                      )}
                       {/* Permissions (FR-2b) — the same full RBAC editor as the
                           Invite-user page; Report access appears inside it when
                           the Reports permission is on. */}
@@ -4517,7 +4528,7 @@ export function Settings() {
                           <ColumnSettingsIcon className="h-5 w-5 text-[#1A2332]" />
                           <div>
                             <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>Manage in General → Custom Fields</div>
-                            <div className="text-[12px] text-[#6B7280]">All custom fields are configured in one place across Clients, Jobs, Estimates, Invoices, Items.</div>
+                            <div className="text-[12px] text-[#6B7280]">All custom fields are configured in one place across Clients, Jobs, Estimates, Invoices, Items and Team.</div>
                           </div>
                         </div>
                         <Button
