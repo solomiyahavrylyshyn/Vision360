@@ -10,7 +10,7 @@ import { ItemPicker, catalogItemToLineItem, type CatalogItem, type SelectedLineI
 import { PlusIcon } from "../components/ui/plus-icon";
 import { itemsStore } from "../stores/itemsStore";
 import { termsStore, termsSummary, hasTerms } from "../stores/termsStore";
-import { CustomFieldInputs, customFieldsError, type CfValues } from "../components/CustomFields";
+import { CustomFieldInputs, type CfValues } from "../components/CustomFields";
 
 // Legacy HVAC/plumbing options kept available alongside the live Items catalog.
 const legacyCatalogItems: CatalogItem[] = [
@@ -131,7 +131,6 @@ export function CreateEstimate() {
   const [internalNote, setInternalNote] = useState("");
   // Custom fields (Settings → General → Custom fields → Estimates).
   const [cfValues, setCfValues] = useState<CfValues>({});
-  const [showCfErrors, setShowCfErrors] = useState(false);
   const [taxRate] = useState(7.5);
   // Default Terms & Conditions from Settings → General (termsStore); shown as a
   // banner on the estimate, with "View" opening the full terms in a modal.
@@ -234,8 +233,6 @@ export function CreateEstimate() {
     if (!client.trim()) { toast.error("Select a client before saving the estimate."); return; }
     if (!serviceAddress.trim()) { toast.error("Select a service address."); return; }
     if (!estimateType) { toast.error("Select an estimate type."); return; }
-    const cfErr = customFieldsError("estimates", cfValues);
-    if (cfErr) { setShowCfErrors(true); toast.error(cfErr); return; }
     const err = emptyOptionError();
     if (err) { toast.error(err); return; }
     persistEstimate("Draft", "Estimate created");
@@ -508,7 +505,7 @@ export function CreateEstimate() {
 
           {/* Custom fields */}
           <Section label="Custom fields">
-            <CustomFieldInputs entity="estimates" values={cfValues} onChange={setCfValues} showErrors={showCfErrors} />
+            <CustomFieldInputs entity="estimates" values={cfValues} onChange={setCfValues} />
           </Section>
 
           <div className="border-t border-[#E5E7EB]" />

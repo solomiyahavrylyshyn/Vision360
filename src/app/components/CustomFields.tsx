@@ -5,32 +5,15 @@ import { customFieldsStore, isFieldOn, type CfEntity, type CfField } from "../st
 // Custom fields on forms and details pages (behaviour spec "Vision360 Custom
 // Fields"). Values live on the record as { "0": …, "1": … } — one key per slot.
 //
-//   CustomFieldInputs   the form section: one input per visible, named slot;
-//                       required ones get a star and an error once Save was tried.
+//   CustomFieldInputs   the form section: one input per named slot. Never required.
 //   CustomFieldValues   read-only label/value pairs for a details page.
-//   missingRequiredFields  labels of required slots that are still empty.
+//   CustomFieldChips    the same, as items in a details-page header meta row.
 
 export type CfValues = Record<string, string>;
 
 export function useEntityFields(entity: CfEntity): CfField[] {
   const all = useSyncExternalStore(customFieldsStore.subscribe, customFieldsStore.getFields);
   return all[entity];
-}
-
-const isEmptyValue = (f: CfField, v: string | undefined) =>
-  f.type === "checkbox" ? v !== "true" : String(v ?? "").trim() === "";
-
-export function missingRequiredFields(entity: CfEntity, values: CfValues | undefined): string[] {
-  return customFieldsStore.getEntityFields(entity)
-    .map((f, i) => ({ f, v: values?.[String(i)] }))
-    .filter(({ f, v }) => isFieldOn(f) && f.required && isEmptyValue(f, v))
-    .map(({ f }) => f.label.trim());
-}
-
-/** "Fill in Job category." — or null when every required field has a value. */
-export function customFieldsError(entity: CfEntity, values: CfValues | undefined): string | null {
-  const missing = missingRequiredFields(entity, values);
-  return missing.length ? `Fill in ${missing.join(" and ")}.` : null;
 }
 
 const fmtDate = (v: string) => {
@@ -55,17 +38,15 @@ export function formatCustomValue(f: CfField, v: string | undefined): { text: st
   return { text: raw };
 }
 
-const inputCls = (bad: boolean) =>
-  `h-9 w-full rounded-lg border bg-white px-3 text-[14px] text-[#1A2332] shadow-[0_1px_2px_rgba(0,0,0,0.05)] outline-none focus:border-[#4A6FA5] focus:ring-2 focus:ring-[#4A6FA5]/20 ${bad ? "border-[#DC2626]" : "border-[#E5E7EB]"}`;
+const inputCls =
+  "h-9 w-full rounded-lg border border-[#E5E7EB] bg-white px-3 text-[14px] text-[#1A2332] shadow-[0_1px_2px_rgba(0,0,0,0.05)] outline-none focus:border-[#4A6FA5] focus:ring-2 focus:ring-[#4A6FA5]/20";
 
 export function CustomFieldInputs({
-  entity, values, onChange, showErrors = false, idPrefix,
+  entity, values, onChange, idPrefix,
 }: {
   entity: CfEntity;
   values: CfValues | undefined;
   onChange: (next: CfValues) => void;
-  /** Mark empty required fields — set once the user tried to save. */
-  showErrors?: boolean;
   idPrefix?: string;
 }) {
   const navigate = useNavigate();
@@ -89,25 +70,22 @@ export function CustomFieldInputs({
       {on.map(({ f, i }) => {
         const id = `${idPrefix ?? entity}-cf-${i}`;
         const v = values?.[String(i)] ?? "";
-        const bad = showErrors && f.required && isEmptyValue(f, v);
-        const star = f.required ? <span className="text-[#DC2626]"> *</span> : null;
         if (f.type === "checkbox") {
           return (
             <div key={i} className="flex flex-col gap-1">
               <span className="text-[14px] text-transparent select-none" aria-hidden>·</span>
-              <label htmlFor={id} className={`flex h-9 items-center gap-2 text-[14px] text-[#1A2332] cursor-pointer ${bad ? "text-[#DC2626]" : ""}`}>
+              <label htmlFor={id} className="flex h-9 items-center gap-2 text-[14px] text-[#1A2332] cursor-pointer">
                 <input id={id} type="checkbox" checked={v === "true"} onChange={(e) => set(i, e.target.checked ? "true" : "false")} className="h-4 w-4 accent-[#4A6FA5]" />
-                {f.label}{star}
+                {f.label}
               </label>
-              {bad && <span className="text-[12px] text-[#DC2626]">Tick “{f.label}” to save.</span>}
             </div>
           );
         }
         return (
           <div key={i} className="flex flex-col gap-1">
-            <label htmlFor={id} className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>{f.label}{star}</label>
+            <label htmlFor={id} className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>{f.label}</label>
             {f.type === "dropdown" ? (
-              <select id={id} value={v} onChange={(e) => set(i, e.target.value)} className={inputCls(bad)}>
+              <select id={id} value={v} onChange={(e) => set(i, e.target.value)} className={inputCls}>
                 <option value="">Select…</option>
                 {f.options.map((o) => <option key={o} value={o}>{o}</option>)}
                 {v && !f.options.includes(v) && <option value={v}>{v} (not in the list anymore)</option>}
@@ -120,10 +98,9 @@ export function CustomFieldInputs({
                 value={v}
                 onChange={(e) => set(i, e.target.value)}
                 placeholder={f.type === "text" ? "—" : undefined}
-                className={inputCls(bad)}
+                className={inputCls}
               />
             )}
-            {bad && <span className="text-[12px] text-[#DC2626]">{f.label} is required.</span>}
           </div>
         );
       })}

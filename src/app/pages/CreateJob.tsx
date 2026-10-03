@@ -11,7 +11,7 @@ import { scheduleSettingsStore, formatScheduleHour } from "../stores/scheduleSet
 import { PageHeader } from "../components/ui/page-header";
 import { PlusIcon } from "../components/ui/plus-icon";
 import { itemsStore } from "../stores/itemsStore";
-import { CustomFieldInputs, customFieldsError, type CfValues } from "../components/CustomFields";
+import { CustomFieldInputs, type CfValues } from "../components/CustomFields";
 import { type JobStatus, JOB_STATUSES } from "../constants/jobStatuses";
 import { expandRecurrence, describeRecurrence, type RecurrenceFrequency, type RecurrenceRule } from "../utils/recurrence";
 import { expenseCategoryColors } from "./Expenses";
@@ -283,7 +283,6 @@ export function CreateJob({ asModal = false, onClose, onCreated, prefill, headin
   const [lineItems, setLineItems] = useState<SelectedLineItem[]>([]);
   // Custom fields (Settings → General → Custom fields → Jobs).
   const [cfValues, setCfValues] = useState<CfValues>({});
-  const [showCfErrors, setShowCfErrors] = useState(false);
   // What the job record keeps of each line: enough for the Items tab and the
   // Compensation / Expenses split (type and cost split).
   const toJobLineItems = () => lineItems.map((li) => ({
@@ -539,8 +538,6 @@ export function CreateJob({ asModal = false, onClose, onCreated, prefill, headin
     // At least one line item is required to create/schedule a job (makes the
     // "Line Items *" marker real). EDIT mode (onSubmit) doesn't manage line items.
     if (!onSubmit && lineItems.length === 0) { toast.error("Add at least one line item before saving the job."); return; }
-    const cfErr = customFieldsError("jobs", cfValues);
-    if (cfErr) { setShowCfErrors(true); toast.error(cfErr); return; }
     if (!isRecurringCreate) {
       // Start date is required ONLY when scheduling a one-off job.
       if (scheduleJob && !startDate) { toast.error("Select a start date, or turn off “Schedule job”."); return; }
@@ -1362,7 +1359,7 @@ export function CreateJob({ asModal = false, onClose, onCreated, prefill, headin
 
         {/* ── Notes ── */}
         <FormSection label="Custom fields">
-          <CustomFieldInputs entity="jobs" values={cfValues} onChange={setCfValues} showErrors={showCfErrors} />
+          <CustomFieldInputs entity="jobs" values={cfValues} onChange={setCfValues} />
         </FormSection>
         <FormSection label="Job Notes">
           <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Notes visible on the job..." className="w-full min-h-[76px] resize-y rounded-lg border border-[#E5E7EB] px-3 py-2 text-[14px] text-[#374151] shadow-[0_1px_2px_rgba(0,0,0,0.05)] outline-none focus:border-[#4A6FA5]" />

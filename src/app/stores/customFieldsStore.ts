@@ -4,8 +4,9 @@
 // Behaviour spec "Vision360 Custom Fields" (PRD §15.5.2, decisions of May 13):
 // every form has exactly two slots. A slot with no label is off and appears
 // nowhere. Each slot has a label, a type (text / number / date / checkbox /
-// dropdown), dropdown options, Required and Visible. Values are stored on the
-// record by slot index ("0", "1"), so renaming a field keeps its values.
+// dropdown) and dropdown options. Fields are never required and always shown
+// once named. Values are stored on the record by slot index ("0", "1"), so
+// renaming a field keeps its values.
 import { createSettingsSync } from "./settingsSync";
 
 type Listener = () => void;
@@ -16,24 +17,20 @@ export interface CfField {
   label: string;
   type: CfFieldType;
   options: string[];
-  /** The form will not save until the field has a value. */
-  required: boolean;
-  /** Off hides the field from forms and details; values are kept. */
-  visible: boolean;
 }
 
 export const CF_ENTITIES: CfEntity[] = ["clients", "jobs", "estimates", "invoices", "items", "team"];
 const TYPES: CfFieldType[] = ["text", "number", "date", "checkbox", "dropdown"];
 const STORAGE_KEY = "vision360.customFields.v2";
 
-const blank = (): CfField => ({ label: "", type: "text", options: [], required: false, visible: true });
+const blank = (): CfField => ({ label: "", type: "text", options: [] });
 
 // Jobs ship with the field the PRD names (May 13): "Job custom field one, we're
 // changing the title to … job category … metal roof, shingle roofs, wooden roofs."
 const SEED: Record<CfEntity, CfField[]> = {
   clients: [blank(), blank()],
   jobs: [
-    { label: "Job category", type: "dropdown", options: ["Metal roof", "Shingle roof", "Tile roof"], required: false, visible: true },
+    { label: "Job category", type: "dropdown", options: ["Metal roof", "Shingle roof", "Tile roof"] },
     blank(),
   ],
   estimates: [blank(), blank()],
@@ -42,17 +39,12 @@ const SEED: Record<CfEntity, CfField[]> = {
   team: [blank(), blank()],
 };
 
-const normalizeField = (f: Partial<CfField> | undefined): CfField => {
-  const visible = f?.visible !== false;
-  return {
-    label: typeof f?.label === "string" ? f.label : "",
-    type: TYPES.includes(f?.type as CfFieldType) ? (f!.type as CfFieldType) : "text",
-    options: Array.isArray(f?.options) ? f!.options.filter((o) => typeof o === "string" && o.trim()) : [],
-    // Required and hidden cannot go together: a hidden field could never be filled.
-    required: visible && !!f?.required,
-    visible,
-  };
-};
+// Older saved configs may still carry required / visible flags; they are dropped.
+const normalizeField = (f: Partial<CfField> | undefined): CfField => ({
+  label: typeof f?.label === "string" ? f.label : "",
+  type: TYPES.includes(f?.type as CfFieldType) ? (f!.type as CfFieldType) : "text",
+  options: Array.isArray(f?.options) ? f!.options.filter((o) => typeof o === "string" && o.trim()) : [],
+});
 
 const normalize = (value: Partial<Record<CfEntity, Partial<CfField>[]>> | undefined): Record<CfEntity, CfField[]> => {
   const out = {} as Record<CfEntity, CfField[]>;
@@ -103,10 +95,7 @@ export const customFieldsStore = {
     return () => { listeners = listeners.filter(l => l !== listener); };
   },
   updateField: (entity: CfEntity, idx: number, patch: Partial<CfField>) => {
-    const next = { ...fields[entity][idx], ...patch };
-    // Hiding a field also drops Required.
-    if (patch.visible === false) next.required = false;
-    setEntity(entity, idx, next);
+    setEntity(entity, idx, { ...fields[entity][idx], ...patch });
   },
   addOption: (entity: CfEntity, idx: number, option: string) => {
     const trimmed = option.trim();
@@ -121,5 +110,5 @@ export const customFieldsStore = {
   },
 };
 
-/** A slot is on when it has a label and is visible. */
-export const isFieldOn = (f: CfField) => f.label.trim() !== "" && f.visible;
+/** A slot is on when it has a label. */
+export const isFieldOn = (f: CfField) => f.label.trim() !== "";

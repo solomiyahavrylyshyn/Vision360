@@ -251,7 +251,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 // One custom-field slot in Settings → General → Custom fields (spec "Vision360
-// Custom Fields"): label (empty = off), type, dropdown options, Required, Visible.
+// Custom Fields"): label (empty = off), type and dropdown options.
 function CustomFieldConfigCard({ entity, idx, field }: { entity: CfEntity; idx: number; field: CfField }) {
   const [optionDraft, setOptionDraft] = useState("");
   const off = field.label.trim() === "";
@@ -318,26 +318,6 @@ function CustomFieldConfigCard({ entity, idx, field }: { entity: CfEntity; idx: 
         </div>
       )}
 
-      <div className="mt-3 flex flex-wrap items-center gap-6">
-        <label className="flex items-center gap-2 text-[14px] text-[#1A2332] cursor-pointer">
-          <Switch
-            checked={field.required}
-            disabled={!field.visible}
-            onCheckedChange={v => customFieldsStore.updateField(entity, idx, { required: v })}
-          />
-          Required
-        </label>
-        <label className="flex items-center gap-2 text-[14px] text-[#1A2332] cursor-pointer">
-          <Switch
-            checked={field.visible}
-            onCheckedChange={v => customFieldsStore.updateField(entity, idx, { visible: v })}
-          />
-          Visible
-        </label>
-      </div>
-      {!field.visible && !off && (
-        <p className="mt-2 text-[12px] text-[#8899AA]">Hidden on forms and details. Values already entered are kept.</p>
-      )}
     </div>
   );
 }
@@ -3944,7 +3924,7 @@ export function Settings() {
                   </div>
                 </SectionCard>
 
-                <SectionCard title="Custom Fields" description="Two fields per form. Name a field to turn it on; it then appears on that form and on the details page. Hidden fields keep their values." className="min-h-[367px]">
+                <SectionCard title="Custom Fields" description="Two fields per form. Name a field to turn it on; it then appears on that form and on the details page. Custom fields are optional." className="min-h-[367px]">
                   <div className="mt-4 flex w-fit items-center rounded-[10px] p-[3px]">
                     {customFieldEntities.map(entity => (
                       <button

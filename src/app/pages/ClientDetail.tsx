@@ -1244,10 +1244,10 @@ export function ClientDetail() {
           <div className="pt-3 mt-2 border-t border-[#E5E7EB]">
             <div className="text-[14px] text-[#1A2332] mb-2" style={{ fontWeight: 600 }}>Custom Fields</div>
             {(() => {
-              // Named, visible slots only; each keeps its own slot index as the value key.
+              // Named slots only; each keeps its own slot index as the value key.
               const configured = cfClientFields.slice(0, 2)
                 .map((f, slot) => ({ ...f, slot }))
-                .filter(f => f.label.trim() !== "" && f.visible !== false);
+                .filter(f => f.label.trim() !== "");
               if (configured.length === 0) {
                 return (
                   <div className="flex items-center gap-1 text-[11px] text-[#6B7280]">
