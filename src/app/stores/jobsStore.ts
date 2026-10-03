@@ -47,6 +47,9 @@ export interface JobRecord {
   /** Products and services on the job. Optional so records persisted before
    *  the Items tab could add lines still load. */
   lineItems?: JobLineItem[];
+  /** Notes on Jobs blocks (Settings → Jobs) ticked to print on this job's
+   *  sheet. Absent → the blocks marked "Include by default". */
+  sheetNoteIds?: string[];
   privateNotes: string;
   taxRate: number;
   estimateId?: number;

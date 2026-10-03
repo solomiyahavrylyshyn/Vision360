@@ -8,6 +8,8 @@ import { invoicesStore } from "../stores/invoicesStore";
 import { itemsStore } from "../stores/itemsStore";
 import { ItemPicker, catalogItemToLineItem, type CatalogItem, type SelectedLineItem } from "../components/ItemPicker";
 import { PlusIcon } from "../components/ui/plus-icon";
+import { noteDefaultsStore } from "../stores/noteDefaultsStore";
+import { DocumentNoteField } from "../components/NoteFields";
 
 // Legacy HVAC/plumbing options kept alongside the live Items catalog.
 const legacyCatalogItems: CatalogItem[] = [
@@ -107,6 +109,11 @@ export function CreateInvoice() {
   });
 
   const [notes, setNotes] = useState("");
+  // Custom note: the new invoice starts with a copy of Settings → Invoices →
+  // Invoice fine print and keeps that copy (spec "Vision360 Custom Notes").
+  const noteDefaults = useSyncExternalStore(noteDefaultsStore.subscribe, noteDefaultsStore.getSnapshot);
+  const [noteCopiedFrom, setNoteCopiedFrom] = useState(() => noteDefaultsStore.getSnapshot().invoiceNote);
+  const [clientNote, setClientNote] = useState(noteCopiedFrom);
   const [itemPickerOpen, setItemPickerOpen] = useState(false);
   const [taxRate] = useState(() => {
     const sourceJob = fromJobId ? liveJobs.find(j => j.id === fromJobId) : null;
@@ -247,7 +254,8 @@ export function CreateInvoice() {
       dateCreated: invoiceDate,
       createdBy: "You",
       stage: "Sent",
-      noteToCustomer: notes,
+      noteToCustomer: clientNote,
+      noteCopiedFrom,
       dateSent: invoiceDate,
     });
     toast.success("Invoice created");
@@ -482,6 +490,22 @@ export function CreateInvoice() {
                 </>
               )}
             </div>
+          </Section>
+
+          <div className="border-t border-[#E5E7EB]" />
+
+          {/* Note to client — printed on the invoice */}
+          <Section label="Note to client">
+            <DocumentNoteField
+              id="invoice-client-note"
+              value={clientNote}
+              copiedFrom={noteCopiedFrom}
+              currentDefault={noteDefaults.invoiceNote}
+              onChange={setClientNote}
+              onReset={() => { setClientNote(noteDefaults.invoiceNote); setNoteCopiedFrom(noteDefaults.invoiceNote); }}
+              docLabel="invoice"
+            />
+            <p className="mt-1.5 text-[12px] text-[#6B7280]">Printed under Notes on the invoice and shown on the customer's invoice page. Change the default in Settings → Invoices.</p>
           </Section>
 
           <div className="border-t border-[#E5E7EB]" />

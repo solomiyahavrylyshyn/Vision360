@@ -76,6 +76,10 @@ export interface Invoice {
 
   // Communication
   noteToCustomer: string;
+  /** The Settings default this invoice's note was copied from when it was
+   *  created (custom notes). Absent on older records: the note then counts
+   *  as its own starting point. */
+  noteCopiedFrom?: string;
   dateSent: string;
 }
 

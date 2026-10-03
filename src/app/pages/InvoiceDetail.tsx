@@ -12,6 +12,9 @@ import { InvoiceSheet, PrintPageRule, useDocCompany, type InvoiceSheetData } fro
 import { jobsStore } from "../stores/jobsStore";
 import { itemsStore } from "../stores/itemsStore";
 import { ItemPicker, type CatalogItem } from "../components/ItemPicker";
+import { invoicesStore } from "../stores/invoicesStore";
+import { noteDefaultsStore } from "../stores/noteDefaultsStore";
+import { DocumentNoteField } from "../components/NoteFields";
 
 // A job linked to the invoice, rendered as one accordion section in the
 // Job Details card.
@@ -368,6 +371,19 @@ export function InvoiceDetail() {
     setSearchParams(next, { replace: true });
   };
   const [status, setStatus] = useState<InvoiceStatus>(data.status);
+  // Note to client (custom note). The stored invoice's copy wins over the demo
+  // data so an edit survives a reload; it is written back on every change.
+  const storeInvoice = invoicesStore.getById(Number(id));
+  const noteDefaults = useSyncExternalStore(noteDefaultsStore.subscribe, noteDefaultsStore.getSnapshot);
+  const [clientNote, setClientNote] = useState<string>(storeInvoice?.noteToCustomer ?? data.noteToCustomer ?? "");
+  const [noteCopiedFrom, setNoteCopiedFrom] = useState<string>(
+    storeInvoice?.noteCopiedFrom ?? storeInvoice?.noteToCustomer ?? data.noteToCustomer ?? "",
+  );
+  const saveClientNote = (text: string, copiedFrom = noteCopiedFrom) => {
+    setClientNote(text);
+    setNoteCopiedFrom(copiedFrom);
+    if (storeInvoice) invoicesStore.update(storeInvoice.id, { noteToCustomer: text, noteCopiedFrom: copiedFrom });
+  };
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
   const [payments, setPayments] = useState<Payment[]>(data.payments);
   const [activity, setActivity] = useState<ActivityEntry[]>(data.activity);
@@ -810,17 +826,20 @@ export function InvoiceDetail() {
           <div className="p-4 flex flex-col gap-2.5">
             {notesTab === "customer" ? (
               <>
-                {data.noteToCustomer ? (
-                  <div className="p-2.5 bg-[#F9FAFB] rounded-md text-[13px] text-[#1A2332] leading-[19px]">
-                    {data.noteToCustomer}
-                  </div>
-                ) : (
-                  <div className="text-[12px] text-[#9CA3AF] py-2">No note yet.</div>
-                )}
-                <button className="self-start inline-flex items-center gap-1 text-[12px] text-[#4A6FA5] hover:underline" style={{ fontWeight: 500 }}>
-                  <span className="material-icons" style={{ fontSize: "14px" }}>{data.noteToCustomer ? "edit" : "add"}</span>
-                  {data.noteToCustomer ? "Edit note" : "Add note"}
-                </button>
+                {/* Custom note: starts as a copy of Settings → Invoices → Invoice
+                    fine print; read-only once the invoice is Paid or Void. */}
+                <DocumentNoteField
+                  id="invoice-detail-client-note"
+                  value={clientNote}
+                  copiedFrom={noteCopiedFrom}
+                  currentDefault={noteDefaults.invoiceNote}
+                  onChange={(t) => saveClientNote(t)}
+                  onReset={() => saveClientNote(noteDefaults.invoiceNote, noteDefaults.invoiceNote)}
+                  locked={status === "Paid" || status === "Void" ? status : false}
+                  docLabel="invoice"
+                  rows={5}
+                />
+                <p className="text-[12px] leading-4 text-[#9CA3AF]">Printed under Notes on the invoice.</p>
               </>
             ) : (
               <>
@@ -1100,7 +1119,8 @@ export function InvoiceDetail() {
           balance: Math.max(0, balance),
           dueLine: balance <= 0 ? "paid in full" : `due ${fmtDate(data.dueDate)}${data.paymentTerms ? ` · ${data.paymentTerms}` : ""}`,
           payNote: "We take card, check and cash — the link to pay online is in your email.",
-          notes: data.noteToCustomer ? <p>{data.noteToCustomer}</p> : undefined,
+          // Empty note → nothing prints, the Notes heading included.
+          notes: clientNote.trim() ? <p style={{ whiteSpace: "pre-wrap" }}>{clientNote}</p> : undefined,
           terms: data.terms ? <p>{data.terms}</p> : undefined,
           createdBy: data.createdBy,
         };
