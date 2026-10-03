@@ -11,7 +11,6 @@ import { scheduleSettingsStore, formatScheduleHour } from "../stores/scheduleSet
 import { PageHeader } from "../components/ui/page-header";
 import { PlusIcon } from "../components/ui/plus-icon";
 import { itemsStore } from "../stores/itemsStore";
-import { noteDefaultsStore } from "../stores/noteDefaultsStore";
 import { type JobStatus, JOB_STATUSES } from "../constants/jobStatuses";
 import { expandRecurrence, describeRecurrence, type RecurrenceFrequency, type RecurrenceRule } from "../utils/recurrence";
 import { expenseCategoryColors } from "./Expenses";
@@ -582,7 +581,6 @@ export function CreateJob({ asModal = false, onClose, onCreated, prefill, headin
           totalPrice: Math.round(computedTotal * 100) / 100,
           notes, fieldNotes, privateNotes, taxRate,
           lineItems: toJobLineItems(),
-          sheetNoteIds: noteDefaultsStore.defaultJobNoteIds(),
         });
         if (i === 0) firstRecord = rec;
       });
@@ -630,7 +628,6 @@ export function CreateJob({ asModal = false, onClose, onCreated, prefill, headin
       privateNotes,
       taxRate,
       lineItems: toJobLineItems(),
-      sheetNoteIds: noteDefaultsStore.defaultJobNoteIds(),
       // The first linked estimate is the primary back-compat link; the rest are
       // listed in the Estimates table (MVP keeps one structural link on the job).
       estimateId: fromEstimateId || linkedEstimates[0]?.id || undefined,

@@ -16,7 +16,6 @@ import { toast } from "sonner";
 import { formatRegionalDate } from "../stores/regionalSettingsStore";
 import { jobsStore, type JobRecord, type JobLineItem } from "../stores/jobsStore";
 import { itemsStore } from "../stores/itemsStore";
-import { noteDefaultsStore } from "../stores/noteDefaultsStore";
 import { ItemPicker, catalogItemToLineItem, type CatalogItem } from "../components/ItemPicker";
 import { clientsStore } from "../stores/clientsStore";
 import { estimatesStore } from "../stores/estimatesStore";
@@ -607,16 +606,6 @@ export function JobDetail() {
   // from the Items tab in component state for the session.
   const [addedLineItems, setAddedLineItems] = useState<JobLineItem[]>([]);
   const [itemPickerOpen, setItemPickerOpen] = useState(false);
-  // Notes on the job sheet: pick from Settings → Jobs → Notes on Jobs. A stored
-  // job keeps its choice on the record; a demo job keeps it for the session.
-  const jobNoteBlocks = useSyncExternalStore(noteDefaultsStore.subscribe, noteDefaultsStore.getSnapshot).jobNotes;
-  const [demoSheetNoteIds, setDemoSheetNoteIds] = useState<string[] | null>(null);
-  const sheetNoteIds = storeJob?.sheetNoteIds ?? demoSheetNoteIds ?? noteDefaultsStore.defaultJobNoteIds();
-  const toggleSheetNote = (noteId: string) => {
-    const next = sheetNoteIds.includes(noteId) ? sheetNoteIds.filter((x) => x !== noteId) : [...sheetNoteIds, noteId];
-    if (storeJob) jobsStore.update(storeJob.id, { sheetNoteIds: next });
-    else setDemoSheetNoteIds(next);
-  };
   const catalogItems = useSyncExternalStore(itemsStore.subscribe, itemsStore.getSnapshot);
   const jobLineItems: JobLineItem[] = [
     ...((job.lineItems ?? []) as JobLineItem[]),
@@ -978,7 +967,7 @@ export function JobDetail() {
         {/* ── Col 1: Job overview — ONE card per Figma, schedule lives inside it
             under the "Job period" sub-header. ── */}
         <ResizablePanel defaultSize={21} minSize={16} maxSize={32} className="min-w-0">
-          <div className="h-full bg-white border border-[#E5E7EB] rounded-xl overflow-y-auto">
+          <div className="h-full bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
             <div className="flex items-center justify-between gap-2 px-4 pt-4">
               <span className="text-[16px] text-[#1A2332]" style={{ fontWeight: 600 }}>Job overview</span>
               <button
@@ -1051,37 +1040,6 @@ export function JobDetail() {
                   <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>{job.endTime || "—"}</div>
                 </div>
               </div>
-            </div>
-
-            {/* Notes on the job sheet — custom notes from Settings → Jobs. */}
-            <div className="border-t border-[#E5E7EB] p-4">
-              <div className="flex flex-col items-start gap-1">
-                <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Notes on the job sheet</span>
-                <span className="rounded-full bg-[#EBF0F8] px-2 py-0.5 text-[12px] text-[#4A6FA5] whitespace-nowrap" style={{ fontWeight: 600 }}>
-                  {jobNoteBlocks.filter((n) => sheetNoteIds.includes(n.id)).length} of {jobNoteBlocks.length} print
-                </span>
-              </div>
-              {jobNoteBlocks.length === 0 ? (
-                <p className="mt-2 text-[12px] text-[#9CA3AF]">No notes yet. Add them in Settings → Jobs → Notes on Jobs.</p>
-              ) : (
-                <div className="mt-3 flex flex-col gap-2">
-                  {jobNoteBlocks.map((n) => (
-                    <label key={n.id} className="flex cursor-pointer items-start gap-2.5 rounded-lg border border-[#E5E7EB] p-2.5 hover:bg-[#F9FAFB]">
-                      <input
-                        type="checkbox"
-                        checked={sheetNoteIds.includes(n.id)}
-                        onChange={() => toggleSheetNote(n.id)}
-                        className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-[#4A6FA5]"
-                      />
-                      <span className="min-w-0">
-                        <span className="block text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{n.title || "Untitled note"}</span>
-                        <span className="block truncate text-[12px] text-[#6B7280]" title={n.body}>{n.body || "No text yet"}</span>
-                        {!n.includeByDefault && <span className="mt-1 inline-block rounded bg-[#EDF0F5] px-1.5 text-[11px] text-[#546478]" style={{ fontWeight: 600 }}>Optional</span>}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              )}
             </div>
           </div>
         </ResizablePanel>

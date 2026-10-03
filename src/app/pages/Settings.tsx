@@ -35,8 +35,6 @@ import { EstimateOptionsSheet, EstimateSingleSheet, EstimateTermsPage, InvoiceSh
 import { trialStore, isTrialActive, getTrialDaysRemaining } from "../stores/trialStore";
 import { categoriesStore } from "../stores/categoriesStore";
 import { expenseCategoriesStore, isPreCodedCategory } from "../stores/expenseCategoriesStore";
-import { noteDefaultsStore, NOTE_LIMIT } from "../stores/noteDefaultsStore";
-import { DefaultNoteField, NoteCounter } from "../components/NoteFields";
 import { allNotificationEvents } from "../constants/notificationEvents";
 
 type SettingsSection =
@@ -1818,7 +1816,6 @@ function EstimateRulesCard() {
 
 // Invoices Preferences — Marek's spec
 function InvoicesPreferences() {
-  const noteDefaults = useSyncExternalStore(noteDefaultsStore.subscribe, noteDefaultsStore.getSnapshot);
   const [paymentTerms, setPaymentTerms] = useState(["Due on receipt", "Net 15", "Net 30", "Net 60"]);
   const [newPaymentTerm, setNewPaymentTerm] = useState("");
 
@@ -1846,24 +1843,17 @@ function InvoicesPreferences() {
       </SectionCard>
 
 
-      {/* Notes on invoice — custom notes (spec "Vision360 Custom Notes"): copied
-          into each new invoice / receipt, which then keeps its own copy. */}
-      <SectionCard title="Notes on invoice" description="Copied into every new invoice and receipt, where it can be changed for that document. Invoices already created keep their text.">
+      {/* Notes on invoice */}
+      <SectionCard title="Notes on invoice" description="Default fine print printed at the bottom of every invoice and receipt.">
         <div className="grid grid-cols-2 gap-4 mt-2">
-          <DefaultNoteField
-            id="default-invoice-note"
-            label="Invoice fine print"
-            value={noteDefaults.invoiceNote}
-            onChange={noteDefaultsStore.setInvoiceNote}
-            help="Plain text, line breaks kept. Printed under Notes on the invoice."
-          />
-          <DefaultNoteField
-            id="default-receipt-note"
-            label="Receipt note"
-            value={noteDefaults.receiptNote}
-            onChange={noteDefaultsStore.setReceiptNote}
-            help="Printed at the bottom of every payment receipt."
-          />
+          <div>
+            <label className="block text-[14px] text-[#1A2332] mb-1" style={{ fontWeight: 500 }}>Invoice fine print</label>
+            <textarea defaultValue="Equipment remains property of Omega Home Services until invoice is paid in full." className="min-h-[76px] w-full rounded-lg border border-[#E5E7EB] px-3 py-2 text-[14px] shadow-[0_1px_2px_rgba(0,0,0,0.05)] outline-none focus:border-[#4A6FA5] focus:ring-2 focus:ring-[#4A6FA5]/20 resize-y" />
+          </div>
+          <div>
+            <label className="block text-[14px] text-[#1A2332] mb-1" style={{ fontWeight: 500 }}>Receipt note</label>
+            <textarea defaultValue="Paid in full. Thank you for your business." className="min-h-[76px] w-full rounded-lg border border-[#E5E7EB] px-3 py-2 text-[14px] shadow-[0_1px_2px_rgba(0,0,0,0.05)] outline-none focus:border-[#4A6FA5] focus:ring-2 focus:ring-[#4A6FA5]/20 resize-y" />
+          </div>
         </div>
       </SectionCard>
 
@@ -1881,7 +1871,6 @@ function InvoicesPreferences() {
 type StripeStatus = "disconnected" | "pending" | "connected";
 
 function FinanceCenterSection() {
-  const noteDefaults = useSyncExternalStore(noteDefaultsStore.subscribe, noteDefaultsStore.getSnapshot);
   const [stripeStatus, setStripeStatus] = useState<StripeStatus>("connected");
   const [stripeEmail, setStripeEmail] = useState("billing@vision360.com");
   const [stripeAcctId, setStripeAcctId] = useState("acct_1RkP2mB7xQ9wL3Ce");
@@ -2064,15 +2053,8 @@ function FinanceCenterSection() {
         </SectionCard>
 
         {/* Notes on receipt */}
-        <SectionCard title="Notes on receipt" description="Printed at the bottom of every payment receipt. Same text as Settings → Invoices → Receipt note.">
-          <div className="mt-2">
-            <DefaultNoteField
-              id="finance-receipt-note"
-              label="Receipt note"
-              value={noteDefaults.receiptNote}
-              onChange={noteDefaultsStore.setReceiptNote}
-            />
-          </div>
+        <SectionCard title="Notes on receipt" description="Printed at the bottom of every payment receipt.">
+          <textarea defaultValue="Thank you for your payment. Keep this receipt for your records." className="mt-2 min-h-[76px] w-full rounded-lg border border-[#E5E7EB] px-3 py-2 text-[14px] shadow-[0_1px_2px_rgba(0,0,0,0.05)] outline-none focus:border-[#4A6FA5] focus:ring-2 focus:ring-[#4A6FA5]/20 resize-y" />
         </SectionCard>
 
         {/* Expense Tracking */}
@@ -2581,8 +2563,12 @@ export function Settings() {
   // ── Jobs Preferences ──
   const [requireSigBeforeStart, setRequireSigBeforeStart] = useState(true);
   const [requireSigOnComplete, setRequireSigOnComplete] = useState(true);
-  // Notes on Jobs live in noteDefaultsStore: a job sheet picks from them.
-  const jobNotes = useSyncExternalStore(noteDefaultsStore.subscribe, noteDefaultsStore.getSnapshot).jobNotes;
+  type JobNote = { id: string; title: string; body: string };
+  const [jobNotes, setJobNotes] = useState<JobNote[]>([
+    { id: "jn1", title: "Authorization to Proceed",
+      body: "I authorize Omega Home Services to perform the work described above and accept full responsibility for the agreed amount." },
+    { id: "jn2", title: "New note", body: "" },
+  ]);
   // Job statuses — MVP starts with three core; additional ones can be added
   type JobStatus = { id: string; label: string; color: string; bg: string; icon: string; core?: boolean };
   // Six built-in system statuses (Figma 254:21177); Dispatched ships as a
@@ -4435,11 +4421,11 @@ export function Settings() {
                     {/* Notes on Jobs */}
                     <SectionCard
                       title="Notes on Jobs"
-                      description="Titled blocks printed on the job sheet. Included-by-default blocks are pre-ticked on every new job; the others are offered as options. Job sheets already printed keep their text."
+                      description="Reusable legal / operational text printed on the job sheet (service agreements, authorization, disclaimers)."
                       headerAction={
                         <Button
                           className="h-8 bg-[#4A6FA5] px-3 text-[13px] hover:bg-[#3d5a85]"
-                          onClick={() => noteDefaultsStore.addJobNote()}
+                          onClick={() => setJobNotes([...jobNotes, { id: `jn${Date.now()}`, title: "New note", body: "" }])}
                         >
                           + Add note
                         </Button>
@@ -4451,21 +4437,14 @@ export function Settings() {
                             <div className="flex items-center gap-2">
                               <input
                                 value={note.title}
-                                onChange={e => noteDefaultsStore.updateJobNote(note.id, { title: e.target.value })}
+                                onChange={e => setJobNotes(jobNotes.map(n => n.id === note.id ? { ...n, title: e.target.value } : n))}
                                 placeholder="Note title"
                                 className="flex-1 h-8 px-2 text-[13px] text-[#1A2332] border-0 outline-none bg-transparent"
                                 style={{ fontWeight: 600 }}
                               />
-                              <label className="flex shrink-0 items-center gap-2 text-[12px] text-[#546478] cursor-pointer">
-                                <Switch
-                                  checked={note.includeByDefault}
-                                  onCheckedChange={v => noteDefaultsStore.updateJobNote(note.id, { includeByDefault: v })}
-                                />
-                                Include by default
-                              </label>
                               <button
                                 type="button"
-                                onClick={() => noteDefaultsStore.removeJobNote(note.id)}
+                                onClick={() => setJobNotes(jobNotes.filter(n => n.id !== note.id))}
                                 className="shrink-0 h-8 w-8 rounded-lg border border-[#E5E7EB] bg-white text-[#9CA3AF] hover:bg-[#FEF2F2] hover:border-[#FECACA] hover:text-[#DC2626] flex items-center justify-center transition-colors"
                                 title="Remove note"
                               >
@@ -4474,13 +4453,11 @@ export function Settings() {
                             </div>
                             <textarea
                               value={note.body}
-                              maxLength={NOTE_LIMIT}
-                              onChange={e => noteDefaultsStore.updateJobNote(note.id, { body: e.target.value.slice(0, NOTE_LIMIT) })}
+                              onChange={e => setJobNotes(jobNotes.map(n => n.id === note.id ? { ...n, body: e.target.value } : n))}
                               rows={3}
                               placeholder="Note text shown on the job sheet…"
                               className="w-full rounded-lg border border-[#E5E7EB] bg-[#FAFBFC] px-3 py-2 text-[13px] leading-5 text-[#1A2332] outline-none focus:border-[#4A6FA5] focus:ring-2 focus:ring-[#4A6FA5]/20 resize-y"
                             />
-                            <div className="flex justify-end"><NoteCounter length={note.body.length} /></div>
                           </div>
                         ))}
                       </div>
