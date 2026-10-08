@@ -44,6 +44,10 @@ export interface EstimateOption {
   /** One line under the option name on the comparison sheet. */
   summary?: string;
   items: EstimateLineItem[];
+  /** Financing offered on THIS option (each option has its own). */
+  financingPlanId?: string;
+  /** What leads for this option on the client's page. */
+  financingShow?: "monthly" | "full";
 }
 
 export interface EstimateRecord {
@@ -147,7 +151,7 @@ const SEED: EstimateRecord[] = [
   // Good / better / best — the estimate that prints as the comparison sheet and
   // is the one to open from the client link. Tax-free so the option totals read
   // as the round numbers the options were quoted at.
-  { id: 8, estimateNumber: "10245-E10", estimateName: "AC Repair or Replace", clientName: "John Smith", clientId: "10245", clientEmail: "john.smith@email.com", clientPhone: "(512) 555-0142", clientAddress: "123 Main St\nAustin, TX 78701", serviceAddress: "123 Main St\nAustin, TX 78701", createdDate: "Mon Sep 07, 2026", addedBy: "Peter Novak", amount: 309, status: "Sent", job: "", jobTitle: "", sentDate: "Sep 07, 2026", expirationDate: "Oct 07, 2026", teamMember: "Peter Novak", source: "Manual", depositDue: 0, estimateType: "Replacement", taxRate: 0, depositRequired: true, depositType: "percentage", depositValue: 10, publicToken: "ZTNiMGM0NDItOThmYy00YTNhLTgzMGEtNzMxMWI0NDI5Y2M2", financingPlanId: "ally-144", financingShow: "monthly",
+  { id: 8, estimateNumber: "10245-E10", estimateName: "AC Repair or Replace", clientName: "John Smith", clientId: "10245", clientEmail: "john.smith@email.com", clientPhone: "(512) 555-0142", clientAddress: "123 Main St\nAustin, TX 78701", serviceAddress: "123 Main St\nAustin, TX 78701", createdDate: "Mon Sep 07, 2026", addedBy: "Peter Novak", amount: 309, status: "Sent", job: "", jobTitle: "", sentDate: "Sep 07, 2026", expirationDate: "Oct 07, 2026", teamMember: "Peter Novak", source: "Manual", depositDue: 0, estimateType: "Replacement", taxRate: 0, depositRequired: true, depositType: "percentage", depositValue: 10, publicToken: "ZTNiMGM0NDItOThmYy00YTNhLTgzMGEtNzMxMWI0NDI5Y2M2",
     items: [
       { id: 1, name: "Capacitor 45/5 MFD", description: "Dual run capacitor replacement", quantity: 1, price: 120, cost: 40, amount: 120, taxable: true },
       { id: 2, name: "R-410A Refrigerant", description: "Refrigerant recharge (per lb)", quantity: 2, price: 50, cost: 20, amount: 100, taxable: true },
@@ -159,13 +163,13 @@ const SEED: EstimateRecord[] = [
         { id: 2, name: "R-410A Refrigerant", description: "Refrigerant recharge (per lb)", quantity: 2, price: 50, cost: 20, amount: 100, taxable: true },
         { id: 3, name: "Diagnostic & Repair", description: "Diagnose the fault and complete the repair", quantity: 1, price: 89, cost: 45, amount: 89, taxable: false },
       ] },
-      { name: "Replace, standard unit", summary: "New 3-ton system, standard efficiency, 5-year parts warranty.", items: [
+      { name: "Replace, standard unit", financingPlanId: "ally-144", financingShow: "monthly", summary: "New 3-ton system, standard efficiency, 5-year parts warranty.", items: [
         { id: 1, name: "3 Ton Condensing Unit", description: "Standard-efficiency outdoor unit", quantity: 1, price: 2600, cost: 1450, amount: 2600, taxable: true },
         { id: 2, name: "Standard Air Handler", description: "Matched indoor air handler", quantity: 1, price: 1500, cost: 820, amount: 1500, taxable: true },
         { id: 3, name: "Line Set & Materials", description: "Line set, pad, disconnect and fittings", quantity: 1, price: 400, cost: 180, amount: 400, taxable: true },
         { id: 4, name: "System Installation Labor", description: "Removal of the old system and full install", quantity: 1, price: 1300, cost: 900, amount: 1300, taxable: false },
       ] },
-      { name: "Replace, high-efficiency unit", summary: "New 3-ton high-SEER system with a smart thermostat, 10-year parts warranty.", items: [
+      { name: "Replace, high-efficiency unit", financingPlanId: "one-percent", financingShow: "monthly", summary: "New 3-ton high-SEER system with a smart thermostat, 10-year parts warranty.", items: [
         { id: 1, name: "High-Efficiency Condensing Unit", description: "High-SEER outdoor unit", quantity: 1, price: 4200, cost: 2350, amount: 4200, taxable: true },
         { id: 2, name: "Variable Speed Air Handler", description: "Variable-speed indoor air handler", quantity: 1, price: 2350, cost: 1290, amount: 2350, taxable: true },
         { id: 3, name: "Smart WiFi Thermostat", description: "Smart thermostat, installed and configured", quantity: 1, price: 250, cost: 110, amount: 250, taxable: true },
@@ -261,7 +265,7 @@ export const makePublicToken = (): string => {
 // waits for an answer, so /e/<token> always shows the choose-an-option screen.
 export const DEMO_CLIENT_LINK_TOKEN = "ZTNiMGM0NDItOThmYy00YTNhLTgzMGEtNzMxMWI0NDI5Y2M2";
 const dateLabel = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" });
-function ensureClientLinkDemo(rows: EstimateRecord[]): { rows: EstimateRecord[]; added?: EstimateRecord; extended?: { id: number; expirationDate: string }; financing?: { id: number; financingPlanId: string; financingShow: "monthly" | "full" } } {
+function ensureClientLinkDemo(rows: EstimateRecord[]): { rows: EstimateRecord[]; added?: EstimateRecord; extended?: { id: number; expirationDate: string }; financing?: { id: number } & Partial<EstimateRecord> } {
   const validUntil = dateLabel(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000));
   const existing = rows.find((e) => e.publicToken === DEMO_CLIENT_LINK_TOKEN);
   if (!existing) {
@@ -269,12 +273,18 @@ function ensureClientLinkDemo(rows: EstimateRecord[]): { rows: EstimateRecord[];
     if (!seed) return { rows };
     const taken = new Set(rows.map((e) => e.id));
     const id = taken.has(seed.id) ? Math.max(0, ...rows.map((e) => e.id)) + 1 : seed.id;
-    const added = { ...seed, id, status: "Sent" as const, expirationDate: validUntil, financingPlanId: "ally-144", financingShow: "monthly" as const };
+    const added = { ...seed, id, status: "Sent" as const, expirationDate: validUntil };
     return { rows: [...rows, added], added };
   }
-  // The demo shows financing; rows added before the field existed get it.
-  if (!existing.financingPlanId) {
-    const patch = { financingPlanId: "ally-144", financingShow: "monthly" as const };
+  // The demo shows financing per option; rows added before that get the seed's.
+  const seedDemo = SEED.find((e) => e.publicToken === DEMO_CLIENT_LINK_TOKEN);
+  if (seedDemo?.options && !(existing.options ?? []).some((op) => op.financingPlanId)) {
+    const options = (existing.options ?? []).map((op) => {
+      const s = seedDemo.options!.find((x) => x.name === op.name);
+      return s ? { ...op, financingPlanId: s.financingPlanId, financingShow: s.financingShow } : op;
+    });
+    // null, not undefined: the server must drop the estimate-level plan too.
+    const patch = { options, financingPlanId: null as unknown as undefined, financingShow: null as unknown as undefined };
     const next = rows.map((e) => (e.id === existing.id ? { ...e, ...patch } : e));
     const waiting0 = existing.status === "Sent" || existing.status === "Viewed";
     const ended0 = existing.expirationDate && new Date(existing.expirationDate).getTime() < Date.now();
@@ -310,7 +320,7 @@ export const estimatesStore = {
       notify();
       if (demo.added) api.persistNew(demo.added);
       if (demo.extended) api.persistPatch(demo.extended.id, { expirationDate: demo.extended.expirationDate });
-      if (demo.financing) api.persistPatch(demo.financing.id, { financingPlanId: demo.financing.financingPlanId, financingShow: demo.financing.financingShow });
+      if (demo.financing) { const { id: fid, ...patch } = demo.financing; api.persistPatch(fid, patch); }
     });
     return () => { listeners = listeners.filter((l) => l !== listener); };
   },

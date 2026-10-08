@@ -91,12 +91,10 @@ export function CreateEstimate() {
   // Estimate type (FR-5.19, Figma 530:43114) — required classification; the
   // list is company-editable in Settings → Estimates (FR-16.5).
   const [estimateType, setEstimateType] = useState("");
-  // Financing (Marek): which plan to offer and whether the client's page leads
-  // with the monthly payment or the full amount.
+  // Financing plans from Settings — the plan is chosen per option, under the
+  // option tabs (Line Items).
   const financingPlans = useSyncExternalStore(estimateSettingsStore.subscribe, estimateSettingsStore.getSnapshot).financingPlans;
-  const [financingPlanId, setFinancingPlanId] = useState("");
-  const [financingShow, setFinancingShow] = useState<"monthly" | "full">("monthly");
-  const financingPlan = financingPlans.find((p) => p.id === financingPlanId);
+
   const estimateTypes = useSyncExternalStore(estimateTypesStore.subscribe, estimateTypesStore.getSnapshot);
   // A job is never picked by hand: it arrives (locked) when the estimate is
   // created from a job visit, otherwise the estimate has no job.
@@ -104,7 +102,7 @@ export function CreateEstimate() {
 
   // Good/Better/Best options (Figma 2509:12598) — each option carries its own
   // line items; the client picks one when accepting. Up to 4, renamable.
-  type EstimateOption = { id: number; name: string; items: SelectedLineItem[] };
+  type EstimateOption = { id: number; name: string; items: SelectedLineItem[]; financingPlanId?: string; financingShow?: "monthly" | "full" };
   const OPTION_NAME_DEFAULTS = ["Good", "Better", "Best", "Premium"];
   const MAX_OPTIONS = 4;
   const [options, setOptions] = useState<EstimateOption[]>([{ id: 1, name: "Good", items: [] }]);
@@ -112,6 +110,15 @@ export function CreateEstimate() {
   const [renamingOption, setRenamingOption] = useState<{ id: number; name: string } | null>(null);
   const activeOption = options.find((o) => o.id === activeOptionId) ?? options[0];
   const lineItems = activeOption.items;
+  // Financing is set per option (Marek): each option can offer its own plan and
+  // lead with the monthly payment or the full amount.
+  const financingPlanId = activeOption.financingPlanId ?? "";
+  const financingShow = activeOption.financingShow ?? "monthly";
+  const financingPlan = financingPlans.find((p) => p.id === financingPlanId);
+  const setOptionFinancing = (patch: Partial<EstimateOption>) =>
+    setOptions((opts) => opts.map((o) => (o.id === activeOption.id ? { ...o, ...patch } : o)));
+  const setFinancingPlanId = (id: string) => setOptionFinancing({ financingPlanId: id || undefined });
+  const setFinancingShow = (v: "monthly" | "full") => setOptionFinancing({ financingShow: v });
   const setLineItems = (updater: React.SetStateAction<SelectedLineItem[]>) =>
     setOptions((opts) => opts.map((o) => o.id === activeOption.id
       ? { ...o, items: typeof updater === "function" ? (updater as (i: SelectedLineItem[]) => SelectedLineItem[])(o.items) : updater }
@@ -199,8 +206,8 @@ export function CreateEstimate() {
       source: linkedJob || "Manual",
       depositDue: 0,
       estimateType: estimateType || undefined,
-      financingPlanId: financingPlan ? financingPlan.id : undefined,
-      financingShow: financingPlan ? financingShow : undefined,
+      financingPlanId: options.length === 1 ? options[0].financingPlanId : undefined,
+      financingShow: options.length === 1 && options[0].financingPlanId ? (options[0].financingShow ?? "monthly") : undefined,
       items: lineItems.map((li) => ({
         id: li.id, name: li.name, description: li.description, quantity: li.quantity,
         price: li.unitPrice, cost: li.unitCost, amount: li.total, taxable: li.taxable,
@@ -217,6 +224,8 @@ export function CreateEstimate() {
       ...(options.length > 1 ? {
         options: options.map((o) => ({
           name: o.name,
+          financingPlanId: o.financingPlanId,
+          financingShow: o.financingPlanId ? (o.financingShow ?? "monthly") : undefined,
           items: o.items.map((li) => ({
             id: li.id, name: li.name, description: li.description, quantity: li.quantity,
             price: li.unitPrice, cost: li.unitCost, amount: li.total, taxable: li.taxable,
@@ -342,32 +351,6 @@ export function CreateEstimate() {
                   {estimateTypes.map((t) => <option key={t} value={t}>{t}</option>)}
                 </select>
               </div>
-              <div>
-                <label className={labelClass}>Financing</label>
-                <select value={financingPlanId} onChange={(e) => setFinancingPlanId(e.target.value)} className={fieldClass}>
-                  <option value="">No financing</option>
-                  {financingPlans.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-                </select>
-              </div>
-              {financingPlan && (
-                <div className="col-span-2">
-                  <label className={labelClass}>Show the client first</label>
-                  <div className="flex flex-wrap gap-2">
-                    {([["monthly", "Monthly payment"], ["full", "Full amount"]] as const).map(([v, label]) => (
-                      <label key={v} className={`flex h-10 cursor-pointer items-center gap-2 rounded-lg border px-3 text-[14px] ${financingShow === v ? "border-[#4A6FA5] bg-[#EEF3FA] text-[#1A2332]" : "border-[#E5E7EB] text-[#546478]"}`}>
-                        <input type="radio" name="financing-show" checked={financingShow === v} onChange={() => setFinancingShow(v)} className="accent-[#4A6FA5]" />
-                        {label}
-                      </label>
-                    ))}
-                  </div>
-                  <p className="mt-1.5 text-[12px] text-[#6B7280]">
-                    {total > 0
-                      ? <>This option: <strong className="text-[#1A2332]">${planMonthly(financingPlan, total).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/mo</strong> {planLine(financingPlan)} · full amount ${total.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}.</>
-                      : <>Add line items to see the monthly payment.</>}
-                    {" "}Options under ${estimateSettingsStore.getSnapshot().financing.minAmount.toLocaleString("en-US")} show the full amount.
-                  </p>
-                </div>
-              )}
             </div>
           </Section>
 
@@ -454,6 +437,37 @@ export function CreateEstimate() {
             <p className="mb-3 text-[12px] text-[#8899AA]">
               Each option has its own line items — the client picks one when accepting. Rename via the pencil; up to 4 options.
             </p>
+            {/* Financing for the option on screen — each option has its own. */}
+            <div className="mb-4 grid grid-cols-2 gap-5 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-4">
+              <div>
+                <label className={labelClass}>Financing{options.length > 1 ? ` — ${activeOption.name}` : ""}</label>
+                <select value={financingPlanId} onChange={(e) => setFinancingPlanId(e.target.value)} className={fieldClass}>
+                  <option value="">No financing</option>
+                  {financingPlans.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                </select>
+              </div>
+              {financingPlan ? (
+                <div>
+                  <label className={labelClass}>Show the client first</label>
+                  <div className="flex flex-wrap gap-2">
+                    {([["monthly", "Monthly payment"], ["full", "Full amount"]] as const).map(([v, label]) => (
+                      <label key={v} className={`flex h-10 cursor-pointer items-center gap-2 rounded-lg border bg-white px-3 text-[14px] ${financingShow === v ? "border-[#4A6FA5] bg-[#EEF3FA] text-[#1A2332]" : "border-[#E5E7EB] text-[#546478]"}`}>
+                        <input type="radio" name={`financing-show-${activeOption.id}`} checked={financingShow === v} onChange={() => setFinancingShow(v)} className="accent-[#4A6FA5]" />
+                        {label}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              ) : <div />}
+              {financingPlan && (
+                <p className="col-span-2 -mt-2 text-[12px] text-[#6B7280]">
+                  {total > 0
+                    ? <>{activeOption.name}: <strong className="text-[#1A2332]">${planMonthly(financingPlan, total).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/mo</strong> {planLine(financingPlan)} · full amount ${total.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}.</>
+                    : <>Add line items to see the monthly payment.</>}
+                  {" "}Under ${estimateSettingsStore.getSnapshot().financing.minAmount.toLocaleString("en-US")} the client sees the full amount.
+                </p>
+              )}
+            </div>
             <div className="overflow-hidden rounded-xl border border-[#E5E7EB]">
               {/* card header: search + add item */}
               <div className="flex items-center justify-between gap-3 border-b border-[#E5E7EB] px-4 py-3">
