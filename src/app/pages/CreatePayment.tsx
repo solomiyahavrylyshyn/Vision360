@@ -6,6 +6,7 @@ import { paymentsStore } from "../stores/paymentsStore";
 import type { PaymentMethod, PaymentStatus } from "./Payments";
 import { invoicesStore, type Invoice } from "../stores/invoicesStore";
 import { clientsStore } from "../stores/clientsStore";
+import { paymentLinksStore } from "../stores/paymentLinksStore";
 
 // ── Money / date helpers ─────────────────────────────────────────────────────
 const money = (n: number) =>
@@ -59,6 +60,20 @@ function canonicalMethod(m: string): string {
   if (m === "Wire transfer") return "Wire Transfer"; // match ICON_MAP key
   return m;
 }
+
+// Card typed in by hand. In production these are Stripe Elements — the number
+// never reaches us; we only ever keep the brand, last 4 and expiry.
+export function cardBrand(num: string): string {
+  const d = num.replace(/\D/g, "");
+  if (/^4/.test(d)) return "Visa";
+  if (/^(5[1-5]|2[2-7])/.test(d)) return "Mastercard";
+  if (/^3[47]/.test(d)) return "Amex";
+  if (/^6/.test(d)) return "Discover";
+  return "Card";
+}
+export const cardDigitsOk = (num: string) => num.replace(/\D/g, "").length >= 13;
+export const cardExpOk = (exp: string) => /^(0[1-9]|1[0-2])\s?\/\s?\d{2}$/.test(exp.trim());
+export const cardCvcOk = (cvc: string) => /^\d{3,4}$/.test(cvc.trim());
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
 const isoToDMY = (s: string) => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec((s || "").trim()); return m ? `${m[3]}.${m[2]}.${m[1]}` : ""; };
@@ -159,17 +174,30 @@ export function CreatePayment() {
   const [checkNumber, setCheckNumber] = useState("");
   const [refNumber, setRefNumber] = useState("");
   const [refDateISO, setRefDateISO] = useState(todayISO());
-  const [cardLinkSent, setCardLinkSent] = useState(false);
-  useEffect(() => { setCardLinkSent(false); }, [method]); // reset the on-file link when method changes
+  // Card typed in by hand (Stripe Elements in production).
+  const [cardNumber, setCardNumber] = useState("");
+  const [cardExp, setCardExp] = useState("");
+  const [cardCvc, setCardCvc] = useState("");
+  const [cardName, setCardName] = useState("");
+  const [cardZip, setCardZip] = useState("");
+  const [saveCard, setSaveCard] = useState(false);
+  // "Send payment link" modal.
+  const [linkOpen, setLinkOpen] = useState(false);
+  const [linkEmail, setLinkEmail] = useState("");
+  const [linkSms, setLinkSms] = useState(true);
 
   const onFile = method === "Credit card — on file";
-  // Prototype: no cards are ever stored → the on-file path always routes through
-  // "Send link to collect card" and can't complete a charge here (spec §4).
+  const manualCard = method === "Credit card — manually";
+  // The card Stripe keeps for this client, if they saved one (by paying a link
+  // with "save this card" ticked, or the office ticking it on a keyed payment).
+  const savedCard = customer?.cardOnFile;
   const needsCheck = method === "Check";
   const needsRef = REF_METHODS.includes(method);
+  const manualComplete = cardDigitsOk(cardNumber) && cardExpOk(cardExp) && cardCvcOk(cardCvc) && !!cardName.trim() && !!cardZip.trim();
 
   const methodComplete =
-    onFile ? false // never collectable in-form (waiting on the customer's card)
+    onFile ? !!savedCard // no card → the office sends a payment link instead of waiting here
+    : manualCard ? manualComplete
     : needsCheck ? checkNumber.trim().length > 0
     : needsRef ? refNumber.trim().length > 0 && !!refDateISO
     : true; // card reader / manually / cash
@@ -190,7 +218,18 @@ export function CreatePayment() {
     if (plan.some((p) => p.after < -0.001)) { toast.error("Payment exceeds the invoice balance."); return; }
     const stored = canonicalMethod(method);
     const isoDate = needsRef ? refDateISO : todayISO();
-    const ref = needsCheck ? `Check #${checkNumber.trim()}` : needsRef ? refNumber.trim() : isCardMethod(method) ? "Card charge" : "";
+    const keyedLast4 = cardNumber.replace(/\D/g, "").slice(-4);
+    const ref = needsCheck ? `Check #${checkNumber.trim()}`
+      : needsRef ? refNumber.trim()
+      : onFile && savedCard ? `Card on file · ${savedCard.brand} •••• ${savedCard.last4}`
+      : manualCard ? `${cardBrand(cardNumber)} •••• ${keyedLast4}`
+      : isCardMethod(method) ? "Card charge" : "";
+    // Ticked "save this card" → Stripe keeps it; we keep only what's needed to show it.
+    if (manualCard && saveCard && customer) {
+      clientsStore.updateClient(customer.id, {
+        cardOnFile: { brand: cardBrand(cardNumber), last4: keyedLast4, exp: cardExp.replace(/\s/g, ""), savedAt: todayISO() },
+      });
+    }
 
     plan.forEach(({ inv, pay, after }) => {
       const newBalance = Math.max(0, after);
@@ -220,6 +259,28 @@ export function CreatePayment() {
     });
 
     toast.success(`Payment collected — ${money(amount)}`);
+    navigate(returnTo || "/payments");
+  };
+
+  // ── Send payment link (no card on file, client not here) ───────────────────
+  // The office doesn't wait on this form: the client pays from the link and the
+  // payment records itself (a Stripe webhook in production).
+  const canSendLink = !!customerName && selectedCount > 0 && amountValid;
+  const openLinkModal = () => { setLinkEmail(customerEmail); setLinkSms(!!customerPhone); setLinkOpen(true); };
+  const handleSendLink = () => {
+    if (!canSendLink || !linkEmail.trim()) return;
+    const link = paymentLinksStore.create({
+      clientName: customerName,
+      invoiceIds: selectedInvoices.map((i) => i.id),
+      amount,
+      sentTo: linkEmail.trim(),
+      smsTo: linkSms && customerPhone ? customerPhone : undefined,
+    });
+    setLinkOpen(false);
+    toast.success(`Payment link sent to ${customerName}`, {
+      description: "It records itself when they pay.",
+      action: { label: "Open link", onClick: () => window.open(`/pay/${link.token}`, "_blank") },
+    });
     navigate(returnTo || "/payments");
   };
 
@@ -363,26 +424,72 @@ export function CreatePayment() {
                   </div>
                 )}
 
-                {/* Card on file — no stored card in the prototype → send a link. */}
-                {onFile && (
-                  <div className="rounded-lg bg-[#F5F7FA] border border-[#E5E7EB] px-3 py-3 flex flex-col gap-2">
-                    {!cardLinkSent ? (
-                      <>
-                        <div className="text-[13px] text-[#1A2332]">No card on file for this customer.</div>
-                        <div className="flex items-center gap-2">
-                          <Button type="button" onClick={() => setCardLinkSent(true)} className="bg-[#4A6FA5] hover:bg-[#3d5a85] text-white h-8 px-3 rounded-lg text-[13px] inline-flex items-center gap-1.5" style={{ fontWeight: 500 }}>
-                            <span className="material-icons" style={{ fontSize: "16px" }}>send</span>
-                            Send link to collect card
-                          </Button>
-                          <span className="text-[12px] text-[#6B7280]">via SMS / email</span>
-                        </div>
-                      </>
-                    ) : (
-                      <div className="flex items-start gap-2 text-[13px] text-[#6B7280]">
-                        <span className="material-icons text-[#D97706]" style={{ fontSize: "18px" }}>schedule</span>
-                        <span>Link sent — waiting for {customerName || "the customer"} to add their card. You can collect once it's on file.</span>
+                {/* Card on file — the client's saved card, or two ways forward when
+                    there is none: type it now, or send a link to pay. */}
+                {onFile && savedCard && (
+                  <div className="flex items-center gap-3 rounded-lg border border-[#E5E7EB] px-3 py-2.5">
+                    <span className="inline-flex h-7 min-w-[46px] items-center justify-center rounded-md bg-[#1C2B3A] px-1.5 text-[11px] text-white" style={{ fontWeight: 700 }}>{savedCard.brand.toUpperCase()}</span>
+                    <span className="flex-1 text-[14px] text-[#1A2332]">•••• {savedCard.last4} <span className="text-[#6B7280]">· expires {savedCard.exp}</span></span>
+                    <span className="material-icons text-[#16A34A]" style={{ fontSize: "18px" }}>check_circle_outline</span>
+                  </div>
+                )}
+                {onFile && !savedCard && (
+                  <div className="flex flex-wrap items-center gap-3 rounded-lg border border-[#E5E7EB] px-4 py-3">
+                    <div className="min-w-[220px] flex-1">
+                      <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>No card on file for {customerName || "this customer"}</div>
+                      <div className="text-[12px] text-[#6B7280]">
+                        Type the card now if they're with you, or send a link to pay{amount > 0 ? ` ${money(amount)}` : ""}. The payment records itself when they pay.
                       </div>
+                    </div>
+                    <Button type="button" variant="outline" onClick={() => setMethod("Credit card — manually")} className="border-[#E5E7EB] bg-white text-[#1A2332] hover:bg-[#F5F7FA] h-9 px-3 text-[14px] rounded-lg">Type card now</Button>
+                    <Button
+                      type="button" onClick={openLinkModal} disabled={!canSendLink}
+                      title={canSendLink ? undefined : "Select an invoice and an amount first"}
+                      className="bg-[#4A6FA5] hover:bg-[#3d5a85] text-white h-9 px-3 text-[14px] rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Send payment link
+                    </Button>
+                  </div>
+                )}
+
+                {/* Card typed in by hand — Stripe Elements in production (the card
+                    number never reaches Vision360). */}
+                {manualCard && (
+                  <div className="flex flex-col gap-4">
+                    <div className="grid grid-cols-[2fr_1fr_1fr] gap-4">
+                      <div>
+                        <label className={labelCls} style={{ fontWeight: 500 }}>Card number {reqStar}</label>
+                        <input value={cardNumber} onChange={(e) => setCardNumber(e.target.value)} inputMode="numeric" placeholder="1234 1234 1234 1234" className={`${inputCls} tabular-nums`} />
+                      </div>
+                      <div>
+                        <label className={labelCls} style={{ fontWeight: 500 }}>Expiry {reqStar}</label>
+                        <input value={cardExp} onChange={(e) => setCardExp(e.target.value)} placeholder="MM / YY" className={inputCls} />
+                      </div>
+                      <div>
+                        <label className={labelCls} style={{ fontWeight: 500 }}>CVC {reqStar}</label>
+                        <input value={cardCvc} onChange={(e) => setCardCvc(e.target.value)} inputMode="numeric" placeholder="123" className={inputCls} />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className={labelCls} style={{ fontWeight: 500 }}>Cardholder name {reqStar}</label>
+                        <input value={cardName} onChange={(e) => setCardName(e.target.value)} placeholder="Name on card" className={inputCls} />
+                      </div>
+                      <div>
+                        <label className={labelCls} style={{ fontWeight: 500 }}>Billing ZIP {reqStar}</label>
+                        <input value={cardZip} onChange={(e) => setCardZip(e.target.value)} placeholder="33606" className={inputCls} />
+                      </div>
+                    </div>
+                    {customer && (
+                      <label className="flex cursor-pointer items-start gap-2">
+                        <input type="checkbox" checked={saveCard} onChange={(e) => setSaveCard(e.target.checked)} className="mt-0.5 h-4 w-4 rounded accent-[#4A6FA5]" />
+                        <span>
+                          <span className="block text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Save this card on file for future payments</span>
+                          <span className="block text-[12px] text-[#6B7280]">Only with the client's permission. Stripe keeps the card; we show the brand and last 4 digits.</span>
+                        </span>
+                      </label>
                     )}
+                    <p className="text-[12px] text-[#6B7280]">Card details go straight to Stripe. Vision360 never sees or stores the card number.</p>
                   </div>
                 )}
 
@@ -475,6 +582,44 @@ export function CreatePayment() {
           </div>
         </div>
       </div>
+
+      {/* ── Send payment link modal ── */}
+      {linkOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setLinkOpen(false)}>
+          <div className="absolute inset-0 bg-black/30" />
+          <div className="relative w-[576px] max-w-full rounded-xl bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-4 py-4">
+              <h2 className="text-[20px] text-[#1A2332]" style={{ fontWeight: 600 }}>Send payment link</h2>
+              <button onClick={() => setLinkOpen(false)} aria-label="Close" className="flex h-6 w-6 items-center justify-center rounded text-[#6B7280] hover:bg-[#F3F4F6]">
+                <span className="material-icons" style={{ fontSize: "18px" }}>close</span>
+              </button>
+            </div>
+            <div className="flex flex-col gap-4 px-4 pb-4">
+              <div>
+                <label className={labelCls} style={{ fontWeight: 500 }}>Email {reqStar}</label>
+                <input autoFocus value={linkEmail} onChange={(e) => setLinkEmail(e.target.value)} placeholder="client@email.com" className={inputCls} />
+              </div>
+              {customerPhone && (
+                <label className="flex cursor-pointer items-center gap-2 text-[14px] text-[#1A2332]">
+                  <input type="checkbox" checked={linkSms} onChange={(e) => setLinkSms(e.target.checked)} className="h-4 w-4 rounded accent-[#4A6FA5]" />
+                  Also send by SMS to {customerPhone}
+                </label>
+              )}
+              <div className="flex flex-col gap-1 rounded-lg bg-[#F5F7FA] px-3 py-3 text-[14px]">
+                <div className="flex justify-between"><span className="text-[#6B7280]">Amount</span><span className="text-[#1A2332] tabular-nums" style={{ fontWeight: 500 }}>{money(amount)}</span></div>
+                <div className="flex justify-between gap-4"><span className="text-[#6B7280]">Invoices</span><span className="text-right text-[#1A2332]">{selectedCount} · {selectedInvoices.map((i) => i.number).join(", ")}</span></div>
+              </div>
+              <p className="text-[13px] text-[#6B7280]">
+                {customerName.split(" ")[0] || "The client"} pays on a secure Stripe page and can save the card for next time. The payment records itself when they pay — you don't need to keep this page open.
+              </p>
+            </div>
+            <div className="flex justify-end gap-2 px-4 pb-4">
+              <Button type="button" variant="outline" onClick={() => setLinkOpen(false)} className="border-[#E5E7EB] text-[#1A2332] hover:bg-[#F5F7FA] h-9 px-4 text-[14px] rounded-lg">Cancel</Button>
+              <Button type="button" onClick={handleSendLink} disabled={!linkEmail.trim()} className="bg-[#4A6FA5] hover:bg-[#3d5a85] text-white h-9 px-4 text-[14px] rounded-lg disabled:opacity-50">Send link</Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

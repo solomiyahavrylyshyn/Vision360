@@ -118,6 +118,8 @@ export interface ClientRecord {
   additionalContacts: AdditionalContact[];
   serviceAddresses: ServiceAddress[];
   customFields: Record<string, string>;
+  /** The card Stripe keeps for this client. We hold only what's needed to show it. */
+  cardOnFile?: { brand: string; last4: string; exp: string; savedAt: string };
   tags: string[];
   // Deduplication lifecycle fields
   mergedIntoId?: string;   // set on the losing record after a merge

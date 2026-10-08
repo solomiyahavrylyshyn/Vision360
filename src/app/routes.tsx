@@ -11,6 +11,7 @@ import { Welcome } from "./pages/Welcome";
 import { CompanySetup } from "./pages/CompanySetup";
 import { InviteExpired } from "./pages/InviteExpired";
 import { ClientEstimateView } from "./pages/ClientEstimateView";
+import { PayLink } from "./pages/PayLink";
 import { Dashboard } from "./pages/Dashboard";
 import { Home } from "./pages/Home";
 import { Clients } from "./pages/Clients";
@@ -132,6 +133,11 @@ export const router = createBrowserRouter([
   {
     path: "/e/:token",
     Component: ClientEstimateView,
+  },
+  // The page the client pays from, opened from a "Send payment link" email/SMS.
+  {
+    path: "/pay/:token",
+    Component: PayLink,
   },
   {
     path: "/",

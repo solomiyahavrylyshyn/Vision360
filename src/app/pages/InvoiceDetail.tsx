@@ -13,6 +13,7 @@ import { jobsStore } from "../stores/jobsStore";
 import { itemsStore } from "../stores/itemsStore";
 import { ItemPicker, type CatalogItem } from "../components/ItemPicker";
 import { invoicesStore } from "../stores/invoicesStore";
+import { paymentLinksStore } from "../stores/paymentLinksStore";
 import { CustomFieldChips } from "../components/CustomFields";
 
 // A job linked to the invoice, rendered as one accordion section in the
@@ -363,6 +364,9 @@ export function InvoiceDetail() {
   // Honor ?tab= so a create round-trip (e.g. Invoice → Collect Payment → back)
   // lands on the tab the user left.
   const [activeTab, setActiveTabState] = useState<TabKey>((searchParams.get("tab") as TabKey) || "details");
+  // An unpaid payment link covering this invoice (New payment → Send payment link).
+  useSyncExternalStore(paymentLinksStore.subscribe, paymentLinksStore.getSnapshot);
+  const payLink = paymentLinksStore.openForInvoice(Number(id));
   const setActiveTab = (key: TabKey) => {
     setActiveTabState(key);
     const next = new URLSearchParams(searchParams);
@@ -1014,6 +1018,24 @@ export function InvoiceDetail() {
               ))}
             </div>
         </div>
+
+        {/* A payment link is out for this invoice — it records itself when the
+            client pays, so the office only needs to see it and resend or cancel. */}
+        {payLink && (
+          <div className="mt-4 flex flex-wrap items-center gap-3 rounded-lg border border-[#FDE68A] bg-[#FFFBEB] px-4 py-2.5">
+            <div className="min-w-[240px] flex-1">
+              <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>
+                Payment link sent · {new Date(payLink.sentAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+              </div>
+              <div className="text-[12px] text-[#6B7280]">
+                ${payLink.amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} for {payLink.invoiceIds.length} invoice{payLink.invoiceIds.length === 1 ? "" : "s"}, sent to {payLink.sentTo}{payLink.smsTo ? ` and ${payLink.smsTo}` : ""}. It records itself when the client pays.
+              </div>
+            </div>
+            <button onClick={() => window.open(`/pay/${payLink.token}`, "_blank")} className="text-[13px] text-[#4A6FA5] hover:underline" style={{ fontWeight: 500 }}>Open link</button>
+            <button onClick={() => { paymentLinksStore.cancel(payLink.token); toast.success("Payment link cancelled"); }} className="h-8 rounded-lg border border-[#E5E7EB] bg-white px-3 text-[13px] text-[#1A2332] hover:bg-[#F5F7FA]">Cancel link</button>
+            <button onClick={() => { paymentLinksStore.resend(payLink.token); toast.success(`Payment link resent to ${payLink.sentTo}`); }} className="h-8 rounded-lg border border-[#E5E7EB] bg-white px-3 text-[13px] text-[#1A2332] hover:bg-[#F5F7FA]">Resend</button>
+          </div>
+        )}
 
         {/* Divider separating the invoice header from the tab bar */}
         <div className="-mx-4 mt-4 border-t border-[#E5E7EB]" />
