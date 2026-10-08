@@ -99,19 +99,21 @@ const today = () => new Date().toLocaleDateString("en-US", { month: "short", day
 const visibleItems = (items: EstimateLineItem[]) => items.filter((i) => !i.hideOnCustomerDocs);
 
 // The full price, folded under the monthly payment. Closed it's only a small
-// "Full price ⌄" link; the arrow opens the price, the tax inside it and the
-// deposit due on approval. On a picked (blue) column it reads light.
+// round arrow; it opens like an accordion to show the price, the tax inside it
+// and the deposit due on approval. On a picked (blue) column it reads light.
 function FullPrice({ total, tax, deposit, open, onToggle, onBlue }: {
   total: number; tax: number; deposit: number | null; open: boolean; onToggle: () => void; onBlue?: boolean;
 }) {
-  // Kept quiet on purpose — a small link under the monthly figure, not a box.
-  const link = onBlue ? "text-white/85 hover:text-white" : "text-[#4A6FA5] hover:text-[#3d5a85]";
+  const arrow = onBlue ? "text-white/90 hover:bg-white/15" : "text-[#4A6FA5] hover:bg-[#DCE6F5]";
   const muted = onBlue ? "text-white/75" : "text-[#6B7280]";
   return (
-    <div className="mt-1.5 text-[12px]">
-      <button type="button" onClick={onToggle} aria-expanded={open} className={`inline-flex items-center gap-0.5 text-[12px] ${link}`} style={{ fontWeight: 500 }}>
-        Full price
-        <span className="material-icons" style={{ fontSize: "16px" }}>{open ? "expand_less" : "expand_more"}</span>
+    <div className="mt-1 text-[12px]">
+      <button
+        type="button" onClick={onToggle} aria-expanded={open}
+        aria-label={open ? "Hide full price" : "Show full price"} title={open ? "Hide full price" : "Show full price"}
+        className={`mx-auto flex h-6 w-6 items-center justify-center rounded-full transition-colors ${arrow}`}
+      >
+        <span className="material-icons transition-transform" style={{ fontSize: "20px", transform: open ? "rotate(180deg)" : undefined }}>expand_more</span>
       </button>
       {open && (
         <div className={`mx-auto mt-1 max-w-[220px] space-y-0.5 ${muted}`}>
