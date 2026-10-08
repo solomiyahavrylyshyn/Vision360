@@ -7,6 +7,7 @@ import type { PaymentMethod, PaymentStatus } from "./Payments";
 import { invoicesStore, type Invoice } from "../stores/invoicesStore";
 import { clientsStore } from "../stores/clientsStore";
 import { paymentLinksStore } from "../stores/paymentLinksStore";
+import { isCardExpired, saveCardOnFile } from "../utils/savedCard";
 
 // ── Money / date helpers ─────────────────────────────────────────────────────
 const money = (n: number) =>
@@ -190,7 +191,8 @@ export function CreatePayment() {
   const manualCard = method === "Credit card — manually";
   // The card Stripe keeps for this client, if they saved one (by paying a link
   // with "save this card" ticked, or the office ticking it on a keyed payment).
-  const savedCard = customer?.cardOnFile;
+  // An expired card isn't offered — it's treated as no card.
+  const savedCard = customer?.cardOnFile && !isCardExpired(customer.cardOnFile.exp) ? customer.cardOnFile : undefined;
   const needsCheck = method === "Check";
   const needsRef = REF_METHODS.includes(method);
   const manualComplete = cardDigitsOk(cardNumber) && cardExpOk(cardExp) && cardCvcOk(cardCvc) && !!cardName.trim() && !!cardZip.trim();
@@ -226,9 +228,7 @@ export function CreatePayment() {
       : isCardMethod(method) ? "Card charge" : "";
     // Ticked "save this card" → Stripe keeps it; we keep only what's needed to show it.
     if (manualCard && saveCard && customer) {
-      clientsStore.updateClient(customer.id, {
-        cardOnFile: { brand: cardBrand(cardNumber), last4: keyedLast4, exp: cardExp.replace(/\s/g, ""), savedAt: todayISO() },
-      });
+      saveCardOnFile(customer.id, { brand: cardBrand(cardNumber), last4: keyedLast4, exp: cardExp.replace(/\s/g, "") }, "You");
     }
 
     plan.forEach(({ inv, pay, after }) => {

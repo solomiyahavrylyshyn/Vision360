@@ -11,6 +11,7 @@ import { invoicesStore } from "../stores/invoicesStore";
 import { paymentsStore } from "../stores/paymentsStore";
 import { clientsStore } from "../stores/clientsStore";
 import { useDocCompany } from "../components/DocumentSheets";
+import { saveCardOnFile } from "../utils/savedCard";
 import { cardBrand, cardCvcOk, cardDigitsOk, cardExpOk } from "./CreatePayment";
 import type { PaymentMethod, PaymentStatus } from "./Payments";
 
@@ -110,7 +111,7 @@ export function PayLink() {
     });
     if (saveCard) {
       const client = clientsStore.getSnapshot().find((c) => c.name === link.clientName);
-      if (client) clientsStore.updateClient(client.id, { cardOnFile: { brand, last4, exp: cardExp.replace(/\s/g, ""), savedAt: todayISO() } });
+      if (client) saveCardOnFile(client.id, { brand, last4, exp: cardExp.replace(/\s/g, "") }, "the client (payment link)");
     }
     paymentLinksStore.markPaid(link.token, paidWith);
     setPaidNow(true);

@@ -120,6 +120,9 @@ export interface ClientRecord {
   customFields: Record<string, string>;
   /** The card Stripe keeps for this client. We hold only what's needed to show it. */
   cardOnFile?: { brand: string; last4: string; exp: string; savedAt: string };
+  /** What happened to the client's record that isn't a job, estimate or invoice
+   *  (e.g. "Saved card Visa •••• 4242 removed by You"), oldest first. */
+  history?: { at: string; text: string }[];
   tags: string[];
   // Deduplication lifecycle fields
   mergedIntoId?: string;   // set on the losing record after a merge

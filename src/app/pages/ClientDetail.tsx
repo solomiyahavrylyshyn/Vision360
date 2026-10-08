@@ -31,6 +31,7 @@ import { RecordTab, type RecordColumn, type RecordAction, type RecordBulkAction 
 import { toast } from "sonner";
 import { formatRegionalDate } from "../stores/regionalSettingsStore";
 import { clientsStore, deriveClientStatus } from "../stores/clientsStore";
+import { cardLabel, isCardExpired, removeCardOnFile } from "../utils/savedCard";
 import { estimatesStore } from "../stores/estimatesStore";
 import { jobsStore, type JobRecord } from "../stores/jobsStore";
 import { invoicesStore, type InvoiceStatus } from "../stores/invoicesStore";
@@ -553,6 +554,7 @@ export function ClientDetail() {
   const [editAddressOpen, setEditAddressOpen] = useState(false);
   const [addressForm, setAddressForm] = useState({ street: "", unit: "", city: "", state: "", zip: "", county: "", country: "United States", notes: "" });
   const [editNotesOpen, setEditNotesOpen] = useState(false);
+  const [removeCardOpen, setRemoveCardOpen] = useState(false);
   const [notesDraft, setNotesDraft] = useState("");
   // Reusable delete confirmation (Figma 489:34912)
   const [pendingDelete, setPendingDelete] = useState<null | (() => void)>(null);
@@ -1105,6 +1107,31 @@ export function ClientDetail() {
           <div>
             <div className="text-[14px] text-[#6B7280] leading-[20px]">Preferred method</div>
             <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>{clientData.paymentMethod || "—"}</div>
+          </div>
+          {/* The card Stripe keeps for this client — shown, never editable here;
+              it can only be removed. Removing never happens from New payment. */}
+          <div>
+            <div className="text-[14px] text-[#6B7280] leading-[20px]">Saved card</div>
+            {client.cardOnFile ? (
+              <div className="mt-1 flex items-center gap-2.5">
+                <span className="inline-flex h-6 min-w-[36px] items-center justify-center rounded bg-[#1C2B3A] px-1.5 text-[10px] text-white" style={{ fontWeight: 700 }}>{client.cardOnFile.brand.toUpperCase()}</span>
+                <div className="min-w-0 flex-1">
+                  <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>{cardLabel(client.cardOnFile)}</div>
+                  <div className="text-[12px] text-[#6B7280]">Expires {client.cardOnFile.exp}</div>
+                </div>
+                {isCardExpired(client.cardOnFile.exp) && (
+                  <span className="rounded-lg px-2 py-0.5 text-[12px] text-[#DC2626]" style={{ fontWeight: 500, backgroundColor: "rgba(239,68,68,0.15)" }}>Expired</span>
+                )}
+                <button onClick={() => setRemoveCardOpen(true)} aria-label="Remove saved card" title="Remove saved card" className="flex h-6 w-6 items-center justify-center rounded text-[#6B7280] hover:bg-[#FEF2F2] hover:text-[#DC2626]">
+                  <span className="material-icons" style={{ fontSize: "16px" }}>delete_outline</span>
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="text-[14px] text-[#6B7280]">No saved card</div>
+                <div className="text-[12px] text-[#9CA3AF]">Saved when the client pays by card and agrees to save it.</div>
+              </>
+            )}
           </div>
           <label className="flex items-center gap-3 cursor-pointer">
             <input type="checkbox" checked={clientData.isTaxable} onChange={(e) => handleCheckboxChange("isTaxable", e.target.checked)} className="w-4 h-4 accent-[#4A6FA5]" />
@@ -2926,6 +2953,28 @@ export function ClientDetail() {
       )}
 
       {/* ── Edit address notes modal (Figma 489:36354) ── */}
+      {/* ── Remove saved card — red confirm, like Void / Archive ── */}
+      {removeCardOpen && client.cardOnFile && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setRemoveCardOpen(false)}>
+          <div className="absolute inset-0 bg-black/30" />
+          <div className="relative w-[480px] max-w-full rounded-xl bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-[18px] text-[#1A2332]" style={{ fontWeight: 600 }}>Remove saved card?</h2>
+            <p className="mt-2 text-[14px] leading-[20px] text-[#6B7280]">
+              {cardLabel(client.cardOnFile)} will be removed from {client.name}. It can't be charged from New payment anymore. The client can save a card again the next time they pay by the link.
+            </p>
+            <div className="mt-6 flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setRemoveCardOpen(false)} className="h-9 rounded-lg border-[#E5E7EB] px-4 text-[14px] text-[#1A2332] hover:bg-[#F5F7FA]">Cancel</Button>
+              <Button
+                onClick={() => { removeCardOnFile(client.id, "You"); setRemoveCardOpen(false); toast.success("Saved card removed"); }}
+                className="h-9 rounded-lg bg-[#DC2626] px-4 text-[14px] text-white hover:bg-[#B91C1C]"
+              >
+                Remove
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {editNotesOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={() => setEditNotesOpen(false)}>
           <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" />
