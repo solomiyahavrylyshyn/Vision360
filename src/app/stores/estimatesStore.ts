@@ -86,6 +86,10 @@ export interface EstimateRecord {
   clientSignature?: { name: string; at: string };
   /** Why the client declined, if they said. */
   declineReason?: string;
+  /** Financing plan offered on this estimate (Settings → financing plans). */
+  financingPlanId?: string;
+  /** What leads on the client's page: the monthly payment or the full amount. */
+  financingShow?: "monthly" | "full";
   /** Link token minted when the estimate is sent; the client page reads it. */
   publicToken?: string;
   taxRate?: number;
@@ -143,7 +147,7 @@ const SEED: EstimateRecord[] = [
   // Good / better / best — the estimate that prints as the comparison sheet and
   // is the one to open from the client link. Tax-free so the option totals read
   // as the round numbers the options were quoted at.
-  { id: 8, estimateNumber: "10245-E10", estimateName: "AC Repair or Replace", clientName: "John Smith", clientId: "10245", clientEmail: "john.smith@email.com", clientPhone: "(512) 555-0142", clientAddress: "123 Main St\nAustin, TX 78701", serviceAddress: "123 Main St\nAustin, TX 78701", createdDate: "Mon Sep 07, 2026", addedBy: "Peter Novak", amount: 309, status: "Sent", job: "", jobTitle: "", sentDate: "Sep 07, 2026", expirationDate: "Oct 07, 2026", teamMember: "Peter Novak", source: "Manual", depositDue: 0, estimateType: "Replacement", taxRate: 0, depositRequired: true, depositType: "percentage", depositValue: 10, publicToken: "ZTNiMGM0NDItOThmYy00YTNhLTgzMGEtNzMxMWI0NDI5Y2M2",
+  { id: 8, estimateNumber: "10245-E10", estimateName: "AC Repair or Replace", clientName: "John Smith", clientId: "10245", clientEmail: "john.smith@email.com", clientPhone: "(512) 555-0142", clientAddress: "123 Main St\nAustin, TX 78701", serviceAddress: "123 Main St\nAustin, TX 78701", createdDate: "Mon Sep 07, 2026", addedBy: "Peter Novak", amount: 309, status: "Sent", job: "", jobTitle: "", sentDate: "Sep 07, 2026", expirationDate: "Oct 07, 2026", teamMember: "Peter Novak", source: "Manual", depositDue: 0, estimateType: "Replacement", taxRate: 0, depositRequired: true, depositType: "percentage", depositValue: 10, publicToken: "ZTNiMGM0NDItOThmYy00YTNhLTgzMGEtNzMxMWI0NDI5Y2M2", financingPlanId: "ally-144", financingShow: "monthly",
     items: [
       { id: 1, name: "Capacitor 45/5 MFD", description: "Dual run capacitor replacement", quantity: 1, price: 120, cost: 40, amount: 120, taxable: true },
       { id: 2, name: "R-410A Refrigerant", description: "Refrigerant recharge (per lb)", quantity: 2, price: 50, cost: 20, amount: 100, taxable: true },
@@ -257,7 +261,7 @@ export const makePublicToken = (): string => {
 // waits for an answer, so /e/<token> always shows the choose-an-option screen.
 export const DEMO_CLIENT_LINK_TOKEN = "ZTNiMGM0NDItOThmYy00YTNhLTgzMGEtNzMxMWI0NDI5Y2M2";
 const dateLabel = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" });
-function ensureClientLinkDemo(rows: EstimateRecord[]): { rows: EstimateRecord[]; added?: EstimateRecord; extended?: { id: number; expirationDate: string } } {
+function ensureClientLinkDemo(rows: EstimateRecord[]): { rows: EstimateRecord[]; added?: EstimateRecord; extended?: { id: number; expirationDate: string }; financing?: { id: number; financingPlanId: string; financingShow: "monthly" | "full" } } {
   const validUntil = dateLabel(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000));
   const existing = rows.find((e) => e.publicToken === DEMO_CLIENT_LINK_TOKEN);
   if (!existing) {
@@ -265,8 +269,19 @@ function ensureClientLinkDemo(rows: EstimateRecord[]): { rows: EstimateRecord[];
     if (!seed) return { rows };
     const taken = new Set(rows.map((e) => e.id));
     const id = taken.has(seed.id) ? Math.max(0, ...rows.map((e) => e.id)) + 1 : seed.id;
-    const added = { ...seed, id, status: "Sent" as const, expirationDate: validUntil };
+    const added = { ...seed, id, status: "Sent" as const, expirationDate: validUntil, financingPlanId: "ally-144", financingShow: "monthly" as const };
     return { rows: [...rows, added], added };
+  }
+  // The demo shows financing; rows added before the field existed get it.
+  if (!existing.financingPlanId) {
+    const patch = { financingPlanId: "ally-144", financingShow: "monthly" as const };
+    const next = rows.map((e) => (e.id === existing.id ? { ...e, ...patch } : e));
+    const waiting0 = existing.status === "Sent" || existing.status === "Viewed";
+    const ended0 = existing.expirationDate && new Date(existing.expirationDate).getTime() < Date.now();
+    if (waiting0 && ended0) {
+      return { rows: next.map((e) => (e.id === existing.id ? { ...e, expirationDate: validUntil } : e)), extended: { id: existing.id, expirationDate: validUntil }, financing: { id: existing.id, ...patch } };
+    }
+    return { rows: next, financing: { id: existing.id, ...patch } };
   }
   const waiting = existing.status === "Sent" || existing.status === "Viewed";
   const ended = existing.expirationDate && new Date(existing.expirationDate).getTime() < Date.now();
@@ -295,6 +310,7 @@ export const estimatesStore = {
       notify();
       if (demo.added) api.persistNew(demo.added);
       if (demo.extended) api.persistPatch(demo.extended.id, { expirationDate: demo.extended.expirationDate });
+      if (demo.financing) api.persistPatch(demo.financing.id, { financingPlanId: demo.financing.financingPlanId, financingShow: demo.financing.financingShow });
     });
     return () => { listeners = listeners.filter((l) => l !== listener); };
   },

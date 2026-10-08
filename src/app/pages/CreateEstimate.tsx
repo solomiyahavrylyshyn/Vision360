@@ -6,7 +6,7 @@ import { clientSecondLine } from "../utils/clientName";
 import { estimatesStore, type EstimateStatus } from "../stores/estimatesStore";
 import { estimateTypesStore } from "../stores/estimateTypesStore";
 import { formatRegionalDate } from "../stores/regionalSettingsStore";
-import { estimateSettingsStore } from "../stores/estimateSettingsStore";
+import { estimateSettingsStore, planLine, planMonthly } from "../stores/estimateSettingsStore";
 import { ItemPicker, catalogItemToLineItem, type CatalogItem, type SelectedLineItem } from "../components/ItemPicker";
 import { PlusIcon } from "../components/ui/plus-icon";
 import { itemsStore } from "../stores/itemsStore";
@@ -91,6 +91,12 @@ export function CreateEstimate() {
   // Estimate type (FR-5.19, Figma 530:43114) — required classification; the
   // list is company-editable in Settings → Estimates (FR-16.5).
   const [estimateType, setEstimateType] = useState("");
+  // Financing (Marek): which plan to offer and whether the client's page leads
+  // with the monthly payment or the full amount.
+  const financingPlans = useSyncExternalStore(estimateSettingsStore.subscribe, estimateSettingsStore.getSnapshot).financingPlans;
+  const [financingPlanId, setFinancingPlanId] = useState("");
+  const [financingShow, setFinancingShow] = useState<"monthly" | "full">("monthly");
+  const financingPlan = financingPlans.find((p) => p.id === financingPlanId);
   const estimateTypes = useSyncExternalStore(estimateTypesStore.subscribe, estimateTypesStore.getSnapshot);
   // A job is never picked by hand: it arrives (locked) when the estimate is
   // created from a job visit, otherwise the estimate has no job.
@@ -193,6 +199,8 @@ export function CreateEstimate() {
       source: linkedJob || "Manual",
       depositDue: 0,
       estimateType: estimateType || undefined,
+      financingPlanId: financingPlan ? financingPlan.id : undefined,
+      financingShow: financingPlan ? financingShow : undefined,
       items: lineItems.map((li) => ({
         id: li.id, name: li.name, description: li.description, quantity: li.quantity,
         price: li.unitPrice, cost: li.unitCost, amount: li.total, taxable: li.taxable,
@@ -334,6 +342,32 @@ export function CreateEstimate() {
                   {estimateTypes.map((t) => <option key={t} value={t}>{t}</option>)}
                 </select>
               </div>
+              <div>
+                <label className={labelClass}>Financing</label>
+                <select value={financingPlanId} onChange={(e) => setFinancingPlanId(e.target.value)} className={fieldClass}>
+                  <option value="">No financing</option>
+                  {financingPlans.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                </select>
+              </div>
+              {financingPlan && (
+                <div className="col-span-2">
+                  <label className={labelClass}>Show the client first</label>
+                  <div className="flex flex-wrap gap-2">
+                    {([["monthly", "Monthly payment"], ["full", "Full amount"]] as const).map(([v, label]) => (
+                      <label key={v} className={`flex h-10 cursor-pointer items-center gap-2 rounded-lg border px-3 text-[14px] ${financingShow === v ? "border-[#4A6FA5] bg-[#EEF3FA] text-[#1A2332]" : "border-[#E5E7EB] text-[#546478]"}`}>
+                        <input type="radio" name="financing-show" checked={financingShow === v} onChange={() => setFinancingShow(v)} className="accent-[#4A6FA5]" />
+                        {label}
+                      </label>
+                    ))}
+                  </div>
+                  <p className="mt-1.5 text-[12px] text-[#6B7280]">
+                    {total > 0
+                      ? <>This option: <strong className="text-[#1A2332]">${planMonthly(financingPlan, total).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/mo</strong> {planLine(financingPlan)} · full amount ${total.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}.</>
+                      : <>Add line items to see the monthly payment.</>}
+                    {" "}Options under ${estimateSettingsStore.getSnapshot().financing.minAmount.toLocaleString("en-US")} show the full amount.
+                  </p>
+                </div>
+              )}
             </div>
           </Section>
 
