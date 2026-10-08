@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { toast } from "sonner";
 import { Input } from "../components/ui/input";
 import { jobNotificationEvents, estimateNotificationEvents, paymentNotificationEvents } from "../constants/notificationEvents";
 // Profile page — aligned to Figma node 1122-7158.
@@ -10,6 +11,48 @@ type SidebarPreference = "Expanded sidebar" | "Collapsed sidebar";
 const jobNotifications = jobNotificationEvents.map(e => e.label);
 const estimateNotifications = estimateNotificationEvents.map(e => e.label);
 const invoiceNotifications = paymentNotificationEvents.map(e => e.label);
+
+// Defined outside the page so they keep their identity between renders —
+// inside it, every keystroke remounted the inputs and dropped focus.
+const Section = ({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) => (
+  <section className="rounded-xl border border-[#E5E7EB] bg-white p-5">
+    <div className="mb-4">
+      <h2 className="text-[16px] leading-6 text-[#1A2332]" style={{ fontWeight: 700 }}>{title}</h2>
+      {subtitle && <p className="mt-1 text-[12px] leading-4 text-[#8A97A8]">{subtitle}</p>}
+    </div>
+    {children}
+  </section>
+);
+
+const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
+  <label className="flex flex-col gap-1.5">
+    <span className="text-[13px] text-[#374151]" style={{ fontWeight: 600 }}>{label}</span>
+    {children}
+  </label>
+);
+
+const PasswordField = ({ label, value, onChange, show, onToggle, error }: { label: string; value: string; onChange: (v: string) => void; show: boolean; onToggle: () => void; error?: string }) => (
+  <Field label={label}>
+    <div className="relative">
+      <Input
+        type={show ? "text" : "password"}
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        aria-invalid={!!error}
+        className={`h-9 pr-10 ${error ? "border-[#DC2626] focus-visible:ring-[#DC2626]/20" : "border-[#D8DEE8]"}`}
+      />
+      <button
+        type="button"
+        onClick={onToggle}
+        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#8A97A8] transition-colors hover:text-[#546478]"
+        aria-label={show ? "Hide password" : "Show password"}
+      >
+        <span className="material-icons" style={{ fontSize: "18px" }}>{show ? "visibility_off" : "visibility"}</span>
+      </button>
+    </div>
+    {error && <span className="text-[12px] text-[#DC2626]">{error}</span>}
+  </Field>
+);
 
 export function Profile() {
   const [firstName, setFirstName] = useState("John");
@@ -24,6 +67,28 @@ export function Profile() {
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [pwErrors, setPwErrors] = useState<{ current?: string; next?: string; confirm?: string }>({});
+
+  // The password saves on its own — not with "Save changes", which covers the
+  // profile, appearance and notifications.
+  const canUpdatePassword = !!currentPassword && !!newPassword && !!confirmPassword && !pwErrors.current && !pwErrors.next && !pwErrors.confirm;
+  const editPassword = (field: "current" | "next" | "confirm", set: (v: string) => void) => (v: string) => {
+    set(v);
+    setPwErrors(prev => ({ ...prev, [field]: undefined }));
+  };
+  const updatePassword = () => {
+    const errors: typeof pwErrors = {};
+    if (newPassword.length < 8) errors.next = "Use at least 8 characters";
+    if (newPassword !== confirmPassword) errors.confirm = "Passwords don't match";
+    if (newPassword && newPassword === currentPassword) errors.next = "Use a password different from the current one";
+    if (Object.keys(errors).length) { setPwErrors(errors); return; }
+    // The server checks the current password; a wrong one comes back as
+    // "Current password is incorrect" under that field.
+    setCurrentPassword(""); setNewPassword(""); setConfirmPassword("");
+    setShowCurrent(false); setShowNew(false); setShowConfirm(false);
+    setPwErrors({});
+    toast.success("Password updated");
+  };
 
   const [enabledNotifications, setEnabledNotifications] = useState<Set<string>>(
     () => new Set([...jobNotifications, ...estimateNotifications, ...invoiceNotifications])
@@ -37,44 +102,6 @@ export function Profile() {
       return next;
     });
   };
-
-  const Section = ({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) => (
-    <section className="rounded-xl border border-[#E5E7EB] bg-white p-5">
-      <div className="mb-4">
-        <h2 className="text-[16px] leading-6 text-[#1A2332]" style={{ fontWeight: 700 }}>{title}</h2>
-        {subtitle && <p className="mt-1 text-[12px] leading-4 text-[#8A97A8]">{subtitle}</p>}
-      </div>
-      {children}
-    </section>
-  );
-
-  const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
-    <label className="flex flex-col gap-1.5">
-      <span className="text-[13px] text-[#374151]" style={{ fontWeight: 600 }}>{label}</span>
-      {children}
-    </label>
-  );
-
-  const PasswordField = ({ label, value, onChange, show, onToggle }: { label: string; value: string; onChange: (v: string) => void; show: boolean; onToggle: () => void }) => (
-    <Field label={label}>
-      <div className="relative">
-        <Input
-          type={show ? "text" : "password"}
-          value={value}
-          onChange={e => onChange(e.target.value)}
-          className="h-9 border-[#D8DEE8] pr-10"
-        />
-        <button
-          type="button"
-          onClick={onToggle}
-          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#8A97A8] transition-colors hover:text-[#546478]"
-          aria-label={show ? "Hide password" : "Show password"}
-        >
-          <span className="material-icons" style={{ fontSize: "18px" }}>{show ? "visibility_off" : "visibility"}</span>
-        </button>
-      </div>
-    </Field>
-  );
 
   const Toggle = ({ checked, onChange }: { checked: boolean; onChange: () => void }) => (
     <button
@@ -142,9 +169,20 @@ export function Profile() {
 
             <Section title="Change password" subtitle="Minimum 8 characters, with uppercase, number, and special character recommended.">
               <div className="grid grid-cols-1 gap-4">
-                <PasswordField label="Current password" value={currentPassword} onChange={setCurrentPassword} show={showCurrent} onToggle={() => setShowCurrent(v => !v)} />
-                <PasswordField label="New password" value={newPassword} onChange={setNewPassword} show={showNew} onToggle={() => setShowNew(v => !v)} />
-                <PasswordField label="Confirm new password" value={confirmPassword} onChange={setConfirmPassword} show={showConfirm} onToggle={() => setShowConfirm(v => !v)} />
+                <PasswordField label="Current password" value={currentPassword} onChange={editPassword("current", setCurrentPassword)} show={showCurrent} onToggle={() => setShowCurrent(v => !v)} error={pwErrors.current} />
+                <PasswordField label="New password" value={newPassword} onChange={editPassword("next", setNewPassword)} show={showNew} onToggle={() => setShowNew(v => !v)} error={pwErrors.next} />
+                <PasswordField label="Confirm new password" value={confirmPassword} onChange={editPassword("confirm", setConfirmPassword)} show={showConfirm} onToggle={() => setShowConfirm(v => !v)} error={pwErrors.confirm} />
+              </div>
+              <div className="mt-4 flex justify-end">
+                <button
+                  type="button"
+                  onClick={updatePassword}
+                  disabled={!canUpdatePassword}
+                  className="h-9 rounded-lg bg-[#4A6FA5] px-4 text-[13px] text-white transition-colors hover:bg-[#3d5a85] disabled:pointer-events-none disabled:bg-[#C7D2E1]"
+                  style={{ fontWeight: 700 }}
+                >
+                  Update password
+                </button>
               </div>
             </Section>
 
@@ -169,7 +207,7 @@ export function Profile() {
             </Section>
 
             <div className="flex justify-end">
-              <button className="h-9 rounded-lg bg-[#4A6FA5] px-4 text-[13px] text-white transition-colors hover:bg-[#3d5a85]" style={{ fontWeight: 700 }}>
+              <button onClick={() => toast.success("Changes saved")} className="h-9 rounded-lg bg-[#4A6FA5] px-4 text-[13px] text-white transition-colors hover:bg-[#3d5a85]" style={{ fontWeight: 700 }}>
                 Save changes
               </button>
             </div>
