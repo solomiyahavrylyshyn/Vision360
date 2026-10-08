@@ -98,23 +98,26 @@ const today = () => new Date().toLocaleDateString("en-US", { month: "short", day
 // still count in the total but aren't listed.
 const visibleItems = (items: EstimateLineItem[]) => items.filter((i) => !i.hideOnCustomerDocs);
 
-// The full price, folded under the monthly payment: price, the tax inside it,
-// and the deposit due on approval. On a picked (blue) column it reads light.
+// The full price, folded under the monthly payment. Closed it's only a small
+// "Full price ⌄" link; the arrow opens the price, the tax inside it and the
+// deposit due on approval. On a picked (blue) column it reads light.
 function FullPrice({ total, tax, deposit, open, onToggle, onBlue }: {
   total: number; tax: number; deposit: number | null; open: boolean; onToggle: () => void; onBlue?: boolean;
 }) {
-  const box = onBlue ? "bg-white/15 text-white" : "border border-[#D5DDEA] bg-white text-[#1A2332]";
-  const muted = onBlue ? "text-white/80" : "text-[#6B7280]";
+  // Kept quiet on purpose — a small link under the monthly figure, not a box.
+  const link = onBlue ? "text-white/85 hover:text-white" : "text-[#4A6FA5] hover:text-[#3d5a85]";
+  const muted = onBlue ? "text-white/75" : "text-[#6B7280]";
   return (
-    <div className={`mt-3 rounded-lg text-left text-[13px] ${box}`}>
-      <button type="button" onClick={onToggle} aria-expanded={open} className="flex w-full items-center justify-between gap-2 px-3 py-2">
-        <span><span className={muted}>Full price</span> <span className="tabular-nums" style={{ fontWeight: 600 }}>${fmt(total)}</span></span>
-        <span className={`material-icons ${onBlue ? "text-white/85" : "text-[#4A6FA5]"}`} style={{ fontSize: "18px" }}>{open ? "expand_less" : "expand_more"}</span>
+    <div className="mt-1.5 text-[12px]">
+      <button type="button" onClick={onToggle} aria-expanded={open} className={`inline-flex items-center gap-0.5 text-[12px] ${link}`} style={{ fontWeight: 500 }}>
+        Full price
+        <span className="material-icons" style={{ fontSize: "16px" }}>{open ? "expand_less" : "expand_more"}</span>
       </button>
       {open && (
-        <div className="space-y-1 px-3 pb-2.5">
-          <div className="flex justify-between"><span className={muted}>Includes tax</span><span className="tabular-nums">{tax > 0 ? `$${fmt(tax)}` : "no tax"}</span></div>
-          {deposit !== null && <div className="flex justify-between"><span className={muted}>Deposit on approval</span><span className="tabular-nums">${fmt(deposit)}</span></div>}
+        <div className={`mx-auto mt-1 max-w-[220px] space-y-0.5 ${muted}`}>
+          <div className="flex justify-between gap-3"><span>Full price</span><span className={`tabular-nums ${onBlue ? "text-white" : "text-[#1A2332]"}`} style={{ fontWeight: 600 }}>${fmt(total)}</span></div>
+          <div className="flex justify-between gap-3"><span>Includes tax</span><span className="tabular-nums">{tax > 0 ? `$${fmt(tax)}` : "no tax"}</span></div>
+          {deposit !== null && <div className="flex justify-between gap-3"><span>Deposit on approval</span><span className="tabular-nums">${fmt(deposit)}</span></div>}
         </div>
       )}
     </div>
