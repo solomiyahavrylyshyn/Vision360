@@ -251,6 +251,32 @@ export const makePublicToken = (): string => {
   return btoa(uuid).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 };
 
+// The client page demo: "AC Repair or Replace" (three options, sent, with a
+// client link). Databases seeded before options and links existed don't have
+// it, so it is added on load — and kept open (valid 30 days ahead) while it
+// waits for an answer, so /e/<token> always shows the choose-an-option screen.
+export const DEMO_CLIENT_LINK_TOKEN = "ZTNiMGM0NDItOThmYy00YTNhLTgzMGEtNzMxMWI0NDI5Y2M2";
+const dateLabel = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" });
+function ensureClientLinkDemo(rows: EstimateRecord[]): { rows: EstimateRecord[]; added?: EstimateRecord; extended?: { id: number; expirationDate: string } } {
+  const validUntil = dateLabel(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000));
+  const existing = rows.find((e) => e.publicToken === DEMO_CLIENT_LINK_TOKEN);
+  if (!existing) {
+    const seed = SEED.find((e) => e.publicToken === DEMO_CLIENT_LINK_TOKEN);
+    if (!seed) return { rows };
+    const taken = new Set(rows.map((e) => e.id));
+    const id = taken.has(seed.id) ? Math.max(0, ...rows.map((e) => e.id)) + 1 : seed.id;
+    const added = { ...seed, id, status: "Sent" as const, expirationDate: validUntil };
+    return { rows: [...rows, added], added };
+  }
+  const waiting = existing.status === "Sent" || existing.status === "Viewed";
+  const ended = existing.expirationDate && new Date(existing.expirationDate).getTime() < Date.now();
+  if (waiting && ended) {
+    return { rows: rows.map((e) => (e.id === existing.id ? { ...e, expirationDate: validUntil } : e)), extended: { id: existing.id, expirationDate: validUntil } };
+  }
+  return { rows };
+}
+estimates = ensureClientLinkDemo(estimates).rows;
+
 const api = createApiSync<EstimateRecord>("estimates", (e) => e.id);
 
 export const estimatesStore = {
@@ -260,7 +286,16 @@ export const estimatesStore = {
     token ? estimates.find((e) => e.publicToken === token) : undefined,
   subscribe: (listener: Listener) => {
     listeners.push(listener);
-    api.hydrate(estimates, (rows) => { estimates = rows; saveLS(); notify(); });
+    api.hydrate(estimates, (rows) => {
+      // Server rows win; the client-link demo is added (or kept open) and
+      // written back so the database has it too.
+      const demo = ensureClientLinkDemo(rows);
+      estimates = demo.rows;
+      saveLS();
+      notify();
+      if (demo.added) api.persistNew(demo.added);
+      if (demo.extended) api.persistPatch(demo.extended.id, { expirationDate: demo.extended.expirationDate });
+    });
     return () => { listeners = listeners.filter((l) => l !== listener); };
   },
   add: (partial: Partial<EstimateRecord> & { clientName: string }): EstimateRecord => {
