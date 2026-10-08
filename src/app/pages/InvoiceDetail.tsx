@@ -14,7 +14,7 @@ import { itemsStore } from "../stores/itemsStore";
 import { ItemPicker, type CatalogItem } from "../components/ItemPicker";
 import { invoicesStore } from "../stores/invoicesStore";
 import { paymentLinksStore } from "../stores/paymentLinksStore";
-import { CustomFieldChips } from "../components/CustomFields";
+import { CustomFieldInputs, CustomFieldValues, type CfValues } from "../components/CustomFields";
 
 // A job linked to the invoice, rendered as one accordion section in the
 // Job Details card.
@@ -420,6 +420,19 @@ export function InvoiceDetail() {
   });
 
   const [notesTab, setNotesTab] = useState<NotesTabKey>("customer");
+
+  // Custom fields edited under the notes. A stored invoice keeps them as
+  // customField1/2; a demo invoice keeps them in page state.
+  useSyncExternalStore(invoicesStore.subscribe, invoicesStore.getSnapshot);
+  const invoiceRecord = invoicesStore.getById(Number(id));
+  const [demoCustomFields, setDemoCustomFields] = useState<CfValues>({ "0": data.customField1 ?? "", "1": data.customField2 ?? "" });
+  const invoiceCustomFields: CfValues = invoiceRecord
+    ? { "0": invoiceRecord.customField1 ?? "", "1": invoiceRecord.customField2 ?? "" }
+    : demoCustomFields;
+  const setInvoiceCustomFields = (next: CfValues) =>
+    invoiceRecord
+      ? invoicesStore.update(invoiceRecord.id, { customField1: next["0"] ?? "", customField2: next["1"] ?? "" })
+      : setDemoCustomFields(next);
 
 
   // Void confirm
@@ -844,6 +857,24 @@ export function InvoiceDetail() {
               </>
             )}
           </div>
+
+          {/* Custom fields (Settings → General → Custom fields → Invoices), at the
+              bottom of the notes card and edited in place, as on the client page.
+              A paid invoice is locked, so there they are read-only. */}
+          <div className="px-4 pt-3 pb-4 border-t border-[#E5E7EB]">
+            <div className="text-[14px] text-[#1A2332] mb-2" style={{ fontWeight: 600 }}>Custom Fields</div>
+            {isLocked ? (
+              <CustomFieldValues entity="invoices" values={invoiceCustomFields} />
+            ) : (
+              <CustomFieldInputs
+                entity="invoices"
+                columns={1}
+                idPrefix={`invoice-${id}`}
+                values={invoiceCustomFields}
+                onChange={setInvoiceCustomFields}
+              />
+            )}
+          </div>
         </div>
       </ResizablePanel>
     </ResizablePanelGroup>
@@ -987,13 +1018,6 @@ export function InvoiceDetail() {
                   <span className="material-icons" style={{ fontSize: "14px" }}>mail</span>
                   Sent {fmtDate(data.dateSent)}
                 </div>
-                {/* Custom fields (Settings → General → Custom fields → Invoices). */}
-                {(() => {
-                  const rec = invoicesStore.getById(Number(id));
-                  const cf1 = rec?.customField1 ?? data.customField1 ?? "";
-                  const cf2 = rec?.customField2 ?? data.customField2 ?? "";
-                  return <CustomFieldChips entity="invoices" values={{ "0": cf1, "1": cf2 }} />;
-                })()}
               </div>
             </div>
 

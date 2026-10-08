@@ -17,7 +17,7 @@ import { jobsStore } from "../stores/jobsStore";
 import { formatRegionalDate } from "../stores/regionalSettingsStore";
 import { documentTemplateStore } from "../stores/documentTemplateStore";
 import { estimateSettingsStore } from "../stores/estimateSettingsStore";
-import { CustomFieldChips } from "../components/CustomFields";
+import { CustomFieldInputs, type CfValues } from "../components/CustomFields";
 import { EstimateOptionsSheet, EstimateSingleSheet, EstimateTermsPage, PrintPageRule, money, useDocCompany, type EstimateOptionsData, type EstimateSingleData, type EstimateTermsData } from "../components/DocumentSheets";
 import { ItemPicker, type CatalogItem } from "../components/ItemPicker";
 import { itemsStore } from "../stores/itemsStore";
@@ -338,6 +338,12 @@ export function EstimateDetail() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [latestRecord?.status, latestRecord?.selectedOptionName]);
+  // Custom fields edited under the notes. A demo estimate has no store record,
+  // so its values live in page state.
+  const [demoCustomFields, setDemoCustomFields] = useState<CfValues>({});
+  const estimateCustomFields = latestRecord ? latestRecord.customFields : demoCustomFields;
+  const setEstimateCustomFields = (next: CfValues) =>
+    latestRecord ? estimatesStore.update(latestRecord.id, { customFields: next }) : setDemoCustomFields(next);
   const initialTabKey = (searchParams.get("tab") as TabKey) || "details";
   const [activeTab, setActiveTabState] = useState<TabKey>(initialTabKey);
   const setActiveTab = (key: TabKey) => {
@@ -873,6 +879,19 @@ export function EstimateDetail() {
               )}
             </div>
           )}
+
+          {/* Custom fields (Settings → General → Custom fields → Estimates), at the
+              bottom of the notes card and edited in place, as on the client page. */}
+          <div className="shrink-0 px-4 pt-3 pb-4 border-t border-[#E5E7EB]">
+            <div className="text-[14px] text-[#1A2332] mb-2" style={{ fontWeight: 600 }}>Custom Fields</div>
+            <CustomFieldInputs
+              entity="estimates"
+              columns={1}
+              idPrefix={`estimate-${estimate.id}`}
+              values={estimateCustomFields}
+              onChange={setEstimateCustomFields}
+            />
+          </div>
         </div>
 
       </ResizablePanel>
@@ -1434,8 +1453,6 @@ export function EstimateDetail() {
                   <span className="text-[#6B7280]">Sent:</span>
                   <span className="text-[#374151]">{estimate.sentDate && estimate.sentDate !== "Not Sent" ? estimate.sentDate : "Not sent"}</span>
                 </div>
-                {/* Custom fields (Settings → General → Custom fields → Estimates). */}
-                <CustomFieldChips entity="estimates" values={estimatesStore.getById(estimate.id)?.customFields} />
               </div>
             </div>
 

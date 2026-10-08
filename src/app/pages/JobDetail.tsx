@@ -17,7 +17,7 @@ import { formatRegionalDate } from "../stores/regionalSettingsStore";
 import { jobsStore, type JobRecord, type JobLineItem } from "../stores/jobsStore";
 import { itemsStore } from "../stores/itemsStore";
 import { ItemPicker, catalogItemToLineItem, type CatalogItem } from "../components/ItemPicker";
-import { CustomFieldValues } from "../components/CustomFields";
+import { CustomFieldInputs, type CfValues } from "../components/CustomFields";
 import { clientsStore } from "../stores/clientsStore";
 import { estimatesStore } from "../stores/estimatesStore";
 import { invoicesStore } from "../stores/invoicesStore";
@@ -502,6 +502,12 @@ export function JobDetail() {
   useSyncExternalStore(jobsStore.subscribe, jobsStore.getSnapshot);
   const storeJob = jobsStore.getById(Number(id));
   const mockFallback = mockJobData[id || "1"] || mockJobData["1"];
+  // Custom fields edited under the notes. A demo job has no store record, so its
+  // values live in page state.
+  const [demoCustomFields, setDemoCustomFields] = useState<CfValues>({});
+  const jobCustomFields = storeJob ? storeJob.customFields : demoCustomFields;
+  const setJobCustomFields = (next: CfValues) =>
+    storeJob ? jobsStore.update(storeJob.id, { customFields: next }) : setDemoCustomFields(next);
 
   // Promote a jobsStore record to the shape JobDetail expects.
   const jobFromStore = storeJob ? (() => {
@@ -999,13 +1005,6 @@ export function JobDetail() {
                 <div className="text-[14px] text-[#6B7280] leading-[20px]">Assigned to</div>
                 <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>{assignedTo || "Unassigned"}{assignedTo ? " • Technician" : ""}</div>
               </div>
-              {/* Custom fields (Settings → General → Custom fields → Jobs). */}
-              <CustomFieldValues
-                entity="jobs"
-                values={storeJob?.customFields}
-                labelClassName="text-[14px] text-[#6B7280] leading-[20px]"
-                valueClassName="text-[14px] text-[#1A2332]"
-              />
               <div>
                 <div className="text-[14px] text-[#6B7280] leading-[20px]">Service Address</div>
                 <div className="text-[14px] text-[#1A2332] leading-[20px]" style={{ fontWeight: 500 }}>
@@ -1175,6 +1174,19 @@ export function JobDetail() {
               {notesExpanded ? "Show less" : `Show ${activeNotes.length - SHOW_N} more`}
             </button>
           )}
+
+          {/* Custom fields (Settings → General → Custom fields → Jobs), at the bottom
+              of the notes card and edited in place, as on the client page. */}
+          <div className="shrink-0 pt-3 mt-2 pb-4 border-t border-[#E5E7EB]">
+            <div className="text-[14px] text-[#1A2332] mb-2" style={{ fontWeight: 600 }}>Custom Fields</div>
+            <CustomFieldInputs
+              entity="jobs"
+              columns={1}
+              idPrefix={`job-${id}`}
+              values={jobCustomFields}
+              onChange={setJobCustomFields}
+            />
+          </div>
         </div>
         </ResizablePanel>
 

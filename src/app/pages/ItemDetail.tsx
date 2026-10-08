@@ -9,7 +9,7 @@ import { ITEM_TYPES } from "./Items";
 import { categoriesStore } from "../stores/categoriesStore";
 import { CostField, CostSplitBlock } from "../components/CostBreakdownPanel";
 import { COST_COMPONENTS, breakdownForItem, type CostBreakdown } from "../utils/itemCost";
-import { CustomFieldValues } from "../components/CustomFields";
+import { CustomFieldInputs } from "../components/CustomFields";
 
 // Classification option lists (mirror the Create-item form).
 const MANUFACTURERS = ["Carrier", "Trane", "Lennox", "Goodman", "Rheem", "Ferguson", "Square D", "Ecobee"];
@@ -409,19 +409,20 @@ export function ItemDetail() {
         {/* divider + Custom Fields (same card) */}
         <div className="my-4 border-t border-[#E5E7EB]" />
         <h3 className="mb-3 text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Custom Fields</h3>
-        {/* Only show a custom field when it actually has a value — otherwise just
-            the configure link (Marek: empty custom fields shouldn't render). */}
-        {/* Custom fields (Settings → General → Custom fields → Items). */}
-        <CustomFieldValues
+        {/* Custom fields (Settings → General → Custom fields → Items), edited in place
+            as on the client page. A created item saves to itemsStore; a demo item
+            keeps the change in the page's overrides layer. */}
+        <CustomFieldInputs
           entity="items"
+          columns={1}
+          idPrefix={`item-${item.id}`}
           values={{ "0": item.customField1, "1": item.customField2 }}
-          labelClassName="text-[11px] text-[#9CA3AF] leading-[16px]"
-          valueClassName="text-[14px] text-[#374151] leading-[22px]"
+          onChange={(next) => {
+            const patch = { customField1: next["0"] ?? "", customField2: next["1"] ?? "" };
+            if (stored) itemsStore.upsert({ ...stored, ...patch });
+            else setItem(patch);
+          }}
         />
-        <div className="mt-3 text-[11px] text-[#9CA3AF]">
-          Configure in{" "}
-          <button onClick={() => navigate("/settings?section=general")} className="text-[11px] text-[#4A6FA5] hover:underline" style={{ fontWeight: 500 }}>Settings &gt; Custom Fields</button>
-        </div>
       </div>
     </div>
     </div>
