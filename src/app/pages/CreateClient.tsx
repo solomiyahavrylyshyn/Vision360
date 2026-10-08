@@ -1,5 +1,11 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
+import { CLIENT_NAME_ERROR, CLIENT_NAME_HINT, clientDisplayName, clientInitials, hasClientName } from "../utils/clientName";
+
+// Returned by validate() when none of the four name fields is filled — shown on
+// the fields themselves rather than as a toast.
+const NAME_MISSING = "__client_name_missing__";
+const NAME_FIELDS = ["firstName", "lastName", "preferredName", "company"];
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
@@ -181,12 +187,14 @@ export function CreateClient() {
 
   // Custom fields (Settings → General → Custom fields → Clients).
   const [cfValues, setCfValues] = useState<CfValues>({});
+  // CR "client name": one of first / last / preferred / company is enough.
+  const [nameError, setNameError] = useState(false);
+  const nameBlockRef = useRef<HTMLDivElement>(null);
 
   const validate = (): string | null => {
     const digitCount = (s: string) => (s.match(/\d/g) || []).length;
 
-    if (!formData.firstName.trim()) return "First name is required";
-    if (!formData.lastName.trim()) return "Last name is required";
+    if (!hasClientName(formData)) return NAME_MISSING;
 
     // Primary phone — required + must look like a real phone number.
     if (!formData.mobilePhone.trim()) return "Primary phone is required";
@@ -215,10 +223,21 @@ export function CreateClient() {
     return null;
   };
 
+  // The name rule highlights the four fields and says so under them; anything
+  // else is a toast, as before.
+  const showError = (error: string) => {
+    if (error === NAME_MISSING) {
+      setNameError(true);
+      nameBlockRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+    toast.error(error);
+  };
+
   const persistClient = (): string => {
     const existing = clientsStore.getSnapshot();
     const id = String(Math.max(10250, ...existing.map((c) => Number(c.id) || 0)) + 1);
-    const initials = ((formData.firstName[0] || "") + (formData.lastName[0] || "")).toUpperCase() || "C";
+    const initials = clientInitials(formData);
     const palette = ["#4A6FA5", "#3B82F6", "#8B5CF6", "#D97706", "#10B981", "#DC2626"];
     const today = formatRegionalDate(new Date());
     // Drop the seeded blank contact (and any other fully-empty rows).
@@ -228,7 +247,7 @@ export function CreateClient() {
     clientsStore.addClient(
       clientsStore.makeRecord({
         id,
-        name: `${formData.firstName} ${formData.lastName}`.trim(),
+        name: clientDisplayName(formData),
         firstName: formData.firstName,
         lastName: formData.lastName,
         initials,
@@ -279,7 +298,7 @@ export function CreateClient() {
     e.preventDefault();
     const error = validate();
     if (error) {
-      toast.error(error);
+      showError(error);
       return;
     }
     const newClientId = persistClient();
@@ -288,7 +307,7 @@ export function CreateClient() {
     // the symptom questionnaire) for the client just created, instead of
     // dropping onto their detail page.
     if (csrMode && !returnTo) {
-      const clientName = `${formData.firstName} ${formData.lastName}`.trim();
+      const clientName = clientDisplayName(formData);
       navigate(`/jobs/new?client=${encodeURIComponent(clientName)}&csr=1&sandbox=sample`);
       return;
     }
@@ -298,7 +317,7 @@ export function CreateClient() {
   const handleSaveAndCreateAnother = () => {
     const error = validate();
     if (error) {
-      toast.error(error);
+      showError(error);
       return;
     }
     persistClient();
@@ -336,6 +355,7 @@ export function CreateClient() {
     field: keyof ClientFormData,
     value: string | boolean,
   ) => {
+    if (nameError && NAME_FIELDS.includes(field as string)) setNameError(false);
     setFormData((prev) => {
       const next = { ...prev, [field]: value };
       if (csrMode && field === "zip" && typeof value === "string") {
@@ -395,6 +415,7 @@ export function CreateClient() {
   const labelCls = "block text-[14px] text-[#1A2332] mb-1.5";
   const inputCls = "border-[#E5E7EB] bg-white h-10 text-[14px]";
   const req = <span className="text-[#DC2626]">*</span>;
+  const nameCls = nameError ? `${inputCls} border-[#DC2626] focus-visible:ring-[#DC2626]/20` : inputCls;
 
   return (
     <div className="bg-[#F5F7FA] min-h-full">
@@ -421,9 +442,11 @@ export function CreateClient() {
               <h2 className="text-[16px] text-[#1A2332]" style={{ fontWeight: 600 }}>Contact info</h2>
             </div>
             <div className="space-y-4 max-w-[780px]">
+              <div ref={nameBlockRef} className="space-y-4">
+              <p className="text-[13px] text-[#6B7280]">{CLIENT_NAME_HINT}</p>
               {/* Name: Title + First + M.I. + Last */}
               <div>
-                <Label className={labelCls} style={{ fontWeight: 500 }}>Name {req}</Label>
+                <Label className={labelCls} style={{ fontWeight: 500 }}>Name</Label>
                 <div className="grid grid-cols-[120px_1fr_64px_1fr] gap-3">
                   <Select
                     value={formData.title || "none"}
@@ -444,10 +467,10 @@ export function CreateClient() {
                   <Input
                     type="text"
                     placeholder="First name"
-                    required
                     value={formData.firstName}
                     onChange={(e) => handleChange("firstName", e.target.value)}
-                    className={inputCls}
+                    aria-invalid={nameError}
+                    className={nameCls}
                   />
                   <Input
                     type="text"
@@ -460,10 +483,10 @@ export function CreateClient() {
                   <Input
                     type="text"
                     placeholder="Last name"
-                    required
                     value={formData.lastName}
                     onChange={(e) => handleChange("lastName", e.target.value)}
-                    className={inputCls}
+                    aria-invalid={nameError}
+                    className={nameCls}
                   />
                 </div>
               </div>
@@ -477,7 +500,8 @@ export function CreateClient() {
                     placeholder="e.g. Mia, Bobby, TJ"
                     value={formData.preferredName}
                     onChange={(e) => handleChange("preferredName", e.target.value)}
-                    className={inputCls}
+                    aria-invalid={nameError}
+                    className={nameCls}
                   />
                 </div>
                 <div>
@@ -487,7 +511,8 @@ export function CreateClient() {
                     placeholder="Company name"
                     value={formData.company}
                     onChange={(e) => handleChange("company", e.target.value)}
-                    className={inputCls}
+                    aria-invalid={nameError}
+                    className={nameCls}
                   />
                 </div>
                 <div>
@@ -500,6 +525,8 @@ export function CreateClient() {
                     className={inputCls}
                   />
                 </div>
+              </div>
+              {nameError && <p className="text-[13px] text-[#DC2626]">{CLIENT_NAME_ERROR}</p>}
               </div>
             </div>
           </section>

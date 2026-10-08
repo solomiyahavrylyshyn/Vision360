@@ -1,6 +1,7 @@
 // Unified clients store — the single source of truth for BOTH the Clients list
 // and the Client detail page. Reactive via useSyncExternalStore.
 import { createApiSync } from "./apiSync";
+import { clientDisplayName, clientInitials } from "../utils/clientName";
 
 type Listener = () => void;
 
@@ -482,13 +483,24 @@ export const clientsStore = {
     };
   },
   addClient: (record: ClientRecord) => {
-    const normalized = ensureServiceAddress(record);
+    const named = clientDisplayName(record) ? { ...record, name: clientDisplayName(record), initials: clientInitials(record) } : record;
+    const normalized = ensureServiceAddress(named);
     clients = [normalized, ...clients];
     saveLS();
     notify();
     api.persistNew(normalized);
   },
   updateClient: (id: string, patch: Partial<ClientRecord>) => {
+    // Editing any of the four name fields re-derives the name the app shows.
+    const touchesName = ["firstName", "lastName", "preferredName", "company"].some((k) => k in patch);
+    if (touchesName) {
+      const current = clients.find((c) => c.id === id);
+      if (current) {
+        const merged = { ...current, ...patch };
+        const name = clientDisplayName(merged);
+        if (name) patch = { ...patch, name, initials: clientInitials(merged) };
+      }
+    }
     clients = clients.map((c) => (c.id === id ? { ...c, ...patch } : c));
     saveLS();
     notify();

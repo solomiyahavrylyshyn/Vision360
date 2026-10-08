@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { toast } from "sonner";
+import { clientGreeting } from "../utils/clientName";
 
 // Send payment reminder (Figma 2493:19011 on Clients, 2866:72710 on Invoices) —
 // one modal serving both entry points: the client row kebab and the invoice row
@@ -8,6 +9,10 @@ import { toast } from "sonner";
 
 export interface ReminderRecipient {
   name: string;
+  /** The client's name parts, when known — the greeting is built from them. */
+  firstName?: string;
+  preferredName?: string;
+  company?: string;
   email: string;
   initials: string;
   avatarColor?: string;
@@ -37,11 +42,14 @@ export function SendReminderModal({
 }) {
   const days = invoice.daysOverdue ?? 0;
   const overdue = days > 0;
-  const firstName = recipient.name.split(" ")[0];
+  // "Hi John," / "Hello," — a company-only client gets no first name.
+  const greeting = recipient.firstName !== undefined || recipient.company !== undefined
+    ? clientGreeting(recipient)
+    : `Hi ${recipient.name.split(" ")[0]},`;
   const [message, setMessage] = useState(
     overdue
-      ? `Hi ${firstName}, this is a friendly reminder that invoice ${invoice.number} for $${fmt(invoice.amount)} is now ${days} day${days === 1 ? "" : "s"} overdue. You can pay securely using the link below. Thank you! — ${companyName}`
-      : `Hi ${firstName}, this is a friendly reminder about your outstanding balance of $${fmt(invoice.amount)} on invoice ${invoice.number}. You can pay securely using the link below. Thank you! — ${companyName}`
+      ? `${greeting} this is a friendly reminder that invoice ${invoice.number} for $${fmt(invoice.amount)} is now ${days} day${days === 1 ? "" : "s"} overdue. You can pay securely using the link below. Thank you! — ${companyName}`
+      : `${greeting} this is a friendly reminder about your outstanding balance of $${fmt(invoice.amount)} on invoice ${invoice.number}. You can pay securely using the link below. Thank you! — ${companyName}`
   );
 
   return (

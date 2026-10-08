@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router";
 import { ItemPicker, catalogItemToLineItem, type CatalogItem, type SelectedLineItem } from "../components/ItemPicker";
 import { jobTypesStore } from "../stores/jobTypesStore";
 import { clientsStore } from "../stores/clientsStore";
+import { clientSearchText, clientSecondLine } from "../utils/clientName";
 import { jobsStore } from "../stores/jobsStore";
 import { estimatesStore } from "../stores/estimatesStore";
 import { toast } from "sonner";
@@ -389,7 +390,7 @@ export function CreateJob({ asModal = false, onClose, onCreated, prefill, headin
       if (!query) return true;
       const addr = [c.address, c.city, c.state, c.zip].filter(Boolean).join(", ");
       return (
-        c.name.toLowerCase().includes(query) ||
+        clientSearchText(c).includes(query) ||
         addr.toLowerCase().includes(query) ||
         c.email.toLowerCase().includes(query) ||
         (c.mobilePhone || c.phone || "").includes(query)
@@ -398,6 +399,7 @@ export function CreateJob({ asModal = false, onClose, onCreated, prefill, headin
     .map((c) => ({
       id: c.id,
       name: c.name,
+      company: clientSecondLine(c),
       address: [c.address, c.city, c.state, c.zip].filter(Boolean).join(", "),
     }));
 
@@ -797,6 +799,7 @@ export function CreateJob({ asModal = false, onClose, onCreated, prefill, headin
                           className="w-full px-3 py-2.5 text-left hover:bg-[#F5F7FA]"
                         >
                           <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{mockClient.name}</div>
+                          {mockClient.company && <div className="text-[12px] text-[#6B7280]">{mockClient.company}</div>}
                           <div className="text-[11px] text-[#8899AA]">{mockClient.address}</div>
                         </button>
                       ))}

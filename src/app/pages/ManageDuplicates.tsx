@@ -30,8 +30,12 @@ function groupKey(client: ClientRecord, field: MatchField): string {
     case "Email":
       return normalise(client.email);
     case "Name":
-      // Exact display-name match (normalised) — per the walkthrough.
-      return normalise(client.name);
+      // Exact display-name match (normalised) — per the walkthrough. A client
+      // with no first or last name is matched on its company instead, so
+      // company-only clients aren't all duplicates of each other.
+      return (client.firstName || client.lastName)
+        ? normalise(client.name)
+        : client.company ? "company:" + normalise(client.company) : normalise(client.name);
     case "Property address":
       // Normalise street + zip (ignores unit/apt differences).
       return normalise(client.address + client.zip);

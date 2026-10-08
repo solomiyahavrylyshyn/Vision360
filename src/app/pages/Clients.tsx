@@ -12,6 +12,7 @@ import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { useDraggableColumns, DraggableTh } from "../components/ui/draggable-columns";
 import { clientsStore, deriveClientStatus, type NoteEntry } from "../stores/clientsStore";
+import { clientSearchText, clientSecondLine } from "../utils/clientName";
 import { jobsStore } from "../stores/jobsStore";
 import { SendReminderModal } from "../components/SendReminderModal";
 import { toast } from "sonner";
@@ -101,7 +102,8 @@ export function Clients() {
       initials: c.initials,
       avatarColor: c.avatarColor,
       name: c.name,
-      company: c.company || null,
+      company: clientSecondLine(c) || null,
+      searchText: clientSearchText(c),
       email: c.email,
       phone: c.phone || c.mobilePhone,
       address: `${c.address}, ${c.city}, ${c.state} ${c.zip}`,
@@ -251,7 +253,7 @@ export function Clients() {
   const filterSelectCls = "w-full h-11 px-3 border border-[#E5E7EB] rounded-lg text-[14px] text-[#374151] bg-white focus:outline-none focus:border-[#4A6FA5] disabled:bg-[#F5F7FA] disabled:text-[#9CA3AF] disabled:cursor-not-allowed";
 
   const filteredClients = clients.filter(client => {
-    const matchesSearch = !searchQuery || client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    const matchesSearch = !searchQuery || (client as Client & { searchText?: string }).searchText?.includes(searchQuery.toLowerCase()) || client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       client.phone.includes(searchQuery) || client.address.toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesQfBalance =
@@ -996,6 +998,8 @@ export function Clients() {
             <SendReminderModal
               recipient={{
                 name: reminderClient.name,
+                // Name parts for the greeting ("Hi John," / "Hello,").
+                ...(() => { const r = storeClients.find((c) => c.id === reminderClient.id); return r ? { firstName: r.firstName, preferredName: r.preferredName, company: r.company } : {}; })(),
                 email: reminderClient.email,
                 initials: reminderClient.initials,
                 avatarColor: reminderClient.avatarColor,

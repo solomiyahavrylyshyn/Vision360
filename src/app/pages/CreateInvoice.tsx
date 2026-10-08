@@ -2,6 +2,7 @@
 import { useNavigate, useSearchParams } from "react-router";
 import { toast } from "sonner";
 import { clientsStore } from "../stores/clientsStore";
+import { clientSecondLine } from "../utils/clientName";
 import { jobsStore } from "../stores/jobsStore";
 import { estimatesStore } from "../stores/estimatesStore";
 import { invoicesStore } from "../stores/invoicesStore";
@@ -40,6 +41,8 @@ export function CreateInvoice() {
   const [client, setClient] = useState(searchParams.get("client") || "");
   const liveClients = useSyncExternalStore(clientsStore.subscribe, clientsStore.getSnapshot);
   const clientNames = liveClients.map((c) => c.name);
+  // "John Smith — ABC Plumbing" when the client is a person at a company.
+  const clientLabel = (name: string) => { const c = liveClients.find((x) => x.name === name); const co = c ? clientSecondLine(c) : ""; return co ? `${name} — ${co}` : name; };
   const clientOptions = client && !clientNames.includes(client) ? [client, ...clientNames] : clientNames;
 
   const liveJobs = useSyncExternalStore(jobsStore.subscribe, jobsStore.getSnapshot);
@@ -312,7 +315,7 @@ export function CreateInvoice() {
                 <label className={labelClass}>Client name {reqStar}</label>
                 <select value={client} onChange={(e) => setClient(e.target.value)} className={fieldClass}>
                   <option value="">Select client</option>
-                  {clientOptions.map(c => <option key={c} value={c}>{c}</option>)}
+                  {clientOptions.map(c => <option key={c} value={c}>{clientLabel(c)}</option>)}
                 </select>
               </div>
               <div>

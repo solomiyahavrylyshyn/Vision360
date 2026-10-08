@@ -6,6 +6,7 @@ import { paymentsStore } from "../stores/paymentsStore";
 import type { PaymentMethod, PaymentStatus } from "./Payments";
 import { invoicesStore, type Invoice } from "../stores/invoicesStore";
 import { clientsStore } from "../stores/clientsStore";
+import { clientSearchText, clientSecondLine } from "../utils/clientName";
 import { paymentLinksStore } from "../stores/paymentLinksStore";
 import { isCardExpired, saveCardOnFile } from "../utils/savedCard";
 
@@ -117,7 +118,7 @@ export function CreatePayment() {
   const clientMatches = useMemo(() => {
     const q = clientQuery.trim().toLowerCase();
     const list = q
-      ? clients.filter((c) => c.name.toLowerCase().includes(q) || (c.email || "").toLowerCase().includes(q) || (c.mobilePhone || c.phone || "").toLowerCase().includes(q))
+      ? clients.filter((c) => clientSearchText(c).includes(q))
       : clients;
     return list.slice(0, 8);
   }, [clients, clientQuery]);
@@ -348,7 +349,7 @@ export function CreatePayment() {
                           <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[12px] shrink-0" style={{ fontWeight: 600, backgroundColor: c.avatarColor || "#4A6FA5" }}>{c.initials || c.name.slice(0, 2).toUpperCase()}</div>
                           <div className="min-w-0">
                             <div className="text-[14px] text-[#1A2332] truncate" style={{ fontWeight: 500 }}>{c.name}</div>
-                            <div className="text-[12px] text-[#6B7280] truncate">{c.email || c.mobilePhone || c.phone}</div>
+                            <div className="text-[12px] text-[#6B7280] truncate">{[clientSecondLine(c), c.email || c.mobilePhone || c.phone].filter(Boolean).join(" · ")}</div>
                           </div>
                         </button>
                       ))}

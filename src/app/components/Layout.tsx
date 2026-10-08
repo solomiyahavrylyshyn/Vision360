@@ -15,6 +15,7 @@ import {
 import { BRAND_LOGO_EVENT, getStoredBrandLogo } from "../utils/brandTheme";
 import { formatTrialDate, getTrialDaysRemaining, isTrialActive, trialStore } from "../stores/trialStore";
 import { clientsStore } from "../stores/clientsStore";
+import { clientSearchText } from "../utils/clientName";
 import { setupStore } from "../stores/setupStore";
 import { useT } from "../i18n";
 
@@ -157,7 +158,7 @@ export function Layout() {
 
     if (searchFilter === "All" || searchFilter === "Clients") {
       allClients
-        .filter(c => c.name.toLowerCase().includes(query) || (c.email || "").toLowerCase().includes(query) || (c.phone || c.mobilePhone || "").includes(query))
+        .filter(c => clientSearchText(c).includes(query))
         .slice(0, 8)
         .forEach(c => results.push({ type: "client", data: { id: c.id, name: c.name, email: c.email, phone: c.phone || c.mobilePhone, address: `${c.address}, ${c.city}, ${c.state} ${c.zip}` } }));
     }

@@ -32,6 +32,7 @@ import { toast } from "sonner";
 import { formatRegionalDate } from "../stores/regionalSettingsStore";
 import { clientsStore, deriveClientStatus } from "../stores/clientsStore";
 import { cardLabel, isCardExpired, removeCardOnFile } from "../utils/savedCard";
+import { CLIENT_NAME_ERROR, CLIENT_NAME_HINT, hasClientName } from "../utils/clientName";
 import { estimatesStore } from "../stores/estimatesStore";
 import { jobsStore, type JobRecord } from "../stores/jobsStore";
 import { invoicesStore, type InvoiceStatus } from "../stores/invoicesStore";
@@ -555,6 +556,12 @@ export function ClientDetail() {
   const [addressForm, setAddressForm] = useState({ street: "", unit: "", city: "", state: "", zip: "", county: "", country: "United States", notes: "" });
   const [editNotesOpen, setEditNotesOpen] = useState(false);
   const [removeCardOpen, setRemoveCardOpen] = useState(false);
+  // CR "client name": one of first / last / preferred / company is enough.
+  const [nameError, setNameError] = useState(false);
+  const nameInputBase = "border-[#E5E7EB] bg-white h-9 text-[14px] rounded-[8px] shadow-[0px_1px_2px_rgba(0,0,0,0.05)]";
+  const nameInputCls = nameError ? nameInputBase.replace("border-[#E5E7EB]", "border-[#DC2626]") : nameInputBase;
+  // A fresh edit (another modal, or the inline form) starts without the red.
+  useEffect(() => { setNameError(false); }, [editingSection, isEditing]);
   const [notesDraft, setNotesDraft] = useState("");
   // Reusable delete confirmation (Figma 489:34912)
   const [pendingDelete, setPendingDelete] = useState<null | (() => void)>(null);
@@ -739,11 +746,9 @@ export function ClientDetail() {
 
   const handleSaveClick = () => {
     // Every client must carry name, a primary phone and an address (Marek rule).
-    const firstName = (editedClient.firstName || "").trim();
-    const lastName = (editedClient.lastName || "").trim();
     const phone = (editedClient.mobilePhone || "").trim();
     const hasAddress = Boolean((editedClient.address || "").trim()) || serviceAddresses.length > 0;
-    if (!firstName || !lastName) { toast.error("First and last name are required"); return; }
+    if (!hasClientName(editedClient)) { setNameError(true); return; }
     if (!phone) { toast.error("A primary phone number is required"); return; }
     if (!hasAddress) { toast.error("A service address is required — add one in the Properties tab"); return; }
     clientsStore.updateClient(client.id, editedClient);
@@ -752,11 +757,13 @@ export function ClientDetail() {
   };
 
   const handleCancelClick = () => {
+    setNameError(false);
     setEditedClient(client);
     setIsEditing(false);
   };
 
   const handleFieldChange = (field: string, value: any) => {
+    if (nameError && ["firstName", "lastName", "preferredName", "company"].includes(field)) setNameError(false);
     setEditedClient((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -1305,9 +1312,10 @@ export function ClientDetail() {
             <Label className="text-[14px] text-[#1A2332] mb-2 block" style={{ fontWeight: 500 }}>Client number</Label>
             <Input placeholder="e.g. 10245" value={editedClient.customerId} onChange={(e) => handleFieldChange("customerId", e.target.value)} className="border-[#E5E7EB] bg-white h-9 text-[14px] rounded-[8px] shadow-[0px_1px_2px_rgba(0,0,0,0.05)]" />
           </div>
+          <p className="text-[13px] text-[#6B7280]">{CLIENT_NAME_HINT}</p>
           {/* Name row */}
           <div>
-            <Label className="text-[14px] text-[#1A2332] mb-2 block" style={{ fontWeight: 500 }}>Name <span className="text-[#DC2626]">*</span></Label>
+            <Label className="text-[14px] text-[#1A2332] mb-2 block" style={{ fontWeight: 500 }}>Name</Label>
             <div className="grid grid-cols-[100px_1fr_60px_1fr] gap-3">
               <Select value={editedClient.title || "none"} onValueChange={(v) => handleFieldChange("title", v === "none" ? "" : v)}>
                 <SelectTrigger className="border-[#E5E7EB] bg-white h-9 text-[14px] rounded-[8px] shadow-[0px_1px_2px_rgba(0,0,0,0.05)]"><SelectValue placeholder="Title" /></SelectTrigger>
@@ -1316,27 +1324,28 @@ export function ClientDetail() {
                   {["Mr.", "Mrs.", "Ms.", "Dr.", "Prof."].map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
                 </SelectContent>
               </Select>
-              <Input placeholder="First name" value={editedClient.firstName} onChange={(e) => handleFieldChange("firstName", e.target.value)} className="border-[#E5E7EB] bg-white h-9 text-[14px] rounded-[8px] shadow-[0px_1px_2px_rgba(0,0,0,0.05)]" />
+              <Input placeholder="First name" value={editedClient.firstName} onChange={(e) => handleFieldChange("firstName", e.target.value)} className={nameInputCls} />
               <Input placeholder="M.I." value={editedClient.middleInitial} onChange={(e) => handleFieldChange("middleInitial", e.target.value.slice(0,1).toUpperCase())} className="border-[#E5E7EB] bg-white h-9 text-[14px] rounded-[8px] shadow-[0px_1px_2px_rgba(0,0,0,0.05)]" maxLength={1} />
-              <Input placeholder="Last name" value={editedClient.lastName} onChange={(e) => handleFieldChange("lastName", e.target.value)} className="border-[#E5E7EB] bg-white h-9 text-[14px] rounded-[8px] shadow-[0px_1px_2px_rgba(0,0,0,0.05)]" />
+              <Input placeholder="Last name" value={editedClient.lastName} onChange={(e) => handleFieldChange("lastName", e.target.value)} className={nameInputCls} />
             </div>
           </div>
           {/* Preferred name */}
           <div>
             <Label className="text-[14px] text-[#1A2332] mb-2 block" style={{ fontWeight: 500 }}>Preferred name (Goes by)</Label>
-            <Input placeholder="e.g. Mia, Bobby, TJ" value={editedClient.preferredName} onChange={(e) => handleFieldChange("preferredName", e.target.value)} className="border-[#E5E7EB] bg-white h-9 text-[14px] rounded-[8px] shadow-[0px_1px_2px_rgba(0,0,0,0.05)]" />
+            <Input placeholder="e.g. Mia, Bobby, TJ" value={editedClient.preferredName} onChange={(e) => handleFieldChange("preferredName", e.target.value)} className={nameInputCls} />
           </div>
           {/* Company + Role */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label className="text-[14px] text-[#1A2332] mb-2 block" style={{ fontWeight: 500 }}>Company name</Label>
-              <Input placeholder="Company name" value={editedClient.company} onChange={(e) => handleFieldChange("company", e.target.value)} className="border-[#E5E7EB] bg-white h-9 text-[14px] rounded-[8px] shadow-[0px_1px_2px_rgba(0,0,0,0.05)]" />
+              <Input placeholder="Company name" value={editedClient.company} onChange={(e) => handleFieldChange("company", e.target.value)} className={nameInputCls} />
             </div>
             <div>
               <Label className="text-[14px] text-[#1A2332] mb-2 block" style={{ fontWeight: 500 }}>Role</Label>
               <Input placeholder="e.g. Owner, Manager" value={editedClient.role} onChange={(e) => handleFieldChange("role", e.target.value)} className="border-[#E5E7EB] bg-white h-9 text-[14px] rounded-[8px] shadow-[0px_1px_2px_rgba(0,0,0,0.05)]" />
             </div>
           </div>
+          {nameError && <p className="text-[13px] text-[#DC2626]">{CLIENT_NAME_ERROR}</p>}
         </div>
       </div>
 
@@ -2559,8 +2568,9 @@ export function ClientDetail() {
             <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
               {editingSection === "name" && (
                 <>
+                  <p className="text-[13px] text-[#6B7280]">{CLIENT_NAME_HINT}</p>
                   <div>
-                    <Label className="text-[14px] text-[#1A2332] mb-2 block" style={{ fontWeight: 500 }}>Name <span className="text-[#DC2626]">*</span></Label>
+                    <Label className="text-[14px] text-[#1A2332] mb-2 block" style={{ fontWeight: 500 }}>Name</Label>
                     <div className="grid grid-cols-[100px_1fr_60px_1fr] gap-3">
                       <Select value={editedClient.title || "none"} onValueChange={(v) => handleFieldChange("title", v === "none" ? "" : v)}>
                         <SelectTrigger className="border-[#E5E7EB] bg-white h-9 text-[14px] rounded-[8px] shadow-[0px_1px_2px_rgba(0,0,0,0.05)]"><SelectValue placeholder="Title" /></SelectTrigger>
@@ -2569,19 +2579,20 @@ export function ClientDetail() {
                           {["Mr.", "Mrs.", "Ms.", "Dr.", "Prof."].map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
                         </SelectContent>
                       </Select>
-                      <Input placeholder="First name" value={editedClient.firstName} onChange={(e) => handleFieldChange("firstName", e.target.value)} className="border-[#E5E7EB] bg-white h-9 text-[14px] rounded-[8px] shadow-[0px_1px_2px_rgba(0,0,0,0.05)]" />
+                      <Input placeholder="First name" value={editedClient.firstName} onChange={(e) => handleFieldChange("firstName", e.target.value)} className={nameInputCls} />
                       <Input placeholder="M.I." value={editedClient.middleInitial} onChange={(e) => handleFieldChange("middleInitial", e.target.value.slice(0, 1).toUpperCase())} className="border-[#E5E7EB] bg-white h-9 text-[14px] rounded-[8px] shadow-[0px_1px_2px_rgba(0,0,0,0.05)]" maxLength={1} />
-                      <Input placeholder="Last name" value={editedClient.lastName} onChange={(e) => handleFieldChange("lastName", e.target.value)} className="border-[#E5E7EB] bg-white h-9 text-[14px] rounded-[8px] shadow-[0px_1px_2px_rgba(0,0,0,0.05)]" />
+                      <Input placeholder="Last name" value={editedClient.lastName} onChange={(e) => handleFieldChange("lastName", e.target.value)} className={nameInputCls} />
                     </div>
                   </div>
                   <div>
                     <Label className="text-[14px] text-[#1A2332] mb-2 block" style={{ fontWeight: 500 }}>Preferred name</Label>
-                    <Input placeholder="e.g. Mike" value={editedClient.preferredName} onChange={(e) => handleFieldChange("preferredName", e.target.value)} className="border-[#E5E7EB] bg-white h-9 text-[14px] rounded-[8px] shadow-[0px_1px_2px_rgba(0,0,0,0.05)]" />
+                    <Input placeholder="e.g. Mike" value={editedClient.preferredName} onChange={(e) => handleFieldChange("preferredName", e.target.value)} className={nameInputCls} />
                   </div>
                   <div>
                     <Label className="text-[14px] text-[#1A2332] mb-2 block" style={{ fontWeight: 500 }}>Role</Label>
                     <Input placeholder="e.g. Property Owner" value={editedClient.role} onChange={(e) => handleFieldChange("role", e.target.value)} className="border-[#E5E7EB] bg-white h-9 text-[14px] rounded-[8px] shadow-[0px_1px_2px_rgba(0,0,0,0.05)]" />
                   </div>
+                  {nameError && <p className="text-[13px] text-[#DC2626]">{CLIENT_NAME_ERROR} — or add a company name under Contact information.</p>}
                 </>
               )}
 
@@ -2614,13 +2625,14 @@ export function ClientDetail() {
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <Label className="text-[14px] text-[#1A2332] mb-2 block" style={{ fontWeight: 500 }}>Company name</Label>
-                      <Input value={editedClient.company} onChange={(e) => handleFieldChange("company", e.target.value)} className="border-[#E5E7EB] bg-white h-9 text-[14px] rounded-[8px] shadow-[0px_1px_2px_rgba(0,0,0,0.05)]" />
+                      <Input value={editedClient.company} onChange={(e) => handleFieldChange("company", e.target.value)} className={nameInputCls} />
                     </div>
                     <div>
                       <Label className="text-[14px] text-[#1A2332] mb-2 block" style={{ fontWeight: 500 }}>Role</Label>
                       <Input value={editedClient.role} onChange={(e) => handleFieldChange("role", e.target.value)} className="border-[#E5E7EB] bg-white h-9 text-[14px] rounded-[8px] shadow-[0px_1px_2px_rgba(0,0,0,0.05)]" />
                     </div>
                   </div>
+                  {nameError && <p className="text-[13px] text-[#DC2626]">This client has no first, last or preferred name, so the company name is needed.</p>}
                 </>
               )}
 
@@ -2704,8 +2716,8 @@ export function ClientDetail() {
                 onClick={() => {
                   // Mandatory client info (Marek rule): name, primary phone, address.
                   // Validated per section so each modal only guards its own fields.
-                  if (editingSection === "name" && (!(editedClient.firstName || "").trim() || !(editedClient.lastName || "").trim())) {
-                    toast.error("First and last name are required"); return;
+                  if ((editingSection === "name" || editingSection === "contact") && !hasClientName(editedClient)) {
+                    setNameError(true); return;
                   }
                   if (editingSection === "contact" && !(editedClient.mobilePhone || "").trim()) {
                     toast.error("A primary phone number is required"); return;

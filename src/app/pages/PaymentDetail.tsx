@@ -12,6 +12,8 @@ import { DetailTabs, TabSettingsButton } from "../components/ui/detail-tabs";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "../components/ui/resizable";
 import { paymentStatusColors, paymentMethodIcons, type Payment, type PaymentStatus } from "./Payments";
 import { paymentsStore } from "../stores/paymentsStore";
+import { clientsStore } from "../stores/clientsStore";
+import { clientGreeting } from "../utils/clientName";
 import { formatRegionalDate } from "../stores/regionalSettingsStore";
 
 interface PaymentAttachment {
@@ -655,7 +657,9 @@ export function PaymentDetail() {
                 <KebabItem icon="send" onSelect={() => {
                   const num = `P-${1000 + payment.id}`;
                   const subject = `Receipt ${num} — ${payment.invoiceNumber}`;
-                  const body = `Hi ${payment.clientName},\n\nHere is your payment receipt:\n\nReceipt: ${num}\nDate: ${fmtDate(payment.date)}\nMethod: ${payment.method}\nInvoice: ${payment.invoiceNumber}\nAmount: $${payment.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}\n\nThank you for your business.`;
+                  const who = clientsStore.getSnapshot().find((c) => c.name === payment.clientName);
+                  const greeting = who ? clientGreeting(who) : `Hi ${payment.clientName.split(" ")[0]},`;
+                  const body = `${greeting}\n\nHere is your payment receipt:\n\nReceipt: ${num}\nDate: ${fmtDate(payment.date)}\nMethod: ${payment.method}\nInvoice: ${payment.invoiceNumber}\nAmount: $${payment.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}\n\nThank you for your business.`;
                   window.location.href = `mailto:${payment.clientEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
                   toast.success("Opening your email to send the receipt…");
                 }}>Send receipt</KebabItem>

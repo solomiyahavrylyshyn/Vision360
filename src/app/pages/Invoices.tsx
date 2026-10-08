@@ -564,6 +564,8 @@ export function Invoices() {
         <SendReminderModal
           recipient={{
             name: reminderInvoice.clientName,
+            // Name parts for the greeting ("Hi John," / "Hello,").
+            ...(() => { const r = liveClients.find((c) => c.name === reminderInvoice.clientName); return r ? { firstName: r.firstName, preferredName: r.preferredName, company: r.company } : {}; })(),
             email: reminderInvoice.customerEmail || `${reminderInvoice.clientName.toLowerCase().replace(/\s+/g, ".")}@example.com`,
             initials: reminderInvoice.clientName.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase(),
             avatarColor: "#4A6FA5",
