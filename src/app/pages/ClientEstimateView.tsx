@@ -10,6 +10,7 @@ import { useParams } from "react-router";
 import { estimatesStore, type EstimateLineItem, type EstimateRecord } from "../stores/estimatesStore";
 import { getStoredBrandLogo } from "../utils/brandTheme";
 import { termsStore } from "../stores/termsStore";
+import { estimateSettingsStore, monthlyPayment } from "../stores/estimateSettingsStore";
 
 const COMPANY = {
   name: "Service Vision",
@@ -97,6 +98,29 @@ const today = () => new Date().toLocaleDateString("en-US", { month: "short", day
 // still count in the total but aren't listed.
 const visibleItems = (items: EstimateLineItem[]) => items.filter((i) => !i.hideOnCustomerDocs);
 
+// The full price, folded under the monthly payment: price, the tax inside it,
+// and the deposit due on approval. On a picked (blue) column it reads light.
+function FullPrice({ total, tax, deposit, open, onToggle, onBlue }: {
+  total: number; tax: number; deposit: number | null; open: boolean; onToggle: () => void; onBlue?: boolean;
+}) {
+  const box = onBlue ? "bg-white/15 text-white" : "border border-[#D5DDEA] bg-white text-[#1A2332]";
+  const muted = onBlue ? "text-white/80" : "text-[#6B7280]";
+  return (
+    <div className={`mt-3 rounded-lg text-left text-[13px] ${box}`}>
+      <button type="button" onClick={onToggle} aria-expanded={open} className="flex w-full items-center justify-between gap-2 px-3 py-2">
+        <span><span className={muted}>Full price</span> <span className="tabular-nums" style={{ fontWeight: 600 }}>${fmt(total)}</span></span>
+        <span className={`material-icons ${onBlue ? "text-white/85" : "text-[#4A6FA5]"}`} style={{ fontSize: "18px" }}>{open ? "expand_less" : "expand_more"}</span>
+      </button>
+      {open && (
+        <div className="space-y-1 px-3 pb-2.5">
+          <div className="flex justify-between"><span className={muted}>Includes tax</span><span className="tabular-nums">{tax > 0 ? `$${fmt(tax)}` : "no tax"}</span></div>
+          {deposit !== null && <div className="flex justify-between"><span className={muted}>Deposit on approval</span><span className="tabular-nums">${fmt(deposit)}</span></div>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Label({ children }: { children: React.ReactNode }) {
   return <div className="text-[11px] uppercase tracking-[0.08em] text-[#6B7280]" style={{ fontWeight: 600 }}>{children}</div>;
 }
@@ -116,6 +140,16 @@ export function ClientEstimateView() {
   const [agreed, setAgreed] = useState(false);
   const [declineNote, setDeclineNote] = useState("");
   const [justSubmitted, setJustSubmitted] = useState(false);
+  // Which options have their Full price accordion open.
+  const [openPrice, setOpenPrice] = useState<Set<number>>(new Set());
+  const togglePrice = (i: number) => setOpenPrice((prev) => { const n = new Set(prev); n.has(i) ? n.delete(i) : n.add(i); return n; });
+  // Financing offered by the company → the monthly payment leads (Marek).
+  const estimateSettings = useSyncExternalStore(estimateSettingsStore.subscribe, estimateSettingsStore.getSnapshot);
+  const financing = estimateSettings.financing?.enabled ? estimateSettings.financing : null;
+  const monthlyFor = (total: number) => (financing ? monthlyPayment(total, financing.apr, financing.months) : 0);
+  // Financing is offered from the lender's minimum up; a cheaper option leads with its full price.
+  const financed = (total: number) => !!financing && total >= (financing.minAmount ?? 0);
+  const financingLine = financing ? `through ${financing.lender} · ${financing.apr}% APR · ${financing.months} mo` : "";
 
   // First open marks the estimate as Viewed. Opening the email itself is not
   // tracked — mail clients prefetch images, so it would not mean anything.
@@ -251,9 +285,20 @@ export function ClientEstimateView() {
                 <div key={option.name} className={`flex flex-col overflow-hidden rounded-xl border bg-white transition-shadow ${isPicked ? "border-[#4A6FA5] ring-2 ring-[#4A6FA5]/20" : "border-[#E5E7EB]"}`}>
                   <div className={`px-4 py-4 text-center ${isPicked ? "bg-[#4A6FA5] text-white" : "bg-[#EEF3FA]"}`}>
                     <div className={`text-[11px] uppercase tracking-[0.12em] ${isPicked ? "text-white/85" : "text-[#4A6FA5]"}`} style={{ fontWeight: 700 }}>{optionLabel(index)}</div>
-                    <div className="mt-1 text-[28px] leading-[34px] tabular-nums" style={{ fontWeight: 700 }}>${fmt(t.total)}</div>
-                    <div className="mt-1 text-[14px]" style={{ fontWeight: 500 }}>{option.name}</div>
-                    <div className={`text-[12px] ${isPicked ? "text-white/80" : "text-[#6B7280]"}`}>{t.tax > 0 ? `includes $${fmt(t.tax)} tax` : "no tax"}</div>
+                    {financed(t.total) ? (
+                      <>
+                        <div className="mt-1 text-[14px]" style={{ fontWeight: 500 }}>{option.name}</div>
+                        <div className="mt-1 tabular-nums"><span className="text-[30px] leading-[36px]" style={{ fontWeight: 700 }}>${fmt(monthlyFor(t.total))}</span><span className={`ml-1 text-[14px] ${isPicked ? "text-white/80" : "text-[#6B7280]"}`} style={{ fontWeight: 500 }}>/mo</span></div>
+                        <div className={`text-[11px] ${isPicked ? "text-white/80" : "text-[#6B7280]"}`}>{financingLine}</div>
+                        <FullPrice total={t.total} tax={t.tax} deposit={record.depositRequired ? depositFor(t.total) : null} open={openPrice.has(index)} onToggle={() => togglePrice(index)} onBlue={isPicked} />
+                      </>
+                    ) : (
+                      <>
+                        <div className="mt-1 text-[28px] leading-[34px] tabular-nums" style={{ fontWeight: 700 }}>${fmt(t.total)}</div>
+                        <div className="mt-1 text-[14px]" style={{ fontWeight: 500 }}>{option.name}</div>
+                        <div className={`text-[12px] ${isPicked ? "text-white/80" : "text-[#6B7280]"}`}>{t.tax > 0 ? `includes $${fmt(t.tax)} tax` : "no tax"}</div>
+                      </>
+                    )}
                   </div>
                   <div className="flex-1 px-4 py-4">
                     {option.summary && <p className="mb-3 text-[13px] leading-[19px] text-[#374151]">{option.summary}</p>}
@@ -269,7 +314,7 @@ export function ClientEstimateView() {
                       ))}
                     </ul>
                   </div>
-                  {record.depositRequired && (
+                  {record.depositRequired && !financed(t.total) && (
                     <div className="border-t border-[#EDF0F5] px-4 py-2.5 text-center text-[13px] text-[#374151]">
                       Deposit on approval <span style={{ fontWeight: 600 }}>${fmt(depositFor(t.total))}</span>
                     </div>
@@ -305,9 +350,20 @@ export function ClientEstimateView() {
             <div className="grid sm:grid-cols-[300px_1fr]">
               <div className="bg-[#EEF3FA] px-5 py-5">
                 <div className="text-[11px] uppercase tracking-[0.12em] text-[#4A6FA5]" style={{ fontWeight: 700 }}>{options.length > 1 ? "Your choice" : "Your estimate"}</div>
-                <div className="mt-1 text-[30px] leading-[36px] tabular-nums" style={{ fontWeight: 700 }}>${fmt(t.total)}</div>
-                <div className="mt-1 text-[14px]" style={{ fontWeight: 500 }}>{option.name}</div>
-                <div className="text-[12px] text-[#6B7280]">{t.tax > 0 ? `tax included ($${fmt(t.tax)})` : "no tax"}</div>
+                {financed(t.total) ? (
+                  <>
+                    <div className="mt-1 tabular-nums"><span className="text-[30px] leading-[36px]" style={{ fontWeight: 700 }}>${fmt(monthlyFor(t.total))}</span><span className="ml-1 text-[14px] text-[#6B7280]" style={{ fontWeight: 500 }}>/mo</span></div>
+                    <div className="text-[11px] text-[#6B7280]">{financingLine}</div>
+                    <div className="mt-1 text-[14px]" style={{ fontWeight: 500 }}>{option.name}</div>
+                    <FullPrice total={t.total} tax={t.tax} deposit={record.depositRequired ? depositFor(t.total) : null} open={openPrice.has(-1)} onToggle={() => togglePrice(-1)} />
+                  </>
+                ) : (
+                  <>
+                    <div className="mt-1 text-[30px] leading-[36px] tabular-nums" style={{ fontWeight: 700 }}>${fmt(t.total)}</div>
+                    <div className="mt-1 text-[14px]" style={{ fontWeight: 500 }}>{option.name}</div>
+                    <div className="text-[12px] text-[#6B7280]">{t.tax > 0 ? `tax included ($${fmt(t.tax)})` : "no tax"}</div>
+                  </>
+                )}
               </div>
               <div className="border-t border-[#EDF0F5] px-5 py-5 sm:border-l sm:border-t-0">
                 <Label>What we will do</Label>
@@ -342,7 +398,7 @@ export function ClientEstimateView() {
               <div>
                 <div className="text-[16px]" style={{ fontWeight: 600 }}>Your price</div>
                 <div className="text-[12px] text-[#6B7280]">
-                  Tax included{record.depositRequired ? ` · deposit on approval $${fmt(depositFor(t.total))}` : ""}
+                  Tax included{financed(t.total) ? ` · or $${fmt(monthlyFor(t.total))} per month ${financingLine}` : ""}{record.depositRequired ? ` · deposit on approval $${fmt(depositFor(t.total))}` : ""}
                 </div>
               </div>
               <div className="text-right">

@@ -10,12 +10,23 @@ export interface EstimateSettings {
    *  "Use deposits"). Off stops new deposits; estimates that already carry
    *  one keep it. */
   usesDeposits: boolean;
+  /** Financing offered on estimates — the client page leads with the monthly
+   *  payment and folds the full price into an accordion. */
+  financing: { enabled: boolean; lender: string; apr: number; months: number; /** Below this the full price leads — nobody finances a $300 repair. */ minAmount: number };
+}
+
+/** Monthly payment on a fixed-rate loan of the whole amount. */
+export function monthlyPayment(total: number, apr: number, months: number): number {
+  if (total <= 0 || months <= 0) return 0;
+  const r = apr / 100 / 12;
+  return r === 0 ? total / months : (total * r) / (1 - Math.pow(1 + r, -months));
 }
 
 const STORAGE_KEY = "vision360.estimateSettings";
 const DEFAULT_SETTINGS: EstimateSettings = {
   defaultValidityDays: 30,
   usesDeposits: true,
+  financing: { enabled: true, lender: "Ally", apr: 7.99, months: 144, minAmount: 1000 },
 };
 
 const listeners = new Set<() => void>();
@@ -25,6 +36,9 @@ const normalize = (s: Partial<EstimateSettings>): EstimateSettings => {
   return {
     defaultValidityDays: Number.isFinite(n) && n >= 0 && n <= 365 ? Math.round(n) : DEFAULT_SETTINGS.defaultValidityDays,
     usesDeposits: typeof s.usesDeposits === "boolean" ? s.usesDeposits : DEFAULT_SETTINGS.usesDeposits,
+    financing: s.financing && typeof s.financing === "object"
+      ? { ...DEFAULT_SETTINGS.financing, ...s.financing }
+      : DEFAULT_SETTINGS.financing,
   };
 };
 
