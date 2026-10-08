@@ -82,6 +82,10 @@ export interface EstimateRecord {
   selectedOptionName?: string;
   /** Note the client left with "Request changes". */
   changeRequest?: string;
+  /** The name the client typed to sign when approving, and when. */
+  clientSignature?: { name: string; at: string };
+  /** Why the client declined, if they said. */
+  declineReason?: string;
   /** Link token minted when the estimate is sent; the client page reads it. */
   publicToken?: string;
   taxRate?: number;

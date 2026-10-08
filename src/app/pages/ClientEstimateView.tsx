@@ -1,12 +1,15 @@
 // The page the client opens from the estimate email. Anonymous — no login, no
 // app chrome — and identified only by the token in the URL, which is minted
-// when the estimate is sent. Three states: the estimate is still open and can
-// be answered, it has already been answered, or it has expired.
+// when the estimate is sent. It follows the estimate document: two to four
+// options side by side to choose from, or one option as a single sheet; then
+// approve & sign, request changes, or decline. Once answered (or expired) the
+// page is read-only and, after approval, shows only the chosen option.
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useParams } from "react-router";
 import { estimatesStore, type EstimateLineItem, type EstimateRecord } from "../stores/estimatesStore";
 import { getStoredBrandLogo } from "../utils/brandTheme";
+import { termsStore } from "../stores/termsStore";
 
 const COMPANY = {
   name: "Service Vision",
@@ -46,7 +49,7 @@ function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-[#F5F7FA] text-[#1A2332]">
       <header className="border-b border-[#E5E7EB] bg-white">
-        <div className="mx-auto flex max-w-[860px] flex-wrap items-center justify-between gap-2 px-4 py-4 sm:px-6">
+        <div className="mx-auto flex max-w-[1120px] flex-wrap items-center justify-between gap-2 px-4 py-4 sm:px-6">
           {logo
             ? <img src={logo} alt={COMPANY.name} className="max-h-[36px] max-w-[150px] object-contain" />
             : <div className="text-[17px]" style={{ fontWeight: 700 }}>{COMPANY.name}</div>}
@@ -55,8 +58,8 @@ function Shell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       </header>
-      <main className="mx-auto max-w-[860px] px-4 py-6 sm:px-6 sm:py-10">{children}</main>
-      <footer className="mx-auto max-w-[860px] px-4 pb-10 text-[12px] leading-[18px] text-[#9CA3AF] sm:px-6">
+      <main className="mx-auto max-w-[1120px] px-4 py-6 sm:px-6 sm:py-10">{children}</main>
+      <footer className="mx-auto max-w-[1120px] px-4 pb-10 text-[12px] leading-[18px] text-[#9CA3AF] sm:px-6">
         {COMPANY.name} · {COMPANY.address}
         <div className="mt-1">
           If you were not expecting this estimate, do not act on it — call us on {COMPANY.phone} first.
@@ -87,15 +90,31 @@ function Notice({ icon, tone, title, children }: {
   );
 }
 
+const ROMAN = ["I", "II", "III", "IV", "V", "VI"];
+const today = () => new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+
+// What the client sees of an option: the lines kept off customer documents
+// still count in the total but aren't listed.
+const visibleItems = (items: EstimateLineItem[]) => items.filter((i) => !i.hideOnCustomerDocs);
+
+function Label({ children }: { children: React.ReactNode }) {
+  return <div className="text-[11px] uppercase tracking-[0.08em] text-[#6B7280]" style={{ fontWeight: 600 }}>{children}</div>;
+}
+
 export function ClientEstimateView() {
   const { token } = useParams();
   const all = useSyncExternalStore(estimatesStore.subscribe, estimatesStore.getSnapshot);
+  const legal = useSyncExternalStore(termsStore.subscribe, termsStore.getSnapshot);
   const record = all.find((e) => e.publicToken === token);
 
   const options = record ? optionsOf(record) : [];
-  const [selected, setSelected] = useState(0);
-  const [mode, setMode] = useState<"idle" | "changes">("idle");
+  // Nothing is chosen until the client picks — a one-option estimate is chosen already.
+  const [selected, setSelected] = useState<number | null>(null);
+  const [mode, setMode] = useState<"idle" | "sign" | "changes" | "decline">("idle");
   const [note, setNote] = useState("");
+  const [signName, setSignName] = useState("");
+  const [agreed, setAgreed] = useState(false);
+  const [declineNote, setDeclineNote] = useState("");
   const [justSubmitted, setJustSubmitted] = useState(false);
 
   // First open marks the estimate as Viewed. Opening the email itself is not
@@ -117,71 +136,97 @@ export function ClientEstimateView() {
     );
   }
 
-  const answered = ["Approved", "Changes Requested", "Rejected", "Converted"].includes(record.status);
+  const answered = ["Approved", "Changes Requested", "Declined", "Converted"].includes(record.status);
   const expired = !answered && (record.status === "Expired" || isExpired(record.expirationDate));
+  const open = !answered && !expired;
   const taxRate = record.taxRate ?? 0;
   const chosen = options.find((o) => o.name === record.selectedOptionName);
+  // Once answered with a choice, the page — like the document — shows only that option.
   const shownOptions = answered && chosen ? [chosen] : options;
+  const comparison = shownOptions.length > 1;
+  const pickIndex = comparison ? selected : 0;
+  const picked = pickIndex !== null ? shownOptions[pickIndex] : undefined;
+  const pickedTotals = picked ? totalsFor(picked.items, taxRate) : null;
+  const depositFor = (total: number) =>
+    record.depositType === "percentage" ? total * ((record.depositValue ?? 0) / 100) : record.depositValue ?? 0;
+  const optionLabel = (i: number) => (comparison ? `Option ${ROMAN[i] ?? i + 1}` : "Your estimate");
+  const address = (record.serviceAddress || record.clientAddress || "").replace(/\n/g, ", ");
 
-  const accept = () => {
-    const option = options[selected];
+  const approve = () => {
+    if (!picked || !pickedTotals || !signName.trim() || !agreed) return;
     estimatesStore.update(record.id, {
       status: "Approved",
-      selectedOptionName: option.name,
-      amount: Math.round(totalsFor(option.items, taxRate).total * 100) / 100,
-      updatedDate: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+      selectedOptionName: picked.name,
+      amount: Math.round(pickedTotals.total * 100) / 100,
+      clientSignature: { name: signName.trim(), at: new Date().toISOString() },
+      updatedDate: today(),
     });
     setJustSubmitted(true);
+    setMode("idle");
   };
-
   const requestChanges = () => {
     const text = note.trim();
     if (!text) return;
-    estimatesStore.update(record.id, {
-      status: "Changes Requested",
-      changeRequest: text,
-      updatedDate: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
-    });
+    estimatesStore.update(record.id, { status: "Changes Requested", changeRequest: text, updatedDate: today() });
     setJustSubmitted(true);
+    setMode("idle");
   };
+  const decline = () => {
+    estimatesStore.update(record.id, { status: "Declined", declineReason: declineNote.trim() || undefined, updatedDate: today() });
+    setJustSubmitted(true);
+    setMode("idle");
+  };
+
+  const termsBlocks = legal.terms.mode === "text" && legal.terms.text.trim()
+    ? legal.terms.text.trim().split(/\n\s*\n/).map((b) => { const [h, ...rest] = b.split("\n"); return { heading: h.replace(/^\d+\.\s*/, ""), body: rest.join(" ").trim() }; })
+    : [];
 
   return (
     <Shell>
-      <div className="mb-5">
-        <div className="text-[13px] text-[#6B7280]">Estimate {record.estimateNumber}</div>
-        <h1 className="mt-1 text-[24px] leading-[30px] sm:text-[28px] sm:leading-[34px]" style={{ fontWeight: 700 }}>
-          {record.estimateName || "Your estimate"}
-        </h1>
-        <div className="mt-2 text-[14px] text-[#6B7280]">
-          Prepared for {record.clientName}
-          {record.serviceAddress && <> · {record.serviceAddress.replace(/\n/g, ", ")}</>}
-          {record.expirationDate && <> · valid until {record.expirationDate}</>}
+      {/* ── Title — the document's masthead, in the app's palette ── */}
+      <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+        <div className="min-w-0">
+          <div className="text-[12px] uppercase tracking-[0.1em] text-[#4A6FA5]" style={{ fontWeight: 600 }}>Estimate {record.estimateNumber}</div>
+          <h1 className="mt-1 text-[24px] leading-[30px] sm:text-[28px] sm:leading-[34px]" style={{ fontWeight: 700 }}>
+            {record.estimateName || "Your estimate"}
+          </h1>
+        </div>
+        <div className="text-[13px] leading-[19px] text-[#6B7280] sm:text-right">
+          {record.sentDate && <div>Issued {record.sentDate}</div>}
+          {record.expirationDate && <div>Valid until {record.expirationDate}</div>}
         </div>
       </div>
 
-      {/* State 2 — already answered. The status never rolls back, so a second
-          visit is read-only and points the client at a person instead. */}
+      {/* ── Who and where — the grey strip at the top of the sheet ── */}
+      <div className="mb-6 grid gap-4 rounded-xl bg-[#EDF0F5] px-5 py-4 sm:grid-cols-3">
+        <div><Label>Customer</Label><div className="mt-1 text-[14px]" style={{ fontWeight: 600 }}>{record.clientName}</div>{address && <div className="text-[13px] text-[#374151]">{address}</div>}</div>
+        <div><Label>Technician</Label><div className="mt-1 text-[14px]" style={{ fontWeight: 600 }}>{record.teamMember || "—"}</div></div>
+        <div><Label>Questions</Label><div className="mt-1 text-[14px]" style={{ fontWeight: 600 }}>{COMPANY.phone}</div><div className="text-[13px] text-[#374151]">{COMPANY.email}</div></div>
+      </div>
+
+      {/* ── State notices ── */}
       {answered && (
-        <div className="mb-5">
+        <div className="mb-6">
           {record.status === "Changes Requested" ? (
             <Notice icon="mark_email_read" tone="amber" title={justSubmitted ? "Thank you — we have your notes" : "You have asked us for changes"}>
-              We are working on an updated estimate and will send it over. To add anything, call {COMPANY.phone}.
-              {record.changeRequest && (
-                <div className="mt-2 rounded-lg bg-white/70 px-3 py-2 text-[13px]">“{record.changeRequest}”</div>
-              )}
+              We are working on an updated estimate and will send it to this same link. To add anything, call {COMPANY.phone}.
+              {record.changeRequest && <div className="mt-2 rounded-lg bg-white/70 px-3 py-2 text-[13px]">“{record.changeRequest}”</div>}
+            </Notice>
+          ) : record.status === "Declined" ? (
+            <Notice icon="do_not_disturb_on" tone="grey" title={justSubmitted ? "You declined this estimate" : "This estimate was declined"}>
+              Thank you for letting us know. If you change your mind, call {COMPANY.phone} and we will price it again.
             </Notice>
           ) : (
-            <Notice icon="check_circle" tone="green" title={justSubmitted ? "Thank you — your approval is in" : "This estimate has already been approved"}>
-              {chosen ? <>You chose <strong>{chosen.name}</strong>. </> : null}
-              We will be in touch to schedule the work. To change anything, contact us on {COMPANY.phone}.
+            <Notice icon="check_circle" tone="green" title={justSubmitted ? "Thank you — your approval is in" : "This estimate has been approved"}>
+              {chosen && comparison === false && options.length > 1 ? <>You chose <strong>{chosen.name}</strong>. </> : null}
+              {record.clientSignature && <>Signed by {record.clientSignature.name} on {new Date(record.clientSignature.at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}. </>}
+              We will be in touch to schedule the work.
             </Notice>
           )}
         </div>
       )}
-
-      {/* State 3 — past its expiry date and never answered. */}
       {expired && (
-        <div className="mb-5">
+        <div className="mb-6">
           <Notice icon="schedule" tone="grey" title="This estimate is expired">
             It was valid until {record.expirationDate}. Call {COMPANY.phone} or email{" "}
             <a href={`mailto:${COMPANY.email}`} className="underline">{COMPANY.email}</a> and we will price it again.
@@ -189,132 +234,217 @@ export function ClientEstimateView() {
         </div>
       )}
 
-      {/* State 1 — open: the options, with the choice on the client. */}
-      {shownOptions.length > 1 && !answered && !expired && (
-        <div className="mb-3 text-[15px]" style={{ fontWeight: 600 }}>Choose the option that suits you best</div>
-      )}
-
-      <div className={shownOptions.length > 1 ? "grid gap-4 sm:grid-cols-2 lg:grid-cols-3" : "grid gap-4"}>
-        {shownOptions.map((option, index) => {
-          const t = totalsFor(option.items, taxRate);
-          const selectable = !answered && !expired && shownOptions.length > 1;
-          const isSelected = selectable && selected === index;
-          return (
-            <label
-              key={option.name}
-              className={`flex flex-col rounded-xl border bg-white p-4 transition-colors ${selectable ? "cursor-pointer" : ""} ${isSelected ? "border-[#4A6FA5] ring-2 ring-[#4A6FA5]/15" : "border-[#E5E7EB]"}`}
-            >
-              <div className="flex items-start gap-2.5">
-                {selectable && (
-                  <input
-                    type="radio"
-                    name="estimate-option"
-                    checked={isSelected}
-                    onChange={() => setSelected(index)}
-                    className="mt-1 h-4 w-4 shrink-0 accent-[#4A6FA5]"
-                  />
-                )}
-                <div className="min-w-0">
-                  <div className="text-[16px] leading-[22px]" style={{ fontWeight: 600 }}>{option.name}</div>
-                  {option.summary && <div className="mt-1 text-[13px] leading-[19px] text-[#6B7280]">{option.summary}</div>}
-                </div>
-              </div>
-
-              <div className="mt-3 border-t border-[#F3F4F6] pt-3">
-                <div className="mb-2 text-[11px] uppercase tracking-wide text-[#9CA3AF]" style={{ fontWeight: 600 }}>What&rsquo;s included</div>
-                <ul className="space-y-1.5 text-[13px] leading-[18px]">
-                  {option.items.map((item) => (
-                    <li key={item.id} className="flex items-start justify-between gap-3">
-                      <span className="text-[#374151]">{item.name}{item.quantity > 1 ? ` ×${item.quantity}` : ""}</span>
-                      <span className="whitespace-nowrap text-[#6B7280]">${fmt(item.amount)}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              <div className="mt-3 border-t border-[#F3F4F6] pt-3">
-                {t.tax > 0 && (
-                  <div className="flex justify-between text-[13px] text-[#6B7280]"><span>Tax</span><span>${fmt(t.tax)}</span></div>
-                )}
-                <div className="flex items-baseline justify-between">
-                  <span className="text-[13px] text-[#6B7280]">Total</span>
-                  <span className="text-[20px]" style={{ fontWeight: 700 }}>${fmt(t.total)}</span>
-                </div>
-                {record.depositRequired && (
-                  <div className="mt-1 text-[12px] text-[#6B7280]">
-                    Deposit due ${fmt(record.depositType === "percentage" ? t.total * ((record.depositValue ?? 0) / 100) : record.depositValue ?? 0)}
+      {/* ── Two to four options — side by side, like the comparison sheet ── */}
+      {comparison && (
+        <>
+          {open && (
+            <div className="mb-3">
+              <div className="text-[17px]" style={{ fontWeight: 600 }}>Choose the option that suits you</div>
+              <div className="text-[13px] text-[#6B7280]">All {shownOptions.length} options were prepared for you. Pick one, then approve and sign it below.</div>
+            </div>
+          )}
+          <div className={`grid items-stretch gap-4 sm:grid-cols-2 ${shownOptions.length >= 4 ? "xl:grid-cols-4" : shownOptions.length === 3 ? "lg:grid-cols-3" : ""}`}>
+            {shownOptions.map((option, index) => {
+              const t = totalsFor(option.items, taxRate);
+              const isPicked = selected === index;
+              return (
+                <div key={option.name} className={`flex flex-col overflow-hidden rounded-xl border bg-white transition-shadow ${isPicked ? "border-[#4A6FA5] ring-2 ring-[#4A6FA5]/20" : "border-[#E5E7EB]"}`}>
+                  <div className={`px-4 py-4 text-center ${isPicked ? "bg-[#4A6FA5] text-white" : "bg-[#EEF3FA]"}`}>
+                    <div className={`text-[11px] uppercase tracking-[0.12em] ${isPicked ? "text-white/85" : "text-[#4A6FA5]"}`} style={{ fontWeight: 700 }}>{optionLabel(index)}</div>
+                    <div className="mt-1 text-[28px] leading-[34px] tabular-nums" style={{ fontWeight: 700 }}>${fmt(t.total)}</div>
+                    <div className="mt-1 text-[14px]" style={{ fontWeight: 500 }}>{option.name}</div>
+                    <div className={`text-[12px] ${isPicked ? "text-white/80" : "text-[#6B7280]"}`}>{t.tax > 0 ? `includes $${fmt(t.tax)} tax` : "no tax"}</div>
                   </div>
-                )}
-              </div>
-            </label>
-          );
-        })}
-      </div>
-
-      {record.notes && (
-        <div className="mt-5 rounded-xl border border-[#E5E7EB] bg-white p-4 text-[13px] leading-[20px] text-[#374151]">
-          <div className="mb-1 text-[#9CA3AF]" style={{ fontWeight: 600 }}>A note from us</div>
-          {record.notes}
-        </div>
+                  <div className="flex-1 px-4 py-4">
+                    {option.summary && <p className="mb-3 text-[13px] leading-[19px] text-[#374151]">{option.summary}</p>}
+                    <ul className="space-y-2.5">
+                      {visibleItems(option.items).map((item) => (
+                        <li key={item.id} className="flex gap-2 text-[14px] leading-[19px]">
+                          <span className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-[#4A6FA5]" />
+                          <span className="min-w-0">
+                            {item.name}{item.quantity > 1 ? ` ×${item.quantity}` : ""}
+                            {item.description && <span className="block text-[12px] text-[#6B7280]">{item.description}</span>}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  {record.depositRequired && (
+                    <div className="border-t border-[#EDF0F5] px-4 py-2.5 text-center text-[13px] text-[#374151]">
+                      Deposit on approval <span style={{ fontWeight: 600 }}>${fmt(depositFor(t.total))}</span>
+                    </div>
+                  )}
+                  {open && (
+                    <div className="border-t border-[#EDF0F5] p-3">
+                      <button
+                        type="button"
+                        onClick={() => setSelected(index)}
+                        className={`inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-lg text-[14px] transition-colors ${isPicked ? "bg-[#4A6FA5] text-white" : "border border-[#4A6FA5] text-[#4A6FA5] hover:bg-[#EEF3FA]"}`}
+                        style={{ fontWeight: 600 }}
+                      >
+                        {isPicked && <span className="material-icons" style={{ fontSize: "18px" }}>check</span>}
+                        {isPicked ? "Chosen" : "Choose this option"}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </>
       )}
 
-      {!answered && !expired && (
+      {/* ── One option — the single sheet: what we'll do, the lines, your price ── */}
+      {!comparison && shownOptions[0] && (() => {
+        const option = shownOptions[0];
+        const t = totalsFor(option.items, taxRate);
+        const lineTax = (i: EstimateLineItem) => (i.taxable ? i.amount * (taxRate / 100) : 0);
+        const scope = record.notes || option.summary;
+        return (
+          <div className="overflow-hidden rounded-xl border border-[#E5E7EB] bg-white">
+            <div className="grid sm:grid-cols-[300px_1fr]">
+              <div className="bg-[#EEF3FA] px-5 py-5">
+                <div className="text-[11px] uppercase tracking-[0.12em] text-[#4A6FA5]" style={{ fontWeight: 700 }}>{options.length > 1 ? "Your choice" : "Your estimate"}</div>
+                <div className="mt-1 text-[30px] leading-[36px] tabular-nums" style={{ fontWeight: 700 }}>${fmt(t.total)}</div>
+                <div className="mt-1 text-[14px]" style={{ fontWeight: 500 }}>{option.name}</div>
+                <div className="text-[12px] text-[#6B7280]">{t.tax > 0 ? `tax included ($${fmt(t.tax)})` : "no tax"}</div>
+              </div>
+              <div className="border-t border-[#EDF0F5] px-5 py-5 sm:border-l sm:border-t-0">
+                <Label>What we will do</Label>
+                <p className="mt-1.5 text-[14px] leading-[21px] text-[#374151]">{scope || "The work listed below."}</p>
+              </div>
+            </div>
+            <div className="overflow-x-auto border-t border-[#E5E7EB]">
+              <table className="w-full min-w-[560px] text-[14px]">
+                <thead>
+                  <tr className="bg-[#F5F7FA] text-[11px] uppercase tracking-[0.08em] text-[#6B7280]">
+                    <th className="px-5 py-2.5 text-left" style={{ fontWeight: 600 }}>Item</th>
+                    <th className="px-3 py-2.5 text-center" style={{ fontWeight: 600 }}>Qty</th>
+                    <th className="px-3 py-2.5 text-right" style={{ fontWeight: 600 }}>Unit price</th>
+                    <th className="px-3 py-2.5 text-right" style={{ fontWeight: 600 }}>Tax</th>
+                    <th className="px-5 py-2.5 text-right" style={{ fontWeight: 600 }}>Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {visibleItems(option.items).map((i) => (
+                    <tr key={i.id} className="border-t border-[#EDF0F5]">
+                      <td className="px-5 py-3"><div style={{ fontWeight: 500 }}>{i.name}</div>{i.description && <div className="text-[12px] text-[#6B7280]">{i.description}</div>}</td>
+                      <td className="px-3 py-3 text-center tabular-nums">{i.quantity}</td>
+                      <td className="px-3 py-3 text-right tabular-nums">${fmt(i.price)}</td>
+                      <td className="px-3 py-3 text-right tabular-nums text-[#6B7280]">{i.taxable ? `$${fmt(lineTax(i))}` : "—"}</td>
+                      <td className="px-5 py-3 text-right tabular-nums" style={{ fontWeight: 500 }}>${fmt(i.amount + lineTax(i))}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#E5E7EB] bg-[#EEF3FA] px-5 py-4">
+              <div>
+                <div className="text-[16px]" style={{ fontWeight: 600 }}>Your price</div>
+                <div className="text-[12px] text-[#6B7280]">
+                  Tax included{record.depositRequired ? ` · deposit on approval $${fmt(depositFor(t.total))}` : ""}
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-[26px] tabular-nums" style={{ fontWeight: 700 }}>${fmt(t.total)}</div>
+                {record.expirationDate && <div className="text-[12px] text-[#6B7280]">Valid until {record.expirationDate}</div>}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ── The answer: approve & sign, ask for changes, or decline ── */}
+      {open && (
         <div className="mt-6 rounded-xl border border-[#E5E7EB] bg-white p-4 sm:p-5">
-          {mode === "idle" ? (
+          {mode === "idle" && (
             <>
+              <div className="mb-3 text-[14px] text-[#374151]">
+                {!comparison && pickedTotals
+                  ? <>Ready to go ahead? Approve and sign to accept <strong className="tabular-nums">${fmt(pickedTotals.total)}</strong>.</>
+                  : picked && pickedTotals
+                    ? <>You chose <strong>{`${optionLabel(pickIndex!)} · ${picked.name}`}</strong> — <strong className="tabular-nums">${fmt(pickedTotals.total)}</strong>.</>
+                    : <>Choose an option above to approve it.</>}
+              </div>
               <div className="flex flex-col gap-2.5 sm:flex-row">
-                <button
-                  type="button"
-                  onClick={accept}
-                  className="h-11 flex-1 rounded-lg bg-[#4A6FA5] px-4 text-[15px] text-white transition-colors hover:bg-[#3d5a85]"
-                  style={{ fontWeight: 600 }}
-                >
-                  Accept{options.length > 1 ? ` “${options[selected].name}”` : ""}
+                <button type="button" onClick={() => setMode("sign")} disabled={!picked}
+                  className="h-11 flex-1 rounded-lg bg-[#4A6FA5] px-4 text-[15px] text-white transition-colors hover:bg-[#3d5a85] disabled:pointer-events-none disabled:bg-[#C7D2E1]" style={{ fontWeight: 600 }}>
+                  Approve &amp; sign
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setMode("changes")}
-                  className="h-11 flex-1 rounded-lg border border-[#D8DEE8] px-4 text-[15px] text-[#1A2332] transition-colors hover:bg-[#F5F7FA]"
-                  style={{ fontWeight: 600 }}
-                >
+                <button type="button" onClick={() => setMode("changes")}
+                  className="h-11 flex-1 rounded-lg border border-[#D8DEE8] px-4 text-[15px] text-[#1A2332] transition-colors hover:bg-[#F5F7FA]" style={{ fontWeight: 600 }}>
                   Request changes
                 </button>
-              </div>
-              <div className="mt-3 text-[12px] leading-[18px] text-[#9CA3AF]">
-                Accepting is your approval of this estimate and its terms and conditions.
+                <button type="button" onClick={() => setMode("decline")}
+                  className="h-11 rounded-lg px-4 text-[15px] text-[#6B7280] transition-colors hover:bg-[#F5F7FA] sm:flex-none" style={{ fontWeight: 600 }}>
+                  Decline
+                </button>
               </div>
             </>
-          ) : (
+          )}
+
+          {mode === "sign" && picked && pickedTotals && (
             <>
-              <label className="block text-[14px]" style={{ fontWeight: 600 }} htmlFor="change-note">
-                What would you like changed?
+              <div className="text-[17px]" style={{ fontWeight: 600 }}>Approve and sign</div>
+              <div className="mt-1 text-[14px] text-[#374151]">
+                {comparison ? `${optionLabel(pickIndex!)} · ${picked.name}` : picked.name} — <strong className="tabular-nums">${fmt(pickedTotals.total)}</strong>, tax included.
+                {record.depositRequired && <> A deposit of <strong>${fmt(depositFor(pickedTotals.total))}</strong> is due on approval; the balance is invoiced when the work is done.</>}
+              </div>
+              <label className="mt-4 block text-[14px]" style={{ fontWeight: 600 }} htmlFor="sign-name">Type your full name to sign</label>
+              <input id="sign-name" value={signName} onChange={(e) => setSignName(e.target.value)} placeholder={record.clientName}
+                className="mt-1.5 h-11 w-full rounded-lg border border-[#E5E7EB] px-3 text-[18px] outline-none focus:border-[#4A6FA5] focus:ring-2 focus:ring-[#4A6FA5]/10"
+                style={{ fontFamily: "'Brush Script MT', 'Segoe Script', cursive" }} />
+              <label className="mt-3 flex cursor-pointer items-start gap-2 text-[13px] leading-[19px] text-[#374151]">
+                <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="mt-0.5 h-4 w-4 shrink-0 accent-[#4A6FA5]" />
+                <span>I approve this estimate and accept the terms and conditions below.{comparison ? ` All ${shownOptions.length} options were explained to me.` : ""}</span>
               </label>
-              <textarea
-                id="change-note"
-                value={note}
-                maxLength={CHANGE_NOTE_LIMIT}
-                onChange={(e) => setNote(e.target.value)}
-                rows={4}
-                placeholder="Tell us what to adjust and we will send an updated estimate."
-                className="mt-2 w-full resize-none rounded-lg border border-[#E5E7EB] px-3 py-2.5 text-[14px] leading-[20px] outline-none focus:border-[#4A6FA5] focus:ring-2 focus:ring-[#4A6FA5]/10"
-              />
+              <div className="mt-4 flex flex-col gap-2.5 sm:flex-row">
+                <button type="button" onClick={approve} disabled={!signName.trim() || !agreed}
+                  className="h-11 flex-1 rounded-lg bg-[#4A6FA5] px-4 text-[15px] text-white transition-colors hover:bg-[#3d5a85] disabled:pointer-events-none disabled:bg-[#C7D2E1]" style={{ fontWeight: 600 }}>
+                  Approve ${fmt(pickedTotals.total)}
+                </button>
+                <button type="button" onClick={() => setMode("idle")}
+                  className="h-11 flex-1 rounded-lg border border-[#D8DEE8] px-4 text-[15px] text-[#1A2332] hover:bg-[#F5F7FA]" style={{ fontWeight: 600 }}>
+                  Back
+                </button>
+              </div>
+            </>
+          )}
+
+          {mode === "changes" && (
+            <>
+              <label className="block text-[14px]" style={{ fontWeight: 600 }} htmlFor="change-note">What would you like changed?</label>
+              <textarea id="change-note" value={note} maxLength={CHANGE_NOTE_LIMIT} onChange={(e) => setNote(e.target.value)} rows={4}
+                placeholder="Tell us what to adjust and we will send an updated estimate to this same link."
+                className="mt-2 w-full resize-none rounded-lg border border-[#E5E7EB] px-3 py-2.5 text-[14px] leading-[20px] outline-none focus:border-[#4A6FA5] focus:ring-2 focus:ring-[#4A6FA5]/10" />
               <div className="mt-1 text-right text-[12px] text-[#9CA3AF]">{note.length}/{CHANGE_NOTE_LIMIT}</div>
               <div className="mt-2 flex flex-col gap-2.5 sm:flex-row">
-                <button
-                  type="button"
-                  onClick={requestChanges}
-                  disabled={!note.trim()}
-                  className="h-11 flex-1 rounded-lg bg-[#4A6FA5] px-4 text-[15px] text-white transition-colors hover:bg-[#3d5a85] disabled:cursor-not-allowed disabled:bg-[#C7D2E1]"
-                  style={{ fontWeight: 600 }}
-                >
+                <button type="button" onClick={requestChanges} disabled={!note.trim()}
+                  className="h-11 flex-1 rounded-lg bg-[#4A6FA5] px-4 text-[15px] text-white hover:bg-[#3d5a85] disabled:pointer-events-none disabled:bg-[#C7D2E1]" style={{ fontWeight: 600 }}>
                   Send request
                 </button>
-                <button
-                  type="button"
-                  onClick={() => { setMode("idle"); setNote(""); }}
-                  className="h-11 flex-1 rounded-lg border border-[#D8DEE8] px-4 text-[15px] text-[#1A2332] transition-colors hover:bg-[#F5F7FA]"
-                  style={{ fontWeight: 600 }}
-                >
+                <button type="button" onClick={() => { setMode("idle"); setNote(""); }}
+                  className="h-11 flex-1 rounded-lg border border-[#D8DEE8] px-4 text-[15px] text-[#1A2332] hover:bg-[#F5F7FA]" style={{ fontWeight: 600 }}>
+                  Back
+                </button>
+              </div>
+            </>
+          )}
+
+          {mode === "decline" && (
+            <>
+              <div className="text-[17px]" style={{ fontWeight: 600 }}>Decline this estimate?</div>
+              <div className="mt-1 text-[14px] text-[#6B7280]">We won't do the work. You can tell us why — it helps us price better next time.</div>
+              <textarea value={declineNote} onChange={(e) => setDeclineNote(e.target.value)} rows={3} maxLength={CHANGE_NOTE_LIMIT}
+                placeholder="Reason (optional)"
+                className="mt-3 w-full resize-none rounded-lg border border-[#E5E7EB] px-3 py-2.5 text-[14px] leading-[20px] outline-none focus:border-[#4A6FA5] focus:ring-2 focus:ring-[#4A6FA5]/10" />
+              <div className="mt-3 flex flex-col gap-2.5 sm:flex-row">
+                <button type="button" onClick={decline}
+                  className="h-11 flex-1 rounded-lg bg-[#DC2626] px-4 text-[15px] text-white hover:bg-[#B91C1C]" style={{ fontWeight: 600 }}>
+                  Decline estimate
+                </button>
+                <button type="button" onClick={() => setMode("idle")}
+                  className="h-11 flex-1 rounded-lg border border-[#D8DEE8] px-4 text-[15px] text-[#1A2332] hover:bg-[#F5F7FA]" style={{ fontWeight: 600 }}>
                   Back
                 </button>
               </div>
@@ -322,6 +452,26 @@ export function ClientEstimateView() {
           )}
         </div>
       )}
+
+      {/* ── Page 2 of the document: payment and the terms ── */}
+      <div className="mt-6 rounded-xl border border-[#E5E7EB] bg-white p-4 sm:p-5">
+        {record.depositRequired && (
+          <div className="mb-5 grid gap-4 border-b border-[#EDF0F5] pb-5 sm:grid-cols-3">
+            <div className="sm:col-span-3"><Label>Payment</Label></div>
+            <div><div className="text-[12px] text-[#6B7280]">Deposit on approval</div><div className="text-[14px]" style={{ fontWeight: 600 }}>{record.depositType === "percentage" ? `${record.depositValue ?? 0}%` : `$${fmt(record.depositValue ?? 0)}`}</div></div>
+            <div><div className="text-[12px] text-[#6B7280]">Balance</div><div className="text-[14px]" style={{ fontWeight: 600 }}>on completion</div></div>
+            <div><div className="text-[12px] text-[#6B7280]">We accept</div><div className="text-[14px]" style={{ fontWeight: 600 }}>card, check and cash</div></div>
+          </div>
+        )}
+        <details open={termsBlocks.length <= 4}>
+          <summary className="cursor-pointer list-none"><Label>Terms and conditions</Label></summary>
+          <div className="mt-3 space-y-2.5 text-[13px] leading-[20px] text-[#374151]">
+            {termsBlocks.length
+              ? termsBlocks.map((b, i) => <p key={i}>{b.heading && <strong>{b.heading}. </strong>}{b.body}</p>)
+              : <p>This estimate is valid until {record.expirationDate || "the date shown"}. Nothing is added to your price without your approval.</p>}
+          </div>
+        </details>
+      </div>
     </Shell>
   );
 }
