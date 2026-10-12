@@ -566,9 +566,6 @@ export function CreateEstimate() {
             {footerCfg.enabled && (
               <div className="mt-3 overflow-hidden rounded-xl border border-[#E5E7EB] bg-white">
                 <div className="flex items-center gap-3 px-4 py-3">
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#EEF3FA] text-[#4A6FA5]">
-                    <span className="material-icons" style={{ fontSize: "18px" }}>verified</span>
-                  </span>
                   <div className="min-w-0 flex-1">
                     <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>
                       Bottom line{options.length > 1 && <span className="text-[#8899AA]" style={{ fontWeight: 500 }}> · {activeOption.name}</span>}
