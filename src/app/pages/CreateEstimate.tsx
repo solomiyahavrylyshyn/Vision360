@@ -453,92 +453,56 @@ export function CreateEstimate() {
             <p className="mb-3 text-[12px] text-[#8899AA]">
               Each option has its own line items — the client picks one when accepting. Rename via the pencil; up to 4 options.
             </p>
-            {/* Option settings — one card for the option on screen: its financing
-                and its bottom line (Marek, Oct 5: a short line per option — the
-                title is free, Warranty, Guarantee or blank; empty prints nothing). */}
-            <div className="mb-4 overflow-hidden rounded-xl border border-[#E5E7EB] bg-white">
-              <div className="flex items-center justify-between gap-3 border-b border-[#E5E7EB] bg-[#F9FAFB] px-4 py-2.5">
-                <div className="flex items-center gap-2 text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>
-                  <span className="material-icons text-[#8899AA]" style={{ fontSize: "16px" }}>tune</span>
-                  Option settings
-                  {options.length > 1 && <span className="rounded-full bg-[#EEF3FA] px-2 py-0.5 text-[12px] text-[#4A6FA5]" style={{ fontWeight: 600 }}>{activeOption.name}</span>}
-                </div>
-                {options.length > 1 && <span className="text-[12px] text-[#8899AA]">Applies to this option only</span>}
+            {/* Settings of the option on screen — laid out like the rest of the form
+                (labels over fields, two columns): its financing, then its bottom
+                line (Marek, Oct 5: a short line per option; the title is free —
+                Warranty, Guarantee or blank; empty prints nothing). */}
+            <div className="mb-5 grid grid-cols-2 gap-x-5 gap-y-4">
+              <div>
+                <label className={labelClass}>Financing{options.length > 1 ? ` — ${activeOption.name}` : ""}</label>
+                <select value={financingPlanId} onChange={(e) => setFinancingPlanId(e.target.value)} className={fieldClass}>
+                  <option value="">No financing</option>
+                  {financingPlans.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                </select>
               </div>
-
-              {/* financing */}
-              <div className="grid grid-cols-2 gap-5 px-4 py-4">
-                <div>
-                  <label className={labelClass}>Financing</label>
-                  <select value={financingPlanId} onChange={(e) => setFinancingPlanId(e.target.value)} className={fieldClass}>
-                    <option value="">No financing</option>
-                    {financingPlans.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-                  </select>
-                </div>
-                {financingPlan ? (
-                  <div>
-                    <label className={labelClass}>Show the client first</label>
-                    <div className="inline-flex h-11 rounded-lg border border-[#E5E7EB] bg-[#F5F7FA] p-1">
-                      {([["monthly", "Monthly payment"], ["full", "Full amount"]] as const).map(([v, label]) => (
-                        <button key={v} type="button" onClick={() => setFinancingShow(v)} aria-pressed={financingShow === v}
-                          className={`rounded-md px-3.5 text-[14px] transition-colors ${financingShow === v ? "bg-white text-[#1A2332] shadow-[0_1px_2px_rgba(0,0,0,0.08)]" : "text-[#546478] hover:text-[#1A2332]"}`}
-                          style={{ fontWeight: financingShow === v ? 600 : 500 }}>
-                          {label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                ) : <div />}
-                {financingPlan && (
-                  <p className="col-span-2 -mt-2 text-[12px] text-[#6B7280]">
-                    {total > 0
-                      ? <><strong className="text-[#1A2332]">${planMonthly(financingPlan, total).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/mo</strong> {planLine(financingPlan)} · full amount ${total.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}.</>
-                      : <>Add line items to see the monthly payment.</>}
-                    {" "}Under ${estimateSettingsStore.getSnapshot().financing.minAmount.toLocaleString("en-US")} the client sees the full amount.
-                  </p>
-                )}
+              <div>
+                <label className={`${labelClass} ${financingPlan ? "" : "text-[#9CA3AF]"}`}>Show the client first</label>
+                <select value={financingPlan ? financingShow : "full"} disabled={!financingPlan}
+                  onChange={(e) => setFinancingShow(e.target.value as "monthly" | "full")}
+                  className={`${fieldClass} disabled:cursor-not-allowed disabled:bg-[#F9FAFB] disabled:text-[#9CA3AF]`}>
+                  <option value="monthly">Monthly payment</option>
+                  <option value="full">Full amount</option>
+                </select>
               </div>
-
-              {/* bottom line, with a live preview of how it prints */}
+              {financingPlan && (
+                <p className="col-span-2 -mt-2 text-[12px] text-[#6B7280]">
+                  {total > 0
+                    ? <><strong className="text-[#1A2332]">${planMonthly(financingPlan, total).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/mo</strong> {planLine(financingPlan)} · full amount ${total.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}.</>
+                    : <>Add line items to see the monthly payment.</>}
+                  {" "}Under ${estimateSettingsStore.getSnapshot().financing.minAmount.toLocaleString("en-US")} the client sees the full amount.
+                </p>
+              )}
               {footerCfg.enabled && (
-                <div className="border-t border-[#EDF0F5] px-4 py-4">
-                  <div className="mb-3 flex items-baseline gap-2">
-                    <span className="text-[13px] text-[#374151]">Bottom line</span>
-                    <span className="text-[12px] text-[#8899AA]">optional · printed under the option's items</span>
+                <div className="col-span-2">
+                  <div className="mb-1.5 flex items-baseline justify-between gap-3">
+                    <span className="text-[13px] text-[#374151]">Bottom line{options.length > 1 ? ` — ${activeOption.name}` : ""}</span>
+                    <span className="text-[12px] text-[#9CA3AF]">optional · printed under the option's items</span>
                   </div>
-                  <div className="grid grid-cols-[minmax(0,1fr)_200px] items-start gap-5">
-                    <div className="grid grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)_minmax(0,1.3fr)] gap-3">
-                      {([
-                        ["label", "Title", "Warranty, Guarantee…", OPTION_FOOTER_LIMITS.label],
-                        ["title", "Main line", "2 years labor", OPTION_FOOTER_LIMITS.title],
-                        ["detail", "Second line", "10 years parts", OPTION_FOOTER_LIMITS.detail],
-                      ] as const).map(([key, label, ph, max]) => (
-                        <div key={key}>
-                          <div className="mb-1.5 flex items-baseline justify-between text-[12px]">
-                            <span className="text-[#546478]">{label}</span>
-                            {footer[key].length >= max * 0.7 && <span className={footer[key].length >= max ? "text-[#DC2626]" : "text-[#8899AA]"}>{footer[key].length}/{max}</span>}
-                          </div>
-                          <input value={footer[key]} maxLength={max} onChange={(e) => setFooter({ [key]: e.target.value })}
-                            placeholder={ph} className={`${fieldClass} h-10`} aria-label={`Option footer — ${label.toLowerCase()}`} />
-                        </div>
-                      ))}
-                      <p className="col-span-3 text-[12px] text-[#8899AA]">
-                        Filled from Settings → Estimates. Rename the title or clear it; clear the lines and nothing is printed.
-                      </p>
-                    </div>
-                    <div>
-                      <div className="mb-1.5 text-[12px] text-[#546478]">On the estimate</div>
-                      {footer.title || footer.detail ? (
-                        <div className="rounded-md border border-[#D8DEE8] bg-[#EEF3FA] px-3 py-2.5 text-center">
-                          {footer.label && <div className="text-[10px] uppercase tracking-[0.1em] text-[#6B7280]" style={{ fontWeight: 600 }}>{footer.label}</div>}
-                          {footer.title && <div className="truncate text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>{footer.title}</div>}
-                          {footer.detail && <div className="truncate text-[12px] text-[#4B5563]">{footer.detail}</div>}
-                        </div>
-                      ) : (
-                        <div className="flex h-[66px] items-center justify-center rounded-md border border-dashed border-[#D8DEE8] px-3 text-center text-[12px] text-[#8899AA]">Nothing printed</div>
-                      )}
-                    </div>
+                  {/* one field in three parts: title · main line · second line */}
+                  <div className="flex h-11 overflow-hidden rounded-lg border border-[#E5E7EB] bg-white focus-within:border-[#4A6FA5]">
+                    {([
+                      ["label", "Warranty", OPTION_FOOTER_LIMITS.label, "w-[26%] text-[#546478]", "title"],
+                      ["title", "2 years labor", OPTION_FOOTER_LIMITS.title, "w-[34%] text-[#1A2332]", "main line"],
+                      ["detail", "10 years parts", OPTION_FOOTER_LIMITS.detail, "flex-1 text-[#1A2332]", "second line"],
+                    ] as const).map(([key, ph, max, cls, name], i) => (
+                      <input key={key} value={footer[key]} maxLength={max} placeholder={ph}
+                        onChange={(e) => setFooter({ [key]: e.target.value })}
+                        className={`${cls} min-w-0 bg-transparent px-3.5 text-[14px] outline-none placeholder:text-[#C0C7D2] ${i ? "border-l border-[#E5E7EB]" : ""}`}
+                        style={key === "label" ? { fontWeight: 500 } : undefined}
+                        aria-label={`Option footer — ${name}`} />
+                    ))}
                   </div>
+                  <p className="mt-1.5 text-[12px] text-[#9CA3AF]">Title, main line, second line — e.g. Warranty · 2 years labor · 10 years parts. Rename the title (Guarantee…) or leave it blank; empty lines print nothing.</p>
                 </div>
               )}
             </div>
