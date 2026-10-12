@@ -194,6 +194,7 @@ export function ClientEstimateView() {
   const pickedTotals = picked ? totalsFor(picked.items, taxRate) : null;
   const depositFor = (total: number) =>
     record.depositType === "percentage" ? total * ((record.depositValue ?? 0) / 100) : record.depositValue ?? 0;
+  const showFooterBand = estimateSettings.optionFooter.enabled && shownOptions.some((op) => op.footer);
   const optionLabel = (i: number) => (comparison ? `Option ${ROMAN[i] ?? i + 1}` : "Your estimate");
   const address = (record.serviceAddress || record.clientAddress || "").replace(/\n/g, ", ");
 
@@ -292,8 +293,12 @@ export function ClientEstimateView() {
             {shownOptions.map((option, index) => {
               const t = totalsFor(option.items, taxRate);
               const isPicked = selected === index;
+              // Each card spans one row per band (head, items, footer, button) of
+              // a shared subgrid, so every band is the same height across options.
+              const bands = 2 + (showFooterBand ? 1 : 0) + (open ? 1 : 0);
               return (
-                <div key={option.name} className={`flex flex-col overflow-hidden rounded-xl border bg-white transition-shadow ${isPicked ? "border-[#4A6FA5] ring-2 ring-[#4A6FA5]/20" : "border-[#E5E7EB]"}`}>
+                <div key={option.name} style={{ gridRow: `span ${bands}` }}
+                  className={`grid grid-rows-subgrid gap-y-0 overflow-hidden rounded-xl border bg-white transition-shadow ${isPicked ? "border-[#4A6FA5] ring-2 ring-[#4A6FA5]/20" : "border-[#E5E7EB]"}`}>
                   <div className={`px-4 py-4 text-center ${isPicked ? "bg-[#4A6FA5] text-white" : "bg-[#EEF3FA]"}`}>
                     <div className={`text-[11px] uppercase tracking-[0.12em] ${isPicked ? "text-white/85" : "text-[#4A6FA5]"}`} style={{ fontWeight: 700 }}>{optionLabel(index)}</div>
                     {monthlyFirst(option, t.total) ? (
@@ -331,9 +336,9 @@ export function ClientEstimateView() {
                     </ul>
                   </div>
                   {/* The option's bottom line — Warranty unless renamed in Settings. */}
-                  {estimateSettings.optionFooter.enabled && shownOptions.some((op) => op.footer) && (
+                  {showFooterBand && (
                     <div className={`border-t px-4 py-2.5 text-center ${isPicked ? "border-[#4A6FA5]/20 bg-[#EEF3FA]" : "border-[#EDF0F5] bg-[#F7F9FC]"}`}>
-                      <div className="text-[10px] uppercase tracking-[0.12em] text-[#6B7280]" style={{ fontWeight: 600 }}>{estimateSettings.optionFooter.label}</div>
+                      {(() => { const l = option.footer?.label ?? estimateSettings.optionFooter.label; return l ? <div className="text-[10px] uppercase tracking-[0.12em] text-[#6B7280]" style={{ fontWeight: 600 }}>{l}</div> : null; })()}
                       {option.footer ? (
                         <>
                           <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>{option.footer.title}</div>
@@ -379,7 +384,7 @@ export function ClientEstimateView() {
                     <div className="text-[11px] text-[#6B7280]">{lineFor(option)}</div>
                     <div className="mt-1 text-[14px]" style={{ fontWeight: 500 }}>{option.name}</div>
                     {estimateSettings.optionFooter.enabled && option.footer && (
-                      <div className="mt-1 text-[13px] text-[#374151]"><span style={{ fontWeight: 600 }}>{estimateSettings.optionFooter.label}</span> {[option.footer.title, option.footer.detail].filter(Boolean).join(" · ")}</div>
+                      <div className="mt-1 text-[13px] text-[#374151]">{(option.footer.label ?? estimateSettings.optionFooter.label) && <span style={{ fontWeight: 600 }}>{option.footer.label ?? estimateSettings.optionFooter.label} </span>}{[option.footer.title, option.footer.detail].filter(Boolean).join(" · ")}</div>
                     )}
                     <FullPrice total={t.total} tax={t.tax} open={openPrice.has(-1)} onToggle={() => togglePrice(-1)} />
                   </>
@@ -389,7 +394,7 @@ export function ClientEstimateView() {
                     <div className="mt-1 text-[14px]" style={{ fontWeight: 500 }}>{option.name}</div>
                     <div className="text-[12px] text-[#6B7280]">{t.tax > 0 ? `tax included ($${fmt(t.tax)})` : "no tax"}</div>
                     {estimateSettings.optionFooter.enabled && option.footer && (
-                      <div className="mt-2 text-[13px] text-[#374151]"><span style={{ fontWeight: 600 }}>{estimateSettings.optionFooter.label}</span> {[option.footer.title, option.footer.detail].filter(Boolean).join(" · ")}</div>
+                      <div className="mt-2 text-[13px] text-[#374151]">{(option.footer.label ?? estimateSettings.optionFooter.label) && <span style={{ fontWeight: 600 }}>{option.footer.label ?? estimateSettings.optionFooter.label} </span>}{[option.footer.title, option.footer.detail].filter(Boolean).join(" · ")}</div>
                     )}
                     {financed(option, t.total) && (
                       <div className="mt-1 text-[12px] text-[#4A6FA5]">or <span className="tabular-nums" style={{ fontWeight: 600 }}>${fmt(monthlyFor(option, t.total))}/mo</span> · {lineFor(option)}</div>

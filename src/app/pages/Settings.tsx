@@ -1866,10 +1866,10 @@ function EstimateOptionFooterCard() {
       {s.enabled && (
         <>
           <div className="flex flex-col gap-1">
-            <div className="flex items-baseline justify-between"><div className="text-[14px] leading-5 text-[#1A2332]" style={{ fontWeight: 500 }}>Field name</div>{count(s.label, OPTION_FOOTER_LIMITS.label)}</div>
+            <div className="flex items-baseline justify-between"><div className="text-[14px] leading-5 text-[#1A2332]" style={{ fontWeight: 500 }}>Default title</div>{count(s.label, OPTION_FOOTER_LIMITS.label)}</div>
             <Input value={s.label} maxLength={OPTION_FOOTER_LIMITS.label} onChange={(e) => estimateSettingsStore.setOptionFooter({ label: e.target.value })}
               placeholder="Warranty" className={`${field} w-[414px] max-w-full`} />
-            <p className="text-[12px] leading-4 text-[#6B7280]">Shown above the line on every option, e.g. Warranty, Guarantee.</p>
+            <p className="text-[12px] leading-4 text-[#6B7280]">Pre-fills the title on each new option, e.g. Warranty or Guarantee. It can be changed or left blank on every option.</p>
           </div>
           <div className="grid max-w-[640px] grid-cols-2 gap-4">
             <div className="flex flex-col gap-1">
@@ -1881,7 +1881,7 @@ function EstimateOptionFooterCard() {
               <Input value={s.detail} maxLength={OPTION_FOOTER_LIMITS.detail} onChange={(e) => estimateSettingsStore.setOptionFooter({ detail: e.target.value })} placeholder="10 years parts" className={field} />
             </div>
           </div>
-          <p className="-mt-2 text-[12px] leading-4 text-[#6B7280]">Pre-fills each new option; edit or clear it per option. Kept short so the sheet holds its layout — for longer terms, put a short link (e.g. andservices.com/guarantee).</p>
+          <p className="-mt-2 text-[12px] leading-4 text-[#6B7280]">Pre-fill each new option; edit or clear them per option. Kept short so the sheet holds its layout — for longer terms, put a short link (e.g. andservices.com/guarantee).</p>
           {/* how it prints */}
           <div className="w-[220px] overflow-hidden rounded-md border border-[#1B2437] text-center">
             <div className="bg-[#EEF3FA] px-3 py-2">

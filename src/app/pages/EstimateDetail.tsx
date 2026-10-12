@@ -60,7 +60,7 @@ interface EstimateOptionData {
   summary?: string;
   financingPlanId?: string;
   financingShow?: "monthly" | "full";
-  footer?: { title: string; detail?: string };
+  footer?: { label?: string; title: string; detail?: string };
   items: LineItem[];
 }
 
@@ -81,7 +81,7 @@ interface EstimateData {
   /** FR-5.19 — estimate type classification (Repair / Installation / …). */
   estimateType?: string;
   /** Bottom line of a single-option estimate (Warranty by default). */
-  footer?: { title: string; detail?: string };
+  footer?: { label?: string; title: string; detail?: string };
   /** Good/Better/Best — per-option line-item sets (Figma 2915:26967). */
   options?: { name: string; items: LineItem[] }[];
 }
@@ -625,7 +625,7 @@ export function EstimateDetail() {
       ...(() => {
         const f = documentOptions.length === 1 ? (documentOptions[0].footer ?? estimate.footer) : estimate.footer;
         return estimateSettings.optionFooter.enabled && f
-          ? { warranty: [f.title, f.detail].filter(Boolean).join(" · "), warrantyLabel: estimateSettings.optionFooter.label }
+          ? { warranty: [f.title, f.detail].filter(Boolean).join(" · "), warrantyLabel: f.label ?? estimateSettings.optionFooter.label }
           : {};
       })(),
     },
@@ -659,7 +659,7 @@ export function EstimateDetail() {
       return {
         label: o.name, price: t.total, tax: t.tax, description: o.summary ?? "",
         monthly: f?.monthly, plan: f?.lead ? f.plan : undefined,
-        warranty: estimateSettings.optionFooter.enabled && o.footer ? { big: o.footer.title, small: o.footer.detail ?? "" } : undefined,
+        warranty: estimateSettings.optionFooter.enabled && o.footer ? { big: o.footer.title, small: o.footer.detail ?? "", label: o.footer.label } : undefined,
         items: o.items.map((i) => ({ name: i.quantity > 1 ? `${i.name} ×${i.quantity}` : i.name, detail: i.description || undefined })),
       };
     }),

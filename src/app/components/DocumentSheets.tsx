@@ -204,7 +204,7 @@ export function EstimateSingleSheet({ data, company, paper }: { data: EstimateSi
             <div className="label">Your estimate</div>
             <div className="price">{money(data.headline.price, false)}{data.headline.wasPrice !== undefined && <span className="was">{money(data.headline.wasPrice, false)}</span>}</div>
             <div className="desc">{data.headline.description}</div>
-            {data.headline.warranty && <div className="desc" style={{ marginTop: 6 }}><b>{data.headline.warrantyLabel ?? "Warranty"}</b> {data.headline.warranty}</div>}
+            {data.headline.warranty && <div className="desc" style={{ marginTop: 6 }}>{(data.headline.warrantyLabel ?? "Warranty") && <b>{data.headline.warrantyLabel ?? "Warranty"} </b>}{data.headline.warranty}</div>}
           </div>
           <div className="why">
             <div className="label">What we will do</div>
@@ -248,7 +248,8 @@ export interface EstimateOptionColumn {
   monthly?: string;
   /** e.g. "1% payment plan" — the line under a leading monthly figure. */
   plan?: string;
-  warranty?: { big: string; small: string };
+  /** `label` is the band's title on this option ("" = none); falls back to `footerLabel`. */
+  warranty?: { big: string; small: string; label?: string };
 }
 
 export interface EstimateOptionsData {
@@ -320,7 +321,7 @@ export function EstimateOptionsSheet({ data, company, paper }: { data: EstimateO
               {data.options.map((o) => (
                 <td key={o.label}>
                   <div className="warr">
-                    <div className="l">{data.footerLabel ?? "Warranty"}</div>
+                    {(o.warranty?.label ?? data.footerLabel ?? "Warranty") && <div className="l">{o.warranty?.label ?? data.footerLabel ?? "Warranty"}</div>}
                     <div className="big">{o.warranty?.big ?? "—"}</div>
                     <div className="sm">{o.warranty?.small ?? ""}</div>
                   </div>

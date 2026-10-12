@@ -54,6 +54,9 @@ export interface EstimateOption {
 
 /** "2 years labor" / "10 years parts" — printed as the option's bottom band. */
 export interface EstimateOptionFooter {
+  /** The band's title on this option — "Warranty", "Guarantee", … or "" for none.
+   *  Missing on older rows → the name from Settings. */
+  label?: string;
   title: string;
   detail?: string;
 }
@@ -168,7 +171,7 @@ const SEED: EstimateRecord[] = [
       { id: 3, name: "Diagnostic & Repair", description: "Diagnose the fault and complete the repair", quantity: 1, price: 89, cost: 45, amount: 89, taxable: false },
     ],
     options: [
-      { name: "Repair", footer: { title: "90 days", detail: "parts & labor" }, summary: "Fix the system you have now.", items: [
+      { name: "Repair", footer: { label: "Warranty", title: "90 days", detail: "parts & labor" }, summary: "Fix the system you have now.", items: [
         { id: 1, name: "Capacitor 45/5 MFD", description: "Dual run capacitor replacement", quantity: 1, price: 120, cost: 40, amount: 120, taxable: true },
         { id: 2, name: "R-410A Refrigerant", description: "Refrigerant recharge (per lb)", quantity: 2, price: 50, cost: 20, amount: 100, taxable: true },
         { id: 3, name: "Diagnostic & Repair", description: "Diagnose the fault and complete the repair", quantity: 1, price: 89, cost: 45, amount: 89, taxable: false },

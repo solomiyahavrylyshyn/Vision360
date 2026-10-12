@@ -99,7 +99,7 @@ export function CreateEstimate() {
   const footerCfg = estimateSettings.optionFooter;
   const defaultFooter = () => {
     const f = estimateSettingsStore.getSnapshot().optionFooter;
-    return f.enabled && (f.title || f.detail) ? { title: f.title, detail: f.detail } : { title: "", detail: "" };
+    return f.enabled ? { label: f.label, title: f.title, detail: f.detail } : { label: "", title: "", detail: "" };
   };
 
   const estimateTypes = useSyncExternalStore(estimateTypesStore.subscribe, estimateTypesStore.getSnapshot);
@@ -109,7 +109,7 @@ export function CreateEstimate() {
 
   // Good/Better/Best options (Figma 2509:12598) — each option carries its own
   // line items; the client picks one when accepting. Up to 4, renamable.
-  type EstimateOption = { id: number; name: string; items: SelectedLineItem[]; financingPlanId?: string; financingShow?: "monthly" | "full"; footer?: { title: string; detail: string } };
+  type EstimateOption = { id: number; name: string; items: SelectedLineItem[]; financingPlanId?: string; financingShow?: "monthly" | "full"; footer?: { label: string; title: string; detail: string } };
   const OPTION_NAME_DEFAULTS = ["Good", "Better", "Best", "Premium"];
   const MAX_OPTIONS = 4;
   const [options, setOptions] = useState<EstimateOption[]>(() => [{ id: 1, name: "Good", items: [], footer: defaultFooter() }]);
@@ -126,12 +126,12 @@ export function CreateEstimate() {
     setOptions((opts) => opts.map((o) => (o.id === activeOption.id ? { ...o, ...patch } : o)));
   const setFinancingPlanId = (id: string) => setOptionFinancing({ financingPlanId: id || undefined });
   const setFinancingShow = (v: "monthly" | "full") => setOptionFinancing({ financingShow: v });
-  const footer = activeOption.footer ?? { title: "", detail: "" };
-  const setFooter = (patch: Partial<{ title: string; detail: string }>) => setOptionFinancing({ footer: { ...footer, ...patch } });
+  const footer = activeOption.footer ?? { label: "", title: "", detail: "" };
+  const setFooter = (patch: Partial<{ label: string; title: string; detail: string }>) => setOptionFinancing({ footer: { ...footer, ...patch } });
   // Empty title and detail → nothing is printed for this option.
   const footerOf = (o: EstimateOption) => {
-    const t = o.footer?.title.trim() ?? "", d = o.footer?.detail.trim() ?? "";
-    return footerCfg.enabled && (t || d) ? { title: t, detail: d || undefined } : undefined;
+    const l = o.footer?.label.trim() ?? "", t = o.footer?.title.trim() ?? "", d = o.footer?.detail.trim() ?? "";
+    return footerCfg.enabled && (t || d) ? { label: l, title: t, detail: d || undefined } : undefined;
   };
   const setLineItems = (updater: React.SetStateAction<SelectedLineItem[]>) =>
     setOptions((opts) => opts.map((o) => o.id === activeOption.id
@@ -453,59 +453,95 @@ export function CreateEstimate() {
             <p className="mb-3 text-[12px] text-[#8899AA]">
               Each option has its own line items — the client picks one when accepting. Rename via the pencil; up to 4 options.
             </p>
-            {/* Financing for the option on screen — each option has its own. */}
-            <div className="mb-4 grid grid-cols-2 gap-5 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-4">
-              <div>
-                <label className={labelClass}>Financing{options.length > 1 ? ` — ${activeOption.name}` : ""}</label>
-                <select value={financingPlanId} onChange={(e) => setFinancingPlanId(e.target.value)} className={fieldClass}>
-                  <option value="">No financing</option>
-                  {financingPlans.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-                </select>
+            {/* Option settings — one card for the option on screen: its financing
+                and its bottom line (Marek, Oct 5: a short line per option — the
+                title is free, Warranty, Guarantee or blank; empty prints nothing). */}
+            <div className="mb-4 overflow-hidden rounded-xl border border-[#E5E7EB] bg-white">
+              <div className="flex items-center justify-between gap-3 border-b border-[#E5E7EB] bg-[#F9FAFB] px-4 py-2.5">
+                <div className="flex items-center gap-2 text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>
+                  <span className="material-icons text-[#8899AA]" style={{ fontSize: "16px" }}>tune</span>
+                  Option settings
+                  {options.length > 1 && <span className="rounded-full bg-[#EEF3FA] px-2 py-0.5 text-[12px] text-[#4A6FA5]" style={{ fontWeight: 600 }}>{activeOption.name}</span>}
+                </div>
+                {options.length > 1 && <span className="text-[12px] text-[#8899AA]">Applies to this option only</span>}
               </div>
-              {financingPlan ? (
+
+              {/* financing */}
+              <div className="grid grid-cols-2 gap-5 px-4 py-4">
                 <div>
-                  <label className={labelClass}>Show the client first</label>
-                  <div className="flex flex-wrap gap-2">
-                    {([["monthly", "Monthly payment"], ["full", "Full amount"]] as const).map(([v, label]) => (
-                      <label key={v} className={`flex h-10 cursor-pointer items-center gap-2 rounded-lg border bg-white px-3 text-[14px] ${financingShow === v ? "border-[#4A6FA5] bg-[#EEF3FA] text-[#1A2332]" : "border-[#E5E7EB] text-[#546478]"}`}>
-                        <input type="radio" name={`financing-show-${activeOption.id}`} checked={financingShow === v} onChange={() => setFinancingShow(v)} className="accent-[#4A6FA5]" />
-                        {label}
-                      </label>
-                    ))}
+                  <label className={labelClass}>Financing</label>
+                  <select value={financingPlanId} onChange={(e) => setFinancingPlanId(e.target.value)} className={fieldClass}>
+                    <option value="">No financing</option>
+                    {financingPlans.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  </select>
+                </div>
+                {financingPlan ? (
+                  <div>
+                    <label className={labelClass}>Show the client first</label>
+                    <div className="inline-flex h-11 rounded-lg border border-[#E5E7EB] bg-[#F5F7FA] p-1">
+                      {([["monthly", "Monthly payment"], ["full", "Full amount"]] as const).map(([v, label]) => (
+                        <button key={v} type="button" onClick={() => setFinancingShow(v)} aria-pressed={financingShow === v}
+                          className={`rounded-md px-3.5 text-[14px] transition-colors ${financingShow === v ? "bg-white text-[#1A2332] shadow-[0_1px_2px_rgba(0,0,0,0.08)]" : "text-[#546478] hover:text-[#1A2332]"}`}
+                          style={{ fontWeight: financingShow === v ? 600 : 500 }}>
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : <div />}
+                {financingPlan && (
+                  <p className="col-span-2 -mt-2 text-[12px] text-[#6B7280]">
+                    {total > 0
+                      ? <><strong className="text-[#1A2332]">${planMonthly(financingPlan, total).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/mo</strong> {planLine(financingPlan)} · full amount ${total.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}.</>
+                      : <>Add line items to see the monthly payment.</>}
+                    {" "}Under ${estimateSettingsStore.getSnapshot().financing.minAmount.toLocaleString("en-US")} the client sees the full amount.
+                  </p>
+                )}
+              </div>
+
+              {/* bottom line, with a live preview of how it prints */}
+              {footerCfg.enabled && (
+                <div className="border-t border-[#EDF0F5] px-4 py-4">
+                  <div className="mb-3 flex items-baseline gap-2">
+                    <span className="text-[13px] text-[#374151]">Bottom line</span>
+                    <span className="text-[12px] text-[#8899AA]">optional · printed under the option's items</span>
+                  </div>
+                  <div className="grid grid-cols-[minmax(0,1fr)_200px] items-start gap-5">
+                    <div className="grid grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)_minmax(0,1.3fr)] gap-3">
+                      {([
+                        ["label", "Title", "Warranty, Guarantee…", OPTION_FOOTER_LIMITS.label],
+                        ["title", "Main line", "2 years labor", OPTION_FOOTER_LIMITS.title],
+                        ["detail", "Second line", "10 years parts", OPTION_FOOTER_LIMITS.detail],
+                      ] as const).map(([key, label, ph, max]) => (
+                        <div key={key}>
+                          <div className="mb-1.5 flex items-baseline justify-between text-[12px]">
+                            <span className="text-[#546478]">{label}</span>
+                            {footer[key].length >= max * 0.7 && <span className={footer[key].length >= max ? "text-[#DC2626]" : "text-[#8899AA]"}>{footer[key].length}/{max}</span>}
+                          </div>
+                          <input value={footer[key]} maxLength={max} onChange={(e) => setFooter({ [key]: e.target.value })}
+                            placeholder={ph} className={`${fieldClass} h-10`} aria-label={`Option footer — ${label.toLowerCase()}`} />
+                        </div>
+                      ))}
+                      <p className="col-span-3 text-[12px] text-[#8899AA]">
+                        Filled from Settings → Estimates. Rename the title or clear it; clear the lines and nothing is printed.
+                      </p>
+                    </div>
+                    <div>
+                      <div className="mb-1.5 text-[12px] text-[#546478]">On the estimate</div>
+                      {footer.title || footer.detail ? (
+                        <div className="rounded-md border border-[#D8DEE8] bg-[#EEF3FA] px-3 py-2.5 text-center">
+                          {footer.label && <div className="text-[10px] uppercase tracking-[0.1em] text-[#6B7280]" style={{ fontWeight: 600 }}>{footer.label}</div>}
+                          {footer.title && <div className="truncate text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>{footer.title}</div>}
+                          {footer.detail && <div className="truncate text-[12px] text-[#4B5563]">{footer.detail}</div>}
+                        </div>
+                      ) : (
+                        <div className="flex h-[66px] items-center justify-center rounded-md border border-dashed border-[#D8DEE8] px-3 text-center text-[12px] text-[#8899AA]">Nothing printed</div>
+                      )}
+                    </div>
                   </div>
                 </div>
-              ) : <div />}
-              {financingPlan && (
-                <p className="col-span-2 -mt-2 text-[12px] text-[#6B7280]">
-                  {total > 0
-                    ? <>{activeOption.name}: <strong className="text-[#1A2332]">${planMonthly(financingPlan, total).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/mo</strong> {planLine(financingPlan)} · full amount ${total.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}.</>
-                    : <>Add line items to see the monthly payment.</>}
-                  {" "}Under ${estimateSettingsStore.getSnapshot().financing.minAmount.toLocaleString("en-US")} the client sees the full amount.
-                </p>
               )}
             </div>
-            {/* The option's bottom line — "Warranty" unless renamed in Settings
-                (Marek, Oct 5: a short text per option; long terms go by link). */}
-            {footerCfg.enabled && (
-              <div className="mb-4 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-4">
-                <div className="mb-2 flex items-baseline justify-between gap-3">
-                  <label className={`${labelClass} mb-0`}>{footerCfg.label}{options.length > 1 ? ` — ${activeOption.name}` : ""}</label>
-                  <span className="text-[12px] text-[#8899AA]">Printed at the bottom of the option · optional</span>
-                </div>
-                <div className="grid grid-cols-2 gap-5">
-                  <div>
-                    <input value={footer.title} maxLength={OPTION_FOOTER_LIMITS.title} onChange={(e) => setFooter({ title: e.target.value })}
-                      placeholder="e.g. 2 years labor" className={fieldClass} aria-label={`${footerCfg.label} — main line`} />
-                    <div className="mt-1 flex justify-between text-[11px] text-[#8899AA]"><span>Main line</span><span>{footer.title.length}/{OPTION_FOOTER_LIMITS.title}</span></div>
-                  </div>
-                  <div>
-                    <input value={footer.detail} maxLength={OPTION_FOOTER_LIMITS.detail} onChange={(e) => setFooter({ detail: e.target.value })}
-                      placeholder="e.g. 10 years parts" className={fieldClass} aria-label={`${footerCfg.label} — second line`} />
-                    <div className="mt-1 flex justify-between text-[11px] text-[#8899AA]"><span>Second line</span><span>{footer.detail.length}/{OPTION_FOOTER_LIMITS.detail}</span></div>
-                  </div>
-                </div>
-              </div>
-            )}
             <div className="overflow-hidden rounded-xl border border-[#E5E7EB]">
               {/* card header: search + add item */}
               <div className="flex items-center justify-between gap-3 border-b border-[#E5E7EB] px-4 py-3">
