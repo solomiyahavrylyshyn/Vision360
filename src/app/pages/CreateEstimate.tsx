@@ -476,29 +476,6 @@ export function CreateEstimate() {
                       ? <span>Under ${estimateSettingsStore.getSnapshot().financing.minAmount.toLocaleString("en-US")} — the client sees the full price, ${total.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}.</span>
                       : <span>The client sees <strong className="text-[#1A2332]">${planMonthly(financingPlan, total).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/mo</strong>; the full price, ${total.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}, opens from the arrow.</span>}
               </div>
-              {footerCfg.enabled && (
-                <div className="col-span-2">
-                  <div className="mb-1.5 flex items-baseline justify-between gap-3">
-                    <span className="text-[13px] text-[#374151]">Bottom line{options.length > 1 ? ` — ${activeOption.name}` : ""}</span>
-                    <span className="text-[12px] text-[#9CA3AF]">optional · printed under the option's items</span>
-                  </div>
-                  {/* one field in three parts: title · main line · second line */}
-                  <div className="flex h-11 overflow-hidden rounded-lg border border-[#E5E7EB] bg-white focus-within:border-[#4A6FA5]">
-                    {([
-                      ["label", "Warranty", OPTION_FOOTER_LIMITS.label, "w-[26%] text-[#546478]", "title"],
-                      ["title", "2 years labor", OPTION_FOOTER_LIMITS.title, "w-[34%] text-[#1A2332]", "main line"],
-                      ["detail", "10 years parts", OPTION_FOOTER_LIMITS.detail, "flex-1 text-[#1A2332]", "second line"],
-                    ] as const).map(([key, ph, max, cls, name], i) => (
-                      <input key={key} value={footer[key]} maxLength={max} placeholder={ph}
-                        onChange={(e) => setFooter({ [key]: e.target.value })}
-                        className={`${cls} min-w-0 bg-transparent px-3.5 text-[14px] outline-none placeholder:text-[#C0C7D2] ${i ? "border-l border-[#E5E7EB]" : ""}`}
-                        style={key === "label" ? { fontWeight: 500 } : undefined}
-                        aria-label={`Option footer — ${name}`} />
-                    ))}
-                  </div>
-                  <p className="mt-1.5 text-[12px] text-[#9CA3AF]">Title, main line, second line — e.g. Warranty · 2 years labor · 10 years parts. Rename the title (Guarantee…) or leave it blank; empty lines print nothing.</p>
-                </div>
-              )}
             </div>
             <div className="overflow-hidden rounded-xl border border-[#E5E7EB]">
               {/* card header: search + add item */}
@@ -582,6 +559,50 @@ export function CreateEstimate() {
                 </>
               )}
             </div>
+
+            {/* The option's bottom line, under its items — where it prints (Marek,
+                Oct 5: a short line per option; the title is free — Warranty,
+                Guarantee or blank; empty prints nothing). */}
+            {footerCfg.enabled && (
+              <div className="mt-3 overflow-hidden rounded-xl border border-[#E5E7EB] bg-white">
+                <div className="flex items-center gap-3 px-4 py-3">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#EEF3FA] text-[#4A6FA5]">
+                    <span className="material-icons" style={{ fontSize: "18px" }}>verified</span>
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>
+                      Bottom line{options.length > 1 && <span className="text-[#8899AA]" style={{ fontWeight: 500 }}> · {activeOption.name}</span>}
+                    </div>
+                    <div className="text-[12px] text-[#8899AA]">Printed under the items — a warranty, a guarantee, or nothing at all. Optional.</div>
+                  </div>
+                  {(footer.label || footer.title || footer.detail) && (
+                    <button type="button" onClick={() => setFooter({ label: "", title: "", detail: "" })}
+                      className="rounded-md px-2 py-1 text-[13px] text-[#6B7280] transition-colors hover:bg-[#FEF2F2] hover:text-[#DC2626]" style={{ fontWeight: 500 }}>
+                      Clear
+                    </button>
+                  )}
+                </div>
+                <div className="grid grid-cols-[minmax(0,0.8fr)_minmax(0,1fr)_minmax(0,1.2fr)] gap-3 border-t border-[#EDF0F5] bg-[#F9FAFB] px-4 py-3.5">
+                  {([
+                    ["label", "Title", "Warranty", OPTION_FOOTER_LIMITS.label],
+                    ["title", "Main line", "2 years labor", OPTION_FOOTER_LIMITS.title],
+                    ["detail", "Second line", "10 years parts", OPTION_FOOTER_LIMITS.detail],
+                  ] as const).map(([key, caption, ph, max]) => (
+                    <label key={key} className="block">
+                      <span className="mb-1 block text-[11px] uppercase tracking-[0.06em] text-[#8899AA]" style={{ fontWeight: 600 }}>{caption}</span>
+                      <span className="relative block">
+                        <input value={footer[key]} maxLength={max} placeholder={ph}
+                          onChange={(e) => setFooter({ [key]: e.target.value })}
+                          className="h-10 w-full rounded-lg border border-[#E5E7EB] bg-white pl-3 pr-12 text-[14px] text-[#1A2332] outline-none transition-colors placeholder:text-[#C0C7D2] focus:border-[#4A6FA5] focus:ring-2 focus:ring-[#4A6FA5]/10"
+                          style={key === "title" ? { fontWeight: 600 } : undefined}
+                          aria-label={`Option footer — ${caption.toLowerCase()}`} />
+                        <span className={`pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[11px] tabular-nums ${footer[key].length >= max ? "text-[#DC2626]" : "text-[#B4BCC8]"}`}>{footer[key].length}/{max}</span>
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
           </Section>
 
           <div className="border-t border-[#E5E7EB]" />
