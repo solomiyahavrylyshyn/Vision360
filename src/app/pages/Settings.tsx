@@ -31,7 +31,7 @@ import { applyBrandTheme, BRAND_PRESETS, DEFAULT_BRAND_THEME, getSidebarColor, g
 import type { BrandTheme } from "../utils/brandTheme";
 import { businessHoursStore, type BusinessHourRow } from "../stores/businessHoursStore";
 import { regionalSettingsStore, type RegionalSettings } from "../stores/regionalSettingsStore";
-import { estimateSettingsStore, OPTION_FOOTER_LIMITS } from "../stores/estimateSettingsStore";
+import { estimateSettingsStore } from "../stores/estimateSettingsStore";
 import { estimatesStore } from "../stores/estimatesStore";
 import { documentTemplateStore, PAPER_SIZES, type DocumentKind, type PaperSize } from "../stores/documentTemplateStore";
 import { EstimateOptionsSheet, EstimateSingleSheet, EstimateTermsPage, InvoiceSheet, sheetPixels, useDocCompany, SAMPLE_ESTIMATE_OPTIONS, SAMPLE_ESTIMATE_SINGLE, SAMPLE_INVOICE, SAMPLE_TERMS_SECTIONS, SAMPLE_BOTH_PRICES } from "../components/DocumentSheets";
@@ -1858,7 +1858,6 @@ function EstimateFinancePlansCard() {
   const plans = settings.financingPlans;
   const [draft, setDraft] = useState<{ name: string; percent: string } | null>(null);
   const usedBy = (id: string) => estimates.reduce((n, e) => n + (e.options?.length ? e.options.filter((op) => op.financingPlanId === id).length : e.financingPlanId === id ? 1 : 0), 0);
-  const example = (pct: number) => (10000 * pct / 100).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const field = "h-9 border-[#E5E7EB] text-[14px] shadow-[0_1px_2px_rgba(0,0,0,0.05)]";
   const addDraft = () => {
     const pct = Number(draft?.percent);
@@ -1872,18 +1871,17 @@ function EstimateFinancePlansCard() {
     <SectionCard className="gap-4" title="Finance plans"
       description="How an option's price can be shown to the client. The monthly payment is the option's full price (tax and deposit included) × the plan's percent.">
       <div className="overflow-hidden rounded-lg border border-[#E5E7EB]">
-        <div className="grid grid-cols-[minmax(0,1.4fr)_150px_minmax(0,1fr)_40px] gap-3 border-b border-[#E5E7EB] bg-[#F9FAFB] px-4 py-2 text-[12px] text-[#6B7280]" style={{ fontWeight: 500 }}>
-          <span>Plan name</span><span>Monthly payment</span><span>Example on $10,000</span><span />
+        <div className="grid grid-cols-[minmax(0,1fr)_180px_150px] gap-3 border-b border-[#E5E7EB] bg-[#F9FAFB] px-4 py-2 text-[12px] text-[#6B7280]" style={{ fontWeight: 500 }}>
+          <span>Plan name</span><span>Monthly payment</span><span />
         </div>
         {/* fixed first row */}
-        <div className="grid grid-cols-[minmax(0,1.4fr)_150px_minmax(0,1fr)_40px] items-center gap-3 border-b border-[#EDF0F5] px-4 py-2.5">
+        <div className="grid grid-cols-[minmax(0,1fr)_180px_150px] items-center gap-3 border-b border-[#EDF0F5] px-4 py-2.5">
           <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Full amount</span>
           <span className="text-[13px] text-[#6B7280]">no monthly payment</span>
-          <span className="text-[13px] text-[#6B7280]">client sees $10,000.00</span>
           <span className="justify-self-end rounded-full bg-[#F3F4F6] px-2 py-0.5 text-[11px] text-[#6B7280]" title="Always offered" style={{ fontWeight: 600 }}>Fixed</span>
         </div>
         {plans.map((p) => (
-          <div key={p.id} className="grid grid-cols-[minmax(0,1.4fr)_150px_minmax(0,1fr)_40px] items-center gap-3 border-b border-[#EDF0F5] px-4 py-2 last:border-b-0">
+          <div key={p.id} className="grid grid-cols-[minmax(0,1fr)_180px_150px] items-center gap-3 border-b border-[#EDF0F5] px-4 py-2 last:border-b-0">
             <Input value={p.name} maxLength={40} onChange={(e) => estimateSettingsStore.updateFinancingPlan(p.id, { name: e.target.value })}
               placeholder={`${p.percent ?? 0}% payment plan`} className={field} aria-label="Plan name" />
             <div className="relative">
@@ -1892,10 +1890,6 @@ function EstimateFinancePlansCard() {
                 className={`${field} pr-[74px]`} aria-label="Percent of the full price per month" />
               <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[12px] text-[#6B7280]">% / month</span>
             </div>
-            <span className="text-[13px] text-[#374151]">
-              ${example(p.percent ?? 0)}/mo
-              {usedBy(p.id) > 0 && <span className="ml-2 text-[12px] text-[#9CA3AF]">· on {usedBy(p.id)} option{usedBy(p.id) === 1 ? "" : "s"}</span>}
-            </span>
             <button type="button" aria-label={`Delete ${p.name}`} title="Delete plan"
               onClick={() => {
                 const n = usedBy(p.id);
@@ -1908,7 +1902,7 @@ function EstimateFinancePlansCard() {
           </div>
         ))}
         {draft && (
-          <div className="grid grid-cols-[minmax(0,1.4fr)_150px_minmax(0,1fr)_40px] items-center gap-3 border-t border-[#EDF0F5] bg-[#FAFBFD] px-4 py-2">
+          <div className="grid grid-cols-[minmax(0,1fr)_180px_150px] items-center gap-3 border-t border-[#EDF0F5] bg-[#FAFBFD] px-4 py-2">
             <Input autoFocus value={draft.name} maxLength={40} onChange={(e) => setDraft({ ...draft, name: e.target.value })}
               placeholder="e.g. 1.5% payment plan" className={field} aria-label="New plan name"
               onKeyDown={(e) => { if (e.key === "Enter") addDraft(); if (e.key === "Escape") setDraft(null); }} />
@@ -1918,11 +1912,10 @@ function EstimateFinancePlansCard() {
                 onKeyDown={(e) => { if (e.key === "Enter") addDraft(); if (e.key === "Escape") setDraft(null); }} />
               <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[12px] text-[#6B7280]">% / month</span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center justify-end gap-2">
               <button type="button" onClick={addDraft} className="h-8 rounded-md bg-[#4A6FA5] px-3 text-[13px] text-white hover:bg-[#3d5a85]" style={{ fontWeight: 600 }}>Add</button>
               <button type="button" onClick={() => setDraft(null)} className="h-8 rounded-md px-2 text-[13px] text-[#6B7280] hover:bg-[#F5F7FA]" style={{ fontWeight: 500 }}>Cancel</button>
             </div>
-            <span />
           </div>
         )}
       </div>
@@ -1931,64 +1924,6 @@ function EstimateFinancePlansCard() {
           className="inline-flex h-9 w-fit items-center gap-1.5 rounded-lg border border-dashed border-[#C8D5E8] px-3 text-[13px] text-[#4A6FA5] hover:bg-[#F5F8FC]" style={{ fontWeight: 600 }}>
           <span className="material-icons" style={{ fontSize: "16px" }}>add</span> Add plan
         </button>
-      )}
-      <div className="flex flex-wrap items-center gap-3 border-t border-[#EDF0F5] pt-4">
-        <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Show a monthly payment from</span>
-        <div className="relative w-[140px]">
-          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[14px] text-[#6B7280]">$</span>
-          <Input type="number" min={0} step={100} value={String(settings.financing.minAmount)}
-            onChange={(e) => estimateSettingsStore.setFinancingMinAmount(Number(e.target.value))} className={`${field} pl-7`} aria-label="Minimum price for a monthly payment" />
-        </div>
-        <span className="text-[12px] text-[#6B7280]">Below this, the client sees the full price even when a plan is picked.</span>
-      </div>
-    </SectionCard>
-  );
-}
-
-// Option footer (Marek, Oct 5) — one short line at the bottom of every option on
-// the option sheet and the client's page. "Warranty" by default; a company can
-// call it something else ("Guarantee"). The text pre-fills each new option.
-function EstimateOptionFooterCard() {
-  const s = useSyncExternalStore(estimateSettingsStore.subscribe, estimateSettingsStore.getSnapshot).optionFooter;
-  const field = "h-9 border-[#E5E7EB] text-[14px] shadow-[0_1px_2px_rgba(0,0,0,0.05)]";
-  const count = (v: string, max: number) => <span className="text-[11px] text-[#9CA3AF]">{v.length}/{max}</span>;
-  return (
-    <SectionCard className="gap-4" title="Option footer" description="A short line printed at the bottom of every estimate option — on the PDF and on the client's page.">
-      <div className="flex items-center justify-between gap-4 rounded-lg border border-[#E5E7EB] p-4">
-        <div className="min-w-0 flex-1">
-          <div className="text-[14px] leading-5 text-[#1A2332]" style={{ fontWeight: 500 }}>Show the option footer</div>
-          <div className="mt-1 text-[12px] leading-4 text-[#6B7280]">Off: the band is not printed and the field is hidden on new estimates.</div>
-        </div>
-        <Switch checked={s.enabled} onCheckedChange={(on) => estimateSettingsStore.setOptionFooter({ enabled: on })} />
-      </div>
-      {s.enabled && (
-        <>
-          <div className="flex flex-col gap-1">
-            <div className="flex items-baseline justify-between"><div className="text-[14px] leading-5 text-[#1A2332]" style={{ fontWeight: 500 }}>Default title</div>{count(s.label, OPTION_FOOTER_LIMITS.label)}</div>
-            <Input value={s.label} maxLength={OPTION_FOOTER_LIMITS.label} onChange={(e) => estimateSettingsStore.setOptionFooter({ label: e.target.value })}
-              placeholder="Warranty" className={`${field} w-[414px] max-w-full`} />
-            <p className="text-[12px] leading-4 text-[#6B7280]">Pre-fills the title on each new option, e.g. Warranty or Guarantee. It can be changed or left blank on every option.</p>
-          </div>
-          <div className="grid max-w-[640px] grid-cols-2 gap-4">
-            <div className="flex flex-col gap-1">
-              <div className="flex items-baseline justify-between"><div className="text-[14px] leading-5 text-[#1A2332]" style={{ fontWeight: 500 }}>Default main line</div>{count(s.title, OPTION_FOOTER_LIMITS.title)}</div>
-              <Input value={s.title} maxLength={OPTION_FOOTER_LIMITS.title} onChange={(e) => estimateSettingsStore.setOptionFooter({ title: e.target.value })} placeholder="1 year labor" className={field} />
-            </div>
-            <div className="flex flex-col gap-1">
-              <div className="flex items-baseline justify-between"><div className="text-[14px] leading-5 text-[#1A2332]" style={{ fontWeight: 500 }}>Default second line</div>{count(s.detail, OPTION_FOOTER_LIMITS.detail)}</div>
-              <Input value={s.detail} maxLength={OPTION_FOOTER_LIMITS.detail} onChange={(e) => estimateSettingsStore.setOptionFooter({ detail: e.target.value })} placeholder="10 years parts" className={field} />
-            </div>
-          </div>
-          <p className="-mt-2 text-[12px] leading-4 text-[#6B7280]">Pre-fill each new option; edit or clear them per option. Kept short so the sheet holds its layout — for longer terms, put a short link (e.g. andservices.com/guarantee).</p>
-          {/* how it prints */}
-          <div className="w-[220px] overflow-hidden rounded-md border border-[#1B2437] text-center">
-            <div className="bg-[#EEF3FA] px-3 py-2">
-              <div className="text-[10px] uppercase tracking-[0.09em] text-[#6E7684]" style={{ fontWeight: 500 }}>{s.label || "Warranty"}</div>
-              <div className="text-[14px] text-[#1B2437]" style={{ fontWeight: 600 }}>{s.title || "—"}</div>
-              {s.detail && <div className="text-[12px] text-[#1B2437]">{s.detail}</div>}
-            </div>
-          </div>
-        </>
       )}
     </SectionCard>
   );
@@ -4706,7 +4641,6 @@ export function Settings() {
                     <EstimateValidityCard />
                     <EstimateDepositsCard />
                     <EstimateFinancePlansCard />
-                    <EstimateOptionFooterCard />
                     {/* Estimate rules (Figma 261:15834): Signature toggle, Payment terms,
                         Default expiration (days) — no card-level footer, save lives in
                         the page header. */}

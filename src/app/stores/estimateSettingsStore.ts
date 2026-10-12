@@ -81,17 +81,21 @@ const STORAGE_KEY = "vision360.estimateSettings";
 const DEFAULT_SETTINGS: EstimateSettings = {
   defaultValidityDays: 30,
   usesDeposits: true,
-  financing: { enabled: true, lender: "", apr: 0, months: 0, minAmount: 1000 },
+  // No minimum: a plan on an option always shows the monthly payment (the $1,000
+  // floor was dropped on Oct 12 — it was never asked for).
+  financing: { enabled: true, lender: "", apr: 0, months: 0, minAmount: 0 },
   // Marek: "financing with 1% payment plan, 1.25… sometimes 1.69%" — a multiplier.
   financingPlans: [
     { id: "one-percent", name: "1% payment plan", kind: "percent", percent: 1 },
     { id: "one-25", name: "1.25% payment plan", kind: "percent", percent: 1.25 },
     { id: "one-69", name: "1.69% payment plan", kind: "percent", percent: 1.69 },
   ],
-  optionFooter: { enabled: true, label: "Warranty", title: "1 year labor", detail: "1 year parts" },
+  optionFooter: { enabled: true, label: "Warranty", title: "", detail: "" },
 };
 
-const DEFAULT_OPTION_FOOTER: OptionFooterSettings = { enabled: true, label: "Warranty", title: "1 year labor", detail: "1 year parts" };
+// No settings card (Oct 12): every new option starts with the title "Warranty"
+// and empty lines; the person fills or clears them per option.
+const DEFAULT_OPTION_FOOTER: OptionFooterSettings = { enabled: true, label: "Warranty", title: "", detail: "" };
 
 const listeners = new Set<() => void>();
 
@@ -101,7 +105,7 @@ const normalize = (s: Partial<EstimateSettings>): EstimateSettings => {
     defaultValidityDays: Number.isFinite(n) && n >= 0 && n <= 365 ? Math.round(n) : DEFAULT_SETTINGS.defaultValidityDays,
     usesDeposits: typeof s.usesDeposits === "boolean" ? s.usesDeposits : DEFAULT_SETTINGS.usesDeposits,
     financing: s.financing && typeof s.financing === "object"
-      ? { ...DEFAULT_SETTINGS.financing, ...s.financing }
+      ? { ...DEFAULT_SETTINGS.financing, ...s.financing, minAmount: 0 }
       : DEFAULT_SETTINGS.financing,
     // A company that edited its plans keeps its list exactly (even empty).
     // Otherwise: saved settings may still hold the old lender plan; only % plans stay.
@@ -111,15 +115,7 @@ const normalize = (s: Partial<EstimateSettings>): EstimateSettings => {
         ? [...DEFAULT_SETTINGS.financingPlans, ...s.financingPlans.filter((p) => p?.kind === "percent" && !DEFAULT_SETTINGS.financingPlans.some((d) => d.id === p.id))]
         : DEFAULT_SETTINGS.financingPlans,
     financingPlansEdited: !!s.financingPlansEdited,
-    optionFooter: (() => {
-      const f = { ...DEFAULT_OPTION_FOOTER, ...(s.optionFooter ?? {}) };
-      return {
-        enabled: f.enabled !== false,
-        label: (f.label || DEFAULT_OPTION_FOOTER.label).slice(0, OPTION_FOOTER_LIMITS.label),
-        title: (f.title ?? "").slice(0, OPTION_FOOTER_LIMITS.title),
-        detail: (f.detail ?? "").slice(0, OPTION_FOOTER_LIMITS.detail),
-      };
-    })(),
+    optionFooter: DEFAULT_OPTION_FOOTER,
   };
 };
 
