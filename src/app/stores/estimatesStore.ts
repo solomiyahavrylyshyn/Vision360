@@ -163,7 +163,7 @@ const SEED: EstimateRecord[] = [
         { id: 2, name: "R-410A Refrigerant", description: "Refrigerant recharge (per lb)", quantity: 2, price: 50, cost: 20, amount: 100, taxable: true },
         { id: 3, name: "Diagnostic & Repair", description: "Diagnose the fault and complete the repair", quantity: 1, price: 89, cost: 45, amount: 89, taxable: false },
       ] },
-      { name: "Replace, standard unit", financingPlanId: "ally-144", financingShow: "monthly", summary: "New 3-ton system, standard efficiency, 5-year parts warranty.", items: [
+      { name: "Replace, standard unit", financingPlanId: "one-25", financingShow: "monthly", summary: "New 3-ton system, standard efficiency, 5-year parts warranty.", items: [
         { id: 1, name: "3 Ton Condensing Unit", description: "Standard-efficiency outdoor unit", quantity: 1, price: 2600, cost: 1450, amount: 2600, taxable: true },
         { id: 2, name: "Standard Air Handler", description: "Matched indoor air handler", quantity: 1, price: 1500, cost: 820, amount: 1500, taxable: true },
         { id: 3, name: "Line Set & Materials", description: "Line set, pad, disconnect and fittings", quantity: 1, price: 400, cost: 180, amount: 400, taxable: true },

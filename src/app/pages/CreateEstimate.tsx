@@ -6,7 +6,7 @@ import { clientSecondLine } from "../utils/clientName";
 import { estimatesStore, type EstimateStatus } from "../stores/estimatesStore";
 import { estimateTypesStore } from "../stores/estimateTypesStore";
 import { formatRegionalDate } from "../stores/regionalSettingsStore";
-import { estimateSettingsStore, planLine, planMonthly } from "../stores/estimateSettingsStore";
+import { estimateSettingsStore, findPlan, planLine, planMonthly } from "../stores/estimateSettingsStore";
 import { ItemPicker, catalogItemToLineItem, type CatalogItem, type SelectedLineItem } from "../components/ItemPicker";
 import { PlusIcon } from "../components/ui/plus-icon";
 import { itemsStore } from "../stores/itemsStore";
@@ -114,7 +114,7 @@ export function CreateEstimate() {
   // lead with the monthly payment or the full amount.
   const financingPlanId = activeOption.financingPlanId ?? "";
   const financingShow = activeOption.financingShow ?? "monthly";
-  const financingPlan = financingPlans.find((p) => p.id === financingPlanId);
+  const financingPlan = findPlan(financingPlans, financingPlanId);
   const setOptionFinancing = (patch: Partial<EstimateOption>) =>
     setOptions((opts) => opts.map((o) => (o.id === activeOption.id ? { ...o, ...patch } : o)));
   const setFinancingPlanId = (id: string) => setOptionFinancing({ financingPlanId: id || undefined });

@@ -184,7 +184,7 @@ export interface EstimateSingleData {
   scope?: string;
   lines: DocLine[];
   total: number;
-  /** e.g. "$89 per month through Ally, 7.99% APR, 144 months, subject to approval". */
+  /** e.g. "$32 per month on a 1% payment plan, subject to approval". */
   financing?: string;
   notes?: ReactNode[];
   preparedBy: string;
@@ -446,10 +446,10 @@ export const SAMPLE_ESTIMATE_SINGLE: EstimateSingleData = {
     { name: "Permits, disposal and warranty registration", description: "Pulled by us where required; old parts removed; warranty registered with Goodman for you", qty: "", unitPrice: null, tax: null, amount: null, included: true },
   ],
   total: 3180,
-  financing: "$89 per month through Ally, 7.99% APR, 144 months, subject to approval",
+  financing: "$32 per month on a 1% payment plan, subject to approval",
   notes: [
     <><Star />Your <b>Home Protection Plan</b> savings are shown as a line in the table; the list price is shown struck through above. Tax is shown per line; lines without a tax amount are not taxable.</>,
-    <>Monthly figure through Ally at 7.99% APR over 144 months, subject to approval. Terms on page 2. <b>Sign to accept.</b> If you would rather see replacement options, ask Gary — we prepare a comparison estimate on the spot.</>,
+    <>Monthly figure on a 1% payment plan, subject to approval. Terms on page 2. <b>Sign to accept.</b> If you would rather see replacement options, ask Gary — we prepare a comparison estimate on the spot.</>,
   ],
   preparedBy: "Gary W.",
 };
@@ -458,16 +458,16 @@ export const SAMPLE_ESTIMATE_OPTIONS: EstimateOptionsData = {
   number: "10247-E03", issued: "24 Aug 2026", validUntil: "23 Sep 2026",
   customer: SAMPLE_CUSTOMER,
   options: [
-    { label: "Option I", price: 27840, wasPrice: 32753, tax: 1412, description: "Full replacement + ductwork", monthly: "$264", warranty: { big: "2 years labor", small: "10 years parts" },
+    { label: "Option I", price: 27840, wasPrice: 32753, tax: 1412, description: "Full replacement + ductwork", monthly: "$278", warranty: { big: "2 years labor", small: "10 years parts" },
       items: [{ name: "3 Ton condenser + air handler", detail: "14.3 SEER2" }, { name: "Duct replacement", detail: "180 ft, supply and return" }, { name: "Attic insulation to R38", detail: "1,480 sf" }, { name: "Biologic 3 air cleaner" }, { name: "Line set, pad, disconnect" }, { name: "Crane set" }, { name: "Permits and disposal" }, { name: "Warranty registration" }] },
-    { label: "Option II", price: 22995, wasPrice: 26994, tax: 1166, description: "Full replacement, higher efficiency", monthly: "$218", warranty: { big: "1 year labor", small: "10 years parts" },
+    { label: "Option II", price: 22995, wasPrice: 26994, tax: 1166, description: "Full replacement, higher efficiency", monthly: "$230", warranty: { big: "1 year labor", small: "10 years parts" },
       items: [{ name: "3 Ton condenser + air handler", detail: "15.3 SEER2 — higher efficiency" }, { name: "Biologic 3 air cleaner" }, { name: "Line set, pad, disconnect" }, { name: "Crane set" }, { name: "Permits and disposal" }, { name: "Warranty registration" }] },
-    { label: "Option III", price: 19762, wasPrice: 23182, tax: 1011.5, description: "Full replacement", monthly: "$187", warranty: { big: "1 year labor", small: "10 years parts" },
+    { label: "Option III", price: 19762, wasPrice: 23182, tax: 1011.5, description: "Full replacement", monthly: "$198", warranty: { big: "1 year labor", small: "10 years parts" },
       items: [{ name: "3 Ton condenser + air handler", detail: "14.3 SEER2" }, { name: "Biologic 3 air cleaner" }, { name: "Line set, pad, disconnect" }, { name: "Crane set" }, { name: "Permits and disposal" }, { name: "Warranty registration" }] },
-    { label: "Option IV", price: 3180, wasPrice: 3741, tax: 181.72, description: "Repair only", monthly: "$89", warranty: { big: "1 year", small: "parts & labor" },
+    { label: "Option IV", price: 3180, wasPrice: 3741, tax: 181.72, description: "Repair only", monthly: "$32", warranty: { big: "1 year", small: "parts & labor" },
       items: [{ name: "Compressor capacitor", detail: "45/5 µF" }, { name: "Evaporator coil" }, { name: "R410A recharge", detail: "8 lb" }, { name: "Test and certify" }] },
   ],
-  fine: <>Monthly figures through Ally at 7.99% APR over 144 months, subject to approval. Options I–III are over $15,000, so Florida law requires a signed Notice of Commencement before work starts — we prepare it. Terms on page 2. <b>Sign the column you choose.</b> All four options were offered to you.</>,
+  fine: <>Monthly figures on a 1% payment plan, subject to approval. Options I–III are over $15,000, so Florida law requires a signed Notice of Commencement before work starts — we prepare it. Terms on page 2. <b>Sign the column you choose.</b> All four options were offered to you.</>,
   preparedBy: "Gary W.",
 };
 
@@ -488,7 +488,7 @@ export const SAMPLE_INVOICE: InvoiceSheetData = {
   payments: [{ label: "Deposit received 10 Sep 2026 · card ····4421", amount: 1976.2 }],
   balance: 17785.8,
   dueLine: "due 17 Oct 2026 · Net 15",
-  payNote: "We take card, check and cash — the link to pay online is in your email. Financing through Ally at 7.99% APR over 144 months is still available for the balance; call us and we run it in a few minutes.",
+  payNote: "We take card, check and cash — the link to pay online is in your email. A monthly payment plan is still available for the balance; call us and we set it up in a few minutes.",
   warranty: <><p><b>10 years parts</b> by Goodman, registered for you — nothing to send in. <b>1 year labor</b> by us: inside the term a warranty call costs you nothing.</p><p className="muted">Neither covers damage from misuse, power surges, or a system that has not been maintained.</p></>,
   notes: <p>Thermostat schedule set to your hours; filter size 20×25×1, change every 90 days. Your first maintenance visit is due in spring — we will call to schedule it.</p>,
   terms: <p>Tax is charged on equipment and materials at the Hillsborough County rate and shown per line; lines without a tax amount are not taxable. Questions about this invoice: {DEFAULT_CONTACT.phone} or {DEFAULT_CONTACT.contactLine.split(" · ")[1]}.</p>,
@@ -511,8 +511,8 @@ export const SAMPLE_TERMS_SECTIONS = (
       <div className="four">
         <div><div className="k">Deposit on approval</div><div className="v">10%</div></div>
         <div><div className="k">Balance</div><div className="v">on completion</div></div>
-        <div><div className="k">Financing through</div><div className="v">Ally</div></div>
-        <div><div className="k">Rate / term</div><div className="v">7.99% · 144 mo</div></div>
+        <div><div className="k">Financing</div><div className="v">payment plan</div></div>
+        <div><div className="k">Monthly payment</div><div className="v">1% of the price</div></div>
       </div>
       <p className="muted" style={{ marginTop: 8 }}>We accept card, check and cash. Financing is subject to approval — we can run it here in a few minutes.</p>
     </div>

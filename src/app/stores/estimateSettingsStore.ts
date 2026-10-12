@@ -35,10 +35,21 @@ export function planMonthly(plan: FinancingPlan, total: number): number {
   return monthlyPayment(total, plan.apr ?? 0, plan.months ?? 0);
 }
 
-/** The small line under the monthly figure. */
+/** The small line under the monthly figure. No lender or rate: in MVP we don't
+ *  offer financing through any provider, and "customer doesn't care which"
+ *  (Marek, Oct 8) — it's just the price times the plan's percent. */
 export function planLine(plan: FinancingPlan): string {
-  if (plan.kind === "percent") return `${plan.percent ?? 0}% of the price per month${plan.lender ? ` · through ${plan.lender}` : ""}`;
-  return `through ${plan.lender || "our lender"} · ${plan.apr ?? 0}% APR · ${plan.months ?? 0} mo`;
+  if (plan.kind === "percent") return `${plan.percent ?? 0}% payment plan`;
+  return "payment plan";
+}
+
+/** Plans that were offered before (a lender's loan) now read as a % plan. */
+const LEGACY_PLANS: Record<string, string> = { "ally-144": "one-25" };
+
+/** The plan behind an id, following ids of plans that are gone. */
+export function findPlan(plans: FinancingPlan[], id: string | undefined): FinancingPlan | undefined {
+  if (!id) return undefined;
+  return plans.find((p) => p.id === id) ?? plans.find((p) => p.id === LEGACY_PLANS[id]);
 }
 
 /** Monthly payment on a fixed-rate loan of the whole amount. */
@@ -52,10 +63,12 @@ const STORAGE_KEY = "vision360.estimateSettings";
 const DEFAULT_SETTINGS: EstimateSettings = {
   defaultValidityDays: 30,
   usesDeposits: true,
-  financing: { enabled: true, lender: "Ally", apr: 7.99, months: 144, minAmount: 1000 },
+  financing: { enabled: true, lender: "", apr: 0, months: 0, minAmount: 1000 },
+  // Marek: "financing with 1% payment plan, 1.25… sometimes 1.69%" — a multiplier.
   financingPlans: [
-    { id: "ally-144", name: "Ally — 7.99% APR, 144 months", kind: "apr", lender: "Ally", apr: 7.99, months: 144 },
-    { id: "one-percent", name: "1% of the price per month", kind: "percent", percent: 1 },
+    { id: "one-percent", name: "1% payment plan", kind: "percent", percent: 1 },
+    { id: "one-25", name: "1.25% payment plan", kind: "percent", percent: 1.25 },
+    { id: "one-69", name: "1.69% payment plan", kind: "percent", percent: 1.69 },
   ],
 };
 
@@ -69,7 +82,10 @@ const normalize = (s: Partial<EstimateSettings>): EstimateSettings => {
     financing: s.financing && typeof s.financing === "object"
       ? { ...DEFAULT_SETTINGS.financing, ...s.financing }
       : DEFAULT_SETTINGS.financing,
-    financingPlans: Array.isArray(s.financingPlans) && s.financingPlans.length ? s.financingPlans : DEFAULT_SETTINGS.financingPlans,
+    // Saved settings may still hold the old lender plan; only % plans stay.
+    financingPlans: Array.isArray(s.financingPlans) && s.financingPlans.some((p) => p?.kind === "percent")
+      ? [...DEFAULT_SETTINGS.financingPlans, ...s.financingPlans.filter((p) => p?.kind === "percent" && !DEFAULT_SETTINGS.financingPlans.some((d) => d.id === p.id))]
+      : DEFAULT_SETTINGS.financingPlans,
   };
 };
 

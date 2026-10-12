@@ -10,7 +10,7 @@ import { useParams } from "react-router";
 import { estimatesStore, type EstimateLineItem, type EstimateRecord } from "../stores/estimatesStore";
 import { getStoredBrandLogo } from "../utils/brandTheme";
 import { termsStore } from "../stores/termsStore";
-import { estimateSettingsStore, planLine, planMonthly } from "../stores/estimateSettingsStore";
+import { estimateSettingsStore, findPlan, planLine, planMonthly } from "../stores/estimateSettingsStore";
 
 const COMPANY = {
   name: "Service Vision",
@@ -152,7 +152,7 @@ export function ClientEstimateView() {
   const estimateSettings = useSyncExternalStore(estimateSettingsStore.subscribe, estimateSettingsStore.getSnapshot);
   // Each option carries its own plan; older estimates kept one on the estimate.
   type Fin = { financingPlanId?: string; financingShow?: "monthly" | "full" };
-  const planOf = (op: Fin) => { const id = op.financingPlanId ?? record?.financingPlanId; return id ? estimateSettings.financingPlans.find((p) => p.id === id) : undefined; };
+  const planOf = (op: Fin) => { const id = op.financingPlanId ?? record?.financingPlanId; return findPlan(estimateSettings.financingPlans, id); };
   const leadMonthly = (op: Fin) => (op.financingShow ?? record?.financingShow ?? "monthly") === "monthly";
   const monthlyFor = (op: Fin, total: number) => { const p = planOf(op); return p ? planMonthly(p, total) : 0; };
   const lineFor = (op: Fin) => { const p = planOf(op); return p ? planLine(p) : ""; };
@@ -543,12 +543,12 @@ export function ClientEstimateView() {
                     {pct ? `${record.depositValue ?? 0}%` : `$${fmt(record.depositValue ?? 0)}`}
                     {pct && one ? <span className="text-[#6B7280]" style={{ fontWeight: 400 }}> · ${fmt(depositFor(totalsFor(one.items, taxRate).total))}</span> : null}
                   </div>
-                  {shownOptions.length > 1 && <div className="text-[12px] text-[#6B7280]">{pct ? "of the option you choose" : "whichever option you choose"}</div>}
+                  {shownOptions.length > 1 && <div className="text-[12px] text-[#6B7280]">{!pct ? "whichever option you choose" : picked && pickIndex !== null ? `of ${optionLabel(pickIndex)}, the one you chose` : "of the option you choose"}</div>}
                 </div>
               )}
               <div><div className="text-[12px] text-[#6B7280]">{record.depositRequired ? "Balance" : "Payment"}</div><div className="text-[14px]" style={{ fontWeight: 600 }}>on completion</div></div>
               {plans.length > 0 && (
-                <div><div className="text-[12px] text-[#6B7280]">Financing</div>{plans.map((p) => <div key={p} className="text-[14px]" style={{ fontWeight: 600 }}>{p.replace(/^through /, "")}</div>)}</div>
+                <div><div className="text-[12px] text-[#6B7280]">Financing</div>{plans.map((p) => <div key={p} className="text-[14px]" style={{ fontWeight: 600 }}>{p}</div>)}</div>
               )}
               <div><div className="text-[12px] text-[#6B7280]">We accept</div><div className="text-[14px]" style={{ fontWeight: 600 }}>card, check and cash</div></div>
             </div>
