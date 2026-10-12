@@ -564,40 +564,34 @@ export function CreateEstimate() {
                 Oct 5: a short line per option; the title is free — Warranty,
                 Guarantee or blank; empty prints nothing). */}
             {footerCfg.enabled && (
-              <div className="mt-3 overflow-hidden rounded-xl border border-[#E5E7EB] bg-white">
-                <div className="flex items-center gap-3 px-4 py-3">
-                  <div className="min-w-0 flex-1">
-                    <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>
-                      Bottom line{options.length > 1 && <span className="text-[#8899AA]" style={{ fontWeight: 500 }}> · {activeOption.name}</span>}
-                    </div>
-                    <div className="text-[12px] text-[#8899AA]">Printed under the items — a warranty, a guarantee, or nothing at all. Optional.</div>
-                  </div>
+              <div className="mt-5">
+                <div className="mb-1.5 flex items-baseline gap-2">
+                  <span className="text-[13px] text-[#374151]">Bottom line{options.length > 1 ? ` — ${activeOption.name}` : ""}</span>
+                  <span className="text-[12px] text-[#9CA3AF]">optional · printed under the items</span>
                   {(footer.label || footer.title || footer.detail) && (
                     <button type="button" onClick={() => setFooter({ label: "", title: "", detail: "" })}
-                      className="rounded-md px-2 py-1 text-[13px] text-[#6B7280] transition-colors hover:bg-[#FEF2F2] hover:text-[#DC2626]" style={{ fontWeight: 500 }}>
+                      className="ml-auto text-[12px] text-[#4A6FA5] hover:underline" style={{ fontWeight: 500 }}>
                       Clear
                     </button>
                   )}
                 </div>
-                <div className="grid grid-cols-[minmax(0,0.8fr)_minmax(0,1fr)_minmax(0,1.2fr)] gap-3 border-t border-[#EDF0F5] bg-[#F9FAFB] px-4 py-3.5">
+                <div className="grid grid-cols-[minmax(0,0.8fr)_minmax(0,1fr)_minmax(0,1.2fr)] gap-3">
                   {([
-                    ["label", "Title", "Warranty", OPTION_FOOTER_LIMITS.label],
+                    ["label", "Title — e.g. Warranty, Guarantee", "Warranty", OPTION_FOOTER_LIMITS.label],
                     ["title", "Main line", "2 years labor", OPTION_FOOTER_LIMITS.title],
                     ["detail", "Second line", "10 years parts", OPTION_FOOTER_LIMITS.detail],
-                  ] as const).map(([key, caption, ph, max]) => (
-                    <label key={key} className="block">
-                      <span className="mb-1 block text-[11px] uppercase tracking-[0.06em] text-[#8899AA]" style={{ fontWeight: 600 }}>{caption}</span>
-                      <span className="relative block">
-                        <input value={footer[key]} maxLength={max} placeholder={ph}
-                          onChange={(e) => setFooter({ [key]: e.target.value })}
-                          className="h-10 w-full rounded-lg border border-[#E5E7EB] bg-white pl-3 pr-12 text-[14px] text-[#1A2332] outline-none transition-colors placeholder:text-[#C0C7D2] focus:border-[#4A6FA5] focus:ring-2 focus:ring-[#4A6FA5]/10"
-                          style={key === "title" ? { fontWeight: 600 } : undefined}
-                          aria-label={`Option footer — ${caption.toLowerCase()}`} />
-                        <span className={`pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[11px] tabular-nums ${footer[key].length >= max ? "text-[#DC2626]" : "text-[#B4BCC8]"}`}>{footer[key].length}/{max}</span>
-                      </span>
-                    </label>
+                  ] as const).map(([key, name, ph, max]) => (
+                    <span key={key} className="relative block">
+                      <input value={footer[key]} maxLength={max} placeholder={ph}
+                        onChange={(e) => setFooter({ [key]: e.target.value })}
+                        className={`${fieldClass} pr-12`}
+                        style={key === "title" ? { fontWeight: 600 } : undefined}
+                        aria-label={`Option footer — ${name}`} title={name} />
+                      <span className={`pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[11px] tabular-nums ${footer[key].length >= max ? "text-[#DC2626]" : "text-[#C0C7D2]"}`}>{footer[key].length}/{max}</span>
+                    </span>
                   ))}
                 </div>
+                <p className="mt-1.5 text-[12px] text-[#9CA3AF]">Title · main line · second line. Rename the title or leave it blank; empty lines print nothing.</p>
               </div>
             )}
           </Section>
