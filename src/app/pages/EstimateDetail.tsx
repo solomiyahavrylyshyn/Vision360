@@ -16,7 +16,7 @@ import { estimateTypesStore } from "../stores/estimateTypesStore";
 import { jobsStore } from "../stores/jobsStore";
 import { formatRegionalDate } from "../stores/regionalSettingsStore";
 import { documentTemplateStore } from "../stores/documentTemplateStore";
-import { estimateSettingsStore, findPlan, planLine, planMonthly } from "../stores/estimateSettingsStore";
+import { estimateSettingsStore, findPlan, planLine, planMonthly, OPTION_FOOTER_LIMITS } from "../stores/estimateSettingsStore";
 import { CustomFieldInputs, type CfValues } from "../components/CustomFields";
 import { EstimateOptionsSheet, EstimateSingleSheet, EstimateTermsPage, PrintPageRule, money, useDocCompany, type EstimateOptionsData, type EstimateSingleData, type EstimateTermsData } from "../components/DocumentSheets";
 import { ItemPicker, type CatalogItem } from "../components/ItemPicker";
@@ -82,6 +82,9 @@ interface EstimateData {
   estimateType?: string;
   /** Bottom line of a single-option estimate (Warranty by default). */
   footer?: { label?: string; title: string; detail?: string };
+  /** Financing of a single-option estimate (options carry their own). */
+  financingPlanId?: string;
+  financingShow?: "monthly" | "full";
   /** Good/Better/Best — per-option line-item sets (Figma 2915:26967). */
   options?: { name: string; items: LineItem[] }[];
 }
@@ -282,6 +285,8 @@ function recordToEstimateData(r: EstimateRecord): EstimateData {
     depositValue: r.depositValue ?? 0,
     estimateType: r.estimateType,
     footer: r.footer,
+    financingPlanId: r.financingPlanId,
+    financingShow: r.financingShow,
     options: (r as any).options?.map((o: any) => ({
       name: o.name,
       summary: o.summary,
@@ -1049,6 +1054,7 @@ export function EstimateDetail() {
                 >
                   <span className="material-icons" style={{ fontSize: "14px" }}>edit</span>
                   {o.name}
+                  {(() => { const pl = findPlan(estimateSettings.financingPlans, o.financingPlanId); return pl?.kind === "percent" ? <span className={active ? "text-white/75" : "text-[#8899AA]"} style={{ fontWeight: 500 }}>· {pl.percent}%/mo</span> : null; })()}
                 </button>
               );
             })}
@@ -1118,6 +1124,86 @@ export function EstimateDetail() {
               </tr>
             </tfoot>
           </table>
+        )}
+        {renderOptionSettings(tabTotal)}
+      </div>
+    );
+  };
+
+  // ── Per-option settings, same as on the create form: what price the client
+  // sees (full amount, or a monthly payment plan) and the option's bottom line
+  // (Warranty / Guarantee / blank). Saved straight to the record, so the client
+  // page and the PDF follow; read-only once the client has answered.
+  const renderOptionSettings = (optionTotal: number) => {
+    const hasOptions = (estimate.options?.length ?? 0) > 1;
+    const opt = hasOptions ? estimate.options![activeOptionIdx] : undefined;
+    const planId = (opt ? opt.financingPlanId : estimate.financingPlanId) ?? "";
+    const plan = findPlan(estimateSettings.financingPlans, planId);
+    const footerCfg = estimateSettings.optionFooter;
+    const f = (opt ? opt.footer : estimate.footer) ?? { label: footerCfg.label, title: "", detail: "" };
+    const footer = { label: f.label ?? footerCfg.label, title: f.title ?? "", detail: f.detail ?? "" };
+    const locked = estimate.status === "Approved" || estimate.status === "Declined";
+    const min = estimateSettings.financing?.minAmount ?? 0;
+    const save = (patch: { financingPlanId?: string; financingShow?: "monthly" | "full"; footer?: { label: string; title: string; detail?: string } }) => {
+      const clean = { ...patch, ...(patch.footer ? { footer: patch.footer.title || patch.footer.detail ? patch.footer : undefined } : {}) };
+      if (hasOptions) {
+        setEstimate(prev => ({ ...prev, options: prev.options!.map((o, idx) => (idx === activeOptionIdx ? { ...o, ...clean } : o)) }));
+        const rec = estimatesStore.getById(estimate.id);
+        if (rec?.options) estimatesStore.update(rec.id, { options: rec.options.map((o, idx) => (idx === activeOptionIdx ? { ...o, ...clean } : o)) });
+      } else {
+        setEstimate(prev => ({ ...prev, ...clean }));
+        if (estimatesStore.getById(estimate.id)) estimatesStore.update(estimate.id, clean);
+      }
+    };
+    const setFooter = (part: Partial<typeof footer>) => save({ footer: { ...footer, ...part } });
+    const field = "h-10 w-full rounded-lg border border-[#E5E7EB] bg-white px-3 text-[14px] text-[#1A2332] outline-none transition-colors focus:border-[#4A6FA5] disabled:cursor-not-allowed disabled:bg-[#F9FAFB] disabled:text-[#6B7280]";
+    return (
+      <div className="border-t border-[#E5E7EB] px-4 py-4">
+        {locked && <div className="mb-3 text-[12px] text-[#8899AA]">The client has answered — these are shown as they were sent.</div>}
+        <div className="grid grid-cols-2 gap-x-5">
+          <div>
+            <label className="mb-1.5 block text-[13px] text-[#374151]">Price shown to the client{hasOptions ? ` — ${opt!.name}` : ""}</label>
+            <select value={planId} disabled={locked}
+              onChange={(e) => save({ financingPlanId: e.target.value || undefined, financingShow: e.target.value ? "monthly" : undefined })}
+              className={field}>
+              <option value="">Full amount</option>
+              {estimateSettings.financingPlans.map((pl) => <option key={pl.id} value={pl.id}>Monthly payment · {pl.name}</option>)}
+            </select>
+          </div>
+          <div className="flex items-end pb-2.5 text-[12px] leading-[18px] text-[#6B7280]">
+            {!plan
+              ? <span>The client sees the full price — <strong className="text-[#1A2332]">${fmt(optionTotal)}</strong>.</span>
+              : optionTotal < min
+                ? <span>Under ${min.toLocaleString("en-US")} — the client sees the full price, ${fmt(optionTotal)}.</span>
+                : <span>The client sees <strong className="text-[#1A2332]">${fmt(planMonthly(plan, optionTotal))}/mo</strong> ({planLine(plan)}); the full price, ${fmt(optionTotal)}, opens from the arrow.</span>}
+          </div>
+        </div>
+        {footerCfg.enabled && (
+          <div className="mt-4">
+            <div className="mb-1.5 flex items-baseline gap-2">
+              <span className="text-[13px] text-[#374151]">Bottom line{hasOptions ? ` — ${opt!.name}` : ""}</span>
+              <span className="text-[12px] text-[#9CA3AF]">optional · printed under the items</span>
+              {!locked && (footer.label || footer.title || footer.detail) && (
+                <button type="button" onClick={() => save({ footer: { label: "", title: "", detail: "" } })}
+                  className="ml-auto text-[12px] text-[#4A6FA5] hover:underline" style={{ fontWeight: 500 }}>Clear</button>
+              )}
+            </div>
+            <div className="grid grid-cols-[minmax(0,0.8fr)_minmax(0,1fr)_minmax(0,1.2fr)] gap-3">
+              {([
+                ["label", "Title — e.g. Warranty, Guarantee", "Warranty", OPTION_FOOTER_LIMITS.label],
+                ["title", "Main line", "2 years labor", OPTION_FOOTER_LIMITS.title],
+                ["detail", "Second line", "10 years parts", OPTION_FOOTER_LIMITS.detail],
+              ] as const).map(([key, name, ph, max]) => (
+                <span key={key} className="relative block">
+                  <input value={footer[key]} maxLength={max} placeholder={ph} disabled={locked}
+                    onChange={(e) => setFooter({ [key]: e.target.value })}
+                    className={`${field} pr-12`} style={key === "title" ? { fontWeight: 600 } : undefined}
+                    aria-label={`Option footer — ${name}`} title={name} />
+                  {!locked && <span className={`pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[11px] tabular-nums ${footer[key].length >= max ? "text-[#DC2626]" : "text-[#C0C7D2]"}`}>{footer[key].length}/{max}</span>}
+                </span>
+              ))}
+            </div>
+          </div>
         )}
       </div>
     );
