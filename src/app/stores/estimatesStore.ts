@@ -48,6 +48,14 @@ export interface EstimateOption {
   financingPlanId?: string;
   /** What leads for this option on the client's page. */
   financingShow?: "monthly" | "full";
+  /** Bottom line of the option — warranty by default (Settings → Estimates). */
+  footer?: EstimateOptionFooter;
+}
+
+/** "2 years labor" / "10 years parts" — printed as the option's bottom band. */
+export interface EstimateOptionFooter {
+  title: string;
+  detail?: string;
 }
 
 export interface EstimateRecord {
@@ -96,6 +104,8 @@ export interface EstimateRecord {
   financingShow?: "monthly" | "full";
   /** Link token minted when the estimate is sent; the client page reads it. */
   publicToken?: string;
+  /** Bottom line for a single-option estimate (options carry their own). */
+  footer?: EstimateOptionFooter;
   taxRate?: number;
   notes?: string;
   internalNotes?: string;
@@ -158,18 +168,18 @@ const SEED: EstimateRecord[] = [
       { id: 3, name: "Diagnostic & Repair", description: "Diagnose the fault and complete the repair", quantity: 1, price: 89, cost: 45, amount: 89, taxable: false },
     ],
     options: [
-      { name: "Repair", summary: "Fix the system you have now.", items: [
+      { name: "Repair", footer: { title: "90 days", detail: "parts & labor" }, summary: "Fix the system you have now.", items: [
         { id: 1, name: "Capacitor 45/5 MFD", description: "Dual run capacitor replacement", quantity: 1, price: 120, cost: 40, amount: 120, taxable: true },
         { id: 2, name: "R-410A Refrigerant", description: "Refrigerant recharge (per lb)", quantity: 2, price: 50, cost: 20, amount: 100, taxable: true },
         { id: 3, name: "Diagnostic & Repair", description: "Diagnose the fault and complete the repair", quantity: 1, price: 89, cost: 45, amount: 89, taxable: false },
       ] },
-      { name: "Replace, standard unit", financingPlanId: "one-25", financingShow: "monthly", summary: "New 3-ton system, standard efficiency, 5-year parts warranty.", items: [
+      { name: "Replace, standard unit", footer: { title: "1 year labor", detail: "5 years parts" }, financingPlanId: "one-25", financingShow: "monthly", summary: "New 3-ton system, standard efficiency, 5-year parts warranty.", items: [
         { id: 1, name: "3 Ton Condensing Unit", description: "Standard-efficiency outdoor unit", quantity: 1, price: 2600, cost: 1450, amount: 2600, taxable: true },
         { id: 2, name: "Standard Air Handler", description: "Matched indoor air handler", quantity: 1, price: 1500, cost: 820, amount: 1500, taxable: true },
         { id: 3, name: "Line Set & Materials", description: "Line set, pad, disconnect and fittings", quantity: 1, price: 400, cost: 180, amount: 400, taxable: true },
         { id: 4, name: "System Installation Labor", description: "Removal of the old system and full install", quantity: 1, price: 1300, cost: 900, amount: 1300, taxable: false },
       ] },
-      { name: "Replace, high-efficiency unit", financingPlanId: "one-percent", financingShow: "monthly", summary: "New 3-ton high-SEER system with a smart thermostat, 10-year parts warranty.", items: [
+      { name: "Replace, high-efficiency unit", footer: { title: "2 years labor", detail: "10 years parts" }, financingPlanId: "one-percent", financingShow: "monthly", summary: "New 3-ton high-SEER system with a smart thermostat, 10-year parts warranty.", items: [
         { id: 1, name: "High-Efficiency Condensing Unit", description: "High-SEER outdoor unit", quantity: 1, price: 4200, cost: 2350, amount: 4200, taxable: true },
         { id: 2, name: "Variable Speed Air Handler", description: "Variable-speed indoor air handler", quantity: 1, price: 2350, cost: 1290, amount: 2350, taxable: true },
         { id: 3, name: "Smart WiFi Thermostat", description: "Smart thermostat, installed and configured", quantity: 1, price: 250, cost: 110, amount: 250, taxable: true },
@@ -281,7 +291,7 @@ function ensureClientLinkDemo(rows: EstimateRecord[]): { rows: EstimateRecord[];
   if (seedDemo?.options && !(existing.options ?? []).some((op) => op.financingPlanId)) {
     const options = (existing.options ?? []).map((op) => {
       const s = seedDemo.options!.find((x) => x.name === op.name);
-      return s ? { ...op, financingPlanId: s.financingPlanId, financingShow: s.financingShow } : op;
+      return s ? { ...op, financingPlanId: s.financingPlanId, financingShow: s.financingShow, footer: op.footer ?? s.footer } : op;
     });
     // null, not undefined: the server must drop the estimate-level plan too.
     const patch = { options, financingPlanId: null as unknown as undefined, financingShow: null as unknown as undefined };
@@ -292,6 +302,14 @@ function ensureClientLinkDemo(rows: EstimateRecord[]): { rows: EstimateRecord[];
       return { rows: next.map((e) => (e.id === existing.id ? { ...e, expirationDate: validUntil } : e)), extended: { id: existing.id, expirationDate: validUntil }, financing: { id: existing.id, ...patch } };
     }
     return { rows: next, financing: { id: existing.id, ...patch } };
+  }
+  // The demo shows each option's warranty line; rows added before it get the seed's.
+  if (seedDemo?.options && !(existing.options ?? []).some((op) => op.footer)) {
+    const options = (existing.options ?? []).map((op) => {
+      const s = seedDemo.options!.find((x) => x.name === op.name);
+      return s?.footer ? { ...op, footer: s.footer } : op;
+    });
+    return { rows: rows.map((e) => (e.id === existing.id ? { ...e, options } : e)), financing: { id: existing.id, options } };
   }
   const waiting = existing.status === "Sent" || existing.status === "Viewed";
   const ended = existing.expirationDate && new Date(existing.expirationDate).getTime() < Date.now();
@@ -360,6 +378,10 @@ export const estimatesStore = {
       depositRequired: partial.depositRequired,
       depositType: partial.depositType,
       depositValue: partial.depositValue,
+      financingPlanId: partial.financingPlanId,
+      financingShow: partial.financingShow,
+      footer: partial.footer,
+      customFields: partial.customFields,
     };
     estimates = [record, ...estimates];
     saveLS();

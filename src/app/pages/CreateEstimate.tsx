@@ -6,7 +6,7 @@ import { clientSecondLine } from "../utils/clientName";
 import { estimatesStore, type EstimateStatus } from "../stores/estimatesStore";
 import { estimateTypesStore } from "../stores/estimateTypesStore";
 import { formatRegionalDate } from "../stores/regionalSettingsStore";
-import { estimateSettingsStore, findPlan, planLine, planMonthly } from "../stores/estimateSettingsStore";
+import { estimateSettingsStore, findPlan, planLine, planMonthly, OPTION_FOOTER_LIMITS } from "../stores/estimateSettingsStore";
 import { ItemPicker, catalogItemToLineItem, type CatalogItem, type SelectedLineItem } from "../components/ItemPicker";
 import { PlusIcon } from "../components/ui/plus-icon";
 import { itemsStore } from "../stores/itemsStore";
@@ -93,7 +93,14 @@ export function CreateEstimate() {
   const [estimateType, setEstimateType] = useState("");
   // Financing plans from Settings — the plan is chosen per option, under the
   // option tabs (Line Items).
-  const financingPlans = useSyncExternalStore(estimateSettingsStore.subscribe, estimateSettingsStore.getSnapshot).financingPlans;
+  const estimateSettings = useSyncExternalStore(estimateSettingsStore.subscribe, estimateSettingsStore.getSnapshot);
+  const financingPlans = estimateSettings.financingPlans;
+  // The option's bottom line (Warranty by default): pre-filled from Settings, editable.
+  const footerCfg = estimateSettings.optionFooter;
+  const defaultFooter = () => {
+    const f = estimateSettingsStore.getSnapshot().optionFooter;
+    return f.enabled && (f.title || f.detail) ? { title: f.title, detail: f.detail } : { title: "", detail: "" };
+  };
 
   const estimateTypes = useSyncExternalStore(estimateTypesStore.subscribe, estimateTypesStore.getSnapshot);
   // A job is never picked by hand: it arrives (locked) when the estimate is
@@ -102,10 +109,10 @@ export function CreateEstimate() {
 
   // Good/Better/Best options (Figma 2509:12598) — each option carries its own
   // line items; the client picks one when accepting. Up to 4, renamable.
-  type EstimateOption = { id: number; name: string; items: SelectedLineItem[]; financingPlanId?: string; financingShow?: "monthly" | "full" };
+  type EstimateOption = { id: number; name: string; items: SelectedLineItem[]; financingPlanId?: string; financingShow?: "monthly" | "full"; footer?: { title: string; detail: string } };
   const OPTION_NAME_DEFAULTS = ["Good", "Better", "Best", "Premium"];
   const MAX_OPTIONS = 4;
-  const [options, setOptions] = useState<EstimateOption[]>([{ id: 1, name: "Good", items: [] }]);
+  const [options, setOptions] = useState<EstimateOption[]>(() => [{ id: 1, name: "Good", items: [], footer: defaultFooter() }]);
   const [activeOptionId, setActiveOptionId] = useState(1);
   const [renamingOption, setRenamingOption] = useState<{ id: number; name: string } | null>(null);
   const activeOption = options.find((o) => o.id === activeOptionId) ?? options[0];
@@ -119,6 +126,13 @@ export function CreateEstimate() {
     setOptions((opts) => opts.map((o) => (o.id === activeOption.id ? { ...o, ...patch } : o)));
   const setFinancingPlanId = (id: string) => setOptionFinancing({ financingPlanId: id || undefined });
   const setFinancingShow = (v: "monthly" | "full") => setOptionFinancing({ financingShow: v });
+  const footer = activeOption.footer ?? { title: "", detail: "" };
+  const setFooter = (patch: Partial<{ title: string; detail: string }>) => setOptionFinancing({ footer: { ...footer, ...patch } });
+  // Empty title and detail → nothing is printed for this option.
+  const footerOf = (o: EstimateOption) => {
+    const t = o.footer?.title.trim() ?? "", d = o.footer?.detail.trim() ?? "";
+    return footerCfg.enabled && (t || d) ? { title: t, detail: d || undefined } : undefined;
+  };
   const setLineItems = (updater: React.SetStateAction<SelectedLineItem[]>) =>
     setOptions((opts) => opts.map((o) => o.id === activeOption.id
       ? { ...o, items: typeof updater === "function" ? (updater as (i: SelectedLineItem[]) => SelectedLineItem[])(o.items) : updater }
@@ -127,7 +141,7 @@ export function CreateEstimate() {
     if (options.length >= MAX_OPTIONS) return;
     const name = OPTION_NAME_DEFAULTS.find((n) => !options.some((o) => o.name === n)) || `Option ${options.length + 1}`;
     const id = Math.max(...options.map((o) => o.id)) + 1;
-    setOptions((opts) => [...opts, { id, name, items: [] }]);
+    setOptions((opts) => [...opts, { id, name, items: [], footer: defaultFooter() }]);
     setActiveOptionId(id);
   };
   const removeOption = (id: number) => {
@@ -208,6 +222,7 @@ export function CreateEstimate() {
       estimateType: estimateType || undefined,
       financingPlanId: options.length === 1 ? options[0].financingPlanId : undefined,
       financingShow: options.length === 1 && options[0].financingPlanId ? (options[0].financingShow ?? "monthly") : undefined,
+      footer: options.length === 1 ? footerOf(options[0]) : undefined,
       items: lineItems.map((li) => ({
         id: li.id, name: li.name, description: li.description, quantity: li.quantity,
         price: li.unitPrice, cost: li.unitCost, amount: li.total, taxable: li.taxable,
@@ -226,6 +241,7 @@ export function CreateEstimate() {
           name: o.name,
           financingPlanId: o.financingPlanId,
           financingShow: o.financingPlanId ? (o.financingShow ?? "monthly") : undefined,
+          footer: footerOf(o),
           items: o.items.map((li) => ({
             id: li.id, name: li.name, description: li.description, quantity: li.quantity,
             price: li.unitPrice, cost: li.unitCost, amount: li.total, taxable: li.taxable,
@@ -468,6 +484,28 @@ export function CreateEstimate() {
                 </p>
               )}
             </div>
+            {/* The option's bottom line — "Warranty" unless renamed in Settings
+                (Marek, Oct 5: a short text per option; long terms go by link). */}
+            {footerCfg.enabled && (
+              <div className="mb-4 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-4">
+                <div className="mb-2 flex items-baseline justify-between gap-3">
+                  <label className={`${labelClass} mb-0`}>{footerCfg.label}{options.length > 1 ? ` — ${activeOption.name}` : ""}</label>
+                  <span className="text-[12px] text-[#8899AA]">Printed at the bottom of the option · optional</span>
+                </div>
+                <div className="grid grid-cols-2 gap-5">
+                  <div>
+                    <input value={footer.title} maxLength={OPTION_FOOTER_LIMITS.title} onChange={(e) => setFooter({ title: e.target.value })}
+                      placeholder="e.g. 2 years labor" className={fieldClass} aria-label={`${footerCfg.label} — main line`} />
+                    <div className="mt-1 flex justify-between text-[11px] text-[#8899AA]"><span>Main line</span><span>{footer.title.length}/{OPTION_FOOTER_LIMITS.title}</span></div>
+                  </div>
+                  <div>
+                    <input value={footer.detail} maxLength={OPTION_FOOTER_LIMITS.detail} onChange={(e) => setFooter({ detail: e.target.value })}
+                      placeholder="e.g. 10 years parts" className={fieldClass} aria-label={`${footerCfg.label} — second line`} />
+                    <div className="mt-1 flex justify-between text-[11px] text-[#8899AA]"><span>Second line</span><span>{footer.detail.length}/{OPTION_FOOTER_LIMITS.detail}</span></div>
+                  </div>
+                </div>
+              </div>
+            )}
             <div className="overflow-hidden rounded-xl border border-[#E5E7EB]">
               {/* card header: search + add item */}
               <div className="flex items-center justify-between gap-3 border-b border-[#E5E7EB] px-4 py-3">

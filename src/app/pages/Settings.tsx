@@ -31,7 +31,7 @@ import { applyBrandTheme, BRAND_PRESETS, DEFAULT_BRAND_THEME, getSidebarColor, g
 import type { BrandTheme } from "../utils/brandTheme";
 import { businessHoursStore, type BusinessHourRow } from "../stores/businessHoursStore";
 import { regionalSettingsStore, type RegionalSettings } from "../stores/regionalSettingsStore";
-import { estimateSettingsStore } from "../stores/estimateSettingsStore";
+import { estimateSettingsStore, OPTION_FOOTER_LIMITS } from "../stores/estimateSettingsStore";
 import { documentTemplateStore, PAPER_SIZES, type DocumentKind, type PaperSize } from "../stores/documentTemplateStore";
 import { EstimateOptionsSheet, EstimateSingleSheet, EstimateTermsPage, InvoiceSheet, sheetPixels, useDocCompany, SAMPLE_ESTIMATE_OPTIONS, SAMPLE_ESTIMATE_SINGLE, SAMPLE_INVOICE, SAMPLE_TERMS_SECTIONS, SAMPLE_BOTH_PRICES } from "../components/DocumentSheets";
 import { trialStore, isTrialActive, getTrialDaysRemaining } from "../stores/trialStore";
@@ -1843,6 +1843,55 @@ function EstimateDepositsCard() {
           }}
         />
       </div>
+    </SectionCard>
+  );
+}
+
+// Option footer (Marek, Oct 5) — one short line at the bottom of every option on
+// the option sheet and the client's page. "Warranty" by default; a company can
+// call it something else ("Guarantee"). The text pre-fills each new option.
+function EstimateOptionFooterCard() {
+  const s = useSyncExternalStore(estimateSettingsStore.subscribe, estimateSettingsStore.getSnapshot).optionFooter;
+  const field = "h-9 border-[#E5E7EB] text-[14px] shadow-[0_1px_2px_rgba(0,0,0,0.05)]";
+  const count = (v: string, max: number) => <span className="text-[11px] text-[#9CA3AF]">{v.length}/{max}</span>;
+  return (
+    <SectionCard className="gap-4" title="Option footer" description="A short line printed at the bottom of every estimate option — on the PDF and on the client's page.">
+      <div className="flex items-center justify-between gap-4 rounded-lg border border-[#E5E7EB] p-4">
+        <div className="min-w-0 flex-1">
+          <div className="text-[14px] leading-5 text-[#1A2332]" style={{ fontWeight: 500 }}>Show the option footer</div>
+          <div className="mt-1 text-[12px] leading-4 text-[#6B7280]">Off: the band is not printed and the field is hidden on new estimates.</div>
+        </div>
+        <Switch checked={s.enabled} onCheckedChange={(on) => estimateSettingsStore.setOptionFooter({ enabled: on })} />
+      </div>
+      {s.enabled && (
+        <>
+          <div className="flex flex-col gap-1">
+            <div className="flex items-baseline justify-between"><div className="text-[14px] leading-5 text-[#1A2332]" style={{ fontWeight: 500 }}>Field name</div>{count(s.label, OPTION_FOOTER_LIMITS.label)}</div>
+            <Input value={s.label} maxLength={OPTION_FOOTER_LIMITS.label} onChange={(e) => estimateSettingsStore.setOptionFooter({ label: e.target.value })}
+              placeholder="Warranty" className={`${field} w-[414px] max-w-full`} />
+            <p className="text-[12px] leading-4 text-[#6B7280]">Shown above the line on every option, e.g. Warranty, Guarantee.</p>
+          </div>
+          <div className="grid max-w-[640px] grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1">
+              <div className="flex items-baseline justify-between"><div className="text-[14px] leading-5 text-[#1A2332]" style={{ fontWeight: 500 }}>Default main line</div>{count(s.title, OPTION_FOOTER_LIMITS.title)}</div>
+              <Input value={s.title} maxLength={OPTION_FOOTER_LIMITS.title} onChange={(e) => estimateSettingsStore.setOptionFooter({ title: e.target.value })} placeholder="1 year labor" className={field} />
+            </div>
+            <div className="flex flex-col gap-1">
+              <div className="flex items-baseline justify-between"><div className="text-[14px] leading-5 text-[#1A2332]" style={{ fontWeight: 500 }}>Default second line</div>{count(s.detail, OPTION_FOOTER_LIMITS.detail)}</div>
+              <Input value={s.detail} maxLength={OPTION_FOOTER_LIMITS.detail} onChange={(e) => estimateSettingsStore.setOptionFooter({ detail: e.target.value })} placeholder="10 years parts" className={field} />
+            </div>
+          </div>
+          <p className="-mt-2 text-[12px] leading-4 text-[#6B7280]">Pre-fills each new option; edit or clear it per option. Kept short so the sheet holds its layout — for longer terms, put a short link (e.g. andservices.com/guarantee).</p>
+          {/* how it prints */}
+          <div className="w-[220px] overflow-hidden rounded-md border border-[#1B2437] text-center">
+            <div className="bg-[#EEF3FA] px-3 py-2">
+              <div className="text-[10px] uppercase tracking-[0.09em] text-[#6E7684]" style={{ fontWeight: 500 }}>{s.label || "Warranty"}</div>
+              <div className="text-[14px] text-[#1B2437]" style={{ fontWeight: 600 }}>{s.title || "—"}</div>
+              {s.detail && <div className="text-[12px] text-[#1B2437]">{s.detail}</div>}
+            </div>
+          </div>
+        </>
+      )}
     </SectionCard>
   );
 }
@@ -4558,6 +4607,7 @@ export function Settings() {
                     <DocumentTemplatesCard kind="estimate" />
                     <EstimateValidityCard />
                     <EstimateDepositsCard />
+                    <EstimateOptionFooterCard />
                     {/* Estimate rules (Figma 261:15834): Signature toggle, Payment terms,
                         Default expiration (days) — no card-level footer, save lives in
                         the page header. */}

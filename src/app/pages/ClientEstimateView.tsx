@@ -37,7 +37,7 @@ const isExpired = (dateLabel: string | undefined): boolean => {
 const optionsOf = (record: EstimateRecord) =>
   record.options?.length
     ? record.options
-    : [{ name: record.estimateName || "Estimate", summary: undefined, items: record.items ?? [], financingPlanId: record.financingPlanId, financingShow: record.financingShow }];
+    : [{ name: record.estimateName || "Estimate", summary: undefined, items: record.items ?? [], financingPlanId: record.financingPlanId, financingShow: record.financingShow, footer: record.footer }];
 
 const totalsFor = (items: EstimateLineItem[], taxRate: number) => {
   const subtotal = items.reduce((sum, i) => sum + i.amount, 0);
@@ -330,6 +330,18 @@ export function ClientEstimateView() {
                       ))}
                     </ul>
                   </div>
+                  {/* The option's bottom line — Warranty unless renamed in Settings. */}
+                  {estimateSettings.optionFooter.enabled && shownOptions.some((op) => op.footer) && (
+                    <div className={`border-t px-4 py-2.5 text-center ${isPicked ? "border-[#4A6FA5]/20 bg-[#EEF3FA]" : "border-[#EDF0F5] bg-[#F7F9FC]"}`}>
+                      <div className="text-[10px] uppercase tracking-[0.12em] text-[#6B7280]" style={{ fontWeight: 600 }}>{estimateSettings.optionFooter.label}</div>
+                      {option.footer ? (
+                        <>
+                          <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>{option.footer.title}</div>
+                          {option.footer.detail && <div className="text-[12px] text-[#4B5563]">{option.footer.detail}</div>}
+                        </>
+                      ) : <div className="text-[14px] text-[#9CA3AF]">—</div>}
+                    </div>
+                  )}
                   {open && (
                     <div className="border-t border-[#EDF0F5] p-3">
                       <button
@@ -366,6 +378,9 @@ export function ClientEstimateView() {
                     <div className="mt-1 tabular-nums"><span className="text-[30px] leading-[36px]" style={{ fontWeight: 700 }}>${fmt(monthlyFor(option, t.total))}</span><span className="ml-1 text-[14px] text-[#6B7280]" style={{ fontWeight: 500 }}>/mo</span></div>
                     <div className="text-[11px] text-[#6B7280]">{lineFor(option)}</div>
                     <div className="mt-1 text-[14px]" style={{ fontWeight: 500 }}>{option.name}</div>
+                    {estimateSettings.optionFooter.enabled && option.footer && (
+                      <div className="mt-1 text-[13px] text-[#374151]"><span style={{ fontWeight: 600 }}>{estimateSettings.optionFooter.label}</span> {[option.footer.title, option.footer.detail].filter(Boolean).join(" · ")}</div>
+                    )}
                     <FullPrice total={t.total} tax={t.tax} open={openPrice.has(-1)} onToggle={() => togglePrice(-1)} />
                   </>
                 ) : (
@@ -373,6 +388,9 @@ export function ClientEstimateView() {
                     <div className="mt-1 text-[30px] leading-[36px] tabular-nums" style={{ fontWeight: 700 }}>${fmt(t.total)}</div>
                     <div className="mt-1 text-[14px]" style={{ fontWeight: 500 }}>{option.name}</div>
                     <div className="text-[12px] text-[#6B7280]">{t.tax > 0 ? `tax included ($${fmt(t.tax)})` : "no tax"}</div>
+                    {estimateSettings.optionFooter.enabled && option.footer && (
+                      <div className="mt-2 text-[13px] text-[#374151]"><span style={{ fontWeight: 600 }}>{estimateSettings.optionFooter.label}</span> {[option.footer.title, option.footer.detail].filter(Boolean).join(" · ")}</div>
+                    )}
                     {financed(option, t.total) && (
                       <div className="mt-1 text-[12px] text-[#4A6FA5]">or <span className="tabular-nums" style={{ fontWeight: 600 }}>${fmt(monthlyFor(option, t.total))}/mo</span> · {lineFor(option)}</div>
                     )}

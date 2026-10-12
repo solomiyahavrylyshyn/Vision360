@@ -179,6 +179,8 @@ export interface EstimateSingleData {
     wasPrice?: number;
     description: string;
     warranty?: string;
+    /** Label before `warranty` — "Warranty" unless renamed in Settings. */
+    warrantyLabel?: string;
   };
   /** "What we will do" — the scope in plain words. */
   scope?: string;
@@ -202,7 +204,7 @@ export function EstimateSingleSheet({ data, company, paper }: { data: EstimateSi
             <div className="label">Your estimate</div>
             <div className="price">{money(data.headline.price, false)}{data.headline.wasPrice !== undefined && <span className="was">{money(data.headline.wasPrice, false)}</span>}</div>
             <div className="desc">{data.headline.description}</div>
-            {data.headline.warranty && <div className="desc" style={{ marginTop: 6 }}><b>Warranty</b> {data.headline.warranty}</div>}
+            {data.headline.warranty && <div className="desc" style={{ marginTop: 6 }}><b>{data.headline.warrantyLabel ?? "Warranty"}</b> {data.headline.warranty}</div>}
           </div>
           <div className="why">
             <div className="label">What we will do</div>
@@ -256,6 +258,8 @@ export interface EstimateOptionsData {
   customer: DocCustomer;
   options: EstimateOptionColumn[];
   fine?: ReactNode;
+  /** Label of the bottom band — "Warranty" unless renamed in Settings. */
+  footerLabel?: string;
   preparedBy: string;
   pageCount?: number;
 }
@@ -316,7 +320,7 @@ export function EstimateOptionsSheet({ data, company, paper }: { data: EstimateO
               {data.options.map((o) => (
                 <td key={o.label}>
                   <div className="warr">
-                    <div className="l">Warranty</div>
+                    <div className="l">{data.footerLabel ?? "Warranty"}</div>
                     <div className="big">{o.warranty?.big ?? "—"}</div>
                     <div className="sm">{o.warranty?.small ?? ""}</div>
                   </div>

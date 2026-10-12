@@ -60,6 +60,7 @@ interface EstimateOptionData {
   summary?: string;
   financingPlanId?: string;
   financingShow?: "monthly" | "full";
+  footer?: { title: string; detail?: string };
   items: LineItem[];
 }
 
@@ -79,6 +80,8 @@ interface EstimateData {
   activity: { id: number; date: string; action: string; detail: string; icon: string }[];
   /** FR-5.19 — estimate type classification (Repair / Installation / …). */
   estimateType?: string;
+  /** Bottom line of a single-option estimate (Warranty by default). */
+  footer?: { title: string; detail?: string };
   /** Good/Better/Best — per-option line-item sets (Figma 2915:26967). */
   options?: { name: string; items: LineItem[] }[];
 }
@@ -278,11 +281,13 @@ function recordToEstimateData(r: EstimateRecord): EstimateData {
     depositType: r.depositType ?? "amount",
     depositValue: r.depositValue ?? 0,
     estimateType: r.estimateType,
+    footer: r.footer,
     options: (r as any).options?.map((o: any) => ({
       name: o.name,
       summary: o.summary,
       financingPlanId: o.financingPlanId ?? r.financingPlanId,
       financingShow: o.financingShow ?? r.financingShow,
+      footer: o.footer,
       items: (o.items ?? []).map((it: any) => ({
         id: it.id, name: it.name, description: it.description,
         quantity: it.quantity, price: it.price, cost: it.cost,
@@ -617,6 +622,12 @@ export function EstimateDetail() {
     headline: {
       price: docTotals.total,
       description: [estimate.estimateType, estimate.estimateName].filter(Boolean).join(" · ") || "Estimate · tax included",
+      ...(() => {
+        const f = documentOptions.length === 1 ? (documentOptions[0].footer ?? estimate.footer) : estimate.footer;
+        return estimateSettings.optionFooter.enabled && f
+          ? { warranty: [f.title, f.detail].filter(Boolean).join(" · "), warrantyLabel: estimateSettings.optionFooter.label }
+          : {};
+      })(),
     },
     scope: estimate.notes || undefined,
     lines: documentItems.map((i) => ({
@@ -648,11 +659,13 @@ export function EstimateDetail() {
       return {
         label: o.name, price: t.total, tax: t.tax, description: o.summary ?? "",
         monthly: f?.monthly, plan: f?.lead ? f.plan : undefined,
+        warranty: estimateSettings.optionFooter.enabled && o.footer ? { big: o.footer.title, small: o.footer.detail ?? "" } : undefined,
         items: o.items.map((i) => ({ name: i.quantity > 1 ? `${i.name} ×${i.quantity}` : i.name, detail: i.description || undefined })),
       };
     }),
     // One deposit for every option — stated as the rule, not one option's amount.
     fine: <>{estimate.depositRequired ? `A deposit of ${estimate.depositType === "percentage" ? `${estimate.depositValue}% of the option you choose` : money(estimate.depositValue)} is due on approval; the balance is invoiced when the work is done. ` : ""}{documentOptions.some((op) => financingFor(op, totalsFor(op.items).total)?.lead) ? "Monthly figures are subject to approval; full prices are on page 2. " : ""}Terms on page 2. <b>Sign the column you choose.</b> All {documentOptions.length} options were offered to you.</>,
+    footerLabel: estimateSettings.optionFooter.label,
     preparedBy: estimate.teamMember,
   };
 

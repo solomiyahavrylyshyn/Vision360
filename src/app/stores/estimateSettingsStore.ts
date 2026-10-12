@@ -15,7 +15,21 @@ export interface EstimateSettings {
   financing: { enabled: boolean; lender: string; apr: number; months: number; /** Below this the full price leads — nobody finances a $300 repair. */ minAmount: number };
   /** Financing plans an estimate can offer (Estimate details → Financing). */
   financingPlans: FinancingPlan[];
+  /** The short line printed at the bottom of every option (Marek, Oct 5): one
+   *  field per option, called "Warranty" by default — a company can rename it
+   *  ("Guarantee", …). The title and detail pre-fill each new option. */
+  optionFooter: OptionFooterSettings;
 }
+
+export interface OptionFooterSettings {
+  enabled: boolean;
+  label: string;
+  title: string;
+  detail: string;
+}
+
+/** Kept short so the option sheet's layout holds (a link can carry the rest). */
+export const OPTION_FOOTER_LIMITS = { label: 20, title: 24, detail: 36 } as const;
 
 /** A way the client can pay over time. "apr" is a loan at a rate over a term;
  *  "percent" is the "1% a month" kind: the payment is a share of the price. */
@@ -70,7 +84,10 @@ const DEFAULT_SETTINGS: EstimateSettings = {
     { id: "one-25", name: "1.25% payment plan", kind: "percent", percent: 1.25 },
     { id: "one-69", name: "1.69% payment plan", kind: "percent", percent: 1.69 },
   ],
+  optionFooter: { enabled: true, label: "Warranty", title: "1 year labor", detail: "1 year parts" },
 };
+
+const DEFAULT_OPTION_FOOTER: OptionFooterSettings = { enabled: true, label: "Warranty", title: "1 year labor", detail: "1 year parts" };
 
 const listeners = new Set<() => void>();
 
@@ -86,6 +103,15 @@ const normalize = (s: Partial<EstimateSettings>): EstimateSettings => {
     financingPlans: Array.isArray(s.financingPlans) && s.financingPlans.some((p) => p?.kind === "percent")
       ? [...DEFAULT_SETTINGS.financingPlans, ...s.financingPlans.filter((p) => p?.kind === "percent" && !DEFAULT_SETTINGS.financingPlans.some((d) => d.id === p.id))]
       : DEFAULT_SETTINGS.financingPlans,
+    optionFooter: (() => {
+      const f = { ...DEFAULT_OPTION_FOOTER, ...(s.optionFooter ?? {}) };
+      return {
+        enabled: f.enabled !== false,
+        label: (f.label || DEFAULT_OPTION_FOOTER.label).slice(0, OPTION_FOOTER_LIMITS.label),
+        title: (f.title ?? "").slice(0, OPTION_FOOTER_LIMITS.title),
+        detail: (f.detail ?? "").slice(0, OPTION_FOOTER_LIMITS.detail),
+      };
+    })(),
   };
 };
 
@@ -130,6 +156,11 @@ export const estimateSettingsStore = {
   },
   setUsesDeposits(on: boolean) {
     current = normalize({ ...current, usesDeposits: on });
+    persist();
+    notify();
+  },
+  setOptionFooter(patch: Partial<OptionFooterSettings>) {
+    current = normalize({ ...current, optionFooter: { ...current.optionFooter, ...patch } });
     persist();
     notify();
   },
