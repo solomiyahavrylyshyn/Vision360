@@ -531,14 +531,21 @@ export function ClientEstimateView() {
 
       {/* ── Page 2 of the document: payment and the terms ── */}
       <div className="mt-6 rounded-xl border border-[#E5E7EB] bg-white p-4 sm:p-5">
-        {record.depositRequired && (
-          <div className="mb-5 grid gap-4 border-b border-[#EDF0F5] pb-5 sm:grid-cols-3">
-            <div className="sm:col-span-3"><Label>Payment</Label></div>
-            <div><div className="text-[12px] text-[#6B7280]">Deposit on approval</div><div className="text-[14px]" style={{ fontWeight: 600 }}>{record.depositType === "percentage" ? `${record.depositValue ?? 0}%` : `$${fmt(record.depositValue ?? 0)}`}</div></div>
-            <div><div className="text-[12px] text-[#6B7280]">Balance</div><div className="text-[14px]" style={{ fontWeight: 600 }}>on completion</div></div>
-            <div><div className="text-[12px] text-[#6B7280]">We accept</div><div className="text-[14px]" style={{ fontWeight: 600 }}>card, check and cash</div></div>
-          </div>
-        )}
+        {/* The deposit itself is shown once, as an amount in each option — not
+            repeated here as a rule (Marek: "two different places, not necessary"). */}
+        {(() => {
+          const plans = [...new Set(shownOptions.map((o) => lineFor(o)).filter(Boolean))];
+          return (
+            <div className={`mb-5 grid gap-4 border-b border-[#EDF0F5] pb-5 ${plans.length ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
+              <div className={plans.length ? "sm:col-span-3" : "sm:col-span-2"}><Label>Payment</Label></div>
+              <div><div className="text-[12px] text-[#6B7280]">{record.depositRequired ? "Balance" : "Payment"}</div><div className="text-[14px]" style={{ fontWeight: 600 }}>on completion</div></div>
+              {plans.length > 0 && (
+                <div><div className="text-[12px] text-[#6B7280]">Financing</div>{plans.map((p) => <div key={p} className="text-[14px]" style={{ fontWeight: 600 }}>{p.replace(/^through /, "")}</div>)}</div>
+              )}
+              <div><div className="text-[12px] text-[#6B7280]">We accept</div><div className="text-[14px]" style={{ fontWeight: 600 }}>card, check and cash</div></div>
+            </div>
+          );
+        })()}
         <details open={termsBlocks.length <= 4}>
           <summary className="cursor-pointer list-none"><Label>Terms and conditions</Label></summary>
           <div className="mt-3 space-y-2.5 text-[13px] leading-[20px] text-[#374151]">
