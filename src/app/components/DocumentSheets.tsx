@@ -507,10 +507,9 @@ export const SAMPLE_ESTIMATE_SINGLE: EstimateSingleData = {
     { name: "Permits, disposal and warranty registration", description: "Pulled by us where required; old parts removed; warranty registered with Goodman for you", qty: "", unitPrice: null, tax: null, amount: null, included: true },
   ],
   total: 3180,
-  financing: "$31.80 per month on a 1% payment plan, subject to approval",
   notes: [
     <><Star />Your <b>Home Protection Plan</b> savings are shown as a line in the table. Tax is shown per line; lines without a tax amount are not taxable.</>,
-    <>Monthly figure on a 1% payment plan, subject to approval. Terms on page 2. <b>Sign to accept.</b> If you would rather see replacement options, ask Gary — we will prepare a comparison estimate on the spot.</>,
+    <>Terms on page 2. <b>Sign to accept.</b> If you would rather see replacement options, ask Gary — we will prepare a comparison estimate on the spot.</>,
   ],
   preparedBy: "Gary W.",
 };

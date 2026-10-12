@@ -190,6 +190,17 @@ const SEED: EstimateRecord[] = [
         { id: 5, name: "System Installation Labor", description: "Removal of the old system and full install", quantity: 1, price: 1200, cost: 830, amount: 1200, taxable: false },
       ] },
     ] },
+  // One option, shown at full price (no financing) — the client page's single
+  // layout, opened from its own link (DEMO_SINGLE_LINK_TOKEN).
+  { id: 9, estimateNumber: "10245-E11", estimateName: "AC Repair", clientName: "John Smith", clientId: "10245", clientEmail: "john.smith@email.com", clientPhone: "(512) 555-0142", clientAddress: "123 Main St\nAustin, TX 78701", serviceAddress: "123 Main St\nAustin, TX 78701", createdDate: "Mon Sep 07, 2026", addedBy: "Peter Novak", amount: 667.38, status: "Sent", job: "", jobTitle: "", sentDate: "Sep 07, 2026", expirationDate: "Oct 07, 2026", teamMember: "Peter Novak", source: "Manual", depositDue: 0, estimateType: "Repair", taxRate: 7.5, depositRequired: true, depositType: "percentage", depositValue: 10, publicToken: "N2MxZDJhOTAtNGIzZS00ZjYxLTlhMmMtNWU4YjFkMGY2YTE3",
+    notes: "Replace the failed capacitor and the worn contactor, recharge the refrigerant and test the system under load. One visit of about two hours.",
+    footer: { label: "Warranty", title: "1 year", detail: "parts & labor" },
+    items: [
+      { id: 1, name: "Capacitor 45/5 MFD", description: "Dual run capacitor replacement", quantity: 1, price: 120, cost: 40, amount: 120, taxable: true },
+      { id: 2, name: "Contactor 40A", description: "Condenser contactor replacement", quantity: 1, price: 95, cost: 30, amount: 95, taxable: true },
+      { id: 3, name: "R-410A Refrigerant", description: "Refrigerant recharge (per lb)", quantity: 3, price: 50, cost: 20, amount: 150, taxable: true },
+      { id: 4, name: "Diagnostic & Repair", description: "Diagnose the fault, repair and test under load", quantity: 1, price: 275, cost: 90, amount: 275, taxable: false },
+    ] },
   { id: 7, estimateNumber: "10247-E01", estimateName: "Plumbing Repair", clientName: "Mike Rodriguez", clientEmail: "mike.r@outlook.com", createdDate: "Wed Feb 25, 2026", addedBy: "Marek Fie", option: "1", amount: 850, status: "Viewed", job: "10247-J01", jobTitle: "Plumbing Fix", sentDate: "Feb 26, 2026", expirationDate: "Mar 27, 2026", teamMember: "Marek Stroz", source: "10247-J01", depositDue: 0, estimateType: "Repair", taxRate: 7.5, items: [
     { id: 1, name: "Drain Cleaning Service", description: "Clear main drain line", quantity: 1, price: 175, cost: 40, amount: 175, taxable: false },
     { id: 2, name: "Pipe Repair Labor", description: "Technician labor", quantity: 3, price: 95, cost: 45, amount: 285, taxable: false },
@@ -277,6 +288,25 @@ export const makePublicToken = (): string => {
 // it, so it is added on load — and kept open (valid 30 days ahead) while it
 // waits for an answer, so /e/<token> always shows the choose-an-option screen.
 export const DEMO_CLIENT_LINK_TOKEN = "ZTNiMGM0NDItOThmYy00YTNhLTgzMGEtNzMxMWI0NDI5Y2M2";
+export const DEMO_SINGLE_LINK_TOKEN = "N2MxZDJhOTAtNGIzZS00ZjYxLTlhMmMtNWU4YjFkMGY2YTE3";
+
+/** The one-option demo: added if missing, kept open while it waits for an answer. */
+function ensureSingleDemo(rows: EstimateRecord[]): { rows: EstimateRecord[]; added?: EstimateRecord; extended?: { id: number; expirationDate: string } } {
+  const validUntil = dateLabel(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000));
+  const existing = rows.find((e) => e.publicToken === DEMO_SINGLE_LINK_TOKEN);
+  if (!existing) {
+    const seed = SEED.find((e) => e.publicToken === DEMO_SINGLE_LINK_TOKEN);
+    if (!seed) return { rows };
+    const id = rows.some((e) => e.id === seed.id) ? Math.max(0, ...rows.map((e) => e.id)) + 1 : seed.id;
+    const added = { ...seed, id, expirationDate: validUntil };
+    return { rows: [...rows, added], added };
+  }
+  const waiting = existing.status === "Sent" || existing.status === "Viewed";
+  if (waiting && existing.expirationDate && new Date(existing.expirationDate).getTime() < Date.now()) {
+    return { rows: rows.map((e) => (e.id === existing.id ? { ...e, expirationDate: validUntil } : e)), extended: { id: existing.id, expirationDate: validUntil } };
+  }
+  return { rows };
+}
 const dateLabel = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" });
 function ensureClientLinkDemo(rows: EstimateRecord[]): { rows: EstimateRecord[]; added?: EstimateRecord; extended?: { id: number; expirationDate: string }; financing?: { id: number } & Partial<EstimateRecord> } {
   const validUntil = dateLabel(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000));
@@ -328,7 +358,7 @@ function ensureClientLinkDemo(rows: EstimateRecord[]): { rows: EstimateRecord[];
   }
   return { rows };
 }
-estimates = ensureClientLinkDemo(estimates).rows;
+estimates = ensureSingleDemo(ensureClientLinkDemo(estimates).rows).rows;
 
 const api = createApiSync<EstimateRecord>("estimates", (e) => e.id);
 
@@ -343,7 +373,10 @@ export const estimatesStore = {
       // Server rows win; the client-link demo is added (or kept open) and
       // written back so the database has it too.
       const demo = ensureClientLinkDemo(rows);
-      estimates = demo.rows;
+      const single = ensureSingleDemo(demo.rows);
+      estimates = single.rows;
+      if (single.added) api.persistNew(single.added);
+      if (single.extended) api.persistPatch(single.extended.id, { expirationDate: single.extended.expirationDate });
       saveLS();
       notify();
       if (demo.added) api.persistNew(demo.added);
