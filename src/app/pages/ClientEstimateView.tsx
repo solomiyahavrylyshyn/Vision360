@@ -430,11 +430,18 @@ export function ClientEstimateView() {
           {mode === "idle" && (
             <>
               <div className="mb-3 text-[14px] text-[#374151]">
-                {!comparison && pickedTotals
-                  ? <>Ready to go ahead? Approve and sign to accept <strong className="tabular-nums">${fmt(pickedTotals.total)}</strong>.</>
-                  : picked && pickedTotals
-                    ? <>You chose <strong>{`${optionLabel(pickIndex!)} · ${picked.name}`}</strong> — <strong className="tabular-nums">${fmt(pickedTotals.total)}</strong>.</>
-                    : <>Choose an option above to approve it.</>}
+                {(() => {
+                  // The figure the client was shown leads: monthly if this option
+                  // presents payments, the full price otherwise.
+                  const lead = picked && pickedTotals
+                    ? (monthlyFirst(picked, pickedTotals.total) ? `$${fmt(monthlyFor(picked, pickedTotals.total))}/mo` : `$${fmt(pickedTotals.total)}`)
+                    : "";
+                  return !comparison && pickedTotals
+                    ? <>Ready to go ahead? Approve and sign to accept <strong className="tabular-nums">{lead}</strong>.</>
+                    : picked && pickedTotals
+                      ? <>You chose <strong>{`${optionLabel(pickIndex!)} · ${picked.name}`}</strong> — <strong className="tabular-nums">{lead}</strong>.</>
+                      : <>Choose an option above to approve it.</>;
+                })()}
               </div>
               <div className="flex flex-col gap-2.5 sm:flex-row">
                 <button type="button" onClick={() => setMode("sign")} disabled={!picked}
@@ -456,10 +463,21 @@ export function ClientEstimateView() {
           {mode === "sign" && picked && pickedTotals && (
             <>
               <div className="text-[17px]" style={{ fontWeight: 600 }}>Approve and sign</div>
-              <div className="mt-1 text-[14px] text-[#374151]">
-                {comparison ? `${optionLabel(pickIndex!)} · ${picked.name}` : picked.name} — <strong className="tabular-nums">${fmt(pickedTotals.total)}</strong>, tax included.
-                {record.depositRequired && <> A deposit of <strong>${fmt(depositFor(pickedTotals.total))}</strong> is due on approval; the balance is invoiced when the work is done.</>}
-              </div>
+              {monthlyFirst(picked, pickedTotals.total) ? (
+                // Presented as payments: the monthly figure leads; the full price
+                // is still written out (it's what they sign for) but quietly.
+                <div className="mt-1 text-[14px] text-[#374151]">
+                  {comparison ? `${optionLabel(pickIndex!)} · ${picked.name}` : picked.name} — <strong className="tabular-nums">${fmt(monthlyFor(picked, pickedTotals.total))} per month</strong> on a {lineFor(picked)}.
+                  <div className="mt-0.5 text-[12px] text-[#6B7280]">
+                    Full price ${fmt(pickedTotals.total)}, tax included.{record.depositRequired && <> Deposit on approval ${fmt(depositFor(pickedTotals.total))}; the balance is invoiced when the work is done.</>}
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-1 text-[14px] text-[#374151]">
+                  {comparison ? `${optionLabel(pickIndex!)} · ${picked.name}` : picked.name} — <strong className="tabular-nums">${fmt(pickedTotals.total)}</strong>, tax included.
+                  {record.depositRequired && <> A deposit of <strong>${fmt(depositFor(pickedTotals.total))}</strong> is due on approval; the balance is invoiced when the work is done.</>}
+                </div>
+              )}
               <label className="mt-4 block text-[14px]" style={{ fontWeight: 600 }} htmlFor="sign-name">Type your full name to sign</label>
               <input id="sign-name" value={signName} onChange={(e) => setSignName(e.target.value)} placeholder={record.clientName}
                 className="mt-1.5 h-11 w-full rounded-lg border border-[#E5E7EB] px-3 text-[18px] outline-none focus:border-[#4A6FA5] focus:ring-2 focus:ring-[#4A6FA5]/10"
@@ -471,7 +489,7 @@ export function ClientEstimateView() {
               <div className="mt-4 flex flex-col gap-2.5 sm:flex-row">
                 <button type="button" onClick={approve} disabled={!signName.trim() || !agreed}
                   className="h-11 flex-1 rounded-lg bg-[#4A6FA5] px-4 text-[15px] text-white transition-colors hover:bg-[#3d5a85] disabled:pointer-events-none disabled:bg-[#C7D2E1]" style={{ fontWeight: 600 }}>
-                  Approve ${fmt(pickedTotals.total)}
+                  {monthlyFirst(picked, pickedTotals.total) ? "Approve & sign" : `Approve $${fmt(pickedTotals.total)}`}
                 </button>
                 <button type="button" onClick={() => setMode("idle")}
                   className="h-11 flex-1 rounded-lg border border-[#D8DEE8] px-4 text-[15px] text-[#1A2332] hover:bg-[#F5F7FA]" style={{ fontWeight: 600 }}>
