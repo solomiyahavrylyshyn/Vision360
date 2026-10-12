@@ -120,12 +120,10 @@ export function CreateEstimate() {
   // Financing is set per option (Marek): each option can offer its own plan and
   // lead with the monthly payment or the full amount.
   const financingPlanId = activeOption.financingPlanId ?? "";
-  const financingShow = activeOption.financingShow ?? "monthly";
   const financingPlan = findPlan(financingPlans, financingPlanId);
   const setOptionFinancing = (patch: Partial<EstimateOption>) =>
     setOptions((opts) => opts.map((o) => (o.id === activeOption.id ? { ...o, ...patch } : o)));
-  const setFinancingPlanId = (id: string) => setOptionFinancing({ financingPlanId: id || undefined });
-  const setFinancingShow = (v: "monthly" | "full") => setOptionFinancing({ financingShow: v });
+  const setFinancingPlanId = (id: string) => setOptionFinancing({ financingPlanId: id || undefined, financingShow: id ? "monthly" : undefined });
   const footer = activeOption.footer ?? { label: "", title: "", detail: "" };
   const setFooter = (patch: Partial<{ label: string; title: string; detail: string }>) => setOptionFinancing({ footer: { ...footer, ...patch } });
   // Empty title and detail → nothing is printed for this option.
@@ -458,30 +456,26 @@ export function CreateEstimate() {
                 line (Marek, Oct 5: a short line per option; the title is free —
                 Warranty, Guarantee or blank; empty prints nothing). */}
             <div className="mb-5 grid grid-cols-2 gap-x-5 gap-y-4">
+              {/* One choice per option (Oct 8, 1:16 — "when there is no financing, we
+                  shall have the full amount" / "That's it"): no plan → the client
+                  sees the full price; a plan → the monthly payment leads and the
+                  full price opens from the arrow. */}
               <div>
-                <label className={labelClass}>Financing{options.length > 1 ? ` — ${activeOption.name}` : ""}</label>
+                <label className={labelClass}>Price shown to the client{options.length > 1 ? ` — ${activeOption.name}` : ""}</label>
                 <select value={financingPlanId} onChange={(e) => setFinancingPlanId(e.target.value)} className={fieldClass}>
-                  <option value="">No financing</option>
-                  {financingPlans.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  <option value="">Full amount</option>
+                  {financingPlans.map((p) => <option key={p.id} value={p.id}>Monthly payment · {p.name}</option>)}
                 </select>
               </div>
-              <div>
-                <label className={`${labelClass} ${financingPlan ? "" : "text-[#9CA3AF]"}`}>Show the client first</label>
-                <select value={financingPlan ? financingShow : "full"} disabled={!financingPlan}
-                  onChange={(e) => setFinancingShow(e.target.value as "monthly" | "full")}
-                  className={`${fieldClass} disabled:cursor-not-allowed disabled:bg-[#F9FAFB] disabled:text-[#9CA3AF]`}>
-                  <option value="monthly">Monthly payment</option>
-                  <option value="full">Full amount</option>
-                </select>
+              <div className="flex items-end pb-3 text-[12px] leading-[18px] text-[#6B7280]">
+                {!financingPlan
+                  ? <span>The client sees the full price{total > 0 ? <> — <strong className="text-[#1A2332]">${total.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></> : ""}.</span>
+                  : total <= 0
+                    ? <span>Add line items to see the monthly payment.</span>
+                    : total < estimateSettingsStore.getSnapshot().financing.minAmount
+                      ? <span>Under ${estimateSettingsStore.getSnapshot().financing.minAmount.toLocaleString("en-US")} — the client sees the full price, ${total.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}.</span>
+                      : <span>The client sees <strong className="text-[#1A2332]">${planMonthly(financingPlan, total).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/mo</strong>; the full price, ${total.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}, opens from the arrow.</span>}
               </div>
-              {financingPlan && (
-                <p className="col-span-2 -mt-2 text-[12px] text-[#6B7280]">
-                  {total > 0
-                    ? <><strong className="text-[#1A2332]">${planMonthly(financingPlan, total).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/mo</strong> {planLine(financingPlan)} · full amount ${total.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}.</>
-                    : <>Add line items to see the monthly payment.</>}
-                  {" "}Under ${estimateSettingsStore.getSnapshot().financing.minAmount.toLocaleString("en-US")} the client sees the full amount.
-                </p>
-              )}
               {footerCfg.enabled && (
                 <div className="col-span-2">
                   <div className="mb-1.5 flex items-baseline justify-between gap-3">
