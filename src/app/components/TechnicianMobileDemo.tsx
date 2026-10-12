@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
+import { estimateSettingsStore, findPlan, planLine, planMonthly } from "../stores/estimateSettingsStore";
 
 // Click-through mockup of the technician mobile app, following the actual
 // PRD work packages (R-003…R-010, "Mobile App for Aptora") and the Figma_Mobile
@@ -16,11 +17,12 @@ interface RCField { label: string; value?: string; kind: FieldKind }
 // R-007 — Estimate (options-based)
 interface EstItem { name: string; description: string; price: number; warranty: string; category: string }
 interface OptionItem extends EstItem { qty: number }
-interface EstOption { id: number; name: string; pricingType: "Monthly payment + Total" | "Total Only" | "Monthly Only"; notesOn: boolean; notes: string; items: OptionItem[]; adjustPct: number }
+// Price shown to the client — same as the web app (Marek, Oct 12: "We should mirror our web app"):
+// no plan = full amount; a plan from Settings → Estimates → Finance plans = monthly payment first.
+interface EstOption { id: number; name: string; planId: string; notesOn: boolean; notes: string; items: OptionItem[]; adjustPct: number }
 type EstStatus = "draft" | "inReview" | "readyToPresent" | "approved";
 
 const money = (n: number) => `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-const PLAN = { label: "Ally - 7.99% / 1.29%", factor: "1.29%", monthlyRate: 0.046, interest: "9.9%", apr: "7.99%", terms: "12 months" };
 
 const ESTIMATE_CATALOG: Record<string, EstItem[]> = {
   Repairs: [
@@ -63,7 +65,13 @@ const ESTIMATE_CATALOG: Record<string, EstItem[]> = {
 };
 
 const optionTotal = (o: EstOption) => o.items.reduce((s, it) => s + it.price * it.qty, 0) * (1 + o.adjustPct / 100);
-const optionMonthly = (o: EstOption) => optionTotal(o) * PLAN.monthlyRate;
+const optionPlan = (o: EstOption) => findPlan(estimateSettingsStore.getSnapshot().financingPlans, o.planId);
+/** Monthly figure when the option is on a plan and over the minimum, else null (full amount). */
+const optionMonthly = (o: EstOption): number | null => {
+  const plan = optionPlan(o);
+  const total = optionTotal(o);
+  return plan && total >= (estimateSettingsStore.getSnapshot().financing?.minAmount ?? 0) ? planMonthly(plan, total) : null;
+};
 const nextOptionName = (n: number) => `Option ${String.fromCharCode(65 + n)}`;
 
 const jobs = [
@@ -251,6 +259,7 @@ export function TechnicianMobileDemo({ onClose }: { onClose: () => void }) {
   const [estDownAmount, setEstDownAmount] = useState("");
   const [estMenuOpenId, setEstMenuOpenId] = useState<number | null>(null);
   const [estShowAlt, setEstShowAlt] = useState<Record<number, boolean>>({});
+  const financePlans = useSyncExternalStore(estimateSettingsStore.subscribe, estimateSettingsStore.getSnapshot).financingPlans;
   const [estApprovedId, setEstApprovedId] = useState<number | null>(null);
   const [estCustomerChoice, setEstCustomerChoice] = useState<string>("");
   const [estFollowUpDate, setEstFollowUpDate] = useState("Oct 7, 2025");
@@ -593,7 +602,7 @@ export function TechnicianMobileDemo({ onClose }: { onClose: () => void }) {
                       <div className="mb-1 text-[15px] text-[#1A2332]" style={{ fontWeight: 700 }}>No estimate yet!</div>
                       <div className="mb-5 text-[12px] text-[#8899AA]">Start by adding a new Option.<br />You can create up to 6 options.</div>
                       <button
-                        onClick={() => { setEstDraft({ id: Date.now(), name: nextOptionName(0), pricingType: "Monthly payment + Total", notesOn: false, notes: "", items: [], adjustPct: 0 }); setScreen("estimateAddOption"); }}
+                        onClick={() => { setEstDraft({ id: Date.now(), name: nextOptionName(0), planId: "", notesOn: false, notes: "", items: [], adjustPct: 0 }); setScreen("estimateAddOption"); }}
                         className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#4A6FA5] py-3 text-[13px] text-white"
                         style={{ fontWeight: 700 }}
                       >
@@ -628,8 +637,6 @@ export function TechnicianMobileDemo({ onClose }: { onClose: () => void }) {
                           ))}
                         </div>
                       )}
-                      <div className="text-[12px] text-[#1A2332]" style={{ fontWeight: 700 }}>Plan selected</div>
-                      <div className="text-[11px] text-[#546478]">{PLAN.label}<br />Monthly factor: {PLAN.factor} · Interest rate: {PLAN.interest} · APR: {PLAN.apr} · Terms: {PLAN.terms}</div>
                     </div>
                   ) : (
                     <div className="space-y-3">
@@ -677,16 +684,19 @@ export function TechnicianMobileDemo({ onClose }: { onClose: () => void }) {
                             {o.items.map((it) => <div key={it.name}>{it.qty} × {it.name}</div>)}
                           </div>
                           {(() => {
-                            const showMonthly = o.pricingType === "Monthly Only" || (o.pricingType === "Monthly payment + Total" && !estShowAlt[o.id]);
-                            const canToggle = o.pricingType === "Monthly payment + Total";
+                            const monthly = optionMonthly(o);
+                            const showMonthly = monthly !== null && !estShowAlt[o.id];
                             return (
                               <button
-                                disabled={!canToggle}
+                                disabled={monthly === null}
                                 onClick={() => setEstShowAlt((s) => ({ ...s, [o.id]: !s[o.id] }))}
                                 className="flex w-full items-center justify-between bg-[#EBF0F8] px-3 py-2 text-left"
                               >
-                                <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 700 }}>{showMonthly ? `${money(optionMonthly(o))}/month` : money(optionTotal(o))}</span>
-                                {canToggle && <span className="text-[10px] text-[#4A6FA5]">Tap for {showMonthly ? "total" : "monthly"}</span>}
+                                <span>
+                                  <span className="block text-[14px] text-[#1A2332]" style={{ fontWeight: 700 }}>{showMonthly ? `${money(monthly!)}/mo` : money(optionTotal(o))}</span>
+                                  <span className="block text-[10px] text-[#8899AA]">{monthly !== null ? planLine(optionPlan(o)!) : "Full amount"}</span>
+                                </span>
+                                {monthly !== null && <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "18px", transform: estShowAlt[o.id] ? "rotate(180deg)" : undefined }}>expand_more</span>}
                               </button>
                             );
                           })()}
@@ -699,7 +709,7 @@ export function TechnicianMobileDemo({ onClose }: { onClose: () => void }) {
                       ))}
                       {estOptions.length < 6 && (
                         <button
-                          onClick={() => { setEstDraft({ id: Date.now(), name: nextOptionName(estOptions.length), pricingType: "Monthly payment + Total", notesOn: false, notes: "", items: [], adjustPct: 0 }); setScreen("estimateAddOption"); }}
+                          onClick={() => { setEstDraft({ id: Date.now(), name: nextOptionName(estOptions.length), planId: "", notesOn: false, notes: "", items: [], adjustPct: 0 }); setScreen("estimateAddOption"); }}
                           className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#4A6FA5] py-2.5 text-[13px] text-white"
                           style={{ fontWeight: 700 }}
                         >
@@ -707,12 +717,6 @@ export function TechnicianMobileDemo({ onClose }: { onClose: () => void }) {
                         </button>
                       )}
 
-                      <div className="text-[12px] text-[#1A2332]" style={{ fontWeight: 700 }}>Plan selection</div>
-                      <div className="rounded-lg border border-[#E5E7EB] p-2.5">
-                        <div className="mb-0.5 text-[10px] text-[#8899AA]">Pick a plan</div>
-                        <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>{PLAN.label}</div>
-                      </div>
-                      <div className="text-[10px] text-[#8899AA]">Monthly factor: {PLAN.factor} • Interest rate: {PLAN.interest} • APR: {PLAN.apr} • Terms: {PLAN.terms}</div>
                       <label className="flex items-center gap-2 text-[12px] text-[#546478]">
                         <span className="flex h-5 w-9 items-center rounded-full px-0.5" style={{ backgroundColor: estDownPayment ? "#4A6FA5" : "#D1D5DB" }} onClick={() => setEstDownPayment((v) => !v)}>
                           <span className="h-4 w-4 rounded-full bg-white transition-transform" style={{ transform: estDownPayment ? "translateX(16px)" : "none" }} />
@@ -777,12 +781,16 @@ export function TechnicianMobileDemo({ onClose }: { onClose: () => void }) {
                   <input value={estDraft.name} onChange={(e) => setEstDraft({ ...estDraft, name: e.target.value })} className="w-full border-b border-[#1A2332] px-1 py-1.5 text-[14px] text-[#1A2332] outline-none" />
                 </div>
                 <div>
-                  <div className="mb-1 text-[10px] text-[#8899AA]">Pricing preview type</div>
-                  <select value={estDraft.pricingType} onChange={(e) => setEstDraft({ ...estDraft, pricingType: e.target.value as EstOption["pricingType"] })} className="w-full border-b border-[#E5E7EB] px-1 py-1.5 text-[13px] text-[#1A2332] outline-none">
-                    <option>Monthly payment + Total</option>
-                    <option>Total Only</option>
-                    <option>Monthly Only</option>
+                  <div className="mb-1 text-[10px] text-[#8899AA]">Price shown to the client</div>
+                  <select value={estDraft.planId} onChange={(e) => setEstDraft({ ...estDraft, planId: e.target.value })} className="w-full border-b border-[#E5E7EB] px-1 py-1.5 text-[13px] text-[#1A2332] outline-none">
+                    <option value="">Full amount</option>
+                    {financePlans.map((pl) => <option key={pl.id} value={pl.id}>Monthly payment · {pl.name}{pl.name.includes("%") ? "" : ` (${pl.percent}%)`}</option>)}
                   </select>
+                  <div className="mt-1 text-[10px] text-[#8899AA]">
+                    {optionMonthly(estDraft) !== null
+                      ? <>The client sees {money(optionMonthly(estDraft)!)}/mo; the full price opens from the arrow.</>
+                      : estDraft.planId ? <>Under the minimum — the client sees the full price.</> : <>The client sees the full price.</>}
+                  </div>
                 </div>
                 <label className="flex items-center gap-2 text-[12px] text-[#546478]">
                   <span className="flex h-5 w-9 items-center rounded-full px-0.5" style={{ backgroundColor: estDraft.notesOn ? "#4A6FA5" : "#D1D5DB" }} onClick={() => setEstDraft({ ...estDraft, notesOn: !estDraft.notesOn })}>
@@ -829,7 +837,7 @@ export function TechnicianMobileDemo({ onClose }: { onClose: () => void }) {
 
                 <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 700 }}>Summary</div>
                 <div className="flex justify-between text-[12px]"><span className="text-[#546478]"># of items:</span><span style={{ fontWeight: 700 }}>{estDraft.items.length}</span></div>
-                <div className="flex justify-between text-[12px]"><span className="text-[#546478]">Monthly payment:</span><span style={{ fontWeight: 700 }}>{money(optionMonthly(estDraft))}</span></div>
+                {optionMonthly(estDraft) !== null && <div className="flex justify-between text-[12px]"><span className="text-[#546478]">Monthly payment:</span><span style={{ fontWeight: 700 }}>{money(optionMonthly(estDraft)!)}</span></div>}
                 <div className="flex justify-between text-[12px]"><span className="text-[#546478]">Total:</span><span style={{ fontWeight: 700 }}>{money(optionTotal(estDraft))}</span></div>
                 <label className="flex items-center gap-2 text-[12px] text-[#546478]">
                   <span className="flex h-5 w-9 items-center rounded-full px-0.5" style={{ backgroundColor: estDraft.adjustPct !== 0 ? "#4A6FA5" : "#D1D5DB" }} onClick={() => setEstDraft({ ...estDraft, adjustPct: estDraft.adjustPct !== 0 ? 0 : 1 })}>
@@ -923,11 +931,6 @@ export function TechnicianMobileDemo({ onClose }: { onClose: () => void }) {
                 <Field label="Address" value="5010 N Cortez Ave, Tampa, FL 33614" />
                 <Field label="Number of options" value={String(estOptions.length)} />
                 <Field label="Price range" value={`${money(Math.min(...estOptions.map(optionTotal)))} - ${money(Math.max(...estOptions.map(optionTotal)))}`} />
-                <div>
-                  <div className="text-[#8899AA]">Plan selection</div>
-                  <div className="text-[#1A2332]" style={{ fontWeight: 600 }}>{PLAN.label}</div>
-                  <div className="text-[10px] text-[#8899AA]">Monthly factor: {PLAN.factor} • Interest rate: {PLAN.interest} • APR: {PLAN.apr} • Terms: {PLAN.terms}</div>
-                </div>
                 <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 700 }}>Options list</div>
                 {estOptions.map((o) => (
                   <div key={o.id} className={`rounded-lg border p-2.5 ${estCustomerChoice === String(o.id) ? "border-[#4A6FA5] bg-[#EBF0F8]" : "border-[#E5E7EB]"}`}>
@@ -935,7 +938,9 @@ export function TechnicianMobileDemo({ onClose }: { onClose: () => void }) {
                       <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 700 }}>{o.name}</span>
                     </div>
                     {o.items.map((it) => <div key={it.name} className="text-[11px] text-[#546478]">{it.qty} × {it.name}</div>)}
-                    <div className="mt-1.5 rounded-md bg-[#F5F7FA] px-2 py-1 text-[13px] text-[#1A2332]" style={{ fontWeight: 700 }}>{money(optionTotal(o))}</div>
+                    <div className="mt-1.5 rounded-md bg-[#F5F7FA] px-2 py-1 text-[13px] text-[#1A2332]" style={{ fontWeight: 700 }}>
+                      {optionMonthly(o) !== null ? <>{money(optionMonthly(o)!)}<span className="text-[11px] text-[#8899AA]" style={{ fontWeight: 500 }}>/mo · {planLine(optionPlan(o)!)}</span></> : money(optionTotal(o))}
+                    </div>
                   </div>
                 ))}
 
