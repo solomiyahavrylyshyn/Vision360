@@ -1111,7 +1111,7 @@ export function EstimateDetail() {
           </div>
           {estimate.depositRequired ? (
             <>
-              <p className="text-[13px] text-[#546478] mb-5">A deposit is required to secure your project and schedule the work.</p>
+              <p className="text-[13px] text-[#546478] mb-5">A deposit is required to secure your project and schedule the work.{allOptions.length > 1 && <> <strong className="text-[#1A2332]">Applies to all {allOptions.length} options</strong> — the same {estimate.depositType === "percentage" ? "percentage" : "fixed amount"} for each.</>}</p>
               <div className="mb-4">
                 <label className="block text-[11px] uppercase tracking-wider text-[#546478] mb-1.5" style={{ fontWeight: 600 }}>Deposit Type</label>
                 <select value={estimate.depositType}

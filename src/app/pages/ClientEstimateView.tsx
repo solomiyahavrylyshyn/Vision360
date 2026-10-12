@@ -99,10 +99,10 @@ const today = () => new Date().toLocaleDateString("en-US", { month: "short", day
 const visibleItems = (items: EstimateLineItem[]) => items.filter((i) => !i.hideOnCustomerDocs);
 
 // The full price, folded under the monthly payment. Closed it's only a small
-// round arrow; it opens like an accordion to show the price, the tax inside it
-// and the deposit due on approval. On a picked (blue) column it reads light.
-function FullPrice({ total, tax, deposit, open, onToggle, onBlue }: {
-  total: number; tax: number; deposit: number | null; open: boolean; onToggle: () => void; onBlue?: boolean;
+// round arrow; it opens like an accordion to show the price and the tax inside
+// it. On a picked (blue) column it reads light.
+function FullPrice({ total, tax, open, onToggle, onBlue }: {
+  total: number; tax: number; open: boolean; onToggle: () => void; onBlue?: boolean;
 }) {
   const arrow = onBlue ? "text-white/90 hover:bg-white/15" : "text-[#4A6FA5] hover:bg-[#DCE6F5]";
   const muted = onBlue ? "text-white/75" : "text-[#6B7280]";
@@ -119,7 +119,6 @@ function FullPrice({ total, tax, deposit, open, onToggle, onBlue }: {
         <div className={`mx-auto mt-1 max-w-[220px] space-y-0.5 ${muted}`}>
           <div className="flex justify-between gap-3"><span>Full price</span><span className={`tabular-nums ${onBlue ? "text-white" : "text-[#1A2332]"}`} style={{ fontWeight: 600 }}>${fmt(total)}</span></div>
           <div className="flex justify-between gap-3"><span>Includes tax</span><span className="tabular-nums">{tax > 0 ? `$${fmt(tax)}` : "no tax"}</span></div>
-          {deposit !== null && <div className="flex justify-between gap-3"><span>Deposit on approval</span><span className="tabular-nums">${fmt(deposit)}</span></div>}
         </div>
       )}
     </div>
@@ -302,7 +301,7 @@ export function ClientEstimateView() {
                         <div className="mt-1 text-[14px]" style={{ fontWeight: 500 }}>{option.name}</div>
                         <div className="mt-1 tabular-nums"><span className="text-[30px] leading-[36px]" style={{ fontWeight: 700 }}>${fmt(monthlyFor(option, t.total))}</span><span className={`ml-1 text-[14px] ${isPicked ? "text-white/80" : "text-[#6B7280]"}`} style={{ fontWeight: 500 }}>/mo</span></div>
                         <div className={`text-[11px] ${isPicked ? "text-white/80" : "text-[#6B7280]"}`}>{lineFor(option)}</div>
-                        <FullPrice total={t.total} tax={t.tax} deposit={record.depositRequired ? depositFor(t.total) : null} open={openPrice.has(index)} onToggle={() => togglePrice(index)} onBlue={isPicked} />
+                        <FullPrice total={t.total} tax={t.tax} open={openPrice.has(index)} onToggle={() => togglePrice(index)} onBlue={isPicked} />
                       </>
                     ) : (
                       <>
@@ -331,11 +330,6 @@ export function ClientEstimateView() {
                       ))}
                     </ul>
                   </div>
-                  {record.depositRequired && !monthlyFirst(option, t.total) && (
-                    <div className="border-t border-[#EDF0F5] px-4 py-2.5 text-center text-[13px] text-[#374151]">
-                      Deposit on approval <span style={{ fontWeight: 600 }}>${fmt(depositFor(t.total))}</span>
-                    </div>
-                  )}
                   {open && (
                     <div className="border-t border-[#EDF0F5] p-3">
                       <button
@@ -372,7 +366,7 @@ export function ClientEstimateView() {
                     <div className="mt-1 tabular-nums"><span className="text-[30px] leading-[36px]" style={{ fontWeight: 700 }}>${fmt(monthlyFor(option, t.total))}</span><span className="ml-1 text-[14px] text-[#6B7280]" style={{ fontWeight: 500 }}>/mo</span></div>
                     <div className="text-[11px] text-[#6B7280]">{lineFor(option)}</div>
                     <div className="mt-1 text-[14px]" style={{ fontWeight: 500 }}>{option.name}</div>
-                    <FullPrice total={t.total} tax={t.tax} deposit={record.depositRequired ? depositFor(t.total) : null} open={openPrice.has(-1)} onToggle={() => togglePrice(-1)} />
+                    <FullPrice total={t.total} tax={t.tax} open={openPrice.has(-1)} onToggle={() => togglePrice(-1)} />
                   </>
                 ) : (
                   <>
@@ -418,7 +412,7 @@ export function ClientEstimateView() {
               <div>
                 <div className="text-[16px]" style={{ fontWeight: 600 }}>Your price</div>
                 <div className="text-[12px] text-[#6B7280]">
-                  Tax included{financed(option, t.total) ? ` · or $${fmt(monthlyFor(option, t.total))} per month ${lineFor(option)}` : ""}{record.depositRequired ? ` · deposit on approval $${fmt(depositFor(t.total))}` : ""}
+                  Tax included{financed(option, t.total) ? ` · or $${fmt(monthlyFor(option, t.total))} per month ${lineFor(option)}` : ""}
                 </div>
               </div>
               <div className="text-right">
@@ -531,13 +525,27 @@ export function ClientEstimateView() {
 
       {/* ── Page 2 of the document: payment and the terms ── */}
       <div className="mt-6 rounded-xl border border-[#E5E7EB] bg-white p-4 sm:p-5">
-        {/* The deposit itself is shown once, as an amount in each option — not
-            repeated here as a rule (Marek: "two different places, not necessary"). */}
+        {/* One deposit for the whole estimate (Marek, Oct 8): the same % or the
+            same fixed amount for every option, so it is stated once, here — not
+            under each option. The amount for the chosen option shows at signing. */}
         {(() => {
           const plans = [...new Set(shownOptions.map((o) => lineFor(o)).filter(Boolean))];
+          const cols = 2 + (plans.length ? 1 : 0) + (record.depositRequired ? 1 : 0);
+          const one = shownOptions.length === 1 ? shownOptions[0] : picked;
+          const pct = record.depositType === "percentage";
           return (
-            <div className={`mb-5 grid gap-4 border-b border-[#EDF0F5] pb-5 ${plans.length ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
-              <div className={plans.length ? "sm:col-span-3" : "sm:col-span-2"}><Label>Payment</Label></div>
+            <div className={`mb-5 grid gap-4 border-b border-[#EDF0F5] pb-5 ${cols === 4 ? "sm:grid-cols-4" : cols === 3 ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
+              <div className={cols === 4 ? "sm:col-span-4" : cols === 3 ? "sm:col-span-3" : "sm:col-span-2"}><Label>Payment</Label></div>
+              {record.depositRequired && (
+                <div>
+                  <div className="text-[12px] text-[#6B7280]">Deposit on approval</div>
+                  <div className="text-[14px] tabular-nums" style={{ fontWeight: 600 }}>
+                    {pct ? `${record.depositValue ?? 0}%` : `$${fmt(record.depositValue ?? 0)}`}
+                    {pct && one ? <span className="text-[#6B7280]" style={{ fontWeight: 400 }}> · ${fmt(depositFor(totalsFor(one.items, taxRate).total))}</span> : null}
+                  </div>
+                  {shownOptions.length > 1 && <div className="text-[12px] text-[#6B7280]">{pct ? "of the option you choose" : "whichever option you choose"}</div>}
+                </div>
+              )}
               <div><div className="text-[12px] text-[#6B7280]">{record.depositRequired ? "Balance" : "Payment"}</div><div className="text-[14px]" style={{ fontWeight: 600 }}>on completion</div></div>
               {plans.length > 0 && (
                 <div><div className="text-[12px] text-[#6B7280]">Financing</div>{plans.map((p) => <div key={p} className="text-[14px]" style={{ fontWeight: 600 }}>{p.replace(/^through /, "")}</div>)}</div>
