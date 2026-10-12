@@ -16,7 +16,7 @@ import { estimateTypesStore } from "../stores/estimateTypesStore";
 import { jobsStore } from "../stores/jobsStore";
 import { formatRegionalDate } from "../stores/regionalSettingsStore";
 import { documentTemplateStore } from "../stores/documentTemplateStore";
-import { estimateSettingsStore } from "../stores/estimateSettingsStore";
+import { estimateSettingsStore, findPlan, planLine, planMonthly } from "../stores/estimateSettingsStore";
 import { CustomFieldInputs, type CfValues } from "../components/CustomFields";
 import { EstimateOptionsSheet, EstimateSingleSheet, EstimateTermsPage, PrintPageRule, money, useDocCompany, type EstimateOptionsData, type EstimateSingleData, type EstimateTermsData } from "../components/DocumentSheets";
 import { ItemPicker, type CatalogItem } from "../components/ItemPicker";
@@ -58,6 +58,8 @@ interface NoteEntry {
 interface EstimateOptionData {
   name: string;
   summary?: string;
+  financingPlanId?: string;
+  financingShow?: "monthly" | "full";
   items: LineItem[];
 }
 
@@ -278,6 +280,9 @@ function recordToEstimateData(r: EstimateRecord): EstimateData {
     estimateType: r.estimateType,
     options: (r as any).options?.map((o: any) => ({
       name: o.name,
+      summary: o.summary,
+      financingPlanId: o.financingPlanId ?? r.financingPlanId,
+      financingShow: o.financingShow ?? r.financingShow,
       items: (o.items ?? []).map((it: any) => ({
         id: it.id, name: it.name, description: it.description,
         quantity: it.quantity, price: it.price, cost: it.cost,
@@ -593,6 +598,13 @@ export function EstimateDetail() {
   const lineTax = (i: LineItem) => (i.taxable ? i.amount * (estimate.taxRate / 100) : 0);
   const customerLine = `${estimate.clientName} · ${estimate.clientAddress.replace(/\n/g, ", ")}`;
   const docCustomer = { name: estimate.clientName, address: estimate.clientAddress.replace(/\n/g, ", "), technician: estimate.teamMember };
+  // Financing per option: a payment-plan option leads with its monthly figure
+  // on page 1; page 2 then lists both figures (Marek, Oct 8).
+  const financingFor = (o: EstimateOptionData, total: number) => {
+    const plan = findPlan(estimateSettings.financingPlans, o.financingPlanId);
+    if (!plan || total < (estimateSettings.financing?.minAmount ?? 0)) return null;
+    return { monthly: money(planMonthly(plan, total)), plan: planLine(plan), lead: (o.financingShow ?? "monthly") === "monthly" };
+  };
   const depositNote = estimate.depositRequired
     ? `A deposit of ${money(depositFor(docTotals.total))} is due on approval; the balance is invoiced when the work is done.`
     : null;
@@ -612,6 +624,10 @@ export function EstimateDetail() {
       unitPrice: i.price, tax: i.taxable ? lineTax(i) : null, amount: i.amount + lineTax(i),
     })),
     total: docTotals.total,
+    financing: (() => {
+      const f = documentOptions.length === 1 ? financingFor(documentOptions[0], docTotals.total) : null;
+      return f ? `${f.monthly} per month on a ${f.plan}, subject to approval` : undefined;
+    })(),
     notes: [
       chosenOption && allOptions.length > 1
         ? <><b>Approved option: {chosenOption.name}.</b> The other {allOptions.length - 1} option{allOptions.length > 2 ? "s" : ""} the client reviewed are no longer part of this estimate.</>
@@ -628,12 +644,15 @@ export function EstimateDetail() {
     customer: docCustomer,
     options: documentOptions.map((o) => {
       const t = totalsFor(o.items);
+      const f = financingFor(o, t.total);
       return {
         label: o.name, price: t.total, tax: t.tax, description: o.summary ?? "",
+        monthly: f?.monthly, plan: f?.lead ? f.plan : undefined,
         items: o.items.map((i) => ({ name: i.quantity > 1 ? `${i.name} ×${i.quantity}` : i.name, detail: i.description || undefined })),
       };
     }),
-    fine: <>{depositNote ? `${depositNote} ` : ""}Terms on page 2. <b>Sign the column you choose.</b> All {documentOptions.length} options were offered to you.</>,
+    // One deposit for every option — stated as the rule, not one option's amount.
+    fine: <>{estimate.depositRequired ? `A deposit of ${estimate.depositType === "percentage" ? `${estimate.depositValue}% of the option you choose` : money(estimate.depositValue)} is due on approval; the balance is invoiced when the work is done. ` : ""}{documentOptions.some((op) => financingFor(op, totalsFor(op.items).total)?.lead) ? "Monthly figures are subject to approval; full prices are on page 2. " : ""}Terms on page 2. <b>Sign the column you choose.</b> All {documentOptions.length} options were offered to you.</>,
     preparedBy: estimate.teamMember,
   };
 
@@ -652,6 +671,9 @@ export function EstimateDetail() {
     customerLine,
     optionCount: documentOptions.length,
     termsBlocks,
+    bothPrices: isComparisonSheet && documentOptions.some((op) => financingFor(op, totalsFor(op.items).total)?.lead)
+      ? documentOptions.map((op) => { const t = totalsFor(op.items); return { label: op.name, description: op.summary ?? "", monthly: financingFor(op, t.total)?.monthly, price: t.total, tax: t.tax }; })
+      : undefined,
     preparedBy: estimate.teamMember,
     issued: estimate.dateCreated,
   };

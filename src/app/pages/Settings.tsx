@@ -33,7 +33,7 @@ import { businessHoursStore, type BusinessHourRow } from "../stores/businessHour
 import { regionalSettingsStore, type RegionalSettings } from "../stores/regionalSettingsStore";
 import { estimateSettingsStore } from "../stores/estimateSettingsStore";
 import { documentTemplateStore, PAPER_SIZES, type DocumentKind, type PaperSize } from "../stores/documentTemplateStore";
-import { EstimateOptionsSheet, EstimateSingleSheet, EstimateTermsPage, InvoiceSheet, sheetPixels, useDocCompany, SAMPLE_ESTIMATE_OPTIONS, SAMPLE_ESTIMATE_SINGLE, SAMPLE_INVOICE, SAMPLE_TERMS_SECTIONS } from "../components/DocumentSheets";
+import { EstimateOptionsSheet, EstimateSingleSheet, EstimateTermsPage, InvoiceSheet, sheetPixels, useDocCompany, SAMPLE_ESTIMATE_OPTIONS, SAMPLE_ESTIMATE_SINGLE, SAMPLE_INVOICE, SAMPLE_TERMS_SECTIONS, SAMPLE_BOTH_PRICES } from "../components/DocumentSheets";
 import { trialStore, isTrialActive, getTrialDaysRemaining } from "../stores/trialStore";
 import { categoriesStore } from "../stores/categoriesStore";
 import { expenseCategoriesStore, isPreCodedCategory } from "../stores/expenseCategoriesStore";
@@ -1369,6 +1369,7 @@ function DocumentTemplatesCard({ kind }: { kind: DocumentKind }) {
                         customerLine: `${SAMPLE_ESTIMATE_SINGLE.customer.name} · ${SAMPLE_ESTIMATE_SINGLE.customer.address}`,
                         optionCount: previewLayout === "options" ? SAMPLE_ESTIMATE_OPTIONS.options.length : 1,
                         sections: SAMPLE_TERMS_SECTIONS,
+                        bothPrices: previewLayout === "options" ? SAMPLE_BOTH_PRICES : undefined,
                         preparedBy: "Gary W.",
                         issued: SAMPLE_ESTIMATE_SINGLE.issued,
                       }}

@@ -240,7 +240,12 @@ export interface EstimateOptionColumn {
   tax?: number;
   description: string;
   items: { name: string; detail?: string }[];
+  /** The monthly figure, e.g. "$278.40". With `plan` set it leads the column
+   *  and the full price moves to page 2 (Marek, Oct 8: payments first, the full
+   *  price out of sight until asked). */
   monthly?: string;
+  /** e.g. "1% payment plan" — the line under a leading monthly figure. */
+  plan?: string;
   warranty?: { big: string; small: string };
 }
 
@@ -256,7 +261,8 @@ export interface EstimateOptionsData {
 }
 
 export function EstimateOptionsSheet({ data, company, paper }: { data: EstimateOptionsData; company: DocCompany; paper: PaperSize }) {
-  const showMonthly = data.options.some((o) => o.monthly);
+  // Old layout: a "per month" row under the columns when no option leads with it.
+  const showMonthly = data.options.some((o) => o.monthly && !o.plan);
   const showWarranty = data.options.some((o) => o.warranty);
   return (
     <DocumentPage paper={paper} orientation="landscape">
@@ -269,9 +275,19 @@ export function EstimateOptionsSheet({ data, company, paper }: { data: EstimateO
               <td key={o.label}>
                 <div className="ohead">
                   <div className="label">{o.label}</div>
-                  <div className="price">{money(o.price, false)}{o.wasPrice !== undefined && <span className="was">{money(o.wasPrice, false)}</span>}</div>
-                  <div className="desc">{o.description}</div>
-                  {o.tax !== undefined && o.tax > 0 && <div className="tax">includes {money(o.tax)} tax</div>}
+                  {o.plan && o.monthly ? (
+                    <>
+                      <div className="price">{o.monthly}<span className="per">/mo</span></div>
+                      <div className="desc">{o.description}</div>
+                      <div className="tax">{o.plan}</div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="price">{money(o.price)}{o.wasPrice !== undefined && <span className="was">{money(o.wasPrice)}</span>}</div>
+                      <div className="desc">{o.description}</div>
+                      {o.tax !== undefined && o.tax > 0 && <div className="tax">includes {money(o.tax)} tax</div>}
+                    </>
+                  )}
                 </div>
                 <div className="items">
                   <ul>{o.items.map((it, i) => <li key={`${it.name}-${i}`}>{it.name}{it.detail && <span className="d">{it.detail}</span>}</li>)}</ul>
@@ -310,6 +326,9 @@ export interface EstimateTermsData {
   termsBlocks?: { heading: string; body?: string }[];
   /** Optional extra sections before the terms (the sample shows warranty and payment). */
   sections?: ReactNode;
+  /** Page 1 led with monthly figures: page 2 lists each option with both the
+   *  monthly figure and the full price. */
+  bothPrices?: { label: string; description: string; monthly?: string; price: number; tax: number }[];
   preparedBy: string;
   issued: string;
   pageCount?: number;
@@ -323,6 +342,19 @@ export function EstimateTermsPage({ data, company, paper }: { data: EstimateTerm
   return (
     <DocumentPage paper={paper} orientation="portrait">
       <div className="p2hdr"><b>{company.name} · Estimate {data.number}</b><span className="muted">{data.customerLine}</span></div>
+      {data.bothPrices && data.bothPrices.length > 0 && (
+        <div className="sec" style={{ borderTop: "none" }}>
+          <h3>Your options — monthly and full price</h3>
+          <table className="both">
+            <thead><tr><th style={{ width: "12%" }}>Option</th><th>What we will do</th><th className="r">Monthly</th><th className="r">Full price</th><th className="r">Includes tax</th></tr></thead>
+            <tbody>
+              {data.bothPrices.map((p) => (
+                <tr key={p.label}><td className="lbl">{p.label}</td><td>{p.description}</td><td className="r">{p.monthly ? `${p.monthly}/mo` : "—"}</td><td className="r"><b>{money(p.price)}</b></td><td className="r">{money(p.tax)}</td></tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
       {data.sections}
       <div className="sec terms" style={data.sections ? undefined : { borderTop: "none" }}>
         <h3>Terms and conditions</h3>
@@ -435,7 +467,7 @@ const Star = () => (
 export const SAMPLE_ESTIMATE_SINGLE: EstimateSingleData = {
   number: "10247-E04", issued: "24 Aug 2026", validUntil: "23 Sep 2026",
   customer: SAMPLE_CUSTOMER,
-  headline: { price: 3180, wasPrice: 3741, description: "Repair only · tax included", warranty: "1 year parts & labor" },
+  headline: { price: 3180, description: "Repair only · tax included", warranty: "1 year parts & labor" },
   scope: "Replace the failed capacitor and the corroded evaporator coil, recharge the system to factory specification and test it under load. This returns the existing Goodman 3 Ton to full cooling; it does not address the duct loss noted today. One visit of 4–5 hours; the coil is on order, 2–3 business days.",
   lines: [
     { name: "Compressor capacitor", description: "45/5 µF, OEM part", qty: 1, unitPrice: 340, tax: 23.8, amount: 363.8 },
@@ -446,10 +478,10 @@ export const SAMPLE_ESTIMATE_SINGLE: EstimateSingleData = {
     { name: "Permits, disposal and warranty registration", description: "Pulled by us where required; old parts removed; warranty registered with Goodman for you", qty: "", unitPrice: null, tax: null, amount: null, included: true },
   ],
   total: 3180,
-  financing: "$32 per month on a 1% payment plan, subject to approval",
+  financing: "$31.80 per month on a 1% payment plan, subject to approval",
   notes: [
-    <><Star />Your <b>Home Protection Plan</b> savings are shown as a line in the table; the list price is shown struck through above. Tax is shown per line; lines without a tax amount are not taxable.</>,
-    <>Monthly figure on a 1% payment plan, subject to approval. Terms on page 2. <b>Sign to accept.</b> If you would rather see replacement options, ask Gary — we prepare a comparison estimate on the spot.</>,
+    <><Star />Your <b>Home Protection Plan</b> savings are shown as a line in the table. Tax is shown per line; lines without a tax amount are not taxable.</>,
+    <>Monthly figure on a 1% payment plan, subject to approval. Terms on page 2. <b>Sign to accept.</b> If you would rather see replacement options, ask Gary — we will prepare a comparison estimate on the spot.</>,
   ],
   preparedBy: "Gary W.",
 };
@@ -458,13 +490,13 @@ export const SAMPLE_ESTIMATE_OPTIONS: EstimateOptionsData = {
   number: "10247-E03", issued: "24 Aug 2026", validUntil: "23 Sep 2026",
   customer: SAMPLE_CUSTOMER,
   options: [
-    { label: "Option I", price: 27840, wasPrice: 32753, tax: 1412, description: "Full replacement + ductwork", monthly: "$278", warranty: { big: "2 years labor", small: "10 years parts" },
+    { label: "Option I", price: 27840, tax: 1412, description: "Full replacement + ductwork", monthly: "$278.40", plan: "1% payment plan", warranty: { big: "2 years labor", small: "10 years parts" },
       items: [{ name: "3 Ton condenser + air handler", detail: "14.3 SEER2" }, { name: "Duct replacement", detail: "180 ft, supply and return" }, { name: "Attic insulation to R38", detail: "1,480 sf" }, { name: "Biologic 3 air cleaner" }, { name: "Line set, pad, disconnect" }, { name: "Crane set" }, { name: "Permits and disposal" }, { name: "Warranty registration" }] },
-    { label: "Option II", price: 22995, wasPrice: 26994, tax: 1166, description: "Full replacement, higher efficiency", monthly: "$230", warranty: { big: "1 year labor", small: "10 years parts" },
+    { label: "Option II", price: 22995, tax: 1166, description: "Full replacement, higher efficiency", monthly: "$229.95", plan: "1% payment plan", warranty: { big: "1 year labor", small: "10 years parts" },
       items: [{ name: "3 Ton condenser + air handler", detail: "15.3 SEER2 — higher efficiency" }, { name: "Biologic 3 air cleaner" }, { name: "Line set, pad, disconnect" }, { name: "Crane set" }, { name: "Permits and disposal" }, { name: "Warranty registration" }] },
-    { label: "Option III", price: 19762, wasPrice: 23182, tax: 1011.5, description: "Full replacement", monthly: "$198", warranty: { big: "1 year labor", small: "10 years parts" },
+    { label: "Option III", price: 19762, tax: 1011.5, description: "Full replacement", monthly: "$197.62", plan: "1% payment plan", warranty: { big: "1 year labor", small: "10 years parts" },
       items: [{ name: "3 Ton condenser + air handler", detail: "14.3 SEER2" }, { name: "Biologic 3 air cleaner" }, { name: "Line set, pad, disconnect" }, { name: "Crane set" }, { name: "Permits and disposal" }, { name: "Warranty registration" }] },
-    { label: "Option IV", price: 3180, wasPrice: 3741, tax: 181.72, description: "Repair only", monthly: "$32", warranty: { big: "1 year", small: "parts & labor" },
+    { label: "Option IV", price: 3180, tax: 181.72, description: "Repair only", monthly: "$31.80", warranty: { big: "1 year", small: "parts & labor" },
       items: [{ name: "Compressor capacitor", detail: "45/5 µF" }, { name: "Evaporator coil" }, { name: "R410A recharge", detail: "8 lb" }, { name: "Test and certify" }] },
   ],
   fine: <>Monthly figures on a 1% payment plan, subject to approval. Options I–III are over $15,000, so Florida law requires a signed Notice of Commencement before work starts — we prepare it. Terms on page 2. <b>Sign the column you choose.</b> All four options were offered to you.</>,
@@ -496,6 +528,9 @@ export const SAMPLE_INVOICE: InvoiceSheetData = {
 };
 
 /** The warranty and payment blocks the sample's page 2 carries above the terms. */
+/** Page 2 of the options sample: both figures for every option. */
+export const SAMPLE_BOTH_PRICES = SAMPLE_ESTIMATE_OPTIONS.options.map((o) => ({ label: o.label, description: o.description, monthly: o.monthly, price: o.price, tax: o.tax ?? 0 }));
+
 export const SAMPLE_TERMS_SECTIONS = (
   <>
     <div className="sec" style={{ borderTop: "none" }}>
@@ -509,12 +544,13 @@ export const SAMPLE_TERMS_SECTIONS = (
     <div className="sec">
       <h3>Payment</h3>
       <div className="four">
-        <div><div className="k">Deposit on approval</div><div className="v">10%</div></div>
+        {/* One deposit for the whole estimate — stated once, here. */}
+        <div><div className="k">Deposit on approval</div><div className="v">10%</div><div className="s">of the price of the option you choose</div></div>
         <div><div className="k">Balance</div><div className="v">on completion</div></div>
-        <div><div className="k">Financing</div><div className="v">payment plan</div></div>
-        <div><div className="k">Monthly payment</div><div className="v">1% of the price</div></div>
+        <div><div className="k">Financing</div><div className="v">1% payment plan</div><div className="s">monthly payment = 1% of the price</div></div>
+        <div><div className="k">We accept</div><div className="v">card, check and cash</div></div>
       </div>
-      <p className="muted" style={{ marginTop: 8 }}>We accept card, check and cash. Financing is subject to approval — we can run it here in a few minutes.</p>
+      <p className="muted" style={{ marginTop: 8 }}>Financing is subject to approval — we can set it up here in a few minutes.</p>
     </div>
   </>
 );
