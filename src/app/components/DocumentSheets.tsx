@@ -319,12 +319,16 @@ export function EstimateOptionsSheet({ data, company, paper }: { data: EstimateO
           {showWarranty && (
             <tr className="w">
               {data.options.map((o) => (
-                <td key={o.label}>
-                  <div className="warr">
-                    {(o.warranty?.label ?? data.footerLabel ?? "Warranty") && <div className="l">{o.warranty?.label ?? data.footerLabel ?? "Warranty"}</div>}
-                    <div className="big">{o.warranty?.big ?? "—"}</div>
-                    <div className="sm">{o.warranty?.small ?? ""}</div>
-                  </div>
+                // No line on this option: the cell stays (the band lines up) but
+                // is blank and untinted — no title, no dash.
+                <td key={o.label} className={o.warranty ? undefined : "none"}>
+                  {o.warranty ? (
+                    <div className="warr">
+                      {(o.warranty.label ?? data.footerLabel ?? "Warranty") && <div className="l">{o.warranty.label ?? data.footerLabel ?? "Warranty"}</div>}
+                      {o.warranty.big && <div className="big">{o.warranty.big}</div>}
+                      {o.warranty.small && <div className="sm">{o.warranty.small}</div>}
+                    </div>
+                  ) : <div className="warr none" />}
                 </td>
               ))}
             </tr>

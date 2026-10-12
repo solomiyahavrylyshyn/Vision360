@@ -336,17 +336,16 @@ export function ClientEstimateView() {
                     </ul>
                   </div>
                   {/* The option's bottom line — Warranty unless renamed in Settings. */}
-                  {showFooterBand && (
+                  {/* An option without a line keeps the row (cards stay level) but
+                      shows nothing — no title, no dash: "Warranty —" would read as
+                      "no warranty" next to the others. */}
+                  {showFooterBand && (option.footer ? (
                     <div className={`border-t px-4 py-2.5 text-center ${isPicked ? "border-[#4A6FA5]/20 bg-[#EEF3FA]" : "border-[#EDF0F5] bg-[#F7F9FC]"}`}>
-                      {(() => { const l = option.footer?.label ?? estimateSettings.optionFooter.label; return l ? <div className="text-[10px] uppercase tracking-[0.12em] text-[#6B7280]" style={{ fontWeight: 600 }}>{l}</div> : null; })()}
-                      {option.footer ? (
-                        <>
-                          <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>{option.footer.title}</div>
-                          {option.footer.detail && <div className="text-[12px] text-[#4B5563]">{option.footer.detail}</div>}
-                        </>
-                      ) : <div className="text-[14px] text-[#9CA3AF]">—</div>}
+                      {(() => { const l = option.footer.label ?? estimateSettings.optionFooter.label; return l ? <div className="text-[10px] uppercase tracking-[0.12em] text-[#6B7280]" style={{ fontWeight: 600 }}>{l}</div> : null; })()}
+                      {option.footer.title && <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>{option.footer.title}</div>}
+                      {option.footer.detail && <div className="text-[12px] text-[#4B5563]">{option.footer.detail}</div>}
                     </div>
-                  )}
+                  ) : <div aria-hidden />)}
                   {open && (
                     <div className="border-t border-[#EDF0F5] p-3">
                       <button

@@ -112,6 +112,7 @@
 .doc-sheet .opts tr.h .ohead { border-bottom: none; min-height: 0; }
 .doc-sheet .opts tr.s > td { vertical-align: bottom; }
 .doc-sheet .opts tr.w > td { background: var(--doc-tint); }
+.doc-sheet .opts tr.w > td.none, .doc-sheet .warr.none { background: #fff; }
 .doc-sheet .ohead .label { color: var(--doc-accent); }
 .doc-sheet .price { font-size: 26px; font-weight: 600; letter-spacing: -.01em; line-height: 1.05; margin: 4px 0 2px; }
 .doc-sheet .price .per { font-size: 12px; font-weight: 500; color: var(--doc-muted); margin-left: 3px; letter-spacing: 0; }
