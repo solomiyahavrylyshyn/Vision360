@@ -171,7 +171,7 @@ const SEED: EstimateRecord[] = [
       { id: 3, name: "Diagnostic & Repair", description: "Diagnose the fault and complete the repair", quantity: 1, price: 89, cost: 45, amount: 89, taxable: false },
     ],
     options: [
-      { name: "Repair", footer: { label: "Warranty", title: "90 days", detail: "parts & labor" }, summary: "Fix the system you have now.", items: [
+      { name: "Repair", summary: "Fix the system you have now.", items: [
         { id: 1, name: "Capacitor 45/5 MFD", description: "Dual run capacitor replacement", quantity: 1, price: 120, cost: 40, amount: 120, taxable: true },
         { id: 2, name: "R-410A Refrigerant", description: "Refrigerant recharge (per lb)", quantity: 2, price: 50, cost: 20, amount: 100, taxable: true },
         { id: 3, name: "Diagnostic & Repair", description: "Diagnose the fault and complete the repair", quantity: 1, price: 89, cost: 45, amount: 89, taxable: false },
@@ -305,6 +305,13 @@ function ensureClientLinkDemo(rows: EstimateRecord[]): { rows: EstimateRecord[];
       return { rows: next.map((e) => (e.id === existing.id ? { ...e, expirationDate: validUntil } : e)), extended: { id: existing.id, expirationDate: validUntil }, financing: { id: existing.id, ...patch } };
     }
     return { rows: next, financing: { id: existing.id, ...patch } };
+  }
+  // The demo shows one option with no bottom line (the repair); drop the line
+  // older rows got from the seed.
+  const repair = (existing.options ?? []).find((op) => op.name === "Repair");
+  if (repair?.footer?.title === "90 days" && repair.footer.detail === "parts & labor") {
+    const options = (existing.options ?? []).map((op) => (op === repair ? { name: op.name, summary: op.summary, items: op.items, financingPlanId: op.financingPlanId, financingShow: op.financingShow } : op));
+    return { rows: rows.map((e) => (e.id === existing.id ? { ...e, options } : e)), financing: { id: existing.id, options } };
   }
   // The demo shows each option's warranty line; rows added before it get the seed's.
   if (seedDemo?.options && !(existing.options ?? []).some((op) => op.footer)) {
