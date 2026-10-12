@@ -1361,8 +1361,8 @@ function DocumentTemplatesCard({ kind }: { kind: DocumentKind }) {
             <div className="flex-1 overflow-auto bg-[#F5F7FA] p-6 flex flex-col items-center gap-6">
               {renderSheet(previewPaper, previewLayout, previewScale(previewPaper, previewLayout))}
               {isEstimate && (
-                <div style={{ width: sheetPixels(previewPaper, "portrait").width * previewScale(previewPaper, "single"), height: sheetPixels(previewPaper, "portrait").height * previewScale(previewPaper, "single"), position: "relative", flexShrink: 0 }}>
-                  <div style={{ transform: `scale(${previewScale(previewPaper, "single")})`, transformOrigin: "top left", position: "absolute", top: 0, left: 0 }}>
+                <div style={{ width: sheetPixels(previewPaper, previewLayout === "options" ? "landscape" : "portrait").width * previewScale(previewPaper, previewLayout), height: sheetPixels(previewPaper, previewLayout === "options" ? "landscape" : "portrait").height * previewScale(previewPaper, previewLayout), position: "relative", flexShrink: 0 }}>
+                  <div style={{ transform: `scale(${previewScale(previewPaper, previewLayout)})`, transformOrigin: "top left", position: "absolute", top: 0, left: 0 }}>
                     <EstimateTermsPage
                       data={{
                         number: previewLayout === "options" ? SAMPLE_ESTIMATE_OPTIONS.number : SAMPLE_ESTIMATE_SINGLE.number,
@@ -1375,6 +1375,7 @@ function DocumentTemplatesCard({ kind }: { kind: DocumentKind }) {
                       }}
                       company={company}
                       paper={previewPaper}
+                      orientation={previewLayout === "options" ? "landscape" : "portrait"}
                     />
                   </div>
                 </div>

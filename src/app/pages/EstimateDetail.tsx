@@ -704,7 +704,7 @@ export function EstimateDetail() {
           : <EstimateSingleSheet data={singleData} company={docCompany} paper={paper} />}
         {/* Page 2 — Terms & Conditions travel with the estimate as the following
             page of the PDF. Placeholder clauses until the attorney's text is set. */}
-        <EstimateTermsPage data={termsData} company={docCompany} paper={paper} />
+        <EstimateTermsPage data={termsData} company={docCompany} paper={paper} orientation={isComparisonSheet ? "landscape" : "portrait"} />
       </div>
     </div>
   );

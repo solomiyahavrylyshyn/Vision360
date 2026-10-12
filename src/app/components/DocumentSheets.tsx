@@ -268,9 +268,11 @@ export function EstimateOptionsSheet({ data, company, paper }: { data: EstimateO
     <DocumentPage paper={paper} orientation="landscape">
       <SheetHeader kind="Estimate" number={data.number} meta={[`Issued ${data.issued}`, `Valid until ${data.validUntil}`]} company={company} />
       <CustomerStrip customer={data.customer} />
+      {/* One table row per band (head, list, sign, monthly, warranty) so every
+          band lines up across the options, whatever each column holds. */}
       <table className="opts">
         <tbody>
-          <tr>
+          <tr className="h">
             {data.options.map((o) => (
               <td key={o.label}>
                 <div className="ohead">
@@ -289,21 +291,39 @@ export function EstimateOptionsSheet({ data, company, paper }: { data: EstimateO
                     </>
                   )}
                 </div>
+              </td>
+            ))}
+          </tr>
+          <tr>
+            {data.options.map((o) => (
+              <td key={o.label}>
                 <div className="items">
                   <ul>{o.items.map((it, i) => <li key={`${it.name}-${i}`}>{it.name}{it.detail && <span className="d">{it.detail}</span>}</li>)}</ul>
                 </div>
-                <div className="sign"><div className="line" /><div className="cap">Sign to accept</div></div>
-                {showMonthly && <div className="monthly">{o.monthly ? <><b>{o.monthly}</b>per month</> : <span>&nbsp;</span>}</div>}
-                {showWarranty && (
+              </td>
+            ))}
+          </tr>
+          <tr className="s">
+            {data.options.map((o) => <td key={o.label}><div className="sign"><div className="line" /><div className="cap">Sign to accept</div></div></td>)}
+          </tr>
+          {showMonthly && (
+            <tr>
+              {data.options.map((o) => <td key={o.label}><div className="monthly">{o.monthly ? <><b>{o.monthly}</b>per month</> : <span>&nbsp;</span>}</div></td>)}
+            </tr>
+          )}
+          {showWarranty && (
+            <tr className="w">
+              {data.options.map((o) => (
+                <td key={o.label}>
                   <div className="warr">
                     <div className="l">Warranty</div>
                     <div className="big">{o.warranty?.big ?? "—"}</div>
                     <div className="sm">{o.warranty?.small ?? ""}</div>
                   </div>
-                )}
-              </td>
-            ))}
-          </tr>
+                </td>
+              ))}
+            </tr>
+          )}
         </tbody>
       </table>
       <div className="notes">
@@ -334,13 +354,13 @@ export interface EstimateTermsData {
   pageCount?: number;
 }
 
-export function EstimateTermsPage({ data, company, paper }: { data: EstimateTermsData; company: DocCompany; paper: PaperSize }) {
+export function EstimateTermsPage({ data, company, paper, orientation = "portrait" }: { data: EstimateTermsData; company: DocCompany; paper: PaperSize; orientation?: SheetOrientation }) {
   const multi = data.optionCount > 1;
   const confirm = multi
     ? `I confirm all ${data.optionCount} options were explained to me, and I have signed the one I choose on page 1.`
     : "I accept the estimate on page 1 and have signed it.";
   return (
-    <DocumentPage paper={paper} orientation="portrait">
+    <DocumentPage paper={paper} orientation={orientation}>
       <div className="p2hdr"><b>{company.name} · Estimate {data.number}</b><span className="muted">{data.customerLine}</span></div>
       {data.bothPrices && data.bothPrices.length > 0 && (
         <div className="sec" style={{ borderTop: "none" }}>
