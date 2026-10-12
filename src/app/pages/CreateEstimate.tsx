@@ -464,7 +464,7 @@ export function CreateEstimate() {
                 <label className={labelClass}>Price shown to the client{options.length > 1 ? ` — ${activeOption.name}` : ""}</label>
                 <select value={financingPlanId} onChange={(e) => setFinancingPlanId(e.target.value)} className={fieldClass}>
                   <option value="">Full amount</option>
-                  {financingPlans.map((p) => <option key={p.id} value={p.id}>Monthly payment · {p.name}</option>)}
+                  {financingPlans.map((p) => <option key={p.id} value={p.id}>Monthly payment · {p.name}{p.name.includes("%") ? "" : ` (${p.percent}%)`}</option>)}
                 </select>
               </div>
               <div className="flex items-end pb-3 text-[12px] leading-[18px] text-[#6B7280]">

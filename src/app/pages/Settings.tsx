@@ -32,6 +32,7 @@ import type { BrandTheme } from "../utils/brandTheme";
 import { businessHoursStore, type BusinessHourRow } from "../stores/businessHoursStore";
 import { regionalSettingsStore, type RegionalSettings } from "../stores/regionalSettingsStore";
 import { estimateSettingsStore, OPTION_FOOTER_LIMITS } from "../stores/estimateSettingsStore";
+import { estimatesStore } from "../stores/estimatesStore";
 import { documentTemplateStore, PAPER_SIZES, type DocumentKind, type PaperSize } from "../stores/documentTemplateStore";
 import { EstimateOptionsSheet, EstimateSingleSheet, EstimateTermsPage, InvoiceSheet, sheetPixels, useDocCompany, SAMPLE_ESTIMATE_OPTIONS, SAMPLE_ESTIMATE_SINGLE, SAMPLE_INVOICE, SAMPLE_TERMS_SECTIONS, SAMPLE_BOTH_PRICES } from "../components/DocumentSheets";
 import { trialStore, isTrialActive, getTrialDaysRemaining } from "../stores/trialStore";
@@ -1842,6 +1843,103 @@ function EstimateDepositsCard() {
             toast.success(on ? "Deposits turned on for estimates" : "Deposits turned off for new estimates");
           }}
         />
+      </div>
+    </SectionCard>
+  );
+}
+
+// Finance plans (Marek, Oct 12: "We need to bring this to the settings — create
+// finance plans"). A plan is a name and a formula: the monthly payment is the
+// option's full price (tax and deposit included) × the plan's percent. "Full
+// amount" isn't a plan — it's always offered, so it sits fixed at the top.
+function EstimateFinancePlansCard() {
+  const settings = useSyncExternalStore(estimateSettingsStore.subscribe, estimateSettingsStore.getSnapshot);
+  const estimates = useSyncExternalStore(estimatesStore.subscribe, estimatesStore.getSnapshot);
+  const plans = settings.financingPlans;
+  const [draft, setDraft] = useState<{ name: string; percent: string } | null>(null);
+  const usedBy = (id: string) => estimates.reduce((n, e) => n + (e.options?.length ? e.options.filter((op) => op.financingPlanId === id).length : e.financingPlanId === id ? 1 : 0), 0);
+  const example = (pct: number) => (10000 * pct / 100).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const field = "h-9 border-[#E5E7EB] text-[14px] shadow-[0_1px_2px_rgba(0,0,0,0.05)]";
+  const addDraft = () => {
+    const pct = Number(draft?.percent);
+    if (!draft || !(pct > 0) || pct > 100) { toast.error("Enter a percent between 0 and 100"); return; }
+    const name = draft.name.trim() || `${pct}% payment plan`;
+    estimateSettingsStore.addFinancingPlan({ name, percent: pct });
+    setDraft(null);
+    toast.success(`"${name}" added`);
+  };
+  return (
+    <SectionCard className="gap-4" title="Finance plans"
+      description="How an option's price can be shown to the client. The monthly payment is the option's full price (tax and deposit included) × the plan's percent.">
+      <div className="overflow-hidden rounded-lg border border-[#E5E7EB]">
+        <div className="grid grid-cols-[minmax(0,1.4fr)_150px_minmax(0,1fr)_40px] gap-3 border-b border-[#E5E7EB] bg-[#F9FAFB] px-4 py-2 text-[12px] text-[#6B7280]" style={{ fontWeight: 500 }}>
+          <span>Plan name</span><span>Monthly payment</span><span>Example on $10,000</span><span />
+        </div>
+        {/* fixed first row */}
+        <div className="grid grid-cols-[minmax(0,1.4fr)_150px_minmax(0,1fr)_40px] items-center gap-3 border-b border-[#EDF0F5] px-4 py-2.5">
+          <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Full amount</span>
+          <span className="text-[13px] text-[#6B7280]">no monthly payment</span>
+          <span className="text-[13px] text-[#6B7280]">client sees $10,000.00</span>
+          <span className="justify-self-end rounded-full bg-[#F3F4F6] px-2 py-0.5 text-[11px] text-[#6B7280]" title="Always offered" style={{ fontWeight: 600 }}>Fixed</span>
+        </div>
+        {plans.map((p) => (
+          <div key={p.id} className="grid grid-cols-[minmax(0,1.4fr)_150px_minmax(0,1fr)_40px] items-center gap-3 border-b border-[#EDF0F5] px-4 py-2 last:border-b-0">
+            <Input value={p.name} maxLength={40} onChange={(e) => estimateSettingsStore.updateFinancingPlan(p.id, { name: e.target.value })}
+              placeholder={`${p.percent ?? 0}% payment plan`} className={field} aria-label="Plan name" />
+            <div className="relative">
+              <Input type="number" min={0} max={100} step={0.01} value={String(p.percent ?? "")}
+                onChange={(e) => estimateSettingsStore.updateFinancingPlan(p.id, { percent: Number(e.target.value) || 0 })}
+                className={`${field} pr-[74px]`} aria-label="Percent of the full price per month" />
+              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[12px] text-[#6B7280]">% / month</span>
+            </div>
+            <span className="text-[13px] text-[#374151]">
+              ${example(p.percent ?? 0)}/mo
+              {usedBy(p.id) > 0 && <span className="ml-2 text-[12px] text-[#9CA3AF]">· on {usedBy(p.id)} option{usedBy(p.id) === 1 ? "" : "s"}</span>}
+            </span>
+            <button type="button" aria-label={`Delete ${p.name}`} title="Delete plan"
+              onClick={() => {
+                const n = usedBy(p.id);
+                estimateSettingsStore.removeFinancingPlan(p.id);
+                toast.success(n ? `"${p.name}" deleted — ${n} option${n === 1 ? "" : "s"} now show the full amount` : `"${p.name}" deleted`);
+              }}
+              className="flex h-8 w-8 items-center justify-center justify-self-end rounded-md text-[#9CA3AF] transition-colors hover:bg-[#FEF2F2] hover:text-[#DC2626]">
+              <span className="material-icons" style={{ fontSize: "18px" }}>delete_outline</span>
+            </button>
+          </div>
+        ))}
+        {draft && (
+          <div className="grid grid-cols-[minmax(0,1.4fr)_150px_minmax(0,1fr)_40px] items-center gap-3 border-t border-[#EDF0F5] bg-[#FAFBFD] px-4 py-2">
+            <Input autoFocus value={draft.name} maxLength={40} onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+              placeholder="e.g. 1.5% payment plan" className={field} aria-label="New plan name"
+              onKeyDown={(e) => { if (e.key === "Enter") addDraft(); if (e.key === "Escape") setDraft(null); }} />
+            <div className="relative">
+              <Input type="number" min={0} max={100} step={0.01} value={draft.percent} onChange={(e) => setDraft({ ...draft, percent: e.target.value })}
+                placeholder="1.5" className={`${field} pr-[74px]`} aria-label="New plan percent"
+                onKeyDown={(e) => { if (e.key === "Enter") addDraft(); if (e.key === "Escape") setDraft(null); }} />
+              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[12px] text-[#6B7280]">% / month</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button type="button" onClick={addDraft} className="h-8 rounded-md bg-[#4A6FA5] px-3 text-[13px] text-white hover:bg-[#3d5a85]" style={{ fontWeight: 600 }}>Add</button>
+              <button type="button" onClick={() => setDraft(null)} className="h-8 rounded-md px-2 text-[13px] text-[#6B7280] hover:bg-[#F5F7FA]" style={{ fontWeight: 500 }}>Cancel</button>
+            </div>
+            <span />
+          </div>
+        )}
+      </div>
+      {!draft && (
+        <button type="button" onClick={() => setDraft({ name: "", percent: "" })}
+          className="inline-flex h-9 w-fit items-center gap-1.5 rounded-lg border border-dashed border-[#C8D5E8] px-3 text-[13px] text-[#4A6FA5] hover:bg-[#F5F8FC]" style={{ fontWeight: 600 }}>
+          <span className="material-icons" style={{ fontSize: "16px" }}>add</span> Add plan
+        </button>
+      )}
+      <div className="flex flex-wrap items-center gap-3 border-t border-[#EDF0F5] pt-4">
+        <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Show a monthly payment from</span>
+        <div className="relative w-[140px]">
+          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[14px] text-[#6B7280]">$</span>
+          <Input type="number" min={0} step={100} value={String(settings.financing.minAmount)}
+            onChange={(e) => estimateSettingsStore.setFinancingMinAmount(Number(e.target.value))} className={`${field} pl-7`} aria-label="Minimum price for a monthly payment" />
+        </div>
+        <span className="text-[12px] text-[#6B7280]">Below this, the client sees the full price even when a plan is picked.</span>
       </div>
     </SectionCard>
   );
@@ -4607,6 +4705,7 @@ export function Settings() {
                     <DocumentTemplatesCard kind="estimate" />
                     <EstimateValidityCard />
                     <EstimateDepositsCard />
+                    <EstimateFinancePlansCard />
                     <EstimateOptionFooterCard />
                     {/* Estimate rules (Figma 261:15834): Signature toggle, Payment terms,
                         Default expiration (days) — no card-level footer, save lives in

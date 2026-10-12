@@ -1167,7 +1167,7 @@ export function EstimateDetail() {
               onChange={(e) => save({ financingPlanId: e.target.value || undefined, financingShow: e.target.value ? "monthly" : undefined })}
               className={field}>
               <option value="">Full amount</option>
-              {estimateSettings.financingPlans.map((pl) => <option key={pl.id} value={pl.id}>Monthly payment · {pl.name}</option>)}
+              {estimateSettings.financingPlans.map((pl) => <option key={pl.id} value={pl.id}>Monthly payment · {pl.name}{pl.name.includes("%") ? "" : ` (${pl.percent}%)`}</option>)}
             </select>
           </div>
           <div className="flex items-end pb-2.5 text-[12px] leading-[18px] text-[#6B7280]">
