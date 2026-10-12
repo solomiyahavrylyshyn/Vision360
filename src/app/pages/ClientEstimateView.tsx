@@ -539,11 +539,18 @@ export function ClientEstimateView() {
               {record.depositRequired && (
                 <div>
                   <div className="text-[12px] text-[#6B7280]">Deposit on approval</div>
+                  {/* A % reads as the amount once it's known ("$580.00", then
+                      "10% of Option II") — never "10% · $580", which reads as a sum. */}
                   <div className="text-[14px] tabular-nums" style={{ fontWeight: 600 }}>
-                    {pct ? `${record.depositValue ?? 0}%` : `$${fmt(record.depositValue ?? 0)}`}
-                    {pct && one ? <span className="text-[#6B7280]" style={{ fontWeight: 400 }}> · ${fmt(depositFor(totalsFor(one.items, taxRate).total))}</span> : null}
+                    {!pct ? `$${fmt(record.depositValue ?? 0)}` : one ? `$${fmt(depositFor(totalsFor(one.items, taxRate).total))}` : `${record.depositValue ?? 0}%`}
                   </div>
-                  {shownOptions.length > 1 && <div className="text-[12px] text-[#6B7280]">{!pct ? "whichever option you choose" : picked && pickIndex !== null ? `of ${optionLabel(pickIndex)}, the one you chose` : "of the option you choose"}</div>}
+                  <div className="text-[12px] text-[#6B7280]">
+                    {!pct
+                      ? (shownOptions.length > 1 ? "whichever option you choose" : "fixed amount")
+                      : one
+                        ? `${record.depositValue ?? 0}% of ${shownOptions.length > 1 && pickIndex !== null ? optionLabel(pickIndex) : "the price"}`
+                        : "of the price of the option you choose"}
+                  </div>
                 </div>
               )}
               <div><div className="text-[12px] text-[#6B7280]">{record.depositRequired ? "Balance" : "Payment"}</div><div className="text-[14px]" style={{ fontWeight: 600 }}>on completion</div></div>
