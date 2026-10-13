@@ -51,6 +51,10 @@ export interface Payment {
   refundMemo?: string;
   refundMethod?: "Cash / manual" | "Original payment method";
   refundDate?: string;
+  // One charge that paid several invoices (Collect payment on 2+ invoices, or a
+  // payment link): each invoice keeps its own record, all share this id. The
+  // refund modal then asks which invoice the money comes back from.
+  groupId?: string;
 }
 
 // Figma badges: semantic-token text colour + the same colour at 15% as bg.

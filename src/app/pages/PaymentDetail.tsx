@@ -12,6 +12,7 @@ import { DetailTabs, TabSettingsButton } from "../components/ui/detail-tabs";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "../components/ui/resizable";
 import { paymentStatusColors, paymentMethodIcons, type Payment, type PaymentStatus } from "./Payments";
 import { paymentsStore } from "../stores/paymentsStore";
+import { invoicesStore } from "../stores/invoicesStore";
 import { clientsStore } from "../stores/clientsStore";
 import { clientGreeting } from "../utils/clientName";
 import { formatRegionalDate } from "../stores/regionalSettingsStore";
@@ -86,6 +87,11 @@ export function PaymentDetail() {
   // Subscribe to the store so status changes (dropdown / Refund) re-render live.
   const allPayments = useSyncExternalStore(paymentsStore.subscribe, paymentsStore.getSnapshot);
   const payment: Payment | undefined = allPayments.find(p => p.id === Number(id));
+  const allInvoices = useSyncExternalStore(invoicesStore.subscribe, invoicesStore.getSnapshot);
+  // Every invoice this one charge paid (one record each). Just this record when it paid one.
+  const chargeRecords: Payment[] = payment
+    ? (payment.groupId ? allPayments.filter(p => p.groupId === payment.groupId) : [payment])
+    : [];
 
   // Section 6.3 — attachments (proof of payment, photo of check, etc.)
   const [attachments, setAttachments] = useState<PaymentAttachment[]>([]);
@@ -106,9 +112,11 @@ export function PaymentDetail() {
   // Refund modal (Marek, Jun 11): memo + MANUAL amount (full or partial) + how the
   // money is returned (cash record vs through the system / original method).
   const [refundOpen, setRefundOpen] = useState(false);
+  const fmtMoney = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const [refundAmount, setRefundAmount] = useState("");
   const [refundMemo, setRefundMemo] = useState("");
   const [refundMethod, setRefundMethod] = useState<"Cash / manual" | "Original payment method">("Original payment method");
+  const [refundTargetId, setRefundTargetId] = useState<number | null>(null);
 
   const handleFilesAdded = (files: FileList | null) => {
     if (!files || files.length === 0) return;
@@ -199,8 +207,13 @@ export function PaymentDetail() {
   };
 
   // Open the refund modal seeded with the full amount + the sensible return method.
+  const refundable = chargeRecords.filter(p => p.status !== "Refunded");
+  const refundTarget = refundable.find(p => p.id === refundTargetId) ?? refundable[0] ?? payment;
+  const invoiceOf = (p: Payment) => allInvoices.find(i => i.id === p.invoiceId);
   const openRefund = () => {
-    setRefundAmount(String(payment.amount));
+    const first = refundable.find(p => p.id === payment.id) ?? refundable[0] ?? payment;
+    setRefundTargetId(first.id);
+    setRefundAmount(String(first.amount));
     setRefundMemo("");
     setRefundMethod(payment.method === "Cash" ? "Cash / manual" : "Original payment method");
     setRefundOpen(true);
@@ -208,11 +221,18 @@ export function PaymentDetail() {
   const submitRefund = () => {
     const amt = Number(refundAmount);
     if (!refundMemo.trim()) { toast.error("Enter a reason for the refund."); return; }
-    if (!Number.isFinite(amt) || amt <= 0 || amt > payment.amount) {
-      toast.error(`Enter a refund amount between $0 and $${payment.amount.toLocaleString("en-US")}.`);
+    const target = refundTarget;
+    if (!Number.isFinite(amt) || amt <= 0 || amt > target.amount) {
+      toast.error(`Enter a refund amount between $0 and $${target.amount.toLocaleString("en-US")}.`);
       return;
     }
-    paymentsStore.update(payment.id, {
+    // The refunded money is owed again on that invoice.
+    const inv = invoiceOf(target);
+    if (inv) {
+      const balance = Math.round(Math.min(inv.total, inv.balance + amt) * 100) / 100;
+      invoicesStore.update(inv.id, { balance, status: balance >= inv.total ? "Unpaid" : "Partially Paid" });
+    }
+    paymentsStore.update(target.id, {
       status: "Refunded",
       refundAmount: amt,
       refundMemo: refundMemo.trim(),
@@ -220,7 +240,7 @@ export function PaymentDetail() {
       refundDate: new Date().toISOString().split("T")[0],
     });
     setRefundOpen(false);
-    toast.success(`Refunded $${amt.toLocaleString("en-US")} ${amt < payment.amount ? "(partial)" : ""}`.trim());
+    toast.success(`Refunded $${amt.toLocaleString("en-US")} ${amt < target.amount ? "(partial)" : ""} on ${target.invoiceNumber}`.replace("  ", " "));
   };
 
   const visibleNotes = showAllNotes ? notes : notes.slice(0, 4);
@@ -704,21 +724,45 @@ export function PaymentDetail() {
               </button>
             </div>
             <div className="px-5 py-4 space-y-4">
-              <div className="text-[13px] text-[#546478]">
-                Original payment: <span className="text-[#1A2332]" style={{ fontWeight: 600 }}>${payment.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span> · {payment.method}
-              </div>
+              {chargeRecords.length > 1 ? (
+                <div>
+                  <label className="block text-[13px] text-[#1A2332] mb-1" style={{ fontWeight: 500 }}>Invoice <span className="text-[#DC2626]">*</span></label>
+                  <select
+                    value={refundTarget.id}
+                    onChange={(e) => { const t = refundable.find(p => p.id === Number(e.target.value)); if (t) { setRefundTargetId(t.id); setRefundAmount(String(t.amount)); } }}
+                    className="w-full h-10 px-3 border border-[#E5E7EB] rounded-lg text-[14px] bg-white outline-none focus:border-[#4A6FA5]"
+                  >
+                    {refundable.map(p => {
+                      const inv = invoiceOf(p);
+                      return <option key={p.id} value={p.id}>{p.invoiceNumber}{inv?.jobName ? ` · ${inv.jobName}` : ""} · paid ${fmtMoney(p.amount)}</option>;
+                    })}
+                  </select>
+                  <p className="mt-1 text-[12px] text-[#8899AA]">This payment paid {chargeRecords.length} invoices (${fmtMoney(chargeRecords.reduce((s, p) => s + p.amount, 0))}). The refund goes back on the balance of the one you pick.</p>
+                </div>
+              ) : (
+                <div className="text-[13px] text-[#546478]">
+                  Original payment: <span className="text-[#1A2332]" style={{ fontWeight: 600 }}>${fmtMoney(payment.amount)}</span> · {payment.method} · {payment.invoiceNumber}
+                </div>
+              )}
               <div>
                 <label className="block text-[13px] text-[#1A2332] mb-1" style={{ fontWeight: 500 }}>Refund amount</label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-[#8899AA]">$</span>
                   <input
-                    type="number" min={0} step="0.01" max={payment.amount}
+                    type="number" min={0} step="0.01" max={refundTarget.amount}
                     value={refundAmount}
                     onChange={(e) => setRefundAmount(e.target.value)}
                     className="w-full h-10 pl-7 pr-3 border border-[#E5E7EB] rounded-lg text-[14px] outline-none focus:border-[#4A6FA5]"
                   />
                 </div>
-                <p className="mt-1 text-[12px] text-[#8899AA]">Enter manually — full or partial, up to the original amount.</p>
+                <p className="mt-1 text-[12px] text-[#8899AA]">
+                  {(() => {
+                    const inv = invoiceOf(refundTarget);
+                    const amt = Math.min(Number(refundAmount) || 0, refundTarget.amount);
+                    const after = inv ? Math.min(inv.total, inv.balance + amt) : null;
+                    return <>Up to ${fmtMoney(refundTarget.amount)} — what this payment put on {refundTarget.invoiceNumber}.{after !== null && <> {refundTarget.invoiceNumber} balance after refund: ${fmtMoney(after)}</>}</>;
+                  })()}
+                </p>
               </div>
               <div>
                 <label className="block text-[13px] text-[#1A2332] mb-1" style={{ fontWeight: 500 }}>How is it returned?</label>

@@ -12,6 +12,7 @@ import { paymentsStore } from "../stores/paymentsStore";
 import { clientsStore } from "../stores/clientsStore";
 import { useDocCompany } from "../components/DocumentSheets";
 import { saveCardOnFile } from "../utils/savedCard";
+import { canPayOnline } from "../utils/onlinePayments";
 import { cardBrand, cardCvcOk, cardDigitsOk, cardExpOk } from "./CreatePayment";
 import type { PaymentMethod, PaymentStatus } from "./Payments";
 
@@ -64,12 +65,49 @@ export function PayLink() {
     );
   }
 
-  if (!link || link.status !== "open") {
+  // Unknown token: we don't know whose link it is, so no company name.
+  if (!link) {
+    return (
+      <Card center>
+        <h1 className="text-[22px]" style={{ fontWeight: 600 }}>We can't find this payment link</h1>
+        <p className="text-[14px] text-[#6B7280]">Check that you opened the whole link from the email. If it still doesn't open, contact the company that sent it.</p>
+      </Card>
+    );
+  }
+
+  const linkedAll = link.invoiceIds.map((id) => invoices.find((i) => i.id === id)).filter((i): i is NonNullable<typeof i> => !!i);
+  const numbers = linkedAll.map((i) => i.number).join(", ");
+  const several = linkedAll.length > 1;
+  // Paid through this link, or settled in the office after it was sent.
+  if (link.status === "paid" || (link.status === "open" && linkedAll.length > 0 && linkedAll.every((i) => i.balance <= 0))) {
+    const on = link.paidAt ? ` on ${new Date(link.paidAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}` : "";
+    return (
+      <Card center>
+        {brandLine}
+        <h1 className="text-[22px]" style={{ fontWeight: 600 }}>{several ? "These invoices are already paid" : "This invoice is already paid"}</h1>
+        <p className="text-[14px] text-[#6B7280]">{numbers} {several ? "were" : "was"} paid in full{on}. Nothing more is due. Contact {company.name} if you have a question.</p>
+      </Card>
+    );
+  }
+
+  if (link.status !== "open") {
     return (
       <Card center>
         {brandLine}
         <h1 className="text-[22px]" style={{ fontWeight: 600 }}>This payment link is no longer active</h1>
-        <p className="text-[14px] text-[#6B7280]">It was already paid or cancelled. Contact {company.name} if you have a question.</p>
+        <p className="text-[14px] text-[#6B7280]">It was cancelled or replaced by a newer link. Contact {company.name} if you have a question.</p>
+      </Card>
+    );
+  }
+
+  // Stripe disconnected or card payments turned off since the link went out.
+  if (!canPayOnline()) {
+    const email = company.contactLine.split("·").map((x) => x.trim()).find((x) => x.includes("@"));
+    return (
+      <Card center>
+        {brandLine}
+        <h1 className="text-[22px]" style={{ fontWeight: 600 }}>{several ? "These invoices can't be paid online" : "This invoice can't be paid online"}</h1>
+        <p className="text-[14px] text-[#6B7280]">{company.name} takes payment for {numbers} another way. Call {company.phone}{email ? <> or email {email}</> : null} to pay.</p>
       </Card>
     );
   }
@@ -107,6 +145,7 @@ export function PayLink() {
         reference: `Paid online · ${paidWith}`,
         note: "Paid from a payment link",
         createdBy: "Online payment",
+        ...(plan.length > 1 ? { groupId: `link-${link.token}` } : {}),
       });
     });
     if (saveCard) {

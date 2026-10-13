@@ -232,6 +232,7 @@ export function CreatePayment() {
       saveCardOnFile(customer.id, { brand: cardBrand(cardNumber), last4: keyedLast4, exp: cardExp.replace(/\s/g, "") }, "You");
     }
 
+    const groupId = plan.length > 1 ? `grp-${Date.now()}` : undefined;
     plan.forEach(({ inv, pay, after }) => {
       const newBalance = Math.max(0, after);
       invoicesStore.update(inv.id, {
@@ -256,6 +257,7 @@ export function CreatePayment() {
         reference: ref,
         note: "",
         createdBy: "You",
+        ...(groupId ? { groupId } : {}),
       });
     });
 

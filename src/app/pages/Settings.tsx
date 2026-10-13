@@ -39,6 +39,7 @@ import { trialStore, isTrialActive, getTrialDaysRemaining } from "../stores/tria
 import { categoriesStore } from "../stores/categoriesStore";
 import { expenseCategoriesStore, isPreCodedCategory } from "../stores/expenseCategoriesStore";
 import { allNotificationEvents } from "../constants/notificationEvents";
+import { readOnlinePayments, writeOnlinePayments, type StripeStatus } from "../utils/onlinePayments";
 
 type SettingsSection =
   | "home"
@@ -2030,20 +2031,21 @@ function InvoicesPreferences() {
 }
 
 // Finance Center — Marek's spec
-type StripeStatus = "disconnected" | "pending" | "connected";
 
 function FinanceCenterSection() {
-  const [stripeStatus, setStripeStatus] = useState<StripeStatus>("connected");
+  const [stripeStatus, setStripeStatus] = useState<StripeStatus>(() => readOnlinePayments().stripe);
   const [stripeEmail, setStripeEmail] = useState("billing@vision360.com");
   const [stripeAcctId, setStripeAcctId] = useState("acct_1RkP2mB7xQ9wL3Ce");
   const [stripeOnboardOpen, setStripeOnboardOpen] = useState(false);
   const [stripeDisconnectOpen, setStripeDisconnectOpen] = useState(false);
-  const [methods, setMethods] = useState({
-    creditCard: true,
+  const [methods, setMethods] = useState(() => ({
+    creditCard: readOnlinePayments().cards,
     ach: false,
     cash: true,
     check: true,
-  });
+  }));
+  // The client's pay-link page reads these ("This invoice can't be paid online").
+  useEffect(() => { writeOnlinePayments({ stripe: stripeStatus, cards: methods.creditCard }); }, [stripeStatus, methods.creditCard]);
   const [bankName, setBankName] = useState("Bank of America");
   const [bankAcct, setBankAcct] = useState("8821");
   const [routing, setRouting] = useState("026009593");
