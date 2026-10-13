@@ -29,6 +29,7 @@ import { KebabMenu as KebabMenuShared, KebabItem, KebabSeparator } from "../comp
 import { DetailTabs, TabSettingsButton } from "../components/ui/detail-tabs";
 import { RecordTab, type RecordColumn, type RecordAction, type RecordBulkAction } from "../components/ui/record-tab";
 import { toast } from "sonner";
+import { cardLinksStore } from "../stores/cardLinksStore";
 import { formatRegionalDate } from "../stores/regionalSettingsStore";
 import { clientsStore, deriveClientStatus } from "../stores/clientsStore";
 import { cardLabel, isCardExpired, removeCardOnFile } from "../utils/savedCard";
@@ -556,6 +557,9 @@ export function ClientDetail() {
   const [addressForm, setAddressForm] = useState({ street: "", unit: "", city: "", state: "", zip: "", county: "", country: "United States", notes: "" });
   const [editNotesOpen, setEditNotesOpen] = useState(false);
   const [removeCardOpen, setRemoveCardOpen] = useState(false);
+  // "Send card link" — the only way a card gets saved (client saves it on /card/:token).
+  const [cardLinkOpen, setCardLinkOpen] = useState(false);
+  const [cardLinkEmail, setCardLinkEmail] = useState("");
   // CR "client name": one of first / last / preferred / company is enough.
   const [nameError, setNameError] = useState(false);
   const nameInputBase = "border-[#E5E7EB] bg-white h-9 text-[14px] rounded-[8px] shadow-[0px_1px_2px_rgba(0,0,0,0.05)]";
@@ -1135,9 +1139,18 @@ export function ClientDetail() {
               </div>
             ) : (
               <>
-                <div className="text-[14px] text-[#6B7280]">No saved card</div>
-                <div className="text-[12px] text-[#9CA3AF]">Saved when the client pays by card and agrees to save it.</div>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-[14px] text-[#6B7280]">No saved card</div>
+                  <button type="button" onClick={() => { setCardLinkEmail(client.email || ""); setCardLinkOpen(true); }} className="text-[13px] text-[#4A6FA5] hover:underline" style={{ fontWeight: 500 }}>Send card link</button>
+                </div>
+                <div className="text-[12px] text-[#9CA3AF]">Send the client a card link to save a card.</div>
               </>
+            )}
+            {client.cardOnFile && isCardExpired(client.cardOnFile.exp) && (
+              <div className="mt-1 flex items-center justify-between gap-3">
+                <div className="text-[12px] text-[#9CA3AF]">Can't be charged anymore.</div>
+                <button type="button" onClick={() => { setCardLinkEmail(client.email || ""); setCardLinkOpen(true); }} className="text-[13px] text-[#4A6FA5] hover:underline" style={{ fontWeight: 500 }}>Send card link</button>
+              </div>
             )}
           </div>
           <label className="flex items-center gap-3 cursor-pointer">
@@ -2964,6 +2977,47 @@ export function ClientDetail() {
         </div>
       )}
 
+      {/* ── Send card link — same shape as Send payment link ── */}
+      {cardLinkOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setCardLinkOpen(false)}>
+          <div className="absolute inset-0 bg-black/30" />
+          <div className="relative w-[480px] max-w-full rounded-xl bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-4 py-4">
+              <h2 className="text-[20px] text-[#1A2332]" style={{ fontWeight: 600 }}>Send card link</h2>
+              <button onClick={() => setCardLinkOpen(false)} aria-label="Close" className="flex h-6 w-6 items-center justify-center rounded text-[#6B7280] hover:bg-[#F3F4F6]">
+                <span className="material-icons" style={{ fontSize: "18px" }}>close</span>
+              </button>
+            </div>
+            <div className="flex flex-col gap-4 px-4 pb-4">
+              <div>
+                <label className="mb-1 block text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Email <span className="text-[#DC2626]">*</span></label>
+                <input autoFocus value={cardLinkEmail} onChange={(e) => setCardLinkEmail(e.target.value)} placeholder="client@email.com" className="h-9 w-full rounded-lg border border-[#E5E7EB] px-3 text-[14px] text-[#1A2332] shadow-[0px_1px_2px_rgba(0,0,0,0.05)] focus:border-[#4A6FA5] focus:outline-none" />
+              </div>
+              <p className="text-[13px] text-[#6B7280]">
+                {client.name.split(" ")[0]} opens a secure Stripe page and saves a card. It shows up in Billing details, and you can charge it from New payment.
+              </p>
+            </div>
+            <div className="flex justify-end gap-2 px-4 pb-4">
+              <Button variant="outline" onClick={() => setCardLinkOpen(false)} className="h-9 rounded-lg border-[#E5E7EB] px-4 text-[14px] text-[#1A2332] hover:bg-[#F5F7FA]">Cancel</Button>
+              <Button
+                disabled={!cardLinkEmail.trim()}
+                onClick={() => {
+                  const link = cardLinksStore.create({ clientId: client.id, clientName: client.name, sentTo: cardLinkEmail.trim() });
+                  setCardLinkOpen(false);
+                  toast.success(`Card link sent to ${link.sentTo}`, {
+                    description: "Prototype: open it as the client",
+                    action: { label: "Open", onClick: () => window.open(`/card/${link.token}`, "_blank") },
+                  });
+                }}
+                className="h-9 rounded-lg bg-[#4A6FA5] px-4 text-[14px] text-white hover:bg-[#3d5a85] disabled:opacity-50"
+              >
+                Send
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Edit address notes modal (Figma 489:36354) ── */}
       {/* ── Remove saved card — red confirm, like Void / Archive ── */}
       {removeCardOpen && client.cardOnFile && (
@@ -2972,7 +3026,7 @@ export function ClientDetail() {
           <div className="relative w-[480px] max-w-full rounded-xl bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <h2 className="text-[18px] text-[#1A2332]" style={{ fontWeight: 600 }}>Remove saved card?</h2>
             <p className="mt-2 text-[14px] leading-[20px] text-[#6B7280]">
-              {cardLabel(client.cardOnFile)} will be removed from {client.name}. It can't be charged from New payment anymore. The client can save a card again the next time they pay by the link.
+              {cardLabel(client.cardOnFile)} will be removed from {client.name}. It can't be charged from New payment anymore. The client can save a card again if you send them a new card link.
             </p>
             <div className="mt-6 flex justify-end gap-2">
               <Button variant="outline" onClick={() => setRemoveCardOpen(false)} className="h-9 rounded-lg border-[#E5E7EB] px-4 text-[14px] text-[#1A2332] hover:bg-[#F5F7FA]">Cancel</Button>

@@ -12,6 +12,7 @@ import { CompanySetup } from "./pages/CompanySetup";
 import { InviteExpired } from "./pages/InviteExpired";
 import { ClientEstimateView } from "./pages/ClientEstimateView";
 import { PayLink } from "./pages/PayLink";
+import { CardLink } from "./pages/CardLink";
 import { Dashboard } from "./pages/Dashboard";
 import { Home } from "./pages/Home";
 import { Clients } from "./pages/Clients";
@@ -138,6 +139,11 @@ export const router = createBrowserRouter([
   {
     path: "/pay/:token",
     Component: PayLink,
+  },
+  // The page the client saves a card from, opened from a "Send card link" email.
+  {
+    path: "/card/:token",
+    Component: CardLink,
   },
   {
     path: "/",

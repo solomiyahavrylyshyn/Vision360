@@ -186,7 +186,6 @@ export function CreatePayment() {
   // "Send payment link" modal.
   const [linkOpen, setLinkOpen] = useState(false);
   const [linkEmail, setLinkEmail] = useState("");
-  const [linkSms, setLinkSms] = useState(true);
 
   const onFile = method === "Credit card — on file";
   const manualCard = method === "Credit card — manually";
@@ -269,7 +268,7 @@ export function CreatePayment() {
   // The office doesn't wait on this form: the client pays from the link and the
   // payment records itself (a Stripe webhook in production).
   const canSendLink = !!customerName && selectedCount > 0 && amountValid;
-  const openLinkModal = () => { setLinkEmail(customerEmail); setLinkSms(!!customerPhone); setLinkOpen(true); };
+  const openLinkModal = () => { setLinkEmail(customerEmail); setLinkOpen(true); };
   const handleSendLink = () => {
     if (!canSendLink || !linkEmail.trim()) return;
     const link = paymentLinksStore.create({
@@ -277,7 +276,6 @@ export function CreatePayment() {
       invoiceIds: selectedInvoices.map((i) => i.id),
       amount,
       sentTo: linkEmail.trim(),
-      smsTo: linkSms && customerPhone ? customerPhone : undefined,
     });
     setLinkOpen(false);
     toast.success(`Payment link sent to ${customerName}`, {
@@ -602,18 +600,12 @@ export function CreatePayment() {
                 <label className={labelCls} style={{ fontWeight: 500 }}>Email {reqStar}</label>
                 <input autoFocus value={linkEmail} onChange={(e) => setLinkEmail(e.target.value)} placeholder="client@email.com" className={inputCls} />
               </div>
-              {customerPhone && (
-                <label className="flex cursor-pointer items-center gap-2 text-[14px] text-[#1A2332]">
-                  <input type="checkbox" checked={linkSms} onChange={(e) => setLinkSms(e.target.checked)} className="h-4 w-4 rounded accent-[#4A6FA5]" />
-                  Also send by SMS to {customerPhone}
-                </label>
-              )}
               <div className="flex flex-col gap-1 rounded-lg bg-[#F5F7FA] px-3 py-3 text-[14px]">
                 <div className="flex justify-between"><span className="text-[#6B7280]">Amount</span><span className="text-[#1A2332] tabular-nums" style={{ fontWeight: 500 }}>{money(amount)}</span></div>
                 <div className="flex justify-between gap-4"><span className="text-[#6B7280]">Invoices</span><span className="text-right text-[#1A2332]">{selectedCount} · {selectedInvoices.map((i) => i.number).join(", ")}</span></div>
               </div>
               <p className="text-[13px] text-[#6B7280]">
-                {customerName.split(" ")[0] || "The client"} pays on a secure Stripe page and can save the card for next time. The payment records itself when they pay — you don't need to keep this page open.
+                {customerName.split(" ")[0] || "The client"} pays on a secure Stripe page. The payment records itself when they pay — you don't need to keep this page open.
               </p>
             </div>
             <div className="flex justify-end gap-2 px-4 pb-4">

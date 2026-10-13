@@ -2040,15 +2040,14 @@ function FinanceCenterSection() {
   const [stripeDisconnectOpen, setStripeDisconnectOpen] = useState(false);
   const [methods, setMethods] = useState(() => ({
     creditCard: readOnlinePayments().cards,
-    ach: false,
     cash: true,
     check: true,
   }));
   // The client's pay-link page reads these ("This invoice can't be paid online").
   useEffect(() => { writeOnlinePayments({ stripe: stripeStatus, cards: methods.creditCard }); }, [stripeStatus, methods.creditCard]);
-  const [bankName, setBankName] = useState("Bank of America");
-  const [bankAcct, setBankAcct] = useState("8821");
-  const [routing, setRouting] = useState("026009593");
+  const [bankName] = useState("Bank of America");
+  const [bankAcct] = useState("8821");
+  const [routing] = useState("026009593");
 
   // Simulated Stripe verification — a submitted account clears review after a
   // short delay (as in Stripe test mode); "Refresh status" completes it early.
@@ -2077,8 +2076,8 @@ function FinanceCenterSection() {
   const confirmDisconnect = () => {
     setStripeDisconnectOpen(false);
     setStripeStatus("disconnected");
-    setMethods(m => ({ ...m, creditCard: false, ach: false }));
-    toast.info("Stripe disconnected — online card and ACH payments are off");
+    setMethods(m => ({ ...m, creditCard: false }));
+    toast.info("Stripe disconnected — online card payments are off");
   };
 
   return (
@@ -2108,7 +2107,7 @@ function FinanceCenterSection() {
                   <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-[#635BFF] text-white" style={{ fontWeight: 800 }}>S</div>
                   <div>
                     <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 700 }}>Stripe</div>
-                    <div className="text-[12px] text-[#6B7280]">Cards · ACH · Apple Pay · Google Pay</div>
+                    <div className="text-[12px] text-[#6B7280]">Credit and debit cards</div>
                   </div>
                 </div>
                 {stripeStatus === "connected" && (
@@ -2150,7 +2149,7 @@ function FinanceCenterSection() {
               {stripeStatus === "pending" && (
                 <div className="flex items-center gap-2.5 rounded-b-xl border-t border-[#F3F4F6] bg-[#FFF8EB] px-4 py-2.5 text-[12px] text-[#8A6D3B]">
                   <span className="material-icons animate-spin text-[#D97706]" style={{ fontSize: 14 }}>autorenew</span>
-                  Stripe is verifying your business details — card and ACH payments stay off until verification completes (usually under a minute in test mode).
+                  Stripe is verifying your business details — card payments stay off until verification completes (usually under a minute in test mode).
                 </div>
               )}
 
@@ -2164,32 +2163,30 @@ function FinanceCenterSection() {
         </SectionCard>
 
         {/* Bank Information */}
-        <SectionCard title="Bank Information" description="Where payouts from your payment processor are deposited.">
-          <div className="grid grid-cols-3 gap-3">
-            <div>
-              <label className="block text-[13px] text-[#1A2332] mb-1.5" style={{ fontWeight: 600 }}>Bank name</label>
-              <Input value={bankName} onChange={e => setBankName(e.target.value)} className="h-9 border-[#D8DEE8]" />
-            </div>
-            <div>
-              <label className="block text-[13px] text-[#1A2332] mb-1.5" style={{ fontWeight: 600 }}>Account (last 4)</label>
-              <Input value={bankAcct} onChange={e => setBankAcct(e.target.value.replace(/\D/g, "").slice(0, 4))} className="h-9 border-[#D8DEE8]" />
-            </div>
-            <div>
-              <label className="block text-[13px] text-[#1A2332] mb-1.5" style={{ fontWeight: 600 }}>Routing</label>
-              <Input value={routing} onChange={e => setRouting(e.target.value.replace(/\D/g, "").slice(0, 9))} className="h-9 border-[#D8DEE8]" />
-            </div>
+        {/* Read-only: the payout bank lives in Stripe (Oct 8) — no typed fields, no Plaid. */}
+        <SectionCard title="Bank Information" description="Where Stripe sends your payouts.">
+          <div className="mt-2 rounded-lg border border-[#E5E7EB] px-4 py-3">
+            {stripeStatus === "connected" ? (
+              <>
+                <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>{bankName} ···· {bankAcct}</div>
+                <div className="mt-0.5 text-[12px] text-[#6B7280]">From your Stripe account. To change it, open the Stripe dashboard.</div>
+              </>
+            ) : (
+              <>
+                <div className="text-[14px] text-[#6B7280]" style={{ fontWeight: 500 }}>No bank yet</div>
+                <div className="mt-0.5 text-[12px] text-[#6B7280]">
+                  {stripeStatus === "pending" ? "Appears here once Stripe verifies your business." : "Appears here once Stripe is connected — you add it in Stripe onboarding."}
+                </div>
+              </>
+            )}
           </div>
-          <p className="mt-3 text-[12px] text-[#6B7280]">
-            Plaid-verified bank connection coming with Pro. For MVP we capture the last-4 and routing for reporting only.
-          </p>
         </SectionCard>
 
         {/* Payment Methods */}
         <SectionCard title="Payment Methods" description="Which methods appear when an invoice is sent to a customer.">
-          <div className="grid grid-cols-2 gap-2 mt-2">
+          <div className="grid grid-cols-3 gap-2 mt-2">
             {[
               { id: "creditCard", label: "Credit / Debit cards", desc: "Stripe required.",              requiresStripe: true },
-              { id: "ach",        label: "ACH bank transfer",    desc: "Lower fees, slower clearing.",  requiresStripe: true },
               { id: "cash",       label: "Cash",                 desc: "Mark paid manually in the app." },
               { id: "check",      label: "Check",                desc: "Track check number on payment." },
             ].map(m => {
@@ -2212,11 +2209,6 @@ function FinanceCenterSection() {
               );
             })}
           </div>
-        </SectionCard>
-
-        {/* Notes on receipt */}
-        <SectionCard title="Notes on receipt" description="Printed at the bottom of every payment receipt.">
-          <textarea defaultValue="Thank you for your payment. Keep this receipt for your records." className="mt-2 min-h-[76px] w-full rounded-lg border border-[#E5E7EB] px-3 py-2 text-[14px] shadow-[0_1px_2px_rgba(0,0,0,0.05)] outline-none focus:border-[#4A6FA5] focus:ring-2 focus:ring-[#4A6FA5]/20 resize-y" />
         </SectionCard>
 
         {/* Expense Tracking */}
@@ -2504,7 +2496,7 @@ function StripeDisconnectModal({ open, onClose, onConfirm }: { open: boolean; on
         </div>
         <ul className="mt-4 space-y-2">
           {[
-            "Credit / Debit card and ACH payments turn off for new invoices.",
+            "Credit / Debit card payments turn off for new invoices.",
             "Payouts already on the way still reach your bank account.",
             "Your Stripe account isn't deleted — you can reconnect anytime.",
           ].map(line => (

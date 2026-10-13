@@ -1,7 +1,7 @@
 // The page the client opens from a "Send payment link" email or SMS. Anonymous —
 // no login, no app chrome — identified only by the token in the URL. The client
-// pays the amount the office set; ticking "save this card" makes it their card
-// on file. In production the card fields are Stripe Elements and a Stripe
+// pays the amount the office set. Paying never saves a card — that only happens
+// through a card link from the client profile (/card/:token). In production the card fields are Stripe Elements and a Stripe
 // webhook records the payment; here it is recorded when Pay is pressed.
 
 import { useState, useSyncExternalStore } from "react";
@@ -9,9 +9,7 @@ import { useParams } from "react-router";
 import { paymentLinksStore } from "../stores/paymentLinksStore";
 import { invoicesStore } from "../stores/invoicesStore";
 import { paymentsStore } from "../stores/paymentsStore";
-import { clientsStore } from "../stores/clientsStore";
 import { useDocCompany } from "../components/DocumentSheets";
-import { saveCardOnFile } from "../utils/savedCard";
 import { canPayOnline } from "../utils/onlinePayments";
 import { cardBrand, cardCvcOk, cardDigitsOk, cardExpOk } from "./CreatePayment";
 import type { PaymentMethod, PaymentStatus } from "./Payments";
@@ -45,7 +43,6 @@ export function PayLink() {
   const [cardCvc, setCardCvc] = useState("");
   const [cardName, setCardName] = useState("");
   const [cardZip, setCardZip] = useState("");
-  const [saveCard, setSaveCard] = useState(false);
   const [paidNow, setPaidNow] = useState(false);
 
   const brandLine = <div className="text-[12px] tracking-wide text-[#4A6FA5]" style={{ fontWeight: 600 }}>{company.name.toUpperCase()}</div>;
@@ -148,10 +145,6 @@ export function PayLink() {
         ...(plan.length > 1 ? { groupId: `link-${link.token}` } : {}),
       });
     });
-    if (saveCard) {
-      const client = clientsStore.getSnapshot().find((c) => c.name === link.clientName);
-      if (client) saveCardOnFile(client.id, { brand, last4, exp: cardExp.replace(/\s/g, "") }, "the client (payment link)");
-    }
     paymentLinksStore.markPaid(link.token, paidWith);
     setPaidNow(true);
   };
@@ -197,11 +190,6 @@ export function PayLink() {
           <input value={cardZip} onChange={(e) => setCardZip(e.target.value)} placeholder="33606" className={inputCls} />
         </div>
       </div>
-
-      <label className="flex cursor-pointer items-start gap-2 text-[13px] leading-[18px]">
-        <input type="checkbox" checked={saveCard} onChange={(e) => setSaveCard(e.target.checked)} className="mt-0.5 h-4 w-4 rounded accent-[#4A6FA5]" />
-        <span>Save this card for future payments to {company.name}. They can charge it for work I approve, and I can ask them to remove it.</span>
-      </label>
 
       <button
         type="button" onClick={pay} disabled={!ready}

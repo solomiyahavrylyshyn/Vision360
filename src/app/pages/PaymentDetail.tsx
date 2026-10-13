@@ -695,9 +695,33 @@ export function PaymentDetail() {
                 }}>Download receipt</KebabItem>
                 <KebabItem icon="account_balance" onSelect={() => setPayoutOpen(true)}>View payout</KebabItem>
                 <KebabSeparator />
-                {payment.status !== "Refunded" && (
+                {payment.status !== "Refunded" ? (
                   <KebabItem icon="undo" onSelect={openRefund}>Refund…</KebabItem>
-                )}
+                ) : (() => {
+                  const num = `R-${1000 + payment.id}`;
+                  const amt = `$${(payment.refundAmount ?? payment.amount).toLocaleString("en-US", { minimumFractionDigits: 2 })}`;
+                  const lines = [`Refund receipt: ${num}`, `Date: ${payment.refundDate ? fmtDate(payment.refundDate) : "—"}`, `Invoice: ${payment.invoiceNumber}`, `Refunded to: ${payment.refundMethod === "Cash / manual" ? "Cash" : payment.method}`, `Amount refunded: ${amt}`];
+                  return (
+                    <>
+                      <KebabItem icon="send" onSelect={() => {
+                        const who = clientsStore.getSnapshot().find((c) => c.name === payment.clientName);
+                        const greeting = who ? clientGreeting(who) : `Hi ${payment.clientName.split(" ")[0]},`;
+                        const body = `${greeting}\n\nHere is your refund receipt:\n\n${lines.join("\n")}\n\nYour refund is on its way.`;
+                        window.location.href = `mailto:${payment.clientEmail}?subject=${encodeURIComponent(`Refund receipt ${num} — ${payment.invoiceNumber}`)}&body=${encodeURIComponent(body)}`;
+                        toast.success("Opening your email to send the refund receipt…");
+                      }}>Send refund receipt</KebabItem>
+                      <KebabItem icon="file_download" onSelect={() => {
+                        const text = [`REFUND RECEIPT ${num}`, ``, `Client:  ${payment.clientName}`, ...lines.slice(1)].join("\n");
+                        const url = URL.createObjectURL(new Blob([text], { type: "text/plain" }));
+                        const a = document.createElement("a");
+                        a.href = url; a.download = `refund-receipt-${num}.txt`;
+                        document.body.appendChild(a); a.click(); a.remove();
+                        URL.revokeObjectURL(url);
+                        toast.success(`Refund receipt ${num} downloaded`);
+                      }}>Download refund receipt</KebabItem>
+                    </>
+                  );
+                })()}
               </KebabMenu>
             </>
           }

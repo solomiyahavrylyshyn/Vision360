@@ -1052,7 +1052,7 @@ export function InvoiceDetail() {
                 Payment link sent · {new Date(payLink.sentAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
               </div>
               <div className="text-[12px] text-[#6B7280]">
-                ${payLink.amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} for {payLink.invoiceIds.length} invoice{payLink.invoiceIds.length === 1 ? "" : "s"}, sent to {payLink.sentTo}{payLink.smsTo ? ` and ${payLink.smsTo}` : ""}. It records itself when the client pays.
+                ${payLink.amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} for {payLink.invoiceIds.length} invoice{payLink.invoiceIds.length === 1 ? "" : "s"}, sent to {payLink.sentTo}. It records itself when the client pays.
               </div>
             </div>
             <button onClick={() => window.open(`/pay/${payLink.token}`, "_blank")} className="text-[13px] text-[#4A6FA5] hover:underline" style={{ fontWeight: 500 }}>Open link</button>
