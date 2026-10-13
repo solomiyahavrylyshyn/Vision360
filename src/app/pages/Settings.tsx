@@ -2043,7 +2043,6 @@ function FinanceCenterSection() {
     ach: false,
     cash: true,
     check: true,
-    financing: false,
   });
   const [bankName, setBankName] = useState("Bank of America");
   const [bankAcct, setBankAcct] = useState("8821");
@@ -2191,7 +2190,6 @@ function FinanceCenterSection() {
               { id: "ach",        label: "ACH bank transfer",    desc: "Lower fees, slower clearing.",  requiresStripe: true },
               { id: "cash",       label: "Cash",                 desc: "Mark paid manually in the app." },
               { id: "check",      label: "Check",                desc: "Track check number on payment." },
-              { id: "financing",  label: "Financing",            desc: "Send customer to a lender plan (coming soon)." },
             ].map(m => {
               const locked = !!(m as any).requiresStripe && stripeStatus !== "connected";
               return (
