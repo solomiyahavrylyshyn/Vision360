@@ -693,7 +693,9 @@ export function PaymentDetail() {
                   URL.revokeObjectURL(url);
                   toast.success(`Receipt ${num} downloaded`);
                 }}>Download receipt</KebabItem>
-                <KebabItem icon="account_balance" onSelect={() => setPayoutOpen(true)}>View payout</KebabItem>
+                {payment.method === "Credit Card" && (
+                  <KebabItem icon="account_balance" onSelect={() => setPayoutOpen(true)}>View payout</KebabItem>
+                )}
                 <KebabSeparator />
                 {payment.status !== "Refunded" ? (
                   <KebabItem icon="undo" onSelect={openRefund}>Refund…</KebabItem>
@@ -734,8 +736,8 @@ export function PaymentDetail() {
         </div>
       </div>
 
-      {/* View payout — net amount after the processor fee + payout date,
-          provided by the Stripe integration (mocked at 3% here). */}
+      {/* View payout — card payments through Stripe only. Fee, payout and date come
+          from Stripe (Story 12); mocked here as 2.9% + 30¢ and two business days. */}
       {/* Refund modal — memo + manual amount (full/partial) + return method (Marek Jun 11). */}
       {refundOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setRefundOpen(false)}>
@@ -814,18 +816,27 @@ export function PaymentDetail() {
       )}
 
       {payoutOpen && (() => {
-        const fee = payment.amount * 0.03;
+        const fee = Math.round((payment.amount * 0.029 + 0.3) * 100) / 100;
         const net = payment.amount - fee;
-        const payoutDate = (() => {
+        // Stripe holds card money ~2 business days before paying it out.
+        const payoutDay = (() => {
           const d = new Date(payment.date + "T12:00:00");
-          d.setDate(d.getDate() + 2);
-          return formatRegionalDate(d);
+          let left = 2;
+          while (left > 0) { d.setDate(d.getDate() + 1); if (d.getDay() !== 0 && d.getDay() !== 6) left--; }
+          return d;
         })();
+        const paidOut = payoutDay.getTime() <= Date.now();
         const fmt2 = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const row = (label: React.ReactNode, value: React.ReactNode, valueCls = "text-[#1A2332]") => (
+          <div className="flex items-center justify-between gap-3 text-[14px]">
+            <span className="text-[#6B7280]">{label}</span>
+            <span className={valueCls} style={{ fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>{value}</span>
+          </div>
+        );
         return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={() => setPayoutOpen(false)}>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setPayoutOpen(false)}>
             <div className="absolute inset-0 bg-black/40" />
-            <div className="relative bg-white border border-[#E5E7EB] rounded-xl shadow-2xl w-[400px] max-w-full overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="relative bg-white border border-[#E5E7EB] rounded-xl shadow-2xl w-[440px] max-w-full overflow-hidden" onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between px-4 py-4">
                 <h3 className="text-[20px] text-[#1A2332]" style={{ fontFamily: "Geist", fontWeight: 600 }}>Payout · {paymentNumber}</h3>
                 <button onClick={() => setPayoutOpen(false)} aria-label="Close" className="w-6 h-6 rounded flex items-center justify-center text-[#1A2332] hover:bg-[#F3F4F6]">
@@ -833,25 +844,29 @@ export function PaymentDetail() {
                 </button>
               </div>
               <div className="px-4 pb-4 space-y-3">
-                <div className="flex items-center justify-between text-[13px]">
-                  <span className="text-[#6B7280]">Payment amount</span>
-                  <span className="text-[#1A2332]" style={{ fontVariantNumeric: "tabular-nums" }}>${fmt2(payment.amount)}</span>
-                </div>
-                <div className="flex items-center justify-between text-[13px]">
-                  <span className="text-[#6B7280]">Processing fee (3%)</span>
-                  <span className="text-[#DC2626]" style={{ fontVariantNumeric: "tabular-nums" }}>−${fmt2(fee)}</span>
-                </div>
+                {row("Payment amount", `$${fmt2(payment.amount)}`)}
+                {row("Stripe fee", `−$${fmt2(fee)}`, "text-[#DC2626]")}
                 <div className="flex items-center justify-between pt-3 border-t border-[#E5E7EB]">
-                  <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Payout</span>
-                  <span className="text-[18px] text-[#16A34A]" style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>${fmt2(net)}</span>
+                  <span className="flex items-center gap-2 text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>
+                    Payout
+                    {paidOut
+                      ? <span className="rounded-lg px-2 py-0.5 text-[12px] text-[#16A34A]" style={{ fontWeight: 500, backgroundColor: "rgba(22,163,74,0.15)" }}>Paid</span>
+                      : <span className="rounded-lg bg-[#F3F4F6] px-2 py-0.5 text-[12px] text-[#6B7280]" style={{ fontWeight: 500 }}>Pending</span>}
+                  </span>
+                  <span className={`text-[18px] ${paidOut ? "text-[#16A34A]" : "text-[#1A2332]"}`} style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>${fmt2(net)}</span>
                 </div>
-                <div className="flex items-center justify-between text-[13px]">
-                  <span className="text-[#6B7280]">Payout date</span>
-                  <span className="text-[#1A2332]">{payoutDate}</span>
-                </div>
-                <div className="flex items-center gap-1.5 pt-1 text-[11px] text-[#9CA3AF]">
-                  <span className="material-icons" style={{ fontSize: "13px" }}>info</span>
-                  Payout data is provided by the Stripe integration.
+                {row(paidOut ? "Payout date" : "Expected payout", formatRegionalDate(payoutDay))}
+                {row(paidOut ? "Paid to" : "Goes to", "Bank of America ···· 8821")}
+                {!paidOut && <p className="text-[12px] text-[#6B7280]">Stripe usually holds card payments for 2 business days before paying them out.</p>}
+                {payment.status === "Refunded" && (
+                  <div className="space-y-1 border-t border-[#E5E7EB] pt-3">
+                    {row(`Refunded${payment.refundDate ? ` · ${formatRegionalDate(new Date(payment.refundDate + "T12:00:00"))}` : ""}`, `−$${fmt2(payment.refundAmount ?? payment.amount)}`, "text-[#DC2626]")}
+                    <p className="text-[12px] text-[#6B7280]">Taken from a later payout. This payout stays ${fmt2(net)}.</p>
+                  </div>
+                )}
+                <div className="flex items-center justify-between border-t border-[#F3F4F6] pt-3">
+                  <span className="text-[12px] text-[#9CA3AF]">Payout details come from Stripe.</span>
+                  <button type="button" onClick={() => toast.info("Opens this payment in the company's Stripe dashboard in production")} className="text-[13px] text-[#4A6FA5] hover:underline" style={{ fontWeight: 500 }}>Open in Stripe ↗</button>
                 </div>
               </div>
             </div>
