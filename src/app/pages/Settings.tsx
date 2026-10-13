@@ -2211,29 +2211,6 @@ function FinanceCenterSection() {
           </div>
         </SectionCard>
 
-        {/* Expense Tracking */}
-        <SectionCard title="Expense Tracking" description="How expenses move from the Expenses module into your books.">
-          <div className="space-y-2 mt-2">
-            <div className="flex items-center justify-between gap-4 rounded-lg border border-[#E5E7EB] px-4 py-4">
-              <div className="flex-1">
-                <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Auto-categorize by vendor</div>
-                <div className="text-[12px] text-[#6B7280] mt-0.5">Apply the last category used for that vendor on new expenses.</div>
-              </div>
-              <Switch defaultChecked />
-            </div>
-            <div className="flex items-center justify-between gap-4 rounded-lg border border-[#E5E7EB] px-4 py-4">
-              <div className="flex-1">
-                <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Require receipt photo</div>
-                <div className="text-[12px] text-[#6B7280] mt-0.5">Field tech must attach a photo before saving an expense.</div>
-              </div>
-              <Switch defaultChecked />
-            </div>
-          </div>
-          <p className="mt-3 text-[12px] text-[#6B7280]">
-            QuickBooks export of expenses opens up once the QuickBooks integration is enabled in Integrations.
-          </p>
-        </SectionCard>
-
         {/* Expense categories (FR-16.8) — feeds the expense form's category
             dropdown and the Categories quick filter on the Expenses list. */}
         <ExpenseCategoriesCard />
