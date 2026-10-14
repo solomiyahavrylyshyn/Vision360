@@ -226,17 +226,20 @@ export function CreateJob({ asModal = false, onClose, onCreated, prefill, headin
   const [recInterval, setRecInterval] = useState("1");
   const [recWeekdays, setRecWeekdays] = useState<number[]>([new Date().getDay()]);
   const [recDayOfMonth, setRecDayOfMonth] = useState<number>(new Date().getDate());
+  // "Ends": after N occurrences or on a date (the Ends block below reads both).
+  const [recEndMode, setRecEndMode] = useState<"count" | "date">("count");
+  const [recCount, setRecCount] = useState("12");
   const [recEndDate, setRecEndDate] = useState("");
   const buildRecurrenceRule = (): RecurrenceRule => ({
     frequency: recFreq,
     interval: Math.max(1, Number(recInterval) || 1),
     weekdays: recFreq === "weekly" ? recWeekdays : undefined,
     dayOfMonth: recFreq === "monthly" ? recDayOfMonth : undefined,
-    // "To" end date drives the series; with no end date, bound it to a sane
-    // default count so a rule can never generate an unbounded list.
-    endMode: recEndDate ? "date" : "count",
-    count: 12,
-    endDate: recEndDate || undefined,
+    // "On date" without a date falls back to the count, so a rule can never
+    // generate an unbounded list.
+    endMode: recEndMode === "date" && recEndDate ? "date" : "count",
+    count: Math.max(1, Number(recCount) || 1),
+    endDate: recEndMode === "date" ? recEndDate || undefined : undefined,
   });
   const [jobCategory, setJobCategory] = useState(prefill?.jobCategory ?? sp.get("jobCategory") ?? "");
   const availableJobTypes = useSyncExternalStore(jobTypesStore.subscribe, jobTypesStore.getJobTypes);
