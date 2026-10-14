@@ -314,6 +314,8 @@ export function CreateJob({ asModal = false, onClose, onCreated, prefill, headin
   // Marek, Sep 10 call: when the client approves an estimate its items become
   // the job's items. On a good/better/best estimate that means the items of the
   // option the client actually picked — not all three options' items.
+  // Only an Approved estimate hands its items over (Oct 14): a job made from a
+  // Draft / Sent / Viewed estimate is linked to it but starts with no items.
   useState(() => {
     if (!fromEstimateId) return;
     const est = estimatesStore.getById(fromEstimateId);
@@ -321,8 +323,8 @@ export function CreateJob({ asModal = false, onClose, onCreated, prefill, headin
     const chosenOption = est.options?.length
       ? (est.options.find((o) => o.name === est.selectedOptionName) ?? (est.options.length === 1 ? est.options[0] : undefined))
       : undefined;
-    const sourceItems = chosenOption?.items?.length ? chosenOption.items : est.items;
-    if (!sourceItems?.length) return;
+    const sourceItems = est.status !== "Approved" ? []
+      : chosenOption?.items?.length ? chosenOption.items : (est.items ?? []);
     const preloaded = sourceItems.map((it, idx) => ({
       id: idx + 1,
       catalogItemId: 0,
@@ -339,7 +341,7 @@ export function CreateJob({ asModal = false, onClose, onCreated, prefill, headin
       itemType: it.itemType,
       costBreakdown: it.costBreakdown,
     }));
-    setLineItems(preloaded);
+    if (preloaded.length) setLineItems(preloaded);
     // Seed the Estimates table with the source estimate (Convert → Job flow).
     setLinkedEstimates([{
       id: est.id,
@@ -347,7 +349,7 @@ export function CreateJob({ asModal = false, onClose, onCreated, prefill, headin
       estimateName: est.estimateName || "",
       createdBy: (est as { createdBy?: string }).createdBy || "—",
       status: est.status,
-      amount: preloaded.reduce((s, li) => s + li.total, 0),
+      amount: preloaded.length ? preloaded.reduce((s, li) => s + li.total, 0) : est.amount,
     }]);
     if (!title) setTitle(est.estimateName || "");
     // Carry the estimate's tax rate so Estimate→Job total continuity holds (V05.5).
