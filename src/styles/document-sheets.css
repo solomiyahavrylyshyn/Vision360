@@ -59,7 +59,9 @@
 .doc-sheet .lines tbody tr:nth-child(odd) td { background: var(--doc-zebra); }
 .doc-sheet .lines .n { font-weight: 500; }
 .doc-sheet .lines .dd { font-size: 9.5px; color: var(--doc-muted); margin-top: 1px; }
-.doc-sheet .lines .r, .doc-sheet .lines th.r { text-align: right; white-space: nowrap; }
+.doc-sheet .lines .r { text-align: right; white-space: nowrap; }
+/* Number columns: amounts right-aligned, their headers centred (Jean, Oct 14) */
+.doc-sheet .lines th.r { text-align: center; }
 .doc-sheet .lines tr.inc td { color: var(--doc-muted); }
 
 /* totals */
@@ -86,6 +88,7 @@
 .doc-sheet .both td { padding: 6px 10px; }
 .doc-sheet .both tbody tr:nth-child(odd) td { background: var(--doc-zebra); }
 .doc-sheet .both .r { text-align: right; white-space: nowrap; }
+.doc-sheet .both th.r { text-align: center; }
 .doc-sheet .both .lbl { color: var(--doc-accent); font-size: 8.5px; letter-spacing: .09em; text-transform: uppercase; font-weight: 500; }
 .doc-sheet .terms p { margin: 0 0 9px; }
 .doc-sheet .foot { position: absolute; left: 48px; right: 48px; bottom: 16px; display: flex; justify-content: space-between; font-size: 8.5px; color: #8A9098; }
