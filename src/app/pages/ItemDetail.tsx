@@ -360,9 +360,10 @@ export function ItemDetail() {
               <div className="text-[15px] text-[#374151] leading-[22px]" style={{ fontWeight: 500 }}>${money(item.cost)}</div>
               {/* What the cost pays for: labor and commission are compensation,
                   materials are an expense (Marek, Sep 14 call). */}
-              <div className="mt-0.5 text-[11px] text-[#8899AA] leading-[16px]">
+              {/* One part per line — a single "·" line wraps badly in the narrow column (Figma 1500:51443). */}
+              <div className="mt-0.5 flex flex-col text-[11px] text-[#8899AA] leading-[16px]">
                   {COST_COMPONENTS.filter(({ key }) => costSplit[key] > 0).length
-                    ? COST_COMPONENTS.filter(({ key }) => costSplit[key] > 0).map(({ key, label }) => `${label} $${money(costSplit[key])}`).join(" · ")
+                    ? COST_COMPONENTS.filter(({ key }) => costSplit[key] > 0).map(({ key, label }) => <span key={key}>{label} ${money(costSplit[key])}</span>)
                     : "No cost recorded"}
               </div>
             </div>
