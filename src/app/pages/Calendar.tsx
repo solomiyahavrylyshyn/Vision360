@@ -57,6 +57,8 @@ interface DispatchJob {
   source: string;
   // no date yet (e.g. after a drag-back to Pending on the week view)
   unscheduled?: boolean;
+  /** A date but no time yet — stays in Pending, not on the board. */
+  noTime?: boolean;
 }
 
 const COLORS = {
@@ -410,6 +412,7 @@ interface DayJob {
   // Unscheduled = no fixed date/time yet (may or may not have a technician).
   // Such jobs live in the Pending column until a date is set.
   unscheduled?: boolean;
+  noTime?: boolean;
 }
 
 interface QuickJobDraft {
@@ -498,6 +501,7 @@ interface UnifiedJob {
   id: number;
   num: string;
   date: Date | null;        // real calendar date; null ⇒ unscheduled. Invariant: (date == null) === unscheduled
+  noTime?: boolean;         // dated, but no start time yet ⇒ Pending
   technicianId: string;     // "" ⇒ unassigned
   start: number;
   end: number;
@@ -617,6 +621,7 @@ function unifiedFromRecord(rec: JobRecord): UnifiedJob {
     start,
     end,
     unscheduled: !rec.startDate,
+    noTime: !!rec.startDate && !rec.startTime,
     client: rec.client || "—",
     service: rec.title || "Job",
     address: rec.address || "",
@@ -1106,8 +1111,17 @@ export function Calendar() {
   // so the two views can never disagree (the panel used to hardcode the time +
   // workflow status and contradict the card). Falls back to the workflow status
   // for a fully scheduled+assigned board job.
-  const stateChips = (j: { id?: number; status: JobStatus; technicianId: string; unscheduled?: boolean }) => {
-    const labels = schedulingTags(j);
+  // Pending card's first line (9235): the time; with no time the date ("Mon, 3 Nov"); with no date "No date".
+  const pendingWhen = (j: { id: number; start: number; end: number; unscheduled?: boolean; noTime?: boolean }) => {
+    if (j.unscheduled) return "No date";
+    if (j.noTime) {
+      const rec = isStoreJob(j.id) ? jobsStore.getById(j.id - JOBSTORE_ID_BASE) : undefined;
+      return rec?.startDate ? format(new Date(rec.startDate + "T12:00:00"), "EEE, d MMM") : "No time";
+    }
+    return `${formatRegionalTime(j.start, regionalSettings)} – ${formatRegionalTime(j.end, regionalSettings)}`;
+  };
+  const stateChips = (j: { id?: number; status: JobStatus; technicianId: string; unscheduled?: boolean; noTime?: boolean }) => {
+    const labels = [...schedulingTags(j), ...(j.noTime ? ["No time"] : [])];
     // A visit dated before today that still waits (e.g. a series started in the past).
     const rec = j.id != null && isStoreJob(j.id) ? jobsStore.getById(j.id - JOBSTORE_ID_BASE) : undefined;
     const todayIso = format(new Date(), "yyyy-MM-dd");
@@ -1115,7 +1129,7 @@ export function Calendar() {
     const final = labels.length ? [...labels, ...(pastDate ? ["Past date"] : [])] : [j.status];
     return final.map((label) => {
       if (label === "Past date") return { label, color: "#B45309", bg: "rgba(217,119,6,0.15)" };
-      if (label === "Unscheduled" || label === "Unassigned") return { label, color: "#6B7280", bg: "rgba(107,114,128,0.15)" };
+      if (label === "Unscheduled" || label === "Unassigned" || label === "No time") return { label, color: "#6B7280", bg: "rgba(107,114,128,0.15)" };
       const s = STATUS_STYLES[label as JobStatus];
       return { label, color: s?.color ?? "#6B7280", bg: s?.bg ?? "rgba(107,114,128,0.15)" };
     });
@@ -1285,12 +1299,12 @@ export function Calendar() {
   const dayJobsView: DayJob[] = useMemo(
     () => allJobs
       .filter((j) => j.unscheduled || (j.date != null && isSameDay(j.date, currentDate)))
-      .map((j) => ({ id: j.id, technicianId: j.technicianId, start: j.start, end: j.end, client: j.client, service: j.service, address: j.address, status: j.status, amount: j.amount, bg: j.bg, border: j.border, jobType: j.jobType, unscheduled: j.unscheduled })),
+      .map((j) => ({ id: j.id, technicianId: j.technicianId, start: j.start, end: j.end, client: j.client, service: j.service, address: j.address, status: j.status, amount: j.amount, bg: j.bg, border: j.border, jobType: j.jobType, unscheduled: j.unscheduled, noTime: j.noTime })),
     [allJobs, currentDate],
   );
   const weekJobsView: DispatchJob[] = useMemo(
     () => allJobs
-      .map((j) => ({ id: j.id, num: j.num, technicianId: j.technicianId, client: j.client, service: j.service, address: j.address, status: j.status, dayIdx: j.date != null ? weekDays.findIndex((d) => isSameDay(d, j.date!)) : -1, start: j.start, end: j.end, amount: j.amount, bg: j.bg, border: j.border, priority: j.priority, jobType: j.jobType, source: j.source, unscheduled: j.unscheduled }))
+      .map((j) => ({ id: j.id, num: j.num, technicianId: j.technicianId, client: j.client, service: j.service, address: j.address, status: j.status, dayIdx: j.date != null ? weekDays.findIndex((d) => isSameDay(d, j.date!)) : -1, start: j.start, end: j.end, amount: j.amount, bg: j.bg, border: j.border, priority: j.priority, jobType: j.jobType, source: j.source, unscheduled: j.unscheduled, noTime: j.noTime }))
       .filter((j) => j.unscheduled || j.dayIdx >= 0),
     [allJobs, weekDays],
   );
@@ -1307,7 +1321,7 @@ export function Calendar() {
   const monthPendingView: DayJob[] = useMemo(
     () => allJobs
       .filter((j) => j.unscheduled || (j.date != null && isSameMonth(j.date, currentDate)))
-      .map((j) => ({ id: j.id, technicianId: j.technicianId, start: j.start, end: j.end, client: j.client, service: j.service, address: j.address, status: j.status, amount: j.amount, bg: j.bg, border: j.border, jobType: j.jobType, unscheduled: j.unscheduled })),
+      .map((j) => ({ id: j.id, technicianId: j.technicianId, start: j.start, end: j.end, client: j.client, service: j.service, address: j.address, status: j.status, amount: j.amount, bg: j.bg, border: j.border, jobType: j.jobType, unscheduled: j.unscheduled, noTime: j.noTime })),
     [allJobs, currentDate],
   );
   // Pending sidebar = the ACTIVE view's window of the same collection — so the
@@ -1352,7 +1366,7 @@ export function Calendar() {
   const filteredMonthEvents = monthEventsView.filter(event => isDateOpenForBusiness(event.date, businessHours));
   // Exclude unscheduled jobs (no date) from the week board — they live in the
   // Pending sidebar, not on a day column (e.g. after a drag-back to Pending).
-  const filteredWeekJobs = weekJobsView.filter(job => openWeekDayIndexes.has(job.dayIdx) && !job.unscheduled);
+  const filteredWeekJobs = weekJobsView.filter(job => openWeekDayIndexes.has(job.dayIdx) && !job.unscheduled && !job.noTime);
   const filteredDayJobs = isCurrentDateOpen ? dayJobsView : [];
 
   // The time axis defaults to working hours but EXPANDS to include any job
@@ -1389,7 +1403,7 @@ export function Calendar() {
     Object.fromEntries(
       TEAM.map((m) => {
         const memberJobs = filteredDayJobs
-          .filter((job) => job.technicianId === m.id && !job.unscheduled && isShownOnBoard(job.status))
+          .filter((job) => job.technicianId === m.id && !job.unscheduled && !job.noTime && isShownOnBoard(job.status))
           .sort((a, b) => a.start - b.start);
         const { rowByJobId, rowCount } = packOverlaps(memberJobs);
         return [m.id, { rowByJobId, laneH: laneHeight(rowCount, DAY_TOP_PAD, DAY_CARD_H, DAY_ROW_GAP, DAY_BOT_PAD) }];
@@ -1446,7 +1460,7 @@ export function Calendar() {
     return allJobs.some(
       (j) =>
         j.technicianId === techId &&
-        !j.unscheduled &&
+        !j.unscheduled && !j.noTime &&
         j.date != null &&
         isSameDay(j.date, date) &&
         occupiesSlot(j.status) &&
@@ -1979,7 +1993,8 @@ export function Calendar() {
         {pendingDayJobs.length === 0 ? (
           <div className="py-10 text-center">
             <span className="material-icons text-[#D1D5DB] mb-1 block" style={{ fontSize: "32px" }}>check_circle</span>
-            <div className="text-[12px] text-[#9CA3AF]">{pendingFilter === "all" ? "Nothing pending" : pendingFilter === "both" ? "No unassigned + unscheduled jobs" : pendingFilter === "scheduled" ? `No jobs ${scheduledScopeLabel.toLowerCase()}` : `No ${pendingFilter} jobs`}</div>
+            <div className="text-[13px] text-[#546478]" style={{ fontWeight: 500 }}>{{ all: "Nothing pending", unassigned: "No unassigned jobs", unscheduled: "No unscheduled jobs", scheduled: `No jobs scheduled for this ${viewMode === "week" ? "week" : viewMode === "month" ? "month" : "day"}`, both: "No jobs without a date and a technician" }[pendingFilter]}</div>
+            <div className="mx-auto mt-0.5 max-w-[240px] text-[12px] text-[#9CA3AF]">{{ all: "Every job has a date, a time and a technician.", unassigned: "Every job has a technician.", unscheduled: "Every job has a date.", scheduled: "Jobs with a date here but no time or technician show here.", both: "Jobs missing both show here." }[pendingFilter]}</div>
           </div>
         ) : (
           pendingDayJobs.map((job) => {
@@ -1997,7 +2012,7 @@ export function Calendar() {
                 title={`${job.client} — ${job.service}${job.jobType ? ` (${job.jobType})` : ""}\n${job.address}\n${job.unscheduled ? "No date" : `${formatRegionalTime(job.start, regionalSettings)}–${formatRegionalTime(job.end, regionalSettings)}`} · ${chips.map((c) => c.label).join(" · ")}`}
               >
                 <div className="flex items-center gap-1 text-[10px] text-[#9CA3AF] tabular-nums">
-                  <span className="truncate">{job.unscheduled ? "--:-- – --:--" : `${formatRegionalTime(job.start, regionalSettings)} – ${formatRegionalTime(job.end, regionalSettings)}`}</span>
+                  <span className="truncate">{pendingWhen(job)}</span>
                 </div>
                 <div className="text-[13px] text-[#1A2332] mt-1 truncate" style={{ fontWeight: 700 }}>{job.service}</div>
                 <div className="text-[11px] text-[#546478] truncate">{job.client}</div>
@@ -2065,7 +2080,7 @@ export function Calendar() {
           onWin={setMapWin}
           onClose={() => { setMapOpen(false); requestAnimationFrame(() => mapChipRef.current?.focus()); }}
           jobs={filteredDayJobs.filter(
-            (j) => !j.unscheduled && j.technicianId && occupiesSlot(j.status) && j.start >= workStart && j.end <= workEnd,
+            (j) => !j.unscheduled && !j.noTime && j.technicianId && occupiesSlot(j.status) && j.start >= workStart && j.end <= workEnd,
           )}
           team={TEAM}
           selectedJobId={selectedMapJobId}
@@ -2589,7 +2604,7 @@ export function Calendar() {
                       .filter((job) => job.technicianId === member.id)
                       // Unscheduled (no date) jobs live in the Pending column, not on
                       // the time grid — even though they keep their technician.
-                      .filter((job) => !job.unscheduled)
+                      .filter((job) => !job.unscheduled && !job.noTime)
                       // PO decision: cancelled jobs STAY on the board (greyed, struck
                       // through) so a new job can be scheduled over them; isShownOnBoard
                       // now returns true for every status. They just never block a slot.

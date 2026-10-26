@@ -15,6 +15,8 @@ export interface SchedulableJob {
   start: number;                 // hour-of-day (e.g. 9.5 = 9:30)
   end: number;
   unscheduled?: boolean;         // true = no fixed date yet
+  /** Has a date but no time yet — waits in Pending under "Show scheduled" (9235). */
+  noTime?: boolean;
   jobType?: string;
 }
 
@@ -86,7 +88,7 @@ export function applyUnassign<T extends { technicianId: string }>(job: T): T {
 //    today's must-do jobs" view.
 export type PendingFilter = "all" | "unassigned" | "unscheduled" | "scheduled" | "both";
 
-type PendingShape = Pick<SchedulableJob, "technicianId" | "unscheduled" | "status">;
+type PendingShape = Pick<SchedulableJob, "technicianId" | "unscheduled" | "status"> & { noTime?: boolean };
 
 export function isUnassigned(job: Pick<SchedulableJob, "technicianId">): boolean {
   return !job.technicianId;
@@ -97,7 +99,7 @@ export function isUnscheduled(job: Pick<SchedulableJob, "unscheduled">): boolean
 export function isPending(job: PendingShape): boolean {
   // A finished or cancelled job (e.g. a cancelled visit of a series) is not waiting for anyone.
   if (job.status === "Cancelled" || job.status === "Completed") return false;
-  return isUnassigned(job) || isUnscheduled(job);
+  return isUnassigned(job) || isUnscheduled(job) || !!job.noTime;
 }
 
 // ── The two-flag model (Marek) ────────────────────────────────────────────
