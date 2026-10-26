@@ -999,9 +999,15 @@ export function EstimateDetail() {
     // Adjust price (tasks 9227 / 9228): one Discount line per option, item prices untouched.
     const discountLine = optionItems.find(i => i.isDiscount);
     const listPrice = Math.round(optionItems.filter(i => !i.isDiscount).reduce((a, i) => a + i.amount + lineTax(i), 0) * 100) / 100;
+    // The Discount line is saved on the estimate, so the job made from it carries it.
     const setOptionItems = (fn: (items: LineItem[]) => LineItem[]) => {
-      if (hasOptions) setEstimate(prev => ({ ...prev, options: prev.options!.map((o, idx) => idx === activeOptionIdx ? { ...o, items: fn(o.items) } : o) }));
-      else setEstimate(prev => ({ ...prev, items: fn(prev.items) }));
+      const next = fn(optionItems);
+      if (hasOptions) setEstimate(prev => ({ ...prev, options: prev.options!.map((o, idx) => idx === activeOptionIdx ? { ...o, items: next } : o) }));
+      else setEstimate(prev => ({ ...prev, items: next }));
+      const rec = estimatesStore.getById(estimate.id);
+      if (!rec) return;
+      if (hasOptions && rec.options) estimatesStore.update(rec.id, { options: rec.options.map((o, idx) => idx === activeOptionIdx ? { ...o, items: next as typeof o.items } : o) });
+      else estimatesStore.update(rec.id, { items: next as typeof rec.items });
     };
     const applyPrice = (newPrice: number) => {
       const amt = Math.round((listPrice - newPrice) * 100) / 100;
@@ -1122,7 +1128,7 @@ export function EstimateDetail() {
                   <td className="px-4 py-3 text-right text-[13px] text-[#1A2332]" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{item.amount < 0 ? `−$${fmt(-item.amount)}` : `$${fmt(item.amount)}`}</td>
                   <td className="px-4 py-3 text-right">
                     <button
-                      onClick={() => removeShownItem(item.id)}
+                      onClick={() => item.isDiscount ? (setOptionItems(items => items.filter(i => !i.isDiscount)), toast.success("Discount removed — the price is back to the sum of the items")) : removeShownItem(item.id)}
                       aria-label="Remove item" title="Remove item"
                       className="w-8 h-8 inline-flex items-center justify-center rounded-lg text-[#9CA3AF] hover:bg-[#FEF2F2] hover:text-[#DC2626] transition-colors"
                     >
