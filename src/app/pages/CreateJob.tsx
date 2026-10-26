@@ -228,8 +228,10 @@ export function CreateJob({ asModal = false, onClose, onCreated, prefill, headin
   const [recDayOfMonth, setRecDayOfMonth] = useState<number>(new Date().getDate());
   // "Ends": after N occurrences or on a date (the Ends block below reads both).
   const [recEndMode, setRecEndMode] = useState<"count" | "date">("count");
-  const [recCount, setRecCount] = useState("12");
+  const [recCount, setRecCount] = useState("10");
   const [recEndDate, setRecEndDate] = useState("");
+  const isoDay = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const seriesStart = () => (scheduleJob && startDate ? new Date(startDate + "T12:00:00") : new Date());
   const buildRecurrenceRule = (): RecurrenceRule => ({
     frequency: recFreq,
     interval: Math.max(1, Number(recInterval) || 1),
@@ -238,7 +240,7 @@ export function CreateJob({ asModal = false, onClose, onCreated, prefill, headin
     // "On date" without a date falls back to the count, so a rule can never
     // generate an unbounded list.
     endMode: recEndMode === "date" && recEndDate ? "date" : "count",
-    count: Math.max(1, Number(recCount) || 1),
+    count: Math.min(99, Math.max(1, Number(recCount) || 1)),
     endDate: recEndMode === "date" ? recEndDate || undefined : undefined,
   });
   const [jobCategory, setJobCategory] = useState(prefill?.jobCategory ?? sp.get("jobCategory") ?? "");
@@ -268,7 +270,7 @@ export function CreateJob({ asModal = false, onClose, onCreated, prefill, headin
   // Figma "Job period": a numeric duration + a "Schedule job" toggle. When the
   // toggle is OFF the job is created UNSCHEDULED (no date) and the date/time
   // fields are hidden (brief: toggle scheduled off → unscheduled).
-  const [scheduleJob, setScheduleJob] = useState(prefill?.scheduleJob ?? true);
+  const [scheduleJob, setScheduleJob] = useState(prefill?.scheduleJob ?? !/^recurring$/i.test(sp.get("frequency") ?? ""));
   // Job duration (hours). Defaults from the prefilled slot's start/end if present,
   // otherwise from the job type (Installation → 8h, else 2h). Bidirectional with
   // the End time field below.
@@ -546,6 +548,7 @@ export function CreateJob({ asModal = false, onClose, onCreated, prefill, headin
     // At least one line item is required to create/schedule a job (makes the
     // "Line Items *" marker real). EDIT mode (onSubmit) doesn't manage line items.
     if (!onSubmit && lineItems.length === 0) { toast.error("Add at least one line item before saving the job."); return; }
+    if (isRecurringCreate && scheduleJob && !startDate) { toast.error("Pick the date of the first visit, or turn off “Schedule job”."); return; }
     if (!isRecurringCreate) {
       // Start date is required ONLY when scheduling a one-off job.
       if (scheduleJob && !startDate) { toast.error("Select a start date, or turn off “Schedule job”."); return; }
@@ -572,10 +575,14 @@ export function CreateJob({ asModal = false, onClose, onCreated, prefill, headin
     const computedTotal = computedSubtotal + computedTaxable * (taxRate / 100);
     const today = formatRegionalDate(new Date());
 
-    // ── Recurring: generate a SERIES of unscheduled + unassigned jobs ──────────
-    // (Marek, Jun 8 wizard + Jun 5 "those jobs are unassigned and unscheduled").
+    // ── Recurring: generate a SERIES of jobs ─────────────────────────────────
+    // Schedule job off: unscheduled + unassigned (Marek, Jun 5). On: each visit
+    // gets its date from the rule; with a time and a technician it goes straight
+    // on the board, otherwise it waits in Pending for its date. The first date
+    // may be in the past (Oct 26) — those visits land in past weeks / Pending.
     if (jobType === "recurring") {
-      const occurrences = expandRecurrence(buildRecurrenceRule(), new Date());
+      const occurrences = expandRecurrence(buildRecurrenceRule(), seriesStart());
+      const onBoard = scheduleJob && !!startTime && !!assignedTo;
       const n = Math.max(1, occurrences.length);
       const clientId = liveClients.find((c) => c.name === client.trim())?.id ?? "";
       let firstRecord: ReturnType<typeof jobsStore.add> | null = null;
@@ -588,10 +595,11 @@ export function CreateJob({ asModal = false, onClose, onCreated, prefill, headin
           title: `${title.trim() || "Untitled Job"} (${i + 1}/${n})`,
           client: client.trim(), clientId,
           address: serviceStreet, city: serviceCity, state: serviceState, zip: serviceZip, gateCode,
-          assignedTo: "",                 // unassigned
+          assignedTo: scheduleJob ? assignedTo : "",
           jobType: jobCategory || "Service", jobCategory, frequency: "Recurring",
-          startDate: "", endDate: "", startTime: "", endTime: "", // unscheduled
-          status: "Unscheduled",
+          startDate: scheduleJob ? isoDay(_d) : "", endDate: scheduleJob ? isoDay(_d) : "",
+          startTime: scheduleJob ? startTime : "", endTime: scheduleJob ? endTime : "",
+          status: onBoard ? "Scheduled" : "Unscheduled",
           totalPrice: Math.round(computedTotal * 100) / 100,
           notes, fieldNotes, privateNotes, taxRate,
           lineItems: toJobLineItems(),
@@ -600,7 +608,8 @@ export function CreateJob({ asModal = false, onClose, onCreated, prefill, headin
         });
         if (i === 0) firstRecord = rec;
       });
-      toast.success(`Created ${n} recurring jobs (unscheduled) · ${describeRecurrence(buildRecurrenceRule())}`);
+      const past = occurrences.filter((d) => isoDay(d) < isoDay(new Date())).length;
+      toast.success(`Created ${n} recurring jobs${onBoard ? " on the board" : scheduleJob ? " — waiting in Pending for their dates" : " (unscheduled)"}${past ? ` · ${past} before today` : ""}`);
       if (asModal) { if (firstRecord) onCreated?.(firstRecord); onClose?.(); return; }
       navigate(returnTo || "/jobs");
       return;
@@ -752,7 +761,8 @@ export function CreateJob({ asModal = false, onClose, onCreated, prefill, headin
                 <button
                   key={val}
                   type="button"
-                  onClick={() => setJobType(val)}
+                  // A series starts unscheduled; Schedule job is opt-in for it.
+                  onClick={() => { setJobType(val); if (val === "recurring") setScheduleJob(false); }}
                   className={`flex-1 flex items-start gap-3 rounded-[10px] border p-3 text-left transition-colors ${jobType === val ? "border-[#4A6FA5]" : "border-[#E5E7EB]"}`}
                 >
                   <span className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border ${jobType === val ? "border-[#4A6FA5]" : "border-[#E5E7EB]"}`}>
@@ -998,9 +1008,9 @@ export function CreateJob({ asModal = false, onClose, onCreated, prefill, headin
             <p className="mt-1 text-[12px] text-[#8899AA]">Defaults from the job type · syncs with the end time below</p>
           </div>
 
-          {/* One-off: Schedule toggle + a single date/time. Recurring shows the
-              wizard below instead (the series is created unscheduled). */}
-          {jobType === "one-off" && (<>
+          {/* Schedule job: one-off — the job's date and time; recurring — the first
+              visit's date, and optionally a time + technician for every visit. */}
+          {(<>
           {/* Schedule job toggle — bordered row (Figma "Item"). */}
           <div className="flex items-center justify-between rounded-lg border border-[#E5E7EB] px-4 py-3">
             <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>Schedule job</span>
@@ -1020,15 +1030,15 @@ export function CreateJob({ asModal = false, onClose, onCreated, prefill, headin
             <>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                 <div>
-                  <label className="block text-[14px] text-[#1A2332] mb-1" style={{ fontWeight: 500 }}>Start date {reqStar}</label>
+                  <label className="block text-[14px] text-[#1A2332] mb-1" style={{ fontWeight: 500 }}>{jobType === "recurring" ? "First visit" : "Start date"} {reqStar}</label>
                   <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className={fieldCls} />
                 </div>
                 <div>
-                  <label className="block text-[14px] text-[#1A2332] mb-1" style={{ fontWeight: 500 }}>Start time {reqStar}</label>
+                  <label className="block text-[14px] text-[#1A2332] mb-1" style={{ fontWeight: 500 }}>Start time {jobType === "one-off" && reqStar}</label>
                   <input type="time" step={60} value={startTime} onChange={(e) => syncStartTime(e.target.value)} className={`${fieldCls} ${hasConflict ? "border-[#DC2626]" : ""}`} />
                 </div>
                 <div>
-                  <label className="block text-[14px] text-[#1A2332] mb-1" style={{ fontWeight: 500 }}>End time {reqStar}</label>
+                  <label className="block text-[14px] text-[#1A2332] mb-1" style={{ fontWeight: 500 }}>End time {jobType === "one-off" && reqStar}</label>
                   <input type="time" step={60} value={endTime} onChange={(e) => syncEndTime(e.target.value)} className={`${fieldCls} ${hasConflict ? "border-[#DC2626]" : ""}`} />
                 </div>
               </div>
@@ -1053,23 +1063,17 @@ export function CreateJob({ asModal = false, onClose, onCreated, prefill, headin
           {/* ── Recurring wizard (Marek, Jun 8). Generates a series of unscheduled jobs. ── */}
           {jobType === "recurring" && (
             <div className="flex flex-col gap-4 rounded-lg border border-[#E5E7EB] p-4">
-              <p className="text-[13px] text-[#546478]">Creates a series of <span style={{ fontWeight: 600 }}>unscheduled</span> jobs you can schedule on the board later.</p>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="block text-[14px] text-[#1A2332] mb-1" style={{ fontWeight: 500 }}>Repeat</label>
-                  <select value={recFreq} onChange={(e) => setRecFreq(e.target.value as RecurrenceFrequency)} className={fieldCls}>
-                    <option value="daily">Daily</option>
-                    <option value="weekly">Weekly</option>
-                    <option value="monthly">Monthly</option>
-                    <option value="yearly">Yearly</option>
+              <p className="text-[12px] text-[#6B7280]">Everything on this form is copied to every job of the series. After that, each job is edited on its own.</p>
+              <div>
+                <label className="block text-[14px] text-[#1A2332] mb-1" style={{ fontWeight: 500 }}>Repeat every</label>
+                <div className="flex items-center gap-2">
+                  <input type="number" min={1} value={recInterval} onChange={(e) => setRecInterval(e.target.value)} className={`${fieldCls} w-20`} aria-label="Repeat every" />
+                  <select value={recFreq} onChange={(e) => setRecFreq(e.target.value as RecurrenceFrequency)} className={`${fieldCls} w-36`} aria-label="Repeat unit">
+                    <option value="daily">Day</option>
+                    <option value="weekly">Week</option>
+                    <option value="monthly">Month</option>
+                    <option value="yearly">Year</option>
                   </select>
-                </div>
-                <div>
-                  <label className="block text-[14px] text-[#1A2332] mb-1" style={{ fontWeight: 500 }}>Every</label>
-                  <div className="flex items-center gap-2">
-                    <input type="number" min={1} value={recInterval} onChange={(e) => setRecInterval(e.target.value)} className={`${fieldCls} w-20`} />
-                    <span className="text-[14px] text-[#546478]">{recFreq === "daily" ? "day(s)" : recFreq === "weekly" ? "week(s)" : recFreq === "monthly" ? "month(s)" : "year(s)"}</span>
-                  </div>
                 </div>
               </div>
               {recFreq === "weekly" && (
@@ -1090,23 +1094,41 @@ export function CreateJob({ asModal = false, onClose, onCreated, prefill, headin
                   </div>
                 </div>
               )}
+              {recFreq === "monthly" && (
+                <div>
+                  <label className="block text-[14px] text-[#1A2332] mb-1" style={{ fontWeight: 500 }}>Day of month</label>
+                  <select value={recDayOfMonth} onChange={(e) => setRecDayOfMonth(Number(e.target.value))} className={`${fieldCls} w-36`}>
+                    {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => <option key={d} value={d}>{d}{[, "st", "nd", "rd"][d % 10 > 3 || Math.floor(d / 10) === 1 ? 0 : d % 10] || "th"}</option>)}
+                  </select>
+                  <p className="mt-1 text-[12px] text-[#6B7280]">In shorter months, the last day is used.</p>
+                </div>
+              )}
               <div>
                 <label className="block text-[14px] text-[#1A2332] mb-1" style={{ fontWeight: 500 }}>Ends</label>
                 <div className="flex items-center gap-2">
                   <input type="radio" name="recEnd" checked={recEndMode === "count"} onChange={() => setRecEndMode("count")} />
                   <span className="text-[14px] text-[#1A2332]">After</span>
-                  <input type="number" min={1} value={recCount} onChange={(e) => setRecCount(e.target.value)} disabled={recEndMode !== "count"} className={`${fieldCls} w-20 ${recEndMode !== "count" ? "opacity-50" : ""}`} />
-                  <span className="text-[14px] text-[#546478]">occurrence(s)</span>
+                  <input type="number" min={1} max={99} value={recCount} onChange={(e) => setRecCount(e.target.value)} disabled={recEndMode !== "count"} className={`${fieldCls} w-20 ${recEndMode !== "count" ? "opacity-50" : ""}`} />
+                  <span className="text-[14px] text-[#546478]">occurrences</span>
+                  <span className="text-[12px] text-[#9CA3AF]">1–99</span>
                 </div>
                 <div className="flex items-center gap-2 mt-2">
                   <input type="radio" name="recEnd" checked={recEndMode === "date"} onChange={() => setRecEndMode("date")} />
-                  <span className="text-[14px] text-[#1A2332]">On date</span>
+                  <span className="text-[14px] text-[#1A2332]">On</span>
                   <input type="date" value={recEndDate} onChange={(e) => setRecEndDate(e.target.value)} disabled={recEndMode !== "date"} className={`${fieldCls} w-44 ${recEndMode !== "date" ? "opacity-50" : ""}`} />
                 </div>
               </div>
               <p className="text-[12px] text-[#4A6FA5]" style={{ fontWeight: 500 }}>
-                {(() => { const occ = expandRecurrence(buildRecurrenceRule(), new Date()); return `Creates ${occ.length} job${occ.length === 1 ? "" : "s"} · ${describeRecurrence(buildRecurrenceRule())}`; })()}
+                {(() => {
+                  const occ = expandRecurrence(buildRecurrenceRule(), seriesStart());
+                  const past = occ.filter((d) => isoDay(d) < isoDay(new Date())).length;
+                  const every = describeRecurrence({ ...buildRecurrenceRule(), endMode: "count", count: 1 }).split(" · ")[0];
+                  return `Creates ${occ.length} job${occ.length === 1 ? "" : "s"} · ${every.charAt(0).toLowerCase()}${every.slice(1)}${past ? ` · ${past} before today` : ""}`;
+                })()}
               </p>
+              {scheduleJob && startDate && startDate < isoDay(new Date()) && (
+                <p className="-mt-2 text-[12px] text-[#6B7280]">Visits before today go on the board in past weeks when they have a time and a technician; without them they wait in Pending, marked Past date. The client is emailed only about future visits.</p>
+              )}
             </div>
           )}
         </FormSection>

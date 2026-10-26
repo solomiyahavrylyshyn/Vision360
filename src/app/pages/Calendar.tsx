@@ -1106,10 +1106,15 @@ export function Calendar() {
   // so the two views can never disagree (the panel used to hardcode the time +
   // workflow status and contradict the card). Falls back to the workflow status
   // for a fully scheduled+assigned board job.
-  const stateChips = (j: { status: JobStatus; technicianId: string; unscheduled?: boolean }) => {
+  const stateChips = (j: { id?: number; status: JobStatus; technicianId: string; unscheduled?: boolean }) => {
     const labels = schedulingTags(j);
-    const final = labels.length ? labels : [j.status];
+    // A visit dated before today that still waits (e.g. a series started in the past).
+    const rec = j.id != null && isStoreJob(j.id) ? jobsStore.getById(j.id - JOBSTORE_ID_BASE) : undefined;
+    const todayIso = format(new Date(), "yyyy-MM-dd");
+    const pastDate = labels.length > 0 && !!rec?.startDate && rec.startDate < todayIso && rec.status !== "Completed";
+    const final = labels.length ? [...labels, ...(pastDate ? ["Past date"] : [])] : [j.status];
     return final.map((label) => {
+      if (label === "Past date") return { label, color: "#B45309", bg: "rgba(217,119,6,0.15)" };
       if (label === "Unscheduled" || label === "Unassigned") return { label, color: "#6B7280", bg: "rgba(107,114,128,0.15)" };
       const s = STATUS_STYLES[label as JobStatus];
       return { label, color: s?.color ?? "#6B7280", bg: s?.bg ?? "rgba(107,114,128,0.15)" };
