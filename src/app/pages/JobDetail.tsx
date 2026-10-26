@@ -545,7 +545,7 @@ export function JobDetail() {
       endsOn: r.endDate,
       startTime: r.startTime || "",
       endTime: r.endTime || "",
-      status: "Scheduled" as const,
+      status: (r.status || "Scheduled") as "Scheduled",
       notes: [] as NoteEntry[],
       fieldNotes: [] as NoteEntry[],
       internalNotes: [] as NoteEntry[],
@@ -659,6 +659,18 @@ export function JobDetail() {
   });
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
   const [currentStatus, setCurrentStatus] = useState<string>(job.status);
+  // A completed job is what the client was billed for (9229 / 9230): read-only
+  // until a manager reopens it. Invoice, expense and notes stay available.
+  const isCompleted = currentStatus === "Completed";
+  const [reopenOpen, setReopenOpen] = useState(false);
+  const [reopenedAt, setReopenedAt] = useState<Date | null>(null);
+  const reopenJob = () => {
+    setCurrentStatus("In Progress");
+    if (storeJob) jobsStore.update(storeJob.id, { status: "In Progress" });
+    setReopenedAt(new Date());
+    setReopenOpen(false);
+    toast.success("Job reopened — it's In Progress again");
+  };
   const [editingSection, setEditingSection] = useState<null | "address" | "schedule" | "overview">(null);
   const [editJob, setEditJob] = useState<any>(job);
 
@@ -987,6 +999,7 @@ export function JobDetail() {
           <div className="h-full bg-white border border-[#E5E7EB] rounded-xl overflow-hidden">
             <div className="flex items-center justify-between gap-2 px-4 pt-4">
               <span className="text-[16px] text-[#1A2332]" style={{ fontWeight: 600 }}>Job overview</span>
+              {!isCompleted && (
               <button
                 onClick={() => openEdit("overview")}
                 className="w-8 h-8 flex items-center justify-center bg-white border border-[#E5E7EB] rounded-lg hover:bg-[#F5F7FA] transition-colors"
@@ -994,6 +1007,7 @@ export function JobDetail() {
               >
                 <span className="material-icons text-[#1A2332]" style={{ fontSize: "16px" }}>edit</span>
               </button>
+              )}
             </div>
             <div className="p-4 space-y-4">
               <div>
@@ -1032,6 +1046,7 @@ export function JobDetail() {
               {/* Job period — schedule block inside the same card (Figma) */}
               <div className="flex items-center justify-between gap-2">
                 <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Job period</span>
+                {!isCompleted && (
                 <button
                   onClick={() => openEdit("schedule")}
                   className="w-6 h-6 flex items-center justify-center rounded hover:bg-[#F5F7FA] transition-colors"
@@ -1040,6 +1055,7 @@ export function JobDetail() {
                 >
                   <span className="material-icons text-[#9CA3AF]" style={{ fontSize: "14px" }}>edit</span>
                 </button>
+                )}
               </div>
               <div>
                 <div className="text-[14px] text-[#6B7280] leading-[20px]">Duration</div>
@@ -1241,14 +1257,14 @@ export function JobDetail() {
                     className="w-full h-9 pl-9 pr-3 border border-[#E5E7EB] rounded-lg text-[14px] bg-white shadow-[0px_1px_2px_rgba(0,0,0,0.05)] focus:outline-none focus:border-[#4A6FA5]"
                   />
                 </div>
-                <button
+                {!isCompleted && (<button
                   onClick={() => attachInputRef.current?.click()}
                   aria-label="Upload document"
                   title="Upload document"
                   className="w-8 h-8 shrink-0 flex items-center justify-center bg-white border border-[#E5E7EB] rounded-lg hover:bg-[#F5F7FA] transition-colors"
                 >
                   <PlusIcon className="h-4 w-4 text-[#1A2332]" />
-                </button>
+                </button>)}
                 <input
                   ref={attachInputRef}
                   type="file"
@@ -1305,14 +1321,14 @@ export function JobDetail() {
                             </span>
                           )}
                           {/* Hover delete — small square button like the Figma overlay */}
-                          <span
+                          {!isCompleted && <span
                             role="button"
                             aria-label={`Delete ${a.name}`}
                             onClick={(e) => { e.stopPropagation(); removeAttachment(a.id); }}
                             className="absolute top-1.5 right-1.5 w-6 h-6 hidden group-hover:flex items-center justify-center bg-[#F5F7FA] rounded shadow-sm hover:bg-[#FEE2E2] cursor-pointer"
                           >
                             <span className="material-icons text-[#1A2332]" style={{ fontSize: "14px" }}>delete_outline</span>
-                          </span>
+                          </span>}
                         </button>
                       ))}
                     </div>
@@ -1569,7 +1585,7 @@ export function JobDetail() {
         <select className="h-9 rounded-lg border border-[#E5E7EB] bg-white px-3 text-[13px]"><option>Status: All</option></select>
         <select className="h-9 rounded-lg border border-[#E5E7EB] bg-white px-3 text-[13px]"><option>Date: All time</option></select>
         <button className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[#E5E7EB] px-3 text-[13px] hover:bg-[#F9FAFB]"><span className="material-icons" style={{ fontSize: "16px" }}>filter_alt</span>Filter</button>
-        <button onClick={() => navigate(`/estimates/new?client=${encodeURIComponent(job.client)}&job=${encodeURIComponent(job.jobNumber)}&returnTo=${encodeURIComponent(jobReturnUrl("estimates"))}`)} className="ml-auto inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#4A6FA5] px-3 text-[13px] text-white hover:bg-[#3d5a85]" style={{ fontWeight: 600 }}>Add estimate<span className="material-icons" style={{ fontSize: "15px" }}>keyboard_arrow_down</span></button>
+        {!isCompleted && <button onClick={() => navigate(`/estimates/new?client=${encodeURIComponent(job.client)}&job=${encodeURIComponent(job.jobNumber)}&returnTo=${encodeURIComponent(jobReturnUrl("estimates"))}`)} className="ml-auto inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#4A6FA5] px-3 text-[13px] text-white hover:bg-[#3d5a85]" style={{ fontWeight: 600 }}>Add estimate<span className="material-icons" style={{ fontSize: "15px" }}>keyboard_arrow_down</span></button>}
       </div>
       {jobEstimates.length === 0 ? <TabEmpty icon="request_quote" title="No estimates yet" subtitle="Add an estimate to outline the scope and cost of this job" /> : (
         <>
@@ -1608,7 +1624,7 @@ export function JobDetail() {
   // Adjust price (9227 / 9228) adds one "Discount" line; item prices stay.
   const renderFigmaItemsTab = () => {
     const rate = (storeJob?.taxRate ?? 7.5) / 100;
-    const locked = currentStatus === "Completed";
+    const locked = isCompleted;
     const items = jobLineItems.filter((li) => !li.isDiscount);
     const discountLine = jobLineItems.find((li) => li.isDiscount);
     const lineTax = (li: JobLineItem) => (li.isDiscount || li.taxable === false ? 0 : li.total * rate);
@@ -1810,6 +1826,16 @@ export function JobDetail() {
 
   const renderFigmaActivityTab = () => {
     const activity = [
+      ...(reopenedAt ? [{
+        id: 99,
+        icon: "lock_open",
+        title: "Job reopened",
+        description: "Reopened by You · Completed → In Progress · the client's signature stays",
+        actor: "You",
+        date: reopenedAt.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+        time: reopenedAt.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }),
+        tone: "#D97706",
+      }] : []),
       {
         id: 1,
         icon: "edit_note",
@@ -2177,6 +2203,13 @@ export function JobDetail() {
 
       {/* ── ONE BIG WHITE CARD CONTAINING EVERYTHING ── */}
       <div className="relative mx-6 mb-6 bg-white border border-[#E5E7EB] rounded-xl p-4 overflow-x-auto">
+        {isCompleted && (
+          <div className="mb-4 flex items-center justify-between gap-3 rounded-lg border border-[#BBF0CC] bg-[#F0FDF4] px-3.5 py-2">
+            <span className="flex items-center gap-2 text-[13px] text-[#14532D]"><span className="h-2 w-2 rounded-full bg-[#16A34A]" />This job is completed. Reopen it to change items, details or files.</span>
+            {/* Only the highest Jobs level (admin) can reopen; the prototype acts as an admin. */}
+            <button onClick={() => setReopenOpen(true)} className="h-8 shrink-0 rounded-lg border border-[#E5E7EB] bg-white px-3 text-[13px] text-[#1A2332] hover:bg-[#F5F7FA]" style={{ fontWeight: 500 }}>Reopen job</button>
+          </div>
+        )}
 
         {/* Summary content — left column has title/contact row, right column has compact KPIs */}
         <div className="flex min-w-[1190px] items-start gap-4">
@@ -2192,13 +2225,14 @@ export function JobDetail() {
               {/* Status dropdown — unified detail-header pill (dot + 13px label + chevron) */}
               <div className="relative">
                 <button
-                  onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[13px] transition-colors"
+                  onClick={() => !isCompleted && setStatusDropdownOpen(!statusDropdownOpen)}
+                  disabled={isCompleted}
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[13px] transition-colors ${isCompleted ? "cursor-default" : ""}`}
                   style={{ fontWeight: 600, backgroundColor: `${statusColor}18`, color: statusColor }}
                 >
                   <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: statusColor }} />
                   {displayStatus}
-                  <span className="material-icons" style={{ fontSize: "14px" }}>arrow_drop_down</span>
+                  {!isCompleted && <span className="material-icons" style={{ fontSize: "14px" }}>arrow_drop_down</span>}
                 </button>
                 {statusDropdownOpen && (
                   <div className="absolute left-0 top-full mt-1 bg-white border border-[#E5E7EB] rounded-md shadow-lg z-50 w-[160px] py-1">
@@ -2306,6 +2340,9 @@ export function JobDetail() {
           tabSuffix={<TabSettingsButton onClick={() => setShowTabSettings(true)} />}
           trailing={
             <>
+            {isCompleted && (
+              <button onClick={() => setReopenOpen(true)} className="h-9 rounded-lg border border-[#E5E7EB] bg-white px-3 text-[13px] text-[#1A2332] hover:bg-[#F5F7FA]" style={{ fontWeight: 600 }}>Reopen job</button>
+            )}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
@@ -2379,6 +2416,20 @@ export function JobDetail() {
       )}
       {storeJob?.series && seriesDialog === "change" && <ChangeVisitsModal seriesId={storeJob.series.id} onClose={() => setSeriesDialog(null)} />}
       {storeJob?.series && seriesDialog === "cancel" && <CancelSeriesDialog seriesId={storeJob.series.id} onClose={() => setSeriesDialog(null)} />}
+
+      {reopenOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setReopenOpen(false)}>
+          <div className="absolute inset-0 bg-black/40" />
+          <div className="relative w-[440px] max-w-full rounded-xl border border-[#E5E7EB] bg-white p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-[18px] text-[#1A2332]" style={{ fontFamily: "Geist", fontWeight: 600 }}>Reopen this job?</h3>
+            <p className="mt-2 text-[14px] text-[#546478]">It goes back to In Progress. The client's signature stays.</p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button onClick={() => setReopenOpen(false)} className="h-9 rounded-lg border border-[#E5E7EB] bg-white px-4 text-[14px] text-[#1A2332] hover:bg-[#F5F7FA]" style={{ fontWeight: 500 }}>Cancel</button>
+              <button onClick={reopenJob} className="h-9 rounded-lg bg-[#4A6FA5] px-4 text-[14px] text-white hover:bg-[#3d5a85]" style={{ fontWeight: 500 }}>Reopen</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── PER-SECTION EDIT MODAL ── */}
       {editingSection && (
