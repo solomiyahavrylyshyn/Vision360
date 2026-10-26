@@ -25,6 +25,8 @@ import { expenseCategoriesStore } from "../stores/expenseCategoriesStore";
 import { expensesStore } from "../stores/expensesStore";
 import { computeJobFinancials, isCompensationCategory } from "../utils/jobFinancials";
 import { AdjustPriceModal, DISCOUNT_LINE_NAME, discountLineDescription } from "../components/AdjustPriceModal";
+import { SeriesVisitsModal, ChangeVisitsModal, CancelSeriesDialog } from "../components/JobSeriesDialogs";
+import { seriesRuleText } from "../utils/jobSeries";
 import { expenseCategoryColors } from "./Expenses";
 import acServicePhoto from "../../assets/documents/33897-cu.jpg";
 import waterHeaterPhoto from "../../assets/documents/34285-install-water-heater.jpg";
@@ -536,9 +538,9 @@ export function JobDetail() {
       assignedTo: r.assignedTo,
       jobNumber: r.jobNumber,
       jobType: r.jobType || "Service",
-      jobFrequency: "One-time",
+      jobFrequency: r.series ? "Recurring" : "One-time",
       // Don't inherit the mock's recurring schedule line on store-created jobs.
-      frequencyDetail: "",
+      frequencyDetail: r.series ? seriesRuleText(r.series.rule, r.series.total) : "",
       startedOn: r.startDate,
       endsOn: r.endDate,
       startTime: r.startTime || "",
@@ -996,9 +998,15 @@ export function JobDetail() {
             <div className="p-4 space-y-4">
               <div>
                 <div className="text-[14px] text-[#6B7280] leading-[20px]">Job frequency</div>
-                <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>{job.jobFrequency || "One-time"}</div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>{job.jobFrequency || "One-time"}</span>
+                  {storeJob?.series && storeJob.status !== "Cancelled" && <span className="text-[12px] text-[#546478]" style={{ fontWeight: 500 }}>Visit {storeJob.series.index} of {storeJob.series.total}</span>}
+                </div>
                 {job.frequencyDetail && (
                   <div className="text-[14px] text-[#6B7280] leading-[20px]">{job.frequencyDetail}</div>
+                )}
+                {storeJob?.series && (
+                  <button onClick={() => setSeriesDialog("visits")} className="mt-0.5 text-[13px] text-[#4A6FA5] hover:underline" style={{ fontWeight: 500 }}>See all visits</button>
                 )}
               </div>
               <div>
@@ -1593,6 +1601,7 @@ export function JobDetail() {
   );
 
   const [adjustOpen, setAdjustOpen] = useState(false);
+  const [seriesDialog, setSeriesDialog] = useState<null | "visits" | "change" | "cancel">(null);
   // Items tab (Figma 497:45865). Unit price is a field (tasks 9225 / 9226): the
   // office charges what it actually sold for; the catalog is not touched. Tax is
   // shown as an amount and each row total includes it. A completed job is read-only.
@@ -2344,6 +2353,14 @@ export function JobDetail() {
               }}>Duplicate Job</KebabItem>
               <KebabSeparator />
               <KebabItem icon="cancel" destructive>Cancel Job</KebabItem>
+              {/* Series (9236 / 9237): Jobs level Edit changes the plan, level Cancel cancels it —
+                  the prototype has no signed-in role, so both show. */}
+              {storeJob?.series && (<>
+                <KebabSeparator />
+                <div className="px-3 pt-1 pb-0.5 text-[11px] tracking-wide text-[#8899AA]" style={{ fontWeight: 500 }}>SERIES</div>
+                <KebabItem icon="event_repeat" onSelect={() => setSeriesDialog("change")}>Change number of visits / end date</KebabItem>
+                <KebabItem icon="event_busy" destructive onSelect={() => setSeriesDialog("cancel")}>Cancel series</KebabItem>
+              </>)}
             </KebabMenu>
             </>
           }
@@ -2355,6 +2372,13 @@ export function JobDetail() {
           {renderContent()}
         </div>
       </div>
+
+      {storeJob?.series && seriesDialog === "visits" && (
+        <SeriesVisitsModal seriesId={storeJob.series.id} currentId={storeJob.id} onClose={() => setSeriesDialog(null)}
+          onOpen={(vid) => { setSeriesDialog(null); if (vid !== storeJob.id) navigate(`/jobs/${vid}`); }} />
+      )}
+      {storeJob?.series && seriesDialog === "change" && <ChangeVisitsModal seriesId={storeJob.series.id} onClose={() => setSeriesDialog(null)} />}
+      {storeJob?.series && seriesDialog === "cancel" && <CancelSeriesDialog seriesId={storeJob.series.id} onClose={() => setSeriesDialog(null)} />}
 
       {/* ── PER-SECTION EDIT MODAL ── */}
       {editingSection && (

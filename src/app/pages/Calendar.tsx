@@ -16,6 +16,8 @@ import { type JobStatus, JOB_STATUS_STYLES as STATUS_STYLES, JOB_STATUS_ICONS as
 import { isPending, pendingJobs, type PendingFilter, hasTimeConflict, statusAfterAssignToSlot, schedulingTags, durationForType, isDraggable, isShownOnBoard, occupiesSlot, packOverlaps, deconflict } from "../utils/scheduleLogic";
 import { jobTypeColor, jobTypeTint, JOB_TYPE_ORDER, JOB_TYPE_COLORS } from "../constants/jobTypeColors";
 import { jobsStore, type JobRecord } from "../stores/jobsStore";
+import { SeriesVisitsModal, ChangeVisitsModal, CancelSeriesDialog } from "../components/JobSeriesDialogs";
+import { seriesRuleText } from "../utils/jobSeries";
 import { CreateJob, type CreateJobPrefill, type CreateJobValues } from "./CreateJob";
 
 // Toast variants drive the pill's icon + colour (success/info/warning).
@@ -138,6 +140,8 @@ interface DrawerJob {
   status: JobStatus; technicianId: string; jobType?: string; amount: number; unscheduled?: boolean;
   startLabel: string; endLabel: string; dateLabel: string; endDateLabel?: string; durationLabel: string;
   frequency: "One-off" | "Recurring"; recurrenceSummary?: string;
+  /** A visit of a recurring series (9117 / 9236 / 9237). */
+  series?: { id: string; index: number; total: number; recordId: number };
 }
 function JobInfoDrawer({
   job, jobTypes, onClose, onStatus, onType, onTechnician, onEdit, onReopen,
@@ -162,13 +166,33 @@ function JobInfoDrawer({
   const labelCls = "flex items-center gap-2 w-[140px] shrink-0 text-[14px] text-[#6B7280]";
   const ctrlCls = "flex-1 h-8 px-2 border border-[#E5E7EB] rounded-lg text-[13px] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.05)] outline-none focus:border-[#4A6FA5]";
   const roCls = `${ctrlCls} text-[#6B7280]`;
+  const navigateTo = useNavigate();
+  const [seriesMenu, setSeriesMenu] = useState(false);
+  const [seriesDialog, setSeriesDialog] = useState<null | "visits" | "change" | "cancel">(null);
   return (
     <div className="fixed inset-0 z-50 flex justify-end" style={{ background: "rgba(28,43,58,0.10)" }} onClick={onClose}>
+      {job.series && seriesDialog === "visits" && <SeriesVisitsModal seriesId={job.series.id} currentId={job.series.recordId} onClose={() => setSeriesDialog(null)} onOpen={(vid) => navigateTo(`/jobs/${vid}`)} />}
+      {job.series && seriesDialog === "change" && <ChangeVisitsModal seriesId={job.series.id} onClose={() => setSeriesDialog(null)} />}
+      {job.series && seriesDialog === "cancel" && <CancelSeriesDialog seriesId={job.series.id} onClose={() => setSeriesDialog(null)} />}
       <div className="relative w-[400px] max-w-[92vw] h-full flex flex-col bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="flex items-center gap-2 px-4 h-[59px] shrink-0">
           <h2 className="text-[20px] text-[#1A2332] truncate flex-1" style={{ fontWeight: 600 }}>{job.headerTitle}</h2>
           {!job.unscheduled && <StatusPillSelect value={job.status} onChange={onStatus} />}
+          {job.series && (
+            <div className="relative">
+              <button onClick={() => setSeriesMenu((o) => !o)} aria-label="Job actions" className="w-7 h-7 flex items-center justify-center rounded hover:bg-[#F5F7FA]">
+                <span className="material-icons text-[#1A2332]" style={{ fontSize: "18px" }}>more_vert</span>
+              </button>
+              {seriesMenu && (
+                <div className="absolute right-0 top-8 z-10 w-[270px] rounded-xl border border-[#E5E7EB] bg-white py-1.5 shadow-lg">
+                  <div className="px-3 pt-1 pb-0.5 text-[11px] tracking-wide text-[#8899AA]" style={{ fontWeight: 500 }}>SERIES</div>
+                  <button onClick={() => { setSeriesMenu(false); setSeriesDialog("change"); }} className="flex w-full items-center gap-2 px-3 py-2 text-left text-[14px] text-[#1A2332] hover:bg-[#F5F7FA]"><span className="material-icons text-[#6B7280]" style={{ fontSize: "16px" }}>event_repeat</span>Change number of visits / end date</button>
+                  <button onClick={() => { setSeriesMenu(false); setSeriesDialog("cancel"); }} className="flex w-full items-center gap-2 px-3 py-2 text-left text-[14px] text-[#DC2626] hover:bg-[#FEF2F2]"><span className="material-icons" style={{ fontSize: "16px" }}>event_busy</span>Cancel series</button>
+                </div>
+              )}
+            </div>
+          )}
           <button onClick={onClose} aria-label="Close" className="w-6 h-6 flex items-center justify-center rounded hover:bg-[#F5F7FA]">
             <span className="material-icons text-[#1A2332]" style={{ fontSize: "18px" }}>close</span>
           </button>
@@ -198,10 +222,12 @@ function JobInfoDrawer({
                   <div className="flex items-center gap-2 mt-1">
                     <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>{job.service}</span>
                     <span className="px-2 py-0.5 rounded-lg text-[12px] bg-[#F5F7FA] text-[#1A2332]" style={{ fontWeight: 500 }}>{job.frequency}</span>
+                    {job.series && <span className="text-[12px] text-[#546478]" style={{ fontWeight: 500 }}>Visit {job.series.index} of {job.series.total}</span>}
                   </div>
                   {job.frequency === "Recurring" && job.recurrenceSummary && (
                     <div className="text-[12px] text-[#6B7280] mt-1">{job.recurrenceSummary}</div>
                   )}
+                  {job.series && <button onClick={() => setSeriesDialog("visits")} className="text-[12px] text-[#4A6FA5] hover:underline" style={{ fontWeight: 500 }}>See all visits</button>}
                   <div className="text-[14px] text-[#6B7280] mt-1">{job.address}</div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
@@ -558,6 +584,12 @@ const INITIAL_JOBS: UnifiedJob[] = deconflict(INITIAL_JOBS_RAW);
 // offset so they never collide with the local board ids (1-38, board-created 39+).
 const JOBSTORE_ID_BASE = 100000;
 const isStoreJob = (id: number) => id >= JOBSTORE_ID_BASE;
+// Drawer fields for a visit of a recurring series ("Visit 3 of 10", the rule).
+const seriesFields = (boardId: number): { frequency: "One-off" | "Recurring"; recurrenceSummary?: string; series?: { id: string; index: number; total: number; recordId: number } } => {
+  const rec = isStoreJob(boardId) ? jobsStore.getById(boardId - JOBSTORE_ID_BASE) : undefined;
+  if (!rec?.series) return { frequency: rec?.frequency === "Recurring" ? "Recurring" : "One-off" };
+  return { frequency: "Recurring", recurrenceSummary: seriesRuleText(rec.series.rule, rec.series.total), series: { id: rec.series.id, index: rec.series.index, total: rec.series.total, recordId: rec.id } };
+};
 
 const ASSIGNEE_TO_TECH: Record<string, string> = Object.fromEntries(TEAM.map((t) => [t.name, t.id]));
 const assigneeToTechId = (name: string): string => ASSIGNEE_TO_TECH[name?.trim()] ?? ""; // unknown / "" ⇒ unassigned
@@ -2458,7 +2490,7 @@ export function Calendar() {
                   endLabel: selectedDispatchJob.unscheduled ? "" : formatRegionalTime(selectedDispatchJob.end, regionalSettings),
                   dateLabel: selectedDispatchJob.unscheduled ? "" : format(weekDays[selectedDispatchJob.dayIdx] ?? currentDate, "dd-MM-yyyy"),
                   durationLabel: String(Math.max(0, selectedDispatchJob.end - selectedDispatchJob.start)),
-                  frequency: "One-off",
+                  ...seriesFields(selectedDispatchJob.id),
                 }}
                 jobTypes={jobTypes}
                 onClose={() => setSelectedDispatchJob(null)}
@@ -2703,7 +2735,7 @@ export function Calendar() {
                   endLabel: selectedDayJob.unscheduled ? "" : formatRegionalTime(selectedDayJob.end, regionalSettings),
                   dateLabel: selectedDayJob.unscheduled ? "" : format(currentDate, "dd-MM-yyyy"),
                   durationLabel: String(Math.max(0, selectedDayJob.end - selectedDayJob.start)),
-                  frequency: "One-off",
+                  ...seriesFields(selectedDayJob.id),
                 }}
                 jobTypes={jobTypes}
                 onClose={() => setSelectedDayJob(null)}

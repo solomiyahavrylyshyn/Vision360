@@ -95,6 +95,8 @@ export function isUnscheduled(job: Pick<SchedulableJob, "unscheduled">): boolean
   return !!job.unscheduled;
 }
 export function isPending(job: PendingShape): boolean {
+  // A finished or cancelled job (e.g. a cancelled visit of a series) is not waiting for anyone.
+  if (job.status === "Cancelled" || job.status === "Completed") return false;
   return isUnassigned(job) || isUnscheduled(job);
 }
 

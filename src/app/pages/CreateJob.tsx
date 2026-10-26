@@ -579,6 +579,9 @@ export function CreateJob({ asModal = false, onClose, onCreated, prefill, headin
       const n = Math.max(1, occurrences.length);
       const clientId = liveClients.find((c) => c.name === client.trim())?.id ?? "";
       let firstRecord: ReturnType<typeof jobsStore.add> | null = null;
+      // Each visit knows its series, its number and the plan ("Visit 3 of 10").
+      const seriesId = `ser-${Date.now().toString(36)}`;
+      const seriesRule = buildRecurrenceRule();
       occurrences.forEach((_d, i) => {
         const rec = jobsStore.add({
           jobNumber,
@@ -593,6 +596,7 @@ export function CreateJob({ asModal = false, onClose, onCreated, prefill, headin
           notes, fieldNotes, privateNotes, taxRate,
           lineItems: toJobLineItems(),
           customFields: cfValues,
+          series: { id: seriesId, index: i + 1, total: n, rule: seriesRule },
         });
         if (i === 0) firstRecord = rec;
       });

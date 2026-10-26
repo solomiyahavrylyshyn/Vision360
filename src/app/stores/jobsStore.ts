@@ -2,6 +2,7 @@
 // optional Postgres write-through. Mirrors clientsStore / estimatesStore.
 import { createApiSync } from "./apiSync";
 import type { CostBreakdown } from "../utils/itemCost";
+import type { JobSeriesInfo } from "../utils/jobSeries";
 
 // A product or service sold on the job. Added from the job's Items tab (or
 // copied from an approved estimate); the shape matches what JobDetail renders.
@@ -42,6 +43,8 @@ export interface JobRecord {
   // type in jobCategory (Marek call #21: "recurring/one-off are not job types").
   // Optional so records persisted before this field existed still load.
   frequency?: string;
+  /** Set on each visit of a recurring series (tasks 9117 / 9236 / 9237). */
+  series?: JobSeriesInfo;
   startDate: string;
   endDate: string;
   startTime: string;
