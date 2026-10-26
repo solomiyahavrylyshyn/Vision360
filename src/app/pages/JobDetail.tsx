@@ -24,6 +24,7 @@ import { invoicesStore } from "../stores/invoicesStore";
 import { expenseCategoriesStore } from "../stores/expenseCategoriesStore";
 import { expensesStore } from "../stores/expensesStore";
 import { computeJobFinancials, isCompensationCategory } from "../utils/jobFinancials";
+import { AdjustPriceModal, DISCOUNT_LINE_NAME, discountLineDescription } from "../components/AdjustPriceModal";
 import { expenseCategoryColors } from "./Expenses";
 import acServicePhoto from "../../assets/documents/33897-cu.jpg";
 import waterHeaterPhoto from "../../assets/documents/34285-install-water-heater.jpg";
@@ -614,10 +615,15 @@ export function JobDetail() {
   const [addedLineItems, setAddedLineItems] = useState<JobLineItem[]>([]);
   const [itemPickerOpen, setItemPickerOpen] = useState(false);
   const catalogItems = useSyncExternalStore(itemsStore.subscribe, itemsStore.getSnapshot);
-  const jobLineItems: JobLineItem[] = [
-    ...((job.lineItems ?? []) as JobLineItem[]),
-    ...(storeJob ? [] : addedLineItems),
-  ];
+  // A demo job's lines become editable state once the user changes a price or a discount.
+  const [demoLines, setDemoLines] = useState<JobLineItem[] | null>(null);
+  const jobLineItems: JobLineItem[] = storeJob
+    ? ((job.lineItems ?? []) as JobLineItem[])
+    : (demoLines ?? [...((job.lineItems ?? []) as JobLineItem[]), ...addedLineItems]);
+  const setJobLines = (next: JobLineItem[]) => {
+    if (storeJob) jobsStore.update(storeJob.id, { lineItems: next });
+    else setDemoLines(next);
+  };
   // "Add Item" on the Items tab: a single catalog item or a price book group.
   // The group lands as one line at the group's price, its members kept on the
   // line so the document can show the package expanded.
@@ -626,9 +632,11 @@ export function JobDetail() {
     const line: JobLineItem = {
       name: li.name, description: li.description, itemType: li.itemType,
       quantity: li.quantity, unitCost: li.unitCost, unitPrice: li.unitPrice, total: li.total,
-      costBreakdown: li.costBreakdown,
+      costBreakdown: li.costBreakdown, catalogPrice: li.catalogPrice, taxable: li.taxable,
     };
-    if (storeJob) jobsStore.update(storeJob.id, { lineItems: [...(storeJob.lineItems ?? []), line] });
+    // A new item goes above the Discount line, which stays last.
+    const disc = jobLineItems.filter((l) => l.isDiscount);
+    if (storeJob || demoLines) setJobLines([...jobLineItems.filter((l) => !l.isDiscount), line, ...disc]);
     else setAddedLineItems((prev) => [...prev, line]);
     setItemPickerOpen(false);
     toast.success(`${item.name} added to the job`);
@@ -1584,31 +1592,111 @@ export function JobDetail() {
     </div>
   );
 
+  const [adjustOpen, setAdjustOpen] = useState(false);
+  // Items tab (Figma 497:45865). Unit price is a field (tasks 9225 / 9226): the
+  // office charges what it actually sold for; the catalog is not touched. Tax is
+  // shown as an amount and each row total includes it. A completed job is read-only.
+  // Adjust price (9227 / 9228) adds one "Discount" line; item prices stay.
   const renderFigmaItemsTab = () => {
-    const subtotal = jobLineItems.reduce((sum: number, li: any) => sum + li.total, 0);
-    const taxableAmount = subtotal;
-    const tax = taxableAmount * 0.075;
+    const rate = (storeJob?.taxRate ?? 7.5) / 100;
+    const locked = currentStatus === "Completed";
+    const items = jobLineItems.filter((li) => !li.isDiscount);
+    const discountLine = jobLineItems.find((li) => li.isDiscount);
+    const lineTax = (li: JobLineItem) => (li.isDiscount || li.taxable === false ? 0 : li.total * rate);
+    const subtotal = items.reduce((sum, li) => sum + li.total, 0);
+    const taxableAmount = items.filter((li) => li.taxable !== false).reduce((sum, li) => sum + li.total, 0);
+    const tax = taxableAmount * rate;
+    const listPrice = subtotal + tax;
+    const discount = discountLine ? -discountLine.total : 0;
+    const catalogRate = (li: JobLineItem) => li.catalogPrice ?? catalogItems.find((c) => c.name === li.name)?.rate;
+    const setPrice = (idx: number, price: number) => {
+      setJobLines(jobLineItems.map((li, i) => i === idx ? { ...li, unitPrice: price, total: Math.round(li.quantity * price * 100) / 100, catalogPrice: li.catalogPrice ?? catalogRate(li) } : li));
+    };
+    const setQty = (idx: number, qty: number) => {
+      setJobLines(jobLineItems.map((li, i) => i === idx ? { ...li, quantity: qty, total: Math.round(qty * li.unitPrice * 100) / 100 } : li));
+    };
+    const removeLine = (idx: number) => {
+      const li = jobLineItems[idx];
+      setJobLines(jobLineItems.filter((_, i) => i !== idx));
+      if (li.isDiscount) toast.success("Discount removed — the price is back to the sum of the items");
+    };
+    const applyPrice = (newPrice: number) => {
+      const amount = Math.round((listPrice - newPrice) * 100) / 100;
+      const line: JobLineItem = {
+        name: DISCOUNT_LINE_NAME, description: discountLineDescription(), quantity: 1,
+        unitPrice: -amount, unitCost: 0, total: -amount, taxable: false, isDiscount: true,
+      };
+      setJobLines([...items, line]);
+      setAdjustOpen(false);
+      toast.success(`Price adjusted to ${money(newPrice)} — Discount −${money(amount)}`);
+    };
+    const priceCell = (li: JobLineItem, idx: number) => {
+      if (li.isDiscount) return <span className="text-[#9CA3AF]">—</span>;
+      if (locked) return money(li.unitPrice);
+      const cat = catalogRate(li);
+      return (
+        <div className="inline-flex flex-col items-end">
+          <div className="relative">
+            <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-[13px] text-[#9CA3AF]">$</span>
+            <input
+              type="number" min={0} step="0.01" value={li.unitPrice}
+              onChange={(e) => setPrice(idx, Math.max(0, Number(e.target.value) || 0))}
+              aria-label={`Unit price of ${li.name}`}
+              className="h-8 w-[96px] rounded-lg border border-[#E5E7EB] pl-5 pr-2 text-right text-[13px] outline-none focus:border-[#4A6FA5] focus:ring-2 focus:ring-[#4A6FA5]/20"
+            />
+          </div>
+          {cat != null && Math.abs(cat - li.unitPrice) > 0.004 && <span className="mt-0.5 text-[11px] text-[#8899AA]">Catalog {money(cat)}</span>}
+        </div>
+      );
+    };
+    const signed = (n: number) => (n < 0 ? `−${money(-n)}` : money(n));
     return (
       <div className="overflow-hidden rounded-xl border border-[#E5E7EB] bg-white">
         <div className="flex items-center justify-between border-b border-[#E5E7EB] px-4 py-3">
           <h3 className="text-[16px] text-[#1A2332]" style={{ fontWeight: 600 }}>Products & Services</h3>
-          <button onClick={() => setItemPickerOpen(true)} className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#4A6FA5] px-3 text-[13px] text-white hover:bg-[#3d5a85]" style={{ fontWeight: 600 }}><PlusIcon className="h-4 w-4" />Add Item</button>
+          {!locked && <button onClick={() => setItemPickerOpen(true)} className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#4A6FA5] px-3 text-[13px] text-white hover:bg-[#3d5a85]" style={{ fontWeight: 600 }}><PlusIcon className="h-4 w-4" />Add Item</button>}
         </div>
         {jobLineItems.length === 0 ? <TabEmpty icon="inventory_2" title="No items yet" subtitle="Add items to track products and services for this job" /> : (
           <>
             <table className="w-full text-[14px]">
-              <thead className="bg-[#F5F7FA]"><tr className="border-b border-[#E5E7EB] text-left text-[#1A2332]"><th className="px-4 py-3">Item</th><th className="px-4 py-3">Type</th><th className="px-4 py-3">Quantity</th><th className="px-4 py-3 text-right">Unit price</th><th className="px-4 py-3 text-right">Unit cost</th><th className="px-4 py-3 text-right">Total</th><th className="w-10 px-4 py-3" /></tr></thead>
-              <tbody>{jobLineItems.map((li, idx) => <tr key={idx} className="border-b border-[#E5E7EB] last:border-0"><td className="px-4 py-4"><div className="text-[#1A2332]" style={{ fontWeight: 500 }}>{li.name}</div><div className="text-[13px] text-[#6B7280]">{li.description}</div></td><td className="px-4 py-4 text-[#6B7280]">{li.itemType || "—"}</td><td className="px-4 py-4"><input readOnly value={li.quantity} className="h-8 w-[72px] rounded-lg border border-[#E5E7EB] px-2 text-[13px]" /></td><td className="px-4 py-4 text-right">{money(li.unitPrice)}</td><td className="px-4 py-4 text-right text-[#6B7280]">{money(li.unitCost)}</td><td className="px-4 py-4 text-right">{money(li.total)}</td><td className="px-4 py-4 text-right"><button className="h-8 w-8 rounded-lg text-[#9CA3AF] hover:bg-[#FEE2E2] hover:text-[#DC2626]"><span className="material-icons" style={{ fontSize: "16px" }}>delete</span></button></td></tr>)}</tbody>
+              <thead className="bg-[#F5F7FA]"><tr className="border-b border-[#E5E7EB] text-left text-[#1A2332]"><th className="px-4 py-3">Item</th><th className="px-4 py-3">Type</th><th className="px-4 py-3">Quantity</th><th className="px-4 py-3 text-right">Unit price</th><th className="px-4 py-3 text-right">Unit cost</th><th className="px-4 py-3 text-right">Tax</th><th className="px-4 py-3 text-right">Total</th><th className="w-10 px-4 py-3" /></tr></thead>
+              <tbody>{jobLineItems.map((li, idx) => (
+                <tr key={idx} className="border-b border-[#E5E7EB] last:border-0">
+                  <td className="px-4 py-4"><div className="text-[#1A2332]" style={{ fontWeight: 500 }}>{li.name}</div><div className="text-[13px] text-[#6B7280]">{li.description}</div></td>
+                  <td className="px-4 py-4 text-[#6B7280]">{li.isDiscount ? "—" : li.itemType || "—"}</td>
+                  <td className="px-4 py-4">{li.isDiscount ? <span className="text-[#9CA3AF]">—</span> : <input type="number" min={1} readOnly={locked} value={li.quantity} onChange={(e) => setQty(idx, Math.max(1, Number(e.target.value) || 1))} className="h-8 w-[72px] rounded-lg border border-[#E5E7EB] px-2 text-[13px] outline-none focus:border-[#4A6FA5]" />}</td>
+                  <td className="px-4 py-4 text-right" style={{ fontVariantNumeric: "tabular-nums" }}>{priceCell(li, idx)}</td>
+                  <td className="px-4 py-4 text-right text-[#6B7280]" style={{ fontVariantNumeric: "tabular-nums" }}>{li.isDiscount ? "—" : money(li.unitCost)}</td>
+                  <td className="px-4 py-4 text-right text-[#6B7280]" style={{ fontVariantNumeric: "tabular-nums" }}>{li.isDiscount ? "—" : money(lineTax(li))}</td>
+                  <td className="px-4 py-4 text-right" style={{ fontVariantNumeric: "tabular-nums", fontWeight: 500 }}>{signed(li.total + lineTax(li))}</td>
+                  <td className="px-4 py-4 text-right">{!locked && <button onClick={() => removeLine(idx)} aria-label={`Remove ${li.name}`} className="h-8 w-8 rounded-lg text-[#9CA3AF] hover:bg-[#FEE2E2] hover:text-[#DC2626]"><span className="material-icons" style={{ fontSize: "16px" }}>delete</span></button>}</td>
+                </tr>
+              ))}</tbody>
             </table>
             <div className="border-t border-[#E5E7EB] bg-[#F5F7FA] px-4 py-4">
-              <div className="ml-auto w-[280px] space-y-2 text-[13px]">
+              <div className="ml-auto w-[300px] space-y-2 text-[13px]" style={{ fontVariantNumeric: "tabular-nums" }}>
                 <div className="flex justify-between text-[#6B7280]"><span>Subtotal</span><span className="text-[#1A2332]">{money(subtotal)}</span></div>
                 <div className="flex justify-between text-[#6B7280]"><span>Taxable amount</span><span className="text-[#1A2332]">{money(taxableAmount)}</span></div>
-                <div className="flex justify-between text-[#6B7280]"><span>Tax (7.5%)</span><span className="text-[#1A2332]">{money(tax)}</span></div>
-                <div className="flex justify-between border-t border-[#E5E7EB] pt-2 text-[#1A2332]" style={{ fontWeight: 600 }}><span>Total</span><span>{money(subtotal + tax)}</span></div>
+                <div className="flex justify-between text-[#6B7280]"><span>Tax ({+(rate * 100).toFixed(2)}%)</span><span className="text-[#1A2332]">{money(tax)}</span></div>
+                {discountLine && <div className="flex justify-between text-[#6B7280]"><span>Discount</span><span className="text-[#1A2332]">−{money(discount)}</span></div>}
+                <div className="flex items-center justify-between border-t border-[#E5E7EB] pt-2 text-[#1A2332]" style={{ fontWeight: 600 }}>
+                  {/* Only roles with "Adjust price" see it (Manage team); the prototype acts as a manager. */}
+                  {!locked && items.length > 0
+                    ? <button onClick={() => setAdjustOpen(true)} className="text-[13px] text-[#4A6FA5] hover:underline" style={{ fontWeight: 500 }}>Adjust price</button>
+                    : <span />}
+                  <span><span className="mr-2 text-[#546478]" style={{ fontWeight: 500 }}>Total</span>{money(listPrice - discount)}</span>
+                </div>
               </div>
             </div>
           </>
+        )}
+        {adjustOpen && (
+          <AdjustPriceModal
+            listPrice={Math.round(listPrice * 100) / 100}
+            currentPrice={discountLine ? Math.round((listPrice - discount) * 100) / 100 : undefined}
+            onApply={applyPrice}
+            onClose={() => setAdjustOpen(false)}
+          />
         )}
       </div>
     );

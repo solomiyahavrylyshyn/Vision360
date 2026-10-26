@@ -32,6 +32,7 @@ import outdoorElectricalPanelPhoto from "../../assets/documents/34610-install-ou
 import installAcPhoto from "../../assets/documents/34689-install-ac.jpg";
 import installWaterHeaterTanklessPhoto from "../../assets/documents/34689-install-water-heater-tankless.jpg";
 import job87970Photo from "../../assets/documents/87970-20241208-113711.png";
+import { AdjustPriceModal, DISCOUNT_LINE_NAME, discountLineDescription } from "../components/AdjustPriceModal";
 import job44644Photo from "../../assets/documents/44644-img-20241210-123749.png";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -42,6 +43,8 @@ interface LineItem {
   id: number; name: string; description: string;
   quantity: number; price: number; cost: number; amount: number;
   taxable: boolean; optional?: boolean;
+  /** The Adjust price "Discount" line (9227 / 9228). */
+  isDiscount?: boolean;
   itemType?: string;
   costBreakdown?: { labor: number; commission?: number; materials: number };
 }
@@ -985,6 +988,7 @@ export function EstimateDetail() {
   // Full-width line-items table: toolbar (search + Add item), option chips for
   // Good/Better/Best estimates, editable quantity, Unit price / Unit cost / Tax /
   // Total columns, single "Total:" footer row.
+  const [adjustOpen, setAdjustOpen] = useState(false);
   const renderItemsTab = () => {
     const hasOptions = (estimate.options?.length ?? 0) > 1;
     const optionItems = hasOptions ? (estimate.options![activeOptionIdx]?.items ?? []) : estimate.items;
@@ -992,6 +996,19 @@ export function EstimateDetail() {
       !itemsSearch.trim() || `${i.name} ${i.description}`.toLowerCase().includes(itemsSearch.trim().toLowerCase()));
     const lineTax = (i: LineItem) => (i.taxable ? i.amount * (estimate.taxRate / 100) : 0);
     const tabTotal = optionItems.reduce((a, i) => a + i.amount + lineTax(i), 0);
+    // Adjust price (tasks 9227 / 9228): one Discount line per option, item prices untouched.
+    const discountLine = optionItems.find(i => i.isDiscount);
+    const listPrice = Math.round(optionItems.filter(i => !i.isDiscount).reduce((a, i) => a + i.amount + lineTax(i), 0) * 100) / 100;
+    const setOptionItems = (fn: (items: LineItem[]) => LineItem[]) => {
+      if (hasOptions) setEstimate(prev => ({ ...prev, options: prev.options!.map((o, idx) => idx === activeOptionIdx ? { ...o, items: fn(o.items) } : o) }));
+      else setEstimate(prev => ({ ...prev, items: fn(prev.items) }));
+    };
+    const applyPrice = (newPrice: number) => {
+      const amt = Math.round((listPrice - newPrice) * 100) / 100;
+      setOptionItems(items => [...items.filter(i => !i.isDiscount), { id: Date.now(), name: DISCOUNT_LINE_NAME, description: discountLineDescription(), quantity: 1, price: -amt, cost: 0, amount: -amt, taxable: false, isDiscount: true } as LineItem]);
+      setAdjustOpen(false);
+      toast.success(`Price adjusted to $${fmt(newPrice)} — Discount −$${fmt(amt)}`);
+    };
     const setQty = (id: number, qty: number) => {
       const q = Math.max(1, qty || 1);
       const patch = (items: LineItem[]) => items.map(i => i.id === id ? { ...i, quantity: q, amount: q * i.price } : i);
@@ -1092,17 +1109,17 @@ export function EstimateDetail() {
                     {item.description && <div className="text-[12px] text-[#8899AA]">{item.description}</div>}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <input
+                    {item.isDiscount ? <span className="text-[13px] text-[#9CA3AF]">—</span> : <input
                       type="number" min={1} value={item.quantity}
                       onChange={e => setQty(item.id, Number(e.target.value))}
                       className="w-[72px] h-9 px-2 border border-[#E5E7EB] rounded-lg text-[13px] text-right focus:outline-none focus:border-[#4A6FA5] bg-white"
                       style={{ fontVariantNumeric: "tabular-nums" }}
-                    />
+                    />}
                   </td>
-                  <td className="px-4 py-3 text-right text-[13px] text-[#546478]" style={{ fontVariantNumeric: "tabular-nums" }}>${fmt(item.price)}</td>
-                  <td className="px-4 py-3 text-right text-[13px] text-[#546478]" style={{ fontVariantNumeric: "tabular-nums" }}>${fmt(item.cost)}</td>
-                  <td className="px-4 py-3 text-right text-[13px] text-[#546478]" style={{ fontVariantNumeric: "tabular-nums" }}>${fmt(lineTax(item))}</td>
-                  <td className="px-4 py-3 text-right text-[13px] text-[#1A2332]" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>${fmt(item.amount)}</td>
+                  <td className="px-4 py-3 text-right text-[13px] text-[#546478]" style={{ fontVariantNumeric: "tabular-nums" }}>{item.isDiscount ? "—" : `$${fmt(item.price)}`}</td>
+                  <td className="px-4 py-3 text-right text-[13px] text-[#546478]" style={{ fontVariantNumeric: "tabular-nums" }}>{item.isDiscount ? "—" : `$${fmt(item.cost)}`}</td>
+                  <td className="px-4 py-3 text-right text-[13px] text-[#546478]" style={{ fontVariantNumeric: "tabular-nums" }}>{item.isDiscount ? "—" : `$${fmt(lineTax(item))}`}</td>
+                  <td className="px-4 py-3 text-right text-[13px] text-[#1A2332]" style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{item.amount < 0 ? `−$${fmt(-item.amount)}` : `$${fmt(item.amount)}`}</td>
                   <td className="px-4 py-3 text-right">
                     <button
                       onClick={() => removeShownItem(item.id)}
@@ -1118,6 +1135,8 @@ export function EstimateDetail() {
             <tfoot>
               <tr className="bg-[#F9FAFB] border-t border-[#E5E7EB]">
                 <td colSpan={7} className="px-4 py-3.5 text-right">
+                  {/* Only roles with "Adjust price" see the link (Manage team); the prototype acts as a manager. */}
+                  {listPrice > 0 && <button onClick={() => setAdjustOpen(true)} className="mr-4 text-[13px] text-[#4A6FA5] hover:underline" style={{ fontWeight: 500 }}>Adjust price</button>}
                   <span className="text-[14px] text-[#546478]" style={{ fontWeight: 600 }}>Total:&nbsp;&nbsp;</span>
                   <span className="text-[16px] text-[#1A2332]" style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>${fmt(tabTotal)}</span>
                 </td>
@@ -1126,6 +1145,14 @@ export function EstimateDetail() {
           </table>
         )}
         {renderOptionSettings(tabTotal)}
+        {adjustOpen && (
+          <AdjustPriceModal
+            listPrice={listPrice}
+            currentPrice={discountLine ? Math.round((listPrice + discountLine.amount) * 100) / 100 : undefined}
+            onApply={applyPrice}
+            onClose={() => setAdjustOpen(false)}
+          />
+        )}
       </div>
     );
   };

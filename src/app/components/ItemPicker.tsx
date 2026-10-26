@@ -64,6 +64,11 @@ export interface SelectedLineItem {
   /** Item type of the catalog item behind this line, so the job's KPI split
    *  knows whether the cost is technician pay or a supplier price. */
   itemType?: string;
+  /** The catalog price when the line was added — a line priced differently
+   *  shows "Catalog $X" under its price (task 9225 / 9226). */
+  catalogPrice?: number;
+  /** The "Discount" line from Adjust price (task 9227 / 9228): negative, never edited in place. */
+  isDiscount?: boolean;
   /** Per-unit cost split carried over from the catalog item, so an estimate or
    *  a job keeps the labor / materials shares of what it sold. */
   costBreakdown?: CostBreakdown;
@@ -313,6 +318,7 @@ export function catalogItemToLineItem(catalogItem: CatalogItem, lineItemId: numb
     description: catalogItem.salesDescription || "",
     quantity,
     unitPrice: catalogItem.rate,
+    catalogPrice: catalogItem.rate,
     unitCost: catalogItem.cost,
     taxable: catalogItem.taxable,
     total: quantity * catalogItem.rate,

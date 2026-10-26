@@ -28,6 +28,8 @@ export interface EstimateLineItem {
   taxable: boolean;
   /** FR-4.8 — kept off the customer's copy; totals still include it. */
   hideOnCustomerDocs?: boolean;
+  /** The Adjust price "Discount" line — negative, untaxed, one per option. */
+  isDiscount?: boolean;
   /** Carried from the catalog item so the job the estimate turns into knows
    *  whether the cost is technician pay or a supplier price. */
   itemType?: string;

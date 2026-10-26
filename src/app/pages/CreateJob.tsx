@@ -292,7 +292,7 @@ export function CreateJob({ asModal = false, onClose, onCreated, prefill, headin
   const toJobLineItems = () => lineItems.map((li) => ({
     name: li.name, description: li.description, itemType: li.itemType,
     quantity: li.quantity, unitCost: li.unitCost, unitPrice: li.unitPrice, total: li.total,
-    costBreakdown: li.costBreakdown,
+    costBreakdown: li.costBreakdown, catalogPrice: li.catalogPrice, taxable: li.taxable, isDiscount: li.isDiscount,
   }));
   const [notes, setNotes] = useState("");
   const [fieldNotes, setFieldNotes] = useState("");
@@ -340,6 +340,7 @@ export function CreateJob({ asModal = false, onClose, onCreated, prefill, headin
       // tiles read the same labor and materials that were sold.
       itemType: it.itemType,
       costBreakdown: it.costBreakdown,
+      isDiscount: it.isDiscount,
     }));
     if (preloaded.length) setLineItems(preloaded);
     // Seed the Estimates table with the source estimate (Convert → Job flow).
@@ -1317,19 +1318,38 @@ export function CreateJob({ asModal = false, onClose, onCreated, prefill, headin
                       {item.description && <div className="text-[12px] text-[#8899AA]">{item.description}</div>}
                     </td>
                     <td className="px-4 py-3">
-                      <input
+                      {item.isDiscount ? <span className="text-[13px] text-[#8899AA]">—</span> : <input
                         type="number"
                         min="0"
                         step="1"
                         value={item.quantity}
                         onChange={(e) => updateLineItem(item.id, "quantity", Number(e.target.value) || 0)}
                         className="w-[84px] h-8 px-2 border border-[#E5E7EB] rounded-lg text-[13px] outline-none focus:border-[#4A6FA5]"
-                      />
+                      />}
                     </td>
-                    <td className="px-4 py-3 text-right text-[13px] text-[#374151]" style={{ fontVariantNumeric: "tabular-nums" }}>${fmt(item.unitPrice)}</td>
-                    <td className="px-4 py-3 text-right text-[13px] text-[#6B7280]" style={{ fontVariantNumeric: "tabular-nums" }}>${fmt(item.unitCost)}</td>
-                    <td className="px-4 py-3 text-right text-[13px] text-[#6B7280]" style={{ fontVariantNumeric: "tabular-nums" }}>{item.taxable ? `$${fmt(item.total * (taxRate / 100))}` : "—"}</td>
-                    <td className="px-4 py-3 text-right text-[13px] text-[#1A2332]" style={{ fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>${fmt(item.total)}</td>
+                    {/* Unit price is a field, like Quantity (9225 / 9226): the price charged on this
+                        job, not only the catalog price. The catalog item itself is not changed. */}
+                    <td className="px-4 py-3 text-right" style={{ fontVariantNumeric: "tabular-nums" }}>
+                      {item.isDiscount ? <span className="text-[13px] text-[#8899AA]">—</span> : (
+                        <div className="inline-flex flex-col items-end">
+                          <div className="relative">
+                            <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-[13px] text-[#9CA3AF]">$</span>
+                            <input
+                              type="number" min="0" step="0.01" value={item.unitPrice}
+                              onChange={(e) => updateLineItem(item.id, "unitPrice", Math.max(0, Number(e.target.value) || 0))}
+                              aria-label={`Unit price of ${item.name}`}
+                              className="h-8 w-[96px] rounded-lg border border-[#E5E7EB] pl-5 pr-2 text-right text-[13px] outline-none focus:border-[#4A6FA5]"
+                            />
+                          </div>
+                          {item.catalogPrice != null && Math.abs(item.catalogPrice - item.unitPrice) > 0.004 && (
+                            <span className="mt-0.5 text-[11px] text-[#8899AA]">Catalog ${fmt(item.catalogPrice)}</span>
+                          )}
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-right text-[13px] text-[#6B7280]" style={{ fontVariantNumeric: "tabular-nums" }}>{item.isDiscount ? "—" : `$${fmt(item.unitCost)}`}</td>
+                    <td className="px-4 py-3 text-right text-[13px] text-[#6B7280]" style={{ fontVariantNumeric: "tabular-nums" }}>{item.isDiscount ? "—" : `$${fmt(item.taxable ? item.total * (taxRate / 100) : 0)}`}</td>
+                    <td className="px-4 py-3 text-right text-[13px] text-[#1A2332]" style={{ fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>{item.total < 0 ? "−" : ""}${fmt(Math.abs(item.total + (item.taxable && !item.isDiscount ? item.total * (taxRate / 100) : 0)))}</td>
                     <td className="px-4 py-3 text-right">
                       <button onClick={() => removeLineItem(item.id)} className="w-7 h-7 inline-flex items-center justify-center rounded hover:bg-[#FEE2E2]" aria-label="Remove item">
                         <span className="material-icons text-[#9CA3AF] hover:text-[#DC2626]" style={{ fontSize: "16px" }}>delete</span>

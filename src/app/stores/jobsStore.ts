@@ -14,6 +14,12 @@ export interface JobLineItem {
   unitPrice: number;
   total: number;
   costBreakdown?: CostBreakdown;
+  /** Catalog price when added; a line priced differently shows "Catalog $X". */
+  catalogPrice?: number;
+  /** Taxed at the job's rate (undefined = taxable, as lines always were). */
+  taxable?: boolean;
+  /** The Adjust price "Discount" line — negative, untaxed. */
+  isDiscount?: boolean;
 }
 
 type Listener = () => void;

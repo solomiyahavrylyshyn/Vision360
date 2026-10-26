@@ -40,6 +40,8 @@ export interface PermissionsState {
   expenses: { enabled: boolean; level: ExpensesLevel };
   items: { enabled: boolean; level: ItemsLevel };
   jobCosting: boolean;
+  /** Adjust price on estimates and jobs (task 9227 / 9228). Optional so saved presets still load. */
+  adjustPrice?: boolean;
   clients: { enabled: boolean; level: ClientsLevel };
   estimates: { enabled: boolean; level: EstimatesLevel };
   jobs: { enabled: boolean; level: JobsLevel };
@@ -64,6 +66,7 @@ export const employeePreset: PermissionsState = {
   expenses: { enabled: true, level: "viewRecordEditOwn" },
   items: { enabled: false, level: "viewSellPrice" },
   jobCosting: false,
+  adjustPrice: false,
   clients: { enabled: true, level: "viewFull" },
   estimates: { enabled: false, level: "viewOnly" },
   jobs: { enabled: true, level: "viewOnly" },
@@ -81,6 +84,7 @@ export const adminPreset: PermissionsState = {
   expenses: { enabled: true, level: "viewRecordEditAll" },
   items: { enabled: true, level: "fullControl" },
   jobCosting: true,
+  adjustPrice: true,
   clients: { enabled: true, level: "viewCreateEditDeactivateFull" },
   estimates: { enabled: true, level: "viewCreateEditArchive" },
   jobs: { enabled: true, level: "viewCreateEditCancel" },
@@ -494,6 +498,14 @@ export function PermissionsEditor({
         }
         enabled={perms.jobCosting}
         onToggle={v => editPerms(p => ({ ...p, jobCosting: v }))}
+      />
+
+      {/* Adjust price (tasks 9227 / 9228) */}
+      <FeatureSection
+        title="Adjust price"
+        description="Change the total of an estimate or a job. The difference shows as a Discount line; item prices stay as they are. On for managers by default, off for technicians."
+        enabled={!!perms.adjustPrice}
+        onToggle={v => editPerms(p => ({ ...p, adjustPrice: v }))}
       />
 
       {/* Clients and properties */}
