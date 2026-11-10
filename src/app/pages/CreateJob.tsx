@@ -192,10 +192,9 @@ export interface CreateJobProps {
   /** Slot-create from the board: returns true if the chosen technician already has
    *  a time-overlapping job on that date (drives the inline overlap error). When
    *  omitted, CreateJob falls back to checking the jobsStore records itself. */
-  checkConflict?: (info: { assignedTo: string; startDate: string; startHour: number; endHour: number }) => boolean;
 }
 
-export function CreateJob({ asModal = false, onClose, onCreated, prefill, heading, submitLabel, onSubmit, checkConflict }: CreateJobProps = {}) {
+export function CreateJob({ asModal = false, onClose, onCreated, prefill, heading, submitLabel, onSubmit }: CreateJobProps = {}) {
   const navigate = useNavigate();
   // When opened from a client's Jobs tab, the URL carries the client + a return path.
   const [sp] = useSearchParams();
@@ -518,23 +517,8 @@ export function CreateJob({ asModal = false, onClose, onCreated, prefill, headin
     scheduleJob &&
     ((startMin != null && (startMin < schedSettings.startHour * 60 || startMin > schedSettings.endHour * 60)) ||
       (endMin != null && (endMin < schedSettings.startHour * 60 || endMin > schedSettings.endHour * 60)));
-  // Overlap: prefer the board-supplied checker (sees the live board jobs); else
-  // fall back to scanning the jobsStore for the same assignee + date + overlap.
-  const fallbackConflict = (): boolean => {
-    if (!scheduleJob || !assignedTo || !startDate || startMin == null || endMin == null || endMin <= startMin) return false;
-    return jobsStore.getSnapshot().some((j) => {
-      if (j.assignedTo !== assignedTo || j.startDate !== startDate || j.status === "Cancelled") return false;
-      const js = timeToMin(j.startTime || ""); const je = timeToMin(j.endTime || "");
-      if (js == null || je == null) return false;
-      return startMin < je && js < endMin;
-    });
-  };
-  const hasConflict =
-    scheduleJob && assignedTo && startMin != null && endMin != null && endMin > startMin
-      ? (checkConflict
-          ? checkConflict({ assignedTo, startDate, startHour: startMin / 60, endHour: endMin / 60 })
-          : fallbackConflict())
-      : false;
+  // Overlapping jobs are allowed (8935 / 9361): a technician may have several
+  // jobs at the same time, so the form no longer checks for them.
 
   // Save gate: validate, block on overlap, then warn (non-blocking) if the job
   // falls outside working hours before committing via doSave().
@@ -552,8 +536,6 @@ export function CreateJob({ asModal = false, onClose, onCreated, prefill, headin
     if (!isRecurringCreate) {
       // Start date is required ONLY when scheduling a one-off job.
       if (scheduleJob && !startDate) { toast.error("Select a start date, or turn off “Schedule job”."); return; }
-      // Overlap is a hard block — the inline error explains it.
-      if (hasConflict) { toast.error("This technician already has a job in that time range."); return; }
       // Out-of-range only WARNS (non-blocking) — confirm via the modal.
       if (outOfRange) { setOutOfRangeOpen(true); return; }
     }
@@ -1035,25 +1017,18 @@ export function CreateJob({ asModal = false, onClose, onCreated, prefill, headin
                 </div>
                 <div>
                   <label className="block text-[14px] text-[#1A2332] mb-1" style={{ fontWeight: 500 }}>Start time {jobType === "one-off" && reqStar}</label>
-                  <input type="time" step={60} value={startTime} onChange={(e) => syncStartTime(e.target.value)} className={`${fieldCls} ${hasConflict ? "border-[#DC2626]" : ""}`} />
+                  <input type="time" step={60} value={startTime} onChange={(e) => syncStartTime(e.target.value)} className={fieldCls} />
                 </div>
                 <div>
                   <label className="block text-[14px] text-[#1A2332] mb-1" style={{ fontWeight: 500 }}>End time {jobType === "one-off" && reqStar}</label>
-                  <input type="time" step={60} value={endTime} onChange={(e) => syncEndTime(e.target.value)} className={`${fieldCls} ${hasConflict ? "border-[#DC2626]" : ""}`} />
+                  <input type="time" step={60} value={endTime} onChange={(e) => syncEndTime(e.target.value)} className={fieldCls} />
                 </div>
               </div>
               {/* US-4 out-of-range: non-blocking hint (a confirm modal also appears on save). */}
-              {outOfRange && !hasConflict && (
+              {outOfRange && (
                 <p className="mt-2 flex items-center gap-1.5 text-[12px] text-[#B45309]">
                   <span className="material-icons" style={{ fontSize: "15px" }}>schedule</span>
                   Outside working hours ({formatScheduleHour(schedSettings.startHour)}–{formatScheduleHour(schedSettings.endHour)}). You can still schedule it.
-                </p>
-              )}
-              {/* US-4 overlap: inline error at the bottom of the section. */}
-              {hasConflict && (
-                <p className="mt-2 flex items-center gap-1.5 text-[12px] text-[#DC2626]" style={{ fontWeight: 500 }}>
-                  <span className="material-icons" style={{ fontSize: "15px" }}>error_outline</span>
-                  {assignedTo} already has a job in this time range. Pick another time or technician.
                 </p>
               )}
             </>

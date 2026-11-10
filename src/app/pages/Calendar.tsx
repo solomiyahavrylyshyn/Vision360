@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useSyncExternalStore, useEffect, type DragEvent, type FormEvent, type MouseEvent, type PointerEvent as ReactPointerEvent, type KeyboardEvent as ReactKeyboardEvent } from "react";
+import { useState, useMemo, useRef, useSyncExternalStore, useEffect, type DragEvent, type ReactNode, type FormEvent, type MouseEvent, type PointerEvent as ReactPointerEvent, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { useNavigate } from "react-router";
 import tampaMapImg from "../../assets/tampa-map.png";
 import { PageHeader } from "../components/ui/page-header";
@@ -13,7 +13,7 @@ import {
   addDays, subDays,
 } from "date-fns";
 import { type JobStatus, JOB_STATUS_STYLES as STATUS_STYLES, JOB_STATUS_ICONS as STATUS_ICONS, JOB_STATUSES as ALL_JOB_STATUSES } from "../constants/jobStatuses";
-import { isPending, pendingJobs, type PendingFilter, hasTimeConflict, statusAfterAssignToSlot, schedulingTags, durationForType, isDraggable, isShownOnBoard, occupiesSlot, packOverlaps, deconflict } from "../utils/scheduleLogic";
+import { isPending, pendingJobs, type PendingFilter, statusAfterAssignToSlot, schedulingTags, durationForType, isDraggable, isShownOnBoard, occupiesSlot, packOverlaps, deconflict } from "../utils/scheduleLogic";
 import { jobTypeColor, jobTypeTint, JOB_TYPE_ORDER, JOB_TYPE_COLORS } from "../constants/jobTypeColors";
 import { jobsStore, type JobRecord } from "../stores/jobsStore";
 import { SeriesVisitsModal, ChangeVisitsModal, CancelSeriesDialog } from "../components/JobSeriesDialogs";
@@ -98,6 +98,33 @@ function StatusPillSelect({ value, onChange }: { value: JobStatus; onChange: (ne
 
 // Compact status control for schedule cards: renders the status icon and, on
 // click, opens a native dropdown to pick any status (replaces click-to-cycle).
+// Compact card body for overlapping jobs (Figma 9361): client over time, status on the right.
+function CompactCardBody({ client, time, cancelled, children }: { client: string; time: string; cancelled?: boolean; children: ReactNode }) {
+  return (
+    <div className="flex h-full items-center gap-1 pl-2 pr-1.5" style={{ textDecoration: cancelled ? "line-through" : undefined, textDecorationColor: cancelled ? "#9CA3AF" : undefined }}>
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-[13px] leading-4 text-[#1A2332]" style={{ fontWeight: 600 }}>{client}</div>
+        <div className="truncate text-[12px] leading-4 text-[#6B7280] tabular-nums">{time}</div>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+// Dashed drop preview in the lane the job will land in (a new lane when the time is taken).
+function DropPreviewBox({ preview, lane, top, card, fmt }: { preview: { start: number; end: number }; lane: { rowCount: number; laneH: number; compactIds: Set<number>; rowByJobId: Record<number, number> }; top: number; card: number; fmt: (h: number) => string }) {
+  const compact = lane.compactIds.has(-1);
+  const y = compact ? top + (lane.rowByJobId[-1] ?? 0) * (40 + 6) : lane.rowCount > 1 ? Math.round((lane.laneH - card) / 2) : top;
+  return (
+    <div
+      className="absolute z-[5] flex items-center overflow-hidden rounded-lg border-2 border-dashed border-[#4A6FA5] bg-[#4A6FA5]/10 px-2 pointer-events-none"
+      style={{ left: (preview.start - 7) * 120 + 3, width: Math.max((preview.end - preview.start) * 120 - 6, 60), top: y, height: compact ? 40 : card }}
+    >
+      <span className="truncate text-[12px] text-[#4A6FA5]" style={{ fontWeight: 500 }}>{fmt(preview.start)} – {fmt(preview.end)}</span>
+    </div>
+  );
+}
+
 function CardStatusSelect({ status, onChange, size = 5 }: { status: JobStatus; onChange: (s: JobStatus) => void; size?: number }) {
   const styles = STATUS_STYLES[status];
   const box = size === 6 ? "h-6 w-6 text-[16px]" : "h-5 w-5 text-[14px]";
@@ -442,6 +469,7 @@ interface DropPreview {
   technicianId: string;
   dayIdx?: number;
   start: number;
+  end: number;
 }
 
 // Team operating the schedule. Core tier supports 1–3 people (solo operator
@@ -671,6 +699,33 @@ const DAY_TOP_PAD = 15, DAY_CARD_H = 66, DAY_ROW_GAP = 6, DAY_BOT_PAD = 14; // 1
 const WK_TOP_PAD  = 8,  WK_CARD_H  = 54, WK_ROW_GAP  = 4, WK_BOT_PAD  = 8;  // 8+54+8 = 70
 const laneHeight = (rowCount: number, top: number, card: number, gap: number, bot: number) =>
   top + rowCount * card + (rowCount - 1) * gap + bot;
+
+// Overlapping jobs (9361, Figma "schedule - overlaps"): a technician may have
+// several jobs at once (8935). Jobs that overlap another one stack in lanes and
+// use the 40px compact card (client / time / status); there is no cap — every
+// job gets its own lane and the row grows. A job that overlaps nothing keeps the
+// full card, centred in the row. The drop preview takes part in the packing as a
+// phantom job (id DROP_PHANTOM), so it shows in the lane the job will land in.
+const COMPACT_H = 40, COMPACT_GAP = 6;
+const DROP_PHANTOM = -1;
+type LaneLayout = { rowByJobId: Record<number, number>; rowCount: number; laneH: number; compactIds: Set<number> };
+function layoutLane(jobs: { id: number; start: number; end: number }[], top: number, card: number, bot: number): LaneLayout {
+  const { rowByJobId, rowCount } = packOverlaps(jobs);
+  const compactIds = new Set<number>();
+  if (rowCount > 1) for (const j of jobs) if (jobs.some((o) => o.id !== j.id && o.start < j.end && j.start < o.end)) compactIds.add(j.id);
+  const laneH = rowCount > 1 ? laneHeight(rowCount, top, COMPACT_H, COMPACT_GAP, bot) : top + card + bot;
+  return { rowByJobId, rowCount, laneH, compactIds };
+}
+const cardTop = (lane: LaneLayout, id: number, top: number, card: number) =>
+  lane.compactIds.has(id) ? top + (lane.rowByJobId[id] ?? 0) * (COMPACT_H + COMPACT_GAP)
+  : lane.rowCount > 1 ? Math.round((lane.laneH - card) / 2) : top;
+// "8:00–10:00 AM" / "11:00 AM–1:00 PM"; a narrow card drops AM/PM ("11:30–12:30").
+function timeRangeLabel(a: string, b: string, cardWidth: number) {
+  const suf = (t: string) => (t.match(/\s?(AM|PM)$/i) || [""])[0];
+  const bare = (t: string) => t.replace(/\s?(AM|PM)$/i, "");
+  const full = suf(a) && suf(a) === suf(b) ? `${bare(a)}–${b}` : `${a}–${b}`;
+  return full.length * 6.4 <= cardWidth - 44 ? full : `${bare(a)}–${bare(b)}`;
+}
 
 // ── US-3 Dispatch map ───────────────────────────────────────────────────────
 // Read-only map of the selected day's scheduled jobs (Daily view only). Each
@@ -1135,6 +1190,11 @@ export function Calendar() {
     });
   };
   const [dropPreview, setDropPreview] = useState<DropPreview | null>(null);
+  // Length of the job being dragged, so the drop preview has its real width.
+  const dragDurRef = useRef(1);
+  const noteDrag = (job: { start: number; end: number; jobType?: string; unscheduled?: boolean; technicianId?: string; noTime?: boolean }) => {
+    dragDurRef.current = isPending(job as never) ? durationForType(job.jobType) : Math.max(0.25, job.end - job.start);
+  };
   const [pendingDropActive, setPendingDropActive] = useState(false);
   const [quickJobDraft, setQuickJobDraft] = useState<QuickJobDraft | null>(null);
   // Full "Create job" modal (Figma) opened from a board slot / header. Holds the
@@ -1399,14 +1459,14 @@ export function Calendar() {
   // Per-technician packed lane height for the DAY board: time-overlapping jobs
   // stack into sub-rows (packOverlaps) and the lane grows to fit. Computed once
   // so the sticky left label column and the time-grid lane stay row-aligned.
-  const dayPackByMember: Record<string, { rowByJobId: Record<number, number>; laneH: number }> =
+  const dayPackByMember: Record<string, LaneLayout> =
     Object.fromEntries(
       TEAM.map((m) => {
         const memberJobs = filteredDayJobs
           .filter((job) => job.technicianId === m.id && !job.unscheduled && !job.noTime && isShownOnBoard(job.status))
           .sort((a, b) => a.start - b.start);
-        const { rowByJobId, rowCount } = packOverlaps(memberJobs);
-        return [m.id, { rowByJobId, laneH: laneHeight(rowCount, DAY_TOP_PAD, DAY_CARD_H, DAY_ROW_GAP, DAY_BOT_PAD) }];
+        const phantom = dropPreview?.view === "day" && dropPreview.technicianId === m.id ? [{ id: DROP_PHANTOM, start: dropPreview.start, end: dropPreview.end }] : [];
+        return [m.id, layoutLane([...memberJobs, ...phantom], DAY_TOP_PAD, DAY_CARD_H, DAY_BOT_PAD)];
       }),
     );
   const monthRevenue = filteredMonthEvents.reduce((sum, event) => sum + event.amount, 0);
@@ -1442,31 +1502,7 @@ export function Calendar() {
     return Math.max(GANTT_START_HOUR, Math.min(GANTT_END_HOUR - snap, GANTT_START_HOUR + snappedOffset));
   };
 
-  const hasOverlap = (start: number, end: number, otherStart: number, otherEnd: number) => start < otherEnd && end > otherStart;
-
-  const dayHasConflict = (jobs: DayJob[], jobId: number | null, technicianId: string, start: number, end: number) =>
-    hasTimeConflict(jobs, jobId, technicianId, start, end);
-
-  const weekHasConflict = (jobs: DispatchJob[], jobId: number | null, dayIdx: number, technicianId: string, start: number, end: number) =>
-    jobs.some((job) => job.id !== jobId && job.dayIdx === dayIdx && job.technicianId === technicianId && occupiesSlot(job.status) && hasOverlap(start, end, job.start, job.end));
-
-  // US-4: overlap check the Create-Job modal calls live while the dispatcher sets
-  // the time. Scans the WHOLE board collection (seeds + store jobs) for the same
-  // technician on the same date, so the inline error reflects the real board.
-  const boardCheckConflict = ({ assignedTo, startDate, startHour, endHour }: { assignedTo: string; startDate: string; startHour: number; endHour: number }): boolean => {
-    const techId = assigneeToTechId(assignedTo);
-    if (!techId) return false;
-    const date = dateFromISO(startDate);
-    return allJobs.some(
-      (j) =>
-        j.technicianId === techId &&
-        !j.unscheduled && !j.noTime &&
-        j.date != null &&
-        isSameDay(j.date, date) &&
-        occupiesSlot(j.status) &&
-        hasOverlap(startHour, endHour, j.start, j.end),
-    );
-  };
+  // Overlaps are allowed (8935 / 9361): no conflict check on save, move or drop.
 
   // All three operate on the ONE collection now; they keep their own projected
   // selection (selectedDayJob / selectedDispatchJob / selectedEvent) in sync.
@@ -1588,12 +1624,6 @@ export function Calendar() {
     const targetDate = quickJobDraft.date;
 
     if (quickJobDraft.view === "day") {
-      // Only run the in-view conflict check when the picked date IS the viewed
-      // day — the day board only holds that day's jobs.
-      if (isSameDay(targetDate, currentDate) && dayHasConflict(dayJobsView, editId ?? null, common.technicianId, common.start, common.end)) {
-        setConflictMessage("This slot overlaps with another job for the same person.");
-        return;
-      }
       if (editId != null) {
         patchJob(editId, { ...common, date: targetDate, unscheduled: false });
         setSelectedDayJob((j) => (j && j.id === editId ? { ...j, ...common, unscheduled: false } : j));
@@ -1625,10 +1655,6 @@ export function Calendar() {
       const pickedIdx = weekDays.findIndex((d) => isSameDay(d, targetDate));
       const dayIdx = pickedIdx >= 0 ? pickedIdx : (quickJobDraft.dayIdx ?? 0);
       const storedDate = pickedIdx >= 0 ? weekDays[pickedIdx] : targetDate;
-      if (pickedIdx >= 0 && weekHasConflict(weekJobsView, editId ?? null, dayIdx, common.technicianId, common.start, common.end)) {
-        setConflictMessage("This slot overlaps with another job for the same person.");
-        return;
-      }
       if (editId != null) {
         patchJob(editId, { ...common, date: storedDate, unscheduled: false });
         setSelectedDispatchJob((j) => (j && j.id === editId ? { ...j, ...common, dayIdx, unscheduled: false } : j));
@@ -1669,10 +1695,6 @@ export function Calendar() {
     }
     const duration = targetJob.end - targetJob.start;
     const dropEnd = Math.min(GANTT_END_HOUR, dropStart + duration);
-    if (weekHasConflict(weekJobsView, jobId, dayIdx, technicianId, dropStart, dropEnd)) {
-      setConflictMessage("That move conflicts with another job for the same person.");
-      return;
-    }
     setConflictMessage(null);
     // Dropping onto a week (day × tech) cell gives the job that day's real DATE
     // + technician + slot, and clears unscheduled. patchJob routes store jobs
@@ -1686,7 +1708,10 @@ export function Calendar() {
   const handleWeekDragOver = (event: DragEvent<HTMLDivElement>, dayIdx: number, technicianId: string) => {
     event.preventDefault();
     if (!openWeekDayIndexes.has(dayIdx)) return;
-    setDropPreview({ view: "week", dayIdx, technicianId, start: hourFromPointer(event) });
+    const start = hourFromPointer(event);
+    const end = Math.min(GANTT_END_HOUR, start + dragDurRef.current);
+    if (dropPreview?.view === "week" && dropPreview.dayIdx === dayIdx && dropPreview.technicianId === technicianId && dropPreview.start === start) return;
+    setDropPreview({ view: "week", dayIdx, technicianId, start, end });
   };
 
   const handleDayDrop = (event: DragEvent<HTMLDivElement>, technicianId: string) => {
@@ -1707,10 +1732,6 @@ export function Calendar() {
     const fromPending = isPending(targetJob);
     const duration = fromPending ? durationForType(targetJob.jobType) : (targetJob.end - targetJob.start);
     const dropEnd = Math.min(GANTT_END_HOUR, dropStart + duration);
-    if (dayHasConflict(dayJobsView, jobId, technicianId, dropStart, dropEnd)) {
-      setConflictMessage("That move conflicts with another job for the same person.");
-      return;
-    }
     setConflictMessage(null);
     // Placing a job on a day lane gives it TODAY's date + a technician + time.
     // Status follows the backlog rule: pending→Scheduled, else unchanged.
@@ -1721,7 +1742,10 @@ export function Calendar() {
   const handleDayDragOver = (event: DragEvent<HTMLDivElement>, technicianId: string) => {
     event.preventDefault();
     if (!isCurrentDateOpen) return;
-    setDropPreview({ view: "day", technicianId, start: hourFromPointer(event) });
+    const start = hourFromPointer(event);
+    const end = Math.min(GANTT_END_HOUR, start + dragDurRef.current);
+    if (dropPreview?.view === "day" && dropPreview.technicianId === technicianId && dropPreview.start === start) return;
+    setDropPreview({ view: "day", technicianId, start, end });
   };
 
   // Drag a board job back into the Pending column. Per the 2026-06 agreement it
@@ -2005,7 +2029,7 @@ export function Calendar() {
                 key={job.id}
                 data-job-card="true"
                 draggable
-                onDragStart={(event) => event.dataTransfer.setData("text/plain", `${viewMode === "week" ? "week" : "day"}:${job.id}`)}
+                onDragStart={(event) => { noteDrag(job); event.dataTransfer.setData("text/plain", `${viewMode === "week" ? "week" : "day"}:${job.id}`); }}
                 onClick={() => (viewMode === "week" ? setSelectedDispatchJob(job as DispatchJob) : setSelectedDayJob(job as DayJob))}
                 className="bg-white border border-[#E5E7EB] rounded-lg p-2.5 cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow"
                 style={{ borderLeft: `3px solid ${typeColor}`, backgroundColor: jobTypeTint(job.jobType) }}
@@ -2344,9 +2368,10 @@ export function Calendar() {
                           .sort((a, b) => a.start - b.start);
                         const memberTotal = memberJobs.reduce((sum, job) => sum + job.amount, 0);
                         const isLastMember = memberIdx === TEAM.length - 1;
-                        // Stack time-overlapping jobs into sub-rows (same as the day board).
-                        const { rowByJobId, rowCount } = packOverlaps(memberJobs);
-                        const laneH = laneHeight(rowCount, WK_TOP_PAD, WK_CARD_H, WK_ROW_GAP, WK_BOT_PAD);
+                        // Stack time-overlapping jobs into lanes (same as the day board).
+                        const wkPreview = dropPreview?.view === "week" && dropPreview.dayIdx === dayI && dropPreview.technicianId === member.id ? dropPreview : null;
+                        const lane = layoutLane([...memberJobs, ...(wkPreview ? [{ id: DROP_PHANTOM, start: wkPreview.start, end: wkPreview.end }] : [])], WK_TOP_PAD, WK_CARD_H, WK_BOT_PAD);
+                        const laneH = lane.laneH;
 
                         return (
                           <div key={`${dayI}-${member.id}`} className="flex" style={{ height: laneH }}>
@@ -2402,11 +2427,8 @@ export function Calendar() {
                                 />
                               )}
 
-                              {dropPreview?.view === "week" && dropPreview.dayIdx === dayI && dropPreview.technicianId === member.id && (
-                                <div
-                                  className="absolute top-2 bottom-2 rounded-lg border-2 border-dashed border-[#4A6FA5] bg-[#4A6FA5]/10 pointer-events-none"
-                                  style={{ left: (dropPreview.start - GANTT_START_HOUR) * HOUR_WIDTH + 4, width: HOUR_WIDTH - 8 }}
-                                />
+                              {wkPreview && (
+                                <DropPreviewBox preview={wkPreview} lane={lane} top={WK_TOP_PAD} card={WK_CARD_H} fmt={(h) => formatRegionalTime(h, regionalSettings)} />
                               )}
 
                               {/* Highlighted target slot while the create-job modal is open */}
@@ -2451,17 +2473,22 @@ export function Calendar() {
                                     style={{
                                       left,
                                       width: Math.max(width, 70),
-                                      top: WK_TOP_PAD + (rowByJobId[job.id] ?? 0) * (WK_CARD_H + WK_ROW_GAP),
-                                      height: WK_CARD_H,
+                                      top: cardTop(lane, job.id, WK_TOP_PAD, WK_CARD_H),
+                                      height: lane.compactIds.has(job.id) ? COMPACT_H : WK_CARD_H,
                                       backgroundColor: jobTypeTint(job.jobType),
                                       borderLeft: `3px solid ${typeColor}`,
                                       boxShadow: isSelected ? `0 0 0 2px ${typeColor}` : "none",
                                     }}
-                                    onDragStart={(event) => { event.dataTransfer.effectAllowed = "move"; event.dataTransfer.setData("text/plain", `week:${job.id}`); }}
+                                    onDragStart={(event) => { noteDrag(job); event.dataTransfer.effectAllowed = "move"; event.dataTransfer.setData("text/plain", `week:${job.id}`); }}
                                     onClick={() => setSelectedDispatchJob(isSelected ? null : job)}
                                     onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setSelectedDispatchJob(isSelected ? null : job); } }}
                                     onDoubleClick={(event) => event.stopPropagation()}
                                   >
+                                    {lane.compactIds.has(job.id) ? (
+                                      <CompactCardBody client={job.client} time={timeRangeLabel(formatRegionalTime(job.start, regionalSettings), formatRegionalTime(job.end, regionalSettings), Math.max(width, 70))}>
+                                        <CardStatusSelect status={job.status} size={5} onChange={(s) => updateWeekStatus(job.id, s)} />
+                                      </CompactCardBody>
+                                    ) : (
                                     <div className="flex flex-col h-full px-2 py-1.5 gap-1">
                                       {/* Line 1: client + route counter in the corner */}
                                       <div className="flex items-start gap-1.5">
@@ -2479,6 +2506,7 @@ export function Calendar() {
                                         <CardStatusSelect status={job.status} size={5} onChange={(s) => updateWeekStatus(job.id, s)} />
                                       </div>
                                     </div>
+                                    )}
                                   </div>
                                 );
                               })}
@@ -2612,7 +2640,9 @@ export function Calendar() {
                       .sort((a, b) => a.start - b.start);
                     // Sub-row layout (overlapping jobs never cover each other);
                     // shared with the left label column so both stay aligned.
-                    const { rowByJobId, laneH } = dayPackByMember[member.id];
+                    const lane = dayPackByMember[member.id];
+                    const { laneH } = lane;
+                    const dayPreview = dropPreview?.view === "day" && dropPreview.technicianId === member.id ? dropPreview : null;
 
                     return (
                       <div
@@ -2648,11 +2678,8 @@ export function Calendar() {
                           }}
                         />
 
-                        {dropPreview?.view === "day" && dropPreview.technicianId === member.id && (
-                          <div
-                            className="absolute top-2 bottom-2 rounded-lg border-2 border-dashed border-[#4A6FA5] bg-[#4A6FA5]/10 pointer-events-none"
-                            style={{ left: (dropPreview.start - GANTT_START_HOUR) * HOUR_WIDTH + 4, width: HOUR_WIDTH - 8 }}
-                          />
+                        {dayPreview && (
+                          <DropPreviewBox preview={dayPreview} lane={lane} top={DAY_TOP_PAD} card={DAY_CARD_H} fmt={(h) => formatRegionalTime(h, regionalSettings)} />
                         )}
 
                         {/* Highlighted target slot while the create-job modal is open */}
@@ -2689,8 +2716,8 @@ export function Calendar() {
                               style={{
                                 left,
                                 width: Math.max(width, 60),
-                                top: DAY_TOP_PAD + (rowByJobId[job.id] ?? 0) * (DAY_CARD_H + DAY_ROW_GAP),
-                                height: DAY_CARD_H,
+                                top: cardTop(lane, job.id, DAY_TOP_PAD, DAY_CARD_H),
+                                height: lane.compactIds.has(job.id) ? COMPACT_H : DAY_CARD_H,
                                 backgroundColor: jobTypeTint(job.jobType),
                                 borderLeft: `3px solid ${typeColor}`,
                                 boxShadow: selectedDayJob?.id === job.id ? `0 0 0 2px ${typeColor}` : "none",
@@ -2698,6 +2725,7 @@ export function Calendar() {
                               }}
                               onDragStart={(event) => {
                                 if (!canDrag) { event.preventDefault(); return; }
+                                noteDrag(job);
                                 event.dataTransfer.effectAllowed = "move";
                                 event.dataTransfer.setData("text/plain", `day:${job.id}`);
                               }}
@@ -2708,6 +2736,11 @@ export function Calendar() {
                               onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setSelectedDayJob(job); setSelectedMapJobId(job.id); } }}
                               onDoubleClick={(event) => event.stopPropagation()}
                             >
+                              {lane.compactIds.has(job.id) ? (
+                                <CompactCardBody client={job.client} cancelled={isCancelled} time={timeRangeLabel(formatRegionalTime(job.start, regionalSettings), formatRegionalTime(job.end, regionalSettings), Math.max(width, 60))}>
+                                  <CardStatusSelect status={job.status} size={6} onChange={(s) => updateDayStatus(job.id, s)} />
+                                </CompactCardBody>
+                              ) : (
                               <div className="flex flex-col h-full px-3 py-2 gap-1" style={{ textDecoration: isCancelled ? "line-through" : undefined, textDecorationColor: isCancelled ? "#9CA3AF" : undefined }}>
                                 {/* Line 1: client + route counter in the corner */}
                                 <div className="flex items-start gap-2">
@@ -2725,6 +2758,7 @@ export function Calendar() {
                                   <CardStatusSelect status={job.status} size={6} onChange={(s) => updateDayStatus(job.id, s)} />
                                 </div>
                               </div>
+                              )}
                             </div>
                           );
                         })}
@@ -2912,7 +2946,6 @@ export function Calendar() {
         <CreateJob
           asModal
           prefill={fullCreateDraft}
-          checkConflict={boardCheckConflict}
           onClose={() => setFullCreateDraft(null)}
           onCreated={() => setFullCreateDraft(null)}
         />

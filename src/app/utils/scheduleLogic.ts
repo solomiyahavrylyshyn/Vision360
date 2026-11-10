@@ -203,7 +203,9 @@ export function packOverlaps<T extends { id: number; start: number; end: number 
 }
 
 // ── Seed deconfliction (no technician double-booked) ───────────────────────
-// A technician can't be in two places at once, so the board must never show one
+// Demo seed hygiene: the seed starts with no overlaps so the board reads cleanly.
+// Real jobs MAY overlap now (8935 / 9361) — the board stacks them in lanes. Before:
+// a technician could not be in two places at once, so the board never showed one
 // person two time-overlapping jobs on the same day. Demo seeds assembled from
 // multiple sources can violate this once placed on real dates. deconflict() keeps
 // a non-overlapping set per (technician, day) greedily by start time — the FIRST
