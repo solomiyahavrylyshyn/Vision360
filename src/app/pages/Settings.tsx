@@ -40,6 +40,7 @@ import { categoriesStore } from "../stores/categoriesStore";
 import { expenseCategoriesStore, isPreCodedCategory } from "../stores/expenseCategoriesStore";
 import { notificationGroups } from "../constants/notificationEvents";
 import { notificationDefaultsStore } from "../stores/notificationDefaultsStore";
+import { jobSignSettingsStore, MOMENT_LABEL, type SignMoment } from "../stores/jobSignaturesStore";
 import { readOnlinePayments, writeOnlinePayments, type StripeStatus } from "../utils/onlinePayments";
 
 type SettingsSection =
@@ -2730,14 +2731,16 @@ export function Settings() {
   const [payRatesOpen, setPayRatesOpen] = useState(false);
 
   // ── Jobs Preferences ──
-  const [requireSigBeforeStart, setRequireSigBeforeStart] = useState(true);
-  const [requireSigOnComplete, setRequireSigOnComplete] = useState(true);
-  type JobNote = { id: string; title: string; body: string };
-  const [jobNotes, setJobNotes] = useState<JobNote[]>([
-    { id: "jn1", title: "Authorization to Proceed",
-      body: "I authorize Omega Home Services to perform the work described above and accept full responsibility for the agreed amount." },
-    { id: "jn2", title: "New note", body: "" },
-  ]);
+  // Client signatures on jobs (9355 / 8932): the two switches and the notes the
+  // client agrees to live in jobSignSettingsStore — the job page, the status
+  // checks and the client's /j/:token page read them from there.
+  const jobSign = useSyncExternalStore(jobSignSettingsStore.subscribe, jobSignSettingsStore.getSnapshot);
+  const requireSigBeforeStart = jobSign.requireBeforeStart;
+  const requireSigOnComplete = jobSign.requireOnCompletion;
+  const setRequireSigBeforeStart = (v: boolean) => jobSignSettingsStore.update({ requireBeforeStart: v });
+  const setRequireSigOnComplete = (v: boolean) => jobSignSettingsStore.update({ requireOnCompletion: v });
+  const jobNotes = jobSign.notes;
+  const setJobNotes = (notes: typeof jobSign.notes) => jobSignSettingsStore.update({ notes });
   // Job statuses — MVP starts with three core; additional ones can be added
   type JobStatus = { id: string; label: string; color: string; bg: string; icon: string; core?: boolean };
   // Six built-in system statuses (Figma 254:21177); Dispatched ships as a
@@ -4550,19 +4553,19 @@ export function Settings() {
                     </SectionCard>
 
                     {/* Signature Settings */}
-                    <SectionCard title="Signature Settings" description="Require the customer's signature at key moments. Captured signatures attach to the job PDF for legal protection.">
+                    <SectionCard title="Signature Settings" description="Ask the client to sign the job through an emailed link. What they agree to is the note picked for that moment in Notes on Jobs below.">
                       <div className="space-y-2 mt-2">
                         <div className="flex items-center justify-between gap-4 rounded-lg border border-[#E5E7EB] px-4 py-4">
                           <div className="flex-1">
                             <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Require signature before starting work</div>
-                            <div className="text-[12px] text-[#6B7280] mt-0.5">Field tech can't mark a job In Progress until the customer signs the Authorization to Proceed.</div>
+                            <div className="text-[12px] text-[#6B7280] mt-0.5">The job can't move to In progress until the client signs.</div>
                           </div>
                           <Switch checked={requireSigBeforeStart} onCheckedChange={setRequireSigBeforeStart} />
                         </div>
                         <div className="flex items-center justify-between gap-4 rounded-lg border border-[#E5E7EB] px-4 py-4">
                           <div className="flex-1">
                             <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Require signature on completion</div>
-                            <div className="text-[12px] text-[#6B7280] mt-0.5">Customer signs off when the work is done; locks the job into the Completed state.</div>
+                            <div className="text-[12px] text-[#6B7280] mt-0.5">The job can't be marked Completed until the client signs off the work.</div>
                           </div>
                           <Switch checked={requireSigOnComplete} onCheckedChange={setRequireSigOnComplete} />
                         </div>
@@ -4572,11 +4575,11 @@ export function Settings() {
                     {/* Notes on Jobs */}
                     <SectionCard
                       title="Notes on Jobs"
-                      description="Reusable legal / operational text printed on the job sheet (service agreements, authorization, disclaimers)."
+                      description="The text the client agrees to when signing the job. Pick for each note when the client sees it."
                       headerAction={
                         <Button
                           className="h-8 bg-[#4A6FA5] px-3 text-[13px] hover:bg-[#3d5a85]"
-                          onClick={() => setJobNotes([...jobNotes, { id: `jn${Date.now()}`, title: "New note", body: "" }])}
+                          onClick={() => setJobNotes([...jobNotes, { id: `jn${Date.now()}`, title: "New note", body: "", moment: "start" }])}
                         >
                           + Add note
                         </Button>
@@ -4593,6 +4596,17 @@ export function Settings() {
                                 className="flex-1 h-8 px-2 text-[13px] text-[#1A2332] border-0 outline-none bg-transparent"
                                 style={{ fontWeight: 600 }}
                               />
+                              <label className="flex h-8 shrink-0 items-center gap-1.5 rounded-lg border border-[#E5E7EB] bg-white pl-2.5 pr-1 text-[13px]">
+                                <span className="text-[#6B7280]">Client signs:</span>
+                                <select
+                                  value={note.moment}
+                                  onChange={e => setJobNotes(jobNotes.map(n => n.id === note.id ? { ...n, moment: e.target.value as SignMoment } : n))}
+                                  className="h-7 bg-transparent pr-1 text-[13px] text-[#1A2332] outline-none"
+                                  aria-label="When the client sees this note"
+                                >
+                                  {(["start", "completion"] as SignMoment[]).map(m => <option key={m} value={m}>{MOMENT_LABEL[m]}</option>)}
+                                </select>
+                              </label>
                               <button
                                 type="button"
                                 onClick={() => setJobNotes(jobNotes.filter(n => n.id !== note.id))}
@@ -4606,7 +4620,7 @@ export function Settings() {
                               value={note.body}
                               onChange={e => setJobNotes(jobNotes.map(n => n.id === note.id ? { ...n, body: e.target.value } : n))}
                               rows={3}
-                              placeholder="Note text shown on the job sheet…"
+                              placeholder="The text the client agrees to…"
                               className="w-full rounded-lg border border-[#E5E7EB] bg-[#FAFBFC] px-3 py-2 text-[13px] leading-5 text-[#1A2332] outline-none focus:border-[#4A6FA5] focus:ring-2 focus:ring-[#4A6FA5]/20 resize-y"
                             />
                           </div>

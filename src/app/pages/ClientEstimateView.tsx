@@ -12,7 +12,7 @@ import { getStoredBrandLogo } from "../utils/brandTheme";
 import { termsStore } from "../stores/termsStore";
 import { estimateSettingsStore, findPlan, planLine, planMonthly } from "../stores/estimateSettingsStore";
 
-const COMPANY = {
+export const COMPANY = {
   name: "Service Vision",
   address: "8377 Standish Bend Dr, Tampa FL 33615",
   email: "jaamsflying@gmail.com",
@@ -45,7 +45,7 @@ const totalsFor = (items: EstimateLineItem[], taxRate: number) => {
   return { subtotal, tax, total: subtotal + tax };
 };
 
-function Shell({ children }: { children: React.ReactNode }) {
+export function Shell({ children, about = "estimate" }: { children: React.ReactNode; about?: string }) {
   const logo = getStoredBrandLogo();
   return (
     <div className="min-h-screen bg-[#F5F7FA] text-[#1A2332]">
@@ -63,14 +63,14 @@ function Shell({ children }: { children: React.ReactNode }) {
       <footer className="mx-auto max-w-[1120px] px-4 pb-10 text-[12px] leading-[18px] text-[#9CA3AF] sm:px-6">
         {COMPANY.name} · {COMPANY.address}
         <div className="mt-1">
-          If you were not expecting this estimate, do not act on it — call us on {COMPANY.phone} first.
+          If you were not expecting this {about}, do not act on it — call us on {COMPANY.phone} first.
         </div>
       </footer>
     </div>
   );
 }
 
-function Notice({ icon, tone, title, children }: {
+export function Notice({ icon, tone, title, children }: {
   icon: string; tone: "green" | "amber" | "grey"; title: string; children?: React.ReactNode;
 }) {
   const palette = {
@@ -125,7 +125,7 @@ function FullPrice({ total, tax, open, onToggle, onBlue }: {
   );
 }
 
-function Label({ children }: { children: React.ReactNode }) {
+export function Label({ children }: { children: React.ReactNode }) {
   return <div className="text-[11px] uppercase tracking-[0.08em] text-[#6B7280]" style={{ fontWeight: 600 }}>{children}</div>;
 }
 

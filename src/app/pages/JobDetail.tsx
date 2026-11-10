@@ -27,6 +27,7 @@ import { computeJobFinancials, isCompensationCategory } from "../utils/jobFinanc
 import { AdjustPriceModal, DISCOUNT_LINE_NAME, discountLineDescription } from "../components/AdjustPriceModal";
 import { SeriesVisitsModal, ChangeVisitsModal, CancelSeriesDialog } from "../components/JobSeriesDialogs";
 import { seriesRuleText } from "../utils/jobSeries";
+import { jobSignLinksStore, jobSignSettingsStore, isRequired, missingSignature, missingMessage, signLinkUrl, fmtSignedAt, MOMENT_LABEL, type SignMoment, type JobSnapshot } from "../stores/jobSignaturesStore";
 import { expenseCategoryColors } from "./Expenses";
 import acServicePhoto from "../../assets/documents/33897-cu.jpg";
 import waterHeaterPhoto from "../../assets/documents/34285-install-water-heater.jpg";
@@ -804,7 +805,48 @@ export function JobDetail() {
     : currentStatus;
   const statusColor = displayStatus === "Unscheduled" ? "#6B7280" : (statusColors[currentStatus] || "#6B7280");
 
+  // ── Client signatures (9355 / 8932) ──
+  const signSettings = useSyncExternalStore(jobSignSettingsStore.subscribe, jobSignSettingsStore.getSnapshot);
+  useSyncExternalStore(jobSignLinksStore.subscribe, jobSignLinksStore.getSnapshot);
+  const jobKey = String(id ?? job.id);
+  const signMoments = (["start", "completion"] as SignMoment[]).filter((m) => isRequired(signSettings, m));
+  const jobSnapshot = (): JobSnapshot => {
+    const rate = (storeJob?.taxRate ?? 7.5) / 100;
+    const items = jobLineItems.map((l) => {
+      const tax = l.isDiscount || l.taxable === false ? 0 : Math.round(l.total * rate * 100) / 100;
+      return { name: l.name, description: l.description, quantity: l.quantity, unitPrice: l.unitPrice, tax, amount: l.total + tax };
+    });
+    return {
+      jobNumber: String(job.jobNumber ?? job.id),
+      title: job.title,
+      clientName: job.client,
+      address: [job.address, [job.city, [job.state, job.zip].filter(Boolean).join(" ")].filter(Boolean).join(", ")].filter(Boolean).join(", "),
+      technician: job.assignedTo || "",
+      dateLabel: job.startedOn || "",
+      timeLabel: job.startTime ? `${job.startTime}${job.endTime ? ` – ${job.endTime}` : ""}` : "",
+      description: (storeJob?.notes || "").trim(),
+      items,
+      total: items.reduce((sum, i) => sum + i.amount, 0) || Number(job.totalPrice || 0),
+    };
+  };
+  const sendSignLink = (m: SignMoment) => {
+    jobSignLinksStore.send({ jobKey, moment: m, sentTo: job.email || "", job: jobSnapshot() });
+    toast.success(`Link sent to ${job.email || "the client"}`, { description: m === "start" ? "Authorization to proceed" : "Completion sign-off" });
+  };
+  const copySignLink = (token: string) => {
+    navigator.clipboard?.writeText(signLinkUrl(token)).then(() => toast.success("Link copied"), () => toast.error("Couldn't copy the link"));
+  };
+
   const handleStatusChange = (newStatus: string) => {
+    // With a signature switched on in Settings → Jobs, the job can't move to
+    // In progress / Completed until the client has signed (8932).
+    const missing = missingSignature(jobKey, newStatus);
+    if (missing) {
+      setStatusDropdownOpen(false);
+      const msg = missingMessage(missing, job.client);
+      toast.error(msg.title, { description: msg.body, action: { label: "Send link", onClick: () => sendSignLink(missing) } });
+      return;
+    }
     setCurrentStatus(newStatus);
     setStatusDropdownOpen(false);
     // Persist to jobsStore so the status survives a refresh.
@@ -1010,6 +1052,49 @@ export function JobDetail() {
               )}
             </div>
             <div className="p-4 space-y-4">
+              {signMoments.length > 0 && (
+                <div className="space-y-2.5 border-b border-[#E5E7EB] pb-4">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="whitespace-nowrap text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Client signatures</span>
+                    <span className="min-w-0 truncate text-[12px] text-[#6B7280]">Settings → Jobs</span>
+                  </div>
+                  {signMoments.map((m) => {
+                    const link = jobSignLinksStore.current(jobKey, m);
+                    const state = link?.status === "signed" ? "signed" : link ? "waiting" : "notsent";
+                    const badge = { signed: ["Signed", "#16803D", "#E6F7EB"], waiting: ["Waiting", "#B45309", "#FFF3D9"], notsent: ["Not sent", "#6B7280", "#F3F4F6"] }[state];
+                    return (
+                      <div key={m} className="space-y-0.5">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-[14px] text-[#6B7280]">{MOMENT_LABEL[m]}</span>
+                          <span className="shrink-0 whitespace-nowrap rounded-full px-2 py-0.5 text-[12px]" style={{ fontWeight: 500, color: badge[1], backgroundColor: badge[2] }}>{badge[0]}</span>
+                        </div>
+                        {state === "signed" && link && (
+                          <>
+                            <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{link.signedBy} · {fmtSignedAt(link.signedAt!)}</div>
+                            <div className="text-[13px] text-[#6B7280]">{!link.location || link.location === "not shared" ? "Location not shared" : `Signed near ${link.location}`}</div>
+                            <a href={signLinkUrl(link.token)} target="_blank" rel="noreferrer" className="text-[13px] text-[#4A6FA5] hover:underline" style={{ fontWeight: 500 }}>View signature</a>
+                          </>
+                        )}
+                        {state === "waiting" && link && (
+                          <>
+                            <div className="text-[13px] text-[#6B7280]">Link sent {fmtSignedAt(link.sentAt)}{link.sentTo ? ` to ${link.sentTo}` : ""}</div>
+                            <div className="flex gap-3">
+                              <button type="button" onClick={() => sendSignLink(m)} className="text-[13px] text-[#4A6FA5] hover:underline" style={{ fontWeight: 500 }}>Resend link</button>
+                              <button type="button" onClick={() => copySignLink(link.token)} className="text-[13px] text-[#4A6FA5] hover:underline" style={{ fontWeight: 500 }}>Copy link</button>
+                            </div>
+                          </>
+                        )}
+                        {state === "notsent" && (
+                          <>
+                            <div className="text-[13px] text-[#6B7280]">{m === "start" ? "Not sent yet." : "Send it when the work is done. The job can't be completed until it is signed."}</div>
+                            <button type="button" onClick={() => sendSignLink(m)} className="text-[13px] text-[#4A6FA5] hover:underline" style={{ fontWeight: 500 }}>Send link</button>
+                          </>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
               <div>
                 <div className="text-[14px] text-[#6B7280] leading-[20px]">Job frequency</div>
                 <div className="flex items-center gap-2">
@@ -1825,7 +1910,15 @@ export function JobDetail() {
   };
 
   const renderFigmaActivityTab = () => {
+    const signEvents = jobSignLinksStore.getSnapshot().filter((l) => l.jobKey === jobKey).flatMap((l, i) => {
+      const what = l.moment === "start" ? "Authorization to proceed" : "Completion sign-off";
+      const at = (iso: string) => ({ date: new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }), time: new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) });
+      const sent = { id: 200 + i * 2, icon: "forward_to_inbox", title: "Signing link sent", description: `${what} · to ${l.sentTo || "the client"}`, actor: "You", ...at(l.sentAt), tone: "#4A6FA5", ts: l.sentAt };
+      const signed = l.status === "signed" && l.signedAt ? [{ id: 201 + i * 2, icon: "draw", title: `${what} signed`, description: `Signed by ${l.signedBy}${l.location && l.location !== "not shared" ? ` · near ${l.location}` : " · location not shared"}`, actor: l.signedBy || "Client", ...at(l.signedAt), tone: "#16A34A", ts: l.signedAt }] : [];
+      return [...signed, sent];
+    }).sort((a, b) => b.ts.localeCompare(a.ts));
     const activity = [
+      ...signEvents,
       ...(reopenedAt ? [{
         id: 99,
         icon: "lock_open",

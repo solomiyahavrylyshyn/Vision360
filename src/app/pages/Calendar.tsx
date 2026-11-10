@@ -1,5 +1,7 @@
 import { useState, useMemo, useRef, useSyncExternalStore, useEffect, type DragEvent, type ReactNode, type FormEvent, type MouseEvent, type PointerEvent as ReactPointerEvent, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { useNavigate } from "react-router";
+import { toast } from "sonner";
+import { missingSignature, missingMessage } from "../stores/jobSignaturesStore";
 import tampaMapImg from "../../assets/tampa-map.png";
 import { PageHeader } from "../components/ui/page-header";
 import { scheduleSettingsStore } from "../stores/scheduleSettingsStore";
@@ -1506,13 +1508,27 @@ export function Calendar() {
 
   // All three operate on the ONE collection now; they keep their own projected
   // selection (selectedDayJob / selectedDispatchJob / selectedEvent) in sync.
+  // A required client signature (Settings → Jobs) blocks In progress / Completed
+  // (8932). Signing links are sent from the job page, so the message opens it.
+  const signatureBlocks = (jobId: number, status: JobStatus): boolean => {
+    if (!isStoreJob(jobId)) return false;
+    const jobKey = String(jobId - JOBSTORE_ID_BASE);
+    const missing = missingSignature(jobKey, status);
+    if (!missing) return false;
+    const msg = missingMessage(missing, allJobs.find((j) => j.id === jobId)?.client ?? "");
+    toast.error(msg.title, { description: msg.body, action: { label: "Open job", onClick: () => navigate(`/jobs/${jobKey}`) } });
+    return true;
+  };
+
   const updateDayStatus = (jobId: number, status: JobStatus) => {
+    if (signatureBlocks(jobId, status)) return;
     patchJob(jobId, { status });
     setSelectedDayJob((job) => job?.id === jobId ? { ...job, status } : job);
     showToast(`Marked as ${status}`);
   };
 
   const updateWeekStatus = (jobId: number, status: JobStatus) => {
+    if (signatureBlocks(jobId, status)) return;
     patchJob(jobId, { status });
     setSelectedDispatchJob((job) => job?.id === jobId ? { ...job, status } : job);
     showToast(`Marked as ${status}`);

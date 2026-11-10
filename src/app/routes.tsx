@@ -13,6 +13,7 @@ import { InviteExpired } from "./pages/InviteExpired";
 import { ClientEstimateView } from "./pages/ClientEstimateView";
 import { PayLink } from "./pages/PayLink";
 import { CardLink } from "./pages/CardLink";
+import { JobSignPage } from "./pages/JobSignPage";
 import { Dashboard } from "./pages/Dashboard";
 import { Home } from "./pages/Home";
 import { Clients } from "./pages/Clients";
@@ -144,6 +145,11 @@ export const router = createBrowserRouter([
   {
     path: "/card/:token",
     Component: CardLink,
+  },
+  // The page the client signs for a job from (before work starts / on completion, 9355).
+  {
+    path: "/j/:token",
+    Component: JobSignPage,
   },
   {
     path: "/",
