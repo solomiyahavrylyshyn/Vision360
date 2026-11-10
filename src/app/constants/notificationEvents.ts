@@ -1,12 +1,13 @@
-// Notification event catalog (FR-13.3) — the single list shared by the
-// company-level defaults (Settings → Company profile → Notifications) and the
-// per-user preferences (Profile → Notifications, FR-13.5).
+// Notification event catalog — mirrors the backend exactly:
+// backend-service Vision360.Domain/Constants/NotificationEventKeys.cs (9 keys,
+// in display order). The keys are the wire values; the app owns the labels and
+// the Job / Estimate / Invoice & Payment grouping (as the backend comment says).
 //
-// Deliberately excluded, because the PRD rules them out:
-//   • "Invoice overdue" — Overdue is derived on display; no overdue
-//     notifications are sent (FR-7.12).
-//   • "Failed payment" — a failed payment stores no record and raises no
-//     notification; it is a transient event (FR-8.4).
+// Not here, because the backend refuses or never sends them:
+//   • "Invoice overdue" — no scheduled overdue check yet (FR-7.12).
+//   • Estimate sent / signed, Invoice signed — no such keys on the backend.
+// "Technician dispatched" is a real key, but nothing sends it until the mobile
+// app's "On my way".
 
 export interface NotificationEvent {
   key: string;
@@ -15,22 +16,27 @@ export interface NotificationEvent {
 }
 
 export const jobNotificationEvents: NotificationEvent[] = [
-  { key: "job_assigned", label: "New job assigned", description: "Notify when a job is assigned to a technician" },
-  { key: "job_dispatched", label: "Technician dispatched", description: "Notify when a technician is dispatched to a job" },
-  { key: "job_completed", label: "Job completed", description: "Notify when a job is marked completed" },
+  { key: "newJobAssigned", label: "New job assigned", description: "When a job is assigned to a technician" },
+  { key: "jobRescheduled", label: "Job rescheduled", description: "When a job's date or time changes" },
+  { key: "technicianDispatched", label: "Technician dispatched", description: "When a technician is on the way to a job" },
+  { key: "jobCompleted", label: "Job completed", description: "When a job is marked completed" },
 ];
 
 export const estimateNotificationEvents: NotificationEvent[] = [
-  { key: "estimate_sent", label: "Estimate sent", description: "Notify when an estimate is sent to a client" },
-  { key: "estimate_viewed", label: "Estimate viewed", description: "Notify when a client opens the estimate link" },
-  { key: "estimate_changes", label: "Changes requested", description: "Notify when a client requests changes" },
-  { key: "estimate_approved", label: "Estimate approved", description: "Notify when a client approves an estimate" },
-  { key: "estimate_signed", label: "Estimate signed", description: "Notify when a client signs an estimate, including the option selected" },
+  { key: "estimateApproved", label: "Estimate approved", description: "When a client approves an estimate" },
+  { key: "estimateDeclined", label: "Estimate declined", description: "When a client declines an estimate" },
+  { key: "customerViewedEstimate", label: "Customer viewed estimate", description: "When a client opens the estimate link" },
 ];
 
 export const paymentNotificationEvents: NotificationEvent[] = [
-  { key: "invoice_signed", label: "Invoice signed", description: "Notify when a client signs an invoice" },
-  { key: "payment_received", label: "Payment received", description: "Notify when a customer payment is received" },
+  { key: "paymentReceived", label: "Payment received", description: "When a client payment is received" },
+  { key: "failedPayment", label: "Failed payment", description: "When a card payment fails" },
+];
+
+export const notificationGroups = [
+  { title: "Job notifications", events: jobNotificationEvents },
+  { title: "Estimate notifications", events: estimateNotificationEvents },
+  { title: "Invoice & Payment notifications", events: paymentNotificationEvents },
 ];
 
 export const allNotificationEvents: NotificationEvent[] = [

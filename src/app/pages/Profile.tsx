@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
 import { Input } from "../components/ui/input";
-import { jobNotificationEvents, estimateNotificationEvents, paymentNotificationEvents } from "../constants/notificationEvents";
+import { jobNotificationEvents, estimateNotificationEvents, paymentNotificationEvents, allNotificationEvents } from "../constants/notificationEvents";
+import { notificationDefaultsStore } from "../stores/notificationDefaultsStore";
 // Profile page — aligned to Figma node 1122-7158.
 
 type SidebarPreference = "Expanded sidebar" | "Collapsed sidebar";
@@ -90,9 +91,16 @@ export function Profile() {
     toast.success("Password updated");
   };
 
+  // Starts from the company defaults (Settings → Company profile → Notifications).
   const [enabledNotifications, setEnabledNotifications] = useState<Set<string>>(
-    () => new Set([...jobNotifications, ...estimateNotifications, ...invoiceNotifications])
+    () => new Set(allNotificationEvents.filter(e => notificationDefaultsStore.get(e.key).enabled).map(e => e.label))
   );
+  const companyDefaults = useSyncExternalStore(notificationDefaultsStore.subscribe, notificationDefaultsStore.getSnapshot);
+  const lockedDefault = (label: string) => {
+    const ev = allNotificationEvents.find(e => e.label === label);
+    const d = ev ? companyDefaults[ev.key] : undefined;
+    return d?.locked ? d : null;
+  };
   const [sidebar, setSidebar] = useState<SidebarPreference>("Expanded sidebar");
 
   const toggleNotification = (label: string) => {
@@ -103,13 +111,14 @@ export function Profile() {
     });
   };
 
-  const Toggle = ({ checked, onChange }: { checked: boolean; onChange: () => void }) => (
+  const Toggle = ({ checked, onChange, disabled }: { checked: boolean; onChange: () => void; disabled?: boolean }) => (
     <button
       type="button"
       role="switch"
       aria-checked={checked}
+      disabled={disabled}
       onClick={onChange}
-      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${checked ? "bg-[#4A6FA5]" : "bg-[#D8DEE8]"}`}
+      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${checked ? "bg-[#4A6FA5]" : "bg-[#D8DEE8]"} ${disabled ? "cursor-not-allowed opacity-50" : ""}`}
     >
       <span className={`inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${checked ? "translate-x-[22px]" : "translate-x-[2px]"}`} />
     </button>
@@ -123,8 +132,17 @@ export function Profile() {
       <div className="divide-y divide-[#EEF1F5]">
         {rows.map(row => (
           <div key={row} className="flex min-h-[48px] items-center justify-between gap-4 px-4 py-2.5">
-            <span className="text-[13px] leading-5 text-[#374151]">{row}</span>
-            <Toggle checked={enabledNotifications.has(row)} onChange={() => toggleNotification(row)} />
+            {(() => {
+              // Locked by the company (Figma 5938:14334): the company's value, read-only.
+              const lock = lockedDefault(row);
+              return (<>
+                <span className="flex items-center gap-2 text-[13px] leading-5 text-[#374151]">
+                  {row}
+                  {lock && <span className="rounded-md bg-[#F3F4F6] px-1.5 py-px text-[11px] text-[#6B7280]" style={{ fontWeight: 500 }} title="Locked by an admin in Settings → Company profile → Notifications">Set by your company</span>}
+                </span>
+                <Toggle checked={lock ? lock.enabled : enabledNotifications.has(row)} disabled={!!lock} onChange={() => !lock && toggleNotification(row)} />
+              </>);
+            })()}
           </div>
         ))}
       </div>
@@ -201,8 +219,8 @@ export function Profile() {
             <Section title="Notifications">
               <div className="space-y-3">
                 <NotificationGroup title="Job notifications" rows={jobNotifications} />
-                <NotificationGroup title="Estimate Notifications" rows={estimateNotifications} />
-                <NotificationGroup title="Invoice & Payment Notifications" rows={invoiceNotifications} />
+                <NotificationGroup title="Estimate notifications" rows={estimateNotifications} />
+                <NotificationGroup title="Invoice & Payment notifications" rows={invoiceNotifications} />
               </div>
             </Section>
 

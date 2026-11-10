@@ -38,7 +38,8 @@ import { EstimateOptionsSheet, EstimateSingleSheet, EstimateTermsPage, InvoiceSh
 import { trialStore, isTrialActive, getTrialDaysRemaining } from "../stores/trialStore";
 import { categoriesStore } from "../stores/categoriesStore";
 import { expenseCategoriesStore, isPreCodedCategory } from "../stores/expenseCategoriesStore";
-import { allNotificationEvents } from "../constants/notificationEvents";
+import { notificationGroups } from "../constants/notificationEvents";
+import { notificationDefaultsStore } from "../stores/notificationDefaultsStore";
 import { readOnlinePayments, writeOnlinePayments, type StripeStatus } from "../utils/onlinePayments";
 
 type SettingsSection =
@@ -2030,6 +2031,46 @@ function InvoicesPreferences() {
   );
 }
 
+// Company notification defaults (task 9253, Figma 178:14957): the backend's 9
+// events; per event "On by default" and "Locked". A locked event is what every
+// person gets — their profile shows it read-only with "Set by your company".
+function CompanyNotificationsCard() {
+  const defaults = useSyncExternalStore(notificationDefaultsStore.subscribe, notificationDefaultsStore.getSnapshot);
+  const get = (k: string) => defaults[k] ?? { enabled: true, locked: false };
+  const ROW = "grid grid-cols-[minmax(0,1fr)_120px_90px] items-center gap-4 px-4";
+  return (
+    <SectionCard title="Notifications" description="Defaults for your team. Each person can change these in their profile, unless you lock an event — then everyone gets it as set here.">
+      <div className="mt-2 overflow-hidden rounded-lg border border-[#E5E7EB]">
+        <div className={`${ROW} bg-[#F9FAFB] py-2 text-[11px] uppercase tracking-wide text-[#6B7280]`} style={{ fontWeight: 500 }}>
+          <span>Event</span><span className="text-center">On by default</span><span className="text-center">Locked</span>
+        </div>
+        {notificationGroups.map(g => (
+          <div key={g.title}>
+            <div className="border-t border-[#EEF0F4] bg-[#F5F7FA] px-4 py-2 text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>{g.title}</div>
+            {g.events.map(e => {
+              const d = get(e.key);
+              return (
+                <div key={e.key} className={`${ROW} border-t border-[#EEF0F4] py-3`}>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>{e.label}</span>
+                      {d.locked && <span className="rounded-md bg-[#EEF3FA] px-1.5 py-px text-[11px] text-[#3B5B8A]" style={{ fontWeight: 500 }}>Everyone gets it</span>}
+                    </div>
+                    <div className="text-[12px] text-[#6B7280]">{e.description}</div>
+                  </div>
+                  <div className="flex justify-center"><Switch checked={d.enabled} onCheckedChange={v => notificationDefaultsStore.set(e.key, { enabled: v })} aria-label={`${e.label} on by default`} /></div>
+                  <div className="flex justify-center"><input type="checkbox" checked={d.locked} onChange={ev => notificationDefaultsStore.set(e.key, { locked: ev.target.checked })} aria-label={`Lock ${e.label}`} className="h-4 w-4 accent-[#4A6FA5]" /></div>
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+      <p className="mt-3 text-[12px] text-[#6B7280]">Locked: people see this event in their profile but can't switch it. Unlocked: the setting here is where a new team member starts.</p>
+    </SectionCard>
+  );
+}
+
 // Finance Center — Marek's spec
 
 function FinanceCenterSection() {
@@ -3441,19 +3482,7 @@ export function Settings() {
                 {/* Company-level notification defaults (FR-13.3/13.5) — users
                     override these per person in Profile → Notifications. The
                     event catalog is shared so both lists stay in step. */}
-                <SectionCard title="Notifications" description="Company defaults for job, estimate and payment events. Each user can adjust their own preferences in their profile.">
-                  <div className="space-y-3">
-                    {allNotificationEvents.map(n => (
-                      <div key={n.key} className="flex items-center justify-between rounded-lg border border-[#E5E7EB] px-4 py-3">
-                        <div>
-                          <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 600 }}>{n.label}</div>
-                          <div className="text-[12px] text-[#7A8799]">{n.description}</div>
-                        </div>
-                        <Switch defaultChecked />
-                      </div>
-                    ))}
-                  </div>
-                </SectionCard>
+                <CompanyNotificationsCard />
 
                 <TaxSettingsCard />
 
