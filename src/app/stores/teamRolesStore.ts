@@ -26,12 +26,19 @@ const dispatcherPerms: PermissionsState = {
   mobileApp: { ...defaultMobileApp, enabled: false },
 };
 
+// Warranty technicians (Tom Richards) — the role whose "Jobs he sees" Helen switches to
+// "All own jobs" so their Scheduled, not-yet-dispatched jobs reach the phone too.
+const WARRANTY_ROLE: TeamRole = { id: "warranty", name: "Warranty Technician", perms: technicianPreset };
+
 const SEED_ROLES: TeamRole[] = [
   { id: "admin", name: "Admin", builtIn: true, perms: adminPreset },
   { id: "employee", name: "Employee", builtIn: true, perms: employeePreset },
   { id: "technician", name: "Technician", builtIn: true, perms: technicianPreset },
   { id: "dispatcher", name: "Dispatcher", perms: dispatcherPerms },
+  WARRANTY_ROLE,
 ];
+/** Lists saved before the warranty role existed get it added. */
+const withWarranty = (roles: TeamRole[]): TeamRole[] => (roles.some((r) => r.id === WARRANTY_ROLE.id) ? roles : [...roles, WARRANTY_ROLE]);
 
 const SEED_ACTIVITY: RoleActivity[] = [
   { id: "ra1", roleId: "technician", actor: "Helen Smith", text: "turned off Price book in More", at: "2026-11-11T10:05:00" },
@@ -43,7 +50,7 @@ const KEY = "vision360.teamRoles.v1";
 const read = (): State => {
   try {
     const raw = localStorage.getItem(KEY); const p = raw ? JSON.parse(raw) : null;
-    if (p && Array.isArray(p.roles) && p.roles.length) return { roles: p.roles, activity: Array.isArray(p.activity) ? p.activity : [] };
+    if (p && Array.isArray(p.roles) && p.roles.length) return { roles: withWarranty(p.roles), activity: Array.isArray(p.activity) ? p.activity : [] };
   } catch { /* ignore */ }
   return { roles: SEED_ROLES, activity: SEED_ACTIVITY };
 };
@@ -61,7 +68,7 @@ export const teamRolesStore = {
   subscribe(l: () => void) {
     listeners.add(l);
     sync.hydrate(state, (v) => {
-      if (v && Array.isArray(v.roles) && v.roles.length) { state = { roles: v.roles, activity: v.activity ?? [] }; try { localStorage.setItem(KEY, JSON.stringify(state)); } catch { /* ignore */ } listeners.forEach((x) => x()); }
+      if (v && Array.isArray(v.roles) && v.roles.length) { state = { roles: withWarranty(v.roles), activity: v.activity ?? [] }; try { localStorage.setItem(KEY, JSON.stringify(state)); } catch { /* ignore */ } listeners.forEach((x) => x()); }
     });
     return () => listeners.delete(l);
   },

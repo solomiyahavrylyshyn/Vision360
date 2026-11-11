@@ -669,6 +669,20 @@ const INITIAL_JOBS_RAW: UnifiedJob[] = [
 // could put the same tech in two places at once (e.g. two 8-10 AM jobs for Peter).
 // The day seed is listed first, so it wins ties → "today" resolves to the clean
 // day schedule. (Logic lives in scheduleLogic + is unit-tested there.)
+// Tom (warranty technician) — his Scheduled jobs that aren't dispatched yet: next Tuesday,
+// 20 days ahead and one with no date. With his role on "All own jobs" they reach his
+// phone under Upcoming ("Not dispatched yet"); dispatching moves them to Next jobs.
+const _nextTue = addDays(_schedBase, ((2 - _schedBase.getDay() + 7) % 7) || 7);
+const warrantySeed = (id: number, num: string, date: Date | null, start: number, service: string): UnifiedJob => ({
+  id, num, date, technicianId: "tom", start, end: start + 1.5, unscheduled: date == null, client: "Moore Residence", service,
+  address: "753 Spruce St", status: "Scheduled", amount: 0, jobType: "Service", title: service, property: "753 Spruce St",
+  priority: "Normal", source: "Schedule", color: "blue", bg: "#EBF0F8", border: "#4A6FA5",
+});
+INITIAL_JOBS_RAW.push(
+  warrantySeed(906, "10512-J05", _nextTue, 9, "Warranty check"),
+  warrantySeed(907, "10512-J06", addDays(_schedBase, 20), 10, "Warranty follow-up"),
+  warrantySeed(908, "10512-J07", null, 9, "Warranty part swap"),
+);
 const INITIAL_JOBS: UnifiedJob[] = deconflict(INITIAL_JOBS_RAW);
 
 // ── jobsStore ⇄ board adapter (unify create flow with the board) ────────────

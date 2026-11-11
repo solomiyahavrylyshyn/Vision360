@@ -469,6 +469,11 @@ export function PermissionsEditor({
                     <Radio checked={m.jobsScope === "active"} onClick={() => setM({ jobsScope: "active" })} label="Active jobs only" />
                     <Radio checked={m.jobsScope === "allOwn"} onClick={() => setM({ jobsScope: "allOwn" })} label="All own jobs (warranty technicians)" />
                   </SettingRow>
+                  <div className="pb-3 text-[12px] leading-[18px] text-[#6B7280]">
+                    {m.jobsScope === "allOwn"
+                      ? <>Their jobs that aren&apos;t dispatched yet also go to the phone — any date, and jobs with no date. In the app they&apos;re under <b style={{ fontWeight: 600 }}>Upcoming</b>, marked <b style={{ fontWeight: 600 }}>Not dispatched yet</b>; En route and Start work once you dispatch the job.</>
+                      : <>Only dispatched jobs and jobs in progress. Switching from All own jobs removes the other jobs from phones at the next sync — except a job with something still waiting to be sent.</>}
+                  </div>
                   <SettingRow label="Modules in More">
                     <Check checked={m.modules.mySchedule} onChange={v => setM({ modules: { ...m.modules, mySchedule: v } })} label="My schedule" />
                     <Check checked={m.modules.priceBook} onChange={v => setM({ modules: { ...m.modules, priceBook: v } })} label="Price book" />
