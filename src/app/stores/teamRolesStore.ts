@@ -4,6 +4,7 @@
 // in More"). Your own role is read-only: "ask the Owner or another admin".
 // Home tiles are not on the role — they're fixed per role (A12, Nov 2).
 import { createSettingsSync } from "./settingsSync";
+import { teamStore } from "./teamStore";
 import {
   adminPreset, employeePreset, technicianPreset, defaultMobileApp,
   type PermissionsState,
@@ -115,3 +116,13 @@ export function describeChanges(a: PermissionsState, b: PermissionsState): strin
 
 export const fmtActivityAt = (iso: string) =>
   new Date(iso).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+
+// ── Web sign-in gate ─────────────────────────────────────────────────────────
+/** The team member signing in with this email, when their role has "Can use the web app" off —
+ *  they get the "Your role uses the Vision360 technician app" page instead of the web app. */
+export function appOnlyMember(email: string) {
+  const m = teamStore.getSnapshot().find((x) => x.email.toLowerCase() === email.trim().toLowerCase());
+  if (!m) return null;
+  const role = teamRolesStore.byName(m.role);
+  return role && role.perms.webApp === false ? { name: m.name, email: m.email, role: role.name } : null;
+}

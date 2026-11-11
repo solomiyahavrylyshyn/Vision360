@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router";
 import { Checkbox } from "../components/ui/checkbox";
 import { AuthLayout } from "../components/AuthLayout";
 import { isDeviceTrusted } from "../utils/trustedDevice";
+import { appOnlyMember } from "../stores/teamRolesStore";
 
 // ── Demo triggers (prototype only — no real auth) ────────────────────────────
 // Any submit signs in, EXCEPT these documented demo credentials that surface the
@@ -68,7 +69,8 @@ export function Login() {
     // FR-1.3 — credentials accepted → 2FA code screen, unless this browser was
     // marked trusted ("Trust this device for 30 days") on a previous login.
     if (isDeviceTrusted()) {
-      navigate("/");
+      // Role without web access → the "use the technician app" page.
+      navigate(appOnlyMember(email) ? `/app-only?email=${encodeURIComponent(email)}` : "/");
     } else {
       navigate("/login/verify", { state: { email } });
     }

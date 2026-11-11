@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router";
 import { Checkbox } from "../components/ui/checkbox";
 import { AuthLayout } from "../components/AuthLayout";
 import { trustDevice } from "../utils/trustedDevice";
+import { appOnlyMember } from "../stores/teamRolesStore";
 
 // Login 2FA — "Check your email" (Figma authorization page, "enter code" frame
 // 960:29994 + FR-1.3 trust-device checkbox 2472:2639). Unlike the sign-up
@@ -65,7 +66,8 @@ export function LoginVerify() {
     e.preventDefault();
     if (!codeComplete) return;
     if (trust) trustDevice();
-    navigate("/");
+    // Role without web access → the "use the technician app" page.
+    navigate(email && appOnlyMember(email) ? `/app-only?email=${encodeURIComponent(email)}` : "/");
   };
 
   return (

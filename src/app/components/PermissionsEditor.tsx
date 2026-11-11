@@ -487,6 +487,12 @@ export function PermissionsEditor({
               <SettingRow label="Can use the web app">
                 <Toggle on={perms.webApp ?? true} onChange={v => editPerms(p => ({ ...p, webApp: v }))} />
               </SettingRow>
+              {perms.webApp === false && (
+                <div className="text-[12px] text-[#6B7280]">
+                  Signing in on the web shows a page with a QR code to get the technician app.{" "}
+                  <a href="/app-only" target="_blank" rel="noreferrer" className="text-[#4A6FA5] hover:underline" style={{ fontWeight: 500 }}>Preview</a>
+                </div>
+              )}
             </div>
           </div>
         );

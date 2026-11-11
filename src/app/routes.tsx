@@ -10,6 +10,7 @@ import { ResetPasswordVerify } from "./pages/ResetPasswordVerify";
 import { Welcome } from "./pages/Welcome";
 import { CompanySetup } from "./pages/CompanySetup";
 import { InviteExpired } from "./pages/InviteExpired";
+import { TechAppOnly } from "./pages/TechAppOnly";
 import { ClientEstimateView } from "./pages/ClientEstimateView";
 import { PayLink } from "./pages/PayLink";
 import { CardLink } from "./pages/CardLink";
@@ -119,6 +120,11 @@ export const router = createBrowserRouter([
   {
     path: "/setup",
     Component: CompanySetup,
+  },
+  // Signed in, but the role is phone-only ("Can use the web app" off).
+  {
+    path: "/app-only",
+    Component: TechAppOnly,
   },
   {
     path: "/invite/expired",
