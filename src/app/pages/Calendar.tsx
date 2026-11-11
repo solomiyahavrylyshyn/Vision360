@@ -2,7 +2,7 @@ import { useState, useMemo, useRef, useSyncExternalStore, useEffect, type DragEv
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import { missingSignature, missingMessage } from "../stores/jobSignaturesStore";
-import { fieldLiveStore, fieldSettingsStore, isOffline, clock, techLine, flagText, elapsed, isLong, type TechLive, type CardFlag } from "../stores/fieldStore";
+import { fieldLiveStore, fieldSettingsStore, isOffline, clock, flagText, elapsed, isLong, type CardFlag } from "../stores/fieldStore";
 import tampaMapImg from "../../assets/tampa-map.png";
 import { PageHeader } from "../components/ui/page-header";
 import { scheduleSettingsStore } from "../stores/scheduleSettingsStore";
@@ -101,16 +101,6 @@ function StatusPillSelect({ value, onChange }: { value: JobStatus; onChange: (ne
 
 // Compact status control for schedule cards: renders the status icon and, on
 // click, opens a native dropdown to pick any status (replaces click-to-cycle).
-// Live line under a technician's name (M3-9): "En route · 10512-J02 · 7:45 AM",
-// "Paused · Lunch · since 12:00 PM", "Idle since 11:40 AM". A phone that hasn't
-// reached the server for over 10 minutes reads grey "Last contact 7:40 AM".
-function LiveLine({ t }: { t?: TechLive }) {
-  if (!t) return null;
-  if (isOffline(t)) return <div className="line-clamp-2 text-[12px] leading-4 text-[#9CA3AF]" style={{ fontWeight: 500 }}>Last contact {clock(t.lastContact)}</div>;
-  const color = { enRoute: "#0D9488", working: "#4A6FA5", paused: "#64748B", idle: "#6B7280" }[t.state];
-  return <div className="line-clamp-2 text-[12px] leading-4" style={{ fontWeight: 500, color }} title={techLine(t) ?? ""}>{techLine(t)}</div>;
-}
-
 // Small flags on a job card (M3-8, M3-4, M4-7b): text + time, "Mark as seen" in its menu.
 function FlagPills({ flags, left, top }: { flags: CardFlag[]; left: number; top: number }) {
   const settings = useSyncExternalStore(fieldSettingsStore.subscribe, fieldSettingsStore.getSnapshot);
@@ -2557,7 +2547,6 @@ export function Calendar() {
                                 <div className="text-[13px] text-[#546478] tabular-nums mt-0.5" style={{ fontWeight: 600 }}>
                                   ${memberTotal.toLocaleString("en-US")}
                                 </div>
-                                <LiveLine t={fieldLive.techs[member.id]} />
                               </div>
                             </div>
 
@@ -2754,7 +2743,6 @@ export function Calendar() {
                     <div className="text-[13px] text-[#546478] tabular-nums mt-0.5" style={{ fontWeight: 600 }}>
                       ${filteredDayJobs.filter((job) => job.technicianId === member.id).reduce((sum, job) => sum + job.amount, 0).toLocaleString("en-US")}
                     </div>
-                    <LiveLine t={fieldLive.techs[member.id]} />
                   </div>
                 </div>
               ))}
