@@ -35,6 +35,8 @@ interface Job {
 }
 
 const mockJobs: Job[] = [
+  // Tom's repair at Moore Residence — the job-page gallery scenario (photos & a video from the app).
+  { id: 10512, jobNumber: "10512-J02", title: "AC Repair", client: "Moore Residence", clientId: "10512", address: "753 Spruce St, Tampa, FL 33602", schedule: "October 29, 2026", scheduleDateSort: "2026-10-29", status: "In Progress", jobType: "One-off", jobCategory: "Service", assignedTo: "Tom Richards", country: "United States", state: "FL", city: "Tampa", total: 289.00 },
   { id: 1,  jobNumber: "10234-J01", title: "AC Estimate",        client: "Travis Jones",   clientId: "10234", address: "854 Maple St, Fort Worth, TX 76107",        schedule: "March 30, 2026", scheduleDateSort: "2026-03-30", status: "Scheduled",  jobType: "One-off",   jobCategory: "Estimate", assignedTo: "Peter Novak", country: "United States", state: "TX", city: "Fort Worth", total: 375.01 },
   { id: 2,  jobNumber: "10234-J02", title: "AC Estimate",        client: "Travis Jones",   clientId: "10234", address: "854 Maple St, Fort Worth, TX 76107",        schedule: "March 30, 2026", scheduleDateSort: "2026-03-30", status: "Scheduled",  jobType: "One-off",   jobCategory: "Estimate", assignedTo: "Peter Novak", country: "United States", state: "TX", city: "Fort Worth", total: 375.01 },
   { id: 3,  jobNumber: "10234-J03", title: "AC Estimate",        client: "Travis Jones",   clientId: "10234", address: "854 Maple St, Fort Worth, TX 76107",        schedule: "March 30, 2026", scheduleDateSort: "2026-03-30", status: "In Progress", jobType: "One-off",   jobCategory: "Estimate", assignedTo: "Maria Garcia", country: "United States", state: "TX", city: "Fort Worth", total: 375.01 },

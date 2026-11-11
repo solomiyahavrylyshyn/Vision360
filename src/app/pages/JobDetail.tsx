@@ -104,6 +104,37 @@ const AC_REPLACEMENT_ITEMS = [
 ];
 
 const mockJobData: Record<string, any> = {
+  // 10512-J02 — Tom replaced the capacitor; his photos and a video are in the gallery.
+  "10512": {
+    id: 10512, title: "AC Repair", client: "Moore Residence", clientId: "10512", clientInitials: "MR",
+    address: "753 Spruce St", city: "Tampa", state: "FL", zip: "33602",
+    gateCode: "",
+    phone: "(813) 555-0119", email: "moore.family@email.com",
+    jobNumber: "10512-J02", jobType: "Service", jobFrequency: "One-time",
+    frequencyDetail: "",
+    assignedTo: "Tom Richards",
+    startedOn: "Oct 29, 2026", endsOn: "Oct 29, 2026",
+    startTime: "9:00 AM", endTime: "11:00 AM",
+    status: "In Progress" as const,
+    priority: "Normal" as const,
+    customerSince: "Mar - 2024",
+    membership: "",
+    lastService: "Oct-26",
+    tags: ["Warranty"],
+    notes: [] as NoteEntry[],
+    fieldNotes: [
+      { id: 1, text: "Capacitor swollen — replaced with a 45/5 uF. Unit cooling, readings OK.", date: "Oct 29, 2026" },
+    ] as NoteEntry[],
+    internalNotes: [] as NoteEntry[],
+    lineItems: [
+      { name: "AC Repair", description: "Diagnose and repair — not cooling", itemType: "Service", quantity: 1, unitCost: 60, unitPrice: 199, total: 199 },
+      { name: "Run capacitor 45/5 uF", description: "Dual run capacitor", itemType: "Material", quantity: 1, unitCost: 22, unitPrice: 90, total: 90 },
+    ],
+    expenses: [] as Expense[],
+    visits: [{ id: 1, dateTime: "Oct 29, 2026 — 9:00 AM", title: "Moore Residence - AC Repair", status: "In Progress" }] as Visit[],
+    linkedEstimate: null,
+    linkedInvoice: null,
+  },
   "5": {
     id: 5, title: "AC Estimate", client: "Mike Delgado", clientId: "10245", clientInitials: "MD",
     address: "2105 West Hills Avenue", city: "Tampa", state: "FL", zip: "33606",

@@ -30,6 +30,8 @@ export interface MediaItem {
   afterCompletion?: boolean;
   /** "Drawn copy of photo N". */
   drawnFrom?: number;
+  /** The original's id, so the copy sits right next to it. */
+  drawnOf?: string;
 }
 
 const TAGS: MediaTag[] = ["Before", "After", "Other", "Report Card"];
@@ -44,8 +46,13 @@ const TAG_STYLE: Record<MediaTag, { fg: string; bg: string }> = {
 };
 
 const tagLabel = (m: MediaItem) => (m.tag === "Report Card" && m.page ? `Report Card · P${m.page}` : m.tag);
-const capturedLabel = (m: MediaItem) =>
-  `Captured ${new Date(m.capturedAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })} by ${m.by}`;
+const capturedLabel = (m: MediaItem) => {
+  const d = new Date(m.capturedAt);
+  return `Captured ${d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} ${d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })} by ${m.by}`;
+};
+/** Before / After / Other / Report Card count photos only; videos and files have their own filters. */
+const matches = (m: MediaItem, f: Filter) =>
+  f === "All" ? true : f === "Video" ? m.kind === "video" : f === "Files" ? m.kind === "file" : m.kind === "photo" && m.tag === f;
 
 // ── Per-job store (in memory — new items arrive from the hub in production) ──
 const PICS = [acPhoto, installAcPhoto, heaterPhoto, ductsPhoto, heatingPhoto, panelPhoto];
@@ -67,11 +74,44 @@ function seedFor(tech: string): MediaItem[] {
   out.push({ id: "f1", kind: "file", name: "Warranty registration.pdf", tag: "Other", description: "Manufacturer warranty form", capturedAt: new Date(base + 80 * 60000).toISOString(), by: "Helen" });
   return out;
 }
+// 10512-J02 (scenario): 12 items, all from Tom — 4 Before, 6 After (one is a drawn copy of
+// the capacitor photo, next to the original), 1 Report Card · P3, 1 video.
+function seed10512(): MediaItem[] {
+  const t = (hm: string) => new Date(`2026-10-29T${hm}:00`).toISOString();
+  const p = (id: string, url: string, tag: MediaTag, description: string, hm: string, extra: Partial<MediaItem> = {}): MediaItem =>
+    ({ id, kind: "photo", url, name: `${id}.jpg`, tag, description, capturedAt: t(hm), by: "Tom", ...extra });
+  return [
+    p("b1", acPhoto, "Before", "Condenser as found", "09:12"),
+    p("b2", panelPhoto, "Before", "Disconnect box, power off", "09:14"),
+    p("b3", acPhoto, "Before", "Old capacitor, swollen top", "09:20"),
+    p("b4", heatingPhoto, "Before", "Thermostat reading 81°F", "09:22"),
+    p("rc3", ductsPhoto, "Report Card", "Filter condition", "09:40", { page: 3 }),
+    p("a1", installAcPhoto, "After", "Coil after the wash", "10:20"),
+    p("a2", panelPhoto, "After", "Wiring tightened", "10:28"),
+    p("a3", installAcPhoto, "After", "Unit running, readings OK", "10:36"),
+    p("a4", heatingPhoto, "After", "Thermostat reading 72°F", "10:38"),
+    p("a5", heaterPhoto, "After", "New capacitor installed", "10:42"),
+    p("a6", heaterPhoto, "After", "New capacitor installed — terminals circled", "10:42", { drawnFrom: 10, drawnOf: "a5" }),
+    { id: "v1", kind: "video", url: walkthroughVideo, name: "Walkthrough.mp4", tag: "Other", description: "Unit running after the repair", capturedAt: t("10:45"), by: "Tom" },
+  ];
+}
+// A big job: 1,000 photos — thumbnails come 50 at a time; filters search the whole job.
+function seedBig(tech: string): MediaItem[] {
+  const base = new Date("2026-09-14T08:00:00").getTime();
+  return Array.from({ length: 1000 }, (_, i) => {
+    const tag = (["Before", "After", "After", "Other"] as MediaTag[])[i % 4];
+    return { id: `big${i + 1}`, kind: "photo" as const, url: PICS[i % PICS.length], name: `Photo ${i + 1}.jpg`, tag, description: `${DESCS[i % DESCS.length]} · room ${Math.floor(i / 25) + 1}`, capturedAt: new Date(base + i * 3 * 60000).toISOString(), by: i % 7 === 6 ? "Helen" : tech };
+  });
+}
+/** Job pages with a scenario gallery. */
+const SEEDS: Record<string, (tech: string) => MediaItem[]> = { "10512": seed10512, "2": seedBig };
+/** Where "Demo: Tom uploads 3 photos" lands in time on the scenario job (10:50 AM that day). */
+const DEMO_AT: Record<string, string> = { "10512": "2026-10-29T10:50:00" };
 const byJob = new Map<string, MediaItem[]>();
 const listeners = new Set<() => void>();
 const mediaStore = {
   subscribe(l: () => void) { listeners.add(l); return () => listeners.delete(l); },
-  get(jobKey: string, tech: string) { if (!byJob.has(jobKey)) byJob.set(jobKey, seedFor(tech)); return byJob.get(jobKey)!; },
+  get(jobKey: string, tech: string) { if (!byJob.has(jobKey)) byJob.set(jobKey, (SEEDS[jobKey] ?? seedFor)(tech)); return byJob.get(jobKey)!; },
   set(jobKey: string, next: MediaItem[]) { byJob.set(jobKey, next); listeners.forEach((l) => l()); },
 };
 
@@ -91,15 +131,16 @@ export function JobMediaGallery({ jobKey, techFirst }: { jobKey: string; techFir
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   const people = useMemo(() => Array.from(new Set(items.map((m) => m.by))), [items]);
+  /** Count per filter chip — over the whole job (and the Added by choice), not just the thumbnails shown. */
+  const counts = useMemo(() => {
+    const pool = items.filter((m) => addedBy === "all" || m.by === addedBy);
+    return Object.fromEntries(FILTERS.map((f) => [f, pool.filter((m) => matches(m, f)).length])) as Record<Filter, number>;
+  }, [items, addedBy]);
   const list = useMemo(() => {
-    const f = items.filter((m) => {
-      if (addedBy !== "all" && m.by !== addedBy) return false;
-      if (filter === "All") return true;
-      if (filter === "Video") return m.kind === "video";
-      if (filter === "Files") return m.kind === "file";
-      return m.kind !== "file" && m.tag === filter;
-    });
-    return f.sort((a, b) => b.capturedAt.localeCompare(a.capturedAt));
+    const f = items.filter((m) => (addedBy === "all" || m.by === addedBy) && matches(m, filter));
+    // Newest first; a drawn copy goes right after its original.
+    const sorted = f.filter((m) => !m.drawnOf || !f.some((o) => o.id === m.drawnOf)).sort((a, b) => b.capturedAt.localeCompare(a.capturedAt));
+    return sorted.flatMap((m) => [m, ...f.filter((c) => c.drawnOf === m.id)]);
   }, [items, filter, addedBy]);
   useEffect(() => setShown(PAGE), [filter, addedBy]);
   // Next 50 when the end of the grid scrolls into view.
@@ -124,13 +165,13 @@ export function JobMediaGallery({ jobKey, techFirst }: { jobKey: string; techFir
     add(pending.map((f, i) => ({
       id: `u${Date.now()}-${i}`, kind: f.type.startsWith("video/") ? "video" : f.type.startsWith("image/") ? "photo" : "file",
       url: f.type.startsWith("image/") || f.type.startsWith("video/") ? URL.createObjectURL(f) : undefined,
-      name: f.name, tag: batchTag, description: "", capturedAt: now, by: "You",
+      name: f.name, tag: batchTag, description: "", capturedAt: now, by: "Helen",
     })));
     setPending(null); setBatchTag("Other");
   };
   const demoUpload = () => {
-    const now = Date.now();
-    add([0, 1, 2].map((i) => ({ id: `demo${now}-${i}`, kind: "photo" as const, url: PICS[(i + 3) % PICS.length], name: `IMG_${now % 10000 + i}.jpg`, tag: "After" as const, description: ["Disconnect box", "Pad leveled", "Unit tagged"][i], capturedAt: new Date(now - (2 - i) * 20000).toISOString(), by: tech })));
+    const now = DEMO_AT[jobKey] ? new Date(DEMO_AT[jobKey]).getTime() + 40000 : Date.now();
+    add([0, 1, 2].map((i) => ({ id: `demo${now}-${i}`, kind: "photo" as const, url: PICS[(i + 3) % PICS.length], name: `IMG_${now % 10000 + i}.jpg`, tag: "After" as const, description: ["Condenser fan, new capacitor wired", "Pad leveled", "Unit tagged with service date"][i], capturedAt: new Date(now - (2 - i) * 20000).toISOString(), by: tech })));
   };
 
   return (
@@ -153,7 +194,7 @@ export function JobMediaGallery({ jobKey, techFirst }: { jobKey: string; techFir
           {FILTERS.map((f) => (
             <button key={f} type="button" onClick={() => setFilter(f)}
               className={`h-7 rounded-full px-2.5 text-[12px] transition-colors ${filter === f ? "bg-[#4A6FA5] text-white" : "bg-[#F3F4F6] text-[#374151] hover:bg-[#E5E7EB]"}`} style={{ fontWeight: 500 }}>
-              {f}
+              {f} <span className={filter === f ? "text-white/80" : "text-[#6B7280]"}>{counts[f].toLocaleString("en-US")}</span>
             </button>
           ))}
           <select value={addedBy} onChange={(e) => setAddedBy(e.target.value)} aria-label="Added by"
@@ -171,18 +212,21 @@ export function JobMediaGallery({ jobKey, techFirst }: { jobKey: string; techFir
             {list.slice(0, shown).map((m) => (
               <button key={m.id} type="button" onClick={() => setSelId(m.id)}
                 className={`relative aspect-square overflow-hidden rounded-md border ${sel?.id === m.id ? "border-[#4A6FA5] ring-2 ring-[#4A6FA5]/30" : "border-[#E5E7EB]"} ${fresh.has(m.id) ? "ring-2 ring-[#16A34A]" : ""} bg-[#F3F4F6]`}
-                title={`${tagLabel(m)} · ${m.description}`}>
+                title={`${m.kind === "video" ? "Video" : m.kind === "file" ? "File" : tagLabel(m)} · ${m.description}`}>
                 {m.kind === "photo" && <img src={m.url} alt={m.description || m.name} loading="lazy" className="h-full w-full object-cover" />}
                 {m.kind === "video" && (<><video src={m.url} muted preload="metadata" className="h-full w-full object-cover" /><span className="material-icons absolute inset-0 m-auto h-fit w-fit rounded-full bg-black/50 text-white" style={{ fontSize: 22 }}>play_arrow</span></>)}
                 {m.kind === "file" && <span className="material-icons absolute inset-0 m-auto h-fit w-fit text-[#DC2626]" style={{ fontSize: 30 }}>picture_as_pdf</span>}
-                {m.kind !== "file" && (
+                {m.kind === "photo" && (
                   <span className="absolute left-1 top-1 rounded px-1 text-[9px] leading-[14px]" style={{ fontWeight: 700, color: TAG_STYLE[m.tag].fg, backgroundColor: TAG_STYLE[m.tag].bg }}>{tagLabel(m)}</span>
                 )}
-                {(m.afterCompletion || m.drawnFrom) && <span className="material-icons absolute bottom-1 right-1 rounded-full bg-white/90 text-[#B45309]" style={{ fontSize: 13 }}>{m.drawnFrom ? "draw" : "schedule"}</span>}
+                {m.kind === "video" && <span className="absolute left-1 top-1 rounded bg-black/60 px-1 text-[9px] leading-[14px] text-white" style={{ fontWeight: 700 }}>Video</span>}
+                {m.drawnFrom && <span className="absolute bottom-1 left-1 rounded bg-[#FFFBEB] px-1 text-[9px] leading-[14px] text-[#92400E]" style={{ fontWeight: 700 }}>Drawn copy</span>}
+                {m.afterCompletion && <span className="material-icons absolute bottom-1 right-1 rounded-full bg-white/90 text-[#B45309]" style={{ fontSize: 13 }}>schedule</span>}
                 {fresh.has(m.id) && <span className="absolute bottom-1 left-1 rounded bg-[#16A34A] px-1 text-[9px] text-white" style={{ fontWeight: 700 }}>NEW</span>}
               </button>
             ))}
           </div>
+          {list.length > PAGE && <div className="pt-2 text-center text-[11px] text-[#9CA3AF]">Showing {Math.min(shown, list.length).toLocaleString("en-US")} of {list.length.toLocaleString("en-US")}</div>}
           {shown < list.length && <div ref={sentinelRef} className="py-3 text-center text-[11px] text-[#9CA3AF]">Loading more…</div>}
         </div>
 
@@ -195,7 +239,7 @@ export function JobMediaGallery({ jobKey, techFirst }: { jobKey: string; techFir
                 {sel.kind === "file" && <div className="flex h-[200px] flex-col items-center justify-center gap-1 text-[13px] text-[#374151]"><span className="material-icons text-[#DC2626]" style={{ fontSize: 40 }}>picture_as_pdf</span>{sel.name}</div>}
               </div>
               <div className="mt-3 flex flex-wrap items-center gap-2">
-                {sel.kind !== "file" && (
+                {sel.kind === "photo" && (
                   <select value={sel.tag} onChange={(e) => patch(sel.id, { tag: e.target.value as MediaTag, page: e.target.value === "Report Card" ? sel.page ?? 1 : undefined })} aria-label="Photo type"
                     className="h-7 rounded-md px-2 text-[12px] outline-none" style={{ fontWeight: 600, color: TAG_STYLE[sel.tag].fg, backgroundColor: TAG_STYLE[sel.tag].bg }}>
                     {TAGS.map((t) => <option key={t} value={t}>{t}</option>)}
@@ -203,7 +247,7 @@ export function JobMediaGallery({ jobKey, techFirst }: { jobKey: string; techFir
                 )}
                 {sel.tag === "Report Card" && sel.page && <span className="text-[12px] text-[#7C3AED]" style={{ fontWeight: 600 }}>Page {sel.page}</span>}
                 {sel.afterCompletion && <span className="rounded-md bg-[#FFFBEB] px-2 py-0.5 text-[12px] text-[#92400E]" style={{ fontWeight: 500 }}>Added from the device after completion</span>}
-                {sel.drawnFrom && <span className="rounded-md bg-[#FFFBEB] px-2 py-0.5 text-[12px] text-[#92400E]" style={{ fontWeight: 500 }}>Drawn copy of photo {sel.drawnFrom}</span>}
+                {sel.drawnFrom && <span className="rounded-md bg-[#FFFBEB] px-2 py-0.5 text-[12px] text-[#92400E]" style={{ fontWeight: 500 }}>{(() => { const o = sel.drawnOf ? items.find((x) => x.id === sel.drawnOf) : undefined; return o ? <>Drawn copy of “{o.description}” · <button type="button" className="underline" onClick={() => setSelId(o.id)}>original</button> unchanged</> : <>Drawn copy of photo {sel.drawnFrom}</>; })()}</span>}
               </div>
               <input value={sel.description} onChange={(e) => patch(sel.id, { description: e.target.value })} placeholder="Add a description"
                 className="mt-2 h-9 w-full rounded-lg border border-[#E5E7EB] px-3 text-[14px] text-[#1A2332] outline-none focus:border-[#4A6FA5]" aria-label="Description" />
