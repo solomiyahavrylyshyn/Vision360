@@ -2,7 +2,7 @@ import { useState, useMemo, useRef, useSyncExternalStore, useEffect, type DragEv
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import { missingSignature, missingMessage } from "../stores/jobSignaturesStore";
-import { fieldLiveStore, fieldSettingsStore, isOffline, clock, techLine, flagText, type TechLive, type CardFlag } from "../stores/fieldStore";
+import { fieldLiveStore, fieldSettingsStore, isOffline, clock, techLine, flagText, elapsed, isLong, type TechLive, type CardFlag } from "../stores/fieldStore";
 import tampaMapImg from "../../assets/tampa-map.png";
 import { PageHeader } from "../components/ui/page-header";
 import { scheduleSettingsStore } from "../stores/scheduleSettingsStore";
@@ -107,7 +107,7 @@ function StatusPillSelect({ value, onChange }: { value: JobStatus; onChange: (ne
 function LiveLine({ t }: { t?: TechLive }) {
   if (!t) return null;
   if (isOffline(t)) return <div className="line-clamp-2 text-[12px] leading-4 text-[#9CA3AF]" style={{ fontWeight: 500 }}>Last contact {clock(t.lastContact)}</div>;
-  const color = { enRoute: "#0D9488", working: "#B45309", paused: "#64748B", idle: "#6B7280" }[t.state];
+  const color = isLong(t) ? "#B45309" : { enRoute: "#0D9488", working: "#4A6FA5", paused: "#64748B", idle: "#6B7280" }[t.state];
   return <div className="line-clamp-2 text-[12px] leading-4" style={{ fontWeight: 500, color }} title={techLine(t) ?? ""}>{techLine(t)}</div>;
 }
 
@@ -543,6 +543,11 @@ const DAY_JOBS: DayJob[] = [
   { id: 8,  technicianId: "maria",  start: 10,   end: 12,   client: "Brown Home",        service: "AC Repair",          jobType: "Service",      address: "456 Elm St",           status: "Paused",   amount: 385,  bg: "#FEE2E2", border: "#DC2626" },
   { id: 9,  technicianId: "maria",  start: 13,   end: 14.5, client: "Anderson Office",   service: "Duct Cleaning",      jobType: "Maintenance",  address: "777 Business Park Dr", status: "Scheduled",   amount: 600,  bg: "#FEE2E2", border: "#DC2626" },
   { id: 10, technicianId: "maria",  start: 15.5, end: 17.5, client: "Hall Home",         service: "Water Heater",       jobType: "Installation", address: "753 Summit St",        status: "Scheduled",   amount: 750,  bg: "#D1FAE5", border: "#16A34A" },
+  // Live-status demo cases (the road timer, pauses with a reason)
+  { id: 901, technicianId: "emily", start: 10.5, end: 12,   client: "Rivera Home",       service: "AC Repair",          jobType: "Service",      address: "41 Palm Ave",          status: "En Route",    amount: 260,  bg: "#FEF3C7", border: "#F59E0B" },
+  { id: 902, technicianId: "karen", start: 9.5,  end: 11,   client: "Lopez Office",      service: "Maintenance",        jobType: "Maintenance",  address: "200 Harbor Blvd",      status: "En Route",    amount: 180,  bg: "#DCFCE7", border: "#16A34A" },
+  { id: 903, technicianId: "david", start: 9,    end: 12,   client: "Kim Residence",     service: "Water Heater",       jobType: "Installation", address: "88 Grove St",          status: "Paused",      amount: 1450, bg: "#EBF0F8", border: "#4A6FA5" },
+  { id: 904, technicianId: "anna",  start: 9.5,  end: 11.5, client: "Baker Home",        service: "Duct Cleaning",      jobType: "Maintenance",  address: "17 Bay View Dr",       status: "Paused",      amount: 320,  bg: "#DCFCE7", border: "#16A34A" },
   { id: 11, technicianId: "maria",  start: 8,    end: 9,    client: "Smith Residence",   service: "Estimate",           jobType: "Estimate",     address: "123 Oak St",           status: "Scheduled",   amount: 0,    bg: "#F3F4F6", border: "#6B7280" },
   // Unassigned jobs (no technicianId yet) — show up in the right-side
   // "Unassigned" panel so a dispatcher can drag them onto a tech's lane.
@@ -1235,6 +1240,26 @@ export function Calendar() {
   const [dropPreview, setDropPreview] = useState<DropPreview | null>(null);
   // Live state from the technician app (the hub in production).
   const fieldLive = useSyncExternalStore(fieldLiveStore.subscribe, fieldLiveStore.getSnapshot);
+  // Re-render every 30 s so the road / pause timers tick.
+  const [, setTick] = useState(0);
+  useEffect(() => { const t = setInterval(() => setTick((n) => n + 1), 30000); return () => clearInterval(t); }, []);
+  const roadLabel = (techId: string) => {
+    const t = fieldLive.techs[techId];
+    return t?.state === "enRoute" ? { text: `En route · ${elapsed(t.since)}`, late: isLong(t) } : { text: "En route", late: false };
+  };
+  const pauseFor = (techId: string) => { const t = fieldLive.techs[techId]; return t?.state === "paused" ? { min: elapsed(t.since), long: isLong(t) } : null; };
+  const [demoOpen, setDemoOpen] = useState(false);
+  const runDemo = (key: string) => {
+    const now = new Date().toISOString();
+    setDemoOpen(false);
+    if (key === "tomRoad") fieldLiveStore.setTech("tom", { state: "enRoute", jobNumber: "10512-J02", since: now, lastContact: now });
+    if (key === "emilyArrives") { fieldLiveStore.setTech("emily", { state: "working", since: now, lastContact: now }); patchJob(901, { status: "In Progress" }); }
+    if (key === "karenArrives") { fieldLiveStore.setTech("karen", { state: "working", since: now, lastContact: now }); patchJob(902, { status: "In Progress" }); }
+    if (key === "mariaBack") { fieldLiveStore.setTech("maria", { state: "working", pauseReason: undefined, since: now, lastContact: now }); fieldLiveStore.setPauseReason(8, null); patchJob(8, { status: "In Progress" }); }
+    if (key === "travisLunch") { fieldLiveStore.setTech("travis", { state: "paused", pauseReason: "Lunch", since: now, lastContact: now }); fieldLiveStore.setPauseReason(6, "Lunch"); patchJob(6, { status: "Paused" }); }
+    if (key === "jamesBack") fieldLiveStore.setTech("james", { lastContact: now });
+    if (key === "peterBack") fieldLiveStore.setTech("peter", { lastContact: now });
+  };
   const flagsFor = (jobId: number) => fieldLive.flags.filter((f) => f.jobId === jobId && !f.seen);
   const pausedLabel = (jobId: number) => `Paused${fieldLive.pauseReasons[jobId] ? ` · ${fieldLive.pauseReasons[jobId]}` : ""}`;
   // "Reconnecting…" while the browser has no connection.
@@ -2290,16 +2315,39 @@ export function Calendar() {
               </button>
             )}
             {/* Demo of the live hub: Tom's status changes on the board with no reload. */}
-            <button
-              type="button"
-              onClick={() => { const now = new Date().toISOString(); fieldLiveStore.setTech("tom", { state: "enRoute", jobNumber: "10512-J02", since: now, lastContact: now }); }}
-              className="ml-2 inline-flex h-9 items-center gap-1.5 rounded-lg border border-dashed border-[#C5D5EC] px-3 text-[13px] text-[#4A6FA5] hover:bg-[#F5F8FD]"
-              style={{ fontWeight: 500 }}
-              title="Prototype only — shows how the board updates live"
-            >
-              <span className="material-icons" style={{ fontSize: "16px" }}>bolt</span>
-              Demo: Tom taps En route
-            </button>
+            <div className="relative ml-2">
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); setDemoOpen((o) => !o); }}
+                className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-dashed border-[#C5D5EC] px-3 text-[13px] text-[#4A6FA5] hover:bg-[#F5F8FD]"
+                style={{ fontWeight: 500 }}
+                title="Prototype only — shows how the board updates live"
+                aria-expanded={demoOpen}
+              >
+                <span className="material-icons" style={{ fontSize: "16px" }}>bolt</span>
+                Demo
+                <span className="material-icons" style={{ fontSize: "16px" }}>arrow_drop_down</span>
+              </button>
+              {demoOpen && (
+                <div className="absolute left-0 top-full z-40 mt-1 w-[260px] overflow-hidden rounded-lg border border-[#E5E7EB] bg-white py-1 shadow-lg" onClick={(e) => e.stopPropagation()}>
+                  <div className="px-3 pb-1 pt-1.5 text-[11px] uppercase tracking-wide text-[#9CA3AF]" style={{ fontWeight: 600 }}>From the technician app</div>
+                  {[
+                    ["tomRoad", "directions_car", "Tom taps En route"],
+                    ["emilyArrives", "play_arrow", "Emily arrives — starts the job"],
+                    ["karenArrives", "play_arrow", "Karen arrives (was late)"],
+                    ["mariaBack", "play_arrow", "Maria is back from lunch"],
+                    ["travisLunch", "pause_circle", "Travis pauses — Lunch"],
+                    ["jamesBack", "wifi", "James's phone is back online"],
+                    ["peterBack", "wifi", "Peter's phone is back online"],
+                  ].map(([key, icon, label]) => (
+                    <button key={key} type="button" onClick={() => runDemo(key)}
+                      className="flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] text-[#374151] hover:bg-[#F5F7FA]" style={{ fontWeight: 500 }}>
+                      <span className="material-icons text-[#6B7280]" style={{ fontSize: 16 }}>{icon}</span>{label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
           {/* Job-type legend — colours sourced from the shared constant so the
               key and the cards can never drift (matches the Figma legend). */}
@@ -2616,7 +2664,9 @@ export function Calendar() {
                                       </div>
                                       {/* Line 2: job title + price + status */}
                                       <div className="flex items-center gap-1.5">
-                                        {job.status === "Paused"
+                                        {job.status === "En Route"
+                                          ? <span className="flex-1 min-w-0 truncate text-[10px]" style={{ fontWeight: 600, color: roadLabel(job.technicianId).late ? "#B45309" : "#0D9488" }}>{roadLabel(job.technicianId).text}</span>
+                                          : job.status === "Paused"
                                           ? <span className="flex-1 min-w-0 truncate text-[10px] text-[#64748B]" style={{ fontWeight: 600 }}>{pausedLabel(job.id)}</span>
                                           : <span className="flex-1 min-w-0 truncate text-[10px] text-[#546478]">{job.service}</span>}
                                         {job.amount > 0 && (
@@ -2874,8 +2924,10 @@ export function Calendar() {
                                 </div>
                                 {/* Line 2: job title + price + status */}
                                 <div className="flex items-center gap-2">
-                                  {job.status === "Paused"
-                                    ? <span className="flex-1 min-w-0 truncate text-[13px] leading-5 text-[#64748B]" style={{ fontWeight: 600 }}>{pausedLabel(job.id)}</span>
+                                  {job.status === "En Route"
+                                    ? <span className="flex-1 min-w-0 truncate text-[13px] leading-5" style={{ fontWeight: 600, color: roadLabel(job.technicianId).late ? "#B45309" : "#0D9488" }}>{roadLabel(job.technicianId).text}</span>
+                                    : job.status === "Paused"
+                                    ? <span className="flex-1 min-w-0 truncate text-[13px] leading-5" style={{ fontWeight: 600, color: pauseFor(job.technicianId)?.long ? "#B45309" : "#64748B" }}>{pausedLabel(job.id)}{pauseFor(job.technicianId) ? ` · ${pauseFor(job.technicianId)!.min}` : ""}</span>
                                     : <span className="flex-1 min-w-0 truncate text-[13px] leading-5 text-[#6B7280]" style={{ fontWeight: 500 }}>{job.service}</span>}
                                   {job.amount > 0 && (
                                     <span className="text-[13px] leading-5 tabular-nums shrink-0" style={{ fontWeight: 600, color: "#1A2332" }}>${job.amount.toLocaleString("en-US")}</span>

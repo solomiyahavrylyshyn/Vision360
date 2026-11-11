@@ -58,15 +58,21 @@ export interface CardFlag { id: string; jobId: number; /** Job page id, for flag
 
 const at = (h: number, m: number) => { const d = new Date(); d.setHours(h, m, 0, 0); return d.toISOString(); };
 const nowIso = () => new Date().toISOString();
+const ago = (min: number) => new Date(Date.now() - min * 60000).toISOString();
 
 interface Live { techs: Record<string, TechLive>; flags: CardFlag[]; pauseReasons: Record<number, string>; pauseReasonsByKey: Record<string, string> }
 let live: Live = {
   techs: {
     tom: { state: "idle", since: at(7, 30), lastContact: nowIso() },
-    maria: { state: "paused", since: at(12, 0), pauseReason: "Lunch", lastContact: nowIso() },
-    mike: { state: "idle", since: at(11, 40), lastContact: nowIso() },
-    travis: { state: "working", jobNumber: "10498-J01", since: at(11, 35), lastContact: nowIso() },
+    maria: { state: "paused", since: ago(25), pauseReason: "Lunch", lastContact: nowIso() },
+    mike: { state: "idle", since: ago(14), lastContact: nowIso() },
+    travis: { state: "working", jobNumber: "10498-J01", since: ago(40), lastContact: nowIso() },
     james: { state: "working", jobNumber: "10477-J03", since: at(7, 20), lastContact: at(7, 40) },
+    // Demo cases — the road timer and pauses tick live:
+    emily: { state: "enRoute", jobNumber: "10520-J01", since: ago(18), lastContact: nowIso() },              // on the road, on time
+    karen: { state: "enRoute", jobNumber: "10522-J01", since: ago(52), lastContact: nowIso() },              // on the road too long → amber
+    david: { state: "paused", pauseReason: "Waiting for parts", since: ago(35), lastContact: nowIso() },
+    anna: { state: "paused", pauseReason: "Break", since: ago(58), lastContact: nowIso() },                   // long pause → amber
     // Peter's phone went quiet at 10:12 — Reassign / Cancel on his jobs warn first.
     peter: { state: "working", jobNumber: "10501-J01", since: at(9, 58), lastContact: at(10, 12) },
   },
@@ -79,7 +85,7 @@ let live: Live = {
     { id: "jf2", jobId: -1, jobKey: "5", kind: "outsideRadius", feet: 180, at: at(8, 5) },
   ],
   // Board demo job 8 (Maria, Brown Home) is paused for lunch.
-  pauseReasons: { 8: "Lunch" },
+  pauseReasons: { 8: "Lunch", 903: "Waiting for parts", 904: "Break" },
   pauseReasonsByKey: { "5": "Lunch" },
 };
 const lListeners = new Set<() => void>();
@@ -89,6 +95,10 @@ export const fieldLiveStore = {
   subscribe(l: () => void) { lListeners.add(l); return () => lListeners.delete(l); },
   getSnapshot: () => live,
   setTech: (id: string, t: Partial<TechLive>) => emit({ ...live, techs: { ...live.techs, [id]: { ...(live.techs[id] ?? { state: "idle", since: nowIso(), lastContact: nowIso() }), ...t } } }),
+  setPauseReason: (jobId: number, reason: string | null) => {
+    const next = { ...live.pauseReasons }; if (reason) next[jobId] = reason; else delete next[jobId];
+    emit({ ...live, pauseReasons: next });
+  },
   markSeen: (flagId: string) => emit({ ...live, flags: live.flags.map((f) => (f.id === flagId ? { ...f, seen: true } : f)) }),
 };
 
@@ -96,12 +106,21 @@ export const OFFLINE_AFTER_MS = 10 * 60 * 1000;
 export const isOffline = (t?: TechLive) => !!t && Date.now() - new Date(t.lastContact).getTime() > OFFLINE_AFTER_MS;
 export const clock = (iso: string) => new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
 
-/** The lane-header line: "En route · 10512-J02 · 7:45 AM", "Paused · Lunch · since 12:00 PM", "Idle since 11:40 AM". */
+/** "18 min", "1 h 05 min" since the moment. */
+export function elapsed(iso: string, now = Date.now()): string {
+  const m = Math.max(0, Math.floor((now - new Date(iso).getTime()) / 60000));
+  return m < 60 ? `${m} min` : `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, "0")} min`;
+}
+/** On the road / paused longer than this reads amber. */
+export const LONG_MIN = 45;
+export const isLong = (t?: TechLive) => !!t && (t.state === "enRoute" || t.state === "paused") && Date.now() - new Date(t.since).getTime() > LONG_MIN * 60000;
+
+/** The lane-header line: "En route · 10512-J02 · 7:45 AM · 18 min", "Paused · Lunch · since 12:00 PM · 25 min", "Idle since 11:40 AM". */
 export function techLine(t?: TechLive): string | null {
   if (!t) return null;
-  if (t.state === "enRoute") return `En route · ${t.jobNumber ?? ""}${t.jobNumber ? " · " : ""}${clock(t.since)}`;
+  if (t.state === "enRoute") return `En route · ${t.jobNumber ?? ""}${t.jobNumber ? " · " : ""}${clock(t.since)} · ${elapsed(t.since)}`;
   if (t.state === "working") return `In progress · ${t.jobNumber ?? ""}${t.jobNumber ? " · " : ""}since ${clock(t.since)}`;
-  if (t.state === "paused") return `Paused${t.pauseReason ? ` · ${t.pauseReason}` : ""} · since ${clock(t.since)}`;
+  if (t.state === "paused") return `Paused${t.pauseReason ? ` · ${t.pauseReason}` : ""} · since ${clock(t.since)} · ${elapsed(t.since)}`;
   return `Idle since ${clock(t.since)}`;
 }
 
