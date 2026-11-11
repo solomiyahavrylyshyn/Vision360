@@ -197,8 +197,11 @@ const nextStatus = (status: JobStatus): JobStatus => {
 // per-view reschedule/edit modal + popover. Date/time/duration are display-only
 // here (deep edits go through Edit → full job form); Job type & Technician are
 // live selects; status is the header dropdown.
+/** The board seeds without a number get D05 / M03 — those are not shown as job numbers. */
+const realJobNum = (n?: string) => (n && !/^[DM]d+$/.test(n) ? n : undefined);
+
 interface DrawerJob {
-  id: number; headerTitle: string; client: string; service: string; address: string;
+  id: number; headerTitle: string; /** Job number, e.g. 10512-J02 — shown under the title. */ num?: string; client: string; service: string; address: string;
   status: JobStatus; technicianId: string; jobType?: string; amount: number; unscheduled?: boolean;
   startLabel: string; endLabel: string; dateLabel: string; endDateLabel?: string; durationLabel: string;
   frequency: "One-off" | "Recurring"; recurrenceSummary?: string;
@@ -249,7 +252,10 @@ function JobInfoDrawer({
       <div className="relative w-[400px] max-w-[92vw] h-full flex flex-col bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="flex items-center gap-2 px-4 h-[59px] shrink-0">
-          <h2 className="text-[20px] text-[#1A2332] truncate flex-1" style={{ fontWeight: 600 }}>{job.headerTitle}</h2>
+          <div className="flex-1 min-w-0">
+            <h2 className="text-[20px] leading-6 text-[#1A2332] truncate" style={{ fontWeight: 600 }}>{job.headerTitle}</h2>
+            {job.num && <div className="text-[12px] leading-4 text-[#6B7280]" style={{ fontWeight: 500 }}>Job #{job.num}</div>}
+          </div>
           {!job.unscheduled && <StatusPillSelect value={job.status} onChange={onStatus} />}
           {job.series && (
             <div className="relative">
@@ -1457,7 +1463,7 @@ export function Calendar() {
   const dayJobsView: DayJob[] = useMemo(
     () => allJobs
       .filter((j) => j.unscheduled || (j.date != null && isSameDay(j.date, currentDate)))
-      .map((j) => ({ id: j.id, technicianId: j.technicianId, start: j.start, end: j.end, client: j.client, service: j.service, address: j.address, status: j.status, amount: j.amount, bg: j.bg, border: j.border, jobType: j.jobType, unscheduled: j.unscheduled, noTime: j.noTime })),
+      .map((j) => ({ id: j.id, num: j.num, technicianId: j.technicianId, start: j.start, end: j.end, client: j.client, service: j.service, address: j.address, status: j.status, amount: j.amount, bg: j.bg, border: j.border, jobType: j.jobType, unscheduled: j.unscheduled, noTime: j.noTime })),
     [allJobs, currentDate],
   );
   const weekJobsView: DispatchJob[] = useMemo(
@@ -2705,6 +2711,7 @@ export function Calendar() {
                 job={{
                   id: selectedDispatchJob.id,
                   headerTitle: selectedDispatchJob.service || `Job #${selectedDispatchJob.num}`,
+                  num: realJobNum(selectedDispatchJob.num),
                   client: selectedDispatchJob.client,
                   service: selectedDispatchJob.service,
                   address: selectedDispatchJob.address,
@@ -2963,6 +2970,7 @@ export function Calendar() {
                 job={{
                   id: selectedDayJob.id,
                   headerTitle: selectedDayJob.service || `Job #${selectedDayJob.id}`,
+                  num: realJobNum(selectedDayJob.num),
                   client: selectedDayJob.client,
                   service: selectedDayJob.service,
                   address: selectedDayJob.address,
