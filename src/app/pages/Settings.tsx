@@ -42,6 +42,7 @@ import { notificationGroups } from "../constants/notificationEvents";
 import { notificationDefaultsStore } from "../stores/notificationDefaultsStore";
 import { jobSignSettingsStore, MOMENT_LABEL, type SignMoment } from "../stores/jobSignaturesStore";
 import { teamRolesStore } from "../stores/teamRolesStore";
+import { fieldSettingsStore, FIELD_LIMITS } from "../stores/fieldStore";
 import { TeamRolesPanel } from "../components/TeamRolesPanel";
 import { MemberDevicesPanel } from "../components/MemberDevicesPanel";
 import { readOnlinePayments, writeOnlinePayments, type StripeStatus } from "../utils/onlinePayments";
@@ -2032,6 +2033,55 @@ function InvoicesPreferences() {
         </Button>
       </div>
     </>
+  );
+}
+
+// Settings → Jobs → In the field: start a job only at the address (M3-4; D5/D6,
+// Nov 2 — off for a new company) and the "hasn't tapped En route" reminder (M3-8).
+function NumberSetting({ label, value, min, max, unit, disabled, onCommit }: { label: string; value: number; min: number; max: number; unit?: string; disabled?: boolean; onCommit: (n: number) => void }) {
+  const [draft, setDraft] = useState(String(value));
+  useEffect(() => setDraft(String(value)), [value]);
+  const n = Number(draft);
+  const ok = /^\d+$/.test(draft.trim()) && n >= min && n <= max;
+  return (
+    <div className={`flex flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-lg border border-[#E5E7EB] px-4 py-3 ${disabled ? "opacity-60" : ""}`}>
+      <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>{label}</div>
+      <div className="flex items-center gap-3">
+        <span className={`text-[12px] ${ok ? "text-[#6B7280]" : "text-[#DC2626]"}`}>Enter a whole number from {min.toLocaleString("en-US")} to {max.toLocaleString("en-US")}</span>
+        <input
+          value={draft} disabled={disabled} inputMode="numeric" aria-label={label}
+          onChange={e => setDraft(e.target.value)}
+          onBlur={() => { if (ok) onCommit(n); else setDraft(String(value)); }}
+          className={`h-9 w-[84px] rounded-lg border px-3 text-right text-[14px] tabular-nums outline-none ${ok ? "border-[#E5E7EB] focus:border-[#4A6FA5]" : "border-[#DC2626]"}`}
+        />
+        {unit && <span className="text-[13px] text-[#6B7280]">{unit}</span>}
+      </div>
+    </div>
+  );
+}
+
+function FieldRulesCard() {
+  const f = useSyncExternalStore(fieldSettingsStore.subscribe, fieldSettingsStore.getSnapshot);
+  return (
+    <SectionCard title="In the field" description="Rules for the technician app.">
+      <div className="mt-2 space-y-2">
+        <div className="flex items-center justify-between gap-4 rounded-lg border border-[#E5E7EB] px-4 py-4">
+          <div className="flex-1">
+            <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Start a job only at the address</div>
+            <div className="mt-0.5 text-[12px] text-[#6B7280]">When a technician has no GPS signal, start the job for him from the schedule board.</div>
+          </div>
+          <Switch checked={f.startAtAddressOnly} onCheckedChange={v => fieldSettingsStore.update({ startAtAddressOnly: v })} />
+        </div>
+        <NumberSetting label="Distance (ft)" value={f.startRadiusFt} min={FIELD_LIMITS.radius[0]} max={FIELD_LIMITS.radius[1]} disabled={!f.startAtAddressOnly} onCommit={n => fieldSettingsStore.update({ startRadiusFt: n })} />
+        <div className="flex items-center justify-between gap-4 rounded-lg border border-[#E5E7EB] px-4 py-4">
+          <div className="flex-1">
+            <div className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Remind technicians who haven't tapped En route</div>
+          </div>
+          <Switch checked={f.remindEnRoute} onCheckedChange={v => fieldSettingsStore.update({ remindEnRoute: v })} />
+        </div>
+        <NumberSetting label="Minutes after the job's start time" value={f.remindAfterMin} min={FIELD_LIMITS.remind[0]} max={FIELD_LIMITS.remind[1]} disabled={!f.remindEnRoute} onCommit={n => fieldSettingsStore.update({ remindAfterMin: n })} />
+      </div>
+    </SectionCard>
   );
 }
 
@@ -4611,6 +4661,9 @@ export function Settings() {
                         </div>
                       </div>
                     </SectionCard>
+
+                    {/* In the field (M3-4, M3-8) */}
+                    <FieldRulesCard />
 
                     {/* Notes on Jobs */}
                     <SectionCard

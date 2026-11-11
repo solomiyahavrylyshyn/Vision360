@@ -2,6 +2,7 @@ import { useState, useMemo, useRef, useSyncExternalStore, useEffect, type DragEv
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import { missingSignature, missingMessage } from "../stores/jobSignaturesStore";
+import { fieldLiveStore, fieldSettingsStore, isOffline, clock, techLine, flagText, type TechLive, type CardFlag } from "../stores/fieldStore";
 import tampaMapImg from "../../assets/tampa-map.png";
 import { PageHeader } from "../components/ui/page-header";
 import { scheduleSettingsStore } from "../stores/scheduleSettingsStore";
@@ -100,6 +101,45 @@ function StatusPillSelect({ value, onChange }: { value: JobStatus; onChange: (ne
 
 // Compact status control for schedule cards: renders the status icon and, on
 // click, opens a native dropdown to pick any status (replaces click-to-cycle).
+// Live line under a technician's name (M3-9): "En route · 10512-J02 · 7:45 AM",
+// "Paused · Lunch · since 12:00 PM", "Idle since 11:40 AM". A phone that hasn't
+// reached the server for over 10 minutes reads grey "Last contact 7:40 AM".
+function LiveLine({ t }: { t?: TechLive }) {
+  if (!t) return null;
+  if (isOffline(t)) return <div className="line-clamp-2 text-[12px] leading-4 text-[#9CA3AF]" style={{ fontWeight: 500 }}>Last contact {clock(t.lastContact)}</div>;
+  const color = { enRoute: "#0D9488", working: "#B45309", paused: "#64748B", idle: "#6B7280" }[t.state];
+  return <div className="line-clamp-2 text-[12px] leading-4" style={{ fontWeight: 500, color }} title={techLine(t) ?? ""}>{techLine(t)}</div>;
+}
+
+// Small flags on a job card (M3-8, M3-4, M4-7b): text + time, "Mark as seen" in its menu.
+function FlagPills({ flags, left, top }: { flags: CardFlag[]; left: number; top: number }) {
+  const settings = useSyncExternalStore(fieldSettingsStore.subscribe, fieldSettingsStore.getSnapshot);
+  const [open, setOpen] = useState<string | null>(null);
+  if (!flags.length) return null;
+  return (
+    <div className="absolute z-[6] flex gap-1" style={{ left, top }} onClick={(e) => e.stopPropagation()}>
+      {flags.map((f) => (
+        <div key={f.id} className="relative">
+          <button type="button" onClick={() => setOpen(open === f.id ? null : f.id)}
+            className="flex h-[17px] items-center gap-1 whitespace-nowrap rounded-full border border-[#FCD34D] bg-[#FFFBEB] px-1.5 text-[10px] leading-none text-[#92400E] shadow-sm"
+            style={{ fontWeight: 600 }} title={`${flagText(f, settings)} · ${clock(f.at)}`}>
+            <span className="material-icons" style={{ fontSize: 11 }}>flag</span>
+            {flagText(f, settings)} · {clock(f.at)}
+          </button>
+          {open === f.id && (
+            <div className="absolute left-0 top-[20px] z-30 w-[150px] overflow-hidden rounded-lg border border-[#E5E7EB] bg-white shadow-lg">
+              <button type="button" onClick={() => { fieldLiveStore.markSeen(f.id); setOpen(null); }}
+                className="flex w-full items-center gap-2 px-3 py-2 text-[13px] text-[#374151] hover:bg-[#F5F7FA]" style={{ fontWeight: 500 }}>
+                <span className="material-icons text-[#6B7280]" style={{ fontSize: 16 }}>done</span>Mark as seen
+              </button>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // Compact card body for overlapping jobs (Figma 9361): client over time, status on the right.
 function CompactCardBody({ client, time, cancelled, children }: { client: string; time: string; cancelled?: boolean; children: ReactNode }) {
   return (
@@ -500,7 +540,7 @@ const DAY_JOBS: DayJob[] = [
   { id: 5,  technicianId: "travis", start: 8,    end: 10,   client: "Williams Home",     service: "Install New System", jobType: "Installation", address: "5332 Pine Ridge Rd",   status: "Scheduled",   amount: 1800, bg: "#D1FAE5", border: "#16A34A" },
   { id: 6,  technicianId: "travis", start: 11.5, end: 13.5, client: "Jackson Residence", service: "Leak Repair",        jobType: "Emergency",    address: "951 Lake Dr",          status: "In Progress", amount: 2005, bg: "#FEE2E2", border: "#DC2626" },
   { id: 7,  technicianId: "travis", start: 14,   end: 16,   client: "Cooper Office",     service: "Maintenance",        jobType: "Maintenance",  address: "600 Main St",          status: "Scheduled",   amount: 450,  bg: "#D1FAE5", border: "#16A34A" },
-  { id: 8,  technicianId: "maria",  start: 10,   end: 12,   client: "Brown Home",        service: "AC Repair",          jobType: "Service",      address: "456 Elm St",           status: "Completed",   amount: 385,  bg: "#FEE2E2", border: "#DC2626" },
+  { id: 8,  technicianId: "maria",  start: 10,   end: 12,   client: "Brown Home",        service: "AC Repair",          jobType: "Service",      address: "456 Elm St",           status: "Paused",   amount: 385,  bg: "#FEE2E2", border: "#DC2626" },
   { id: 9,  technicianId: "maria",  start: 13,   end: 14.5, client: "Anderson Office",   service: "Duct Cleaning",      jobType: "Maintenance",  address: "777 Business Park Dr", status: "Scheduled",   amount: 600,  bg: "#FEE2E2", border: "#DC2626" },
   { id: 10, technicianId: "maria",  start: 15.5, end: 17.5, client: "Hall Home",         service: "Water Heater",       jobType: "Installation", address: "753 Summit St",        status: "Scheduled",   amount: 750,  bg: "#D1FAE5", border: "#16A34A" },
   { id: 11, technicianId: "maria",  start: 8,    end: 9,    client: "Smith Residence",   service: "Estimate",           jobType: "Estimate",     address: "123 Oak St",           status: "Scheduled",   amount: 0,    bg: "#F3F4F6", border: "#6B7280" },
@@ -1193,6 +1233,25 @@ export function Calendar() {
     });
   };
   const [dropPreview, setDropPreview] = useState<DropPreview | null>(null);
+  // Live state from the technician app (the hub in production).
+  const fieldLive = useSyncExternalStore(fieldLiveStore.subscribe, fieldLiveStore.getSnapshot);
+  const flagsFor = (jobId: number) => fieldLive.flags.filter((f) => f.jobId === jobId && !f.seen);
+  const pausedLabel = (jobId: number) => `Paused${fieldLive.pauseReasons[jobId] ? ` · ${fieldLive.pauseReasons[jobId]}` : ""}`;
+  // "Reconnecting…" while the browser has no connection.
+  const [browserOnline, setBrowserOnline] = useState(() => (typeof navigator === "undefined" ? true : navigator.onLine));
+  useEffect(() => {
+    const on = () => setBrowserOnline(true), off = () => setBrowserOnline(false);
+    window.addEventListener("online", on); window.addEventListener("offline", off);
+    return () => { window.removeEventListener("online", on); window.removeEventListener("offline", off); };
+  }, []);
+  // Reassign / Cancel while the technician's phone is offline (M3-9): warn first.
+  const [offlineConfirm, setOfflineConfirm] = useState<{ kind: "Reassign" | "Cancel"; text: string; run: () => void } | null>(null);
+  const offlineGuard = (techId: string, kind: "Reassign" | "Cancel", run: () => void) => {
+    const t = fieldLive.techs[techId];
+    if (!t || !isOffline(t)) { run(); return; }
+    const first = TEAM.find((m) => m.id === techId)?.name.split(" ")[0] ?? "The technician";
+    setOfflineConfirm({ kind, run, text: `${first}'s phone has been offline since ${clock(t.lastContact)}. ${first} may still be working on this job — anything captured on the phone will be kept on it.` });
+  };
   // Length of the job being dragged, so the drop preview has its real width.
   const dragDurRef = useRef(1);
   const noteDrag = (job: { start: number; end: number; jobType?: string; unscheduled?: boolean; technicianId?: string; noTime?: boolean }) => {
@@ -1521,15 +1580,19 @@ export function Calendar() {
     return true;
   };
 
-  const updateDayStatus = (jobId: number, status: JobStatus) => {
+  const updateDayStatus = (jobId: number, status: JobStatus, force = false) => {
     if (signatureBlocks(jobId, status)) return;
+    const tech = allJobs.find((j) => j.id === jobId)?.technicianId ?? "";
+    if (!force && status === "Cancelled" && tech) { offlineGuard(tech, "Cancel", () => updateDayStatus(jobId, status, true)); return; }
     patchJob(jobId, { status });
     setSelectedDayJob((job) => job?.id === jobId ? { ...job, status } : job);
     showToast(`Marked as ${status}`);
   };
 
-  const updateWeekStatus = (jobId: number, status: JobStatus) => {
+  const updateWeekStatus = (jobId: number, status: JobStatus, force = false) => {
     if (signatureBlocks(jobId, status)) return;
+    const tech = allJobs.find((j) => j.id === jobId)?.technicianId ?? "";
+    if (!force && status === "Cancelled" && tech) { offlineGuard(tech, "Cancel", () => updateWeekStatus(jobId, status, true)); return; }
     patchJob(jobId, { status });
     setSelectedDispatchJob((job) => job?.id === jobId ? { ...job, status } : job);
     showToast(`Marked as ${status}`);
@@ -2134,6 +2197,28 @@ export function Calendar() {
       )}
       {/* KPI stat cards removed (per request) — the schedule grid is pulled up.
           The scheduling-conflict banner stays. */}
+      {!browserOnline && (
+        <div className="mb-4 flex items-center gap-2 rounded-lg border border-[#FDE68A] bg-[#FFFBEB] px-3 py-2 text-[13px] text-[#92400E]" style={{ fontWeight: 600 }} role="status">
+          <span className="material-icons animate-spin" style={{ fontSize: 16 }}>autorenew</span>
+          Reconnecting…
+        </div>
+      )}
+      {offlineConfirm && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4" onClick={() => setOfflineConfirm(null)}>
+          <div className="absolute inset-0 bg-black/30" />
+          <div className="relative w-full max-w-[440px] rounded-2xl bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()} role="alertdialog" aria-label={offlineConfirm.kind === "Cancel" ? "Cancel job" : "Reassign job"}>
+            <div className="text-[18px] text-[#1A2332]" style={{ fontWeight: 600 }}>{offlineConfirm.kind === "Cancel" ? "Cancel this job?" : "Reassign this job?"}</div>
+            <p className="mt-2 text-[14px] leading-[21px] text-[#374151]">{offlineConfirm.text}</p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button type="button" onClick={() => setOfflineConfirm(null)} className="h-10 rounded-lg border border-[#E5E7EB] px-4 text-[14px] text-[#1A2332] hover:bg-[#F5F7FA]" style={{ fontWeight: 500 }}>Back</button>
+              <button type="button" onClick={() => { const r = offlineConfirm.run; setOfflineConfirm(null); r(); }}
+                className={`h-10 rounded-lg px-4 text-[14px] text-white ${offlineConfirm.kind === "Cancel" ? "bg-[#DC2626] hover:bg-[#B91C1C]" : "bg-[#4A6FA5] hover:bg-[#3d5a85]"}`} style={{ fontWeight: 600 }}>
+                {offlineConfirm.kind === "Cancel" ? "Cancel job" : "Reassign"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {conflictMessage && (
         <div className="mb-4 px-3 py-2 rounded-lg border border-[#FCA5A5] bg-[#FEF2F2] text-[12px] text-[#B91C1C]" style={{ fontWeight: 600 }}>
           {conflictMessage}
@@ -2204,6 +2289,17 @@ export function Calendar() {
                 Route map
               </button>
             )}
+            {/* Demo of the live hub: Tom's status changes on the board with no reload. */}
+            <button
+              type="button"
+              onClick={() => { const now = new Date().toISOString(); fieldLiveStore.setTech("tom", { state: "enRoute", jobNumber: "10512-J02", since: now, lastContact: now }); }}
+              className="ml-2 inline-flex h-9 items-center gap-1.5 rounded-lg border border-dashed border-[#C5D5EC] px-3 text-[13px] text-[#4A6FA5] hover:bg-[#F5F8FD]"
+              style={{ fontWeight: 500 }}
+              title="Prototype only — shows how the board updates live"
+            >
+              <span className="material-icons" style={{ fontSize: "16px" }}>bolt</span>
+              Demo: Tom taps En route
+            </button>
           </div>
           {/* Job-type legend — colours sourced from the shared constant so the
               key and the cards can never drift (matches the Figma legend). */}
@@ -2413,6 +2509,7 @@ export function Calendar() {
                                 <div className="text-[13px] text-[#546478] tabular-nums mt-0.5" style={{ fontWeight: 600 }}>
                                   ${memberTotal.toLocaleString("en-US")}
                                 </div>
+                                <LiveLine t={fieldLive.techs[member.id]} />
                               </div>
                             </div>
 
@@ -2447,6 +2544,9 @@ export function Calendar() {
                               {wkPreview && (
                                 <DropPreviewBox preview={wkPreview} lane={lane} top={WK_TOP_PAD} card={WK_CARD_H} fmt={(h) => formatRegionalTime(h, regionalSettings)} />
                               )}
+                              {isToday && memberJobs.map((job) => (
+                                <FlagPills key={`flags-${job.id}`} flags={flagsFor(job.id)} left={(job.start - GANTT_START_HOUR) * HOUR_WIDTH + 6} top={Math.max(1, cardTop(lane, job.id, WK_TOP_PAD, WK_CARD_H) - 9)} />
+                              ))}
 
                               {/* Highlighted target slot while the create-job modal is open */}
                               {quickJobDraft?.view === "week" && quickJobDraft.dayIdx === dayI && quickJobDraft.technicianId === member.id && (
@@ -2516,7 +2616,9 @@ export function Calendar() {
                                       </div>
                                       {/* Line 2: job title + price + status */}
                                       <div className="flex items-center gap-1.5">
-                                        <span className="flex-1 min-w-0 truncate text-[10px] text-[#546478]">{job.service}</span>
+                                        {job.status === "Paused"
+                                          ? <span className="flex-1 min-w-0 truncate text-[10px] text-[#64748B]" style={{ fontWeight: 600 }}>{pausedLabel(job.id)}</span>
+                                          : <span className="flex-1 min-w-0 truncate text-[10px] text-[#546478]">{job.service}</span>}
                                         {job.amount > 0 && (
                                           <span className="text-[10px] tabular-nums shrink-0" style={{ fontWeight: 700, color: "#1A2332" }}>${job.amount.toLocaleString("en-US")}</span>
                                         )}
@@ -2561,7 +2663,7 @@ export function Calendar() {
                 onClose={() => setSelectedDispatchJob(null)}
                 onStatus={(s) => updateWeekStatus(selectedDispatchJob.id, s)}
                 onType={(t) => { patchJob(selectedDispatchJob.id, { jobType: t }); setSelectedDispatchJob((j) => (j ? { ...j, jobType: t } : j)); }}
-                onTechnician={(tid) => { patchJob(selectedDispatchJob.id, { technicianId: tid }); setSelectedDispatchJob((j) => (j ? { ...j, technicianId: tid } : j)); }}
+                onTechnician={(tid) => { const job = selectedDispatchJob; offlineGuard(job.technicianId, "Reassign", () => { patchJob(job.id, { technicianId: tid }); setSelectedDispatchJob((j) => (j ? { ...j, technicianId: tid } : j)); }); }}
                 onEdit={() => setFullEditDraft({ view: "week", job: selectedDispatchJob, dateStr: format(weekDays[selectedDispatchJob.dayIdx] ?? currentDate, "yyyy-MM-dd") })}
                 onReopen={() => updateWeekStatus(selectedDispatchJob.id, "Scheduled")}
                 notes={notesForActive}
@@ -2602,6 +2704,7 @@ export function Calendar() {
                     <div className="text-[13px] text-[#546478] tabular-nums mt-0.5" style={{ fontWeight: 600 }}>
                       ${filteredDayJobs.filter((job) => job.technicianId === member.id).reduce((sum, job) => sum + job.amount, 0).toLocaleString("en-US")}
                     </div>
+                    <LiveLine t={fieldLive.techs[member.id]} />
                   </div>
                 </div>
               ))}
@@ -2698,6 +2801,9 @@ export function Calendar() {
                         {dayPreview && (
                           <DropPreviewBox preview={dayPreview} lane={lane} top={DAY_TOP_PAD} card={DAY_CARD_H} fmt={(h) => formatRegionalTime(h, regionalSettings)} />
                         )}
+                        {memberJobs.map((job) => (
+                          <FlagPills key={`flags-${job.id}`} flags={flagsFor(job.id)} left={(job.start - GANTT_START_HOUR) * HOUR_WIDTH + 6} top={Math.max(1, cardTop(lane, job.id, DAY_TOP_PAD, DAY_CARD_H) - 9)} />
+                        ))}
 
                         {/* Highlighted target slot while the create-job modal is open */}
                         {quickJobDraft?.view === "day" && quickJobDraft.technicianId === member.id && (
@@ -2768,7 +2874,9 @@ export function Calendar() {
                                 </div>
                                 {/* Line 2: job title + price + status */}
                                 <div className="flex items-center gap-2">
-                                  <span className="flex-1 min-w-0 truncate text-[13px] leading-5 text-[#6B7280]" style={{ fontWeight: 500 }}>{job.service}</span>
+                                  {job.status === "Paused"
+                                    ? <span className="flex-1 min-w-0 truncate text-[13px] leading-5 text-[#64748B]" style={{ fontWeight: 600 }}>{pausedLabel(job.id)}</span>
+                                    : <span className="flex-1 min-w-0 truncate text-[13px] leading-5 text-[#6B7280]" style={{ fontWeight: 500 }}>{job.service}</span>}
                                   {job.amount > 0 && (
                                     <span className="text-[13px] leading-5 tabular-nums shrink-0" style={{ fontWeight: 600, color: "#1A2332" }}>${job.amount.toLocaleString("en-US")}</span>
                                   )}
@@ -2812,7 +2920,7 @@ export function Calendar() {
                 onClose={() => setSelectedDayJob(null)}
                 onStatus={(s) => updateDayStatus(selectedDayJob.id, s)}
                 onType={(t) => { patchJob(selectedDayJob.id, { jobType: t }); setSelectedDayJob((j) => (j ? { ...j, jobType: t } : j)); }}
-                onTechnician={(tid) => { patchJob(selectedDayJob.id, { technicianId: tid }); setSelectedDayJob((j) => (j ? { ...j, technicianId: tid } : j)); }}
+                onTechnician={(tid) => { const job = selectedDayJob; offlineGuard(job.technicianId, "Reassign", () => { patchJob(job.id, { technicianId: tid }); setSelectedDayJob((j) => (j ? { ...j, technicianId: tid } : j)); }); }}
                 onEdit={() => setFullEditDraft({ view: "day", job: selectedDayJob, dateStr: format(currentDate, "yyyy-MM-dd") })}
                 onReopen={() => updateDayStatus(selectedDayJob.id, "Scheduled")}
                 notes={notesForActive}

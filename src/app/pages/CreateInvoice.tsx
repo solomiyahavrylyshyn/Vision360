@@ -30,6 +30,8 @@ const JOB_STATUS_BADGE: Record<string, { bg: string; color: string }> = {
   "Unscheduled": { bg: "#F3F4F6", color: "#6B7280" },
   "Cancelled": { bg: "#FEE2E2", color: "#DC2626" },
   "Paused": { bg: "#FEF3C7", color: "#D97706" },
+  "Dispatched": { bg: "#CFFAFE", color: "#0891B2" },
+  "En Route": { bg: "#CCFBF1", color: "#0D9488" },
   "On Hold": { bg: "#FEF3C7", color: "#D97706" },
 };
 
