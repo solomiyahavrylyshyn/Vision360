@@ -59,7 +59,7 @@ export function NewUser() {
       return;
     }
     // The invited person shows up in Manage team right away, with their custom fields.
-    const roleLabel = preset === "admin" ? "Admin" : preset === "employee" ? "Employee"
+    const roleLabel = preset === "admin" ? "Admin" : preset === "employee" ? "Employee" : preset === "technician" ? "Technician"
       : customPresets.find((cp) => cp.id === preset)?.name ?? "Employee";
     const rate = Number(laborCost) > 0 ? `$${Number(laborCost)}/hr` : "$0/hr";
     teamStore.add({

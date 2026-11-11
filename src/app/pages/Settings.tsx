@@ -21,7 +21,7 @@ import { CustomFieldInputs, formatCustomValue, type CfValues } from "../componen
 import { allReportNames } from "../components/ReportAccessPanel";
 import {
   PermissionsEditor,
-  employeePreset, adminPreset, loadCustomPresets, saveCustomPresets, ensureItemsPerm,
+  employeePreset, adminPreset, presetForRole, loadCustomPresets, saveCustomPresets, ensureItemsPerm,
   type PermissionsState, type CustomPreset, type PresetId,
 } from "../components/PermissionsEditor";
 import { jobTypesStore } from "../stores/jobTypesStore";
@@ -41,6 +41,9 @@ import { expenseCategoriesStore, isPreCodedCategory } from "../stores/expenseCat
 import { notificationGroups } from "../constants/notificationEvents";
 import { notificationDefaultsStore } from "../stores/notificationDefaultsStore";
 import { jobSignSettingsStore, MOMENT_LABEL, type SignMoment } from "../stores/jobSignaturesStore";
+import { teamRolesStore } from "../stores/teamRolesStore";
+import { TeamRolesPanel } from "../components/TeamRolesPanel";
+import { MemberDevicesPanel } from "../components/MemberDevicesPanel";
 import { readOnlinePayments, writeOnlinePayments, type StripeStatus } from "../utils/onlinePayments";
 
 type SettingsSection =
@@ -2711,6 +2714,8 @@ export function Settings() {
   // are the modal's working copy; saved states live in `memberPerms` by email.
   const [editPreset, setEditPreset] = useState<PresetId>("employee");
   const [editUserPerms, setEditUserPerms] = useState<PermissionsState>(employeePreset);
+  const [teamTab, setTeamTab] = useState<"users" | "roles">("users");
+  const [devicesFor, setDevicesFor] = useState<{ name: string; email: string } | null>(null);
   const [memberPerms, setMemberPerms] = useState<Record<string, { preset: PresetId; perms: PermissionsState }>>({});
   const [modalCustomPresets, setModalCustomPresets] = useState<CustomPreset[]>(() =>
     loadCustomPresets().map(cp => ({ ...cp, permissions: ensureItemsPerm(cp.permissions) })),
@@ -2841,8 +2846,12 @@ export function Settings() {
     // Seed RBAC from the saved per-member state, else default by role.
     const saved = memberPerms[member.email];
     if (saved) { setEditPreset(saved.preset); setEditUserPerms(ensureItemsPerm(saved.perms)); }
-    else if (member.role === "Admin") { setEditPreset("admin"); setEditUserPerms(adminPreset); }
-    else { setEditPreset("employee"); setEditUserPerms(employeePreset); }
+    else {
+      // Start from the role's permissions (Manage team → Roles), else the built-in preset.
+      const role = teamRolesStore.byName(member.role);
+      const d = presetForRole(member.role);
+      setEditPreset(d.preset); setEditUserPerms(role ? role.perms : d.perms);
+    }
     setInviteOpen(true);
   };
   const submitInvite = () => {
@@ -3522,6 +3531,7 @@ export function Settings() {
 
           {activeSection === "team" && (
             <div className="flex flex-col gap-4" onClick={() => setTeamRowMenu(null)}>
+              {devicesFor && <MemberDevicesPanel member={devicesFor} onClose={() => setDevicesFor(null)} />}
 
               {/* Page header */}
               <div className="flex items-center justify-between gap-3 py-2">
@@ -3536,7 +3546,25 @@ export function Settings() {
                 </button>
               </div>
 
+              {/* Users / Roles (M1-19) */}
+              <div className="flex gap-1 rounded-lg bg-[#EDF0F5] p-1 self-start">
+                {(["users", "roles"] as const).map(t => (
+                  <button key={t} type="button" onClick={() => setTeamTab(t)}
+                    className={`h-8 rounded-md px-4 text-[14px] transition-colors ${teamTab === t ? "bg-white text-[#1A2332] shadow-sm" : "text-[#546478] hover:text-[#1A2332]"}`}
+                    style={{ fontWeight: 500 }}>
+                    {t === "users" ? "Users" : "Roles"}
+                  </button>
+                ))}
+              </div>
+
+              {teamTab === "roles" && (
+                <div className="rounded-xl border border-[#E5E7EB] bg-white overflow-hidden">
+                  <TeamRolesPanel />
+                </div>
+              )}
+
               {/* Users table card */}
+              {teamTab === "users" && (
               <div className="flex flex-col rounded-xl border border-[#E5E7EB] bg-white overflow-hidden">
                 {/* Toolbar */}
                 <div className="flex items-center justify-between gap-3 px-3 py-3 bg-white">
@@ -3637,6 +3665,15 @@ export function Settings() {
                                 </button>
                                 <button
                                   type="button"
+                                  onClick={() => { setTeamRowMenu(null); setDevicesFor({ name: member.name, email: member.email }); }}
+                                  className="flex w-full items-center gap-2 px-3 py-2 text-[13px] text-[#374151] hover:bg-[#F5F7FA] transition-colors"
+                                  style={{ fontWeight: 500 }}
+                                >
+                                  <span className="material-icons text-[#6B7280]" style={{ fontSize: "16px" }}>smartphone</span>
+                                  Devices
+                                </button>
+                                <button
+                                  type="button"
                                   onClick={() => { setTeamRowMenu(null); setTeam(prev => prev.map(m => m.email === member.email ? { ...m, status: "Inactive" } : m)); toast.success(`${member.name} deactivated`); }}
                                   className="flex w-full items-center gap-2 px-3 py-2 text-[13px] text-[#DC2626] hover:bg-[#FEF2F2] transition-colors"
                                   style={{ fontWeight: 500 }}
@@ -3695,6 +3732,7 @@ export function Settings() {
                   </div>
                 </div>
               </div>
+              )}
 
               {/* Invite user modal */}
               {inviteOpen && (

@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { ReportAccessPanel } from "./ReportAccessPanel";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
-export type BuiltInPreset = "admin" | "employee" | "custom";
+export type BuiltInPreset = "admin" | "employee" | "technician" | "custom";
 export type PresetId = BuiltInPreset | string; // string for custom-saved preset ids
 
 export type ScheduleLevel = "viewOwn" | "viewCompleteOwn" | "editOwn" | "viewAll" | "editAll" | "editDeleteAll";
@@ -49,7 +49,28 @@ export interface PermissionsState {
   payments: { enabled: boolean; level: PaymentsLevel };
   clientCommunications: boolean;
   reports: boolean;
+  /** Per-user app access (W-03). Optional so saved presets still load — see withAppDefaults. */
+  mobileApp?: MobileAppPerms;
+  /** Can use the web app (the office app). */
+  webApp?: boolean;
+  /** Set an invoice's status by hand (e.g. mark paid / sent without the flow). */
+  setInvoiceStatus?: boolean;
 }
+
+export interface MobileAppPerms {
+  /** Can use the technician (mobile) app. */
+  enabled: boolean;
+  /** Which of his jobs he sees: active ones only, or all own jobs (warranty technicians). */
+  jobsScope: "active" | "allOwn";
+  /** Modules under More in the app. */
+  modules: { mySchedule: boolean; priceBook: boolean };
+  photoQuality: "fast" | "balanced" | "high";
+  language: "en" | "es";
+}
+
+export const defaultMobileApp: MobileAppPerms = {
+  enabled: true, jobsScope: "active", modules: { mySchedule: true, priceBook: true }, photoQuality: "balanced", language: "en",
+};
 
 export interface CustomPreset {
   id: string;
@@ -74,7 +95,25 @@ export const employeePreset: PermissionsState = {
   payments: { enabled: false, level: "viewOnly" },
   clientCommunications: false,
   reports: false,
+  mobileApp: defaultMobileApp,
+  webApp: true,
+  setInvoiceStatus: false,
 };
+
+/** Field technician (W-03 demo): works in the app only — app on, web off,
+ *  active jobs only, My schedule + Price book, Balanced photos, English. */
+export const technicianPreset: PermissionsState = {
+  ...employeePreset,
+  mobileApp: { enabled: true, jobsScope: "active", modules: { mySchedule: true, priceBook: true }, photoQuality: "balanced", language: "en" },
+  webApp: false,
+  setInvoiceStatus: false,
+};
+
+/** The preset a team role starts from. */
+export const presetForRole = (role: string): { preset: BuiltInPreset; perms: PermissionsState } =>
+  role === "Admin" ? { preset: "admin", perms: adminPreset }
+  : role === "Technician" ? { preset: "technician", perms: technicianPreset }
+  : { preset: "employee", perms: employeePreset };
 
 export const adminPreset: PermissionsState = {
   isAdmin: true,
@@ -92,6 +131,9 @@ export const adminPreset: PermissionsState = {
   payments: { enabled: true, level: "viewCollectEditRefund" },
   clientCommunications: true,
   reports: true,
+  mobileApp: defaultMobileApp,
+  webApp: true,
+  setInvoiceStatus: true,
 };
 
 const CUSTOM_PRESETS_KEY = "vision360.customPresets";
@@ -211,6 +253,23 @@ export const FeatureSection = ({
   </div>
 );
 
+const SettingRow = ({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) => (
+  <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-1.5 py-2">
+    <div className="min-w-[180px] flex-1">
+      <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{label}</div>
+      {hint && <div className="text-[12px] text-[#6B7280]">{hint}</div>}
+    </div>
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-1">{children}</div>
+  </div>
+);
+
+const Check = ({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) => (
+  <label className="flex cursor-pointer items-center gap-2 text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>
+    <input type="checkbox" checked={checked} onChange={e => onChange(e.target.checked)} className="h-4 w-4 accent-[#4A6FA5]" />
+    {label}
+  </label>
+);
+
 // ─── The editor ──────────────────────────────────────────────────────────────
 export function PermissionsEditor({
   preset,
@@ -221,7 +280,10 @@ export function PermissionsEditor({
   setReportAccess,
   customPresets,
   setCustomPresets,
+  hidePresets,
 }: {
+  /** Role editor (Manage team → Roles): no preset picker. */
+  hidePresets?: boolean;
   preset: PresetId;
   setPreset: (p: PresetId) => void;
   perms: PermissionsState;
@@ -238,6 +300,7 @@ export function PermissionsEditor({
     setPreset(next);
     if (next === "admin") setPerms(adminPreset);
     else if (next === "employee") setPerms(employeePreset);
+    else if (next === "technician") setPerms(technicianPreset);
     else if (next !== "custom") {
       const found = customPresets.find(cp => cp.id === next);
       if (found) setPerms(ensureItemsPerm(found.permissions));
@@ -280,6 +343,7 @@ export function PermissionsEditor({
   return (
     <>
       {/* Preset roles */}
+      {!hidePresets && (
       <div className="pb-5">
         <h3 className="text-[14px] text-[#1A2332] mb-1" style={{ fontWeight: 600 }}>Preset permission levels</h3>
         <p className="text-[12px] text-[#6B7280] mb-3">Start with a preset permission level, and customize further as needed.</p>
@@ -295,6 +359,12 @@ export function PermissionsEditor({
             onClick={() => applyPreset("employee")}
             label="Employee"
             description="View and complete their own schedule, track time, see assigned jobs and clients."
+          />
+          <Radio
+            checked={preset === "technician"}
+            onClick={() => applyPreset("technician")}
+            label="Technician"
+            description="Works in the technician app only: active jobs, My schedule and Price book."
           />
 
           {/* Saved custom presets */}
@@ -379,6 +449,48 @@ export function PermissionsEditor({
           </div>
         )}
       </div>
+      )}
+
+      {/* App access, per user (W-03) */}
+      {(() => {
+        const m = perms.mobileApp ?? defaultMobileApp;
+        const setM = (patch: Partial<MobileAppPerms>) => editPerms(p => ({ ...p, mobileApp: { ...(p.mobileApp ?? defaultMobileApp), ...patch } }));
+        return (
+          <div className="border-t border-[#E5E7EB] py-5">
+            <h4 className="text-[14px] text-[#1A2332]" style={{ fontWeight: 600 }}>Mobile app</h4>
+            <p className="mb-2 mt-0.5 text-[12px] text-[#6B7280]">What they can do in the technician app, and whether they can sign in to the web app.</p>
+            <div className="divide-y divide-[#F1F3F7]">
+              <SettingRow label="Can use the technician app">
+                <Toggle on={m.enabled} onChange={v => setM({ enabled: v })} />
+              </SettingRow>
+              {m.enabled && (
+                <>
+                  <SettingRow label="Jobs he sees in the app">
+                    <Radio checked={m.jobsScope === "active"} onClick={() => setM({ jobsScope: "active" })} label="Active jobs only" />
+                    <Radio checked={m.jobsScope === "allOwn"} onClick={() => setM({ jobsScope: "allOwn" })} label="All own jobs (warranty technicians)" />
+                  </SettingRow>
+                  <SettingRow label="Modules in More">
+                    <Check checked={m.modules.mySchedule} onChange={v => setM({ modules: { ...m.modules, mySchedule: v } })} label="My schedule" />
+                    <Check checked={m.modules.priceBook} onChange={v => setM({ modules: { ...m.modules, priceBook: v } })} label="Price book" />
+                  </SettingRow>
+                  <SettingRow label="Photo upload quality" hint="Smaller photos keep your storage cost down">
+                    {(["fast", "balanced", "high"] as const).map(q => (
+                      <Radio key={q} checked={m.photoQuality === q} onClick={() => setM({ photoQuality: q })} label={{ fast: "Fast upload", balanced: "Balanced", high: "High detail" }[q]} />
+                    ))}
+                  </SettingRow>
+                  <SettingRow label="Language">
+                    <Radio checked={m.language === "en"} onClick={() => setM({ language: "en" })} label="English" />
+                    <Radio checked={m.language === "es"} onClick={() => setM({ language: "es" })} label="Spanish" />
+                  </SettingRow>
+                </>
+              )}
+              <SettingRow label="Can use the web app">
+                <Toggle on={perms.webApp ?? true} onChange={v => editPerms(p => ({ ...p, webApp: v }))} />
+              </SettingRow>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Schedule */}
       <FeatureSection
@@ -592,6 +704,11 @@ export function PermissionsEditor({
             }[level]}
           />
         ))}
+        <div className="mt-2 border-t border-[#F1F3F7] pt-1">
+          <SettingRow label="Set invoice status by hand" hint="Change an invoice's status directly, without sending it or recording a payment.">
+            <Toggle on={!!perms.setInvoiceStatus} onChange={v => editPerms(p => ({ ...p, setInvoiceStatus: v }))} />
+          </SettingRow>
+        </div>
       </FeatureSection>
 
       {/* Payments */}

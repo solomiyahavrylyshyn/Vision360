@@ -17,10 +17,17 @@ export interface TeamMember {
   customFields?: Record<string, string>;
 }
 
+// Demo field technician (W-03): app on, web off — see technicianPreset.
+const TECH_DEMO: TeamMember = { name: "Gary Wells", username: "wells.gary", phone: "+1-813-555-0142", email: "gary@omega-home.com", role: "Technician", rate: "$30/hr", status: "Active" };
+/** Lists saved before the Technician role existed get the demo technician. */
+const withTechDemo = (list: TeamMember[]): TeamMember[] =>
+  list.some((m) => m.role === "Technician" || m.email === TECH_DEMO.email) ? list : [...list, TECH_DEMO];
+
 const SEED: TeamMember[] = [
   { name: "Peter Novak", username: "novak.peter", phone: "+1-813-555-0184", email: "peter@omega-home.com", role: "Admin", rate: "$0/hr", status: "Active" },
   { name: "Emily Parker", username: "parker.emily", phone: "+1-234-234-5555", email: "parker.emily@email.com", role: "Employee", rate: "$28/hr", status: "Active" },
   { name: "Elliot Harper", username: "harper.elliot", phone: "+1-813-555-0198", email: "elliot@omega-home.com", role: "Dispatcher", rate: "$32/hr", status: "Active" },
+  TECH_DEMO,
 ];
 
 const STORAGE_KEY = "vision360.team.v1";
@@ -29,7 +36,7 @@ const read = (): TeamMember[] => {
   try {
     const raw = typeof localStorage !== "undefined" ? localStorage.getItem(STORAGE_KEY) : null;
     const parsed = raw ? JSON.parse(raw) : null;
-    return Array.isArray(parsed) && parsed.length ? parsed : SEED;
+    return Array.isArray(parsed) && parsed.length ? withTechDemo(parsed) : SEED;
   } catch {
     return SEED;
   }
@@ -53,7 +60,12 @@ export const teamStore = {
   subscribe(listener: () => void) {
     listeners.add(listener);
     sync.hydrate(team, (value) => {
-      if (Array.isArray(value) && value.length) { team = value; cache(); listeners.forEach((l) => l()); }
+      if (Array.isArray(value) && value.length) {
+        const next = withTechDemo(value);
+        team = next; cache();
+        if (next !== value) sync.persist(team);
+        listeners.forEach((l) => l());
+      }
     });
     return () => { listeners.delete(listener); };
   },
