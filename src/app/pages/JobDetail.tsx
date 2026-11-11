@@ -29,6 +29,8 @@ import { SeriesVisitsModal, ChangeVisitsModal, CancelSeriesDialog } from "../com
 import { seriesRuleText } from "../utils/jobSeries";
 import { JobMediaGallery } from "../components/JobMediaGallery";
 import { fieldLiveStore, fieldSettingsStore, flagText, clock } from "../stores/fieldStore";
+import { syncIssuesStore, money2, timeOf, dayOf, resolutionLine } from "../stores/syncIssuesStore";
+import { RefusedPaymentPanel } from "../components/RefusedPaymentPanel";
 import { jobSignLinksStore, jobSignSettingsStore, isRequired, missingSignature, missingMessage, signLinkUrl, fmtSignedAt, MOMENT_LABEL, type SignMoment, type JobSnapshot } from "../stores/jobSignaturesStore";
 import { expenseCategoryColors } from "./Expenses";
 import acServicePhoto from "../../assets/documents/33897-cu.jpg";
@@ -104,6 +106,43 @@ const AC_REPLACEMENT_ITEMS = [
 ];
 
 const mockJobData: Record<string, any> = {
+  // 10511-J01 — M2-8: Tom took $250.00 cash offline; the server refused it
+  // because Linda had already paid 10511-I01 by card. The marker and the
+  // Activity lines come from syncIssuesStore.
+  "10511-J01": {
+    id: 10511, title: "AC Tune-Up", client: "Linda Carter", clientId: "10511", clientInitials: "LC",
+    address: "2208 W Swann Ave", city: "Tampa", state: "FL", zip: "33606",
+    gateCode: "",
+    phone: "(813) 555-0164", email: "linda.carter@email.com",
+    jobNumber: "10511-J01", jobType: "Maintenance", jobFrequency: "One-time",
+    frequencyDetail: "",
+    assignedTo: "Tom Richards",
+    startedOn: "Nov 11, 2026", endsOn: "Nov 11, 2026",
+    startTime: "8:00 AM", endTime: "9:30 AM",
+    status: "Completed" as const,
+    priority: "Normal" as const,
+    customerSince: "Jun - 2023",
+    membership: "",
+    lastService: "May-26",
+    tags: [],
+    notes: [] as NoteEntry[],
+    fieldNotes: [
+      { id: 1, text: "Tune-up done, filter replaced. Customer paid cash $250.", date: "Nov 11, 2026" },
+    ] as NoteEntry[],
+    internalNotes: [] as NoteEntry[],
+    lineItems: [
+      { name: "AC Tune-Up", description: "Seasonal tune-up — clean coils, check refrigerant and electrical", itemType: "Service", quantity: 1, unitCost: 45, unitPrice: 189, total: 189, taxable: false },
+      { name: "Air filter 16x25x1", description: "Pleated filter, MERV 11", itemType: "Material", quantity: 1, unitCost: 14, unitPrice: 61, total: 61, taxable: false },
+    ],
+    expenses: [] as Expense[],
+    visits: [{ id: 1, dateTime: "Nov 11, 2026 — 8:00 AM", title: "Linda Carter - AC Tune-Up", status: "Completed" }] as Visit[],
+    linkedEstimate: null,
+    linkedInvoice: { id: "10511-I01", title: "Invoice #10511-I01", status: "Paid" },
+    // Invoices of the M2-8 case (mock pages, not in invoicesStore).
+    demoInvoices: [
+      { key: "10511-I01", number: "10511-I01", status: "Paid", date: "2026-11-11", dueDate: "2026-11-11", total: 250, balance: 0, memo: "Card over the phone" },
+    ],
+  },
   // 10512-J02 — Tom replaced the capacitor; his photos and a video are in the gallery.
   "10512": {
     id: 10512, title: "AC Repair", client: "Moore Residence", clientId: "10512", clientInitials: "MR",
@@ -872,6 +911,8 @@ export function JobDetail() {
 
   // Live data from the technician app (flags, pause reason).
   const fieldLive = useSyncExternalStore(fieldLiveStore.subscribe, fieldLiveStore.getSnapshot);
+  // M2-8 — re-render the Activity and Invoices tabs when the office handles a refused payment.
+  useSyncExternalStore(syncIssuesStore.subscribe, syncIssuesStore.getSnapshot);
   const fieldSettings = useSyncExternalStore(fieldSettingsStore.subscribe, fieldSettingsStore.getSnapshot);
   const jobFlags = fieldLive.flags.filter((f) => f.jobKey === jobKey && !f.seen);
   const [flagMenu, setFlagMenu] = useState<string | null>(null);
@@ -1583,7 +1624,13 @@ export function JobDetail() {
         <button className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[#E5E7EB] px-3 text-[13px] hover:bg-[#F9FAFB]"><span className="material-icons" style={{ fontSize: "16px" }}>filter_alt</span>Filter</button>
         <button onClick={() => navigate(`/invoices/new?fromJob=${storeJob?.id ?? ''}&client=${encodeURIComponent(job.client)}&returnTo=${encodeURIComponent(jobReturnUrl('invoices'))}`)} className="ml-auto h-9 rounded-lg bg-[#4A6FA5] px-3 text-[13px] text-white hover:bg-[#3d5a85]" style={{ fontWeight: 600 }}>Create invoice</button>
       </div>
-      {jobInvoices.length === 0 ? <TabEmpty icon="receipt_long" title="No invoices yet" subtitle="Create an invoice to bill for this job" /> : (
+      {jobInvoices.length === 0 && (job.demoInvoices ?? []).length > 0 ? (
+        <table className="w-full text-[14px]"><thead className="bg-[#F5F7FA]"><tr className="border-b border-[#E5E7EB] text-left text-[#1A2332]"><th className="px-4 py-3">Number</th><th className="px-4 py-3">Status</th><th className="px-4 py-3">Date</th><th className="px-4 py-3">Due date</th><th className="px-4 py-3 text-right">Total</th><th className="px-4 py-3 text-right">Balance</th><th className="px-4 py-3">Note</th></tr></thead>
+          <tbody>{(job.demoInvoices as { key: string; number: string; status: string; date: string; dueDate: string; total: number; balance: number; memo: string }[]).map((inv) => {
+            const refused = syncIssuesStore.forJob(jobKey).some((p) => p.invoiceKey === inv.key && !p.resolution);
+            return <tr key={inv.key} className="border-b border-[#E5E7EB] last:border-0 hover:bg-[#F9FAFB]"><td className="px-4 py-4"><button onClick={() => navigate(`/invoices/${inv.key}`)} className="text-[#4A6FA5]" style={{ fontWeight: 500 }}>{inv.number}</button></td><td className="px-4 py-4"><span className="rounded-lg bg-[#DCFCE7] px-2 py-0.5 text-[12px] text-[#16A34A]" style={{ fontWeight: 500 }}>{inv.status}</span>{refused && <span className="ml-1.5 inline-flex items-center gap-1 rounded-lg bg-[#FEE2E2] px-2 py-0.5 text-[12px] text-[#DC2626]" style={{ fontWeight: 600 }}><span className="material-icons" style={{ fontSize: 13 }}>sync_problem</span>Payment not accepted</span>}</td><td className="px-4 py-4 text-[#6B7280]">{inv.date}</td><td className="px-4 py-4 text-[#6B7280]">{inv.dueDate}</td><td className="px-4 py-4 text-right">{money(inv.total)}</td><td className="px-4 py-4 text-right text-[#16A34A]">{money(inv.balance)}</td><td className="px-4 py-4 text-[#6B7280]">{inv.memo || "-"}</td></tr>;
+          })}</tbody></table>
+      ) : jobInvoices.length === 0 ? <TabEmpty icon="receipt_long" title="No invoices yet" subtitle="Create an invoice to bill for this job" /> : (
         <>
           <table className="w-full text-[14px]"><thead className="bg-[#F5F7FA]"><tr className="border-b border-[#E5E7EB] text-left text-[#1A2332]"><th className="px-4 py-3">Number</th><th className="px-4 py-3">Status</th><th className="px-4 py-3">Date</th><th className="px-4 py-3">Due date</th><th className="px-4 py-3 text-right">Total</th><th className="px-4 py-3 text-right">Balance</th><th className="px-4 py-3">Note</th><th className="w-10 px-4 py-3" /></tr></thead><tbody>{jobInvoices.map((inv) => <tr key={inv.id} className="border-b border-[#E5E7EB] last:border-0 hover:bg-[#F9FAFB]"><td className="px-4 py-4"><button onClick={() => navigate(`/invoices/${inv.id}`)} className="text-[#4A6FA5]" style={{ fontWeight: 500 }}>{inv.number}</button></td><td className="px-4 py-4"><span className="rounded-lg bg-[#DCFCE7] px-2 py-0.5 text-[12px] text-[#16A34A]" style={{ fontWeight: 500 }}>{inv.status}</span></td><td className="px-4 py-4 text-[#6B7280]">{inv.date}</td><td className="px-4 py-4 text-[#6B7280]">{inv.dueDate}</td><td className="px-4 py-4 text-right">{money(inv.total)}</td><td className={`px-4 py-4 text-right ${inv.balance === 0 ? "text-[#16A34A]" : "text-[#DC2626]"}`}>{money(inv.balance)}</td><td className="px-4 py-4 text-[#6B7280]">{inv.memo || inv.noteToCustomer || "-"}</td><td className="px-4 py-4"><KebabMenu><KebabItem icon="send">Send to client</KebabItem><KebabItem icon="swap_horiz">Change status</KebabItem><KebabSeparator /><KebabItem icon="content_copy">Duplicate</KebabItem><KebabSeparator /><KebabItem icon="block">Void</KebabItem><KebabItem icon="archive">Archive</KebabItem></KebabMenu></td></tr>)}</tbody></table>
           <div className="border-t border-[#E5E7EB] px-4 py-3 text-right text-[13px] text-[#6B7280]">Rows per page: 10 · 1-{jobInvoices.length} of {jobInvoices.length}</div>
@@ -1811,14 +1858,24 @@ export function JobDetail() {
     // From the technician app (M1-10b names the device; M3-3, M3-4; M2-6 rule still with Marek).
     const tFirst = (job.assignedTo || "Tom").split(" ")[0];
     const day = job.startedOn || "Mar 30, 2026";
-    const appEvents = [
+    // The M2-8 case job (10511-J01) has its own story — the generic demo lines would contradict it.
+    const appEvents = jobKey === "10511-J01" ? [] : [
       { id: 301, icon: "pause_circle", title: "Paused — Lunch", description: `From ${tFirst}'s phone (Samsung Galaxy S23)`, actor: tFirst, date: day, time: "12:00 PM", tone: "#64748B" },
       { id: 302, icon: "sync_problem", title: `Change from ${tFirst}'s tablet to Capacitor (2) not applied — the office changed it later (3, Helen, 10:00 AM)`, description: "", actor: tFirst, date: day, time: "10:05 AM", tone: "#D97706" },
       { id: 303, icon: "play_arrow", title: "Started by Helen Smith (office)", description: "", actor: "Helen Smith", date: day, time: "8:09 AM", tone: "#4A6FA5" },
       { id: 304, icon: "location_off", title: "Start blocked — 180 ft from the address", description: `${tFirst}'s phone (Samsung Galaxy S23)`, actor: tFirst, date: day, time: "8:05 AM", tone: "#DC2626" },
       { id: 305, icon: "navigation", title: `En route — from ${tFirst}'s phone (Samsung Galaxy S23)`, description: "", actor: tFirst, date: day, time: "7:45 AM", tone: "#0D9488" },
     ];
+    // M2-8 — a payment the server refused from the technician app, and who handled it.
+    const refusedEvents = syncIssuesStore.forJob(jobKey).flatMap((p, i) => {
+      const r = p.resolution;
+      return [
+        ...(r ? [{ id: 400 + i * 2 + 1, icon: "check_circle", title: `Refused payment handled — ${resolutionLine(p)}`, description: `${money2(p.amount)} ${p.method.toLowerCase()} from ${p.technician} · by ${r.by}${r.note ? ` · ${r.note}` : ""} · ${p.technician.split(" ")[0]}'s app shows "Handled by the office"`, actor: r.by, date: dayOf(r.at), time: timeOf(r.at), tone: "#16A34A" }] : []),
+        { id: 400 + i * 2, icon: "sync_problem", title: `Payment ${money2(p.amount)} ${p.method.toLowerCase()} not accepted — ${p.invoiceNumber} was already paid in full`, description: `Taken by ${p.technician} at ${timeOf(p.takenAt)} offline · reached the office ${timeOf(p.refusedAt)} from ${p.technician.split(" ")[0]}'s phone (${p.device})`, actor: p.technician, date: dayOf(p.refusedAt), time: timeOf(p.refusedAt), tone: "#DC2626" },
+      ];
+    });
     const activity = [
+      ...refusedEvents,
       ...signEvents,
       ...appEvents,
       ...(reopenedAt ? [{
@@ -2205,6 +2262,9 @@ export function JobDetail() {
             <button onClick={() => setReopenOpen(true)} className="h-8 shrink-0 rounded-lg border border-[#E5E7EB] bg-white px-3 text-[13px] text-[#1A2332] hover:bg-[#F5F7FA]" style={{ fontWeight: 500 }}>Reopen job</button>
           </div>
         )}
+
+        {/* M2-8 — a payment the server refused from the technician app */}
+        <div className="-mt-4 mb-4 empty:hidden"><RefusedPaymentPanel where="job" jobKey={jobKey} /></div>
 
         {/* Summary content — left column has title/contact row, right column has compact KPIs */}
         <div className="flex min-w-[1190px] items-start gap-4">

@@ -14,6 +14,8 @@ import { itemsStore } from "../stores/itemsStore";
 import { ItemPicker, type CatalogItem } from "../components/ItemPicker";
 import { invoicesStore } from "../stores/invoicesStore";
 import { paymentLinksStore } from "../stores/paymentLinksStore";
+import { syncIssuesStore, money2, timeOf, dayOf, stampOf, resolutionLine } from "../stores/syncIssuesStore";
+import { RefusedPaymentPanel } from "../components/RefusedPaymentPanel";
 import { CustomFieldInputs, CustomFieldValues, type CfValues } from "../components/CustomFields";
 
 // A job linked to the invoice, rendered as one accordion section in the
@@ -308,6 +310,104 @@ const mockInvoices: Record<string, any> = {
       { id: 4, date: "2026-03-15 13:30", action: "Status changed", detail: "Marked as Partially Paid", icon: "info" },
     ],
   },
+  // M2-8 — Linda Carter paid 10511-I01 by card over the phone at 9:30; Tom's
+  // $250.00 cash from 10511-J01 (taken offline at 9:04) reached the server at
+  // 9:42 and was refused. 10511-I02 is her other open invoice. The marker, the
+  // payment row and the Activity lines come from syncIssuesStore.
+  "10511-I01": {
+    number: "10511-I01",
+    type: "Standard" as InvoiceType,
+    status: "Paid" as InvoiceStatus,
+    date: "2026-11-11",
+    dueDate: "2026-11-11",
+    dateSent: "2026-11-11",
+    dateCreated: "2026-11-11",
+    createdBy: "Helen Smith",
+    stage: "Closed",
+    department: "Field Service",
+    toBePrinted: false,
+    client: { name: "Linda Carter", email: "linda.carter@email.com", phone: "(813) 555-0164" },
+    from: { company: "Vision360 Services", name: "Helen Smith", address: "456 Business Blvd", city: "Tampa, FL 33602" },
+    billingAddress: { line: "2208 W Swann Ave", city: "Tampa", county: "Hillsborough", state: "FL", zip: "33606" },
+    serviceAddress: { line: "2208 W Swann Ave", city: "Tampa", county: "Hillsborough", state: "FL", zip: "33606" },
+    jobNumber: "10511-J01",
+    jobName: "AC Tune-Up",
+    jobs: [
+      { jobNumber: "10511-J01", jobName: "AC Tune-Up", serviceAddress: { line: "2208 W Swann Ave", city: "Tampa", state: "FL", zip: "33606" }, linkedEstimate: "", estimateStatus: "" },
+    ],
+    linkedEstimate: "",
+    estimateStatus: "",
+    poNumber: "",
+    memo: "",
+    leadSource: "Repeat customer",
+    salesRep: "Helen Smith",
+    paymentTerms: "Due on receipt",
+    paymentMethod: "Credit Card",
+    checkNumber: "",
+    customField1: "",
+    customField2: "",
+    noteToCustomer: "Thank you for your business!",
+    items: [
+      { name: "AC Tune-Up", description: "Seasonal tune-up — clean coils, check refrigerant and electrical", qty: 1, unitPrice: 189, taxable: false },
+      { name: "Air filter 16x25x1", description: "Pleated filter, MERV 11", qty: 1, unitPrice: 61, taxable: false },
+    ],
+    taxRate: 7.5,
+    notes: "",
+    terms: "Payment is due on receipt.",
+    payments: [
+      { id: 1, date: "2026-11-11", amount: 250, method: "Credit Card", note: "Card over the phone · Helen Smith · 9:30 AM" },
+    ],
+    // Newest first, like the lines the page adds on top.
+    activity: [
+      { id: 4, date: "2026-11-11 09:30", action: "Status changed", detail: "Paid in full", icon: "check_circle" },
+      { id: 3, date: "2026-11-11 09:30", action: "Payment recorded", detail: "$250.00 via Credit Card · card over the phone · Helen Smith", icon: "payments" },
+      { id: 2, date: "2026-11-11 08:41", action: "Invoice sent", detail: "Sent to linda.carter@email.com", icon: "send" },
+      { id: 1, date: "2026-11-11 08:40", action: "Invoice created", detail: "Created by Helen Smith", icon: "add_circle" },
+    ],
+  },
+  "10511-I02": {
+    number: "10511-I02",
+    type: "Standard" as InvoiceType,
+    status: "Unpaid" as InvoiceStatus,
+    date: "2026-11-01",
+    dueDate: "2026-11-30",
+    dateSent: "2026-11-01",
+    dateCreated: "2026-11-01",
+    createdBy: "Helen Smith",
+    stage: "Awaiting Payment",
+    department: "Field Service",
+    toBePrinted: false,
+    client: { name: "Linda Carter", email: "linda.carter@email.com", phone: "(813) 555-0164" },
+    from: { company: "Vision360 Services", name: "Helen Smith", address: "456 Business Blvd", city: "Tampa, FL 33602" },
+    billingAddress: { line: "2208 W Swann Ave", city: "Tampa", county: "Hillsborough", state: "FL", zip: "33606" },
+    serviceAddress: { line: "2208 W Swann Ave", city: "Tampa", county: "Hillsborough", state: "FL", zip: "33606" },
+    jobNumber: "",
+    jobName: "",
+    jobs: [],
+    linkedEstimate: "",
+    estimateStatus: "",
+    poNumber: "",
+    memo: "Maintenance plan · 2 visits",
+    leadSource: "Repeat customer",
+    salesRep: "Helen Smith",
+    paymentTerms: "Net 30",
+    paymentMethod: "",
+    checkNumber: "",
+    customField1: "",
+    customField2: "",
+    noteToCustomer: "Your maintenance plan for the coming year.",
+    items: [
+      { name: "Maintenance plan — annual", description: "Two tune-ups a year (spring and fall), priority scheduling", qty: 1, unitPrice: 320, taxable: false },
+    ],
+    taxRate: 7.5,
+    notes: "",
+    terms: "Payment is due within 30 days of invoice date.",
+    payments: [],
+    activity: [
+      { id: 2, date: "2026-11-01 10:05", action: "Invoice sent", detail: "Sent to linda.carter@email.com", icon: "send" },
+      { id: 1, date: "2026-11-01 10:00", action: "Invoice created", detail: "Created by Helen Smith", icon: "add_circle" },
+    ],
+  },
 };
 
 // ─── Shared UI helpers (mirror ItemDetail) ───────────────────────────────────
@@ -355,7 +455,14 @@ const TABS: { key: TabKey; label: string }[] = [
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// Keyed by the id: going from one invoice straight to another (e.g. "Open
+// 10511-I02" on the refused-payment line) must not keep the first one's state.
 export function InvoiceDetail() {
+  const { id } = useParams();
+  return <InvoiceDetailPage key={id} />;
+}
+
+function InvoiceDetailPage() {
   const navigate = useNavigate();
   const { id } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -373,10 +480,42 @@ export function InvoiceDetail() {
     if (key === "details") next.delete("tab"); else next.set("tab", key);
     setSearchParams(next, { replace: true });
   };
-  const [status, setStatus] = useState<InvoiceStatus>(data.status);
+  const [statusState, setStatus] = useState<InvoiceStatus>(data.status);
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
-  const [payments, setPayments] = useState<Payment[]>(data.payments);
-  const [activity, setActivity] = useState<ActivityEntry[]>(data.activity);
+  const [ownPayments] = useState<Payment[]>(data.payments);
+  const [ownActivity, setActivity] = useState<ActivityEntry[]>(data.activity);
+  // M2-8 — a payment the server refused from the technician app: meant for this
+  // invoice, or moved to it by the office.
+  const invKey = id || "";
+  useSyncExternalStore(syncIssuesStore.subscribe, syncIssuesStore.getSnapshot);
+  const syncItems = syncIssuesStore.forInvoice(invKey);
+  const landedHere = syncItems.filter((p) => p.resolution?.kind === "apply" && p.resolution.invoiceKey === invKey);
+  const payments: Payment[] = [
+    ...landedHere.map((p, i) => ({
+      id: 900 + i, date: stampOf(p.resolution!.at).slice(0, 10), amount: p.amount, method: p.method,
+      note: `Taken by ${p.technician} on ${p.jobNumber} · ${dayOf(p.takenAt)} ${timeOf(p.takenAt)} · moved from ${p.invoiceNumber} by ${p.resolution!.by}`,
+    })),
+    ...ownPayments,
+  ];
+  // Kept as credit / refunded: listed on the invoice it was meant for, not counted in its balance.
+  const sidePayments = syncItems.filter((p) => p.invoiceKey === invKey && p.resolution && p.resolution.kind !== "apply").map((p, i) => ({
+    id: 950 + i, date: stampOf(p.resolution!.at).slice(0, 10), amount: p.amount, method: p.method,
+    status: p.resolution!.kind === "credit" ? "Credit" : "Refunded",
+    note: `Taken by ${p.technician} on ${p.jobNumber} · ${resolutionLine(p)} · ${p.resolution!.by}`,
+  }));
+  const syncActivity: ActivityEntry[] = syncItems.flatMap((p, i): ActivityEntry[] => {
+    const r = p.resolution;
+    if (p.invoiceKey !== invKey) return r ? [{
+      id: 9100 + i, date: stampOf(r.at), action: "Payment recorded",
+      detail: `${money2(p.amount)} ${p.method.toLowerCase()} from ${p.technician} (technician app, ${p.jobNumber}) · moved from ${p.invoiceNumber} by ${r.by}${r.note ? ` · ${r.note}` : ""}`,
+      icon: "payments",
+    }] : [];
+    return [
+      ...(r ? [{ id: 9000 + i * 2 + 1, date: stampOf(r.at), action: "Refused payment handled", detail: `${money2(p.amount)} ${p.method.toLowerCase()} from ${p.technician} · ${resolutionLine(p)} · by ${r.by}${r.note ? ` · ${r.note}` : ""}`, icon: "check_circle" }] : []),
+      { id: 9000 + i * 2, date: stampOf(p.refusedAt), action: "Payment not accepted", detail: `${money2(p.amount)} ${p.method.toLowerCase()} from ${p.technician.split(" ")[0]}'s phone (${p.device}) on ${p.jobNumber}, taken ${timeOf(p.takenAt)} offline — the invoice was already paid in full`, icon: "sync_problem" },
+    ];
+  });
+  const activity = [...syncActivity, ...ownActivity];
   // Customer-facing document (FR-7.6 preview, FR-7.8/7.9 PDF and print) — the
   // sheet from components/DocumentSheets on the paper chosen in Settings →
   // Invoices → templates.
@@ -448,6 +587,10 @@ export function InvoiceDetail() {
   const total = subtotal + taxAmount;
   const totalPayments = payments.reduce((s, p) => s + p.amount, 0);
   const balance = total - totalPayments;
+  // A payment moved here from the technician app changes an open invoice's status.
+  const status: InvoiceStatus = landedHere.length && (statusState === "Unpaid" || statusState === "Overdue")
+    ? (balance <= 0.005 ? "Paid" : "Partially Paid")
+    : statusState;
   const overdueDays = status === "Overdue" ? daysBetween(data.dueDate, TODAY) : 0;
   const isPaid = status === "Paid";
   // Only PAID invoices are locked financial documents — no line-item edits, no
@@ -521,8 +664,9 @@ export function InvoiceDetail() {
       Completed: { color: "#16A34A", backgroundColor: "rgba(22,163,74,0.15)" },
       Pending:   { color: "#D97706", backgroundColor: "rgba(217,119,6,0.15)" },
       Refunded:  { color: "#8B5CF6", backgroundColor: "rgba(139,92,246,0.15)" },
+      Credit:    { color: "#0D9488", backgroundColor: "rgba(13,148,136,0.15)" },
     };
-    const rows = payments.map((p: any) => ({
+    const rows = [...sidePayments, ...payments].map((p: any) => ({
       id: p.id,
       payNo: `P-${String(p.id).padStart(4, "0")}`,
       date: fmtDate(p.date),
@@ -543,7 +687,8 @@ export function InvoiceDetail() {
     // The blue "+" Collect-payment shows in every state except Paid (Marek):
     // a fully-paid invoice has nothing left to collect.
     const canCollect = !isPaid;
-    const goToPayment = (r: Row) => navigate(`/payments/${r.id}?returnTo=${encodeURIComponent(`/invoices/${id}?tab=payments`)}`);
+    // The M2-8 case's invoices (10511-…) have no payment records behind their rows.
+    const goToPayment = (r: Row) => { if (invKey.startsWith("10511-")) return; navigate(`/payments/${r.id}?returnTo=${encodeURIComponent(`/invoices/${id}?tab=payments`)}`); };
     return (
       <RecordTab<Row>
         rows={rows}
@@ -555,7 +700,7 @@ export function InvoiceDetail() {
         searchMatch={(r, q) => [r.payNo, r.method, r.status, r.note].some((v) => (v || "").toLowerCase().includes(q.toLowerCase()))}
         filters={[
           { key: "status", label: "Status", options: [
-            { value: "", label: "All" }, { value: "Completed", label: "Completed" }, { value: "Pending", label: "Pending" }, { value: "Refunded", label: "Refunded" },
+            { value: "", label: "All" }, { value: "Completed", label: "Completed" }, { value: "Pending", label: "Pending" }, { value: "Refunded", label: "Refunded" }, ...(sidePayments.some((x) => x.status === "Credit") ? [{ value: "Credit", label: "Credit" }] : []),
           ], match: (r, v) => r.status === v },
         ]}
         createLabel={canCollect ? "Collect payment" : undefined}
@@ -1061,6 +1206,9 @@ export function InvoiceDetail() {
           </div>
         )}
 
+        {/* M2-8 — a payment the server refused from the technician app */}
+        <RefusedPaymentPanel where="invoice" invoiceKey={invKey} />
+
         {/* Divider separating the invoice header from the tab bar */}
         <div className="-mx-4 mt-4 border-t border-[#E5E7EB]" />
 
@@ -1071,7 +1219,7 @@ export function InvoiceDetail() {
             .filter(t => t.key !== "jobs" || linkedJobs.length > 1)
             .map(t => ({
               ...t,
-              count: t.key === "activity" ? activity.length : t.key === "payments" ? payments.length : t.key === "jobs" ? linkedJobs.length : undefined,
+              count: t.key === "activity" ? activity.length : t.key === "payments" ? payments.length + sidePayments.length : t.key === "jobs" ? linkedJobs.length : undefined,
             }))}
           activeTab={activeTab}
           onChange={setActiveTab}

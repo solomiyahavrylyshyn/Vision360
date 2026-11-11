@@ -17,6 +17,7 @@ import { formatTrialDate, getTrialDaysRemaining, isTrialActive, trialStore } fro
 import { clientsStore } from "../stores/clientsStore";
 import { clientSearchText } from "../utils/clientName";
 import { setupStore } from "../stores/setupStore";
+import { syncIssuesStore, money2, timeOf, resolutionLine } from "../stores/syncIssuesStore";
 import { useT } from "../i18n";
 
 const navItems = [
@@ -59,6 +60,8 @@ export function Layout() {
   const [companyLogoSrc, setCompanyLogoSrc] = useState(() => getStoredBrandLogo() || wordmarkLogo);
   const trial = useSyncExternalStore(trialStore.subscribe, trialStore.getSnapshot);
   const setup = useSyncExternalStore(setupStore.subscribe, setupStore.getSnapshot);
+  // M2-8: payments the server refused from the technician app — open until the office puts the money somewhere.
+  const refusedPayments = useSyncExternalStore(syncIssuesStore.subscribe, syncIssuesStore.getSnapshot);
   // AUTH-3 — nudge users who skipped Company Setup. Banner can be dismissed
   // ("Don't show again"); the bell item stays until setup is actually finished.
   const showSetupBanner = !setup.complete && !setup.bannerDismissed;
@@ -914,6 +917,33 @@ export function Layout() {
               <div className="w-2 h-2 rounded-full bg-[#D97706] shrink-0 mt-1.5" />
             </button>
           )}
+          {refusedPayments.map((p) => {
+            const done = !!p.resolution;
+            return (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => { setNotifMenuOpen(false); navigate(`/invoices/${p.invoiceKey}`); }}
+                className={`flex w-full items-start gap-3 px-4 py-3 text-left cursor-pointer transition-colors ${done ? "hover:bg-[#F9FAFB]" : "bg-[#FEF2F2] hover:bg-[#FDE4E4]"}`}
+              >
+                <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{ backgroundColor: done ? "#DCFCE7" : "#FEE2E2" }}>
+                  <span className="material-icons" style={{ fontSize: "16px", color: done ? "#16A34A" : "#DC2626" }}>{done ? "check_circle" : "sync_problem"}</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: done ? 500 : 700 }}>{done ? "Payment handled" : "Payment not accepted"}</span>
+                    <span className="text-[11px] text-[#9CA3AF] shrink-0">{timeOf(done ? p.resolution!.at : p.refusedAt)}</span>
+                  </div>
+                  <p className="text-[12px] text-[#6B7280] mt-0.5">
+                    {done
+                      ? `${p.technician.split(" ")[0]}'s ${money2(p.amount)} ${p.method.toLowerCase()} on ${p.jobNumber} · ${resolutionLine(p)} · ${p.resolution!.by}`
+                      : `${p.technician} took ${money2(p.amount)} ${p.method.toLowerCase()} on ${p.jobNumber} at ${timeOf(p.takenAt)} — ${p.invoiceNumber} is already paid in full`}
+                  </p>
+                </div>
+                {!done && <div className="w-2 h-2 rounded-full bg-[#DC2626] shrink-0 mt-1.5" />}
+              </button>
+            );
+          })}
           {[
             { icon: "description", color: "#4A6FA5", bg: "#EBF0F8", title: "Estimate signed", body: "Travis Jones signed Estimate #E-1042", time: "2 min ago", unread: true },
             { icon: "payments", color: "#16A34A", bg: "#DCFCE7", title: "Payment received", body: "Mike Delgado paid Invoice #INV-884 — $450.00", time: "1 hr ago", unread: true },
