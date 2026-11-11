@@ -800,7 +800,7 @@ export function JobDetail() {
   // "Unscheduled" state instead; the real workflow status returns once the job
   // gets a date (set via the Job date & time section). Mirrors the schedule board.
   const isUnscheduled = !job.startedOn;
-  const displayStatus = isUnscheduled && (currentStatus === "Scheduled" || currentStatus === "Dispatched")
+  const displayStatus = isUnscheduled && (currentStatus === "Scheduled" || currentStatus === "Dispatched" || currentStatus === "En Route")
     ? "Unscheduled"
     : currentStatus;
   const statusColor = displayStatus === "Unscheduled" ? "#6B7280" : (statusColors[currentStatus] || "#6B7280");

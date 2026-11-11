@@ -151,7 +151,8 @@ function CardStatusSelect({ status, onChange, size = 5 }: { status: JobStatus; o
 const nextStatus = (status: JobStatus): JobStatus => {
   if (status === "Unscheduled") return "Scheduled"; // once it gets a date
   if (status === "Scheduled") return "Dispatched";
-  if (status === "Dispatched") return "In Progress";
+  if (status === "Dispatched") return "En Route";
+  if (status === "En Route") return "In Progress";
   if (status === "In Progress") return "Completed";
   if (status === "Paused") return "In Progress";     // resuming returns to in progress (Part 5)
   if (status === "Completed") return "Scheduled";

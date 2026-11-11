@@ -2743,16 +2743,18 @@ export function Settings() {
   const setJobNotes = (notes: typeof jobSign.notes) => jobSignSettingsStore.update({ notes });
   // Job statuses — MVP starts with three core; additional ones can be added
   type JobStatus = { id: string; label: string; color: string; bg: string; icon: string; core?: boolean };
-  // Six built-in system statuses (Figma 254:21177); Dispatched ships as a
+  // Eight built-in system statuses (W-03 / M3-2); En Route is the fourth.
+  // Previously: six built-in (Figma 254:21177); Dispatched shipped as a
   // removable custom status.
   const [jobStatuses, setJobStatuses] = useState<JobStatus[]>([
     { id: "unscheduled", label: "Unscheduled", color: "#6B7280", bg: "#F3F4F6", icon: "event_busy",     core: true },
     { id: "scheduled",  label: "Scheduled",   color: "#4A6FA5", bg: "#EBF0F8", icon: "event_note",   core: true },
+    { id: "dispatched", label: "Dispatched",  color: "#0891B2", bg: "#CFFAFE", icon: "local_shipping", core: true },
+    { id: "enRoute",    label: "En Route",    color: "#0D9488", bg: "#CCFBF1", icon: "directions_car", core: true },
     { id: "inProgress", label: "In Progress", color: "#B45309", bg: "#FEF3C7", icon: "play_circle",  core: true },
     { id: "paused",     label: "Paused",      color: "#475569", bg: "#F1F5F9", icon: "pause_circle", core: true },
     { id: "completed",  label: "Completed",   color: "#15803D", bg: "#DCFCE7", icon: "check_circle", core: true },
     { id: "cancelled",  label: "Cancelled",   color: "#DC2626", bg: "#FEE2E2", icon: "cancel",       core: true },
-    { id: "dispatched", label: "Dispatched",  color: "#0891B2", bg: "#CFFAFE", icon: "local_shipping" },
   ]);
   // Palette for custom statuses
   const STATUS_PALETTE: { color: string; bg: string; icon: string }[] = [
@@ -4475,11 +4477,11 @@ export function Settings() {
                     </SectionCard>
 
                     {/* Job Statuses */}
-                    <SectionCard title="Job Statuses" description="Statuses track each job through its lifecycle. Six system statuses are built in, but you can add and modify custom statuses to match your workflow (Dispatched, On Route…).">
+                    <SectionCard title="Job Statuses" description="Statuses track each job through its lifecycle. Eight system statuses are built in, and you can add custom statuses to match your workflow.">
                       {/* System statuses — fixed labels, consistent across the app (Figma 254:21177) */}
                       <div className="mt-2">
                         <div className="text-[13px] text-[#1A2332] mb-0.5" style={{ fontWeight: 500 }}>System statuses</div>
-                        <div className="text-[12px] text-[#6B7280] mb-2">The six built-in statuses (Unscheduled / Scheduled / In Progress / Paused / Completed / Cancelled) cover the full job lifecycle and stay consistent across the app.</div>
+                        <div className="text-[12px] text-[#6B7280] mb-2">The eight built-in statuses (Unscheduled / Scheduled / Dispatched / En Route / In Progress / Paused / Completed / Cancelled) cover the full job lifecycle and stay consistent across the app.</div>
                         <div className="grid grid-cols-3 gap-3">
                           {jobStatuses.filter(s => s.core).map(s => (
                             <div key={s.id} className="flex items-center gap-3 rounded-lg border border-[#E5E7EB] px-3 py-2.5">
@@ -4501,7 +4503,7 @@ export function Settings() {
                           <Input
                             value={newStatusLabel}
                             onChange={e => setNewStatusLabel(e.target.value)}
-                            placeholder="Add status (e.g. Dispatched, On Route, Cancelled)"
+                            placeholder="Add status (e.g. Waiting for parts)"
                             className="h-9 flex-1 border-[#E5E7EB] text-[13px]"
                             onKeyDown={e => {
                               if (e.key === "Enter") {

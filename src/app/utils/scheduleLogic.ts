@@ -243,7 +243,7 @@ export function dailyKpis(jobs: Array<Pick<SchedulableJob, "status"> & { amount?
   const k: DailyKpis = { scheduled: 0, inProgress: 0, completed: 0, revenue: 0 };
   for (const j of jobs) {
     if (j.status === "Cancelled") continue;
-    if (j.status === "Scheduled" || j.status === "Dispatched") k.scheduled += 1;
+    if (j.status === "Scheduled" || j.status === "Dispatched" || j.status === "En Route") k.scheduled += 1;
     else if (j.status === "In Progress") k.inProgress += 1;
     else if (j.status === "Completed") {
       k.completed += 1;

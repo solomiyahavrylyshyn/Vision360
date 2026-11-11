@@ -21,6 +21,7 @@ export type JobStatus =
   | "Unscheduled"
   | "Scheduled"
   | "Dispatched"
+  | "En Route"
   | "In Progress"
   | "Paused"
   | "Completed"
@@ -30,6 +31,7 @@ export const JOB_STATUSES: JobStatus[] = [
   "Unscheduled",
   "Scheduled",
   "Dispatched",
+  "En Route",
   "In Progress",
   "Paused",
   "Completed",
@@ -41,6 +43,7 @@ export const JOB_STATUS_STYLES: Record<JobStatus, { color: string; bg: string }>
   Unscheduled:   { color: "#6B7280", bg: "rgba(107,114,128,0.15)" }, // neutral — matches the derived chip
   Scheduled:     { color: "#4A6FA5", bg: "rgba(74,111,165,0.15)" },
   Dispatched:    { color: "#0891B2", bg: "rgba(8,145,178,0.15)" },
+  "En Route":    { color: "#0D9488", bg: "rgba(13,148,136,0.15)" }, // technician on the way (W-03 / M3-2)
   "In Progress": { color: "#F59E0B", bg: "rgba(245,158,11,0.15)" },
   Paused:        { color: "#64748B", bg: "rgba(100,116,139,0.15)" }, // slate — distinct "on hold" treatment
   Completed:     { color: "#16A34A", bg: "rgba(22,163,74,0.15)" },
@@ -55,6 +58,7 @@ export const JOB_STATUS_ICONS: Record<JobStatus, string> = {
   Unscheduled:   "event_busy",
   Scheduled:     "event",
   Dispatched:    "near_me",
+  "En Route":    "directions_car",
   "In Progress": "build",
   Paused:        "pause_circle",
   Completed:     "check_circle",
