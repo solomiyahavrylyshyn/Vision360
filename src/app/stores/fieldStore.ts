@@ -115,12 +115,13 @@ export function elapsed(iso: string, now = Date.now()): string {
 export const LONG_MIN = 45;
 export const isLong = (t?: TechLive) => !!t && (t.state === "enRoute" || t.state === "paused") && Date.now() - new Date(t.since).getTime() > LONG_MIN * 60000;
 
-/** The lane-header line: "En route · 10512-J02 · 7:45 AM · 18 min", "Paused · Lunch · since 12:00 PM · 25 min", "Idle since 11:40 AM". */
+/** The lane-header line: "En route · 10512-J02 · 7:45 AM", "Paused · Lunch · since 12:00 PM", "Idle since 11:40 AM".
+ *  The running minutes (road timer, pause length) are on the job card, not here. */
 export function techLine(t?: TechLive): string | null {
   if (!t) return null;
-  if (t.state === "enRoute") return `En route · ${t.jobNumber ?? ""}${t.jobNumber ? " · " : ""}${clock(t.since)} · ${elapsed(t.since)}`;
+  if (t.state === "enRoute") return `En route · ${t.jobNumber ?? ""}${t.jobNumber ? " · " : ""}${clock(t.since)}`;
   if (t.state === "working") return `In progress · ${t.jobNumber ?? ""}${t.jobNumber ? " · " : ""}since ${clock(t.since)}`;
-  if (t.state === "paused") return `Paused${t.pauseReason ? ` · ${t.pauseReason}` : ""} · since ${clock(t.since)} · ${elapsed(t.since)}`;
+  if (t.state === "paused") return `Paused${t.pauseReason ? ` · ${t.pauseReason}` : ""} · since ${clock(t.since)}`;
   return `Idle since ${clock(t.since)}`;
 }
 

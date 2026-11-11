@@ -107,7 +107,7 @@ function StatusPillSelect({ value, onChange }: { value: JobStatus; onChange: (ne
 function LiveLine({ t }: { t?: TechLive }) {
   if (!t) return null;
   if (isOffline(t)) return <div className="line-clamp-2 text-[12px] leading-4 text-[#9CA3AF]" style={{ fontWeight: 500 }}>Last contact {clock(t.lastContact)}</div>;
-  const color = isLong(t) ? "#B45309" : { enRoute: "#0D9488", working: "#4A6FA5", paused: "#64748B", idle: "#6B7280" }[t.state];
+  const color = { enRoute: "#0D9488", working: "#4A6FA5", paused: "#64748B", idle: "#6B7280" }[t.state];
   return <div className="line-clamp-2 text-[12px] leading-4" style={{ fontWeight: 500, color }} title={techLine(t) ?? ""}>{techLine(t)}</div>;
 }
 
@@ -2667,7 +2667,7 @@ export function Calendar() {
                                         {job.status === "En Route"
                                           ? <span className="flex-1 min-w-0 truncate text-[10px]" style={{ fontWeight: 600, color: roadLabel(job.technicianId).late ? "#B45309" : "#0D9488" }}>{roadLabel(job.technicianId).text}</span>
                                           : job.status === "Paused"
-                                          ? <span className="flex-1 min-w-0 truncate text-[10px] text-[#64748B]" style={{ fontWeight: 600 }}>{pausedLabel(job.id)}</span>
+                                          ? <span className="flex-1 min-w-0 truncate text-[10px]" style={{ fontWeight: 600, color: pauseFor(job.technicianId)?.long ? "#B45309" : "#64748B" }}>{pausedLabel(job.id)}{pauseFor(job.technicianId) ? ` · ${pauseFor(job.technicianId)!.min}` : ""}</span>
                                           : <span className="flex-1 min-w-0 truncate text-[10px] text-[#546478]">{job.service}</span>}
                                         {job.amount > 0 && (
                                           <span className="text-[10px] tabular-nums shrink-0" style={{ fontWeight: 700, color: "#1A2332" }}>${job.amount.toLocaleString("en-US")}</span>
