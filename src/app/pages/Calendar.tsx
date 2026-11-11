@@ -224,6 +224,16 @@ function JobInfoDrawer({
   history: { when: string; label: string }[];
 }) {
   const [tab, setTab] = useState<"Details" | "Notes" | "Activity">("Details");
+  // How long the technician has been on the road / paused (ticks every 30 s).
+  const live = useSyncExternalStore(fieldLiveStore.subscribe, fieldLiveStore.getSnapshot);
+  const [, setTick] = useState(0);
+  useEffect(() => { const t = setInterval(() => setTick((n) => n + 1), 30000); return () => clearInterval(t); }, []);
+  const tech = live.techs[job.technicianId];
+  const liveTime = job.status === "En Route" && tech?.state === "enRoute"
+    ? { icon: "directions_car", text: `On the road since ${clock(tech.since)} · ${elapsed(tech.since)}`, long: isLong(tech) }
+    : job.status === "Paused" && tech?.state === "paused"
+    ? { icon: "pause_circle", text: `Paused${live.pauseReasons[job.id] ? ` · ${live.pauseReasons[job.id]}` : ""} since ${clock(tech.since)} · ${elapsed(tech.since)}`, long: isLong(tech) }
+    : null;
   const [addingNote, setAddingNote] = useState(false);
   const labelCls = "flex items-center gap-2 w-[140px] shrink-0 text-[14px] text-[#6B7280]";
   const ctrlCls = "flex-1 h-8 px-2 border border-[#E5E7EB] rounded-lg text-[13px] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.05)] outline-none focus:border-[#4A6FA5]";
@@ -259,6 +269,11 @@ function JobInfoDrawer({
             <span className="material-icons text-[#1A2332]" style={{ fontSize: "18px" }}>close</span>
           </button>
         </div>
+        {liveTime && (
+          <div className="mx-4 -mt-1 mb-2 flex items-center gap-1.5 rounded-lg px-3 py-2 text-[13px]" style={{ fontWeight: 600, color: liveTime.long ? "#B45309" : job.status === "En Route" ? "#0D9488" : "#475569", backgroundColor: liveTime.long ? "#FFF7E6" : job.status === "En Route" ? "#ECFDF5" : "#F1F5F9" }}>
+            <span className="material-icons" style={{ fontSize: 16 }}>{liveTime.icon}</span>{liveTime.text}
+          </div>
+        )}
         {/* Tabs */}
         <div className="px-4 pb-2 shrink-0">
           <div className="flex items-center p-[3px] bg-[#F5F7FA] rounded-[10px]">

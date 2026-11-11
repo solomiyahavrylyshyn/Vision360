@@ -44,7 +44,7 @@ import { jobSignSettingsStore, MOMENT_LABEL, type SignMoment } from "../stores/j
 import { teamRolesStore } from "../stores/teamRolesStore";
 import { fieldSettingsStore, FIELD_LIMITS } from "../stores/fieldStore";
 import { TeamRolesPanel } from "../components/TeamRolesPanel";
-import { MemberDevicesPanel } from "../components/MemberDevicesPanel";
+import { TeamDevicesPage } from "../components/MemberDevicesPanel";
 import { readOnlinePayments, writeOnlinePayments, type StripeStatus } from "../utils/onlinePayments";
 
 type SettingsSection =
@@ -2764,8 +2764,8 @@ export function Settings() {
   // are the modal's working copy; saved states live in `memberPerms` by email.
   const [editPreset, setEditPreset] = useState<PresetId>("employee");
   const [editUserPerms, setEditUserPerms] = useState<PermissionsState>(employeePreset);
-  const [teamTab, setTeamTab] = useState<"users" | "roles">("users");
-  const [devicesFor, setDevicesFor] = useState<{ name: string; email: string } | null>(null);
+  const [teamTab, setTeamTab] = useState<"users" | "roles" | "devices">("users");
+  const [devicesMember, setDevicesMember] = useState("all");
   const [memberPerms, setMemberPerms] = useState<Record<string, { preset: PresetId; perms: PermissionsState }>>({});
   const [modalCustomPresets, setModalCustomPresets] = useState<CustomPreset[]>(() =>
     loadCustomPresets().map(cp => ({ ...cp, permissions: ensureItemsPerm(cp.permissions) })),
@@ -3581,7 +3581,6 @@ export function Settings() {
 
           {activeSection === "team" && (
             <div className="flex flex-col gap-4" onClick={() => setTeamRowMenu(null)}>
-              {devicesFor && <MemberDevicesPanel member={devicesFor} onClose={() => setDevicesFor(null)} />}
 
               {/* Page header */}
               <div className="flex items-center justify-between gap-3 py-2">
@@ -3596,16 +3595,20 @@ export function Settings() {
                 </button>
               </div>
 
-              {/* Users / Roles (M1-19) */}
+              {/* Users / Roles (M1-19) / Devices */}
               <div className="flex gap-1 rounded-lg bg-[#EDF0F5] p-1 self-start">
-                {(["users", "roles"] as const).map(t => (
-                  <button key={t} type="button" onClick={() => setTeamTab(t)}
+                {(["users", "roles", "devices"] as const).map(t => (
+                  <button key={t} type="button" onClick={() => { setTeamTab(t); if (t === "devices") setDevicesMember("all"); }}
                     className={`h-8 rounded-md px-4 text-[14px] transition-colors ${teamTab === t ? "bg-white text-[#1A2332] shadow-sm" : "text-[#546478] hover:text-[#1A2332]"}`}
                     style={{ fontWeight: 500 }}>
-                    {t === "users" ? "Users" : "Roles"}
+                    {t === "users" ? "Users" : t === "roles" ? "Roles" : "Devices"}
                   </button>
                 ))}
               </div>
+
+              {teamTab === "devices" && (
+                <TeamDevicesPage team={team} member={devicesMember} onMemberChange={setDevicesMember} />
+              )}
 
               {teamTab === "roles" && (
                 <div className="rounded-xl border border-[#E5E7EB] bg-white overflow-hidden">
@@ -3715,7 +3718,7 @@ export function Settings() {
                                 </button>
                                 <button
                                   type="button"
-                                  onClick={() => { setTeamRowMenu(null); setDevicesFor({ name: member.name, email: member.email }); }}
+                                  onClick={() => { setTeamRowMenu(null); setDevicesMember(member.email); setTeamTab("devices"); }}
                                   className="flex w-full items-center gap-2 px-3 py-2 text-[13px] text-[#374151] hover:bg-[#F5F7FA] transition-colors"
                                   style={{ fontWeight: 500 }}
                                 >
