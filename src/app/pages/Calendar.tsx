@@ -558,7 +558,7 @@ const DAY_JOBS: DayJob[] = [
   { id: 10, technicianId: "maria",  start: 15.5, end: 17.5, client: "Hall Home",         service: "Water Heater",       jobType: "Installation", address: "753 Summit St",        status: "Scheduled",   amount: 750,  bg: "#D1FAE5", border: "#16A34A" },
   // Live-status demo cases (the road timer, pauses with a reason)
   // Tom is dispatched to 10512-J02 at 8:00 — "Demo: Tom taps En route" turns it En Route with the road timer.
-  { id: 905, num: "10512-J02", technicianId: "tom", start: 8, end: 10, client: "Moore Residence", service: "AC Tune-Up", jobType: "Maintenance", address: "753 Spruce St", status: "Dispatched", amount: 189, bg: "#DCFCE7", border: "#16A34A" },
+  { id: 905, num: "10512-J02", technicianId: "tom", start: 8, end: 10, client: "Moore Residence", service: "AC Repair", jobType: "Service", address: "753 Spruce St", status: "Dispatched", amount: 289, bg: "#EBF0F8", border: "#4A6FA5" },
   { id: 901, technicianId: "emily", start: 10.5, end: 12,   client: "Rivera Home",       service: "AC Repair",          jobType: "Service",      address: "41 Palm Ave",          status: "En Route",    amount: 260,  bg: "#FEF3C7", border: "#F59E0B" },
   { id: 902, technicianId: "karen", start: 9.5,  end: 11,   client: "Lopez Office",      service: "Maintenance",        jobType: "Maintenance",  address: "200 Harbor Blvd",      status: "En Route",    amount: 180,  bg: "#DCFCE7", border: "#16A34A" },
   { id: 903, technicianId: "david", start: 9,    end: 12,   client: "Kim Residence",     service: "Water Heater",       jobType: "Installation", address: "88 Grove St",          status: "Paused",      amount: 1450, bg: "#EBF0F8", border: "#4A6FA5" },
