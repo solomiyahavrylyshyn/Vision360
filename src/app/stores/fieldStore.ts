@@ -54,12 +54,12 @@ export interface TechLive {
   lastContact: string;
 }
 export type FlagKind = "noEnRoute" | "outsideRadius" | "afterCompletion";
-export interface CardFlag { id: string; jobId: number; kind: FlagKind; at: string; feet?: number; seen?: boolean }
+export interface CardFlag { id: string; jobId: number; /** Job page id, for flags shown on the job page. */ jobKey?: string; kind: FlagKind; at: string; feet?: number; seen?: boolean }
 
 const at = (h: number, m: number) => { const d = new Date(); d.setHours(h, m, 0, 0); return d.toISOString(); };
 const nowIso = () => new Date().toISOString();
 
-interface Live { techs: Record<string, TechLive>; flags: CardFlag[]; pauseReasons: Record<number, string> }
+interface Live { techs: Record<string, TechLive>; flags: CardFlag[]; pauseReasons: Record<number, string>; pauseReasonsByKey: Record<string, string> }
 let live: Live = {
   techs: {
     tom: { state: "idle", since: at(7, 30), lastContact: nowIso() },
@@ -74,9 +74,13 @@ let live: Live = {
     { id: "f1", jobId: 1, kind: "noEnRoute", at: at(8, 30) },
     { id: "f2", jobId: 6, kind: "outsideRadius", feet: 180, at: at(11, 34) },
     { id: "f3", jobId: 4, kind: "afterCompletion", at: at(17, 20) },
+    // Job page demo (/jobs/5)
+    { id: "jf1", jobId: -1, jobKey: "5", kind: "noEnRoute", at: at(8, 30) },
+    { id: "jf2", jobId: -1, jobKey: "5", kind: "outsideRadius", feet: 180, at: at(8, 5) },
   ],
   // Board demo job 8 (Maria, Brown Home) is paused for lunch.
   pauseReasons: { 8: "Lunch" },
+  pauseReasonsByKey: { "5": "Lunch" },
 };
 const lListeners = new Set<() => void>();
 const emit = (next: Live) => { live = next; lListeners.forEach((l) => l()); };

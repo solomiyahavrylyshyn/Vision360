@@ -27,6 +27,8 @@ import { computeJobFinancials, isCompensationCategory } from "../utils/jobFinanc
 import { AdjustPriceModal, DISCOUNT_LINE_NAME, discountLineDescription } from "../components/AdjustPriceModal";
 import { SeriesVisitsModal, ChangeVisitsModal, CancelSeriesDialog } from "../components/JobSeriesDialogs";
 import { seriesRuleText } from "../utils/jobSeries";
+import { JobMediaGallery } from "../components/JobMediaGallery";
+import { fieldLiveStore, fieldSettingsStore, flagText, clock } from "../stores/fieldStore";
 import { jobSignLinksStore, jobSignSettingsStore, isRequired, missingSignature, missingMessage, signLinkUrl, fmtSignedAt, MOMENT_LABEL, type SignMoment, type JobSnapshot } from "../stores/jobSignaturesStore";
 import { expenseCategoryColors } from "./Expenses";
 import acServicePhoto from "../../assets/documents/33897-cu.jpg";
@@ -837,6 +839,12 @@ export function JobDetail() {
     navigator.clipboard?.writeText(signLinkUrl(token)).then(() => toast.success("Link copied"), () => toast.error("Couldn't copy the link"));
   };
 
+  // Live data from the technician app (flags, pause reason).
+  const fieldLive = useSyncExternalStore(fieldLiveStore.subscribe, fieldLiveStore.getSnapshot);
+  const fieldSettings = useSyncExternalStore(fieldSettingsStore.subscribe, fieldSettingsStore.getSnapshot);
+  const jobFlags = fieldLive.flags.filter((f) => f.jobKey === jobKey && !f.seen);
+  const [flagMenu, setFlagMenu] = useState<string | null>(null);
+
   const handleStatusChange = (newStatus: string) => {
     // With a signature switched on in Settings → Jobs, the job can't move to
     // In progress / Completed until the client has signed (8932).
@@ -978,7 +986,11 @@ export function JobDetail() {
       { key: "field"    as const, label: "Field",    notes: noteData.field    },
       { key: "internal" as const, label: "Internal", notes: noteData.internal },
     ];
-    const activeNotes = noteTabs.find(t => t.key === noteTab)?.notes ?? [];
+    // Newest on top (M4-3, decision Nov 5).
+    const activeNotes = [...(noteTabs.find(t => t.key === noteTab)?.notes ?? [])].sort((a, b) => {
+      const d = new Date(b.date).getTime() - new Date(a.date).getTime();
+      return Number.isFinite(d) && d !== 0 ? d : Number(b.id) - Number(a.id);
+    });
     const SHOW_N = 5;
     const shownNotes = notesExpanded ? activeNotes : activeNotes.slice(0, SHOW_N);
 
@@ -1312,159 +1324,7 @@ export function JobDetail() {
         {/* ── Col 3: Documents — Figma: search + filter selects, thumbnail list
             on the left, large preview with pager on the right. ── */}
         <ResizablePanel defaultSize={53} minSize={34} className="min-w-0">
-        {(() => {
-          const attCategories = Array.from(new Set(attachments.map(a => a.category).filter(Boolean))) as string[];
-          const attUploaders = Array.from(new Set(attachments.map(a => a.uploadedBy).filter(Boolean))) as string[];
-          const filteredAttachments = attachments.filter(a => {
-            if (docSearch && !a.name.toLowerCase().includes(docSearch.toLowerCase())) return false;
-            if (docCategory !== "all" && a.category !== docCategory) return false;
-            if (docUploader !== "all" && a.uploadedBy !== docUploader) return false;
-            if (docDate !== "all") {
-              const ts = new Date(a.date).getTime();
-              const days = docDate === "7" ? 7 : docDate === "30" ? 30 : 90;
-              if (Number.isFinite(ts) && Date.now() - ts > days * 24 * 60 * 60 * 1000) return false;
-            }
-            return true;
-          });
-          const safeIdx = Math.min(docPreviewIdx, Math.max(0, filteredAttachments.length - 1));
-          const previewDoc = filteredAttachments[safeIdx];
-          const filterSelectCls = "h-9 pl-3 pr-7 border border-[#E5E7EB] rounded-lg text-[14px] text-[#1A2332] bg-white shadow-[0px_1px_2px_rgba(0,0,0,0.05)] cursor-pointer focus:outline-none focus:border-[#4A6FA5]";
-          return (
-            <div className="h-full bg-white border border-[#E5E7EB] rounded-xl flex flex-col p-4 gap-3">
-              {/* Search + upload — the input shrinks, the "+" never leaves the card. */}
-              <div className="flex items-center justify-between gap-2 shrink-0 min-w-0">
-                <div className="relative flex-1 min-w-0 max-w-[294px]">
-                  <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-[#6B7280]" style={{ fontSize: "16px" }}>search</span>
-                  <input
-                    value={docSearch}
-                    onChange={e => { setDocSearch(e.target.value); setDocPreviewIdx(0); }}
-                    placeholder="Search documents"
-                    className="w-full h-9 pl-9 pr-3 border border-[#E5E7EB] rounded-lg text-[14px] bg-white shadow-[0px_1px_2px_rgba(0,0,0,0.05)] focus:outline-none focus:border-[#4A6FA5]"
-                  />
-                </div>
-                {!isCompleted && (<button
-                  onClick={() => attachInputRef.current?.click()}
-                  aria-label="Upload document"
-                  title="Upload document"
-                  className="w-8 h-8 shrink-0 flex items-center justify-center bg-white border border-[#E5E7EB] rounded-lg hover:bg-[#F5F7FA] transition-colors"
-                >
-                  <PlusIcon className="h-4 w-4 text-[#1A2332]" />
-                </button>)}
-                <input
-                  ref={attachInputRef}
-                  type="file"
-                  multiple
-                  className="hidden"
-                  onChange={e => { handleAttachmentsAdded(e.target.files); e.currentTarget.value = ""; }}
-                />
-              </div>
-
-              {/* Filter row — wraps on narrow widths instead of overflowing. */}
-              <div className="flex items-center gap-2 shrink-0 flex-wrap min-w-0">
-                <select value={docDate} onChange={e => { setDocDate(e.target.value); setDocPreviewIdx(0); }} className={filterSelectCls}>
-                  <option value="all">Date: All time</option>
-                  <option value="7">Date: Last 7 days</option>
-                  <option value="30">Date: Last 30 days</option>
-                  <option value="90">Date: Last 90 days</option>
-                </select>
-                <select value={docCategory} onChange={e => { setDocCategory(e.target.value); setDocPreviewIdx(0); }} className={filterSelectCls}>
-                  <option value="all">Categories: All</option>
-                  {attCategories.map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
-                <select value={docUploader} onChange={e => { setDocUploader(e.target.value); setDocPreviewIdx(0); }} className={filterSelectCls}>
-                  <option value="all">Uploaders: All</option>
-                  {attUploaders.map(u => <option key={u} value={u}>{u}</option>)}
-                </select>
-                <button
-                  className="ml-auto w-9 h-9 shrink-0 flex items-center justify-center bg-white border border-[#E5E7EB] rounded-lg hover:bg-[#F5F7FA] transition-colors"
-                  aria-label="More filters"
-                  title="More filters"
-                >
-                  <span className="material-icons text-[#1A2332]" style={{ fontSize: "16px" }}>filter_list</span>
-                </button>
-              </div>
-
-              {/* Thumbnail list + preview */}
-              <div className="flex-1 min-h-0 flex border border-[#E5E7EB] rounded-lg overflow-hidden">
-                <div className="w-[182px] shrink-0 p-4 overflow-y-auto">
-                  {filteredAttachments.length === 0 ? (
-                    <div className="py-8 text-center text-[12px] text-[#9CA3AF]">No documents match</div>
-                  ) : (
-                    <div className="grid grid-cols-2 gap-2">
-                      {filteredAttachments.map((a, idx) => (
-                        <button
-                          key={a.id}
-                          onClick={() => setDocPreviewIdx(idx)}
-                          title={a.name}
-                          className={`relative group h-[60px] rounded-md overflow-hidden border-2 transition-colors ${idx === safeIdx ? "border-[#4A6FA5]" : "border-transparent hover:border-[#C8D5E8]"}`}
-                        >
-                          {a.previewUrl ? (
-                            <img src={a.previewUrl} alt={a.name} className="w-full h-full object-cover" />
-                          ) : (
-                            <span className="w-full h-full bg-[#F5F7FA] flex items-center justify-center">
-                              <span className="material-icons" style={{ fontSize: "22px", color: a.iconColor }}>{a.icon}</span>
-                            </span>
-                          )}
-                          {/* Hover delete — small square button like the Figma overlay */}
-                          {!isCompleted && <span
-                            role="button"
-                            aria-label={`Delete ${a.name}`}
-                            onClick={(e) => { e.stopPropagation(); removeAttachment(a.id); }}
-                            className="absolute top-1.5 right-1.5 w-6 h-6 hidden group-hover:flex items-center justify-center bg-[#F5F7FA] rounded shadow-sm hover:bg-[#FEE2E2] cursor-pointer"
-                          >
-                            <span className="material-icons text-[#1A2332]" style={{ fontSize: "14px" }}>delete_outline</span>
-                          </span>}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <div className="flex-1 relative border-l border-[#E5E7EB] p-4 flex items-start justify-center" style={{ background: "rgba(245,247,250,0.4)" }}>
-                  {previewDoc ? (
-                    <>
-                      {previewDoc.previewUrl ? (
-                        <img src={previewDoc.previewUrl} alt={previewDoc.name} className="w-full max-h-[320px] object-cover rounded-xl" />
-                      ) : (
-                        <div className="flex flex-col items-center gap-2 py-16">
-                          <span className="material-icons" style={{ fontSize: "56px", color: previewDoc.iconColor }}>{previewDoc.icon}</span>
-                          <div className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>{previewDoc.name}</div>
-                          <div className="text-[12px] text-[#9CA3AF]">{previewDoc.size} · {previewDoc.date}</div>
-                        </div>
-                      )}
-                      <button
-                        onClick={() => previewDoc.previewUrl ? window.open(previewDoc.previewUrl, "_blank") : toast(`Preview for ${previewDoc.name} opens in the viewer`)}
-                        aria-label="Open in new tab"
-                        title="Open in new tab"
-                        className="absolute top-6 right-6 w-9 h-9 flex items-center justify-center bg-white border border-[#E5E7EB] rounded-lg hover:bg-[#F5F7FA] transition-colors"
-                      >
-                        <span className="material-icons text-[#1A2332]" style={{ fontSize: "16px" }}>open_in_new</span>
-                      </button>
-                      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-3">
-                        <button
-                          onClick={() => setDocPreviewIdx(i => (i - 1 + filteredAttachments.length) % filteredAttachments.length)}
-                          aria-label="Previous document"
-                          className="w-9 h-9 flex items-center justify-center bg-white border border-[#E5E7EB] rounded-lg hover:bg-[#F5F7FA] transition-colors"
-                        >
-                          <span className="material-icons text-[#1A2332]" style={{ fontSize: "16px" }}>chevron_left</span>
-                        </button>
-                        <span className="text-[14px] text-[#1A2332] tabular-nums" style={{ fontWeight: 500 }}>{safeIdx + 1}/{filteredAttachments.length}</span>
-                        <button
-                          onClick={() => setDocPreviewIdx(i => (i + 1) % filteredAttachments.length)}
-                          aria-label="Next document"
-                          className="w-9 h-9 flex items-center justify-center bg-white border border-[#E5E7EB] rounded-lg hover:bg-[#F5F7FA] transition-colors"
-                        >
-                          <span className="material-icons text-[#1A2332]" style={{ fontSize: "16px" }}>chevron_right</span>
-                        </button>
-                      </div>
-                    </>
-                  ) : (
-                    <div className="py-16 text-center text-[12px] text-[#9CA3AF]">Nothing to preview</div>
-                  )}
-                </div>
-              </div>
-            </div>
-          );
-        })()}
+        <JobMediaGallery jobKey={jobKey} techFirst={(job.assignedTo || "").split(" ")[0]} />
         </ResizablePanel>
       </ResizablePanelGroup>
     );
@@ -1917,8 +1777,19 @@ export function JobDetail() {
       const signed = l.status === "signed" && l.signedAt ? [{ id: 201 + i * 2, icon: "draw", title: `${what} signed`, description: `Signed by ${l.signedBy}${l.location && l.location !== "not shared" ? ` · near ${l.location}` : " · location not shared"}`, actor: l.signedBy || "Client", ...at(l.signedAt), tone: "#16A34A", ts: l.signedAt }] : [];
       return [...signed, sent];
     }).sort((a, b) => b.ts.localeCompare(a.ts));
+    // From the technician app (M1-10b names the device; M3-3, M3-4; M2-6 rule still with Marek).
+    const tFirst = (job.assignedTo || "Tom").split(" ")[0];
+    const day = job.startedOn || "Mar 30, 2026";
+    const appEvents = [
+      { id: 301, icon: "pause_circle", title: "Paused — Lunch", description: `From ${tFirst}'s phone (Samsung Galaxy S23)`, actor: tFirst, date: day, time: "12:00 PM", tone: "#64748B" },
+      { id: 302, icon: "sync_problem", title: `Change from ${tFirst}'s tablet to Capacitor (2) not applied — the office changed it later (3, Helen, 10:00 AM)`, description: "", actor: tFirst, date: day, time: "10:05 AM", tone: "#D97706" },
+      { id: 303, icon: "play_arrow", title: "Started by Helen Smith (office)", description: "", actor: "Helen Smith", date: day, time: "8:09 AM", tone: "#4A6FA5" },
+      { id: 304, icon: "location_off", title: "Start blocked — 180 ft from the address", description: `${tFirst}'s phone (Samsung Galaxy S23)`, actor: tFirst, date: day, time: "8:05 AM", tone: "#DC2626" },
+      { id: 305, icon: "navigation", title: `En route — from ${tFirst}'s phone (Samsung Galaxy S23)`, description: "", actor: tFirst, date: day, time: "7:45 AM", tone: "#0D9488" },
+    ];
     const activity = [
       ...signEvents,
+      ...appEvents,
       ...(reopenedAt ? [{
         id: 99,
         icon: "lock_open",
@@ -2342,6 +2213,34 @@ export function JobDetail() {
                   </div>
                 )}
               </div>
+              {/* M3-3: the pause reason from the app */}
+              {currentStatus === "Paused" && fieldLive.pauseReasonsByKey[jobKey] && (
+                <span className="rounded-lg bg-[#F1F5F9] px-2 py-1 text-[12px] text-[#475569]" style={{ fontWeight: 600 }}>Paused · {fieldLive.pauseReasonsByKey[jobKey]}</span>
+              )}
+              {/* M3-2 / M4-15: the client's sign-off — a label, not a status */}
+              {(() => {
+                const done = jobSignLinksStore.current(jobKey, "completion");
+                if (!done) return null;
+                return done.status === "signed"
+                  ? <span className="inline-flex items-center gap-1 rounded-lg bg-[#E6F7EB] px-2 py-1 text-[12px] text-[#16803D]" style={{ fontWeight: 600 }}><span className="material-icons" style={{ fontSize: 14 }}>draw</span>Signed by {done.signedBy} · {clock(done.signedAt!)}</span>
+                  : <span className="inline-flex items-center gap-1 rounded-lg bg-[#FFF3D9] px-2 py-1 text-[12px] text-[#B45309]" style={{ fontWeight: 600 }}><span className="material-icons" style={{ fontSize: 14 }}>forward_to_inbox</span>Sign-off link sent</span>;
+              })()}
+              {/* The same flags as on the board (M3-8, M3-4, M4-7b) */}
+              {jobFlags.map((f) => (
+                <span key={f.id} className="relative">
+                  <button type="button" onClick={() => setFlagMenu(flagMenu === f.id ? null : f.id)}
+                    className="inline-flex items-center gap-1 rounded-lg border border-[#FCD34D] bg-[#FFFBEB] px-2 py-1 text-[12px] text-[#92400E]" style={{ fontWeight: 600 }}>
+                    <span className="material-icons" style={{ fontSize: 14 }}>flag</span>{flagText(f, fieldSettings)} · {clock(f.at)}
+                  </button>
+                  {flagMenu === f.id && (
+                    <span className="absolute left-0 top-full z-50 mt-1 block w-[150px] overflow-hidden rounded-lg border border-[#E5E7EB] bg-white shadow-lg">
+                      <button type="button" onClick={() => { fieldLiveStore.markSeen(f.id); setFlagMenu(null); }} className="flex w-full items-center gap-2 px-3 py-2 text-[13px] text-[#374151] hover:bg-[#F5F7FA]" style={{ fontWeight: 500 }}>
+                        <span className="material-icons text-[#6B7280]" style={{ fontSize: 16 }}>done</span>Mark as seen
+                      </button>
+                    </span>
+                  )}
+                </span>
+              ))}
             </div>
 
             {/* Row 2: Details row — address · phone · email · customer since · last service */}
