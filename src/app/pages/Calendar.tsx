@@ -471,6 +471,8 @@ const dispatchJobs: DispatchJob[] = [
 // ── Day View Data ──────────────────────────────────────────────────────────────
 interface DayJob {
   id: number;
+  /** Job number when the seed has a real one (else D01, D02…). */
+  num?: string;
   technicianId: string;
   start: number;
   end: number;
@@ -549,6 +551,8 @@ const DAY_JOBS: DayJob[] = [
   { id: 9,  technicianId: "maria",  start: 13,   end: 14.5, client: "Anderson Office",   service: "Duct Cleaning",      jobType: "Maintenance",  address: "777 Business Park Dr", status: "Scheduled",   amount: 600,  bg: "#FEE2E2", border: "#DC2626" },
   { id: 10, technicianId: "maria",  start: 15.5, end: 17.5, client: "Hall Home",         service: "Water Heater",       jobType: "Installation", address: "753 Summit St",        status: "Scheduled",   amount: 750,  bg: "#D1FAE5", border: "#16A34A" },
   // Live-status demo cases (the road timer, pauses with a reason)
+  // Tom is dispatched to 10512-J02 at 8:00 — "Demo: Tom taps En route" turns it En Route with the road timer.
+  { id: 905, num: "10512-J02", technicianId: "tom", start: 8, end: 10, client: "Moore Residence", service: "AC Tune-Up", jobType: "Maintenance", address: "753 Spruce St", status: "Dispatched", amount: 189, bg: "#DCFCE7", border: "#16A34A" },
   { id: 901, technicianId: "emily", start: 10.5, end: 12,   client: "Rivera Home",       service: "AC Repair",          jobType: "Service",      address: "41 Palm Ave",          status: "En Route",    amount: 260,  bg: "#FEF3C7", border: "#F59E0B" },
   { id: 902, technicianId: "karen", start: 9.5,  end: 11,   client: "Lopez Office",      service: "Maintenance",        jobType: "Maintenance",  address: "200 Harbor Blvd",      status: "En Route",    amount: 180,  bg: "#DCFCE7", border: "#16A34A" },
   { id: 903, technicianId: "david", start: 9,    end: 12,   client: "Kim Residence",     service: "Water Heater",       jobType: "Installation", address: "88 Grove St",          status: "Paused",      amount: 1450, bg: "#EBF0F8", border: "#4A6FA5" },
@@ -612,7 +616,7 @@ const _wk = (i: number) => addDays(_wkStart, i);
 const INITIAL_JOBS_RAW: UnifiedJob[] = [
   ...DAY_JOBS.map((j) => ({
     ...j,
-    num: `D${String(j.id).padStart(2, "0")}`,
+    num: j.num ?? `D${String(j.id).padStart(2, "0")}`,
     date: j.unscheduled ? null : _schedBase,
     unscheduled: !!j.unscheduled,
     title: j.service,
@@ -1257,7 +1261,9 @@ export function Calendar() {
   const runDemo = (key: string) => {
     const now = new Date().toISOString();
     setDemoOpen(false);
-    if (key === "tomRoad") fieldLiveStore.setTech("tom", { state: "enRoute", jobNumber: "10512-J02", since: now, lastContact: now });
+    // Tom taps En route on 10512-J02: the card turns En Route and the road timer starts.
+    // Nothing else opens on the board (no map, no drawer) — Helen stays where she is.
+    if (key === "tomRoad") { fieldLiveStore.setTech("tom", { state: "enRoute", jobNumber: "10512-J02", since: now, lastContact: now }); patchJob(905, { status: "En Route" }); }
     if (key === "emilyArrives") { fieldLiveStore.setTech("emily", { state: "working", since: now, lastContact: now }); patchJob(901, { status: "In Progress" }); }
     if (key === "karenArrives") { fieldLiveStore.setTech("karen", { state: "working", since: now, lastContact: now }); patchJob(902, { status: "In Progress" }); }
     if (key === "mariaBack") { fieldLiveStore.setTech("maria", { state: "working", pauseReason: undefined, since: now, lastContact: now }); fieldLiveStore.setPauseReason(8, null); patchJob(8, { status: "In Progress" }); }
