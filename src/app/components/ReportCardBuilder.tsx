@@ -24,7 +24,8 @@ import { jobTypesStore } from "../stores/jobTypesStore";
 
 type Rating = "Good" | "Needs attention" | "Needs immediate action";
 type InputType = "rating" | "dropdown" | "checkbox" | "number" | "text" | "date" | "notes" | "calculated" | "signature" | "static";
-interface Band { from: number; to: number; result: Rating }
+// a colour threshold: from ≤ value < to; null = open end ("below", "and above")
+interface Band { from: number | null; to: number | null; result: Rating }
 interface Inp {
   id: string; type: InputType; label?: string;
   list?: string; unit?: string; min?: number; max?: number; decimals?: number;
@@ -64,7 +65,14 @@ const num = (label: string, unit: string): Inp => ({ id: uid("i"), type: "number
 const f = (label: string, inputs: Inp[], extra: Partial<Block> = {}): Block =>
   ({ id: uid("b"), kind: "field", label, numbered: true, inputs, required: false, flaggable: inputs.some(i => i.type === "rating" || i.type === "calculated"), ...extra });
 const h = (label: string, slot?: string): Block => ({ id: uid("b"), kind: "heading", label, numbered: false, inputs: [], slot, required: false, flaggable: false });
+const G: Rating = "Good", A: Rating = "Needs attention", X: Rating = "Needs immediate action";
+// rated vs actual within ±10% is fine, ±20% needs a look, beyond that is urgent
+const RATIO_BANDS = (): Band[] => [
+  { from: null, to: 80, result: X }, { from: 80, to: 90, result: A }, { from: 90, to: 110, result: G },
+  { from: 110, to: 120, result: A }, { from: 120, to: null, result: X },
+];
 function calc(label: string, unit: string, formula: Inp["formula"], bands?: Band[], extra: Partial<Block> = {}): Block {
+  if (!bands && formula === "ratio") bands = RATIO_BANDS();
   const a = num(formula === "ratio" ? "Rated" : "Return", unit), b = num(formula === "ratio" ? "Actual" : "Supply", unit);
   return f(label, [a, b, { id: uid("i"), type: "calculated", formula, of: formula === "ratio" ? [b.id, a.id] : [a.id, b.id], unit: formula === "ratio" ? "%" : unit, decimals: 0, bands }], extra);
 }
@@ -115,7 +123,7 @@ function acCard(): Template {
         f("Filter Condition", [r()], { required: true }),
         f("Ductwork Condition", [r()], { slot: "P3" }),
         f("Ductwork Cleanliness", [r()]),
-        f("Attic Insulation", [num("R-value", "R"), r()], { slot: "P4", help: "R-38 recommended" }),
+        f("Attic Insulation", [{ ...num("R-value", "R"), bands: [{ from: null, to: 19, result: X }, { from: 19, to: 38, result: A }, { from: 38, to: null, result: G }] }, r()], { slot: "P4", help: "R-38 recommended" }),
         f("UV Location", [dd("Locations"), r()]),
         f("UV Bulb", [r()]),
       ] },
@@ -123,9 +131,9 @@ function acCard(): Template {
         sysType,
         f("Brand", [dd("Brands"), dd("Brands", "Manufacture year")], { slot: "P5" }),
         f("Location", [dd("Locations")]),
-        calc("Static pressure", "in. WC", "sum"),
+        calc("Static pressure", "in. WC", "sum", [{ from: null, to: 0.5, result: G }, { from: 0.5, to: 0.8, result: A }, { from: 0.8, to: null, result: X }]),
         calc("Air Temp dT", "°F", "difference", [
-          { from: 16, to: 21, result: "Good" }, { from: 0, to: 16, result: "Needs attention" }, { from: 21, to: 40, result: "Needs attention" },
+          { from: null, to: 12, result: X }, { from: 12, to: 16, result: A }, { from: 16, to: 21, result: G }, { from: 21, to: 24, result: A }, { from: 24, to: null, result: X },
         ], { required: true }),
         f("Blower Motor", [r()]),
         f("Blower Wheel", [r()]),
@@ -391,6 +399,7 @@ function Editor({ t, update, onBack, onPublish }: { t: Template; update: (fn: (t
                             <span className="material-icons" style={{ fontSize: 13 }}>{TYPE_ICON[inp.type]}</span>
                             {TYPE_LABEL[inp.type]}{inp.label ? ` · ${inp.label}` : ""}{inp.list ? ` · ${inp.list}` : ""}{inp.unit && inp.type !== "calculated" ? ` · ${inp.unit}` : ""}
                             {inp.type === "calculated" && inp.formula ? ` · ${FORMULA_LABEL[inp.formula]}` : ""}
+                            {inp.bands?.length ? <BandStrip bands={inp.bands} /> : null}
                           </span>
                         ))}
                       </div>
@@ -573,6 +582,9 @@ function Inspector({ t, b, nums, edit }: { t: Template; b: Block; nums: Record<s
                     </select>
                   </div>
                 )}
+                {inp.type === "number" && !b.inputs.some(n => n.type === "calculated") && (
+                  <Thresholds inp={inp} onChange={bands => edit(x => { x.inputs[k].bands = bands; x.flaggable = x.inputs.some(n => n.type === "rating" || n.type === "calculated" || !!n.bands?.length); })} />
+                )}
                 {inp.type === "checkbox" && (
                   <Input value={inp.checkLabel || ""} placeholder="Check if YES" onChange={e => { const v = e.target.value; edit(x => { x.inputs[k].checkLabel = v; }); }} className="mt-1.5 h-8 text-[12.5px]" />
                 )}
@@ -594,23 +606,7 @@ function Inspector({ t, b, nums, edit }: { t: Template; b: Block; nums: Record<s
                           </select>
                         ))}
                       </div>
-                      <div className="text-[12px] text-[#546478]" style={{ fontWeight: 500 }}>Rating by result</div>
-                      {(inp.bands || []).map((bd, bi) => (
-                        <div key={bi} className="rounded border border-[#EEF0F4] p-1.5 text-[12px] text-[#546478]">
-                          <div className="flex items-center gap-1">
-                            <span>From</span>
-                            <Input value={String(bd.from)} onChange={e => { const v = +e.target.value || 0; edit(x => { x.inputs[k].bands![bi].from = v; }); }} className="h-7 w-14 px-1.5 text-[12px]" />
-                            <span>to under</span>
-                            <Input value={String(bd.to)} onChange={e => { const v = +e.target.value || 0; edit(x => { x.inputs[k].bands![bi].to = v; }); }} className="h-7 w-14 px-1.5 text-[12px]" />
-                            <span className="flex-1">{inp.unit}</span>
-                            <IconBtn icon="close" title="Remove" onClick={() => edit(x => { x.inputs[k].bands!.splice(bi, 1); })} />
-                          </div>
-                          <select value={bd.result} onChange={e => { const v = e.target.value as Rating; edit(x => { x.inputs[k].bands![bi].result = v; }); }} className="mt-1 h-7 w-full rounded border border-[#D8DEE8] px-1 text-[12px]" style={{ color: RATING_COLOR[bd.result] }}>
-                            {(["Good", "Needs attention", "Needs immediate action"] as Rating[]).map(o => <option key={o}>{o}</option>)}
-                          </select>
-                        </div>
-                      ))}
-                      <button className="text-[12px] text-[#4A6FA5]" style={{ fontWeight: 600 }} onClick={() => edit(x => { const i = x.inputs[k]; i.bands = [...(i.bands || []), { from: 0, to: 10, result: "Good" }]; })}>+ Add range</button>
+                      <Thresholds inp={inp} onChange={bands => edit(x => { x.inputs[k].bands = bands; })} ratio={inp.formula === "ratio"} />
                     </>}
                   </div>
                 )}
@@ -791,15 +787,113 @@ function PreviewInput({ inp, t, b }: { inp: Inp; t: Template; b: Block }) {
       ))}</div>);
     case "dropdown": return <div className={box}>{inp.label ? `${inp.label}: ` : ""}{(t.lists[inp.list || ""] || [])[0] || "Select"}<span className="material-icons" style={{ fontSize: 15 }}>expand_more</span></div>;
     case "checkbox": return <div className="flex items-center gap-1.5 text-[11px] text-[#546478]"><span className="material-icons text-[#A9B4C2]" style={{ fontSize: 16 }}>check_box_outline_blank</span>{inp.checkLabel || "Check if YES"}</div>;
-    case "number": return <div className={box}><span>{inp.label || "Value"}</span><span>— {inp.unit}</span></div>;
+    case "number": return <div><div className={box}><span>{inp.label || "Value"}</span><span>— {inp.unit}</span></div>{inp.bands?.length ? <PreviewBands inp={inp} /> : null}</div>;
     case "text": return <div className={box}>Text</div>;
     case "date": return <div className={box}>Date<span className="material-icons" style={{ fontSize: 14 }}>event</span></div>;
     case "notes": return <div className="text-[11px] text-[#4A6FA5]" style={{ fontWeight: 600 }}>+ Add technician&rsquo;s note</div>;
     case "calculated": {
       const a = b.inputs.find(i => i.id === inp.of?.[0]), c = b.inputs.find(i => i.id === inp.of?.[1]);
-      return <div className="rounded-md bg-[#EBF0F8] px-2 py-1 text-[10.5px] text-[#1A2332]">= {inp.formula === "ratio" ? `${a?.label || "A"} ÷ ${c?.label || "B"} × 100` : inp.formula === "sum" ? `${a?.label || "A"} + ${c?.label || "B"}` : `${a?.label || "A"} − ${c?.label || "B"}`} · {inp.unit}{inp.bands?.length ? " · rated" : ""}</div>;
+      return <div className="rounded-md bg-[#EBF0F8] px-2 py-1 text-[10.5px] text-[#1A2332]">= {inp.formula === "ratio" ? `${a?.label || "A"} ÷ ${c?.label || "B"} × 100` : inp.formula === "sum" ? `${a?.label || "A"} + ${c?.label || "B"}` : `${a?.label || "A"} − ${c?.label || "B"}`} · {inp.unit}{inp.bands?.length ? <PreviewBands inp={inp} /> : null}</div>;
     }
     case "signature": return <div className="flex h-12 items-end rounded-md border border-dashed border-[#C8D5E8] bg-white px-2 pb-1 text-[10px] text-[#8A97A8]">{inp.signer} signs here</div>;
     case "static": return <div className="text-[10.5px] leading-[14px] text-[#546478]">{t.texts.waiver.replace("{Company name}", "Omega Home Services").slice(0, 140)}…</div>;
   }
+}
+
+const RATINGS: Rating[] = ["Good", "Needs attention", "Needs immediate action"];
+const RATING_SHORT: Record<Rating, string> = { Good: "Green · Good", "Needs attention": "Amber · Needs attention", "Needs immediate action": "Red · Needs immediate action" };
+const lo = (b: Band) => (b.from == null ? -Infinity : b.from);
+const hi = (b: Band) => (b.to == null ? Infinity : b.to);
+const fmtN = (n: number | null) => (n == null ? "" : String(n));
+function rangeText(b: Band, unit?: string) {
+  const u = unit ? ` ${unit}` : "";
+  if (b.from == null && b.to == null) return "any value";
+  if (b.from == null) return `below ${b.to}${u}`;
+  if (b.to == null) return `${b.from}${u} and above`;
+  return `${b.from}–${b.to}${u}`;
+}
+// what is wrong with a set of thresholds: overlaps, gaps, empty ranges
+function bandProblems(bands: Band[]) {
+  const out: string[] = [];
+  const s = [...bands].sort((x, y) => lo(x) - lo(y));
+  s.forEach(b => { if (lo(b) >= hi(b)) out.push(`${rangeText(b)}: "from" must be below "to"`); });
+  for (let i = 1; i < s.length; i++) {
+    if (lo(s[i]) < hi(s[i - 1])) out.push(`${rangeText(s[i - 1])} and ${rangeText(s[i])} overlap`);
+    else if (lo(s[i]) > hi(s[i - 1])) out.push(`No colour for ${hi(s[i - 1])} to ${lo(s[i])}`);
+  }
+  if (s.length && lo(s[0]) !== -Infinity) out.push(`No colour below ${lo(s[0])}`);
+  if (s.length && hi(s[s.length - 1]) !== Infinity) out.push(`No colour from ${hi(s[s.length - 1])} up`);
+  return out;
+}
+function BandStrip({ bands }: { bands: Band[] }) {
+  const s = [...bands].sort((x, y) => lo(x) - lo(y));
+  return (
+    <span className="ml-1 inline-flex h-2 w-12 overflow-hidden rounded-full" title={s.map(b => `${rangeText(b)}: ${b.result}`).join(" · ")}>
+      {s.map((b, i) => <span key={i} className="h-full flex-1" style={{ background: RATING_COLOR[b.result] }} />)}
+    </span>
+  );
+}
+function Thresholds({ inp, onChange, ratio }: { inp: Inp; onChange: (b: Band[] | undefined) => void; ratio?: boolean }) {
+  const bands = inp.bands || [];
+  const sorted = bands.map((b, i) => ({ b, i })).sort((x, y) => lo(x.b) - lo(y.b));
+  const problems = bandProblems(bands);
+  const set = (i: number, patch: Partial<Band>) => onChange(bands.map((b, j) => (j === i ? { ...b, ...patch } : b)));
+  const parse = (v: string) => (v.trim() === "" ? null : Number.isFinite(+v) ? +v : null);
+  return (
+    <div className="mt-2 rounded-md bg-[#F8FAFD] p-2">
+      <div className="flex items-center justify-between">
+        <span className="text-[12px] text-[#374151]" style={{ fontWeight: 600 }}>Colour thresholds</span>
+        {bands.length > 0 && <BandStrip bands={bands} />}
+      </div>
+      <div className="mt-0.5 text-[11px] leading-4 text-[#8A97A8]">
+        The value turns green, amber or red in the app and on the PDF; amber and red count in the section&rsquo;s badge.
+      </div>
+      {!bands.length && (
+        <div className="mt-1.5 flex flex-wrap gap-2">
+          <button className="text-[12px] text-[#4A6FA5]" style={{ fontWeight: 600 }} onClick={() => onChange([{ from: null, to: null, result: "Good" }])}>+ Add thresholds</button>
+          {ratio && <button className="text-[12px] text-[#4A6FA5]" style={{ fontWeight: 600 }} onClick={() => onChange(RATIO_BANDS())}>Use ±10% / ±20%</button>}
+        </div>
+      )}
+      <div className="mt-1.5 space-y-1">
+        {sorted.map(({ b, i }) => (
+          <div key={i} className="rounded border bg-white p-1.5 text-[12px] text-[#546478]" style={{ borderColor: RATING_COLOR[b.result] + "66" }}>
+            <div className="flex items-center gap-1">
+              <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: RATING_COLOR[b.result] }} />
+              <Input value={fmtN(b.from)} placeholder="min" onChange={e => set(i, { from: parse(e.target.value) })} className="h-7 w-14 px-1.5 text-[12px]" />
+              <span>to under</span>
+              <Input value={fmtN(b.to)} placeholder="max" onChange={e => set(i, { to: parse(e.target.value) })} className="h-7 w-14 px-1.5 text-[12px]" />
+              <span className="flex-1 truncate">{inp.unit}</span>
+              <IconBtn icon="close" title="Remove" onClick={() => onChange(bands.length > 1 ? bands.filter((_, j) => j !== i) : undefined)} />
+            </div>
+            <select value={b.result} onChange={e => set(i, { result: e.target.value as Rating })} className="mt-1 h-7 w-full rounded border border-[#D8DEE8] px-1 text-[12px]" style={{ color: RATING_COLOR[b.result], fontWeight: 600 }}>
+              {RATINGS.map(o => <option key={o} value={o}>{RATING_SHORT[o]}</option>)}
+            </select>
+          </div>
+        ))}
+      </div>
+      {bands.length > 0 && (
+        <>
+          <button className="mt-1.5 text-[12px] text-[#4A6FA5]" style={{ fontWeight: 600 }}
+            onClick={() => { const top = bands.reduce((m, b) => Math.max(m, b.to ?? b.from ?? 0), 0); onChange([...bands, { from: top, to: null, result: "Needs attention" }]); }}>+ Add range</button>
+          <div className="mt-1 text-[11px] leading-4 text-[#8A97A8]">Leave &ldquo;min&rdquo; empty for &ldquo;below&rdquo;, &ldquo;max&rdquo; empty for &ldquo;and above&rdquo;.</div>
+          {problems.length > 0 && (
+            <div className="mt-1.5 rounded bg-[#FEF3E2] px-2 py-1.5 text-[11.5px] leading-4 text-[#8A6114]">
+              {problems.map(p => <div key={p}>· {p}</div>)}
+              <div className="mt-0.5">A value with no colour shows plain. Publish still works.</div>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+function PreviewBands({ inp }: { inp: Inp }) {
+  const s = [...(inp.bands || [])].sort((x, y) => lo(x) - lo(y));
+  return (
+    <div className="mt-1 flex gap-0.5">
+      {s.map((b, i) => (
+        <span key={i} className="flex-1 rounded px-1 py-0.5 text-center text-[8.5px] leading-3 text-white" style={{ background: RATING_COLOR[b.result] }}>{rangeText(b, inp.type === "calculated" ? inp.unit : inp.unit)}</span>
+      ))}
+    </div>
+  );
 }
