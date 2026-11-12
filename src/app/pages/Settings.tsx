@@ -45,6 +45,7 @@ import { teamRolesStore } from "../stores/teamRolesStore";
 import { fieldSettingsStore, FIELD_LIMITS } from "../stores/fieldStore";
 import { TeamRolesPanel } from "../components/TeamRolesPanel";
 import { TeamDevicesPage } from "../components/MemberDevicesPanel";
+import { ReportCardBuilder } from "../components/ReportCardBuilder";
 import { readOnlinePayments, writeOnlinePayments, type StripeStatus } from "../utils/onlinePayments";
 
 type SettingsSection =
@@ -67,6 +68,7 @@ type SettingsSection =
   | "taxes"
   | "localization"
   | "relationships"
+  | "reportCards"
   | "counties";
 
 const sectionAliases: Partial<Record<SettingsSection, SettingsSection>> = {
@@ -105,6 +107,7 @@ const navGroups: Array<{
       { id: "estimates", label: "Estimates", description: "Templates, deposits, terms" },
       { id: "invoices", label: "Invoices", description: "Templates, signatures, receipt notes" },
       { id: "items", label: "Items", description: "Catalog and item settings" },
+      { id: "reportCards", label: "Report Cards", description: "Forms technicians fill on a job: fields, who fills it" },
       { id: "relationships", label: "Relationships", description: "Relationship types for additional client contacts" },
     ],
   },
@@ -3280,7 +3283,7 @@ export function Settings() {
       </aside>
 
       <main className="flex-1 overflow-y-auto">
-        <div className="w-full max-w-[900px] px-4 py-6">
+        <div className={`w-full px-4 py-6 ${activeSection === "reportCards" ? "max-w-none" : "max-w-[900px]"}`}>
           {activeSection === "companyInfo" && (
             <>
               <SectionHeader title="Company info" />
@@ -4771,6 +4774,8 @@ export function Settings() {
               </div>
             </>
           )}
+
+          {activeSection === "reportCards" && <ReportCardBuilder />}
 
           {activeSection === "finance" && <FinanceCenterSection />}
 
