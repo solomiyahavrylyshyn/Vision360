@@ -33,14 +33,20 @@ function ModalShell({ title, onClose, children, footer, width = "w-[520px]" }: {
 }
 
 // ── Preview: clean, print-ready report template (also what goes to print/email) ──
-export function ReportPreviewModal<T>({ def, rows, cardRows, columns, dateLabel, onClose, onShare, autoPrint = false }: {
+export function ReportPreviewModal<T>({ def, rows, cardRows, columns, dateLabel, onClose, onShare, onPrint, autoPrint = false, banner, filtersLine }: {
   def: ReportDef<T>; rows: T[]; cardRows?: T[]; columns?: ReportDef<T>["columns"]; dateLabel: string; onClose: () => void; onShare?: () => void; autoPrint?: boolean;
+  /** Called when Print is pressed in the modal (the report records a PDF run). */
+  onPrint?: () => void;
+  /** Shown above the document, not printed — e.g. "Opened from History". */
+  banner?: React.ReactNode;
+  /** The filters the document was made with, under the period. */
+  filtersLine?: string;
 }) {
   // Cards mirror the on-screen summary (whole period), the table mirrors the
   // curated view (visible columns + any card selection).
   const cards = def.statCards.map((c) => ({ label: c.label, value: c.value(cardRows ?? rows) }));
   const cols = columns ?? def.columns;
-  const print = () => window.print();
+  const print = () => { onPrint?.(); window.print(); };
   // "Print report" opens this same template and fires the browser print dialog.
   useEffect(() => { if (autoPrint) { const t = setTimeout(() => window.print(), 250); return () => clearTimeout(t); } }, [autoPrint]);
   return (
@@ -62,12 +68,14 @@ export function ReportPreviewModal<T>({ def, rows, cardRows, columns, dateLabel,
     >
       {/* print scope: hide everything except the report area when printing */}
       <style>{`@media print{body *{visibility:hidden!important}#report-print-area,#report-print-area *{visibility:visible!important}#report-print-area{position:absolute!important;left:0;top:0;width:100%;padding:24px;margin:0}}`}</style>
+      {banner}
       <div id="report-print-area" className="text-[#1A2332]">
         <div className="flex items-start justify-between border-b border-[#E5E7EB] pb-4">
           <div>
             <div className="text-[13px] text-[#4A6FA5]" style={{ fontWeight: 700 }}>VISION360</div>
             <h1 className="mt-1 text-[22px]" style={{ fontWeight: 700 }}>{def.name}</h1>
             <div className="mt-0.5 text-[13px] text-[#6B7280]">{dateLabel}</div>
+            {filtersLine && <div className="mt-0.5 text-[12px] text-[#8899AA]">{filtersLine}</div>}
           </div>
           <div className="text-right text-[12px] text-[#8899AA]">
             <div>Generated {new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</div>
@@ -109,7 +117,7 @@ export function ReportPreviewModal<T>({ def, rows, cardRows, columns, dateLabel,
 }
 
 // ── Share: pick a person (from the directory / clients) → send ──
-export function ShareReportModal({ reportName, onClose }: { reportName: string; onClose: () => void }) {
+export function ShareReportModal({ reportName, onClose, onSent }: { reportName: string; onClose: () => void; onSent?: (name: string) => void }) {
   const clients = clientsStore.getSnapshot();
   const people = useMemo(() => {
     const fromClients = clients
@@ -121,7 +129,7 @@ export function ShareReportModal({ reportName, onClose }: { reportName: string; 
   const [q, setQ] = useState("");
   const [picked, setPicked] = useState<string>("");
   const filtered = people.filter((p) => `${p.name} ${p.email}`.toLowerCase().includes(q.trim().toLowerCase())).slice(0, 8);
-  const send = () => { toast.success(`"${reportName}" sent to ${picked}.`); onClose(); };
+  const send = () => { onSent?.(people.find((p) => p.email === picked)?.name ?? picked); toast.success(`"${reportName}" sent to ${picked}.`); onClose(); };
   return (
     <ModalShell
       title="Share report"
@@ -155,10 +163,16 @@ export function ShareReportModal({ reportName, onClose }: { reportName: string; 
 }
 
 // ── Schedule: frequency, send time, recipients + next-run indicator ──
-export function ScheduleReportModal({ reportName, onClose }: { reportName: string; onClose: () => void }) {
-  const [freq, setFreq] = useState("weekly");
-  const [time, setTime] = useState("21:00");
-  const [recipients, setRecipients] = useState<string[]>([STAFF[0].email]);
+export function ScheduleReportModal({ reportName, onClose, initial, onSaved }: {
+  reportName: string; onClose: () => void;
+  /** Editing a schedule from the Activity tab. Recipients are names. */
+  initial?: { frequency: string; time: string; recipients: string[] };
+  onSaved?: (s: { frequency: "daily" | "weekly" | "monthly"; time: string; recipients: string[] }) => void;
+}) {
+  const [freq, setFreq] = useState(initial?.frequency ?? "weekly");
+  const [time, setTime] = useState(initial?.time ?? "21:00");
+  const [recipients, setRecipients] = useState<string[]>(() =>
+    initial ? STAFF.filter((p) => initial.recipients.includes(p.name)).map((p) => p.email) : [STAFF[0].email]);
   const toggle = (email: string) => setRecipients((r) => (r.includes(email) ? r.filter((e) => e !== email) : [...r, email]));
 
   const timeLabel = (() => {
@@ -175,11 +189,15 @@ export function ScheduleReportModal({ reportName, onClose }: { reportName: strin
     return `${d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })} at ${timeLabel}`;
   })();
 
-  const save = () => { toast.success(`"${reportName}" scheduled ${freq}. First report will be created ${nextRun}.`); onClose(); };
+  const save = () => {
+    onSaved?.({ frequency: freq as "daily" | "weekly" | "monthly", time, recipients: STAFF.filter((p) => recipients.includes(p.email)).map((p) => p.name) });
+    toast.success(initial ? "Schedule saved" : `"${reportName}" scheduled ${freq}. First report will be created ${nextRun}.`);
+    onClose();
+  };
   const field = "h-10 w-full rounded-lg border border-[#E5E7EB] bg-white px-3 text-[13px] outline-none focus:border-[#4A6FA5]";
   return (
     <ModalShell
-      title="Schedule report"
+      title={initial ? "Edit schedule" : "Schedule report"}
       onClose={onClose}
       footer={<>
         <button onClick={onClose} className="h-9 rounded-lg border border-[#E5E7EB] bg-white px-4 text-[13px] text-[#546478] hover:bg-[#F5F7FA]" style={{ fontWeight: 600 }}>Cancel</button>

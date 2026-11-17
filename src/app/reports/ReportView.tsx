@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useParams, useNavigate } from "react-router";
 import { toast } from "sonner";
 import { PaginationFooter } from "../components/ui/pagination-footer";
@@ -7,6 +7,11 @@ import { rangeForPreset, inRange, formatRangeLabel, type DatePreset } from "../u
 import { getReportById } from "./registry";
 import type { ReportDef } from "./types";
 import { ReportPreviewModal, ShareReportModal, ScheduleReportModal } from "./report-actions";
+import { DetailTabs } from "../components/ui/detail-tabs";
+import { ReportHistoryCard, ReportActivityTab } from "./ReportActivity";
+import { reportHistoryStore, describeQuery, periodLabel, runTime, type ReportRun, type RunKind, type RunQuery, type ReportScheduleRec } from "../stores/reportHistoryStore";
+
+const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
 type AnyDef = ReportDef<Record<string, unknown>>;
 
@@ -51,6 +56,11 @@ function ReportPage({ def, back, embedded }: { def: AnyDef; back: () => void; em
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(25);
   const [modal, setModal] = useState<null | "preview" | "print" | "share" | "schedule">(null);
+  // 9349 — Report / Activity tabs; a past run opened from History; a schedule being edited.
+  const [tab, setTab] = useState<"report" | "activity">("report");
+  const [openRun, setOpenRun] = useState<ReportRun | null>(null);
+  const [editSchedule, setEditSchedule] = useState<ReportScheduleRec | null>(null);
+  useSyncExternalStore(reportHistoryStore.subscribe, reportHistoryStore.getSnapshot);
 
   // Dismiss the Advanced / Columns popovers on outside-click or Escape.
   useEffect(() => {
@@ -71,17 +81,17 @@ function ReportPage({ def, back, embedded }: { def: AnyDef; back: () => void; em
 
   // Rows filtered by date + search + quick filters + amount range — the base
   // set the stat cards are computed over (per the selected period).
-  const baseRows = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    const min = amt.min === "" ? -Infinity : Number(amt.min);
-    const max = amt.max === "" ? Infinity : Number(amt.max);
+  const filterRows = (f: { range: typeof range; search: string; qf: Record<string, string>; amt: { min: string; max: string } }) => {
+    const q = f.search.trim().toLowerCase();
+    const min = f.amt.min === "" ? -Infinity : Number(f.amt.min);
+    const max = f.amt.max === "" ? Infinity : Number(f.amt.max);
     return rows.filter((r) => {
       if (def.baseFilter && !def.baseFilter(r)) return false;
-      if (!inRange(def.dateField(r), range)) return false;
+      if (!inRange(def.dateField(r), f.range)) return false;
       if (q && !def.searchText(r).toLowerCase().includes(q)) return false;
-      for (const f of def.quickFilters) {
-        const v = qf[f.key];
-        if (v && v !== f.default && !f.match(r, v)) return false;
+      for (const fl of def.quickFilters) {
+        const v = f.qf[fl.key];
+        if (v && v !== fl.default && !fl.match(r, v)) return false;
       }
       if (def.amountField) {
         const a = def.amountField(r);
@@ -89,7 +99,21 @@ function ReportPage({ def, back, embedded }: { def: AnyDef; back: () => void; em
       }
       return true;
     });
-  }, [rows, range, search, qf, amt, def]);
+  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const baseRows = useMemo(() => filterRows({ range, search, qf, amt }), [rows, range, search, qf, amt, def]);
+
+  // What the page shows now, as a run keeps it: the period written in as dates.
+  const currentQuery = (): RunQuery => ({ from: ymd(range.from), to: ymd(range.to), preset, search, qf, amt });
+  const record = (kind: RunKind, extra: Partial<ReportRun> = {}) =>
+    reportHistoryStore.record({ reportId: def.id, kind, by: "You", query: currentQuery(), ...extra });
+  // A past run: same period and filters, today's data. Opening it records nothing.
+  const runRows = useMemo(() => {
+    if (!openRun) return [];
+    const rq = openRun.query;
+    return filterRows({ range: { from: new Date(rq.from + "T00:00:00"), to: new Date(rq.to + "T23:59:59") }, search: rq.search, qf: rq.qf, amt: rq.amt });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openRun, rows, def]);
 
   const activeCardDef = def.statCards.find((c) => c.key === activeCard && c.filter);
   const tableRows = useMemo(
@@ -133,15 +157,29 @@ function ReportPage({ def, back, embedded }: { def: AnyDef; back: () => void; em
           {/* Generate report = the headline action (Marek call #21): produce the
               professional report document from the current filtered view, which
               can then be printed, shared or scheduled. */}
-          <button className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#4A6FA5] px-3 text-[13px] text-white hover:bg-[#3d5a85]" style={{ fontWeight: 600 }} onClick={() => setModal("preview")}>
+          <button className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#4A6FA5] px-3 text-[13px] text-white hover:bg-[#3d5a85]" style={{ fontWeight: 600 }} onClick={() => { setModal("preview"); record("Generated"); }}>
             <span className="material-icons" style={{ fontSize: "16px" }}>summarize</span>Generate report
           </button>
-          <button className={actionBtn} onClick={() => setModal("print")}><span className="material-icons" style={{ fontSize: "16px" }}>print</span>Print</button>
+          <button className={actionBtn} onClick={() => { setModal("print"); record("ExportPdf"); }}><span className="material-icons" style={{ fontSize: "16px" }}>print</span>Print</button>
           <button className={actionBtn} onClick={() => setModal("share")}><span className="material-icons" style={{ fontSize: "16px" }}>share</span>Share</button>
           <button className={actionBtn} onClick={() => setModal("schedule")}><span className="material-icons" style={{ fontSize: "16px" }}>schedule</span>Schedule</button>
         </div>
       </div>
 
+      <DetailTabs
+        tabs={[
+          { key: "report" as const, label: "Report" },
+          { key: "activity" as const, label: "Activity", count: reportHistoryStore.sends(def.id).length + reportHistoryStore.schedules(def.id).length },
+        ]}
+        activeTab={tab}
+        onChange={setTab}
+        className="mb-4"
+      />
+
+      {tab === "activity" ? (
+        <ReportActivityTab def={def} onEditSchedule={setEditSchedule} onNewSchedule={() => setModal("schedule")} />
+      ) : (
+      <div className="flex flex-col gap-4">
       <div className="flex flex-col rounded-xl border border-[#E5E7EB] bg-white overflow-visible">
         {/* Toolbar: date + search + quick filters + advanced ; right: select cols + export */}
         <div className="flex flex-wrap items-center gap-2 border-b border-[#E5E7EB] px-4 py-3">
@@ -188,7 +226,7 @@ function ReportPage({ def, back, embedded }: { def: AnyDef; back: () => void; em
                 </div>
               )}
             </div>
-            <button className={actionBtn} onClick={() => toast.success(`Exported ${total} row${total === 1 ? "" : "s"} to Excel.`)}>
+            <button className={actionBtn} onClick={() => { record("ExportXlsx"); toast.success(`Exported ${total} row${total === 1 ? "" : "s"} to Excel.`); }}>
               <span className="material-icons" style={{ fontSize: "16px" }}>file_download</span>Export to Excel
             </button>
           </div>
@@ -266,11 +304,32 @@ function ReportPage({ def, back, embedded }: { def: AnyDef; back: () => void; em
         <PaginationFooter page={safePage} perPage={perPage} total={total} onPageChange={setPage} onPerPageChange={setPerPage} />
       </div>
 
-      {(modal === "preview" || modal === "print") && (
-        <ReportPreviewModal def={def} rows={tableRows} cardRows={baseRows} columns={cols} dateLabel={rangeLabel} autoPrint={modal === "print"} onShare={() => setModal("share")} onClose={() => setModal(null)} />
+      <ReportHistoryCard def={def} onOpen={setOpenRun} />
+      </div>
       )}
-      {modal === "share" && <ShareReportModal reportName={def.name} onClose={() => setModal(null)} />}
-      {modal === "schedule" && <ScheduleReportModal reportName={def.name} onClose={() => setModal(null)} />}
+
+      {(modal === "preview" || modal === "print") && (
+        <ReportPreviewModal def={def} rows={tableRows} cardRows={baseRows} columns={cols} dateLabel={rangeLabel} autoPrint={modal === "print"}
+          filtersLine={describeQuery(def, currentQuery()).join(" · ") || undefined}
+          onPrint={() => record("ExportPdf")} onShare={() => setModal("share")} onClose={() => setModal(null)} />
+      )}
+      {openRun && (
+        <ReportPreviewModal def={def} rows={runRows} columns={cols} dateLabel={periodLabel(openRun.query)}
+          filtersLine={describeQuery(def, openRun.query).join(" · ") || "No filters"}
+          banner={
+            <div className="mb-4 flex items-start gap-2 rounded-lg border border-[#D8E4F2] bg-[#EBF2FC] px-3 py-2.5 text-[13px] text-[#1A2332]">
+              <span className="material-icons text-[#4A6FA5]" style={{ fontSize: 18 }}>history</span>
+              <span>Opened from History — {openRun.kind === "Generated" ? "generated" : "downloaded"} by {openRun.by ?? "a schedule"} on {runTime(openRun.at)}. Same period and filters, today&rsquo;s figures.</span>
+            </div>
+          }
+          onPrint={() => reportHistoryStore.record({ reportId: def.id, kind: "ExportPdf", by: "You", query: openRun.query })}
+          onClose={() => setOpenRun(null)} />
+      )}
+      {modal === "share" && <ShareReportModal reportName={def.name} onClose={() => setModal(null)} onSent={(name) => record("Shared", { recipients: [name] })} />}
+      {modal === "schedule" && <ScheduleReportModal reportName={def.name} onClose={() => setModal(null)}
+        onSaved={(s) => reportHistoryStore.saveSchedule({ reportId: def.id, createdBy: "You", ...s })} />}
+      {editSchedule && <ScheduleReportModal reportName={def.name} initial={editSchedule} onClose={() => setEditSchedule(null)}
+        onSaved={(s) => reportHistoryStore.saveSchedule({ ...editSchedule, ...s })} />}
     </div>
   );
 }

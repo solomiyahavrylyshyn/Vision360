@@ -5,6 +5,8 @@ import { formatRegionalDate } from "../stores/regionalSettingsStore";
 import { ColumnSettingsIcon } from "../components/ui/column-settings-icon";
 import { ReportsLanding } from "./Reports";
 import { ReportView } from "../reports/ReportView";
+import { reportHistoryStore } from "../stores/reportHistoryStore";
+import { REPORT_TODAY, rangeForPreset, formatRangeLabel } from "../utils/reportDates";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, AreaChart, Area,
@@ -459,12 +461,40 @@ function FinancialPerformanceTab() {
 // report opened inline. A report = the module's list pre-filtered for that
 // report (Marek call #21). Reports live here as a Home tab, not a separate
 // section.
-function ReportsTab() {
+// FR-15.6 (9349): how many reports were generated in Home's period — Generate
+// runs of every report, not downloads or sends. Same date anchor as the reports.
+function homeRange(label: string) {
+  if (label === "Last Month") return rangeForPreset("last_month");
+  if (label === "This Year") return rangeForPreset("this_year");
+  if (label === "This Quarter") {
+    const t = REPORT_TODAY, q = Math.floor(t.getMonth() / 3) * 3;
+    return { from: new Date(t.getFullYear(), q, 1), to: new Date(t.getFullYear(), q + 3, 0, 23, 59, 59, 999) };
+  }
+  return rangeForPreset("this_month");
+}
+
+function ReportsTab({ dateRange }: { dateRange: string }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  useSyncExternalStore(reportHistoryStore.subscribe, reportHistoryStore.getSnapshot);
+  const range = homeRange(dateRange);
+  const count = reportHistoryStore.generatedCount(range.from, range.to);
   return selectedId ? (
     <ReportView reportId={selectedId} embedded onBack={() => setSelectedId(null)} />
   ) : (
-    <ReportsLanding onOpen={setSelectedId} />
+    <div className="space-y-6">
+      <div className="flex w-fit items-center gap-3 rounded-xl border border-[#E5E7EB] bg-white px-4 py-3">
+        <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#EBF0F8]">
+          <span className="material-icons text-[#4A6FA5]" style={{ fontSize: 20 }}>summarize</span>
+        </span>
+        <div>
+          <div className="text-[20px] leading-6 text-[#1A2332]" style={{ fontWeight: 700 }}>{count}</div>
+          <div className="text-[12px] text-[#6B7280]" style={{ fontWeight: 500 }}>
+            {count === 1 ? "Report" : "Reports"} generated · {dateRange === "Custom Range" ? formatRangeLabel(range) : dateRange.toLowerCase()}
+          </div>
+        </div>
+      </div>
+      <ReportsLanding onOpen={setSelectedId} />
+    </div>
   );
 }
 
@@ -652,7 +682,7 @@ export function Home() {
       {safeTab === "All Business"          && <AllBusinessTab />}
       {safeTab === "Sales Performance"     && <SalesPerformanceTab />}
       {safeTab === "Financial Performance" && <FinancialPerformanceTab />}
-      {safeTab === "Reports"               && <ReportsTab />}
+      {safeTab === "Reports"               && <ReportsTab dateRange={dateRange} />}
     </div>
   );
 }
