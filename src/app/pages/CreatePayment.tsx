@@ -1,3 +1,4 @@
+import { FileUploadDropzone } from "../components/FileUploadDropzone";
 import { useState, useMemo, useEffect, useRef, useSyncExternalStore } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { Button } from "../components/ui/button";
@@ -96,6 +97,9 @@ export function CreatePayment() {
   const paramClientName = searchParams.get("client") || "";
   const paramInvoice = searchParams.get("invoice") || "";
   const paramJob = searchParams.get("job") || "";
+
+  // Files picked under Upload files (proof of payment, photo of a check).
+  const [files, setFiles] = useState<{ name: string; size: number }[]>([]);
 
   // Resolve an initial customer NAME from the launch context (clientId → client
   // param → the launch invoice's client).
@@ -551,6 +555,36 @@ export function CreatePayment() {
                 )}
                 {selectedCount >= 2 && (
                   <p className="mt-1.5 text-[12px] text-[#6B7280]">Sum of {selectedCount} balances. To pay partially, select a single invoice.</p>
+                )}
+              </div>
+            </section>
+
+            {/* ── Upload files — proof of payment, photo of a check ── */}
+            <section className="flex justify-between gap-8 pb-6 border-b border-[#E5E7EB]">
+              <SectionTitle>Upload files</SectionTitle>
+              <div className="flex-1 max-w-[777px] flex flex-col gap-3">
+                <FileUploadDropzone
+                  accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.heic"
+                  multiple
+                  hint="PDF, JPG, PNG, GIF, WEBP or HEIC (max. 3MB)"
+                  onFilesSelected={(list) => setFiles((prev) => [...prev, ...Array.from(list).map((f) => ({ name: f.name, size: f.size }))])}
+                />
+                {files.length > 0 && (
+                  <div className="border border-[#E5E7EB] rounded-lg divide-y divide-[#EDF0F5]">
+                    {files.map((f, i) => (
+                      <div key={`${f.name}-${i}`} className="flex items-center gap-3 px-3 py-2.5">
+                        <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "18px" }}>description</span>
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate text-[14px] text-[#1A2332]" style={{ fontWeight: 500 }}>{f.name}</div>
+                          <div className="text-[12px] text-[#6B7280]">{f.size < 1024 * 1024 ? `${(f.size / 1024).toFixed(1)} KB` : `${(f.size / (1024 * 1024)).toFixed(1)} MB`} · Waiting for payment save</div>
+                        </div>
+                        <button type="button" aria-label={`Remove ${f.name}`} onClick={() => setFiles((prev) => prev.filter((_, j) => j !== i))}
+                          className="flex h-7 w-7 items-center justify-center rounded text-[#9CA3AF] hover:bg-[#F5F7FA] hover:text-[#DC2626]">
+                          <span className="material-icons" style={{ fontSize: "18px" }}>close</span>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
             </section>

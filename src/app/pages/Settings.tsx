@@ -1,3 +1,4 @@
+import { FileUploadDropzone } from "../components/FileUploadDropzone";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router";
 import { toast } from "sonner";
@@ -3180,13 +3181,13 @@ export function Settings() {
   const handleLogoUpload = (file: File | undefined) => {
     if (!file) return;
 
-    const supportedTypes = ["image/png", "image/jpeg"];
+    const supportedTypes = ["image/svg+xml", "image/png", "image/jpeg", "image/gif"];
     if (!supportedTypes.includes(file.type)) {
-      toast.error("Upload a PNG or JPG logo");
+      toast.error("Upload an SVG, PNG, JPG or GIF logo");
       return;
     }
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error("Logo must be under 2 MB");
+    if (file.size > 3 * 1024 * 1024) {
+      toast.error("Logo must be under 3 MB");
       return;
     }
 
@@ -3477,28 +3478,25 @@ export function Settings() {
                         className="hidden"
                         onChange={e => handleLogoUpload(e.target.files?.[0])}
                       />
-                      <div
-                        className="group flex h-[130px] cursor-pointer flex-col items-center justify-center rounded-xl border border-[#E5E7EB] bg-white transition-colors hover:border-[#C8D5E8]"
-                        onClick={() => logoInputRef.current?.click()}
-                        onDragOver={e => e.preventDefault()}
-                        onDrop={e => {
-                          e.preventDefault();
-                          handleLogoUpload(e.dataTransfer.files?.[0]);
-                        }}
-                      >
-                        {brandLogoPreview ? (
+                      {brandLogoPreview ? (
+                        <div
+                          className="group flex h-[130px] cursor-pointer flex-col items-center justify-center rounded-xl border border-[#E5E7EB] bg-white transition-colors hover:border-[#C8D5E8]"
+                          onClick={() => logoInputRef.current?.click()}
+                          onDragOver={e => e.preventDefault()}
+                          onDrop={e => {
+                            e.preventDefault();
+                            handleLogoUpload(e.dataTransfer.files?.[0]);
+                          }}
+                        >
                           <img src={brandLogoPreview} alt="Company logo" className="max-h-[110px] max-w-full object-contain p-3" />
-                        ) : (
-                          <>
-                            <span className="material-icons text-[#9AA3AF] group-hover:text-[#4A6FA5]" style={{ fontSize: "24px" }}>upload</span>
-                            <p className="mt-1.5 text-[12px] text-[#546478] text-center leading-[18px]">
-                              Drop your files here, or{" "}
-                              <span className="text-[#4A6FA5] underline underline-offset-2" style={{ fontWeight: 600 }}>click to browse</span>
-                            </p>
-                            <p className="mt-0.5 text-[11px] text-[#9AA3AF]">SVG, PNG, JPG or GIF (max. 3MB)</p>
-                          </>
-                        )}
-                      </div>
+                        </div>
+                      ) : (
+                        <FileUploadDropzone
+                          accept=".svg,.png,.jpg,.jpeg,.gif"
+                          hint="SVG, PNG, JPG or GIF (max. 3MB)"
+                          onFilesSelected={(files) => handleLogoUpload(files[0])}
+                        />
+                      )}
                       {brandLogoPreview && (
                         <div className="mt-3 flex gap-2">
                           <Button
@@ -4183,24 +4181,12 @@ export function Settings() {
                               </button>
                             </div>
                           ) : (
-                            <label className="flex h-36 cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-[#E5E7EB] bg-white hover:border-[#B8C3D5]">
-                              <span className="flex h-10 w-10 items-center justify-center rounded-full border border-[#E5E7EB]">
-                                <span className="material-icons text-[#1A2332]" style={{ fontSize: "16px" }}>upload</span>
-                              </span>
-                              <span className="text-center text-[14px] leading-5 text-[#1A2332]">
-                                Drop your file here, or <span className="text-[#4A6FA5] underline">click to browse</span>
-                              </span>
-                              <span className="text-[12px] leading-4 text-[#6B7280]">PDF or DOCX</span>
-                              <input
-                                type="file"
-                                accept=".pdf,.doc,.docx"
-                                className="hidden"
-                                onChange={e => {
-                                  const uploaded = e.target.files?.[0];
-                                  if (uploaded) setFile(uploaded.name);
-                                }}
-                              />
-                            </label>
+                            <FileUploadDropzone
+                              accept=".pdf,.docx"
+                              descriptionPrefix="Drop your file here, or"
+                              hint="PDF or DOCX"
+                              onFilesSelected={(files) => setFile(files[0].name)}
+                            />
                           )}
                         </div>
                       ) : (

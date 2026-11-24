@@ -1,3 +1,4 @@
+import { FileUploadDropzone } from "../components/FileUploadDropzone";
 import { useState, useMemo, useEffect, useSyncExternalStore } from "react";
 import { useNavigate } from "react-router";
 import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
@@ -770,21 +771,14 @@ export function Items() {
               <h3 className="text-[18px] text-[#1A2332]" style={{ fontWeight: 700 }}>Upload items</h3>
               <button onClick={() => setUploadOpen(false)} className="w-8 h-8 flex items-center justify-center rounded hover:bg-[#F5F7FA] text-[#6B7280]"><span className="material-icons" style={{ fontSize: "20px" }}>close</span></button>
             </div>
-            <p className="text-[13px] text-[#6B7280] mb-4">Bulk-upload items from a CSV/XLSX file. Existing items are matched by name; new ones are added.</p>
-            <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-[#C8D5E8] rounded-xl py-8 cursor-pointer hover:bg-[#F9FBFD]">
-              <span className="material-icons text-[#4A6FA5]" style={{ fontSize: "28px" }}>upload_file</span>
-              <span className="text-[13px] text-[#1A2332]" style={{ fontWeight: 500 }}>Choose a CSV or XLSX file</span>
-              <span className="text-[12px] text-[#9CA3AF]">or drag and drop here</span>
-              <input
-                type="file"
-                accept=".csv,.xlsx,.xls"
-                className="hidden"
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) { toast.success(`Uploading items from "${f.name}"`); setUploadOpen(false); }
-                }}
-              />
-            </label>
+            <p className="text-[13px] text-[#6B7280] mb-4">Bulk-upload items from a CSV file. Existing items are matched by name; new ones are added.</p>
+            <FileUploadDropzone
+              accept=".csv,text/csv"
+              descriptionPrefix="Drag and drop a CSV file here, or"
+              browseLabel="browse"
+              hint="CSV, UTF-8, up to 5 MB and 10,000 rows"
+              onFilesSelected={(files) => { toast.success(`Uploading items from "${files[0].name}"`); setUploadOpen(false); }}
+            />
             <div className="mt-4 flex items-center justify-between">
               <button className="text-[13px] text-[#4A6FA5] hover:underline" style={{ fontWeight: 500 }} onClick={() => toast.success("Template downloaded")}>Download template</button>
               <button onClick={() => setUploadOpen(false)} className="px-4 py-2.5 border border-[#E5E7EB] text-[#546478] rounded-lg text-[13px] hover:bg-[#F5F7FA]" style={{ fontWeight: 500 }}>Cancel</button>

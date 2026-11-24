@@ -2,6 +2,7 @@ import { useState, useRef, useSyncExternalStore } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 import { toast } from "sonner";
 import { KebabMenu, KebabItem, KebabSeparator } from "../components/ui/kebab-menu";
+import { FileUploadDropzone } from "../components/FileUploadDropzone";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -95,7 +96,6 @@ export function PaymentDetail() {
 
   // Section 6.3 — attachments (proof of payment, photo of check, etc.)
   const [attachments, setAttachments] = useState<PaymentAttachment[]>([]);
-  const [isDragOver, setIsDragOver] = useState(false);
   const attachInputRef = useRef<HTMLInputElement>(null);
   const [previewIdx, setPreviewIdx] = useState(0);
 
@@ -341,23 +341,13 @@ export function PaymentDetail() {
           onChange={e => { handleFilesAdded(e.target.files); e.target.value = ""; }}
         />
         {attachments.length === 0 ? (
-          <div
-            onDragOver={e => { e.preventDefault(); setIsDragOver(true); }}
-            onDragLeave={() => setIsDragOver(false)}
-            onDrop={e => { e.preventDefault(); setIsDragOver(false); handleFilesAdded(e.dataTransfer.files); }}
-            onClick={() => attachInputRef.current?.click()}
-            className={`mt-4 border-2 border-dashed rounded-xl py-10 px-4 flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors ${
-              isDragOver ? "border-[#4A6FA5] bg-[#EEF3FA]" : "border-[#E5E7EB] hover:border-[#C5D5EC] hover:bg-[#F5F7FA]"
-            }`}
-          >
-            <span className="w-10 h-10 rounded-full border border-[#E5E7EB] flex items-center justify-center">
-              <span className="material-icons text-[#6B7280]" style={{ fontSize: "18px" }}>upload</span>
-            </span>
-            <div className="text-[14px] text-[#1A2332] text-center">
-              Drop your files here, or <span className="text-[#4A6FA5] underline">click to browse</span>
-            </div>
-            <div className="text-[12px] text-[#9CA3AF]">SVG, PNG, JPG or GIF (max. 3MB)</div>
-          </div>
+          <FileUploadDropzone
+            className="mt-4"
+            accept="image/*,application/pdf"
+            multiple
+            hint="PDF, JPG, PNG, GIF, WEBP or HEIC (max. 3MB)"
+            onFilesSelected={handleFilesAdded}
+          />
         ) : (
           <div className="mt-4 border border-[#E5E7EB] rounded-xl bg-white overflow-hidden">
             {/* Large preview */}

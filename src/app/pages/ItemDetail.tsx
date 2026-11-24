@@ -1,3 +1,4 @@
+import { FileUploadDropzone } from "../components/FileUploadDropzone";
 import { useState, useSyncExternalStore } from "react";
 import { useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
@@ -639,12 +640,12 @@ function EditItemInfoModal({ item, images, onAddImages, onRemoveImage, onClose, 
               ))}
             </div>
           )}
-          <label className="flex cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-[#E5E7EB] bg-[#FAFBFC] px-4 py-6 text-center hover:border-[#4A6FA5]">
-            <span className="material-icons text-[#8899AA]" style={{ fontSize: "24px" }}>upload</span>
-            <span className="text-[13px] text-[#546478]">Drop your files here, or <span className="text-[#4A6FA5]">click to browse</span></span>
-            <span className="text-[12px] text-[#9CA3AF]">SVG, PNG, JPG or GIF (max. 3MB)</span>
-            <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => onAddImages(e.target.files)} />
-          </label>
+          <FileUploadDropzone
+            accept=".svg,.png,.jpg,.jpeg,.gif"
+            multiple
+            hint="SVG, PNG, JPG or GIF (max. 3MB)"
+            onFilesSelected={onAddImages}
+          />
         </div>
         <input type="text" value={picture} onChange={(e) => setPicture(e.target.value)} placeholder="Paste image URL" className={mInput} />
         <div><label className={mLabel}>Internal description</label><textarea value={description} onChange={(e) => setDescription(e.target.value)} className={`${mArea} min-h-[64px]`} /></div>

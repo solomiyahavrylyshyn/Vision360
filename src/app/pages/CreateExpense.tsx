@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router";
 import { toast } from "sonner";
 import { ItemPicker, catalogItemToLineItem, type CatalogItem, type SelectedLineItem } from "../components/ItemPicker";
 import { PlusIcon } from "../components/ui/plus-icon";
+import { FileUploadDropzone } from "../components/FileUploadDropzone";
 import { expensesStore } from "../stores/expensesStore";
 import { expenseCategoriesStore } from "../stores/expenseCategoriesStore";
 import { jobsStore } from "../stores/jobsStore";
@@ -76,9 +77,7 @@ function Field({ label, required, children }: { label: string; required?: boolea
 export function CreateExpense() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
-  const dropZoneRef = useRef<HTMLDivElement>(null);
 
   // Section 7.2 — batch entry shortcut: read context from query params
   const initialJobId = searchParams.get("fromJob") || "";
@@ -122,7 +121,6 @@ export function CreateExpense() {
   })();
   const [receipts, setReceipts] = useState<ReceiptFile[]>([]);
   const [saving, setSaving] = useState(false);
-  const [dragOver, setDragOver] = useState(false);
   const [lineItems, setLineItems] = useState<SelectedLineItem[]>([]);
   const [itemPickerOpen, setItemPickerOpen] = useState(false);
   const [taxRate] = useState(7.5);
@@ -151,15 +149,6 @@ export function CreateExpense() {
     if (e.target.files) processFiles(e.target.files);
     e.target.value = "";
   };
-
-  const handleDrop = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault();
-      setDragOver(false);
-      if (e.dataTransfer.files.length) processFiles(e.dataTransfer.files);
-    },
-    [processFiles]
-  );
 
   const removeReceipt = (idx: number) => {
     setReceipts((prev) => prev.filter((_, i) => i !== idx));
@@ -344,28 +333,14 @@ export function CreateExpense() {
 
           {/* ── Receipt ── */}
           <Section label="Receipt">
-            <input ref={fileInputRef} type="file" accept="image/*,.pdf" multiple onChange={handleFileUpload} className="hidden" />
             <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" onChange={handleFileUpload} className="hidden" />
-            <div
-              ref={dropZoneRef}
-              onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-              onDragLeave={() => setDragOver(false)}
-              onDrop={handleDrop}
-              onClick={() => fileInputRef.current?.click()}
-              className={`rounded-xl border-2 border-dashed py-10 transition-all cursor-pointer ${
-                dragOver ? "border-[#4A6FA5] bg-[#4A6FA5]/5" : "border-[#E5E7EB] hover:border-[#4A6FA5]/40 hover:bg-[#F9FAFB]"
-              }`}
-            >
-              <div className="flex flex-col items-center text-center px-4">
-                <div className="w-12 h-12 rounded-full bg-[#F0F4FA] flex items-center justify-center mb-3">
-                  <span className="material-icons text-[#8899AA]" style={{ fontSize: "22px" }}>file_upload</span>
-                </div>
-                <p className="text-[13px] text-[#546478]">
-                  {dragOver ? "Drop files here" : <>Drop your files here, or <span className="text-[#4A6FA5]" style={{ fontWeight: 500 }}>click to browse</span></>}
-                </p>
-                <p className="text-[11px] text-[#8899AA] mt-1">SVG, PNG, JPG or GIF (max. 3MB)</p>
-              </div>
-            </div>
+            <FileUploadDropzone
+              accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv"
+              multiple
+              disabled={saving}
+              hint="PDF, Word, Excel, PowerPoint, TXT, CSV or images (max 25 MB)"
+              onFilesSelected={processFiles}
+            />
 
             {receipts.length > 0 && (
               <div className="space-y-2.5">
